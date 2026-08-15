@@ -1,6 +1,6 @@
 package com.ricardofrango.footballmanager.model
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 
