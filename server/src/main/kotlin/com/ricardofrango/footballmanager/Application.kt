@@ -4,6 +4,7 @@ import com.ricardofrango.footballmanager.data.database.DatabaseFactory
 import com.ricardofrango.footballmanager.di.appModule
 import com.ricardofrango.footballmanager.presentation.routes.authRoutes
 import com.ricardofrango.footballmanager.presentation.routes.clubRoutes
+import com.ricardofrango.footballmanager.presentation.routes.teamRoutes
 import com.ricardofrango.footballmanager.security.JwtConfig
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -62,5 +63,6 @@ fun Application.module() {
         }
         authRoutes()
         clubRoutes()
+        teamRoutes()
     }
 }

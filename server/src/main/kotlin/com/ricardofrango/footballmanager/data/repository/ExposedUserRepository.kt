@@ -1,11 +1,14 @@
 package com.ricardofrango.footballmanager.data.repository
 
+import com.ricardofrango.footballmanager.data.database.ClubMembers
 import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
 import com.ricardofrango.footballmanager.data.database.Users
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
+import com.ricardofrango.footballmanager.model.Role
 import com.ricardofrango.footballmanager.model.User
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.Uuid
@@ -37,6 +40,13 @@ class ExposedUserRepository : UserRepository {
             it[createdAt] = user.createdAt
         }
         insertStatement.insertedCount > 0
+    }
+
+    override suspend fun getUserRoleInClub(userId: String, clubId: String): Role? = dbQuery {
+        ClubMembers.selectAll().where { 
+            (ClubMembers.userId eq Uuid.parse(userId)) and (ClubMembers.clubId eq Uuid.parse(clubId)) 
+        }.map { Role.valueOf(it[ClubMembers.role]) }
+        .singleOrNull()
     }
 
     private fun toUser(row: ResultRow): User = User(
