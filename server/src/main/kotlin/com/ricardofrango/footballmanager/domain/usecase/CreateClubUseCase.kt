@@ -1,19 +1,15 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.ClubRepository
+import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.Club
 
 class CreateClubUseCase(private val repository: ClubRepository) {
-    suspend operator fun invoke(club: Club): Result<Boolean> {
+    suspend operator fun invoke(club: Club): Boolean {
         if (club.name.isBlank()) {
-            return Result.failure(IllegalArgumentException("Club name cannot be empty"))
+            throw ValidationException("Club name cannot be empty")
         }
         
-        return try {
-            val success = repository.createClub(club)
-            Result.success(success)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+        return repository.createClub(club)
     }
 }

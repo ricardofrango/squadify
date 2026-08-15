@@ -2,6 +2,7 @@ package com.ricardofrango.footballmanager.presentation.routes
 
 import com.ricardofrango.footballmanager.domain.usecase.CreateTeamUseCase
 import com.ricardofrango.footballmanager.domain.usecase.ManageTeamUseCase
+import com.ricardofrango.footballmanager.model.ErrorResponse
 import com.ricardofrango.footballmanager.model.Team
 import com.ricardofrango.footballmanager.security.userId
 import io.ktor.http.*
@@ -22,17 +23,12 @@ fun Route.teamRoutes() {
                 val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                 val teamRequest = call.receive<Team>()
                 
-                createTeamUseCase(currentUserId, teamRequest)
-                    .onSuccess { success ->
-                        if (success) call.respond(HttpStatusCode.Created)
-                        else call.respond(HttpStatusCode.InternalServerError)
-                    }
-                    .onFailure { error ->
-                        when(error) {
-                            is IllegalAccessException -> call.respond(HttpStatusCode.Forbidden, error.message!!)
-                            else -> call.respond(HttpStatusCode.BadRequest, error.message ?: "Unknown error")
-                        }
-                    }
+                val success = createTeamUseCase(currentUserId, teamRequest)
+                if (success) {
+                    call.respond(HttpStatusCode.Created)
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to create team", "-1"))
+                }
             }
 
             patch("/{teamId}") {

@@ -4,6 +4,7 @@ import com.ricardofrango.footballmanager.domain.usecase.CheckClubPermissionUseCa
 import com.ricardofrango.footballmanager.domain.usecase.CreateClubUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetClubsUseCase
 import com.ricardofrango.footballmanager.model.Club
+import com.ricardofrango.footballmanager.model.ErrorResponse
 import com.ricardofrango.footballmanager.model.Role
 import com.ricardofrango.footballmanager.security.userId
 import io.ktor.http.*
@@ -28,21 +29,13 @@ fun Route.clubRoutes() {
             }
 
             post {
-                // For creating a club, we might need a Platform Admin role, 
-                // but let's assume any registered user can create a club for now 
-                // as per the MVP phase 1.
                 val clubRequest = call.receive<Club>()
-                createClubUseCase(clubRequest)
-                    .onSuccess { success ->
-                        if (success) {
-                            call.respond(HttpStatusCode.Created)
-                        } else {
-                            call.respond(HttpStatusCode.InternalServerError, "Failed to create club")
-                        }
-                    }
-                    .onFailure { error ->
-                        call.respond(HttpStatusCode.BadRequest, error.message ?: "Unknown error")
-                    }
+                val success = createClubUseCase(clubRequest)
+                if (success) {
+                    call.respond(HttpStatusCode.Created)
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to create club", "-1"))
+                }
             }
 
             get("/{clubId}") {
@@ -52,7 +45,7 @@ fun Route.clubRoutes() {
                 // Check if user has permission to see this club's details
                 val hasPermission = checkClubPermissionUseCase(currentUserId, clubId, Role.entries)
                 if (!hasPermission) {
-                    return@get call.respond(HttpStatusCode.Forbidden, "Access denied")
+                    return@get call.respond(HttpStatusCode.Forbidden, ErrorResponse("Access denied"))
                 }
                 
                 // Logic to get specific club details

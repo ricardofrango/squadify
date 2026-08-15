@@ -2,6 +2,7 @@ package com.ricardofrango.footballmanager.presentation.routes
 
 import com.ricardofrango.footballmanager.domain.usecase.LoginUseCase
 import com.ricardofrango.footballmanager.domain.usecase.RegisterUseCase
+import com.ricardofrango.footballmanager.model.ErrorResponse
 import com.ricardofrango.footballmanager.model.LoginRequest
 import com.ricardofrango.footballmanager.model.RegisterRequest
 import io.ktor.http.*
@@ -18,28 +19,18 @@ fun Route.authRoutes() {
     route("/auth") {
         post("/register") {
             val request = call.receive<RegisterRequest>()
-            registerUseCase(request)
-                .onSuccess { success ->
-                    if (success) {
-                        call.respond(HttpStatusCode.Created, "User registered successfully")
-                    } else {
-                        call.respond(HttpStatusCode.InternalServerError, "Failed to register user")
-                    }
-                }
-                .onFailure { error ->
-                    call.respond(HttpStatusCode.BadRequest, error.message ?: "Registration failed")
-                }
+            val success = registerUseCase(request)
+            if (success) {
+                call.respond(HttpStatusCode.Created, mapOf("message" to "User registered successfully"))
+            } else {
+                call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to register user", "-1"))
+            }
         }
 
         post("/login") {
             val request = call.receive<LoginRequest>()
-            loginUseCase(request)
-                .onSuccess { response ->
-                    call.respond(response)
-                }
-                .onFailure { error ->
-                    call.respond(HttpStatusCode.Unauthorized, error.message ?: "Login failed")
-                }
+            val response = loginUseCase(request)
+            call.respond(response)
         }
     }
 }

@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.ktor.server.auth.jwt)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.exposed.kotlin.datetime)
+    implementation(libs.kotlinx.datetime)
     implementation(libs.identity.jvm)
 
     // konf

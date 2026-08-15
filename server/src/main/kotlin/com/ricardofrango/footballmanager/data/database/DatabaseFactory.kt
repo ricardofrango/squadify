@@ -8,27 +8,36 @@ import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.slf4j.LoggerFactory
 
 object DatabaseFactory {
-    fun init() {
-        val driverClassName = "org.h2.Driver"
-        val jdbcURL = "jdbc:h2:file:./build/db"
-        val database = Database.connect(createHikariDataSource(jdbcURL, driverClassName))
+    private val logger = LoggerFactory.getLogger(javaClass)
 
-        transaction(database) {
-            SchemaUtils.create(
-                Users,
-                Clubs,
-                ClubMembers,
-                Seasons,
-                AgeGroups,
-                Teams,
-                Players,
-                TeamPlayers,
-                TeamStaff,
-                UserPlayers
-            )
-            Unit
+    fun init() {
+        try {
+            val driverClassName = "org.h2.Driver"
+            val jdbcURL = "jdbc:h2:file:./build/db"
+            val database = Database.connect(createHikariDataSource(jdbcURL, driverClassName))
+
+            transaction(database) {
+                SchemaUtils.create(
+                    Users,
+                    Clubs,
+                    ClubMembers,
+                    Seasons,
+                    AgeGroups,
+                    Teams,
+                    Players,
+                    TeamPlayers,
+                    TeamStaff,
+                    UserPlayers
+                )
+                Unit
+            }
+            logger.info("Database initialized successfully")
+        } catch (e: Exception) {
+            logger.error("Failed to initialize database", e)
+            throw e
         }
     }
 
