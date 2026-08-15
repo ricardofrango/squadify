@@ -1,0 +1,41 @@
+# Technical Decisions - Football Manager Platform
+
+This document records the architectural patterns, libraries, and design principles adopted in this project.
+
+## 1. Architectural Pattern: Clean Architecture
+We follow a layered architecture to ensure separation of concerns, testability, and independence from frameworks.
+
+### Layers:
+- **Domain**: The core of the application. Contains **Entities**, **Repository Interfaces**, and **Use Cases**. It has no dependencies on external libraries (except for core language features).
+    - *Use Cases*: Represent a single business action (e.g., `RegisterUseCase`). They orchestrate the flow of data.
+- **Data**: Responsible for data persistence and external API communication. Contains **Repository Implementations**, **Exposed Tables**, and **Database Configuration**.
+- **Presentation**: The entry point for users. In the `:server`, this means **Ktor Routes**. In the `:app`, it will be **Compose UI** and **ViewModels**.
+- **Core**: A shared module (`:core`) containing models, exceptions, and utilities used by both the Backend and Frontend.
+
+## 2. Dependency Injection: Koin
+We use **Koin** for dependency injection because it is lightweight, KMP-friendly, and uses a DSL-based configuration that fits perfectly with Kotlin.
+- Modules are defined in `di/AppModule.kt`.
+- Use Cases and Repositories are registered and injected into Routes/Controllers.
+
+## 3. Database Layer: JetBrains Exposed (v1)
+We use **Exposed** as our SQL ORM.
+- **Version 1.4.0+**: We use the latest stable version (using the `v1` package structure).
+- **DSL Approach**: We prefer the Type-safe DSL for building queries.
+- **Multi-Tenancy**: Every club-specific table contains a `clubId` to ensure data isolation.
+- **Concurrency**: All database operations are wrapped in a `dbQuery` utility using `suspendTransaction` to ensure they don't block the Ktor threads.
+
+## 4. Shared Models & Serialization
+- **kotlinx.serialization**: Used for all JSON encoding/decoding.
+- **kotlinx-datetime**: Used for handling dates and times across the platform.
+- **Error Handling**: A custom hierarchy of `FootballManagerException` ensures that business errors are consistently reported with specific codes and HTTP status mapping via Ktor's `StatusPages`.
+
+## 5. Security & Authentication
+- **JWT (JSON Web Tokens)**: Used for stateless authentication.
+- **BCrypt**: Used for hashing passwords before storage.
+- **Contextual RBAC**: Permissions are not just global; they are validated based on the user's role *within* a specific club.
+
+## 6. Project Structure (KMP)
+- `:server`: Ktor backend.
+- `:core`: Shared logic, models, and exceptions.
+- `:app:shared`: Shared UI components and logic (Compose Multiplatform).
+- `:app:androidApp`, `:app:iosApp`, `:app:webApp`: Platform-specific entry points.

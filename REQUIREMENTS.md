@@ -1,0 +1,62 @@
+# Football Manager Platform - Requirements
+
+This document outlines the core requirements and architectural decisions for the Football Manager platform.
+
+## 1. User Profiles & Roles
+The application supports four primary user types, with roles being context-dependent (assigned per club):
+- **Club Admin / Coordinator**: Global club management.
+- **Coach**: Management of assigned teams, matches, and call-ups.
+- **Staff**: Specific functional tasks (Physio, Team Manager).
+- **Parent / User**: Consult child info, call-ups, and calendar.
+
+*Future roles: Platform Admin, Payment Management, Document Management.*
+
+## 2. Main Hierarchy
+The domain follows a multi-tenant structure isolated by `clubId`:
+`Club -> Age Group -> Team -> (Players / Coaches / Staff)`
+- An **Age Group** (e.g., Sub-18) can contain multiple **Teams** (e.g., Sub-18 A, Sub-18 B).
+- Entities like **Team** and **Age Group** are tied to a **Season** to maintain historical data.
+
+## 3. Core Entities
+- **User**: Account data (email, phone, name, avatar, status).
+- **Club**: Branding and contact info.
+- **Season**: Time-bound periods (e.g., 2025/2026).
+- **Age Group**: Categorization of players by age.
+- **Team**: Specific groups within age groups.
+- **Player**: Personal data and stats.
+- **ClubMember**: Links Users to Clubs with a specific Role.
+- **TeamPlayer**: Links Players to Teams (handles transfers).
+- **UserPlayer**: Links Parents to Players (supports multiple guardians).
+
+## 4. Authentication & Security
+- **Authentication**: JWT (JSON Web Tokens).
+- **Password Security**: Hashing using BCrypt.
+- **Access Rights**: 
+    - Authorization is checked at the API level based on UserRole in the Club context.
+    - Admins/Coordinators: Full access.
+    - Coaches: Can only manage teams where they are assigned as staff.
+- **Error Handling**: Standardized `ErrorResponse` JSON for all failures, using a custom `FootballManagerException` hierarchy.
+
+## 5. Match Management
+- **Match**: Details about opponents, location, date, and status.
+- **MatchCallUp**: List of players called for a match with attendance status (Called, Confirmed, Injured, etc.).
+- **Live Match**: Real-time event logging by coaches (Goals, Assists, Substitutions, Cards).
+- **MatchStatus**: `SCHEDULED`, `LIVE`, `HALF_TIME`, `FINISHED`, `CANCELLED`.
+
+## 6. Parent Features
+- **Dashboard**: Quick view of children's upcoming events.
+- **Calendar**: Aggregated view of all matches and training for their children.
+- **Filters**: Capability to filter events by child.
+
+## 7. Technical Stack
+- **Architecture**: Clean Architecture (Domain, Data, Presentation).
+- **Backend**: Kotlin, Ktor, Exposed (ORM), PostgreSQL (Production), H2 (Local Dev), Flyway (Migrations), Koin (DI).
+- **Frontend**: KMP (Android, iOS, Web), Compose Multiplatform.
+- **Shared**: `:core` module for models and shared logic.
+
+## 8. Development Roadmap
+- [x] **Phase 1: Club Structure**: Database schema, models, and basic CRUD for Clubs.
+- [x] **Phase 2: Authentication**: Register, Login, JWT, and initial Access Rights logic.
+- [ ] **Phase 3: Seasons, Teams & Players**: Full management of the club hierarchy.
+- [ ] **Phase 4: Match & Call-ups**: Calendar and attendance management.
+- [ ] **Phase 5: Live Match & Stats**: Real-time events and automated statistics calculation.
