@@ -87,15 +87,15 @@ data class User(
 
 @Serializable
 data class Club(
-    val id: String,
+    val id: String? = null,
     val name: String,
     val shortName: String? = null,
     val logoUrl: String? = null,
     val email: String? = null,
     val phone: String? = null,
     val address: String? = null,
-    val status: ClubStatus,
-    val createdAt: Instant
+    val status: ClubStatus? = null,
+    val createdAt: Instant? = null,
 )
 
 @Serializable

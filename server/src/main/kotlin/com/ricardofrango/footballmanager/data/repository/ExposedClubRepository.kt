@@ -4,10 +4,13 @@ import com.ricardofrango.footballmanager.data.database.Clubs
 import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
 import com.ricardofrango.footballmanager.domain.repository.ClubRepository
 import com.ricardofrango.footballmanager.model.Club
+import com.ricardofrango.footballmanager.model.ClubStatus
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 class ExposedClubRepository : ClubRepository {
@@ -18,15 +21,15 @@ class ExposedClubRepository : ClubRepository {
 
     override suspend fun createClub(club: Club): Boolean = dbQuery {
         val insertStatement = Clubs.insert {
-            it[Clubs.id] = Uuid.parse(club.id)
+            it[Clubs.id] = club.id?.let(Uuid::parse) ?: Uuid.random()
             it[Clubs.name] = club.name
             it[Clubs.shortName] = club.shortName
             it[Clubs.logoUrl] = club.logoUrl
             it[Clubs.email] = club.email
             it[Clubs.phone] = club.phone
             it[Clubs.address] = club.address
-            it[Clubs.status] = club.status
-            it[Clubs.createdAt] = club.createdAt
+            it[Clubs.status] = club.status ?: ClubStatus.ACTIVE
+            it[Clubs.createdAt] = club.createdAt ?: Instant.fromEpochMilliseconds(System.currentTimeMillis())
         }
         insertStatement.insertedCount > 0
     }
