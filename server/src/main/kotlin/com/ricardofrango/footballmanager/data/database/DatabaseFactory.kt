@@ -32,6 +32,21 @@ object DatabaseFactory {
                     TeamStaff,
                     UserPlayers
                 )
+
+                // Data migration: Convert lowercase status/roles to uppercase for Enum compatibility
+                // We use double quotes to match Exposed's default quoting and handle H2 keywords like 'role'
+                logger.info("Running data migration to uppercase enums...")
+                try {
+                    exec("""UPDATE "users" SET "status" = UPPER("status")""")
+                    exec("""UPDATE "clubs" SET "status" = UPPER("status")""")
+                    exec("""UPDATE "club_members" SET "role" = UPPER("role")""")
+                    exec("""UPDATE "team_players" SET "status" = UPPER("status")""")
+                    exec("""UPDATE "team_staff" SET "role" = UPPER("role")""")
+                    exec("""UPDATE "user_players" SET "relationship" = UPPER("relationship")""")
+                } catch (e: Exception) {
+                    logger.warn("Data migration notice: ${e.message}. This might be normal if the database is already updated.")
+                }
+
                 Unit
             }
             logger.info("Database initialized successfully")

@@ -5,7 +5,7 @@ import com.ricardofrango.footballmanager.exception.ConflictException
 import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.RegisterRequest
 import com.ricardofrango.footballmanager.model.User
-import kotlinx.datetime.Clock
+import com.ricardofrango.footballmanager.model.UserStatus
 import org.mindrot.jbcrypt.BCrypt
 import kotlin.uuid.Uuid
 import kotlin.time.Instant
@@ -28,7 +28,7 @@ class RegisterUseCase(private val userRepository: UserRepository) {
             phone = request.phone,
             firstName = request.firstName,
             lastName = request.lastName,
-            status = "active",
+            status = UserStatus.ACTIVE,
             createdAt = Instant.fromEpochMilliseconds(System.currentTimeMillis())
         )
 

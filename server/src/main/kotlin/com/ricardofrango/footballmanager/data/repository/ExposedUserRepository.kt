@@ -45,7 +45,7 @@ class ExposedUserRepository : UserRepository {
     override suspend fun getUserRoleInClub(userId: String, clubId: String): Role? = dbQuery {
         ClubMembers.selectAll().where { 
             (ClubMembers.userId eq Uuid.parse(userId)) and (ClubMembers.clubId eq Uuid.parse(clubId)) 
-        }.map { Role.valueOf(it[ClubMembers.role]) }
+        }.map { it[ClubMembers.role] }
         .singleOrNull()
     }
 

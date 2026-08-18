@@ -5,6 +5,7 @@ import com.ricardofrango.footballmanager.data.database.TeamStaff
 import com.ricardofrango.footballmanager.data.database.Teams
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.model.Team
+import com.ricardofrango.footballmanager.model.TeamStaffRole
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.and
@@ -33,7 +34,7 @@ class ExposedTeamRepository : TeamRepository {
         insertStatement.insertedCount > 0
     }
 
-    override suspend fun isUserStaffOfTeam(userId: String, teamId: String, role: String?): Boolean = dbQuery {
+    override suspend fun isUserStaffOfTeam(userId: String, teamId: String, role: TeamStaffRole?): Boolean = dbQuery {
         val query = TeamStaff.selectAll().where { 
             (TeamStaff.userId eq Uuid.parse(userId)) and (TeamStaff.teamId eq Uuid.parse(teamId)) 
         }

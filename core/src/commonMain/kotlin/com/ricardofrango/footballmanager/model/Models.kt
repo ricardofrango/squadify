@@ -15,6 +15,46 @@ enum class Role {
 }
 
 @Serializable
+enum class UserStatus {
+    ACTIVE,
+    INACTIVE,
+    PENDING,
+    SUSPENDED
+}
+
+@Serializable
+enum class ClubStatus {
+    ACTIVE,
+    INACTIVE,
+    PENDING
+}
+
+@Serializable
+enum class TeamPlayerStatus {
+    ACTIVE,
+    INACTIVE,
+    TRANSFERRED,
+    INJURED
+}
+
+@Serializable
+enum class TeamStaffRole {
+    HEAD_COACH,
+    ASSISTANT_COACH,
+    TEAM_MANAGER,
+    PHYSIO,
+    STAFF
+}
+
+@Serializable
+enum class UserPlayerRelationship {
+    FATHER,
+    MOTHER,
+    GUARDIAN,
+    OTHER
+}
+
+@Serializable
 enum class MatchStatus {
     SCHEDULED,
     LIVE,
@@ -41,7 +81,7 @@ data class User(
     val firstName: String,
     val lastName: String,
     val avatarUrl: String? = null,
-    val status: String,
+    val status: UserStatus,
     val createdAt: Instant
 )
 
@@ -54,7 +94,7 @@ data class Club(
     val email: String? = null,
     val phone: String? = null,
     val address: String? = null,
-    val status: String,
+    val status: ClubStatus,
     val createdAt: Instant
 )
 
@@ -107,7 +147,7 @@ data class TeamPlayer(
     val playerId: String,
     val startDate: LocalDate,
     val endDate: LocalDate? = null,
-    val status: String
+    val status: TeamPlayerStatus
 )
 
 @Serializable
@@ -115,7 +155,7 @@ data class TeamStaff(
     val id: String,
     val teamId: String,
     val userId: String,
-    val role: String // e.g., HEAD_COACH, ASSISTANT_COACH
+    val role: TeamStaffRole
 )
 
 @Serializable
@@ -132,5 +172,5 @@ data class UserPlayer(
     val id: String,
     val userId: String,
     val playerId: String,
-    val relationship: String // e.g., FATHER, MOTHER, GUARDIAN
+    val relationship: UserPlayerRelationship
 )
