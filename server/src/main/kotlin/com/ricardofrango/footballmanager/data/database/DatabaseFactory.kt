@@ -23,6 +23,7 @@ object DatabaseFactory {
                 SchemaUtils.create(
                     Users,
                     Clubs,
+                    RefreshTokens,
                     ClubMembers,
                     Seasons,
                     AgeGroups,

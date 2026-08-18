@@ -86,6 +86,7 @@ fun Application.module() {
                 HttpStatusCode.InternalServerError,
                 ErrorResponse(cause.message ?: "An unexpected error occurred", "-1")
             )
+            cause.printStackTrace()
         }
     }
 

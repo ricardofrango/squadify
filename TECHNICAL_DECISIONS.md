@@ -31,6 +31,8 @@ We use **Exposed** as our SQL ORM.
 
 ## 5. Security & Authentication
 - **JWT (JSON Web Tokens)**: Used for stateless authentication.
+    - **Access Tokens**: Short-lived (1 hour) for regular requests.
+    - **Refresh Tokens**: Long-lived (24 days) stored in the database for session renewal.
 - **BCrypt**: Used for hashing passwords before storage.
 - **Contextual RBAC**: Permissions are not just global; they are validated based on the user's role *within* a specific club.
 

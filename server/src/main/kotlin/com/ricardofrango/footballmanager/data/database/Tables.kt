@@ -1,5 +1,6 @@
 package com.ricardofrango.footballmanager.data.database
 
+import com.ricardofrango.footballmanager.model.*
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.datetime.date
@@ -14,6 +15,15 @@ object Users : Table("users") {
     val avatarUrl = varchar("avatar_url", 500).nullable()
     val status = enumerationByName("status", 50, UserStatus::class).default(UserStatus.ACTIVE)
     val createdAt = timestamp("created_at")
+
+    override val primaryKey = PrimaryKey(id)
+}
+
+object RefreshTokens : Table("refresh_tokens") {
+    val id = uuid("id")
+    val userId = uuid("user_id").references(Users.id)
+    val token = varchar("token", 500).uniqueIndex()
+    val expiresAt = timestamp("expires_at")
 
     override val primaryKey = PrimaryKey(id)
 }

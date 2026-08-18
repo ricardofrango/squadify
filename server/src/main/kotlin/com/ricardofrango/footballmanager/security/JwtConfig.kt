@@ -9,7 +9,9 @@ object JwtConfig {
     private const val SECRET = "my-super-secret-football-manager-key" // In production, use environment variables
     private const val ISSUER = "com.ricardofrango.footballmanager"
     private const val AUDIENCE = "football-manager-users"
-    private const val VALIDITY_MS = 36_000_00 * 24 // 24 hours
+    
+    private const val ACCESS_TOKEN_VALIDITY_MS = 3_600_000 // 1 hour
+    private const val REFRESH_TOKEN_VALIDITY_MS = 36_000_000 * 24 // 24 days
 
     private val algorithm = Algorithm.HMAC256(SECRET)
 
@@ -19,10 +21,16 @@ object JwtConfig {
         .withAudience(AUDIENCE)
         .build()
 
-    fun generateToken(userId: String): String = JWT.create()
+    fun generateAccessToken(userId: String): String = generateToken(userId, ACCESS_TOKEN_VALIDITY_MS)
+    
+    fun generateRefreshToken(): String = UUID.randomUUID().toString()
+
+    private fun generateToken(userId: String, validityMs: Int): String = JWT.create()
         .withSubject(userId)
         .withIssuer(ISSUER)
         .withAudience(AUDIENCE)
-        .withExpiresAt(Date(System.currentTimeMillis() + VALIDITY_MS))
+        .withExpiresAt(Date(System.currentTimeMillis() + validityMs))
         .sign(algorithm)
+        
+    fun getRefreshTokenExpiration(): Long = System.currentTimeMillis() + REFRESH_TOKEN_VALIDITY_MS
 }

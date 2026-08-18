@@ -6,6 +6,7 @@ import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.LoginRequest
 import com.ricardofrango.footballmanager.model.LoginResponse
 import com.ricardofrango.footballmanager.security.JwtConfig
+import kotlin.time.Instant
 import org.mindrot.jbcrypt.BCrypt
 
 class LoginUseCase(private val userRepository: UserRepository) {
@@ -24,7 +25,12 @@ class LoginUseCase(private val userRepository: UserRepository) {
             throw UnauthorizedException("Invalid email or password")
         }
 
-        val token = JwtConfig.generateToken(user.id)
-        return LoginResponse(token, user)
+        val accessToken = JwtConfig.generateAccessToken(user.id)
+        val refreshToken = JwtConfig.generateRefreshToken()
+        val expiresAt = Instant.fromEpochMilliseconds(JwtConfig.getRefreshTokenExpiration())
+        
+        userRepository.saveRefreshToken(user.id, refreshToken, expiresAt)
+        
+        return LoginResponse(accessToken, refreshToken, user)
     }
 }

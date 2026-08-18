@@ -2,6 +2,7 @@ package com.ricardofrango.footballmanager.data.repository
 
 import com.ricardofrango.footballmanager.data.database.ClubMembers
 import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
+import com.ricardofrango.footballmanager.data.database.RefreshTokens
 import com.ricardofrango.footballmanager.data.database.Users
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.model.Role
@@ -11,6 +12,8 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 class ExposedUserRepository : UserRepository {
@@ -47,6 +50,29 @@ class ExposedUserRepository : UserRepository {
             (ClubMembers.userId eq Uuid.parse(userId)) and (ClubMembers.clubId eq Uuid.parse(clubId)) 
         }.map { it[ClubMembers.role] }
         .singleOrNull()
+    }
+
+    override suspend fun saveRefreshToken(userId: String, token: String, expiresAt: Instant) {
+        dbQuery {
+            RefreshTokens.insert {
+                it[id] = Uuid.random()
+                it[RefreshTokens.userId] = Uuid.parse(userId)
+                it[RefreshTokens.token] = token
+                it[RefreshTokens.expiresAt] = expiresAt
+            }
+        }
+    }
+
+    override suspend fun findUserIdByRefreshToken(token: String): String? = dbQuery {
+        RefreshTokens.selectAll().where { RefreshTokens.token eq token }
+            .map { it[RefreshTokens.userId].toString() }
+            .singleOrNull()
+    }
+
+    override suspend fun deleteRefreshToken(token: String) {
+        dbQuery {
+            RefreshTokens.deleteWhere { RefreshTokens.token eq token }
+        }
     }
 
     private fun toUser(row: ResultRow): User = User(

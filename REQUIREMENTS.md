@@ -29,7 +29,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 - **UserPlayer**: Links Parents to Players (supports multiple guardians).
 
 ## 4. Authentication & Security
-- **Authentication**: JWT (JSON Web Tokens).
+- **Authentication**: JWT (JSON Web Tokens) with Refresh Token flow.
 - **Password Security**: Hashing using BCrypt.
 - **Access Rights**: 
     - Authorization is checked at the API level based on UserRole in the Club context.

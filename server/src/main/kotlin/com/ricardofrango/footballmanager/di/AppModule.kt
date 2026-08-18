@@ -18,6 +18,7 @@ val appModule = module {
     factory { CreateClubUseCase(get()) }
     factory { RegisterUseCase(get()) }
     factory { LoginUseCase(get()) }
+    factory { RefreshTokenUseCase(get()) }
     factory { CheckClubPermissionUseCase(get()) }
     factory { CheckTeamPermissionUseCase(get()) }
     factory { CreateTeamUseCase(get(), get()) }
