@@ -1,6 +1,7 @@
 package com.ricardofrango.footballmanager.presentation.routes
 
 import com.ricardofrango.footballmanager.domain.usecase.CreateTeamUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetTeamsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.ManageTeamUseCase
 import com.ricardofrango.footballmanager.model.ErrorResponse
 import com.ricardofrango.footballmanager.model.Team
@@ -16,9 +17,16 @@ import org.koin.ktor.ext.inject
 fun Route.teamRoutes() {
     val createTeamUseCase by inject<CreateTeamUseCase>()
     val manageTeamUseCase by inject<ManageTeamUseCase>()
+    val getTeamsUseCase by inject<GetTeamsUseCase>()
 
     authenticate("auth-jwt") {
         route("/teams") {
+            get {
+                val clubId = call.request.queryParameters["clubId"] ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("clubId is required", "VAL_001"))
+                val teams = getTeamsUseCase(clubId)
+                call.respond(teams)
+            }
+
             post {
                 val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                 val teamRequest = call.receive<Team>()

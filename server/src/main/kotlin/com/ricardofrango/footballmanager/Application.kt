@@ -5,6 +5,9 @@ import com.ricardofrango.footballmanager.di.appModule
 import com.ricardofrango.footballmanager.presentation.routes.authRoutes
 import com.ricardofrango.footballmanager.presentation.routes.clubRoutes
 import com.ricardofrango.footballmanager.presentation.routes.teamRoutes
+import com.ricardofrango.footballmanager.presentation.routes.seasonRoutes
+import com.ricardofrango.footballmanager.presentation.routes.ageGroupRoutes
+import com.ricardofrango.footballmanager.presentation.routes.playerRoutes
 import com.ricardofrango.footballmanager.security.JwtConfig
 import com.ricardofrango.footballmanager.model.ErrorResponse
 import com.ricardofrango.footballmanager.exception.*
@@ -16,9 +19,10 @@ import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.BadRequestException
-import kotlinx.serialization.SerializationException
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.request.ContentTransformationException
+import kotlinx.serialization.SerializationException
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
@@ -76,16 +80,21 @@ fun Application.module() {
             call.respond(status, ErrorResponse(cause.message, cause.code))
         }
         exception<BadRequestException> { call, _ ->
-            call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid request body", "VAL_000"))
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid request body or parameters", "VAL_000"))
+        }
+        exception<ContentTransformationException> { call, _ ->
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid request body content", "VAL_000"))
         }
         exception<SerializationException> { call, _ ->
-            call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid request body", "VAL_000"))
+            call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid field values in request body", "VAL_000"))
         }
         exception<Throwable> { call, cause ->
+            // Mask internal details for any other unhandled exceptions
             call.respond(
                 HttpStatusCode.InternalServerError,
-                ErrorResponse(cause.message ?: "An unexpected error occurred", "-1")
+                ErrorResponse("An internal server error occurred", "-1")
             )
+            // Log the actual cause for the developer (optional, usually handled by Ktor logging)
             cause.printStackTrace()
         }
     }
@@ -97,5 +106,8 @@ fun Application.module() {
         authRoutes()
         clubRoutes()
         teamRoutes()
+        seasonRoutes()
+        ageGroupRoutes()
+        playerRoutes()
     }
 }
