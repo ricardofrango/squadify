@@ -16,7 +16,8 @@ object DatabaseFactory {
     fun init() {
         try {
             val driverClassName = "org.h2.Driver"
-            val jdbcURL = "jdbc:h2:file:./build/db"
+            // Using absolute path and AUTO_SERVER=TRUE to allow multiple connections (Server + Web Console)
+            val jdbcURL = "jdbc:h2:file:/Users/ricardofrango/Dev/KMM/FootballManager/server/build/db;AUTO_SERVER=TRUE"
             val database = Database.connect(createHikariDataSource(jdbcURL, driverClassName))
 
             transaction(database) {
@@ -35,17 +36,19 @@ object DatabaseFactory {
                 )
 
                 // Data migration: Convert lowercase status/roles to uppercase for Enum compatibility
-                // We use double quotes to match Exposed's default quoting and handle H2 keywords like 'role'
-                logger.info("Running data migration to uppercase enums...")
+                logger.info("Normalizing data for enums...")
                 try {
-                    exec("""UPDATE "users" SET "status" = UPPER("status")""")
-                    exec("""UPDATE "clubs" SET "status" = UPPER("status")""")
-                    exec("""UPDATE "club_members" SET "role" = UPPER("role")""")
-                    exec("""UPDATE "team_players" SET "status" = UPPER("status")""")
-                    exec("""UPDATE "team_staff" SET "role" = UPPER("role")""")
-                    exec("""UPDATE "user_players" SET "relationship" = UPPER("relationship")""")
+                    // Using uppercase names as suggested by H2 and catching errors if tables are empty/migrated
+                    exec("""UPDATE USERS SET status = 'ACTIVE' WHERE status = 'active'""")
+                    exec("""UPDATE USERS SET status = 'INACTIVE' WHERE status = 'inactive'""")
+                    exec("""UPDATE CLUBS SET status = 'ACTIVE' WHERE status = 'active'""")
+                    exec("""UPDATE CLUBS SET status = 'INACTIVE' WHERE status = 'inactive'""")
+                    exec("""UPDATE CLUB_MEMBERS SET role = UPPER(role)""")
+                    exec("""UPDATE TEAM_PLAYERS SET status = UPPER(status)""")
+                    exec("""UPDATE TEAM_STAFF SET role = UPPER(role)""")
+                    exec("""UPDATE USER_PLAYERS SET relationship = UPPER(relationship)""")
                 } catch (e: Exception) {
-                    logger.warn("Data migration notice: ${e.message}. This might be normal if the database is already updated.")
+                    logger.warn("Data migration notice: ${e.message}")
                 }
 
                 Unit
@@ -62,6 +65,8 @@ object DatabaseFactory {
             HikariConfig().apply {
                 driverClassName = driver
                 jdbcUrl = url
+                username = "sa"
+                password = ""
                 maximumPoolSize = 3
                 isAutoCommit = false
                 transactionIsolation = "TRANSACTION_REPEATABLE_READ"

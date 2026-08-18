@@ -34,6 +34,14 @@ import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
 
 fun main() {
+    // Start H2 Web Console on port 8082
+    try {
+        org.h2.tools.Server.createWebServer("-web", "-webAllowOthers", "-webPort", "8082").start()
+        println("H2 Web Console started at http://localhost:8082")
+    } catch (e: Exception) {
+        println("Failed to start H2 Console: ${e.message}")
+    }
+
     embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
         .start(wait = true)
 }
