@@ -21,6 +21,12 @@ class ExposedClubRepository : ClubRepository {
         Clubs.selectAll().map(::toClub)
     }
 
+    override suspend fun getClubsByUser(userId: String): List<Club> = dbQuery {
+        (Clubs innerJoin ClubMembers).selectAll()
+            .where { ClubMembers.userId eq Uuid.parse(userId) }
+            .map(::toClub)
+    }
+
     override suspend fun createClub(club: Club): Boolean = dbQuery {
         val insertStatement = Clubs.insert {
             it[Clubs.id] = club.id?.let(Uuid::parse) ?: Uuid.random()

@@ -2,6 +2,7 @@ package com.ricardofrango.footballmanager.presentation.routes
 
 import com.ricardofrango.footballmanager.domain.usecase.CheckClubPermissionUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CreateClubUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetClubDetailsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetClubsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.ProvisionClubUseCase
 import com.ricardofrango.footballmanager.model.*
@@ -15,14 +16,14 @@ import org.koin.ktor.ext.inject
 
 fun Route.clubRoutes() {
     val getClubsUseCase by inject<GetClubsUseCase>()
+    val getClubDetailsUseCase by inject<GetClubDetailsUseCase>()
     val provisionClubUseCase by inject<ProvisionClubUseCase>()
-    val checkClubPermissionUseCase by inject<CheckClubPermissionUseCase>()
 
     authenticate("auth-jwt") {
         route("/clubs") {
             get {
-                // For now, anyone authenticated can list clubs (MVP simplification)
-                val clubs = getClubsUseCase()
+                val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                val clubs = getClubsUseCase(currentUserId)
                 call.respond(clubs)
             }
 
@@ -42,14 +43,8 @@ fun Route.clubRoutes() {
                 val clubId = call.parameters["clubId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
                 val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
 
-                // Check if user has permission to see this club's details
-                val hasPermission = checkClubPermissionUseCase(currentUserId, clubId, Role.entries)
-                if (!hasPermission) {
-                    return@get call.respond(HttpStatusCode.Forbidden, ErrorResponse("Access denied"))
-                }
-                
-                // Logic to get specific club details
-                call.respond(HttpStatusCode.OK, "Club details placeholder")
+                val club = getClubDetailsUseCase(currentUserId, clubId)
+                call.respond(club)
             }
         }
     }

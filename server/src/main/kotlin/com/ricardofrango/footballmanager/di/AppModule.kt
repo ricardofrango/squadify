@@ -13,7 +13,8 @@ val appModule = module {
     single<AgeGroupRepository> { ExposedAgeGroupRepository() }
     single<PlayerRepository> { ExposedPlayerRepository() }
     
-    factory { GetClubsUseCase(get()) }
+    factory { GetClubsUseCase(get(), get()) }
+    factory { GetClubDetailsUseCase(get(), get()) }
     factory { CreateClubUseCase(get()) }
     factory { ProvisionClubUseCase(get(), get()) }
     factory { RegisterUseCase(get()) }
