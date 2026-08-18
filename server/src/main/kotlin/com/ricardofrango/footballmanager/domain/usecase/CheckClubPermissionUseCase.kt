@@ -5,6 +5,9 @@ import com.ricardofrango.footballmanager.model.Role
 
 class CheckClubPermissionUseCase(private val userRepository: UserRepository) {
     suspend operator fun invoke(userId: String, clubId: String, requiredRoles: List<Role>): Boolean {
+        val user = userRepository.findById(userId) ?: return false
+        if (user.isPlatformAdmin) return true
+
         val userRole = userRepository.getUserRoleInClub(userId, clubId) ?: return false
         return requiredRoles.contains(userRole)
     }

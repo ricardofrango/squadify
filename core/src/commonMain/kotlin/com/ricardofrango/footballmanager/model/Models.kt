@@ -82,6 +82,7 @@ data class User(
     val lastName: String,
     val avatarUrl: String? = null,
     val status: UserStatus,
+    val isPlatformAdmin: Boolean = false,
     val createdAt: Instant
 )
 

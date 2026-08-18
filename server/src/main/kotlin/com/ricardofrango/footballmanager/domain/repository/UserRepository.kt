@@ -5,6 +5,7 @@ import com.ricardofrango.footballmanager.model.User
 import kotlin.time.Instant
 
 interface UserRepository {
+    suspend fun findById(id: String): User?
     suspend fun findByEmail(email: String): User?
     suspend fun findPasswordHashByEmail(email: String): String?
     suspend fun createUser(user: User, passwordHash: String): Boolean

@@ -14,6 +14,7 @@ object Users : Table("users") {
     val lastName = varchar("last_name", 100)
     val avatarUrl = varchar("avatar_url", 500).nullable()
     val status = enumerationByName("status", 50, UserStatus::class).default(UserStatus.ACTIVE)
+    val isPlatformAdmin = bool("is_platform_admin").default(false)
     val createdAt = timestamp("created_at")
 
     override val primaryKey = PrimaryKey(id)

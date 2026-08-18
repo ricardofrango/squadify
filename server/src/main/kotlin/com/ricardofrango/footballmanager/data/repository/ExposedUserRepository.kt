@@ -18,6 +18,12 @@ import kotlin.uuid.Uuid
 
 class ExposedUserRepository : UserRepository {
 
+    override suspend fun findById(id: String): User? = dbQuery {
+        Users.selectAll().where { Users.id eq Uuid.parse(id) }
+            .map(::toUser)
+            .singleOrNull()
+    }
+
     override suspend fun findByEmail(email: String): User? = dbQuery {
         Users.selectAll().where { Users.email eq email }
             .map(::toUser)
@@ -40,6 +46,7 @@ class ExposedUserRepository : UserRepository {
             it[lastName] = user.lastName
             it[avatarUrl] = user.avatarUrl
             it[status] = user.status
+            it[isPlatformAdmin] = user.isPlatformAdmin
             it[createdAt] = user.createdAt
         }
         insertStatement.insertedCount > 0
@@ -83,6 +90,7 @@ class ExposedUserRepository : UserRepository {
         lastName = row[Users.lastName],
         avatarUrl = row[Users.avatarUrl],
         status = row[Users.status],
+        isPlatformAdmin = row[Users.isPlatformAdmin],
         createdAt = row[Users.createdAt]
     )
 }

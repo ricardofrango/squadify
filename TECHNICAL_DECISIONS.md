@@ -35,6 +35,7 @@ We use **Exposed** as our SQL ORM.
     - **Refresh Tokens**: Long-lived (24 days) stored in the database for session renewal.
 - **BCrypt**: Used for hashing passwords before storage.
 - **Contextual RBAC**: Permissions are not just global; they are validated based on the user's role *within* a specific club.
+- **Platform Ownership (Multi-tenancy)**: A `Super Admin` (platform owner) exists with global access. Clubs are "provisioned" by the Super Admin, assigning a `Director` (Club Admin) as the primary owner of the club.
 
 ## 6. Project Structure (KMP)
 - `:server`: Ktor backend.

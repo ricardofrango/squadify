@@ -3,12 +3,10 @@ package com.ricardofrango.footballmanager.presentation.routes
 import com.ricardofrango.footballmanager.domain.usecase.CheckClubPermissionUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CreateClubUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetClubsUseCase
-import com.ricardofrango.footballmanager.model.Club
-import com.ricardofrango.footballmanager.model.ErrorResponse
-import com.ricardofrango.footballmanager.model.Role
+import com.ricardofrango.footballmanager.domain.usecase.ProvisionClubUseCase
+import com.ricardofrango.footballmanager.model.*
 import com.ricardofrango.footballmanager.security.userId
 import io.ktor.http.*
-import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -17,7 +15,7 @@ import org.koin.ktor.ext.inject
 
 fun Route.clubRoutes() {
     val getClubsUseCase by inject<GetClubsUseCase>()
-    val createClubUseCase by inject<CreateClubUseCase>()
+    val provisionClubUseCase by inject<ProvisionClubUseCase>()
     val checkClubPermissionUseCase by inject<CheckClubPermissionUseCase>()
 
     authenticate("auth-jwt") {
@@ -28,13 +26,15 @@ fun Route.clubRoutes() {
                 call.respond(clubs)
             }
 
-            post {
-                val clubRequest = call.receive<Club>()
-                val success = createClubUseCase(clubRequest)
+            post("/provision") {
+                val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                val request = call.receive<ProvisionClubRequest>()
+                
+                val success = provisionClubUseCase(currentUserId, request.directorId, request.clubName)
                 if (success) {
-                    call.respond(HttpStatusCode.Created)
+                    call.respond(HttpStatusCode.Created, mapOf("message" to "Club provisioned successfully"))
                 } else {
-                    call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to create club", "-1"))
+                    call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to provision club", "-1"))
                 }
             }
 

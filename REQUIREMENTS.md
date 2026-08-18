@@ -3,8 +3,9 @@
 This document outlines the core requirements and architectural decisions for the Football Manager platform.
 
 ## 1. User Profiles & Roles
-The application supports four primary user types, with roles being context-dependent (assigned per club):
-- **Club Admin / Coordinator**: Global club management.
+The application supports five primary user types:
+- **Platform Owner (Super Admin)**: Global owner of the platform. Can create (provision) clubs and manage platform settings.
+- **Club Admin / Coordinator (Director)**: Global club management, assigned by the Platform Owner.
 - **Coach**: Management of assigned teams, matches, and call-ups.
 - **Staff**: Specific functional tasks (Physio, Team Manager).
 - **Parent / User**: Consult child info, call-ups, and calendar.
@@ -32,9 +33,10 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 - **Authentication**: JWT (JSON Web Tokens) with Refresh Token flow.
 - **Password Security**: Hashing using BCrypt.
 - **Access Rights**: 
-    - Authorization is checked at the API level based on UserRole in the Club context.
-    - Admins/Coordinators: Full access.
-    - Coaches: Can only manage teams where they are assigned as staff.
+    - Authorization is checked at the API level.
+    - **Super Admin**: Global "God Mode" access to all clubs and platform data.
+    - **Admins/Coordinators**: Full access within their specific club context.
+    - **Coaches**: Can only manage teams where they are assigned as staff.
 - **Error Handling**: Standardized `ErrorResponse` JSON for all failures, using a custom `FootballManagerException` hierarchy.
 
 ## 5. Match Management

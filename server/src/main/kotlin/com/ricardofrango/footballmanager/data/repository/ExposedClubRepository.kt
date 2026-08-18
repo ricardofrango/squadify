@@ -1,10 +1,12 @@
 package com.ricardofrango.footballmanager.data.repository
 
+import com.ricardofrango.footballmanager.data.database.ClubMembers
 import com.ricardofrango.footballmanager.data.database.Clubs
 import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
 import com.ricardofrango.footballmanager.domain.repository.ClubRepository
 import com.ricardofrango.footballmanager.model.Club
 import com.ricardofrango.footballmanager.model.ClubStatus
+import com.ricardofrango.footballmanager.model.Role
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -38,6 +40,17 @@ class ExposedClubRepository : ClubRepository {
         Clubs.selectAll().where { Clubs.id eq Uuid.parse(id) }
             .map(::toClub)
             .singleOrNull()
+    }
+
+    override suspend fun addMember(clubId: String, userId: String, role: Role): Boolean = dbQuery {
+        val insertStatement = ClubMembers.insert {
+            it[id] = Uuid.random()
+            it[this.clubId] = Uuid.parse(clubId)
+            it[this.userId] = Uuid.parse(userId)
+            it[this.role] = role
+            it[active] = true
+        }
+        insertStatement.insertedCount > 0
     }
 
     private fun toClub(row: ResultRow): Club = Club(

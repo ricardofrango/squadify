@@ -34,3 +34,9 @@ data class TokenResponse(
     val accessToken: String,
     val refreshToken: String
 )
+
+@Serializable
+data class ProvisionClubRequest(
+    val directorId: String,
+    val clubName: String
+)
