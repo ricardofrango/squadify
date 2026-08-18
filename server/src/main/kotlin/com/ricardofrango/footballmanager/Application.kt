@@ -15,6 +15,7 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
@@ -47,13 +48,17 @@ fun Application.module() {
 
     install(Authentication) {
         jwt("auth-jwt") {
+            realm = "football-manager"
             verifier(JwtConfig.verifier)
             validate { credential ->
                 if (credential.payload.subject != null) {
-                    io.ktor.server.auth.jwt.JWTCredential(credential.payload)
+                    JWTPrincipal(credential.payload)
                 } else {
                     null
                 }
+            }
+            challenge { _, _ ->
+                call.respond(HttpStatusCode.Unauthorized, ErrorResponse("Token is invalid or expired", "AUTH_001"))
             }
         }
     }
