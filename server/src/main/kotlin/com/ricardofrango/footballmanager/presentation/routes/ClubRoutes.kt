@@ -31,12 +31,8 @@ fun Route.clubRoutes() {
                 val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                 val request = call.receive<ProvisionClubRequest>()
                 
-                val success = provisionClubUseCase(currentUserId, request.directorId, request.clubName)
-                if (success) {
-                    call.respond(HttpStatusCode.Created, mapOf("message" to "Club provisioned successfully"))
-                } else {
-                    call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to provision club", "-1"))
-                }
+                val club = provisionClubUseCase(currentUserId, request.directorId, request.clubName)
+                call.respond(HttpStatusCode.Created, club)
             }
 
             get("/{clubId}") {

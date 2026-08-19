@@ -2,6 +2,7 @@ package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.SeasonRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
+import com.ricardofrango.footballmanager.exception.ConflictException
 import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.model.CreateSeasonRequest
 import com.ricardofrango.footballmanager.model.Role
@@ -13,7 +14,7 @@ class CreateSeasonUseCase(
     private val seasonRepository: SeasonRepository,
     private val userRepository: UserRepository
 ) {
-    suspend operator fun invoke(userId: String, request: CreateSeasonRequest): Boolean {
+    suspend operator fun invoke(userId: String, request: CreateSeasonRequest): Season {
         val user = userRepository.findById(userId) ?: throw ForbiddenException("User not found")
         
         if (!user.isPlatformAdmin) {
@@ -21,6 +22,12 @@ class CreateSeasonUseCase(
             if (userRole != Role.CLUB_ADMIN && userRole != Role.COORDINATOR) {
                 throw ForbiddenException("Only admins or coordinators can create seasons")
             }
+        }
+
+        // Check for duplicate season
+        val existing = seasonRepository.findByDetails(request.clubId, request.type, request.startDate, request.endDate)
+        if (existing != null) {
+            throw ConflictException("A season with these dates and type already exists for this club")
         }
 
         val inferredName = if (request.name.isNullOrBlank()) {

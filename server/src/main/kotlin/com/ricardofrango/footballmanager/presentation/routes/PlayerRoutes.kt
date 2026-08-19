@@ -38,15 +38,8 @@ fun Route.playerRoutes() {
                 val currentUserId =
                     call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                 val playerRequest = call.receive<CreatePlayerRequest>()
-                val success = createPlayerUseCase(currentUserId, playerRequest)
-                if (success) {
-                    call.respond(HttpStatusCode.Created)
-                } else {
-                    call.respond(
-                        HttpStatusCode.InternalServerError,
-                        ErrorResponse("Failed to create player", "-1")
-                    )
-                }
+                val player = createPlayerUseCase(currentUserId, playerRequest)
+                call.respond(HttpStatusCode.Created, player)
             }
 
             post("/add-to-team") {
@@ -57,15 +50,8 @@ fun Route.playerRoutes() {
                     ErrorResponse("clubId is required", "VAL_001")
                 )
                 val teamPlayerRequest = call.receive<AddPlayerToTeamRequest>()
-                val success = addPlayerToTeamUseCase(currentUserId, clubId, teamPlayerRequest)
-                if (success) {
-                    call.respond(HttpStatusCode.Created)
-                } else {
-                    call.respond(
-                        HttpStatusCode.InternalServerError,
-                        ErrorResponse("Failed to add player to team", "-1")
-                    )
-                }
+                val teamPlayer = addPlayerToTeamUseCase(currentUserId, clubId, teamPlayerRequest)
+                call.respond(HttpStatusCode.Created, teamPlayer)
             }
         }
     }

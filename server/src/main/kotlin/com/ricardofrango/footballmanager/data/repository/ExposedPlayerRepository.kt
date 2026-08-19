@@ -4,6 +4,7 @@ import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
 import com.ricardofrango.footballmanager.data.database.Players
 import com.ricardofrango.footballmanager.data.database.TeamPlayers
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
+import com.ricardofrango.footballmanager.exception.DatabaseException
 import com.ricardofrango.footballmanager.model.Player
 import com.ricardofrango.footballmanager.model.TeamPlayer
 import org.jetbrains.exposed.v1.core.ResultRow
@@ -19,8 +20,8 @@ class ExposedPlayerRepository : PlayerRepository {
             .map(::toPlayer)
     }
 
-    override suspend fun createPlayer(player: Player): Boolean = dbQuery {
-        val insertStatement = Players.insert {
+    override suspend fun createPlayer(player: Player): Player = dbQuery {
+        Players.insert {
             it[id] = Uuid.parse(player.id)
             it[clubId] = Uuid.parse(player.clubId)
             it[firstName] = player.firstName
@@ -29,8 +30,8 @@ class ExposedPlayerRepository : PlayerRepository {
             it[shirtNumber] = player.shirtNumber
             it[photoUrl] = player.photoUrl
             it[active] = player.active
-        }
-        insertStatement.insertedCount > 0
+        }.resultedValues?.singleOrNull()?.let(::toPlayer)
+            ?: throw DatabaseException("Failed to create player")
     }
 
     override suspend fun getPlayerById(id: String): Player? = dbQuery {
@@ -39,22 +40,32 @@ class ExposedPlayerRepository : PlayerRepository {
             .singleOrNull()
     }
 
-    override suspend fun addPlayerToTeam(teamPlayer: TeamPlayer): Boolean = dbQuery {
-        val insertStatement = TeamPlayers.insert {
+    override suspend fun addPlayerToTeam(teamPlayer: TeamPlayer): TeamPlayer = dbQuery {
+        TeamPlayers.insert {
             it[id] = Uuid.parse(teamPlayer.id)
             it[teamId] = Uuid.parse(teamPlayer.teamId)
             it[playerId] = Uuid.parse(teamPlayer.playerId)
             it[startDate] = teamPlayer.startDate
             it[endDate] = teamPlayer.endDate
             it[status] = teamPlayer.status
-        }
-        insertStatement.insertedCount > 0
+        }.resultedValues?.singleOrNull()?.let(::toTeamPlayer)
+            ?: throw DatabaseException("Failed to add player to team")
     }
 
     override suspend fun getPlayersByTeam(teamId: String): List<Player> = dbQuery {
-        (Players innerJoin TeamPlayers).selectAll().where { TeamPlayers.teamId eq Uuid.parse(teamId) }
+        (Players innerJoin TeamPlayers).selectAll()
+            .where { TeamPlayers.teamId eq Uuid.parse(teamId) }
             .map(::toPlayer)
     }
+
+    private fun toTeamPlayer(row: ResultRow): TeamPlayer = TeamPlayer(
+        id = row[TeamPlayers.id].toString(),
+        teamId = row[TeamPlayers.teamId].toString(),
+        playerId = row[TeamPlayers.playerId].toString(),
+        startDate = row[TeamPlayers.startDate],
+        endDate = row[TeamPlayers.endDate],
+        status = row[TeamPlayers.status]
+    )
 
     private fun toPlayer(row: ResultRow): Player = Player(
         id = row[Players.id].toString(),

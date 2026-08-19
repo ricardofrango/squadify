@@ -14,7 +14,7 @@ class ProvisionClubUseCase(
     private val clubRepository: ClubRepository,
     private val userRepository: UserRepository
 ) {
-    suspend operator fun invoke(executorId: String, directorId: String, clubName: String): Boolean {
+    suspend operator fun invoke(executorId: String, directorId: String, clubName: String): Club {
         // 1. Check if executor is Platform Admin
         val executor = userRepository.findById(executorId)
             ?: throw ForbiddenException("Executor not found")
@@ -36,10 +36,11 @@ class ProvisionClubUseCase(
             createdAt = Instant.fromEpochMilliseconds(System.currentTimeMillis())
         )
         
-        val clubCreated = clubRepository.createClub(club)
-        if (!clubCreated) return false
+        val createdClub = clubRepository.createClub(club)
 
         // 4. Assign director as CLUB_ADMIN
-        return clubRepository.addMember(clubId, directorId, Role.CLUB_ADMIN)
+        clubRepository.addMember(clubId, directorId, Role.CLUB_ADMIN)
+        
+        return createdClub
     }
 }

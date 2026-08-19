@@ -14,7 +14,7 @@ class AddPlayerToTeamUseCase(
     private val teamRepository: TeamRepository,
     private val userRepository: UserRepository
 ) {
-    suspend operator fun invoke(userId: String, clubId: String, request: AddPlayerToTeamRequest): Boolean {
+    suspend operator fun invoke(userId: String, clubId: String, request: AddPlayerToTeamRequest): TeamPlayer {
         val userRole = userRepository.getUserRoleInClub(userId, clubId)
         
         // Admins/Coordinators can do it. Coaches can do it if they are staff of the team.

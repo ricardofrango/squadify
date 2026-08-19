@@ -8,7 +8,7 @@ interface UserRepository {
     suspend fun findById(id: String): User?
     suspend fun findByEmail(email: String): User?
     suspend fun findPasswordHashByEmail(email: String): String?
-    suspend fun createUser(user: User, passwordHash: String): Boolean
+    suspend fun createUser(user: User, passwordHash: String): User
     suspend fun getUserRoleInClub(userId: String, clubId: String): Role?
     suspend fun saveRefreshToken(userId: String, token: String, expiresAt: Instant)
     suspend fun findUserIdByRefreshToken(token: String): String?

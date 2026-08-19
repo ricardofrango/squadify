@@ -63,6 +63,10 @@ object Seasons : Table("seasons") {
     val active = bool("active").default(true)
 
     override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex("unique_club_season", clubId, type, startDate, endDate)
+    }
 }
 
 object AgeGroups : Table("age_groups") {

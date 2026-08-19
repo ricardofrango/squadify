@@ -5,7 +5,7 @@ import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.Club
 
 class CreateClubUseCase(private val repository: ClubRepository) {
-    suspend operator fun invoke(club: Club): Boolean {
+    suspend operator fun invoke(club: Club): Club {
         if (club.name.isBlank()) {
             throw ValidationException("Club name cannot be empty")
         }

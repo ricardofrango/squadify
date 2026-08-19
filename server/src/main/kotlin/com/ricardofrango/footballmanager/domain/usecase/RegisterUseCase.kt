@@ -7,11 +7,11 @@ import com.ricardofrango.footballmanager.model.RegisterRequest
 import com.ricardofrango.footballmanager.model.User
 import com.ricardofrango.footballmanager.model.UserStatus
 import org.mindrot.jbcrypt.BCrypt
-import kotlin.uuid.Uuid
 import kotlin.time.Instant
+import kotlin.uuid.Uuid
 
 class RegisterUseCase(private val userRepository: UserRepository) {
-    suspend operator fun invoke(request: RegisterRequest): Boolean {
+    suspend operator fun invoke(request: RegisterRequest): User {
         if (request.email.isBlank() || request.password.isBlank()) {
             throw ValidationException("Email and password are required")
         }
@@ -21,7 +21,7 @@ class RegisterUseCase(private val userRepository: UserRepository) {
         }
 
         val passwordHash = BCrypt.hashpw(request.password, BCrypt.gensalt())
-        
+
         val user = User(
             id = Uuid.random().toString(),
             email = request.email,

@@ -1,9 +1,12 @@
 package com.ricardofrango.footballmanager.domain.repository
 
 import com.ricardofrango.footballmanager.model.Season
+import com.ricardofrango.footballmanager.model.SeasonType
+import kotlinx.datetime.LocalDate
 
 interface SeasonRepository {
     suspend fun getSeasonsByClub(clubId: String): List<Season>
-    suspend fun createSeason(season: Season): Boolean
+    suspend fun createSeason(season: Season): Season
     suspend fun getSeasonById(id: String): Season?
+    suspend fun findByDetails(clubId: String, type: SeasonType, startDate: LocalDate, endDate: LocalDate): Season?
 }

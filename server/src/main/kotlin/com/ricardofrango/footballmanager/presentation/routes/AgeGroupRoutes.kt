@@ -34,15 +34,8 @@ fun Route.ageGroupRoutes() {
                 val currentUserId =
                     call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                 val ageGroupRequest = call.receive<CreateAgeGroupRequest>()
-                val success = createAgeGroupUseCase(currentUserId, ageGroupRequest)
-                if (success) {
-                    call.respond(HttpStatusCode.Created)
-                } else {
-                    call.respond(
-                        HttpStatusCode.InternalServerError,
-                        ErrorResponse("Failed to create age group", "-1")
-                    )
-                }
+                val ageGroup = createAgeGroupUseCase(currentUserId, ageGroupRequest)
+                call.respond(HttpStatusCode.Created, ageGroup)
             }
         }
     }

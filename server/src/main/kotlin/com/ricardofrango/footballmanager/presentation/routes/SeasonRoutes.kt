@@ -34,15 +34,8 @@ fun Route.seasonRoutes() {
                 val currentUserId =
                     call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                 val seasonRequest = call.receive<CreateSeasonRequest>()
-                val success = createSeasonUseCase(currentUserId, seasonRequest)
-                if (success) {
-                    call.respond(HttpStatusCode.Created)
-                } else {
-                    call.respond(
-                        HttpStatusCode.InternalServerError,
-                        ErrorResponse("Failed to create season", "-1")
-                    )
-                }
+                val season = createSeasonUseCase(currentUserId, seasonRequest)
+                call.respond(HttpStatusCode.Created, season)
             }
         }
     }

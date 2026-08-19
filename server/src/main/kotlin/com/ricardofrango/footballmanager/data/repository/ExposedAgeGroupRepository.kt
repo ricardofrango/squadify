@@ -3,6 +3,7 @@ package com.ricardofrango.footballmanager.data.repository
 import com.ricardofrango.footballmanager.data.database.AgeGroups
 import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
 import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
+import com.ricardofrango.footballmanager.exception.DatabaseException
 import com.ricardofrango.footballmanager.model.AgeGroup
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
@@ -17,15 +18,15 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
             .map(::toAgeGroup)
     }
 
-    override suspend fun createAgeGroup(ageGroup: AgeGroup): Boolean = dbQuery {
-        val insertStatement = AgeGroups.insert {
+    override suspend fun createAgeGroup(ageGroup: AgeGroup): AgeGroup = dbQuery {
+        AgeGroups.insert {
             it[id] = Uuid.parse(ageGroup.id)
             it[clubId] = Uuid.parse(ageGroup.clubId)
             it[seasonId] = Uuid.parse(ageGroup.seasonId)
             it[name] = ageGroup.name
             it[sortOrder] = ageGroup.sortOrder
-        }
-        insertStatement.insertedCount > 0
+        }.resultedValues?.singleOrNull()?.let(::toAgeGroup)
+            ?: throw DatabaseException("Failed to create age group")
     }
 
     override suspend fun getAgeGroupById(id: String): AgeGroup? = dbQuery {

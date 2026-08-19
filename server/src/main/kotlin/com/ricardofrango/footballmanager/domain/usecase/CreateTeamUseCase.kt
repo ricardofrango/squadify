@@ -13,7 +13,7 @@ class CreateTeamUseCase(
     private val teamRepository: TeamRepository,
     private val userRepository: UserRepository
 ) {
-    suspend operator fun invoke(userId: String, request: CreateTeamRequest): Boolean {
+    suspend operator fun invoke(userId: String, request: CreateTeamRequest): Team {
         // Permission check: Only CLUB_ADMIN or COORDINATOR can create teams
         val userRole = userRepository.getUserRoleInClub(userId, request.clubId)
         if (userRole != Role.CLUB_ADMIN && userRole != Role.COORDINATOR) {

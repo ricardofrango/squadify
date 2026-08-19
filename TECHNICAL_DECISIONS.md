@@ -27,7 +27,15 @@ We use **Exposed** as our SQL ORM.
 ## 4. Shared Models & Serialization
 - **kotlinx.serialization**: Used for all JSON encoding/decoding. All status and type fields use Enums for type safety.
 - **kotlinx-datetime**: Used for handling dates and times. Logical dates (like season start/end) use `LocalDate`, while audit timestamps use `kotlin.time.Instant`.
-- **Error Handling**: A custom hierarchy of `FootballManagerException` ensures that business errors are consistently reported with specific codes and HTTP status mapping via Ktor's `StatusPages`.
+- **Error Handling**: A standardized system based on a custom `FootballManagerException` hierarchy. 
+    - **Exception Types**:
+        - `UnauthorizedException` (AUTH_001 -> 401): Authentication failures.
+        - `ForbiddenException` (AUTH_002 -> 403): RBAC/Permission violations.
+        - `ValidationException` (VAL_001 -> 400): Business rule or request format violations.
+        - `ConflictException` (DATA_001 -> 409): Duplicate resources or state conflicts.
+        - `DatabaseException` (DATA_002 -> 500): Persistence layer failures.
+    - **Mapping**: Ktor's `StatusPages` plugin converts these to a consistent `ErrorResponse` JSON body.
+    - **Security**: Unhandled exceptions (`Throwable`) are masked as "An internal server error occurred" to avoid leaking system internals.
 
 ## 5. Security & Authentication
 - **JWT (JSON Web Tokens)**: Used for stateless authentication.

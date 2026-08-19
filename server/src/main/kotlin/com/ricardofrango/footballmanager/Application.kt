@@ -88,6 +88,7 @@ fun Application.module() {
                 is ForbiddenException -> HttpStatusCode.Forbidden
                 is ConflictException -> HttpStatusCode.Conflict
                 is ValidationException -> HttpStatusCode.BadRequest
+                is DatabaseException -> HttpStatusCode.InternalServerError
                 else -> HttpStatusCode.BadRequest
             }
             call.respond(status, ErrorResponse(cause.message, cause.code))

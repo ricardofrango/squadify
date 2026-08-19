@@ -38,15 +38,8 @@ fun Route.teamRoutes() {
                     call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                 val teamRequest = call.receive<CreateTeamRequest>()
 
-                val success = createTeamUseCase(currentUserId, teamRequest)
-                if (success) {
-                    call.respond(HttpStatusCode.Created)
-                } else {
-                    call.respond(
-                        HttpStatusCode.InternalServerError,
-                        ErrorResponse("Failed to create team", "-1")
-                    )
-                }
+                val team = createTeamUseCase(currentUserId, teamRequest)
+                call.respond(HttpStatusCode.Created, team)
             }
 
             patch("/{teamId}") {

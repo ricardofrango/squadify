@@ -13,7 +13,7 @@ class CreateAgeGroupUseCase(
     private val ageGroupRepository: AgeGroupRepository,
     private val userRepository: UserRepository
 ) {
-    suspend operator fun invoke(userId: String, request: CreateAgeGroupRequest): Boolean {
+    suspend operator fun invoke(userId: String, request: CreateAgeGroupRequest): AgeGroup {
         val userRole = userRepository.getUserRoleInClub(userId, request.clubId)
         if (userRole != Role.CLUB_ADMIN && userRole != Role.COORDINATOR) {
             throw ForbiddenException("Only admins or coordinators can create age groups")

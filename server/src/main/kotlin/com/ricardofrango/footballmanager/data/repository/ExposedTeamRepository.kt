@@ -4,14 +4,15 @@ import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
 import com.ricardofrango.footballmanager.data.database.TeamStaff
 import com.ricardofrango.footballmanager.data.database.Teams
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
+import com.ricardofrango.footballmanager.exception.DatabaseException
 import com.ricardofrango.footballmanager.model.Team
 import com.ricardofrango.footballmanager.model.TeamStaffRole
 import org.jetbrains.exposed.v1.core.ResultRow
-import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.andWhere
 import kotlin.uuid.Uuid
 
 class ExposedTeamRepository : TeamRepository {
@@ -21,8 +22,8 @@ class ExposedTeamRepository : TeamRepository {
             .map(::toTeam)
     }
 
-    override suspend fun createTeam(team: Team): Boolean = dbQuery {
-        val insertStatement = Teams.insert {
+    override suspend fun createTeam(team: Team): Team = dbQuery {
+        Teams.insert {
             it[id] = Uuid.parse(team.id)
             it[clubId] = Uuid.parse(team.clubId)
             it[ageGroupId] = Uuid.parse(team.ageGroupId)
@@ -30,19 +31,23 @@ class ExposedTeamRepository : TeamRepository {
             it[name] = team.name
             it[code] = team.code
             it[active] = team.active
-        }
-        insertStatement.insertedCount > 0
+        }.resultedValues?.singleOrNull()?.let(::toTeam)
+            ?: throw DatabaseException("Failed to create team")
     }
 
-    override suspend fun isUserStaffOfTeam(userId: String, teamId: String, role: TeamStaffRole?): Boolean = dbQuery {
-        val query = TeamStaff.selectAll().where { 
-            (TeamStaff.userId eq Uuid.parse(userId)) and (TeamStaff.teamId eq Uuid.parse(teamId)) 
+    override suspend fun isUserStaffOfTeam(
+        userId: String,
+        teamId: String,
+        role: TeamStaffRole?
+    ): Boolean = dbQuery {
+        val query = TeamStaff.selectAll().where {
+            (TeamStaff.userId eq Uuid.parse(userId)) and (TeamStaff.teamId eq Uuid.parse(teamId))
         }
-        
+
         if (role != null) {
             query.andWhere { TeamStaff.role eq role }
         }
-        
+
         !query.empty()
     }
 

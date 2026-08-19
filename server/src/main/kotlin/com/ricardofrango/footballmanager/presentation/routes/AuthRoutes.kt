@@ -22,12 +22,8 @@ fun Route.authRoutes() {
     route("/auth") {
         post("/register") {
             val request = call.receive<RegisterRequest>()
-            val success = registerUseCase(request)
-            if (success) {
-                call.respond(HttpStatusCode.Created, mapOf("message" to "User registered successfully"))
-            } else {
-                call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to register user", "-1"))
-            }
+            val user = registerUseCase(request)
+            call.respond(HttpStatusCode.Created, user)
         }
 
         post("/login") {

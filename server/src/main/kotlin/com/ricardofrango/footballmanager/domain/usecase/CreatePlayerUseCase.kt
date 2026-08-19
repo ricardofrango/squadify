@@ -13,7 +13,7 @@ class CreatePlayerUseCase(
     private val playerRepository: PlayerRepository,
     private val userRepository: UserRepository
 ) {
-    suspend operator fun invoke(userId: String, request: CreatePlayerRequest): Boolean {
+    suspend operator fun invoke(userId: String, request: CreatePlayerRequest): Player {
         val userRole = userRepository.getUserRoleInClub(userId, request.clubId)
         if (userRole != Role.CLUB_ADMIN && userRole != Role.COORDINATOR && userRole != Role.COACH) {
             throw ForbiddenException("Insufficient permissions to create players")

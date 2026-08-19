@@ -4,15 +4,13 @@ import com.ricardofrango.footballmanager.data.database.ClubMembers
 import com.ricardofrango.footballmanager.data.database.Clubs
 import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
 import com.ricardofrango.footballmanager.domain.repository.ClubRepository
+import com.ricardofrango.footballmanager.exception.DatabaseException
 import com.ricardofrango.footballmanager.model.Club
-import com.ricardofrango.footballmanager.model.ClubStatus
 import com.ricardofrango.footballmanager.model.Role
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import kotlin.time.Clock
-import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 class ExposedClubRepository : ClubRepository {
@@ -27,19 +25,19 @@ class ExposedClubRepository : ClubRepository {
             .map(::toClub)
     }
 
-    override suspend fun createClub(club: Club): Boolean = dbQuery {
-        val insertStatement = Clubs.insert {
-            it[Clubs.id] = club.id?.let(Uuid::parse) ?: Uuid.random()
-            it[Clubs.name] = club.name
-            it[Clubs.shortName] = club.shortName
-            it[Clubs.logoUrl] = club.logoUrl
-            it[Clubs.email] = club.email
-            it[Clubs.phone] = club.phone
-            it[Clubs.address] = club.address
-            it[Clubs.status] = club.status ?: ClubStatus.ACTIVE
-            it[Clubs.createdAt] = club.createdAt ?: Instant.fromEpochMilliseconds(System.currentTimeMillis())
-        }
-        insertStatement.insertedCount > 0
+    override suspend fun createClub(club: Club): Club = dbQuery {
+        Clubs.insert {
+            it[id] = Uuid.parse(club.id)
+            it[name] = club.name
+            it[shortName] = club.shortName
+            it[logoUrl] = club.logoUrl
+            it[email] = club.email
+            it[phone] = club.phone
+            it[address] = club.address
+            it[status] = club.status
+            it[createdAt] = club.createdAt
+        }.resultedValues?.singleOrNull()?.let(::toClub)
+            ?: throw DatabaseException("Failed to create club")
     }
 
     override suspend fun getClubById(id: String): Club? = dbQuery {

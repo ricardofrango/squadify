@@ -5,14 +5,15 @@ import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
 import com.ricardofrango.footballmanager.data.database.RefreshTokens
 import com.ricardofrango.footballmanager.data.database.Users
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
+import com.ricardofrango.footballmanager.exception.DatabaseException
 import com.ricardofrango.footballmanager.model.Role
 import com.ricardofrango.footballmanager.model.User
 import org.jetbrains.exposed.v1.core.ResultRow
-import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
@@ -36,8 +37,8 @@ class ExposedUserRepository : UserRepository {
             .singleOrNull()
     }
 
-    override suspend fun createUser(user: User, passwordHash: String): Boolean = dbQuery {
-        val insertStatement = Users.insert {
+    override suspend fun createUser(user: User, passwordHash: String): User = dbQuery {
+        Users.insert {
             it[id] = Uuid.parse(user.id)
             it[email] = user.email
             it[Users.passwordHash] = passwordHash
@@ -48,15 +49,15 @@ class ExposedUserRepository : UserRepository {
             it[status] = user.status
             it[isPlatformAdmin] = user.isPlatformAdmin
             it[createdAt] = user.createdAt
-        }
-        insertStatement.insertedCount > 0
+        }.resultedValues?.singleOrNull()?.let(::toUser)
+            ?: throw DatabaseException("Failed to create user")
     }
 
     override suspend fun getUserRoleInClub(userId: String, clubId: String): Role? = dbQuery {
-        ClubMembers.selectAll().where { 
-            (ClubMembers.userId eq Uuid.parse(userId)) and (ClubMembers.clubId eq Uuid.parse(clubId)) 
+        ClubMembers.selectAll().where {
+            (ClubMembers.userId eq Uuid.parse(userId)) and (ClubMembers.clubId eq Uuid.parse(clubId))
         }.map { it[ClubMembers.role] }
-        .singleOrNull()
+            .singleOrNull()
     }
 
     override suspend fun saveRefreshToken(userId: String, token: String, expiresAt: Instant) {
