@@ -47,6 +47,7 @@ object DatabaseFactory {
                     exec("""UPDATE TEAM_PLAYERS SET status = UPPER(status)""")
                     exec("""UPDATE TEAM_STAFF SET role = UPPER(role)""")
                     exec("""UPDATE USER_PLAYERS SET relationship = UPPER(relationship)""")
+                    exec("""UPDATE SEASONS SET type = UPPER(type)""")
                 } catch (e: Exception) {
                     logger.warn("Data migration notice: ${e.message}")
                 }

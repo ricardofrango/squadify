@@ -2,15 +2,17 @@ package com.ricardofrango.footballmanager.presentation.routes
 
 import com.ricardofrango.footballmanager.domain.usecase.CreateAgeGroupUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetAgeGroupsUseCase
-import com.ricardofrango.footballmanager.model.AgeGroup
+import com.ricardofrango.footballmanager.model.CreateAgeGroupRequest
 import com.ricardofrango.footballmanager.model.ErrorResponse
 import com.ricardofrango.footballmanager.security.userId
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.authenticate
+import io.ktor.server.request.receive
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 
 fun Route.ageGroupRoutes() {
@@ -20,19 +22,26 @@ fun Route.ageGroupRoutes() {
     authenticate("auth-jwt") {
         route("/age-groups") {
             get {
-                val clubId = call.request.queryParameters["clubId"] ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("clubId is required", "VAL_001"))
+                val clubId = call.request.queryParameters["clubId"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    ErrorResponse("clubId is required", "VAL_001")
+                )
                 val ageGroups = getAgeGroupsUseCase(clubId)
                 call.respond(ageGroups)
             }
 
             post {
-                val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                val ageGroupRequest = call.receive<AgeGroup>()
+                val currentUserId =
+                    call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                val ageGroupRequest = call.receive<CreateAgeGroupRequest>()
                 val success = createAgeGroupUseCase(currentUserId, ageGroupRequest)
                 if (success) {
                     call.respond(HttpStatusCode.Created)
                 } else {
-                    call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to create age group", "-1"))
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        ErrorResponse("Failed to create age group", "-1")
+                    )
                 }
             }
         }

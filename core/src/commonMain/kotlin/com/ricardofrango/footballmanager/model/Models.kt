@@ -55,6 +55,12 @@ enum class UserPlayerRelationship {
 }
 
 @Serializable
+enum class SeasonType {
+    CALENDAR_YEAR, // Jan 1st - Dec 31st
+    EUROPEAN_YEAR  // Jul 1st - Jun 30th
+}
+
+@Serializable
 enum class MatchStatus {
     SCHEDULED,
     LIVE,
@@ -88,15 +94,15 @@ data class User(
 
 @Serializable
 data class Club(
-    val id: String? = null,
+    val id: String,
     val name: String,
     val shortName: String? = null,
     val logoUrl: String? = null,
     val email: String? = null,
     val phone: String? = null,
     val address: String? = null,
-    val status: ClubStatus? = null,
-    val createdAt: Instant? = null,
+    val status: ClubStatus,
+    val createdAt: Instant
 )
 
 @Serializable
@@ -104,6 +110,7 @@ data class Season(
     val id: String,
     val clubId: String,
     val name: String,
+    val type: SeasonType,
     val startDate: LocalDate,
     val endDate: LocalDate,
     val active: Boolean
@@ -174,4 +181,51 @@ data class UserPlayer(
     val userId: String,
     val playerId: String,
     val relationship: UserPlayerRelationship
+)
+
+// Creation Requests
+
+@Serializable
+data class CreateSeasonRequest(
+    val clubId: String,
+    val name: String? = null,
+    val type: SeasonType,
+    val startDate: LocalDate,
+    val endDate: LocalDate
+)
+
+@Serializable
+data class CreateAgeGroupRequest(
+    val clubId: String,
+    val name: String,
+    val seasonId: String,
+    val sortOrder: Int = 0
+)
+
+@Serializable
+data class CreateTeamRequest(
+    val clubId: String,
+    val ageGroupId: String,
+    val seasonId: String,
+    val name: String,
+    val code: String? = null
+)
+
+@Serializable
+data class CreatePlayerRequest(
+    val clubId: String,
+    val firstName: String,
+    val lastName: String,
+    val birthDate: LocalDate,
+    val shirtNumber: Int? = null,
+    val photoUrl: String? = null
+)
+
+@Serializable
+data class AddPlayerToTeamRequest(
+    val teamId: String,
+    val playerId: String,
+    val startDate: LocalDate,
+    val endDate: LocalDate? = null,
+    val status: TeamPlayerStatus = TeamPlayerStatus.ACTIVE
 )

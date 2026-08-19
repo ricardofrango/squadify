@@ -22,6 +22,7 @@ class ExposedSeasonRepository : SeasonRepository {
             it[id] = Uuid.parse(season.id)
             it[clubId] = Uuid.parse(season.clubId)
             it[name] = season.name
+            it[type] = season.type
             it[startDate] = season.startDate
             it[endDate] = season.endDate
             it[active] = season.active
@@ -39,6 +40,7 @@ class ExposedSeasonRepository : SeasonRepository {
         id = row[Seasons.id].toString(),
         clubId = row[Seasons.clubId].toString(),
         name = row[Seasons.name],
+        type = row[Seasons.type],
         startDate = row[Seasons.startDate],
         endDate = row[Seasons.endDate],
         active = row[Seasons.active]

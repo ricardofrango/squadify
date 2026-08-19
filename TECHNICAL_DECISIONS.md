@@ -25,8 +25,8 @@ We use **Exposed** as our SQL ORM.
 - **Concurrency**: All database operations are wrapped in a `dbQuery` utility using `suspendTransaction` to ensure they don't block the Ktor threads.
 
 ## 4. Shared Models & Serialization
-- **kotlinx.serialization**: Used for all JSON encoding/decoding.
-- **kotlinx-datetime**: Used for handling dates and times across the platform.
+- **kotlinx.serialization**: Used for all JSON encoding/decoding. All status and type fields use Enums for type safety.
+- **kotlinx-datetime**: Used for handling dates and times. Logical dates (like season start/end) use `LocalDate`, while audit timestamps use `kotlin.time.Instant`.
 - **Error Handling**: A custom hierarchy of `FootballManagerException` ensures that business errors are consistently reported with specific codes and HTTP status mapping via Ktor's `StatusPages`.
 
 ## 5. Security & Authentication

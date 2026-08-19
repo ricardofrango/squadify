@@ -5,7 +5,9 @@ import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.Club
+import com.ricardofrango.footballmanager.model.ClubStatus
 import com.ricardofrango.footballmanager.model.Role
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 class ProvisionClubUseCase(
@@ -29,7 +31,9 @@ class ProvisionClubUseCase(
         val clubId = Uuid.random().toString()
         val club = Club(
             id = clubId,
-            name = clubName
+            name = clubName,
+            status = ClubStatus.ACTIVE,
+            createdAt = Instant.fromEpochMilliseconds(System.currentTimeMillis())
         )
         
         val clubCreated = clubRepository.createClub(club)

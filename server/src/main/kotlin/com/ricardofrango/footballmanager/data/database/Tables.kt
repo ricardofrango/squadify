@@ -57,6 +57,7 @@ object Seasons : Table("seasons") {
     val id = uuid("id")
     val clubId = uuid("club_id").references(Clubs.id)
     val name = varchar("name", 100)
+    val type = enumerationByName("type", 20, SeasonType::class).default(SeasonType.EUROPEAN_YEAR)
     val startDate = date("start_date")
     val endDate = date("end_date")
     val active = bool("active").default(true)
