@@ -21,7 +21,7 @@ object DatabaseFactory {
             val database = Database.connect(createHikariDataSource(jdbcURL, driverClassName))
 
             transaction(database) {
-                SchemaUtils.create(
+                SchemaUtils.createMissingTablesAndColumns(
                     Users,
                     Clubs,
                     RefreshTokens,
