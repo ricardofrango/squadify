@@ -122,7 +122,7 @@ data class AgeGroup(
     val clubId: String,
     val name: String,
     val seasonId: String,
-    val sortOrder: Int
+    val birthYear: Int
 )
 
 @Serializable
@@ -199,7 +199,7 @@ data class CreateAgeGroupRequest(
     val clubId: String,
     val name: String,
     val seasonId: String,
-    val sortOrder: Int = 0
+    val birthYear: Int
 )
 
 @Serializable

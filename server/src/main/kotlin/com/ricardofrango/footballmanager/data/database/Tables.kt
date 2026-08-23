@@ -74,9 +74,13 @@ object AgeGroups : Table("age_groups") {
     val clubId = uuid("club_id").references(Clubs.id)
     val seasonId = uuid("season_id").references(Seasons.id)
     val name = varchar("name", 100)
-    val sortOrder = integer("sort_order").default(0)
+    val birthYear = integer("birth_year").default(0)
 
     override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex("unique_club_season_birthyear", clubId, seasonId, birthYear)
+    }
 }
 
 object Teams : Table("teams") {

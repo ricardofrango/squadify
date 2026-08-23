@@ -2,6 +2,7 @@ package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
+import com.ricardofrango.footballmanager.exception.ConflictException
 import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.AgeGroup
@@ -23,12 +24,18 @@ class CreateAgeGroupUseCase(
             throw ValidationException("Age group name cannot be empty")
         }
 
+        // Check for duplicate age group
+        val existing = ageGroupRepository.findByDetails(request.clubId, request.seasonId, request.birthYear)
+        if (existing != null) {
+            throw ConflictException("An age group for this birth year already exists in this season")
+        }
+
         val ageGroup = AgeGroup(
             id = Uuid.random().toString(),
             clubId = request.clubId,
             name = request.name,
             seasonId = request.seasonId,
-            sortOrder = request.sortOrder
+            birthYear = request.birthYear
         )
 
         return ageGroupRepository.createAgeGroup(ageGroup)
