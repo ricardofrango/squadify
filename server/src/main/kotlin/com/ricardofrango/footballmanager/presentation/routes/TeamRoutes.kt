@@ -4,6 +4,7 @@ import com.ricardofrango.footballmanager.domain.usecase.*
 import com.ricardofrango.footballmanager.model.AddStaffToTeamRequest
 import com.ricardofrango.footballmanager.model.CreateTeamRequest
 import com.ricardofrango.footballmanager.model.ErrorResponse
+import com.ricardofrango.footballmanager.model.UpdateActiveStatusRequest
 import com.ricardofrango.footballmanager.security.userId
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
@@ -24,6 +25,7 @@ fun Route.teamRoutes() {
     val getTeamStaffUseCase by inject<GetTeamStaffUseCase>()
     val getTeamPlayersUseCase by inject<GetTeamPlayersUseCase>()
     val getTeamDetailsUseCase by inject<GetTeamDetailsUseCase>()
+    val updateTeamStatusUseCase by inject<UpdateTeamStatusUseCase>()
 
     authenticate("auth-jwt") {
         route("/teams") {
@@ -80,20 +82,23 @@ fun Route.teamRoutes() {
                         call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to add staff"))
                     }
                 }
-            }
 
-            patch("/{teamId}") {
-                val teamId = call.parameters["teamId"]
-                    ?: return@patch call.respond(HttpStatusCode.BadRequest)
-                val currentUserId =
-                    call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
+                patch("/status") {
+                    val teamId = call.parameters["teamId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
+                    val clubId = call.request.queryParameters["clubId"] ?: return@patch call.respond(
+                        HttpStatusCode.BadRequest,
+                        ErrorResponse("clubId is required", "VAL_001")
+                    )
+                    val currentUserId = call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
+                    val request = call.receive<UpdateActiveStatusRequest>()
 
-                // For simplicity, we get clubId from the request body or we could fetch team first.
-                // In a real app, we'd fetch the team to know its clubId.
-                // Let's assume we have a way to check if user can manage this specific team.
-
-                // Logic to update team...
-                call.respond(HttpStatusCode.OK, "Manage team logic here")
+                    val success = updateTeamStatusUseCase(currentUserId, clubId, teamId, request.active)
+                    if (success) {
+                        call.respond(HttpStatusCode.NoContent)
+                    } else {
+                        call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to update team status"))
+                    }
+                }
             }
         }
     }

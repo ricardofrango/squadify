@@ -1,25 +1,13 @@
 package com.ricardofrango.footballmanager.presentation.routes
 
-import com.ricardofrango.footballmanager.domain.usecase.AddPlayerToTeamUseCase
-import com.ricardofrango.footballmanager.domain.usecase.AddPlayersToTeamUseCase
-import com.ricardofrango.footballmanager.domain.usecase.CreatePlayerUseCase
-import com.ricardofrango.footballmanager.domain.usecase.CreatePlayersUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetPlayerUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetPlayersUseCase
-import com.ricardofrango.footballmanager.model.AddPlayerToTeamRequest
-import com.ricardofrango.footballmanager.model.AddPlayersToTeamRequest
-import com.ricardofrango.footballmanager.model.CreatePlayerRequest
-import com.ricardofrango.footballmanager.model.CreatePlayersRequest
-import com.ricardofrango.footballmanager.model.ErrorResponse
+import com.ricardofrango.footballmanager.domain.usecase.*
+import com.ricardofrango.footballmanager.model.*
 import com.ricardofrango.footballmanager.security.userId
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.route
+import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
 
 fun Route.playerRoutes() {
@@ -29,6 +17,7 @@ fun Route.playerRoutes() {
     val createPlayersUseCase by inject<CreatePlayersUseCase>()
     val addPlayerToTeamUseCase by inject<AddPlayerToTeamUseCase>()
     val addPlayersToTeamUseCase by inject<AddPlayersToTeamUseCase>()
+    val updatePlayerStatusUseCase by inject<UpdatePlayerStatusUseCase>()
 
     authenticate("auth-jwt") {
         route("/player") {
@@ -59,6 +48,23 @@ fun Route.playerRoutes() {
                 val teamPlayerRequest = call.receive<AddPlayerToTeamRequest>()
                 val teamPlayer = addPlayerToTeamUseCase(currentUserId, clubId, teamPlayerRequest)
                 call.respond(HttpStatusCode.Created, teamPlayer)
+            }
+
+            patch("/{playerId}/status") {
+                val playerId = call.parameters["playerId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
+                val clubId = call.request.queryParameters["clubId"] ?: return@patch call.respond(
+                    HttpStatusCode.BadRequest,
+                    ErrorResponse("clubId is required", "VAL_001")
+                )
+                val currentUserId = call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
+                val request = call.receive<UpdateActiveStatusRequest>()
+
+                val success = updatePlayerStatusUseCase(currentUserId, clubId, playerId, request.active)
+                if (success) {
+                    call.respond(HttpStatusCode.NoContent)
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to update player status"))
+                }
             }
         }
 

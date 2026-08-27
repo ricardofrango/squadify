@@ -44,6 +44,7 @@ We use **Exposed** as our SQL ORM.
 - **BCrypt**: Used for hashing passwords before storage.
 - **Contextual RBAC**: Permissions are not just global; they are validated based on the user's role *within* a specific club.
 - **Platform Ownership (Multi-tenancy)**: A `Super Admin` (platform owner) exists with global access. Clubs are "provisioned" by the Super Admin, assigning a `Director` (Club Admin) as the primary owner of the club.
+- **Resource Management**: Support for partial updates (PATCH) to manage resource states (e.g., active/inactive status for teams, seasons and players).
 
 ## 6. Project Structure (KMP)
 - `:server`: Ktor backend.

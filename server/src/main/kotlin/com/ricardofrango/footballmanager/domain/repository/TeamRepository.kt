@@ -12,4 +12,5 @@ interface TeamRepository {
     suspend fun isUserStaffOfTeam(userId: String, teamId: String, role: TeamStaffRole? = null): Boolean
     suspend fun addStaffToTeam(teamStaff: TeamStaff): Boolean
     suspend fun getTeamStaff(teamId: String): List<TeamStaffMember>
+    suspend fun updateActiveStatus(teamId: String, active: Boolean): Boolean
 }

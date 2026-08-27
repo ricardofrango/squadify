@@ -24,18 +24,21 @@ val appModule = module {
     factory { CheckTeamPermissionUseCase(get()) }
     factory { CreateTeamUseCase(get(), get()) }
     factory { ManageTeamUseCase(get(), get()) }
+    factory { UpdateTeamStatusUseCase(get(), get()) }
     factory { AddStaffToTeamUseCase(get(), get()) }
     factory { GetTeamStaffUseCase(get()) }
     factory { GetTeamPlayersUseCase(get()) }
     factory { GetTeamDetailsUseCase(get(), get()) }
     factory { GetSeasonsUseCase(get()) }
     factory { CreateSeasonUseCase(get(), get()) }
+    factory { UpdateSeasonStatusUseCase(get(), get()) }
     factory { GetAgeGroupsUseCase(get()) }
     factory { CreateAgeGroupUseCase(get(), get()) }
     factory { GetPlayerUseCase(get()) }
     factory { GetPlayersUseCase(get()) }
     factory { CreatePlayerUseCase(get(), get()) }
     factory { CreatePlayersUseCase(get(), get()) }
+    factory { UpdatePlayerStatusUseCase(get(), get()) }
     factory { AddPlayerToTeamUseCase(get(), get(), get(), get()) }
     factory { AddPlayersToTeamUseCase(get(), get(), get(), get()) }
     factory { GetTeamsUseCase(get()) }

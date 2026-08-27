@@ -266,6 +266,11 @@ data class AddStaffToTeamRequest(
 )
 
 @Serializable
+data class UpdateActiveStatusRequest(
+    val active: Boolean
+)
+
+@Serializable
 data class TeamStaffMember(
     val userId: String,
     val firstName: String,

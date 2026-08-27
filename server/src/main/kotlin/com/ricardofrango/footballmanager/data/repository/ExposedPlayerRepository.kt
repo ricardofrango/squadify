@@ -2,20 +2,7 @@ package com.ricardofrango.footballmanager.data.repository
 
 import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
 import com.ricardofrango.footballmanager.data.database.Players
-import com.ricardofrango.footballmanager.data.database.Players.active
-import com.ricardofrango.footballmanager.data.database.Players.birthDate
-import com.ricardofrango.footballmanager.data.database.Players.clubId
-import com.ricardofrango.footballmanager.data.database.Players.firstName
-import com.ricardofrango.footballmanager.data.database.Players.id
-import com.ricardofrango.footballmanager.data.database.Players.lastName
-import com.ricardofrango.footballmanager.data.database.Players.photoUrl
-import com.ricardofrango.footballmanager.data.database.Players.shirtNumber
 import com.ricardofrango.footballmanager.data.database.TeamPlayers
-import com.ricardofrango.footballmanager.data.database.TeamPlayers.endDate
-import com.ricardofrango.footballmanager.data.database.TeamPlayers.playerId
-import com.ricardofrango.footballmanager.data.database.TeamPlayers.startDate
-import com.ricardofrango.footballmanager.data.database.TeamPlayers.status
-import com.ricardofrango.footballmanager.data.database.TeamPlayers.teamId
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.exception.DatabaseException
 import com.ricardofrango.footballmanager.model.Player
@@ -26,6 +13,7 @@ import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 import kotlin.uuid.Uuid
 
 class ExposedPlayerRepository : PlayerRepository {
@@ -51,14 +39,14 @@ class ExposedPlayerRepository : PlayerRepository {
 
     override suspend fun createPlayers(players: List<Player>): List<Player> = dbQuery {
         Players.batchInsert(players) {
-            this[id] = Uuid.parse(it.id)
-            this[clubId] = Uuid.parse(it.clubId)
-            this[firstName] = it.firstName
-            this[lastName] = it.lastName
-            this[birthDate] = it.birthDate
-            this[shirtNumber] = it.shirtNumber
-            this[photoUrl] = it.photoUrl
-            this[active] = it.active
+            this[Players.id] = Uuid.parse(it.id)
+            this[Players.clubId] = Uuid.parse(it.clubId)
+            this[Players.firstName] = it.firstName
+            this[Players.lastName] = it.lastName
+            this[Players.birthDate] = it.birthDate
+            this[Players.shirtNumber] = it.shirtNumber
+            this[Players.photoUrl] = it.photoUrl
+            this[Players.active] = it.active
         }.map(::toPlayer)
     }
 
@@ -89,11 +77,11 @@ class ExposedPlayerRepository : PlayerRepository {
     override suspend fun addPlayersToTeam(teamPlayer: List<TeamPlayer>): List<TeamPlayer> = dbQuery {
         TeamPlayers.batchInsert(teamPlayer) {
             this[TeamPlayers.id] = Uuid.parse(it.id)
-            this[teamId] = Uuid.parse(it.teamId)
-            this[playerId] = Uuid.parse(it.playerId)
-            this[startDate] = it.startDate
-            this[endDate] = it.endDate
-            this[status] = it.status
+            this[TeamPlayers.teamId] = Uuid.parse(it.teamId)
+            this[TeamPlayers.playerId] = Uuid.parse(it.playerId)
+            this[TeamPlayers.startDate] = it.startDate
+            this[TeamPlayers.endDate] = it.endDate
+            this[TeamPlayers.status] = it.status
         }.map(::toTeamPlayer)
     }
 
@@ -101,6 +89,12 @@ class ExposedPlayerRepository : PlayerRepository {
         (Players innerJoin TeamPlayers).selectAll()
             .where { TeamPlayers.teamId eq Uuid.parse(teamId) }
             .map(::toPlayer)
+    }
+
+    override suspend fun updateActiveStatus(playerId: String, active: Boolean): Boolean = dbQuery {
+        Players.update({ Players.id eq Uuid.parse(playerId) }) {
+            it[Players.active] = active
+        } > 0
     }
 
     private fun toTeamPlayer(row: ResultRow): TeamPlayer = TeamPlayer(

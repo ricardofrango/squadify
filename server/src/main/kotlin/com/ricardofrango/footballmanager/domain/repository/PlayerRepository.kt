@@ -12,4 +12,5 @@ interface PlayerRepository {
     suspend fun addPlayerToTeam(teamPlayer: TeamPlayer): TeamPlayer
     suspend fun addPlayersToTeam(teamPlayer: List<TeamPlayer>): List<TeamPlayer>
     suspend fun getPlayersByTeam(teamId: String): List<Player>
+    suspend fun updateActiveStatus(playerId: String, active: Boolean): Boolean
 }

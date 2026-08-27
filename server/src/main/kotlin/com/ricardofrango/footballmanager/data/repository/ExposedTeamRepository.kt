@@ -16,6 +16,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 import kotlin.uuid.Uuid
 
 class ExposedTeamRepository : TeamRepository {
@@ -82,6 +83,12 @@ class ExposedTeamRepository : TeamRepository {
                     avatarUrl = it[UsersTable.avatarUrl]
                 )
             }
+    }
+
+    override suspend fun updateActiveStatus(teamId: String, active: Boolean): Boolean = dbQuery {
+        TeamsTable.update({ TeamsTable.id eq Uuid.parse(teamId) }) {
+            it[TeamsTable.active] = active
+        } > 0
     }
 
     private fun toTeam(row: ResultRow): Team = Team(

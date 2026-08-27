@@ -12,6 +12,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 import kotlin.uuid.Uuid
 
 class ExposedSeasonRepository : SeasonRepository {
@@ -52,6 +53,12 @@ class ExposedSeasonRepository : SeasonRepository {
                     (Seasons.startDate eq startDate) and
                     (Seasons.endDate eq endDate)
         }.map(::toSeason).singleOrNull()
+    }
+
+    override suspend fun updateActiveStatus(seasonId: String, active: Boolean): Boolean = dbQuery {
+        Seasons.update({ Seasons.id eq Uuid.parse(seasonId) }) {
+            it[Seasons.active] = active
+        } > 0
     }
 
     private fun toSeason(row: ResultRow): Season = Season(
