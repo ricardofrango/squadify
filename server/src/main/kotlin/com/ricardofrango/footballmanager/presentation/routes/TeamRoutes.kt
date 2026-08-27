@@ -22,6 +22,8 @@ fun Route.teamRoutes() {
     val getTeamsUseCase by inject<GetTeamsUseCase>()
     val addStaffToTeamUseCase by inject<AddStaffToTeamUseCase>()
     val getTeamStaffUseCase by inject<GetTeamStaffUseCase>()
+    val getTeamPlayersUseCase by inject<GetTeamPlayersUseCase>()
+    val getTeamDetailsUseCase by inject<GetTeamDetailsUseCase>()
 
     authenticate("auth-jwt") {
         route("/teams") {
@@ -48,6 +50,18 @@ fun Route.teamRoutes() {
                     val teamId = call.parameters["teamId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
                     val staff = getTeamStaffUseCase(teamId)
                     call.respond(staff)
+                }
+
+                get("/players") {
+                    val teamId = call.parameters["teamId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val players = getTeamPlayersUseCase(teamId)
+                    call.respond(players)
+                }
+
+                get("/details") {
+                    val teamId = call.parameters["teamId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val details = getTeamDetailsUseCase(teamId)
+                    call.respond(details)
                 }
 
                 post("/staff") {

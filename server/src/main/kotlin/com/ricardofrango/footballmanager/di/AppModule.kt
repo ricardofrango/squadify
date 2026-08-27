@@ -26,6 +26,8 @@ val appModule = module {
     factory { ManageTeamUseCase(get(), get()) }
     factory { AddStaffToTeamUseCase(get(), get()) }
     factory { GetTeamStaffUseCase(get()) }
+    factory { GetTeamPlayersUseCase(get()) }
+    factory { GetTeamDetailsUseCase(get(), get()) }
     factory { GetSeasonsUseCase(get()) }
     factory { CreateSeasonUseCase(get(), get()) }
     factory { GetAgeGroupsUseCase(get()) }

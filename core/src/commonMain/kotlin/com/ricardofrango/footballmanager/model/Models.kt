@@ -273,3 +273,10 @@ data class TeamStaffMember(
     val role: TeamStaffRole,
     val avatarUrl: String? = null
 )
+
+@Serializable
+data class TeamDetails(
+    val team: Team,
+    val players: List<Player>,
+    val staff: List<TeamStaffMember>
+)
