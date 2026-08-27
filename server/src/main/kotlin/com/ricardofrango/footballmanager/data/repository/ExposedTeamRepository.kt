@@ -1,11 +1,14 @@
 package com.ricardofrango.footballmanager.data.repository
 
 import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
-import com.ricardofrango.footballmanager.data.database.TeamStaff
-import com.ricardofrango.footballmanager.data.database.Teams
+import com.ricardofrango.footballmanager.data.database.TeamStaff as TeamStaffTable
+import com.ricardofrango.footballmanager.data.database.Teams as TeamsTable
+import com.ricardofrango.footballmanager.data.database.Users as UsersTable
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.exception.DatabaseException
 import com.ricardofrango.footballmanager.model.Team
+import com.ricardofrango.footballmanager.model.TeamStaff
+import com.ricardofrango.footballmanager.model.TeamStaffMember
 import com.ricardofrango.footballmanager.model.TeamStaffRole
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
@@ -18,18 +21,18 @@ import kotlin.uuid.Uuid
 class ExposedTeamRepository : TeamRepository {
 
     override suspend fun getTeamsByClub(clubId: String): List<Team> = dbQuery {
-        Teams.selectAll().where { Teams.clubId eq Uuid.parse(clubId) }
+        TeamsTable.selectAll().where { TeamsTable.clubId eq Uuid.parse(clubId) }
             .map(::toTeam)
     }
 
     override suspend fun getTeamById(id: String): Team? = dbQuery {
-        Teams.selectAll().where { Teams.id eq Uuid.parse(id) }
+        TeamsTable.selectAll().where { TeamsTable.id eq Uuid.parse(id) }
             .map(::toTeam)
             .singleOrNull()
     }
 
     override suspend fun createTeam(team: Team): Team = dbQuery {
-        Teams.insert {
+        TeamsTable.insert {
             it[id] = Uuid.parse(team.id)
             it[clubId] = Uuid.parse(team.clubId)
             it[ageGroupId] = Uuid.parse(team.ageGroupId)
@@ -46,24 +49,48 @@ class ExposedTeamRepository : TeamRepository {
         teamId: String,
         role: TeamStaffRole?
     ): Boolean = dbQuery {
-        val query = TeamStaff.selectAll().where {
-            (TeamStaff.userId eq Uuid.parse(userId)) and (TeamStaff.teamId eq Uuid.parse(teamId))
+        val query = TeamStaffTable.selectAll().where {
+            (TeamStaffTable.userId eq Uuid.parse(userId)) and (TeamStaffTable.teamId eq Uuid.parse(teamId))
         }
 
         if (role != null) {
-            query.andWhere { TeamStaff.role eq role }
+            query.andWhere { TeamStaffTable.role eq role }
         }
 
         !query.empty()
     }
 
+    override suspend fun addStaffToTeam(teamStaff: TeamStaff): Boolean = dbQuery {
+        val insertStatement = TeamStaffTable.insert {
+            it[id] = Uuid.parse(teamStaff.id)
+            it[teamId] = Uuid.parse(teamStaff.teamId)
+            it[userId] = Uuid.parse(teamStaff.userId)
+            it[role] = teamStaff.role
+        }
+        insertStatement.insertedCount > 0
+    }
+
+    override suspend fun getTeamStaff(teamId: String): List<TeamStaffMember> = dbQuery {
+        (TeamStaffTable innerJoin UsersTable).selectAll()
+            .where { TeamStaffTable.teamId eq Uuid.parse(teamId) }
+            .map {
+                TeamStaffMember(
+                    userId = it[UsersTable.id].toString(),
+                    firstName = it[UsersTable.firstName],
+                    lastName = it[UsersTable.lastName],
+                    role = it[TeamStaffTable.role],
+                    avatarUrl = it[UsersTable.avatarUrl]
+                )
+            }
+    }
+
     private fun toTeam(row: ResultRow): Team = Team(
-        id = row[Teams.id].toString(),
-        clubId = row[Teams.clubId].toString(),
-        ageGroupId = row[Teams.ageGroupId].toString(),
-        seasonId = row[Teams.seasonId].toString(),
-        name = row[Teams.name],
-        code = row[Teams.code],
-        active = row[Teams.active]
+        id = row[TeamsTable.id].toString(),
+        clubId = row[TeamsTable.clubId].toString(),
+        ageGroupId = row[TeamsTable.ageGroupId].toString(),
+        seasonId = row[TeamsTable.seasonId].toString(),
+        name = row[TeamsTable.name],
+        code = row[TeamsTable.code],
+        active = row[TeamsTable.active]
     )
 }

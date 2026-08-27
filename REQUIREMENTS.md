@@ -61,6 +61,10 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 ## 8. Development Roadmap
 - [x] **Phase 1: Club Structure**: Database schema, models, and basic CRUD for Clubs.
 - [x] **Phase 2: Authentication**: Register, Login, JWT, and initial Access Rights logic.
-- [ ] **Phase 3: Seasons, Teams & Players**: Full management of the club hierarchy.
+- [/] **Phase 3: Seasons, Teams & Players**: Full management of the club hierarchy.
+    - [x] Season types (Calendar vs European) and automatic naming.
+    - [x] Age Group management by birth year.
+    - [x] Player management (individual/batch) with eligibility checks.
+    - [x] Team Staff management (Coaches/Staff assignment).
 - [ ] **Phase 4: Match & Call-ups**: Calendar and attendance management.
 - [ ] **Phase 5: Live Match & Stats**: Real-time events and automated statistics calculation.

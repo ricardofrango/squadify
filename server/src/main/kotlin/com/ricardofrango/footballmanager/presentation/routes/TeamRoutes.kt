@@ -1,8 +1,7 @@
 package com.ricardofrango.footballmanager.presentation.routes
 
-import com.ricardofrango.footballmanager.domain.usecase.CreateTeamUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetTeamsUseCase
-import com.ricardofrango.footballmanager.domain.usecase.ManageTeamUseCase
+import com.ricardofrango.footballmanager.domain.usecase.*
+import com.ricardofrango.footballmanager.model.AddStaffToTeamRequest
 import com.ricardofrango.footballmanager.model.CreateTeamRequest
 import com.ricardofrango.footballmanager.model.ErrorResponse
 import com.ricardofrango.footballmanager.security.userId
@@ -21,6 +20,8 @@ fun Route.teamRoutes() {
     val createTeamUseCase by inject<CreateTeamUseCase>()
     val manageTeamUseCase by inject<ManageTeamUseCase>()
     val getTeamsUseCase by inject<GetTeamsUseCase>()
+    val addStaffToTeamUseCase by inject<AddStaffToTeamUseCase>()
+    val getTeamStaffUseCase by inject<GetTeamStaffUseCase>()
 
     authenticate("auth-jwt") {
         route("/teams") {
@@ -40,6 +41,31 @@ fun Route.teamRoutes() {
 
                 val team = createTeamUseCase(currentUserId, teamRequest)
                 call.respond(HttpStatusCode.Created, team)
+            }
+
+            route("/{teamId}") {
+                get("/staff") {
+                    val teamId = call.parameters["teamId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val staff = getTeamStaffUseCase(teamId)
+                    call.respond(staff)
+                }
+
+                post("/staff") {
+                    val teamId = call.parameters["teamId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+                    val clubId = call.request.queryParameters["clubId"] ?: return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        ErrorResponse("clubId is required", "VAL_001")
+                    )
+                    val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                    val staffRequest = call.receive<AddStaffToTeamRequest>()
+
+                    val success = addStaffToTeamUseCase(currentUserId, clubId, teamId, staffRequest)
+                    if (success) {
+                        call.respond(HttpStatusCode.Created)
+                    } else {
+                        call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to add staff"))
+                    }
+                }
             }
 
             patch("/{teamId}") {

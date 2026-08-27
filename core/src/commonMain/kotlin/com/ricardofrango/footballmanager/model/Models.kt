@@ -258,3 +258,18 @@ data class AddPlayerToTeamRequest(
     val endDate: LocalDate? = null,
     val status: TeamPlayerStatus = TeamPlayerStatus.ACTIVE
 )
+
+@Serializable
+data class AddStaffToTeamRequest(
+    val userId: String,
+    val role: TeamStaffRole
+)
+
+@Serializable
+data class TeamStaffMember(
+    val userId: String,
+    val firstName: String,
+    val lastName: String,
+    val role: TeamStaffRole,
+    val avatarUrl: String? = null
+)
