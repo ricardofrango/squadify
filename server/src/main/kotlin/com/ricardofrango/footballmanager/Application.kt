@@ -83,6 +83,7 @@ fun Application.module() {
 
     install(StatusPages) {
         exception<FootballManagerException> { call, cause ->
+            cause.printStackTrace()
             val status = when (cause) {
                 is UnauthorizedException -> HttpStatusCode.Unauthorized
                 is ForbiddenException -> HttpStatusCode.Forbidden
@@ -93,23 +94,26 @@ fun Application.module() {
             }
             call.respond(status, ErrorResponse(cause.message, cause.code))
         }
-        exception<BadRequestException> { call, _ ->
+        exception<BadRequestException> { call, cause ->
+            cause.printStackTrace()
             call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid request body or parameters", "VAL_000"))
         }
-        exception<ContentTransformationException> { call, _ ->
+        exception<ContentTransformationException> { call, cause ->
+            cause.printStackTrace()
             call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid request body content", "VAL_000"))
         }
-        exception<SerializationException> { call, _ ->
+        exception<SerializationException> { call, cause ->
+            cause.printStackTrace()
             call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid field values in request body", "VAL_000"))
         }
         exception<Throwable> { call, cause ->
+            // Log the actual cause for the developer (optional, usually handled by Ktor logging)
+            cause.printStackTrace()
             // Mask internal details for any other unhandled exceptions
             call.respond(
                 HttpStatusCode.InternalServerError,
                 ErrorResponse("An internal server error occurred", "-1")
             )
-            // Log the actual cause for the developer (optional, usually handled by Ktor logging)
-            cause.printStackTrace()
         }
     }
 

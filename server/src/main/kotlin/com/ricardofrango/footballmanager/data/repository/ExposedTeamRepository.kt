@@ -22,6 +22,12 @@ class ExposedTeamRepository : TeamRepository {
             .map(::toTeam)
     }
 
+    override suspend fun getTeamById(id: String): Team? = dbQuery {
+        Teams.selectAll().where { Teams.id eq Uuid.parse(id) }
+            .map(::toTeam)
+            .singleOrNull()
+    }
+
     override suspend fun createTeam(team: Team): Team = dbQuery {
         Teams.insert {
             it[id] = Uuid.parse(team.id)

@@ -1,8 +1,8 @@
 package com.ricardofrango.footballmanager.model
 
-import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
+import kotlin.time.Instant
 
 @Serializable
 enum class Role {
@@ -212,6 +212,21 @@ data class CreateTeamRequest(
 )
 
 @Serializable
+data class CreatePlayersRequest(
+    val clubId: String,
+    val players: List<CreatePlayer>
+)
+
+@Serializable
+data class CreatePlayer(
+    val firstName: String,
+    val lastName: String,
+    val birthDate: LocalDate,
+    val shirtNumber: Int? = null,
+    val photoUrl: String? = null
+)
+
+@Serializable
 data class CreatePlayerRequest(
     val clubId: String,
     val firstName: String,
@@ -219,6 +234,20 @@ data class CreatePlayerRequest(
     val birthDate: LocalDate,
     val shirtNumber: Int? = null,
     val photoUrl: String? = null
+)
+
+@Serializable
+data class AddPlayersToTeamRequest(
+    val teamId: String,
+    val players: List<AddPlayerToTeam>
+)
+
+@Serializable
+data class AddPlayerToTeam(
+    val playerId: String,
+    val startDate: LocalDate,
+    val endDate: LocalDate? = null,
+    val status: TeamPlayerStatus = TeamPlayerStatus.ACTIVE
 )
 
 @Serializable
