@@ -27,6 +27,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 - **Age Group**: Categorization of players by age.
 - **Team**: Specific groups within age groups.
 - **Player**: Personal data and stats.
+- **Opponent**: Management of external clubs/teams for matches (name, short name, logo).
 - **ClubMember**: Links Users to Clubs with a specific Role.
 - **TeamPlayer**: Links Players to Teams (handles transfers).
 - **UserPlayer**: Links Parents to Players (supports multiple guardians).
@@ -42,7 +43,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 - **Error Handling**: Standardized `ErrorResponse` JSON for all failures, using a custom `FootballManagerException` hierarchy.
 
 ## 5. Match Management
-- **Match**: Details about opponents, location, date, and status.
+- **Match**: Details about opponent (linked to Opponent entity), location, date, and status.
 - **MatchCallUp**: List of players called for a match with attendance status (Called, Confirmed, Injured, etc.).
 - **Live Match**: Real-time event logging by coaches (Goals, Assists, Substitutions, Cards).
 - **MatchStatus**: `SCHEDULED`, `LIVE`, `HALF_TIME`, `FINISHED`, `CANCELLED`.
@@ -66,5 +67,8 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Age Group management by birth year.
     - [x] Player management (individual/batch) with eligibility checks.
     - [x] Team Staff management (Coaches/Staff assignment).
-- [ ] **Phase 4: Match & Call-ups**: Calendar and attendance management.
+- [/] **Phase 4: Match & Call-ups**: Calendar and attendance management.
+    - [x] Opponent management (dedicated entity and table).
+    - [x] Match creation and listing.
+    - [x] Call-up management (batch player assignment).
 - [ ] **Phase 5: Live Match & Stats**: Real-time events and automated statistics calculation.
