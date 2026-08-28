@@ -12,6 +12,8 @@ val appModule = module {
     single<SeasonRepository> { ExposedSeasonRepository() }
     single<AgeGroupRepository> { ExposedAgeGroupRepository() }
     single<PlayerRepository> { ExposedPlayerRepository() }
+    single<MatchRepository> { ExposedMatchRepository() }
+    single<OpponentRepository> { ExposedOpponentRepository() }
     
     factory { GetClubsUseCase(get(), get()) }
     factory { GetClubDetailsUseCase(get(), get()) }
@@ -42,4 +44,11 @@ val appModule = module {
     factory { AddPlayerToTeamUseCase(get(), get(), get(), get()) }
     factory { AddPlayersToTeamUseCase(get(), get(), get(), get()) }
     factory { GetTeamsUseCase(get()) }
+    factory { CreateMatchUseCase(get(), get(), get(), get()) }
+    factory { GetMatchesUseCase(get()) }
+    factory { GetMatchDetailsUseCase(get()) }
+    factory { UpdateMatchStatusUseCase(get(), get(), get()) }
+    factory { ManageCallUpUseCase(get(), get(), get()) }
+    factory { CreateOpponentUseCase(get(), get()) }
+    factory { GetOpponentsUseCase(get()) }
 }

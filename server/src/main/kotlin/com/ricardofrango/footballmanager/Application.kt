@@ -8,6 +8,8 @@ import com.ricardofrango.footballmanager.presentation.routes.teamRoutes
 import com.ricardofrango.footballmanager.presentation.routes.seasonRoutes
 import com.ricardofrango.footballmanager.presentation.routes.ageGroupRoutes
 import com.ricardofrango.footballmanager.presentation.routes.playerRoutes
+import com.ricardofrango.footballmanager.presentation.routes.matchRoutes
+import com.ricardofrango.footballmanager.presentation.routes.opponentRoutes
 import com.ricardofrango.footballmanager.security.JwtConfig
 import com.ricardofrango.footballmanager.model.ErrorResponse
 import com.ricardofrango.footballmanager.exception.*
@@ -87,6 +89,7 @@ fun Application.module() {
             val status = when (cause) {
                 is UnauthorizedException -> HttpStatusCode.Unauthorized
                 is ForbiddenException -> HttpStatusCode.Forbidden
+                is NotFoundException -> HttpStatusCode.NotFound
                 is ConflictException -> HttpStatusCode.Conflict
                 is ValidationException -> HttpStatusCode.BadRequest
                 is DatabaseException -> HttpStatusCode.InternalServerError
@@ -127,5 +130,7 @@ fun Application.module() {
         seasonRoutes()
         ageGroupRoutes()
         playerRoutes()
+        matchRoutes()
+        opponentRoutes()
     }
 }

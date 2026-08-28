@@ -285,3 +285,87 @@ data class TeamDetails(
     val players: List<Player>,
     val staff: List<TeamStaffMember>
 )
+
+@Serializable
+enum class CallUpStatus {
+    CALLED_UP,
+    CONFIRMED,
+    DECLINED,
+    NOT_AVAILABLE,
+    STANDBY
+}
+
+@Serializable
+data class Opponent(
+    val id: String,
+    val clubId: String,
+    val name: String,
+    val shortName: String? = null,
+    val logoUrl: String? = null
+)
+
+@Serializable
+data class Match(
+    val id: String,
+    val clubId: String,
+    val teamId: String,
+    val opponentId: String,
+    val location: String? = null,
+    val dateTime: Instant,
+    val status: MatchStatus = MatchStatus.SCHEDULED,
+    val notes: String? = null
+)
+
+@Serializable
+data class MatchCallUp(
+    val id: String,
+    val matchId: String,
+    val playerId: String,
+    val status: CallUpStatus,
+    val notes: String? = null
+)
+
+@Serializable
+data class MatchCallUpWithPlayer(
+    val callUp: MatchCallUp,
+    val player: Player
+)
+
+@Serializable
+data class MatchDetails(
+    val match: Match,
+    val opponent: Opponent,
+    val callUps: List<MatchCallUpWithPlayer>
+)
+
+@Serializable
+data class CreateOpponentRequest(
+    val name: String,
+    val shortName: String? = null,
+    val logoUrl: String? = null
+)
+
+@Serializable
+data class CreateMatchRequest(
+    val teamId: String,
+    val opponentId: String,
+    val location: String? = null,
+    val dateTime: Instant,
+    val notes: String? = null
+)
+
+@Serializable
+data class UpdateCallUpRequest(
+    val status: CallUpStatus,
+    val notes: String? = null
+)
+
+@Serializable
+data class UpdateMatchStatusRequest(
+    val status: MatchStatus
+)
+
+@Serializable
+data class ManageCallUpRequest(
+    val playerIds: List<String>
+)

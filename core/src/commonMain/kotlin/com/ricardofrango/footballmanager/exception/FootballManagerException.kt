@@ -17,5 +17,8 @@ class ValidationException(message: String) :
 class ConflictException(message: String) : 
     FootballManagerException(message, "DATA_001")
 
+class NotFoundException(message: String) : 
+    FootballManagerException(message, "DATA_003")
+
 class DatabaseException(message: String) : 
     FootballManagerException(message, "DATA_002")

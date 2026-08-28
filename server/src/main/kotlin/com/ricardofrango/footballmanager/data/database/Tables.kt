@@ -136,3 +136,40 @@ object UserPlayers : Table("user_players") {
 
     override val primaryKey = PrimaryKey(id)
 }
+
+object Opponents : Table("opponents") {
+    val id = uuid("id")
+    val clubId = uuid("club_id").references(Clubs.id)
+    val name = varchar("name", 255)
+    val shortName = varchar("short_name", 50).nullable()
+    val logoUrl = varchar("logo_url", 500).nullable()
+
+    override val primaryKey = PrimaryKey(id)
+}
+
+object Matches : Table("matches") {
+    val id = uuid("id")
+    val clubId = uuid("club_id").references(Clubs.id)
+    val teamId = uuid("team_id").references(Teams.id)
+    val opponentId = uuid("opponent_id").references(Opponents.id)
+    val location = varchar("location", 500).nullable()
+    val dateTime = timestamp("date_time")
+    val status = enumerationByName("status", 50, MatchStatus::class).default(MatchStatus.SCHEDULED)
+    val notes = text("notes").nullable()
+
+    override val primaryKey = PrimaryKey(id)
+}
+
+object MatchCallUps : Table("match_call_ups") {
+    val id = uuid("id")
+    val matchId = uuid("match_id").references(Matches.id)
+    val playerId = uuid("player_id").references(Players.id)
+    val status = enumerationByName("status", 50, CallUpStatus::class).default(CallUpStatus.CALLED_UP)
+    val notes = text("notes").nullable()
+
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex("unique_match_player", matchId, playerId)
+    }
+}

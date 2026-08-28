@@ -32,7 +32,10 @@ object DatabaseFactory {
                     Players,
                     TeamPlayers,
                     TeamStaff,
-                    UserPlayers
+                    UserPlayers,
+                    Opponents,
+                    Matches,
+                    MatchCallUps
                 )
 
                 // Data migration: Convert lowercase status/roles to uppercase for Enum compatibility
