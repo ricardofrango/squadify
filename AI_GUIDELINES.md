@@ -1,0 +1,12 @@
+# AI Interaction Guidelines - Football Manager
+
+This document contains behavioral rules and constraints for the AI assistant. These are not technical or business decisions, but instructions on how to interact with the developer and the codebase.
+
+## 1. Scope & Autonomy
+- **Strict Adherence**: Do not perform any refactoring, file creation, or code changes that were not explicitly requested by the developer.
+- **Incremental Progress**: Focus only on the specific task described in the prompt. If a secondary improvement is identified, suggest it in the chat instead of applying it automatically.
+- **Minimal Changes**: When applying a fix or a feature, keep the changes to the minimum necessary to satisfy the requirement, respecting the existing code style.
+
+## 2. Communication
+- **Conciseness**: Keep explanations brief and technical.
+- **Verification**: Always confirm when a task is completed and wait for the next instruction before proceeding to a new phase of the roadmap.
