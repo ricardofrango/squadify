@@ -72,12 +72,48 @@ enum class MatchStatus {
 @Serializable
 enum class EventType {
     GOAL,
+    OWN_GOAL,
     ASSIST,
     SUBSTITUTION_IN,
     SUBSTITUTION_OUT,
     YELLOW_CARD,
     RED_CARD
 }
+
+@Serializable
+data class MatchEvent(
+    val id: String,
+    val matchId: String,
+    val type: EventType,
+    val minute: Int,
+    val playerId: String? = null,
+    val opponentPlayerName: String? = null,
+    val isOpponent: Boolean = false,
+    val createdAt: Instant
+)
+
+@Serializable
+data class MatchScore(
+    val matchId: String,
+    val ourScore: Int,
+    val opponentScore: Int
+)
+
+@Serializable
+data class LiveMatchUpdate(
+    val event: MatchEvent? = null,
+    val score: MatchScore,
+    val status: MatchStatus? = null
+)
+
+@Serializable
+data class CreateMatchEventRequest(
+    val type: EventType,
+    val minute: Int,
+    val playerId: String? = null,
+    val opponentPlayerName: String? = null,
+    val isOpponent: Boolean = false
+)
 
 @Serializable
 data class User(

@@ -35,7 +35,8 @@ object DatabaseFactory {
                     UserPlayers,
                     Opponents,
                     Matches,
-                    MatchCallUps
+                    MatchCallUps,
+                    MatchEvents
                 )
 
                 // Data migration: Convert lowercase status/roles to uppercase for Enum compatibility
@@ -51,6 +52,7 @@ object DatabaseFactory {
                     exec("""UPDATE TEAM_STAFF SET role = UPPER(role)""")
                     exec("""UPDATE USER_PLAYERS SET relationship = UPPER(relationship)""")
                     exec("""UPDATE SEASONS SET type = UPPER(type)""")
+                    exec("""UPDATE MATCH_EVENTS SET type = UPPER(type)""")
                 } catch (e: Exception) {
                     logger.warn("Data migration notice: ${e.message}")
                 }

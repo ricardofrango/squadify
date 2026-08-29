@@ -25,8 +25,11 @@ import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.ContentTransformationException
+import io.ktor.server.websocket.*
 import kotlinx.serialization.SerializationException
 import io.ktor.http.HttpStatusCode
+import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
+import kotlin.time.Duration.Companion.seconds
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
@@ -81,6 +84,14 @@ fun Application.module() {
                 ignoreUnknownKeys = true
             }
         )
+    }
+
+    install(WebSockets) {
+        pingPeriod = 15.seconds
+        timeout = 15.seconds
+        maxFrameSize = Long.MAX_VALUE
+        masking = false
+        contentConverter = KotlinxWebsocketSerializationConverter(Json)
     }
 
     install(StatusPages) {

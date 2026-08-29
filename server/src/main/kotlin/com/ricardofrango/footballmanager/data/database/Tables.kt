@@ -173,3 +173,16 @@ object MatchCallUps : Table("match_call_ups") {
         uniqueIndex("unique_match_player", matchId, playerId)
     }
 }
+
+object MatchEvents : Table("match_events") {
+    val id = uuid("id")
+    val matchId = uuid("match_id").references(Matches.id)
+    val type = enumerationByName("type", 50, EventType::class)
+    val minute = integer("minute")
+    val playerId = uuid("player_id").references(Players.id).nullable()
+    val opponentPlayerName = varchar("opponent_player_name", 255).nullable()
+    val isOpponent = bool("is_opponent").default(false)
+    val createdAt = timestamp("created_at")
+
+    override val primaryKey = PrimaryKey(id)
+}

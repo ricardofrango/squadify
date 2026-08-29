@@ -47,7 +47,15 @@ We use **Exposed** as our SQL ORM.
 - **Resource Management**: Support for partial updates (PATCH) to manage resource states (e.g., active/inactive status for teams, seasons and players).
 - **Match-Opponent Relationship**: Matches are linked to a dedicated `Opponents` table rather than using simple strings. This ensures data consistency across the club and allows for richer opponent data (e.g., logos).
 
-## 6. Project Structure (KMP)
+## 6. Real-Time Communication: WebSockets
+We use **WebSockets** for delivering instantaneous updates during live matches (Live Score).
+
+- **Implementation**: Ktor's `WebSockets` plugin with `KotlinxWebsocketSerializationConverter` for typed JSON communication.
+- **Session Management**: A `MatchSessionManager` handles active connections, grouping them by `matchId`.
+- **Hybrid Flow**: Events are recorded via a standard **REST POST** request (for reliability and ACID persistence) and then **broadcasted** to all connected WebSocket clients for that specific match.
+- **Auto-Cleanup**: Sessions are automatically removed from the manager upon disconnection or transmission failure.
+
+## 7. Project Structure (KMP)
 - `:server`: Ktor backend.
 - `:core`: Shared logic, models, and exceptions.
 - `:app:shared`: Shared UI components and logic (Compose Multiplatform).

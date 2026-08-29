@@ -2,16 +2,15 @@ package com.ricardofrango.footballmanager.presentation.routes
 
 import com.ricardofrango.footballmanager.domain.usecase.*
 import com.ricardofrango.footballmanager.model.*
+import com.ricardofrango.footballmanager.security.MatchSessionManager
 import com.ricardofrango.footballmanager.security.userId
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.get
-import io.ktor.server.routing.patch
-import io.ktor.server.routing.post
-import io.ktor.server.routing.route
+import io.ktor.server.routing.*
+import io.ktor.server.websocket.webSocket
+import kotlinx.coroutines.channels.consumeEach
 import org.koin.ktor.ext.inject
 
 fun Route.matchRoutes() {
@@ -20,6 +19,8 @@ fun Route.matchRoutes() {
     val getMatchDetailsUseCase by inject<GetMatchDetailsUseCase>()
     val updateMatchStatusUseCase by inject<UpdateMatchStatusUseCase>()
     val manageCallUpUseCase by inject<ManageCallUpUseCase>()
+    val addMatchEventUseCase by inject<AddMatchEventUseCase>()
+    val getMatchEventsUseCase by inject<GetMatchEventsUseCase>()
 
     authenticate("auth-jwt") {
         route("/matches") {
@@ -66,6 +67,39 @@ fun Route.matchRoutes() {
                         call.respond(HttpStatusCode.NoContent)
                     } else {
                         call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to update match status"))
+                    }
+                }
+
+                route("/events") {
+                    get {
+                        val matchId = call.parameters["matchId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                        val events = getMatchEventsUseCase.getEvents(matchId)
+                        call.respond(events)
+                    }
+
+                    get("/score") {
+                        val matchId = call.parameters["matchId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                        val score = getMatchEventsUseCase.getScore(matchId)
+                        call.respond(score)
+                    }
+
+                    post {
+                        val matchId = call.parameters["matchId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+                        val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                        val request = call.receive<CreateMatchEventRequest>()
+
+                        val event = addMatchEventUseCase(currentUserId, matchId, request)
+                        call.respond(HttpStatusCode.Created, event)
+                    }
+                }
+
+                webSocket("/live") {
+                    val matchId = call.parameters["matchId"] ?: return@webSocket
+                    MatchSessionManager.addSession(matchId, this)
+                    try {
+                        incoming.consumeEach { }
+                    } finally {
+                        MatchSessionManager.removeSession(matchId, this)
                     }
                 }
 

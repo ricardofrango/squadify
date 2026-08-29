@@ -71,4 +71,8 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Opponent management (dedicated entity and table).
     - [x] Match creation and listing.
     - [x] Call-up management (batch player assignment).
-- [ ] **Phase 5: Live Match & Stats**: Real-time events and automated statistics calculation.
+- [/] **Phase 5: Live Match & Stats**: Real-time events and automated statistics calculation.
+    - [x] Real-time broadcasting via **WebSockets**.
+    - [x] Live Event logging (Goals, Assists, Cards, Subs).
+    - [x] Live Score calculation.
+    - [ ] Historical match statistics (Post-match analysis).

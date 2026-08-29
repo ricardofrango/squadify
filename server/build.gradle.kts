@@ -50,6 +50,7 @@ dependencies {
     implementation(libs.ktor.logging)
     implementation(libs.ktor.server.auth)
     implementation(libs.ktor.server.auth.jwt)
+    implementation(libs.ktor.server.websockets)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.exposed.kotlin.datetime)
     implementation(libs.kotlinx.datetime)
@@ -59,9 +60,6 @@ dependencies {
     implementation(libs.konf)
 
     testImplementation(libs.mockk)
-    testImplementation(libs.ktor.client.content.negotiation)
-    testImplementation(libs.ktor.server.serialization.kotlinx.json)
     testImplementation(libs.ktor.server.test.host)
-    testImplementation(libs.kotlin.testJunit)
     testImplementation(libs.kotlin.testJunit)
 }
