@@ -11,25 +11,20 @@ class UpdatePlayerStatusUseCase(
 ) {
     suspend operator fun invoke(
         userId: String,
-        clubId: String,
         playerId: String,
         active: Boolean
     ): Boolean {
-        // 1. Check permissions
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = clubId,
-            minRole = Role.COORDINATOR,
-            errorMessage = "Only admins or coordinators can change player status"
-        )
-
-        // 2. Verify player exists and belongs to the club
+        // 1. Verify player exists first to get context
         val player = playerRepository.getPlayerById(playerId)
             ?: throw ValidationException("Player not found")
 
-        if (player.clubId != clubId) {
-            throw ForbiddenException("Player does not belong to this club")
-        }
+        // 2. Check permissions using player's clubId
+        checkUserPermissionUseCase(
+            userId = userId,
+            clubId = player.clubId,
+            minRole = Role.COORDINATOR,
+            errorMessage = "Only admins or coordinators can change player status"
+        )
 
         return playerRepository.updateActiveStatus(playerId, active)
     }

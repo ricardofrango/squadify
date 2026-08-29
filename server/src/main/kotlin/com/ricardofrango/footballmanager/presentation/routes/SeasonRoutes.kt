@@ -26,7 +26,8 @@ fun Route.seasonRoutes() {
                     HttpStatusCode.BadRequest,
                     ErrorResponse("clubId is required", "VAL_001")
                 )
-                val seasons = getSeasonsUseCase(clubId)
+                val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                val seasons = getSeasonsUseCase(currentUserId, clubId)
                 call.respond(seasons)
             }
 
@@ -41,14 +42,10 @@ fun Route.seasonRoutes() {
         route("/season") {
             patch("/{seasonId}/status") {
                 val seasonId = call.parameters["seasonId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
-                val clubId = call.request.queryParameters["clubId"] ?: return@patch call.respond(
-                    HttpStatusCode.BadRequest,
-                    ErrorResponse("clubId is required", "VAL_001")
-                )
                 val currentUserId = call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
                 val request = call.receive<UpdateActiveStatusRequest>()
 
-                val success = updateSeasonStatusUseCase(currentUserId, clubId, seasonId, request.active)
+                val success = updateSeasonStatusUseCase(currentUserId, seasonId, request.active)
                 if (success) {
                     call.respond(HttpStatusCode.NoContent)
                 } else {

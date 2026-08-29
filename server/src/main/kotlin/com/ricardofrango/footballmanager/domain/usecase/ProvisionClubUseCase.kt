@@ -12,16 +12,13 @@ import kotlin.uuid.Uuid
 
 class ProvisionClubUseCase(
     private val clubRepository: ClubRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val checkUserIsAdminUseCase: CheckUserIsAdminUseCase
 ) {
-    suspend operator fun invoke(executorId: String, directorId: String, clubName: String): Club {
+    suspend operator fun invoke(userId: String, directorId: String, clubName: String): Club {
         // 1. Check if executor is Platform Admin
-        val executor = userRepository.findById(executorId)
-            ?: throw ForbiddenException("Executor not found")
-        
-        if (!executor.isPlatformAdmin) {
-            throw ForbiddenException("Only platform admins can provision new clubs")
-        }
+        checkUserIsAdminUseCase(userId).takeIf { it }
+            ?: throw ForbiddenException("Only platform admins can perform this action")
 
         // 2. Check if director exists
         userRepository.findById(directorId)

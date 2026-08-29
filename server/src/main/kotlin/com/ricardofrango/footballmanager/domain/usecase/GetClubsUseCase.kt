@@ -6,12 +6,12 @@ import com.ricardofrango.footballmanager.model.Club
 
 class GetClubsUseCase(
     private val clubRepository: ClubRepository,
-    private val userRepository: UserRepository
+    private val checkUserIsAdminUseCase: CheckUserIsAdminUseCase
 ) {
     suspend operator fun invoke(userId: String): List<Club> {
-        val user = userRepository.findById(userId) ?: return emptyList()
+        val isAdmin = checkUserIsAdminUseCase(userId)
         
-        return if (user.isPlatformAdmin) {
+        return if (isAdmin) {
             clubRepository.getAllClubs()
         } else {
             clubRepository.getClubsByUser(userId)

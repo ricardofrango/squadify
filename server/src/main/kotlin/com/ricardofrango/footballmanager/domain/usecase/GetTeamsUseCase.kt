@@ -1,10 +1,17 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
+import com.ricardofrango.footballmanager.model.Role
 import com.ricardofrango.footballmanager.model.Team
 
-class GetTeamsUseCase(private val teamRepository: TeamRepository) {
-    suspend operator fun invoke(clubId: String): List<Team> {
+class GetTeamsUseCase(
+    private val teamRepository: TeamRepository,
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
+) {
+    suspend operator fun invoke(userId: String, clubId: String): List<Team> {
+        // 1. Check permissions first (Fail fast)
+        checkUserPermissionUseCase(userId, clubId, Role.PLAYER)
+
         return teamRepository.getTeamsByClub(clubId)
     }
 }

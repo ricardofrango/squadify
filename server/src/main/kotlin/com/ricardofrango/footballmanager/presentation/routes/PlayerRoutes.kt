@@ -26,7 +26,8 @@ fun Route.playerRoutes() {
                     HttpStatusCode.BadRequest,
                     ErrorResponse("playerId is required", "VAL_001")
                 )
-                val player = getPlayerUseCase(playerId)
+                val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                val player = getPlayerUseCase(currentUserId, playerId)
                 call.respond(player)
             }
 
@@ -52,14 +53,10 @@ fun Route.playerRoutes() {
 
             patch("/{playerId}/status") {
                 val playerId = call.parameters["playerId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
-                val clubId = call.request.queryParameters["clubId"] ?: return@patch call.respond(
-                    HttpStatusCode.BadRequest,
-                    ErrorResponse("clubId is required", "VAL_001")
-                )
                 val currentUserId = call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
                 val request = call.receive<UpdateActiveStatusRequest>()
 
-                val success = updatePlayerStatusUseCase(currentUserId, clubId, playerId, request.active)
+                val success = updatePlayerStatusUseCase(currentUserId, playerId, request.active)
                 if (success) {
                     call.respond(HttpStatusCode.NoContent)
                 } else {
@@ -75,7 +72,8 @@ fun Route.playerRoutes() {
                     ErrorResponse("clubId is required", "VAL_001")
                 )
                 val teamId = call.request.queryParameters["teamId"]
-                val players = getPlayersUseCase(clubId, teamId)
+                val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                val players = getPlayersUseCase(currentUserId, clubId, teamId)
                 call.respond(players)
             }
 

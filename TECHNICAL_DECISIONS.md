@@ -46,6 +46,9 @@ We use **Exposed** as our SQL ORM.
     - **Role Levels**: `CLUB_ADMIN` (5), `COORDINATOR` (4), `COACH` (3), `STAFF` (2), `PARENT/PLAYER` (1).
     - **Global vs Team Scope**: `CLUB_ADMIN` and `COORDINATOR` have global access to all club resources. `COACH` and `STAFF` roles are restricted to specific teams they are assigned to (verified via `team_staff` table).
     - **Platform Admin**: A global `isPlatformAdmin` flag bypasses all local club checks ("God Mode").
+- **Permission Check Priority (Check Once, Fail Fast)**: To optimize performance and prevent unnecessary database access, authorization validation MUST be performed exactly once per operation. 
+    - **Rule**: Validation should occur as soon as all necessary context (like `clubId` or `teamId`) is available.
+    - **Practice**: If a Use Case requires metadata from a resource to determine the team context, the resource is fetched first, followed by a single granular permission check. This prevents redundant calls to the security layer and unnecessary business logic execution for unauthorized users.
 - **Security Testing**: The permission logic is covered by a suite of unit tests (`CheckUserPermissionUseCaseTest`) to prevent regression in access control.
 - **Resource Management**: Support for partial updates (PATCH) to manage resource states (e.g., active/inactive status for teams, seasons and players).
 - **Match-Opponent Relationship**: Matches are linked to a dedicated `Opponents` table rather than using simple strings. This ensures data consistency across the club and allows for richer opponent data (e.g., logos).

@@ -21,11 +21,11 @@ class AddMatchEventUseCase(
         matchId: String,
         request: CreateMatchEventRequest
     ): MatchEvent {
-        // 1. Verify match exists
+        // 1. Verify match exists first to get context
         val match = matchRepository.getMatchById(matchId)
             ?: throw ValidationException("Match not found")
 
-        // 2. Check permissions (Admin/Coordinator or Team Coach)
+        // 2. Single granular permission check using metadata from match
         checkUserPermissionUseCase(
             userId = userId,
             clubId = match.clubId,

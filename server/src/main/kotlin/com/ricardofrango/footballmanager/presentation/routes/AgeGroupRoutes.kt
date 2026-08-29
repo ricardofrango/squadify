@@ -26,7 +26,8 @@ fun Route.ageGroupRoutes() {
                     HttpStatusCode.BadRequest,
                     ErrorResponse("clubId is required", "VAL_001")
                 )
-                val ageGroups = getAgeGroupsUseCase(clubId)
+                val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                val ageGroups = getAgeGroupsUseCase(currentUserId, clubId)
                 call.respond(ageGroups)
             }
 

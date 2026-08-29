@@ -21,19 +21,7 @@ class AddPlayersToTeamUseCase(
         clubId: String,
         request: AddPlayersToTeamRequest
     ): List<TeamPlayer> {
-        // 1. Verify team exists and belongs to the correct club
-        val team = teamRepository.getTeamById(request.teamId)
-            ?: throw ValidationException("Team not found")
-
-        if (team.clubId != clubId) {
-            throw ForbiddenException("Team does not belong to this club")
-        }
-
-        // 2. Get Age Group to check age eligibility
-        val ageGroup = ageGroupRepository.getAgeGroupById(team.ageGroupId)
-            ?: throw ValidationException("Age Group not found")
-
-        // 3. Check permissions (Admin/Coordinator or Team Coach)
+        // 1. Check permissions first (Fail fast)
         checkUserPermissionUseCase(
             userId = userId,
             clubId = clubId,
@@ -41,6 +29,18 @@ class AddPlayersToTeamUseCase(
             teamId = request.teamId,
             errorMessage = "Insufficient permissions to add players to this team"
         )
+
+        // 2. Verify team exists and belongs to the correct club
+        val team = teamRepository.getTeamById(request.teamId)
+            ?: throw ValidationException("Team not found")
+
+        if (team.clubId != clubId) {
+            throw ForbiddenException("Team does not belong to this club")
+        }
+
+        // 3. Get Age Group to check age eligibility
+        val ageGroup = ageGroupRepository.getAgeGroupById(team.ageGroupId)
+            ?: throw ValidationException("Age Group not found")
 
         // 4. Get player details in batch
         val playerIds = request.players.map { it.playerId }

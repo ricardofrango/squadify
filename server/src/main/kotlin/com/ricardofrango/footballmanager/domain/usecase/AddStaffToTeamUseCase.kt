@@ -15,11 +15,12 @@ class AddStaffToTeamUseCase(
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
     suspend operator fun invoke(userId: String, clubId: String, teamId: String, request: AddStaffToTeamRequest): Boolean {
-        // 1. Check permissions (Only CLUB_ADMIN or COORDINATOR can add staff)
+        // 1. Check permissions first
         checkUserPermissionUseCase(
             userId = userId,
             clubId = clubId,
             minRole = Role.COORDINATOR,
+            teamId = teamId,
             errorMessage = "Only admins or coordinators can add staff to teams"
         )
 

@@ -11,25 +11,21 @@ class UpdateTeamStatusUseCase(
 ) {
     suspend operator fun invoke(
         userId: String,
-        clubId: String,
         teamId: String,
         active: Boolean
     ): Boolean {
-        // 1. Check permissions
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = clubId,
-            minRole = Role.COORDINATOR,
-            errorMessage = "Only admins or coordinators can change team status"
-        )
-
-        // 2. Verify team exists and belongs to the club
+        // 1. Verify team exists first to get context
         val team = teamRepository.getTeamById(teamId)
             ?: throw ValidationException("Team not found")
 
-        if (team.clubId != clubId) {
-            throw ForbiddenException("Team does not belong to this club")
-        }
+        // 2. Check permissions using team's clubId
+        checkUserPermissionUseCase(
+            userId = userId,
+            clubId = team.clubId,
+            minRole = Role.COORDINATOR,
+            teamId = teamId,
+            errorMessage = "Only admins or coordinators can change team status"
+        )
 
         return teamRepository.updateActiveStatus(teamId, active)
     }
