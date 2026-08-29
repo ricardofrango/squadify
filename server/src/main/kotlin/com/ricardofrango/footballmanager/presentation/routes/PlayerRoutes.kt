@@ -42,12 +42,8 @@ fun Route.playerRoutes() {
             post("/add-to-team") {
                 val currentUserId =
                     call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                val clubId = call.request.queryParameters["clubId"] ?: return@post call.respond(
-                    HttpStatusCode.BadRequest,
-                    ErrorResponse("clubId is required", "VAL_001")
-                )
                 val teamPlayerRequest = call.receive<AddPlayerToTeamRequest>()
-                val teamPlayer = addPlayerToTeamUseCase(currentUserId, clubId, teamPlayerRequest)
+                val teamPlayer = addPlayerToTeamUseCase(currentUserId, teamPlayerRequest)
                 call.respond(HttpStatusCode.Created, teamPlayer)
             }
 
@@ -88,12 +84,8 @@ fun Route.playerRoutes() {
             post("/add-to-team") {
                 val currentUserId =
                     call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                val clubId = call.request.queryParameters["clubId"] ?: return@post call.respond(
-                    HttpStatusCode.BadRequest,
-                    ErrorResponse("clubId is required", "VAL_001")
-                )
                 val teamPlayerRequest = call.receive<AddPlayersToTeamRequest>()
-                val teamPlayer = addPlayersToTeamUseCase(currentUserId, clubId, teamPlayerRequest)
+                val teamPlayer = addPlayersToTeamUseCase(currentUserId, teamPlayerRequest)
                 call.respond(HttpStatusCode.Created, teamPlayer)
             }
         }

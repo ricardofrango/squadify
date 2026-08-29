@@ -71,14 +71,10 @@ fun Route.teamRoutes() {
 
                 post("/staff") {
                     val teamId = call.parameters["teamId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
-                    val clubId = call.request.queryParameters["clubId"] ?: return@post call.respond(
-                        HttpStatusCode.BadRequest,
-                        ErrorResponse("clubId is required", "VAL_001")
-                    )
                     val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                     val staffRequest = call.receive<AddStaffToTeamRequest>()
 
-                    val success = addStaffToTeamUseCase(currentUserId, clubId, teamId, staffRequest)
+                    val success = addStaffToTeamUseCase(currentUserId, teamId, staffRequest)
                     if (success) {
                         call.respond(HttpStatusCode.Created)
                     } else {

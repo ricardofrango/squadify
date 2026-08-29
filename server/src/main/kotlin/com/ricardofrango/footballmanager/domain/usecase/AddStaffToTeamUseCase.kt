@@ -14,23 +14,19 @@ class AddStaffToTeamUseCase(
     private val userRepository: UserRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
-    suspend operator fun invoke(userId: String, clubId: String, teamId: String, request: AddStaffToTeamRequest): Boolean {
-        // 1. Check permissions first
+    suspend operator fun invoke(userId: String, teamId: String, request: AddStaffToTeamRequest): Boolean {
+        // 1. Verify team exists first to get context
+        val team = teamRepository.getTeamById(teamId)
+            ?: throw ValidationException("Team not found")
+
+        // 2. Check permissions using team's clubId
         checkUserPermissionUseCase(
             userId = userId,
-            clubId = clubId,
+            clubId = team.clubId,
             minRole = Role.COORDINATOR,
             teamId = teamId,
             errorMessage = "Only admins or coordinators can add staff to teams"
         )
-
-        // 2. Verify team exists and belongs to the club
-        val team = teamRepository.getTeamById(teamId)
-            ?: throw ValidationException("Team not found")
-        
-        if (team.clubId != clubId) {
-            throw ForbiddenException("Team does not belong to this club")
-        }
 
         // 3. Verify staff user exists
         userRepository.findById(request.userId)

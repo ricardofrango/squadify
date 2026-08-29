@@ -19,29 +19,31 @@ class CreateMatchUseCase(
 ) {
     suspend operator fun invoke(
         userId: String,
-        clubId: String,
         request: CreateMatchRequest
     ): Match {
-        // 1. Check permissions first (Fail fast)
+        // 1. Verify team exists first to get context
+        val team =
+            teamRepository.getTeamById(request.teamId) ?: throw NotFoundException("Team not found")
+
+        // 2. Check permissions using team's clubId
         checkUserPermissionUseCase(
             userId = userId,
-            clubId = clubId,
+            clubId = team.clubId,
             minRole = Role.COACH,
             teamId = request.teamId,
             errorMessage = "Only admins, coordinators, or team coaches can create matches"
         )
 
-        val team =
-            teamRepository.getTeamById(request.teamId) ?: throw NotFoundException("Team not found")
-        if (team.clubId != clubId) throw ForbiddenException("Team does not belong to this club")
-
         val opponent = opponentRepository.getOpponentById(request.opponentId)
             ?: throw NotFoundException("Opponent not found")
-        if (opponent.clubId != clubId) throw ForbiddenException("Opponent does not belong to this club")
+        
+        if (opponent.clubId != team.clubId) {
+            throw ForbiddenException("Opponent does not belong to this club")
+        }
 
         val match = Match(
             id = Uuid.random().toString(),
-            clubId = clubId,
+            clubId = team.clubId,
             teamId = request.teamId,
             opponentId = request.opponentId,
             location = request.location,

@@ -18,9 +18,11 @@ fun Route.matchRoutes() {
     val getMatchesUseCase by inject<GetMatchesUseCase>()
     val getMatchDetailsUseCase by inject<GetMatchDetailsUseCase>()
     val updateMatchStatusUseCase by inject<UpdateMatchStatusUseCase>()
-    val manageCallUpUseCase by inject<ManageCallUpUseCase>()
+    val manageCallUpsUseCase by inject<ManageCallUpsUseCase>()
+    val updateCallUpStatusUseCase by inject<UpdateCallUpStatusUseCase>()
     val addMatchEventUseCase by inject<AddMatchEventUseCase>()
     val getMatchEventsUseCase by inject<GetMatchEventsUseCase>()
+    val getMatchScoreUseCase by inject<GetMatchScoreUseCase>()
 
     authenticate("auth-jwt") {
         route("/matches") {
@@ -38,12 +40,8 @@ fun Route.matchRoutes() {
         route("/match") {
             post {
                 val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                val clubId = call.request.queryParameters["clubId"] ?: return@post call.respond(
-                    HttpStatusCode.BadRequest,
-                    ErrorResponse("clubId is required", "VAL_001")
-                )
                 val request = call.receive<CreateMatchRequest>()
-                val match = createMatchUseCase(currentUserId, clubId, request)
+                val match = createMatchUseCase(currentUserId, request)
                 call.respond(HttpStatusCode.Created, match)
             }
 
@@ -72,14 +70,14 @@ fun Route.matchRoutes() {
                     get {
                         val matchId = call.parameters["matchId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
                         val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
-                        val events = getMatchEventsUseCase.getEvents(currentUserId, matchId)
+                        val events = getMatchEventsUseCase(currentUserId, matchId)
                         call.respond(events)
                     }
 
                     get("/score") {
                         val matchId = call.parameters["matchId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
                         val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
-                        val score = getMatchEventsUseCase.getScore(currentUserId, matchId)
+                        val score = getMatchScoreUseCase(currentUserId, matchId)
                         call.respond(score)
                     }
 
@@ -109,7 +107,7 @@ fun Route.matchRoutes() {
                         val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                         val request = call.receive<ManageCallUpRequest>()
 
-                        val success = manageCallUpUseCase.manageCallUps(currentUserId, matchId, request.playerIds)
+                        val success = manageCallUpsUseCase(currentUserId, matchId, request)
                         if (success) {
                             call.respond(HttpStatusCode.OK)
                         } else {
@@ -125,7 +123,7 @@ fun Route.matchRoutes() {
                     val currentUserId = call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
                     val request = call.receive<UpdateCallUpRequest>()
 
-                    val success = manageCallUpUseCase.updateCallUpStatus(currentUserId, callUpId, request.status, request.notes)
+                    val success = updateCallUpStatusUseCase(currentUserId, callUpId, request)
                     if (success) {
                         call.respond(HttpStatusCode.NoContent)
                     } else {

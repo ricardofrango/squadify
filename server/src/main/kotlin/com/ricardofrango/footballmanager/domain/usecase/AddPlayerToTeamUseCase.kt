@@ -18,25 +18,20 @@ class AddPlayerToTeamUseCase(
 ) {
     suspend operator fun invoke(
         userId: String,
-        clubId: String,
         request: AddPlayerToTeamRequest
     ): TeamPlayer {
-        // 1. Check permissions first (Fail fast)
+        // 1. Verify team exists first to get context
+        val team = teamRepository.getTeamById(request.teamId)
+            ?: throw ValidationException("Team not found")
+
+        // 2. Single granular permission check using team's clubId
         checkUserPermissionUseCase(
             userId = userId,
-            clubId = clubId,
+            clubId = team.clubId,
             minRole = Role.COACH,
             teamId = request.teamId,
             errorMessage = "Insufficient permissions to add players to this team"
         )
-
-        // 2. Verify team exists and belongs to the correct club
-        val team = teamRepository.getTeamById(request.teamId)
-            ?: throw ValidationException("Team not found")
-
-        if (team.clubId != clubId) {
-            throw ForbiddenException("Team does not belong to this club")
-        }
 
         // 3. Get Age Group to check age eligibility
         val ageGroup = ageGroupRepository.getAgeGroupById(team.ageGroupId)
@@ -46,7 +41,7 @@ class AddPlayerToTeamUseCase(
         val player = playerRepository.getPlayerById(request.playerId)
             ?: throw ValidationException("Player not found")
 
-        if (player.clubId != clubId) {
+        if (player.clubId != team.clubId) {
             throw ForbiddenException("Player does not belong to this club")
         }
 

@@ -22,6 +22,7 @@ import com.ricardofrango.footballmanager.domain.usecase.AddMatchEventUseCase
 import com.ricardofrango.footballmanager.domain.usecase.AddPlayerToTeamUseCase
 import com.ricardofrango.footballmanager.domain.usecase.AddPlayersToTeamUseCase
 import com.ricardofrango.footballmanager.domain.usecase.AddStaffToTeamUseCase
+import com.ricardofrango.footballmanager.domain.usecase.CheckUserIsAdminUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CheckUserPermissionUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CreateAgeGroupUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CreateClubUseCase
@@ -36,6 +37,7 @@ import com.ricardofrango.footballmanager.domain.usecase.GetClubDetailsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetClubsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetMatchDetailsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetMatchEventsUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetMatchScoreUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetMatchesUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetOpponentsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetPlayerUseCase
@@ -46,10 +48,11 @@ import com.ricardofrango.footballmanager.domain.usecase.GetTeamPlayersUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetTeamStaffUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetTeamsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.LoginUseCase
-import com.ricardofrango.footballmanager.domain.usecase.ManageCallUpUseCase
+import com.ricardofrango.footballmanager.domain.usecase.ManageCallUpsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.ProvisionClubUseCase
 import com.ricardofrango.footballmanager.domain.usecase.RefreshTokenUseCase
 import com.ricardofrango.footballmanager.domain.usecase.RegisterUseCase
+import com.ricardofrango.footballmanager.domain.usecase.UpdateCallUpStatusUseCase
 import com.ricardofrango.footballmanager.domain.usecase.UpdateMatchStatusUseCase
 import com.ricardofrango.footballmanager.domain.usecase.UpdatePlayerStatusUseCase
 import com.ricardofrango.footballmanager.domain.usecase.UpdateSeasonStatusUseCase
@@ -76,6 +79,7 @@ val appModule = module {
     factory { LoginUseCase(get()) }
     factory { RefreshTokenUseCase(get()) }
     factory { CheckUserPermissionUseCase(get(), get()) }
+    factory { CheckUserIsAdminUseCase(get()) }
 
     factory { CreateTeamUseCase(get(), get()) }
     factory { UpdateTeamStatusUseCase(get(), get()) }
@@ -100,9 +104,11 @@ val appModule = module {
     factory { GetMatchesUseCase(get(), get()) }
     factory { GetMatchDetailsUseCase(get(), get(), get()) }
     factory { UpdateMatchStatusUseCase(get(), get(), get()) }
-    factory { ManageCallUpUseCase(get(), get(), get()) }
+    factory { ManageCallUpsUseCase(get(), get()) }
+    factory { UpdateCallUpStatusUseCase(get(), get()) }
     factory { CreateOpponentUseCase(get(), get()) }
     factory { GetOpponentsUseCase(get(), get()) }
     factory { AddMatchEventUseCase(get(), get(), get()) }
     factory { GetMatchEventsUseCase(get(), get(), get()) }
+    factory { GetMatchScoreUseCase(get(), get(), get()) }
 }
