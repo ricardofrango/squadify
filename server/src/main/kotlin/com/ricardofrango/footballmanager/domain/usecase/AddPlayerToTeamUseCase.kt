@@ -3,7 +3,6 @@ package com.ricardofrango.footballmanager.domain.usecase
 import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
-import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.AddPlayerToTeamRequest
@@ -15,13 +14,17 @@ class AddPlayerToTeamUseCase(
     private val playerRepository: PlayerRepository,
     private val teamRepository: TeamRepository,
     private val ageGroupRepository: AgeGroupRepository,
-    private val userRepository: UserRepository
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
-    suspend operator fun invoke(userId: String, clubId: String, request: AddPlayerToTeamRequest): TeamPlayer {
+    suspend operator fun invoke(
+        userId: String,
+        clubId: String,
+        request: AddPlayerToTeamRequest
+    ): TeamPlayer {
         // 1. Verify team exists and belongs to the correct club
         val team = teamRepository.getTeamById(request.teamId)
             ?: throw ValidationException("Team not found")
-        
+
         if (team.clubId != clubId) {
             throw ForbiddenException("Team does not belong to this club")
         }
@@ -30,24 +33,19 @@ class AddPlayerToTeamUseCase(
         val ageGroup = ageGroupRepository.getAgeGroupById(team.ageGroupId)
             ?: throw ValidationException("Age Group not found")
 
-        // 3. Check permissions
-        val userRole = userRepository.getUserRoleInClub(userId, clubId)
-        
-        // Admins/Coordinators can do it. Coaches can do it if they are staff of the team.
-        val hasPermission = when (userRole) {
-            Role.CLUB_ADMIN, Role.COORDINATOR -> true
-            Role.COACH -> teamRepository.isUserStaffOfTeam(userId, request.teamId)
-            else -> false
-        }
-
-        if (!hasPermission) {
-            throw ForbiddenException("Insufficient permissions to add players to this team")
-        }
+        // 3. Check permissions (Admin/Coordinator or Team Coach)
+        checkUserPermissionUseCase(
+            userId = userId,
+            clubId = clubId,
+            minRole = Role.COACH,
+            teamId = request.teamId,
+            errorMessage = "Insufficient permissions to add players to this team"
+        )
 
         // 4. Verify player exists and belongs to the club
         val player = playerRepository.getPlayerById(request.playerId)
             ?: throw ValidationException("Player not found")
-        
+
         if (player.clubId != clubId) {
             throw ForbiddenException("Player does not belong to this club")
         }

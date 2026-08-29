@@ -19,7 +19,6 @@ import org.koin.ktor.ext.inject
 
 fun Route.teamRoutes() {
     val createTeamUseCase by inject<CreateTeamUseCase>()
-    val manageTeamUseCase by inject<ManageTeamUseCase>()
     val getTeamsUseCase by inject<GetTeamsUseCase>()
     val addStaffToTeamUseCase by inject<AddStaffToTeamUseCase>()
     val getTeamStaffUseCase by inject<GetTeamStaffUseCase>()

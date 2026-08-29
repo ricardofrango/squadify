@@ -1,17 +1,18 @@
 package com.ricardofrango.footballmanager.presentation.routes
 
-import com.ricardofrango.footballmanager.domain.usecase.CheckClubPermissionUseCase
-import com.ricardofrango.footballmanager.domain.usecase.CreateClubUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetClubDetailsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetClubsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.ProvisionClubUseCase
-import com.ricardofrango.footballmanager.model.*
+import com.ricardofrango.footballmanager.model.ProvisionClubRequest
 import com.ricardofrango.footballmanager.security.userId
-import io.ktor.http.*
-import io.ktor.server.auth.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.authenticate
+import io.ktor.server.request.receive
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 
 fun Route.clubRoutes() {
@@ -22,22 +23,26 @@ fun Route.clubRoutes() {
     authenticate("auth-jwt") {
         route("/clubs") {
             get {
-                val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                val currentUserId =
+                    call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
                 val clubs = getClubsUseCase(currentUserId)
                 call.respond(clubs)
             }
 
             post("/provision") {
-                val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                val currentUserId =
+                    call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                 val request = call.receive<ProvisionClubRequest>()
-                
+
                 val club = provisionClubUseCase(currentUserId, request.directorId, request.clubName)
                 call.respond(HttpStatusCode.Created, club)
             }
 
             get("/{clubId}") {
-                val clubId = call.parameters["clubId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
-                val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                val clubId =
+                    call.parameters["clubId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                val currentUserId =
+                    call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
 
                 val club = getClubDetailsUseCase(currentUserId, clubId)
                 call.respond(club)

@@ -2,10 +2,11 @@ package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.MatchEventRepository
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
-import com.ricardofrango.footballmanager.domain.repository.UserRepository
-import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.exception.ValidationException
-import com.ricardofrango.footballmanager.model.*
+import com.ricardofrango.footballmanager.model.CreateMatchEventRequest
+import com.ricardofrango.footballmanager.model.LiveMatchUpdate
+import com.ricardofrango.footballmanager.model.MatchEvent
+import com.ricardofrango.footballmanager.model.Role
 import com.ricardofrango.footballmanager.security.MatchSessionManager
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
@@ -13,23 +14,25 @@ import kotlin.uuid.Uuid
 class AddMatchEventUseCase(
     private val matchEventRepository: MatchEventRepository,
     private val matchRepository: MatchRepository,
-    private val userRepository: UserRepository
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
-    suspend operator fun invoke(userId: String, matchId: String, request: CreateMatchEventRequest): MatchEvent {
+    suspend operator fun invoke(
+        userId: String,
+        matchId: String,
+        request: CreateMatchEventRequest
+    ): MatchEvent {
         // 1. Verify match exists
         val match = matchRepository.getMatchById(matchId)
             ?: throw ValidationException("Match not found")
 
         // 2. Check permissions (Admin/Coordinator or Team Coach)
-        val userRole = userRepository.getUserRoleInClub(userId, match.clubId)
-        // Note: In a real app, we'd check if this specific user is assigned as coach to this match's team.
-        // For MVP, we allow any club COACH.
-        if (userRole != Role.CLUB_ADMIN && userRole != Role.COORDINATOR && userRole != Role.COACH) {
-            val user = userRepository.findById(userId)
-            if (user?.isPlatformAdmin != true) {
-                throw ForbiddenException("Insufficient permissions to add match events")
-            }
-        }
+        checkUserPermissionUseCase(
+            userId = userId,
+            clubId = match.clubId,
+            minRole = Role.COACH,
+            teamId = match.teamId,
+            errorMessage = "Insufficient permissions to add match events"
+        )
 
         // 3. Create the event
         val event = MatchEvent(

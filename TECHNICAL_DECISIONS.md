@@ -42,8 +42,11 @@ We use **Exposed** as our SQL ORM.
     - **Access Tokens**: Short-lived (1 hour) for regular requests.
     - **Refresh Tokens**: Long-lived (24 days) stored in the database for session renewal.
 - **BCrypt**: Used for hashing passwords before storage.
-- **Contextual RBAC**: Permissions are not just global; they are validated based on the user's role *within* a specific club.
-- **Platform Ownership (Multi-tenancy)**: A `Super Admin` (platform owner) exists with global access. Clubs are "provisioned" by the Super Admin, assigning a `Director` (Club Admin) as the primary owner of the club.
+- **Hierarchical RBAC**: Permissions are managed through a centralized `CheckUserPermissionUseCase` using a level-based system:
+    - **Role Levels**: `CLUB_ADMIN` (5), `COORDINATOR` (4), `COACH` (3), `STAFF` (2), `PARENT/PLAYER` (1).
+    - **Global vs Team Scope**: `CLUB_ADMIN` and `COORDINATOR` have global access to all club resources. `COACH` and `STAFF` roles are restricted to specific teams they are assigned to (verified via `team_staff` table).
+    - **Platform Admin**: A global `isPlatformAdmin` flag bypasses all local club checks ("God Mode").
+- **Security Testing**: The permission logic is covered by a suite of unit tests (`CheckUserPermissionUseCaseTest`) to prevent regression in access control.
 - **Resource Management**: Support for partial updates (PATCH) to manage resource states (e.g., active/inactive status for teams, seasons and players).
 - **Match-Opponent Relationship**: Matches are linked to a dedicated `Opponents` table rather than using simple strings. This ensures data consistency across the club and allows for richer opponent data (e.g., logos).
 

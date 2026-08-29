@@ -1,8 +1,6 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
-import com.ricardofrango.footballmanager.domain.repository.UserRepository
-import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.CreatePlayersRequest
 import com.ricardofrango.footballmanager.model.Player
@@ -11,13 +9,15 @@ import kotlin.uuid.Uuid
 
 class CreatePlayersUseCase(
     private val playerRepository: PlayerRepository,
-    private val userRepository: UserRepository
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
     suspend operator fun invoke(userId: String, request: CreatePlayersRequest): List<Player> {
-        val userRole = userRepository.getUserRoleInClub(userId, request.clubId)
-        if (userRole != Role.CLUB_ADMIN && userRole != Role.COORDINATOR && userRole != Role.COACH) {
-            throw ForbiddenException("Insufficient permissions to create players")
-        }
+        checkUserPermissionUseCase(
+            userId = userId,
+            clubId = request.clubId,
+            minRole = Role.COACH,
+            errorMessage = "Insufficient permissions to create players"
+        )
 
         val players = request.players
             .onEach {

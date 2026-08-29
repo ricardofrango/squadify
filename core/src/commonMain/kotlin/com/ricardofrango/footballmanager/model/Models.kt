@@ -5,13 +5,13 @@ import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
 @Serializable
-enum class Role {
-    CLUB_ADMIN,
-    COORDINATOR,
-    COACH,
-    STAFF,
-    PARENT,
-    PLAYER
+enum class Role(val level: Int) {
+    CLUB_ADMIN(5),
+    COORDINATOR(4),
+    COACH(3),
+    STAFF(2),
+    PARENT(1),
+    PLAYER(1)
 }
 
 @Serializable

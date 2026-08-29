@@ -3,7 +3,6 @@ package com.ricardofrango.footballmanager.domain.usecase
 import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
-import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.AddPlayersToTeamRequest
@@ -15,9 +14,13 @@ class AddPlayersToTeamUseCase(
     private val playerRepository: PlayerRepository,
     private val teamRepository: TeamRepository,
     private val ageGroupRepository: AgeGroupRepository,
-    private val userRepository: UserRepository
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
-    suspend operator fun invoke(userId: String, clubId: String, request: AddPlayersToTeamRequest): List<TeamPlayer> {
+    suspend operator fun invoke(
+        userId: String,
+        clubId: String,
+        request: AddPlayersToTeamRequest
+    ): List<TeamPlayer> {
         // 1. Verify team exists and belongs to the correct club
         val team = teamRepository.getTeamById(request.teamId)
             ?: throw ValidationException("Team not found")
@@ -30,19 +33,14 @@ class AddPlayersToTeamUseCase(
         val ageGroup = ageGroupRepository.getAgeGroupById(team.ageGroupId)
             ?: throw ValidationException("Age Group not found")
 
-        // 3. Check permissions
-        val userRole = userRepository.getUserRoleInClub(userId, clubId)
-        
-        // Admins/Coordinators can do it. Coaches can do it if they are staff of the team.
-        val hasPermission = when (userRole) {
-            Role.CLUB_ADMIN, Role.COORDINATOR -> true
-            Role.COACH -> teamRepository.isUserStaffOfTeam(userId, request.teamId)
-            else -> false
-        }
-
-        if (!hasPermission) {
-            throw ForbiddenException("Insufficient permissions to add players to this team")
-        }
+        // 3. Check permissions (Admin/Coordinator or Team Coach)
+        checkUserPermissionUseCase(
+            userId = userId,
+            clubId = clubId,
+            minRole = Role.COACH,
+            teamId = request.teamId,
+            errorMessage = "Insufficient permissions to add players to this team"
+        )
 
         // 4. Get player details in batch
         val playerIds = request.players.map { it.playerId }
@@ -51,7 +49,7 @@ class AddPlayersToTeamUseCase(
         val teamPlayers = request.players.map {
             val player = playersData[it.playerId]
                 ?: throw ValidationException("Player ${it.playerId} not found")
-            
+
             if (player.clubId != clubId) {
                 throw ForbiddenException("Player ${it.playerId} does not belong to this club")
             }

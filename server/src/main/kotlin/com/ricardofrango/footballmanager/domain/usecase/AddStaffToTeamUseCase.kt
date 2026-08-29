@@ -11,17 +11,17 @@ import kotlin.uuid.Uuid
 
 class AddStaffToTeamUseCase(
     private val teamRepository: TeamRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
     suspend operator fun invoke(userId: String, clubId: String, teamId: String, request: AddStaffToTeamRequest): Boolean {
         // 1. Check permissions (Only CLUB_ADMIN or COORDINATOR can add staff)
-        val userRole = userRepository.getUserRoleInClub(userId, clubId)
-        if (userRole != Role.CLUB_ADMIN && userRole != Role.COORDINATOR) {
-            val user = userRepository.findById(userId)
-            if (user?.isPlatformAdmin != true) {
-                throw ForbiddenException("Only admins or coordinators can add staff to teams")
-            }
-        }
+        checkUserPermissionUseCase(
+            userId = userId,
+            clubId = clubId,
+            minRole = Role.COORDINATOR,
+            errorMessage = "Only admins or coordinators can add staff to teams"
+        )
 
         // 2. Verify team exists and belongs to the club
         val team = teamRepository.getTeamById(teamId)
