@@ -285,14 +285,8 @@ data class CreatePlayer(
 )
 
 @Serializable
-data class CreatePlayerRequest(
-    val clubId: String,
-    val player: CreatePlayer
-)
-
-@Serializable
-data class AddClubMemberRequest(
-    val email: String
+data class AddClubMembersRequest(
+    val emails: List<String>
 )
 
 @Serializable
@@ -326,18 +320,14 @@ data class AddPlayerToTeam(
 )
 
 @Serializable
-data class AddPlayerToTeamRequest(
-    val teamId: String,
-    val playerId: String,
-    val startDate: LocalDate,
-    val endDate: LocalDate? = null,
-    val status: TeamPlayerStatus = TeamPlayerStatus.ACTIVE
+data class AddStaffToTeam(
+    val userId: String,
+    val role: TeamRole
 )
 
 @Serializable
-data class AddStaffToTeamRequest(
-    val userId: String,
-    val role: TeamRole
+data class AddStaffToTeamsRequest(
+    val staff: List<AddStaffToTeam>
 )
 
 @Serializable

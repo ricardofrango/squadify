@@ -1,0 +1,66 @@
+package com.ricardofrango.footballmanager.domain.usecase
+
+import com.ricardofrango.footballmanager.domain.repository.ClubRepository
+import com.ricardofrango.footballmanager.domain.repository.InviteRepository
+import com.ricardofrango.footballmanager.domain.repository.UserRepository
+import com.ricardofrango.footballmanager.model.AddClubMembersRequest
+import com.ricardofrango.footballmanager.model.ClubRole
+import com.ricardofrango.footballmanager.model.Invite
+import com.ricardofrango.footballmanager.model.InviteType
+import kotlin.time.Instant
+import kotlin.uuid.Uuid
+
+class AddClubMembersUseCase(
+    private val clubRepository: ClubRepository,
+    private val userRepository: UserRepository,
+    private val inviteRepository: InviteRepository,
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
+) {
+    suspend operator fun invoke(
+        userId: String,
+        clubId: String,
+        request: AddClubMembersRequest
+    ): Boolean {
+        // 1. Check permissions (Admin/Coordinator required to invite members)
+        checkUserPermissionUseCase(
+            userId = userId,
+            clubId = clubId,
+            minClubRole = ClubRole.COORDINATOR,
+            errorMessage = "Only admins or coordinators can add members to the club"
+        )
+
+        val uniqueEmails = request.emails.distinct()
+        val existingUsers = userRepository.findByEmails(uniqueEmails).associateBy { it.email }
+        val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+
+        val invitesToCreate = mutableListOf<Invite>()
+
+        uniqueEmails.forEach { email ->
+            val user = existingUsers[email]
+            if (user != null) {
+                // Check if already a member
+                val existingRole = userRepository.getUserRoleInClub(user.id, clubId)
+                if (existingRole == null) {
+                    clubRepository.addMember(clubId, user.id, ClubRole.MEMBER)
+                }
+            } else {
+                invitesToCreate.add(
+                    Invite(
+                        id = Uuid.random().toString(),
+                        email = email,
+                        clubId = clubId,
+                        type = InviteType.CLUB_MEMBER,
+                        role = ClubRole.MEMBER,
+                        createdAt = now
+                    )
+                )
+            }
+        }
+
+        if (invitesToCreate.isNotEmpty()) {
+            inviteRepository.createInvites(invitesToCreate)
+        }
+
+        return true
+    }
+}

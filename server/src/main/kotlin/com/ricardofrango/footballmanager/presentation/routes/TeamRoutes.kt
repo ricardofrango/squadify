@@ -1,7 +1,13 @@
 package com.ricardofrango.footballmanager.presentation.routes
 
-import com.ricardofrango.footballmanager.domain.usecase.*
-import com.ricardofrango.footballmanager.model.AddStaffToTeamRequest
+import com.ricardofrango.footballmanager.domain.usecase.AddStaffToTeamsUseCase
+import com.ricardofrango.footballmanager.domain.usecase.CreateTeamUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetTeamDetailsUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetTeamPlayersUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetTeamStaffUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetTeamsUseCase
+import com.ricardofrango.footballmanager.domain.usecase.UpdateTeamStatusUseCase
+import com.ricardofrango.footballmanager.model.AddStaffToTeamsRequest
 import com.ricardofrango.footballmanager.model.CreateTeamRequest
 import com.ricardofrango.footballmanager.model.ErrorResponse
 import com.ricardofrango.footballmanager.model.UpdateActiveStatusRequest
@@ -20,7 +26,7 @@ import org.koin.ktor.ext.inject
 fun Route.teamRoutes() {
     val createTeamUseCase by inject<CreateTeamUseCase>()
     val getTeamsUseCase by inject<GetTeamsUseCase>()
-    val addStaffToTeamUseCase by inject<AddStaffToTeamUseCase>()
+    val addStaffToTeamsUseCase by inject<AddStaffToTeamsUseCase>()
     val getTeamStaffUseCase by inject<GetTeamStaffUseCase>()
     val getTeamPlayersUseCase by inject<GetTeamPlayersUseCase>()
     val getTeamDetailsUseCase by inject<GetTeamDetailsUseCase>()
@@ -33,7 +39,8 @@ fun Route.teamRoutes() {
                     HttpStatusCode.BadRequest,
                     ErrorResponse("clubId is required", "VAL_001")
                 )
-                val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                val currentUserId =
+                    call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
                 val teams = getTeamsUseCase(currentUserId, clubId)
                 call.respond(teams)
             }
@@ -50,50 +57,69 @@ fun Route.teamRoutes() {
             route("/{teamId}") {
                 route("/staff") {
                     get {
-                        val teamId = call.parameters["teamId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
-                        val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val teamId = call.parameters["teamId"] ?: return@get call.respond(
+                            HttpStatusCode.BadRequest
+                        )
+                        val currentUserId =
+                            call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         val staff = getTeamStaffUseCase(currentUserId, teamId)
                         call.respond(staff)
                     }
 
                     post {
-                        val teamId = call.parameters["teamId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
-                        val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                        val staffRequest = call.receive<AddStaffToTeamRequest>()
+                        val teamId = call.parameters["teamId"] ?: return@post call.respond(
+                            HttpStatusCode.BadRequest
+                        )
+                        val currentUserId =
+                            call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                        val staffRequest = call.receive<AddStaffToTeamsRequest>()
 
-                        val success = addStaffToTeamUseCase(currentUserId, teamId, staffRequest)
+                        val success = addStaffToTeamsUseCase(currentUserId, teamId, staffRequest)
                         if (success) {
                             call.respond(HttpStatusCode.Created)
                         } else {
-                            call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to add staff"))
+                            call.respond(
+                                HttpStatusCode.InternalServerError,
+                                ErrorResponse("Failed to add staff")
+                            )
                         }
                     }
                 }
 
                 get("/players") {
-                    val teamId = call.parameters["teamId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
-                    val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                    val teamId = call.parameters["teamId"]
+                        ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId =
+                        call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
                     val players = getTeamPlayersUseCase(currentUserId, teamId)
                     call.respond(players)
                 }
 
                 get("/details") {
-                    val teamId = call.parameters["teamId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
-                    val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                    val teamId = call.parameters["teamId"]
+                        ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId =
+                        call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
                     val details = getTeamDetailsUseCase(currentUserId, teamId)
                     call.respond(details)
                 }
 
                 patch("/status") {
-                    val teamId = call.parameters["teamId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
-                    val currentUserId = call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
+                    val teamId = call.parameters["teamId"] ?: return@patch call.respond(
+                        HttpStatusCode.BadRequest
+                    )
+                    val currentUserId =
+                        call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
                     val request = call.receive<UpdateActiveStatusRequest>()
 
                     val success = updateTeamStatusUseCase(currentUserId, teamId, request.active)
                     if (success) {
                         call.respond(HttpStatusCode.NoContent)
                     } else {
-                        call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to update team status"))
+                        call.respond(
+                            HttpStatusCode.InternalServerError,
+                            ErrorResponse("Failed to update team status")
+                        )
                     }
                 }
             }
