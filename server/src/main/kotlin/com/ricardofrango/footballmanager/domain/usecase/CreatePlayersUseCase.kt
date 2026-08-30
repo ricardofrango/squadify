@@ -2,9 +2,9 @@ package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.exception.ValidationException
+import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.CreatePlayersRequest
 import com.ricardofrango.footballmanager.model.Player
-import com.ricardofrango.footballmanager.model.Role
 import kotlin.uuid.Uuid
 
 class CreatePlayersUseCase(
@@ -15,7 +15,7 @@ class CreatePlayersUseCase(
         checkUserPermissionUseCase(
             userId = userId,
             clubId = request.clubId,
-            minRole = Role.COACH,
+            minClubRole = ClubRole.COORDINATOR,
             errorMessage = "Insufficient permissions to create players"
         )
 

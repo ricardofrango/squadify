@@ -2,8 +2,8 @@ package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.exception.ValidationException
+import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.CreateTeamRequest
-import com.ricardofrango.footballmanager.model.Role
 import com.ricardofrango.footballmanager.model.Team
 import kotlin.uuid.Uuid
 
@@ -16,7 +16,7 @@ class CreateTeamUseCase(
         checkUserPermissionUseCase(
             userId = userId,
             clubId = request.clubId,
-            minRole = Role.COORDINATOR,
+            minClubRole = ClubRole.COORDINATOR,
             errorMessage = "Only admins or coordinators can create teams"
         )
 

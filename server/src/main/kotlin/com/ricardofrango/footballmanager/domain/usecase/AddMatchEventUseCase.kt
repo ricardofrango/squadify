@@ -3,10 +3,7 @@ package com.ricardofrango.footballmanager.domain.usecase
 import com.ricardofrango.footballmanager.domain.repository.MatchEventRepository
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
 import com.ricardofrango.footballmanager.exception.ValidationException
-import com.ricardofrango.footballmanager.model.CreateMatchEventRequest
-import com.ricardofrango.footballmanager.model.LiveMatchUpdate
-import com.ricardofrango.footballmanager.model.MatchEvent
-import com.ricardofrango.footballmanager.model.Role
+import com.ricardofrango.footballmanager.model.*
 import com.ricardofrango.footballmanager.security.MatchSessionManager
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
@@ -29,7 +26,7 @@ class AddMatchEventUseCase(
         checkUserPermissionUseCase(
             userId = userId,
             clubId = match.clubId,
-            minRole = Role.COACH,
+            minTeamRole = TeamRole.COACH,
             teamId = match.teamId,
             errorMessage = "Insufficient permissions to add match events"
         )

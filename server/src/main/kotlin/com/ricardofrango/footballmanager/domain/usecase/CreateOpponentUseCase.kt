@@ -1,9 +1,9 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.OpponentRepository
+import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.CreateOpponentRequest
 import com.ricardofrango.footballmanager.model.Opponent
-import com.ricardofrango.footballmanager.model.Role
 import kotlin.uuid.Uuid
 
 class CreateOpponentUseCase(
@@ -18,7 +18,7 @@ class CreateOpponentUseCase(
         checkUserPermissionUseCase(
             userId = userId,
             clubId = clubId,
-            minRole = Role.COORDINATOR,
+            minClubRole = ClubRole.COORDINATOR,
             errorMessage = "Only admins or coordinators can create opponents"
         )
 

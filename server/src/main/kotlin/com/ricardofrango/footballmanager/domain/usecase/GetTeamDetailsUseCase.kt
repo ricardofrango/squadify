@@ -3,7 +3,7 @@ package com.ricardofrango.footballmanager.domain.usecase
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.exception.ValidationException
-import com.ricardofrango.footballmanager.model.Role
+import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.TeamDetails
 
 class GetTeamDetailsUseCase(
@@ -15,12 +15,12 @@ class GetTeamDetailsUseCase(
         val team = teamRepository.getTeamById(teamId)
             ?: throw ValidationException("Team not found")
 
-        // 1. Check permissions first (Fail fast)
-        checkUserPermissionUseCase(userId, team.clubId, Role.PLAYER, teamId)
+        // 1. Check permissions first (Member of club)
+        checkUserPermissionUseCase(userId, team.clubId, minClubRole = ClubRole.MEMBER, teamId = teamId)
 
         val players = playerRepository.getPlayersByTeam(teamId)
         val staff = teamRepository.getTeamStaff(teamId)
-        
+
         return TeamDetails(
             team = team,
             players = players,

@@ -2,10 +2,9 @@ package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.MatchEventRepository
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
+import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.exception.NotFoundException
-import com.ricardofrango.footballmanager.model.LiveMatchUpdate
-import com.ricardofrango.footballmanager.model.MatchStatus
-import com.ricardofrango.footballmanager.model.Role
+import com.ricardofrango.footballmanager.model.*
 import com.ricardofrango.footballmanager.security.MatchSessionManager
 
 class UpdateMatchStatusUseCase(
@@ -22,11 +21,11 @@ class UpdateMatchStatusUseCase(
         val match = matchRepository.getMatchById(matchId)
             ?: throw NotFoundException("Match not found")
 
-        // 2. Single permission check (Fail Fast) using match's clubId
+        // 2. Single permission check (Fail Fast) using match's clubId and teamId
         checkUserPermissionUseCase(
             userId = userId,
             clubId = match.clubId,
-            minRole = Role.COACH,
+            minTeamRole = TeamRole.COACH,
             teamId = match.teamId,
             errorMessage = "Only admins, coordinators, or team coaches can update match status"
         )

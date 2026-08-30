@@ -5,9 +5,7 @@ import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.exception.ValidationException
-import com.ricardofrango.footballmanager.model.AddPlayerToTeamRequest
-import com.ricardofrango.footballmanager.model.Role
-import com.ricardofrango.footballmanager.model.TeamPlayer
+import com.ricardofrango.footballmanager.model.*
 import kotlin.uuid.Uuid
 
 class AddPlayerToTeamUseCase(
@@ -28,7 +26,7 @@ class AddPlayerToTeamUseCase(
         checkUserPermissionUseCase(
             userId = userId,
             clubId = team.clubId,
-            minRole = Role.COACH,
+            minTeamRole = TeamRole.COACH,
             teamId = request.teamId,
             errorMessage = "Insufficient permissions to add players to this team"
         )
@@ -45,7 +43,7 @@ class AddPlayerToTeamUseCase(
             throw ForbiddenException("Player does not belong to this club")
         }
 
-        // 5. Age eligibility check: player.birthYear must be >= ageGroup.birthYear
+        // 5. Age eligibility check
         if (player.birthDate.year < ageGroup.birthYear) {
             throw ValidationException("Player ${player.firstName} ${player.lastName} is too old for this age group")
         }

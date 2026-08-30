@@ -5,10 +5,7 @@ import com.ricardofrango.footballmanager.domain.repository.InviteRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.exception.NotFoundException
-import com.ricardofrango.footballmanager.model.Invite
-import com.ricardofrango.footballmanager.model.InviteType
-import com.ricardofrango.footballmanager.model.Role
-import com.ricardofrango.footballmanager.model.UpdatePlayerRequest
+import com.ricardofrango.footballmanager.model.*
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
@@ -30,7 +27,7 @@ class UpdatePlayerUseCase(
         checkUserPermissionUseCase(
             userId = userId,
             clubId = existingPlayer.clubId,
-            minRole = Role.COACH,
+            minClubRole = ClubRole.COORDINATOR,
             errorMessage = "Insufficient permissions to update player"
         )
 
@@ -48,7 +45,7 @@ class UpdatePlayerUseCase(
         request.email?.let { playerEmail ->
             val existingUser = userRepository.findByEmail(playerEmail)
             if (existingUser != null) {
-                clubRepository.addMember(existingPlayer.clubId, existingUser.id, Role.PLAYER)
+                clubRepository.addMember(existingPlayer.clubId, existingUser.id, ClubRole.MEMBER)
             } else {
                 inviteRepository.createInvite(
                     Invite(
@@ -56,7 +53,7 @@ class UpdatePlayerUseCase(
                         email = playerEmail,
                         clubId = existingPlayer.clubId,
                         type = InviteType.CLUB_MEMBER,
-                        role = Role.PLAYER,
+                        role = ClubRole.MEMBER,
                         createdAt = Instant.fromEpochMilliseconds(System.currentTimeMillis())
                     )
                 )

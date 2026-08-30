@@ -5,9 +5,14 @@ import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
 @Serializable
-enum class Role(val level: Int) {
+enum class ClubRole(val level: Int) {
     CLUB_ADMIN(5),
     COORDINATOR(4),
+    MEMBER(1)
+}
+
+@Serializable
+enum class TeamRole(val level: Int) {
     COACH(3),
     STAFF(2),
     PARENT(1),
@@ -35,15 +40,6 @@ enum class TeamPlayerStatus {
     INACTIVE,
     TRANSFERRED,
     INJURED
-}
-
-@Serializable
-enum class TeamStaffRole {
-    HEAD_COACH,
-    ASSISTANT_COACH,
-    TEAM_MANAGER,
-    PHYSIO,
-    STAFF
 }
 
 @Serializable
@@ -199,7 +195,7 @@ data class TeamStaff(
     val id: String,
     val teamId: String,
     val userId: String,
-    val role: TeamStaffRole
+    val role: TeamRole
 )
 
 @Serializable
@@ -207,14 +203,13 @@ data class ClubMember(
     val id: String,
     val clubId: String,
     val userId: String,
-    val role: Role,
+    val role: ClubRole,
     val active: Boolean
 )
 
 @Serializable
 enum class InviteType {
     CLUB_MEMBER,
-    TEAM_MEMBER,
     PARENT_PLAYER
 }
 
@@ -224,9 +219,7 @@ data class Invite(
     val email: String,
     val clubId: String,
     val type: InviteType,
-    val role: Role? = null,
-    val teamId: String? = null,
-    val teamRole: TeamStaffRole? = null,
+    val role: ClubRole? = null,
     val playerId: String? = null,
     val relationship: UserPlayerRelationship? = null,
     val createdAt: Instant
@@ -303,8 +296,12 @@ data class CreatePlayerRequest(
 
 @Serializable
 data class AddClubMemberRequest(
-    val email: String,
-    val role: Role
+    val email: String
+)
+
+@Serializable
+data class UpdateClubMemberRoleRequest(
+    val role: ClubRole
 )
 
 @Serializable
@@ -343,8 +340,8 @@ data class AddPlayerToTeamRequest(
 
 @Serializable
 data class AddStaffToTeamRequest(
-    val userEmail: String,
-    val role: TeamStaffRole
+    val userId: String,
+    val role: TeamRole
 )
 
 @Serializable
@@ -357,7 +354,7 @@ data class TeamStaffMember(
     val userId: String,
     val firstName: String,
     val lastName: String,
-    val role: TeamStaffRole,
+    val role: TeamRole,
     val avatarUrl: String? = null
 )
 

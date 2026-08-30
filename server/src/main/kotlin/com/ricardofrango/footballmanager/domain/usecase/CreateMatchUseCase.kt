@@ -5,10 +5,7 @@ import com.ricardofrango.footballmanager.domain.repository.OpponentRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.exception.NotFoundException
-import com.ricardofrango.footballmanager.model.CreateMatchRequest
-import com.ricardofrango.footballmanager.model.Match
-import com.ricardofrango.footballmanager.model.MatchStatus
-import com.ricardofrango.footballmanager.model.Role
+import com.ricardofrango.footballmanager.model.*
 import kotlin.uuid.Uuid
 
 class CreateMatchUseCase(
@@ -25,11 +22,11 @@ class CreateMatchUseCase(
         val team =
             teamRepository.getTeamById(request.teamId) ?: throw NotFoundException("Team not found")
 
-        // 2. Check permissions using team's clubId
+        // 2. Single granular permission check using team's clubId
         checkUserPermissionUseCase(
             userId = userId,
             clubId = team.clubId,
-            minRole = Role.COACH,
+            minTeamRole = TeamRole.COACH,
             teamId = request.teamId,
             errorMessage = "Only admins, coordinators, or team coaches can create matches"
         )

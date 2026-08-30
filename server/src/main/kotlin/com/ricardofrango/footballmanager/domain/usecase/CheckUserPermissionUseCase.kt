@@ -3,57 +3,67 @@ package com.ricardofrango.footballmanager.domain.usecase
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.exception.ForbiddenException
-import com.ricardofrango.footballmanager.exception.ValidationException
-import com.ricardofrango.footballmanager.model.Role
+import com.ricardofrango.footballmanager.model.ClubRole
+import com.ricardofrango.footballmanager.model.TeamRole
 
 class CheckUserPermissionUseCase(
     private val userRepository: UserRepository,
     private val teamRepository: TeamRepository
 ) {
     /**
-     * Checks if a user has at least the minimum role required for a club or team operation.
+     * Checks if a user has permission at the club or team level.
      * Platform Admins always have permission.
      * 
      * @param userId The ID of the user performing the action.
      * @param clubId The ID of the club context.
-     * @param minRole The minimum Role required.
+     * @param minClubRole The minimum ClubRole required (e.g., COORDINATOR).
+     * @param minTeamRole The minimum TeamRole required if teamId is provided.
      * @param teamId Optional team ID for team-specific operations.
-     * @param errorMessage Optional custom error message if permission is denied.
-     * @return The Role of the user in the club (or Role.CLUB_ADMIN if Platform Admin).
-     * @throws ForbiddenException if user doesn't have required permission.
-     * @throws ValidationException if teamId is missing for team-level operations.
+     * @param errorMessage Optional custom error message.
+     * @throws ForbiddenException if permission is denied.
      */
     suspend operator fun invoke(
         userId: String,
         clubId: String,
-        minRole: Role,
+        minClubRole: ClubRole? = null,
+        minTeamRole: TeamRole? = null,
         teamId: String? = null,
         errorMessage: String = "Insufficient permissions to perform this action"
-    ): Role {
+    ) {
         val user = userRepository.findById(userId) ?: throw ForbiddenException("User not found")
         
         // 1. Platform Admins have "God Mode"
-        if (user.isPlatformAdmin) return Role.CLUB_ADMIN
+        if (user.isPlatformAdmin) return
 
-        // 2. Check Role level in the specific club
-        val userRole = userRepository.getUserRoleInClub(userId, clubId)
+        // 2. Check Club Level Role
+        val userClubRole = userRepository.getUserRoleInClub(userId, clubId)
         
-        if (userRole == null || userRole.level < minRole.level) {
-            throw ForbiddenException(errorMessage)
-        }
-
-        // 3. Coordinators and Admins have global club access
-        if (userRole.level >= Role.COORDINATOR.level) {
-            return userRole
-        }
-
-        // 4. Team-level permissions: If a teamId is provided, verify user is assigned to it
-        if (teamId != null) {
-            if (!teamRepository.isUserStaffOfTeam(userId, teamId)) {
-                throw ForbiddenException("You do not have permission to manage this specific team")
+        // If they are Club Admin or Coordinator, they have global access in the club
+        if (userClubRole != null) {
+            if (userClubRole == ClubRole.CLUB_ADMIN || userClubRole == ClubRole.COORDINATOR) {
+                // If we specifically required a CLUB_ADMIN and they are only COORDINATOR, we might still fail
+                // but usually COORDINATOR is enough for most things except sensitive club settings.
+                if (minClubRole == null || userClubRole.level >= minClubRole.level) return
+            }
+            
+            // If we only needed a club membership (MEMBER level 1)
+            if (minClubRole != null && minClubRole == ClubRole.MEMBER && userClubRole.level >= ClubRole.MEMBER.level) {
+                // For team-specific operations, we still need to check team role if not coordinator+
+                if (teamId == null) return
             }
         }
 
-        return userRole
+        // 3. Check Team Level Role if teamId is provided
+        if (teamId != null && minTeamRole != null) {
+            // isUserStaffOfTeam should be updated to return the TeamRole? Or we check specific level.
+            // For now, let's assume if they are staff, they have permission if minTeamRole is reached.
+            // We'll need to update TeamRepository to get the role.
+            val userTeamRole = teamRepository.getUserRoleInTeam(userId, teamId)
+            if (userTeamRole != null && userTeamRole.level >= minTeamRole.level) {
+                return
+            }
+        }
+
+        throw ForbiddenException(errorMessage)
     }
 }

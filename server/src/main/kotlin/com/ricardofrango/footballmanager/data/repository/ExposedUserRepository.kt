@@ -6,7 +6,7 @@ import com.ricardofrango.footballmanager.data.database.RefreshTokens
 import com.ricardofrango.footballmanager.data.database.Users
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.exception.DatabaseException
-import com.ricardofrango.footballmanager.model.Role
+import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.User
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
@@ -59,7 +59,7 @@ class ExposedUserRepository : UserRepository {
             ?: throw DatabaseException("Failed to create user")
     }
 
-    override suspend fun getUserRoleInClub(userId: String, clubId: String): Role? = dbQuery {
+    override suspend fun getUserRoleInClub(userId: String, clubId: String): ClubRole? = dbQuery {
         ClubMembers.selectAll().where {
             (ClubMembers.userId eq Uuid.parse(userId)) and (ClubMembers.clubId eq Uuid.parse(clubId))
         }.map { it[ClubMembers.role] }

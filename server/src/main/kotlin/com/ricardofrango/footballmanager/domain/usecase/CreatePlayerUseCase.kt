@@ -5,11 +5,7 @@ import com.ricardofrango.footballmanager.domain.repository.InviteRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.exception.ValidationException
-import com.ricardofrango.footballmanager.model.CreatePlayerRequest
-import com.ricardofrango.footballmanager.model.Invite
-import com.ricardofrango.footballmanager.model.InviteType
-import com.ricardofrango.footballmanager.model.Player
-import com.ricardofrango.footballmanager.model.Role
+import com.ricardofrango.footballmanager.model.*
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
@@ -24,7 +20,7 @@ class CreatePlayerUseCase(
         checkUserPermissionUseCase(
             userId = userId,
             clubId = request.clubId,
-            minRole = Role.COACH,
+            minClubRole = ClubRole.COORDINATOR,
             errorMessage = "Insufficient permissions to create players"
         )
 
@@ -49,7 +45,7 @@ class CreatePlayerUseCase(
         request.email?.let { playerEmail ->
             val existingUser = userRepository.findByEmail(playerEmail)
             if (existingUser != null) {
-                clubRepository.addMember(request.clubId, existingUser.id, Role.PLAYER)
+                clubRepository.addMember(request.clubId, existingUser.id, ClubRole.MEMBER)
             } else {
                 inviteRepository.createInvite(
                     Invite(
@@ -57,7 +53,7 @@ class CreatePlayerUseCase(
                         email = playerEmail,
                         clubId = request.clubId,
                         type = InviteType.CLUB_MEMBER,
-                        role = Role.PLAYER,
+                        role = ClubRole.MEMBER,
                         createdAt = Instant.fromEpochMilliseconds(System.currentTimeMillis())
                     )
                 )

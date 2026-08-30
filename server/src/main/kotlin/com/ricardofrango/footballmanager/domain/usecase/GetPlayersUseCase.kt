@@ -1,8 +1,8 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
+import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.Player
-import com.ricardofrango.footballmanager.model.Role
 
 class GetPlayersUseCase(
     private val playerRepository: PlayerRepository,
@@ -13,8 +13,8 @@ class GetPlayersUseCase(
         clubId: String,
         teamId: String? = null
     ): List<Player> {
-        // 1. Check permissions first (Fail fast)
-        checkUserPermissionUseCase(userId, clubId, Role.PLAYER, teamId)
+        // 1. Check permissions first (Member of club)
+        checkUserPermissionUseCase(userId, clubId, minClubRole = ClubRole.MEMBER, teamId = teamId)
 
         return if (teamId != null) {
             playerRepository.getPlayersByTeam(teamId)

@@ -2,9 +2,7 @@ package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
 import com.ricardofrango.footballmanager.exception.NotFoundException
-import com.ricardofrango.footballmanager.model.CallUpStatus
-import com.ricardofrango.footballmanager.model.Role
-import com.ricardofrango.footballmanager.model.UpdateCallUpRequest
+import com.ricardofrango.footballmanager.model.*
 
 class UpdateCallUpStatusUseCase(
     private val matchRepository: MatchRepository,
@@ -23,7 +21,7 @@ class UpdateCallUpStatusUseCase(
         checkUserPermissionUseCase(
             userId = userId,
             clubId = match.clubId,
-            minRole = Role.COACH,
+            minTeamRole = TeamRole.COACH,
             teamId = match.teamId,
             errorMessage = "Insufficient permissions to update call-up"
         )

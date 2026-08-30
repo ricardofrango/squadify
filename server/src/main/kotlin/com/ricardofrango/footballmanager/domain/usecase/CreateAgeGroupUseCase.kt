@@ -4,8 +4,8 @@ import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.exception.ConflictException
 import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.AgeGroup
+import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.CreateAgeGroupRequest
-import com.ricardofrango.footballmanager.model.Role
 import kotlin.uuid.Uuid
 
 class CreateAgeGroupUseCase(
@@ -16,7 +16,7 @@ class CreateAgeGroupUseCase(
         checkUserPermissionUseCase(
             userId = userId,
             clubId = request.clubId,
-            minRole = Role.COORDINATOR,
+            minClubRole = ClubRole.COORDINATOR,
             errorMessage = "Only admins or coordinators can create age groups"
         )
 

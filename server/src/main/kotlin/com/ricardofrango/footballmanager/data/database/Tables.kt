@@ -47,7 +47,7 @@ object ClubMembers : Table("club_members") {
     val id = uuid("id")
     val clubId = uuid("club_id").references(Clubs.id)
     val userId = uuid("user_id").references(Users.id)
-    val role = enumerationByName("role", 50, Role::class)
+    val role = enumerationByName("role", 50, ClubRole::class)
     val active = bool("active").default(true)
 
     override val primaryKey = PrimaryKey(id)
@@ -123,7 +123,7 @@ object TeamStaff : Table("team_staff") {
     val id = uuid("id")
     val teamId = uuid("team_id").references(Teams.id)
     val userId = uuid("user_id").references(Users.id)
-    val role = enumerationByName("role", 50, TeamStaffRole::class)
+    val role = enumerationByName("role", 50, TeamRole::class)
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -142,9 +142,7 @@ object Invites : Table("invites") {
     val email = varchar("email", 255)
     val clubId = uuid("club_id").references(Clubs.id)
     val type = enumerationByName("type", 50, InviteType::class)
-    val role = enumerationByName("role", 50, Role::class).nullable()
-    val teamId = uuid("team_id").references(Teams.id).nullable()
-    val teamRole = enumerationByName("team_role", 50, TeamStaffRole::class).nullable()
+    val role = enumerationByName("role", 50, ClubRole::class).nullable()
     val playerId = uuid("player_id").references(Players.id).nullable()
     val relationship = enumerationByName("relationship", 50, UserPlayerRelationship::class).nullable()
     val createdAt = timestamp("created_at")

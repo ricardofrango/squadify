@@ -6,11 +6,13 @@ import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
 import com.ricardofrango.footballmanager.domain.repository.ClubRepository
 import com.ricardofrango.footballmanager.exception.DatabaseException
 import com.ricardofrango.footballmanager.model.Club
-import com.ricardofrango.footballmanager.model.Role
+import com.ricardofrango.footballmanager.model.ClubRole
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 import kotlin.uuid.Uuid
 
 class ExposedClubRepository : ClubRepository {
@@ -46,7 +48,7 @@ class ExposedClubRepository : ClubRepository {
             .singleOrNull()
     }
 
-    override suspend fun addMember(clubId: String, userId: String, role: Role): Boolean = dbQuery {
+    override suspend fun addMember(clubId: String, userId: String, role: ClubRole): Boolean = dbQuery {
         val insertStatement = ClubMembers.insert {
             it[id] = Uuid.random()
             it[this.clubId] = Uuid.parse(clubId)
@@ -55,6 +57,12 @@ class ExposedClubRepository : ClubRepository {
             it[active] = true
         }
         insertStatement.insertedCount > 0
+    }
+
+    override suspend fun updateMemberRole(clubId: String, userId: String, role: ClubRole): Boolean = dbQuery {
+        ClubMembers.update({ (ClubMembers.clubId eq Uuid.parse(clubId)) and (ClubMembers.userId eq Uuid.parse(userId)) }) {
+            it[this.role] = role
+        } > 0
     }
 
     private fun toClub(row: ResultRow): Club = Club(

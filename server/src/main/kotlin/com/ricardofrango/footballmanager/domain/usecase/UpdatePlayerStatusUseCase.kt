@@ -1,9 +1,8 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
-import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.exception.ValidationException
-import com.ricardofrango.footballmanager.model.Role
+import com.ricardofrango.footballmanager.model.ClubRole
 
 class UpdatePlayerStatusUseCase(
     private val playerRepository: PlayerRepository,
@@ -22,7 +21,7 @@ class UpdatePlayerStatusUseCase(
         checkUserPermissionUseCase(
             userId = userId,
             clubId = player.clubId,
-            minRole = Role.COORDINATOR,
+            minClubRole = ClubRole.COORDINATOR,
             errorMessage = "Only admins or coordinators can change player status"
         )
 

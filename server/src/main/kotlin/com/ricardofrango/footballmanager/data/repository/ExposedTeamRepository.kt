@@ -7,13 +7,12 @@ import com.ricardofrango.footballmanager.data.database.Users as UsersTable
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.exception.DatabaseException
 import com.ricardofrango.footballmanager.model.Team
+import com.ricardofrango.footballmanager.model.TeamRole
 import com.ricardofrango.footballmanager.model.TeamStaff
 import com.ricardofrango.footballmanager.model.TeamStaffMember
-import com.ricardofrango.footballmanager.model.TeamStaffRole
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
@@ -45,20 +44,11 @@ class ExposedTeamRepository : TeamRepository {
             ?: throw DatabaseException("Failed to create team")
     }
 
-    override suspend fun isUserStaffOfTeam(
-        userId: String,
-        teamId: String,
-        role: TeamStaffRole?
-    ): Boolean = dbQuery {
-        val query = TeamStaffTable.selectAll().where {
+    override suspend fun getUserRoleInTeam(userId: String, teamId: String): TeamRole? = dbQuery {
+        TeamStaffTable.selectAll().where {
             (TeamStaffTable.userId eq Uuid.parse(userId)) and (TeamStaffTable.teamId eq Uuid.parse(teamId))
-        }
-
-        if (role != null) {
-            query.andWhere { TeamStaffTable.role eq role }
-        }
-
-        !query.empty()
+        }.map { it[TeamStaffTable.role] }
+            .singleOrNull()
     }
 
     override suspend fun addStaffToTeam(teamStaff: TeamStaff): Boolean = dbQuery {

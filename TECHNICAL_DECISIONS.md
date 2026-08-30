@@ -94,7 +94,6 @@ sequenceDiagram
     participant UR as UserRepository
     participant IR as InviteRepository
     participant CR as ClubRepository
-    participant TR as TeamRepository
     participant PR as PlayerRepository
     participant DB as Database
 
@@ -106,9 +105,6 @@ sequenceDiagram
     loop For each Invite
         alt InviteType is CLUB_MEMBER
             UC->>CR: Add Member to Club (Role)
-        else InviteType is TEAM_MEMBER
-            UC->>CR: Add Member to Club (Role)
-            UC->>TR: Add Staff to Team (TeamRole)
         else InviteType is PARENT_PLAYER
             UC->>PR: Create UserPlayer link
         end
@@ -152,15 +148,13 @@ graph TD
 ```
 
 ### 8.3. Team Staff Assignment Flow
-How coaches and technical staff are linked to specific teams.
+Coaches and technical staff must be club members before joining a team.
 ```mermaid
 graph TD
-    A[Admin/Coordinator] --> B[Enter Staff Email & Role]
-    B --> C{User exists?}
-    C -->|Yes| D[Add Staff to Team Table]
-    C -->|No| E[Create Invite - TEAM_MEMBER]
-    E --> F[Staff Registers]
-    F --> G[System Links to Club & Team]
+    A[Admin/Coordinator] --> B[Provide userId & Role]
+    B --> C{Is User a Club Member?}
+    C -->|Yes| D[Assign to Team Staff]
+    C -->|No| E[Forbidden - Must Invite to Club First]
 ```
 
 ### 8.4. Match Day Lifecycle

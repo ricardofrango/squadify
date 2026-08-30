@@ -2,8 +2,8 @@ package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.SeasonRepository
 import com.ricardofrango.footballmanager.exception.ConflictException
+import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.CreateSeasonRequest
-import com.ricardofrango.footballmanager.model.Role
 import com.ricardofrango.footballmanager.model.Season
 import com.ricardofrango.footballmanager.model.SeasonType
 import kotlin.uuid.Uuid
@@ -16,7 +16,7 @@ class CreateSeasonUseCase(
         checkUserPermissionUseCase(
             userId = userId,
             clubId = request.clubId,
-            minRole = Role.COORDINATOR,
+            minClubRole = ClubRole.COORDINATOR,
             errorMessage = "Only admins or coordinators can create seasons"
         )
 
