@@ -1,5 +1,6 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
+import com.ricardofrango.footballmanager.domain.repository.ClubRepository
 import com.ricardofrango.footballmanager.domain.repository.InviteRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
@@ -15,6 +16,7 @@ class UpdatePlayerUseCase(
     private val playerRepository: PlayerRepository,
     private val userRepository: UserRepository,
     private val inviteRepository: InviteRepository,
+    private val clubRepository: ClubRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
     suspend operator fun invoke(
@@ -41,6 +43,25 @@ class UpdatePlayerUseCase(
         )
 
         val success = playerRepository.updatePlayer(updatedPlayer)
+
+        // Handle Player's own email invite
+        request.email?.let { playerEmail ->
+            val existingUser = userRepository.findByEmail(playerEmail)
+            if (existingUser != null) {
+                clubRepository.addMember(existingPlayer.clubId, existingUser.id, Role.PLAYER)
+            } else {
+                inviteRepository.createInvite(
+                    Invite(
+                        id = Uuid.random().toString(),
+                        email = playerEmail,
+                        clubId = existingPlayer.clubId,
+                        type = InviteType.CLUB_MEMBER,
+                        role = Role.PLAYER,
+                        createdAt = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+                    )
+                )
+            }
+        }
 
         val parents = request.parents
         if (parents != null) {

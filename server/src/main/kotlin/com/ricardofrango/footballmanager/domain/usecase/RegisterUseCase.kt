@@ -3,11 +3,13 @@ package com.ricardofrango.footballmanager.domain.usecase
 import com.ricardofrango.footballmanager.domain.repository.ClubRepository
 import com.ricardofrango.footballmanager.domain.repository.InviteRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
+import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.exception.ConflictException
 import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.InviteType
 import com.ricardofrango.footballmanager.model.RegisterRequest
+import com.ricardofrango.footballmanager.model.TeamStaff
 import com.ricardofrango.footballmanager.model.User
 import com.ricardofrango.footballmanager.model.UserStatus
 import org.mindrot.jbcrypt.BCrypt
@@ -18,7 +20,8 @@ class RegisterUseCase(
     private val userRepository: UserRepository,
     private val playerRepository: PlayerRepository,
     private val inviteRepository: InviteRepository,
-    private val clubRepository: ClubRepository
+    private val clubRepository: ClubRepository,
+    private val teamRepository: TeamRepository
 ) {
     suspend operator fun invoke(request: RegisterRequest): User {
         if (request.email.isBlank() || request.password.isBlank()) {
@@ -50,6 +53,26 @@ class RegisterUseCase(
                 InviteType.CLUB_MEMBER -> {
                     invite.role?.let { role ->
                         clubRepository.addMember(invite.clubId, createdUser.id, role)
+                    }
+                }
+
+                InviteType.TEAM_MEMBER -> {
+                    // 1. Add to club
+                    invite.role?.let { role ->
+                        clubRepository.addMember(invite.clubId, createdUser.id, role)
+                    }
+                    // 2. Add to team
+                    val teamId = invite.teamId
+                    val teamRole = invite.teamRole
+                    if (teamId != null && teamRole != null) {
+                        teamRepository.addStaffToTeam(
+                            TeamStaff(
+                                id = Uuid.random().toString(),
+                                teamId = teamId,
+                                userId = createdUser.id,
+                                role = teamRole
+                            )
+                        )
                     }
                 }
 

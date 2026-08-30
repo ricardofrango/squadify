@@ -20,6 +20,7 @@ import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.SeasonRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
+import com.ricardofrango.footballmanager.domain.usecase.AddClubMemberUseCase
 import com.ricardofrango.footballmanager.domain.usecase.AddMatchEventUseCase
 import com.ricardofrango.footballmanager.domain.usecase.AddPlayerToTeamUseCase
 import com.ricardofrango.footballmanager.domain.usecase.AddPlayersToTeamUseCase
@@ -79,15 +80,16 @@ val appModule = module {
     factory { GetClubDetailsUseCase(get(), get()) }
     factory { CreateClubUseCase(get(), get()) }
     factory { ProvisionClubUseCase(get(), get(), get(), get()) }
-    factory { RegisterUseCase(get(), get(), get(), get()) }
+    factory { RegisterUseCase(get(), get(), get(), get(), get()) }
     factory { LoginUseCase(get()) }
     factory { RefreshTokenUseCase(get()) }
     factory { CheckUserPermissionUseCase(get(), get()) }
     factory { CheckUserIsAdminUseCase(get()) }
+    factory { AddClubMemberUseCase(get(), get(), get(), get()) }
 
     factory { CreateTeamUseCase(get(), get()) }
     factory { UpdateTeamStatusUseCase(get(), get()) }
-    factory { AddStaffToTeamUseCase(get(), get(), get()) }
+    factory { AddStaffToTeamUseCase(get(), get(), get(), get()) }
     factory { GetTeamStaffUseCase(get(), get()) }
     factory { GetTeamPlayersUseCase(get(), get(), get()) }
     factory { GetTeamDetailsUseCase(get(), get(), get()) }
@@ -98,10 +100,10 @@ val appModule = module {
     factory { CreateAgeGroupUseCase(get(), get()) }
     factory { GetPlayerUseCase(get(), get()) }
     factory { GetPlayersUseCase(get(), get()) }
-    factory { CreatePlayerUseCase(get(), get(), get(), get()) }
+    factory { CreatePlayerUseCase(get(), get(), get(), get(), get()) }
     factory { CreatePlayersUseCase(get(), get()) }
     factory { UpdatePlayerStatusUseCase(get(), get()) }
-    factory { UpdatePlayerUseCase(get(), get(), get(), get()) }
+    factory { UpdatePlayerUseCase(get(), get(), get(), get(), get()) }
     factory { AddPlayerToTeamUseCase(get(), get(), get(), get()) }
     factory { AddPlayersToTeamUseCase(get(), get(), get(), get()) }
     factory { GetTeamsUseCase(get(), get()) }

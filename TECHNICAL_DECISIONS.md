@@ -93,6 +93,9 @@ sequenceDiagram
     participant UC as RegisterUseCase
     participant UR as UserRepository
     participant IR as InviteRepository
+    participant CR as ClubRepository
+    participant TR as TeamRepository
+    participant PR as PlayerRepository
     participant DB as Database
 
     A->>UC: Register User (email)
@@ -101,10 +104,13 @@ sequenceDiagram
     UC->>IR: Find pending invites by email
     IR-->>UC: Return List of Invites
     loop For each Invite
-        alt InviteType is PARENT_PLAYER
-            UC->>UR: Create UserPlayer link
-        else InviteType is CLUB_MEMBER
-            UC->>UR: Create ClubMember link
+        alt InviteType is CLUB_MEMBER
+            UC->>CR: Add Member to Club (Role)
+        else InviteType is TEAM_MEMBER
+            UC->>CR: Add Member to Club (Role)
+            UC->>TR: Add Staff to Team (TeamRole)
+        else InviteType is PARENT_PLAYER
+            UC->>PR: Create UserPlayer link
         end
     end
     UC->>IR: Delete processed invites
@@ -132,18 +138,32 @@ graph TD
 The process of adding athletes and linking their guardians.
 ```mermaid
 graph TD
-    A[Coach/Admin] --> B[Enter Player Data & Parent Emails]
+    A[Coach/Admin] --> B[Enter Player Data, Email & Parent Emails]
     B --> C[Create Player Record]
-    C --> D{Parent Registered?}
-    D -->|Yes| E[Create UserPlayer Link]
-    D -->|No| F[Create Invite - PARENT_PLAYER]
-    F --> G[Parent Registers Later]
-    G --> H[System Auto-Links Parent to Player]
-    E --> I[Association Complete]
-    H --> I
+    C --> D{Player Email exists?}
+    D -->|Yes| E[Link User to Club as PLAYER]
+    D -->|No| F[Create Invite - CLUB_MEMBER]
+    C --> G{Parent Registered?}
+    G -->|Yes| H[Create UserPlayer Link]
+    G -->|No| I[Create Invite - PARENT_PLAYER]
+    F --> J[Self-Service Registration]
+    I --> J
+    J --> K[System Auto-Links everything]
 ```
 
-### 8.3. Match Day Lifecycle
+### 8.3. Team Staff Assignment Flow
+How coaches and technical staff are linked to specific teams.
+```mermaid
+graph TD
+    A[Admin/Coordinator] --> B[Enter Staff Email & Role]
+    B --> C{User exists?}
+    C -->|Yes| D[Add Staff to Team Table]
+    C -->|No| E[Create Invite - TEAM_MEMBER]
+    E --> F[Staff Registers]
+    F --> G[System Links to Club & Team]
+```
+
+### 8.4. Match Day Lifecycle
 This flow describes the operational lifecycle of a match.
 ```mermaid
 graph LR
@@ -153,6 +173,23 @@ graph LR
     M4 -->|Broadcasting| WS[WebSocket Clients]
     M4 --> M5[Finish Match]
     M5 --> M6[Stats Consolidated]
+```
+
+### 8.5. Real-Time Event Broadcasting
+Detailed view of how a match event reaches the viewers.
+```mermaid
+sequenceDiagram
+    actor C as Coach
+    participant UC as AddMatchEventUseCase
+    participant DB as Database
+    participant MSM as MatchSessionManager
+    actor P as Parent/Viewer
+
+    C->>UC: POST /events (Goal)
+    UC->>DB: Save Event
+    UC->>DB: Calculate New Score
+    UC->>MSM: broadcastUpdate(matchId, Update)
+    MSM->>P: Send JSON via WebSocket
 ```
 
 ## 9. Project Structure (KMP)

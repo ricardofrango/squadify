@@ -143,6 +143,8 @@ object Invites : Table("invites") {
     val clubId = uuid("club_id").references(Clubs.id)
     val type = enumerationByName("type", 50, InviteType::class)
     val role = enumerationByName("role", 50, Role::class).nullable()
+    val teamId = uuid("team_id").references(Teams.id).nullable()
+    val teamRole = enumerationByName("team_role", 50, TeamStaffRole::class).nullable()
     val playerId = uuid("player_id").references(Players.id).nullable()
     val relationship = enumerationByName("relationship", 50, UserPlayerRelationship::class).nullable()
     val createdAt = timestamp("created_at")

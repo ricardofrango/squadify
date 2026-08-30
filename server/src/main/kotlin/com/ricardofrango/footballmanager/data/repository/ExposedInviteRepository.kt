@@ -20,7 +20,9 @@ class ExposedInviteRepository : InviteRepository {
             it[clubId] = Uuid.parse(invite.clubId)
             it[type] = invite.type
             it[role] = invite.role
-            it[playerId] = invite.playerId?.let { id -> Uuid.parse(id) }
+            it[teamId] = invite.teamId?.let(Uuid::parse)
+            it[teamRole] = invite.teamRole
+            it[playerId] = invite.playerId?.let(Uuid::parse)
             it[relationship] = invite.relationship
             it[createdAt] = invite.createdAt
         }.resultedValues?.singleOrNull()?.let(::toInvite)
@@ -50,6 +52,8 @@ class ExposedInviteRepository : InviteRepository {
         clubId = row[Invites.clubId].toString(),
         type = row[Invites.type],
         role = row[Invites.role],
+        teamId = row[Invites.teamId]?.toString(),
+        teamRole = row[Invites.teamRole],
         playerId = row[Invites.playerId]?.toString(),
         relationship = row[Invites.relationship],
         createdAt = row[Invites.createdAt]
