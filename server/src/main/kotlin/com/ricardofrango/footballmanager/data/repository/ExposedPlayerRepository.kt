@@ -127,6 +127,17 @@ class ExposedPlayerRepository : PlayerRepository {
         }
     }
 
+    override suspend fun createUserPlayers(userPlayers: List<Triple<String, String, UserPlayerRelationship>>) {
+        dbQuery {
+            UserPlayers.batchInsert(userPlayers) { (userId, playerId, rel) ->
+                this[UserPlayers.id] = Uuid.random()
+                this[UserPlayers.userId] = Uuid.parse(userId)
+                this[UserPlayers.playerId] = Uuid.parse(playerId)
+                this[UserPlayers.relationship] = rel
+            }
+        }
+    }
+
     override suspend fun deleteUserPlayersByPlayer(playerId: String) {
         dbQuery {
             UserPlayers.deleteWhere { UserPlayers.playerId eq Uuid.parse(playerId) }

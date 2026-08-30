@@ -16,5 +16,6 @@ interface PlayerRepository {
     suspend fun getPlayersByTeam(teamId: String): List<Player>
     suspend fun updateActiveStatus(playerId: String, active: Boolean): Boolean
     suspend fun createUserPlayer(userId: String, playerId: String, relationship: UserPlayerRelationship)
+    suspend fun createUserPlayers(userPlayers: List<Triple<String, String, UserPlayerRelationship>>)
     suspend fun deleteUserPlayersByPlayer(playerId: String)
 }

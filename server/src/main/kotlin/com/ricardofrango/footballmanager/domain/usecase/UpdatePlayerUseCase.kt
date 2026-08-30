@@ -68,17 +68,17 @@ class UpdatePlayerUseCase(
 
             val parentEmails = parents.map { it.email }
             val existingUsers = userRepository.findByEmails(parentEmails).associateBy { it.email }
+            val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+
+            val linksToCreate = mutableListOf<Triple<String, String, UserPlayerRelationship>>()
+            val invitesToCreate = mutableListOf<Invite>()
 
             parents.forEach { parentRequest ->
                 val user = existingUsers[parentRequest.email]
                 if (user != null) {
-                    playerRepository.createUserPlayer(
-                        userId = user.id,
-                        playerId = playerId,
-                        relationship = parentRequest.relationship
-                    )
+                    linksToCreate.add(Triple(user.id, playerId, parentRequest.relationship))
                 } else {
-                    inviteRepository.createInvite(
+                    invitesToCreate.add(
                         Invite(
                             id = Uuid.random().toString(),
                             email = parentRequest.email,
@@ -86,10 +86,17 @@ class UpdatePlayerUseCase(
                             type = InviteType.PARENT_PLAYER,
                             playerId = playerId,
                             relationship = parentRequest.relationship,
-                            createdAt = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+                            createdAt = now
                         )
                     )
                 }
+            }
+            
+            if (linksToCreate.isNotEmpty()) {
+                playerRepository.createUserPlayers(linksToCreate)
+            }
+            if (invitesToCreate.isNotEmpty()) {
+                inviteRepository.createInvites(invitesToCreate)
             }
         }
 

@@ -13,9 +13,7 @@ import org.koin.ktor.ext.inject
 fun Route.playerRoutes() {
     val getPlayerUseCase by inject<GetPlayerUseCase>()
     val getPlayersUseCase by inject<GetPlayersUseCase>()
-    val createPlayerUseCase by inject<CreatePlayerUseCase>()
     val createPlayersUseCase by inject<CreatePlayersUseCase>()
-    val addPlayerToTeamUseCase by inject<AddPlayerToTeamUseCase>()
     val addPlayersToTeamUseCase by inject<AddPlayersToTeamUseCase>()
     val updatePlayerStatusUseCase by inject<UpdatePlayerStatusUseCase>()
     val updatePlayerUseCase by inject<UpdatePlayerUseCase>()
@@ -35,17 +33,33 @@ fun Route.playerRoutes() {
             post {
                 val currentUserId =
                     call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                val playerRequest = call.receive<CreatePlayerRequest>()
-                val player = createPlayerUseCase(currentUserId, playerRequest)
-                call.respond(HttpStatusCode.Created, player)
+                val request = call.receive<CreatePlayerRequest>()
+                val players = createPlayersUseCase(
+                    currentUserId,
+                    CreatePlayersRequest(request.clubId, listOf(request.player))
+                )
+                call.respond(HttpStatusCode.Created, players.first())
             }
 
             post("/add-to-team") {
                 val currentUserId =
                     call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                val teamPlayerRequest = call.receive<AddPlayerToTeamRequest>()
-                val teamPlayer = addPlayerToTeamUseCase(currentUserId, teamPlayerRequest)
-                call.respond(HttpStatusCode.Created, teamPlayer)
+                val request = call.receive<AddPlayerToTeamRequest>()
+                val associations = addPlayersToTeamUseCase(
+                    currentUserId,
+                    AddPlayersToTeamRequest(
+                        request.teamId,
+                        listOf(
+                            AddPlayerToTeam(
+                                request.playerId,
+                                request.startDate,
+                                request.endDate,
+                                request.status
+                            )
+                        )
+                    )
+                )
+                call.respond(HttpStatusCode.Created, associations.first())
             }
 
             patch("/{playerId}") {

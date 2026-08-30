@@ -279,19 +279,15 @@ data class CreatePlayer(
     val lastName: String,
     val birthDate: LocalDate,
     val shirtNumber: Int? = null,
-    val photoUrl: String? = null
+    val photoUrl: String? = null,
+    val email: String? = null,
+    val parents: List<PlayerParentRequest> = emptyList()
 )
 
 @Serializable
 data class CreatePlayerRequest(
     val clubId: String,
-    val firstName: String,
-    val lastName: String,
-    val birthDate: LocalDate,
-    val shirtNumber: Int? = null,
-    val photoUrl: String? = null,
-    val email: String? = null,
-    val parents: List<PlayerParentRequest> = emptyList()
+    val player: CreatePlayer
 )
 
 @Serializable
