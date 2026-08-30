@@ -27,7 +27,6 @@ import com.ricardofrango.footballmanager.domain.usecase.AddStaffToTeamsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CheckUserIsAdminUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CheckUserPermissionUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CreateAgeGroupUseCase
-import com.ricardofrango.footballmanager.domain.usecase.CreateClubUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CreateMatchUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CreateOpponentUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CreatePlayersUseCase
@@ -77,7 +76,6 @@ val appModule = module {
     // Use Cases
     factory { GetClubsUseCase(get(), get()) }
     factory { GetClubDetailsUseCase(get(), get()) }
-    factory { CreateClubUseCase(get(), get()) }
     factory { ProvisionClubUseCase(get(), get(), get(), get()) }
     factory { RegisterUseCase(get(), get(), get(), get()) }
     factory { LoginUseCase(get()) }
