@@ -306,6 +306,46 @@ data class UpdatePlayerRequest(
 )
 
 @Serializable
+data class UpdateClubRequest(
+    val name: String? = null,
+    val shortName: String? = null,
+    val logoUrl: String? = null,
+    val email: String? = null,
+    val phone: String? = null,
+    val address: String? = null,
+    val status: ClubStatus? = null
+)
+
+@Serializable
+data class UpdateSeasonRequest(
+    val name: String? = null,
+    val type: SeasonType? = null,
+    val startDate: LocalDate? = null,
+    val endDate: LocalDate? = null,
+    val active: Boolean? = null
+)
+
+@Serializable
+data class UpdateAgeGroupRequest(
+    val name: String? = null,
+    val birthYear: Int? = null
+)
+
+@Serializable
+data class UpdateTeamRequest(
+    val name: String? = null,
+    val code: String? = null,
+    val active: Boolean? = null
+)
+
+@Serializable
+data class UpdateOpponentRequest(
+    val name: String? = null,
+    val shortName: String? = null,
+    val logoUrl: String? = null
+)
+
+@Serializable
 data class AddPlayersToTeamRequest(
     val teamId: String,
     val players: List<AddPlayerToTeam>

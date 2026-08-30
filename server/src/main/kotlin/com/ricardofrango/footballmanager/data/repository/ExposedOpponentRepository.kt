@@ -10,6 +10,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.update
 import kotlin.uuid.Uuid
 
 class ExposedOpponentRepository : OpponentRepository {
@@ -34,6 +35,14 @@ class ExposedOpponentRepository : OpponentRepository {
             it[logoUrl] = opponent.logoUrl
         }.resultedValues?.singleOrNull()?.let(::toOpponent)
             ?: throw DatabaseException("Failed to create opponent")
+    }
+
+    override suspend fun updateOpponent(opponent: Opponent): Boolean = dbQuery {
+        OpponentsTable.update({ OpponentsTable.id eq Uuid.parse(opponent.id) }) {
+            it[name] = opponent.name
+            it[shortName] = opponent.shortName
+            it[logoUrl] = opponent.logoUrl
+        } > 0
     }
 
     override suspend fun deleteOpponent(id: String): Boolean = dbQuery {

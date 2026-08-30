@@ -48,6 +48,18 @@ class ExposedClubRepository : ClubRepository {
             .singleOrNull()
     }
 
+    override suspend fun updateClub(club: Club): Boolean = dbQuery {
+        Clubs.update({ Clubs.id eq Uuid.parse(club.id) }) {
+            it[name] = club.name
+            it[shortName] = club.shortName
+            it[logoUrl] = club.logoUrl
+            it[email] = club.email
+            it[phone] = club.phone
+            it[address] = club.address
+            it[status] = club.status
+        } > 0
+    }
+
     override suspend fun addMember(clubId: String, userId: String, role: ClubRole): Boolean = dbQuery {
         val insertStatement = ClubMembers.insert {
             it[id] = Uuid.random()

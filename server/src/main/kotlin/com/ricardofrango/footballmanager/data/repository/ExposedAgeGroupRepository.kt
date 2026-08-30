@@ -11,6 +11,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 import kotlin.uuid.Uuid
 
 class ExposedAgeGroupRepository : AgeGroupRepository {
@@ -37,6 +38,13 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
         AgeGroups.selectAll().where { AgeGroups.id eq Uuid.parse(id) }
             .map(::toAgeGroup)
             .singleOrNull()
+    }
+
+    override suspend fun updateAgeGroup(ageGroup: AgeGroup): Boolean = dbQuery {
+        AgeGroups.update({ AgeGroups.id eq Uuid.parse(ageGroup.id) }) {
+            it[name] = ageGroup.name
+            it[birthYear] = ageGroup.birthYear
+        } > 0
     }
 
     override suspend fun findByDetails(clubId: String, seasonId: String, birthYear: Int): AgeGroup? = dbQuery {

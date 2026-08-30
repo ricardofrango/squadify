@@ -1,23 +1,19 @@
 package com.ricardofrango.footballmanager.presentation.routes
 
-import com.ricardofrango.footballmanager.domain.usecase.CreateOpponentUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetOpponentsUseCase
-import com.ricardofrango.footballmanager.model.CreateOpponentRequest
-import com.ricardofrango.footballmanager.model.ErrorResponse
+import com.ricardofrango.footballmanager.domain.usecase.*
+import com.ricardofrango.footballmanager.model.*
 import com.ricardofrango.footballmanager.security.userId
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.route
+import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
 
 fun Route.opponentRoutes() {
     val createOpponentUseCase by inject<CreateOpponentUseCase>()
     val getOpponentsUseCase by inject<GetOpponentsUseCase>()
+    val updateOpponentUseCase by inject<UpdateOpponentUseCase>()
 
     authenticate("auth-jwt") {
         route("/opponents") {
@@ -40,6 +36,19 @@ fun Route.opponentRoutes() {
                 val request = call.receive<CreateOpponentRequest>()
                 val opponent = createOpponentUseCase(currentUserId, clubId, request)
                 call.respond(HttpStatusCode.Created, opponent)
+            }
+
+            patch("/{opponentId}") {
+                val opponentId = call.parameters["opponentId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
+                val currentUserId = call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
+                val request = call.receive<UpdateOpponentRequest>()
+
+                val success = updateOpponentUseCase(currentUserId, opponentId, request)
+                if (success) {
+                    call.respond(HttpStatusCode.NoContent)
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to update opponent"))
+                }
             }
         }
     }

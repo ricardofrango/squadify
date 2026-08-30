@@ -1,11 +1,7 @@
 package com.ricardofrango.footballmanager.presentation.routes
 
-import com.ricardofrango.footballmanager.domain.usecase.CreateSeasonUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetSeasonsUseCase
-import com.ricardofrango.footballmanager.domain.usecase.UpdateSeasonStatusUseCase
-import com.ricardofrango.footballmanager.model.CreateSeasonRequest
-import com.ricardofrango.footballmanager.model.ErrorResponse
-import com.ricardofrango.footballmanager.model.UpdateActiveStatusRequest
+import com.ricardofrango.footballmanager.domain.usecase.*
+import com.ricardofrango.footballmanager.model.*
 import com.ricardofrango.footballmanager.security.userId
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
@@ -17,7 +13,7 @@ import org.koin.ktor.ext.inject
 fun Route.seasonRoutes() {
     val getSeasonsUseCase by inject<GetSeasonsUseCase>()
     val createSeasonUseCase by inject<CreateSeasonUseCase>()
-    val updateSeasonStatusUseCase by inject<UpdateSeasonStatusUseCase>()
+    val updateSeasonUseCase by inject<UpdateSeasonUseCase>()
 
     authenticate("auth-jwt") {
         route("/seasons") {
@@ -39,16 +35,16 @@ fun Route.seasonRoutes() {
                 call.respond(HttpStatusCode.Created, season)
             }
 
-            patch("/{seasonId}/status") {
+            patch("/{seasonId}") {
                 val seasonId = call.parameters["seasonId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
                 val currentUserId = call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
-                val request = call.receive<UpdateActiveStatusRequest>()
+                val request = call.receive<UpdateSeasonRequest>()
 
-                val success = updateSeasonStatusUseCase(currentUserId, seasonId, request.active)
+                val success = updateSeasonUseCase(currentUserId, seasonId, request)
                 if (success) {
                     call.respond(HttpStatusCode.NoContent)
                 } else {
-                    call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to update season status"))
+                    call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to update season"))
                 }
             }
         }

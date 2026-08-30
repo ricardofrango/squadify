@@ -4,12 +4,10 @@ import com.ricardofrango.footballmanager.domain.usecase.AddPlayersToTeamUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CreatePlayersUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetPlayerUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetPlayersUseCase
-import com.ricardofrango.footballmanager.domain.usecase.UpdatePlayerStatusUseCase
 import com.ricardofrango.footballmanager.domain.usecase.UpdatePlayerUseCase
 import com.ricardofrango.footballmanager.model.AddPlayersToTeamRequest
 import com.ricardofrango.footballmanager.model.CreatePlayersRequest
 import com.ricardofrango.footballmanager.model.ErrorResponse
-import com.ricardofrango.footballmanager.model.UpdateActiveStatusRequest
 import com.ricardofrango.footballmanager.model.UpdatePlayerRequest
 import com.ricardofrango.footballmanager.security.userId
 import io.ktor.http.HttpStatusCode
@@ -28,7 +26,6 @@ fun Route.playerRoutes() {
     val getPlayersUseCase by inject<GetPlayersUseCase>()
     val createPlayersUseCase by inject<CreatePlayersUseCase>()
     val addPlayersToTeamUseCase by inject<AddPlayersToTeamUseCase>()
-    val updatePlayerStatusUseCase by inject<UpdatePlayerStatusUseCase>()
     val updatePlayerUseCase by inject<UpdatePlayerUseCase>()
 
     authenticate("auth-jwt") {
@@ -86,25 +83,6 @@ fun Route.playerRoutes() {
                         call.respond(
                             HttpStatusCode.InternalServerError,
                             ErrorResponse("Failed to update player")
-                        )
-                    }
-                }
-
-                patch("/status") {
-                    val playerId = call.parameters["playerId"] ?: return@patch call.respond(
-                        HttpStatusCode.BadRequest
-                    )
-                    val currentUserId =
-                        call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
-                    val request = call.receive<UpdateActiveStatusRequest>()
-
-                    val success = updatePlayerStatusUseCase(currentUserId, playerId, request.active)
-                    if (success) {
-                        call.respond(HttpStatusCode.NoContent)
-                    } else {
-                        call.respond(
-                            HttpStatusCode.InternalServerError,
-                            ErrorResponse("Failed to update player status")
                         )
                     }
                 }

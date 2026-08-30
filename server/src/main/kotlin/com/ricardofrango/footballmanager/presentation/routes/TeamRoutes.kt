@@ -6,11 +6,11 @@ import com.ricardofrango.footballmanager.domain.usecase.GetTeamDetailsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetTeamPlayersUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetTeamStaffUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetTeamsUseCase
-import com.ricardofrango.footballmanager.domain.usecase.UpdateTeamStatusUseCase
+import com.ricardofrango.footballmanager.domain.usecase.UpdateTeamUseCase
 import com.ricardofrango.footballmanager.model.AddStaffToTeamsRequest
 import com.ricardofrango.footballmanager.model.CreateTeamRequest
 import com.ricardofrango.footballmanager.model.ErrorResponse
-import com.ricardofrango.footballmanager.model.UpdateActiveStatusRequest
+import com.ricardofrango.footballmanager.model.UpdateTeamRequest
 import com.ricardofrango.footballmanager.security.userId
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
@@ -30,7 +30,7 @@ fun Route.teamRoutes() {
     val getTeamStaffUseCase by inject<GetTeamStaffUseCase>()
     val getTeamPlayersUseCase by inject<GetTeamPlayersUseCase>()
     val getTeamDetailsUseCase by inject<GetTeamDetailsUseCase>()
-    val updateTeamStatusUseCase by inject<UpdateTeamStatusUseCase>()
+    val updateTeamUseCase by inject<UpdateTeamUseCase>()
 
     authenticate("auth-jwt") {
         route("/teams") {
@@ -104,21 +104,21 @@ fun Route.teamRoutes() {
                     call.respond(details)
                 }
 
-                patch("/status") {
+                patch {
                     val teamId = call.parameters["teamId"] ?: return@patch call.respond(
                         HttpStatusCode.BadRequest
                     )
                     val currentUserId =
                         call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
-                    val request = call.receive<UpdateActiveStatusRequest>()
+                    val request = call.receive<UpdateTeamRequest>()
 
-                    val success = updateTeamStatusUseCase(currentUserId, teamId, request.active)
+                    val success = updateTeamUseCase(currentUserId, teamId, request)
                     if (success) {
                         call.respond(HttpStatusCode.NoContent)
                     } else {
                         call.respond(
                             HttpStatusCode.InternalServerError,
-                            ErrorResponse("Failed to update team status")
+                            ErrorResponse("Failed to update team")
                         )
                     }
                 }

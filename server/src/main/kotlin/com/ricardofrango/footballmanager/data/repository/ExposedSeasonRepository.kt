@@ -41,6 +41,16 @@ class ExposedSeasonRepository : SeasonRepository {
             .singleOrNull()
     }
 
+    override suspend fun updateSeason(season: Season): Boolean = dbQuery {
+        Seasons.update({ Seasons.id eq Uuid.parse(season.id) }) {
+            it[name] = season.name
+            it[type] = season.type
+            it[startDate] = season.startDate
+            it[endDate] = season.endDate
+            it[active] = season.active
+        } > 0
+    }
+
     override suspend fun findByDetails(
         clubId: String,
         type: SeasonType,

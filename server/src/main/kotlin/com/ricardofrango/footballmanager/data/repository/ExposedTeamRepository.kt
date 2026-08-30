@@ -44,6 +44,14 @@ class ExposedTeamRepository : TeamRepository {
             ?: throw DatabaseException("Failed to create team")
     }
 
+    override suspend fun updateTeam(team: Team): Boolean = dbQuery {
+        TeamsTable.update({ TeamsTable.id eq Uuid.parse(team.id) }) {
+            it[name] = team.name
+            it[code] = team.code
+            it[active] = team.active
+        } > 0
+    }
+
     override suspend fun getUserRoleInTeam(userId: String, teamId: String): TeamRole? = dbQuery {
         TeamStaffTable.selectAll().where {
             (TeamStaffTable.userId eq Uuid.parse(userId)) and (TeamStaffTable.teamId eq Uuid.parse(teamId))
