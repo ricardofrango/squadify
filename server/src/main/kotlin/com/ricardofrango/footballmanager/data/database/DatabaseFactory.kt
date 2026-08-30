@@ -33,6 +33,7 @@ object DatabaseFactory {
                     TeamPlayers,
                     TeamStaff,
                     UserPlayers,
+                    Invites,
                     Opponents,
                     Matches,
                     MatchCallUps,

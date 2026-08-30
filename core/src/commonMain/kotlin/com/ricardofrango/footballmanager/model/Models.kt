@@ -212,6 +212,24 @@ data class ClubMember(
 )
 
 @Serializable
+enum class InviteType {
+    CLUB_MEMBER,
+    PARENT_PLAYER
+}
+
+@Serializable
+data class Invite(
+    val id: String,
+    val email: String,
+    val clubId: String,
+    val type: InviteType,
+    val role: Role? = null,
+    val playerId: String? = null,
+    val relationship: UserPlayerRelationship? = null,
+    val createdAt: Instant
+)
+
+@Serializable
 data class UserPlayer(
     val id: String,
     val userId: String,
@@ -254,6 +272,12 @@ data class CreatePlayersRequest(
 )
 
 @Serializable
+data class PlayerParentRequest(
+    val email: String,
+    val relationship: UserPlayerRelationship
+)
+
+@Serializable
 data class CreatePlayer(
     val firstName: String,
     val lastName: String,
@@ -269,7 +293,18 @@ data class CreatePlayerRequest(
     val lastName: String,
     val birthDate: LocalDate,
     val shirtNumber: Int? = null,
-    val photoUrl: String? = null
+    val photoUrl: String? = null,
+    val parents: List<PlayerParentRequest> = emptyList()
+)
+
+@Serializable
+data class UpdatePlayerRequest(
+    val firstName: String? = null,
+    val lastName: String? = null,
+    val birthDate: LocalDate? = null,
+    val shirtNumber: Int? = null,
+    val photoUrl: String? = null,
+    val parents: List<PlayerParentRequest>? = null
 )
 
 @Serializable

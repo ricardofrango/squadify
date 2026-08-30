@@ -18,6 +18,7 @@ fun Route.playerRoutes() {
     val addPlayerToTeamUseCase by inject<AddPlayerToTeamUseCase>()
     val addPlayersToTeamUseCase by inject<AddPlayersToTeamUseCase>()
     val updatePlayerStatusUseCase by inject<UpdatePlayerStatusUseCase>()
+    val updatePlayerUseCase by inject<UpdatePlayerUseCase>()
 
     authenticate("auth-jwt") {
         route("/player") {
@@ -45,6 +46,19 @@ fun Route.playerRoutes() {
                 val teamPlayerRequest = call.receive<AddPlayerToTeamRequest>()
                 val teamPlayer = addPlayerToTeamUseCase(currentUserId, teamPlayerRequest)
                 call.respond(HttpStatusCode.Created, teamPlayer)
+            }
+
+            patch("/{playerId}") {
+                val playerId = call.parameters["playerId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
+                val currentUserId = call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
+                val request = call.receive<UpdatePlayerRequest>()
+
+                val success = updatePlayerUseCase(currentUserId, playerId, request)
+                if (success) {
+                    call.respond(HttpStatusCode.NoContent)
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to update player"))
+                }
             }
 
             patch("/{playerId}/status") {

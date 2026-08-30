@@ -37,6 +37,6 @@ data class TokenResponse(
 
 @Serializable
 data class ProvisionClubRequest(
-    val directorId: String,
+    val directorEmail: String,
     val clubName: String
 )

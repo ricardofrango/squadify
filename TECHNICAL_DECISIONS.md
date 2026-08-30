@@ -61,7 +61,101 @@ We use **WebSockets** for delivering instantaneous updates during live matches (
 - **Hybrid Flow**: Events are recorded via a standard **REST POST** request (for reliability and ACID persistence) and then **broadcasted** to all connected WebSocket clients for that specific match.
 - **Auto-Cleanup**: Sessions are automatically removed from the manager upon disconnection or transmission failure.
 
-## 7. Project Structure (KMP)
+## 7. Invite System
+We use a generic asynchronous invitation system to handle associations for users who may not yet be registered on the platform.
+
+### Flow 1: Creation of an Invite (e.g., Parent-Player Association)
+```mermaid
+sequenceDiagram
+    actor A as Coach/Admin
+    participant UC as CreatePlayerUseCase
+    participant UR as UserRepository
+    participant IR as InviteRepository
+    participant DB as Database
+
+    A->>UC: Create Player (with parent email)
+    UC->>UR: Find user by email
+    alt User exists
+        UR-->>UC: Return User
+        UC->>UR: Create UserPlayer link
+    else User does not exist
+        UR-->>UC: Return Null
+        UC->>IR: Create Invite (type: PARENT_PLAYER)
+        IR->>DB: Insert into Invites table
+    end
+    UC-->>A: Return Created Player
+```
+
+### Flow 2: Resolution of Invites during Registration
+```mermaid
+sequenceDiagram
+    actor A as Parent/Staff
+    participant UC as RegisterUseCase
+    participant UR as UserRepository
+    participant IR as InviteRepository
+    participant DB as Database
+
+    A->>UC: Register User (email)
+    UC->>UR: Create new User
+    UR->>DB: Insert into Users table
+    UC->>IR: Find pending invites by email
+    IR-->>UC: Return List of Invites
+    loop For each Invite
+        alt InviteType is PARENT_PLAYER
+            UC->>UR: Create UserPlayer link
+        else InviteType is CLUB_MEMBER
+            UC->>UR: Create ClubMember link
+        end
+    end
+    UC->>IR: Delete processed invites
+    IR->>DB: Delete from Invites table
+    UC-->>A: Return Created User
+```
+
+## 8. High-Level System Flows
+
+### 8.1. Club Provisioning Flow
+How a new club is onboarded onto the platform by the Super Admin.
+```mermaid
+graph TD
+    A[Super Admin] --> B{Director Exists?}
+    B -->|Yes| C[Create Club & Link Director]
+    B -->|No| D[Create Club]
+    D --> E[Create Invite for Director - CLUB_ADMIN]
+    E --> F[Director Registers]
+    F --> G[System Links Director to Club]
+    C --> H[Club Ready]
+    G --> H
+```
+
+### 8.2. Player Creation & Parent Association Flow
+The process of adding athletes and linking their guardians.
+```mermaid
+graph TD
+    A[Coach/Admin] --> B[Enter Player Data & Parent Emails]
+    B --> C[Create Player Record]
+    C --> D{Parent Registered?}
+    D -->|Yes| E[Create UserPlayer Link]
+    D -->|No| F[Create Invite - PARENT_PLAYER]
+    F --> G[Parent Registers Later]
+    G --> H[System Auto-Links Parent to Player]
+    E --> I[Association Complete]
+    H --> I
+```
+
+### 8.3. Match Day Lifecycle
+This flow describes the operational lifecycle of a match.
+```mermaid
+graph LR
+    M1[Create Match] --> M2[Manage Call-ups]
+    M2 --> M3[Start Match - LIVE]
+    M3 --> M4[Log Events - Goals/Cards]
+    M4 -->|Broadcasting| WS[WebSocket Clients]
+    M4 --> M5[Finish Match]
+    M5 --> M6[Stats Consolidated]
+```
+
+## 9. Project Structure (KMP)
 - `:server`: Ktor backend.
 - `:core`: Shared logic, models, and exceptions.
 - `:app:shared`: Shared UI components and logic (Compose Multiplatform).

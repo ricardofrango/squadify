@@ -1,14 +1,21 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
+import com.ricardofrango.footballmanager.domain.repository.InviteRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
+import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.CreatePlayerRequest
+import com.ricardofrango.footballmanager.model.Invite
+import com.ricardofrango.footballmanager.model.InviteType
 import com.ricardofrango.footballmanager.model.Player
 import com.ricardofrango.footballmanager.model.Role
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 class CreatePlayerUseCase(
     private val playerRepository: PlayerRepository,
+    private val userRepository: UserRepository,
+    private val inviteRepository: InviteRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
     suspend operator fun invoke(userId: String, request: CreatePlayerRequest): Player {
@@ -34,6 +41,36 @@ class CreatePlayerUseCase(
             active = true
         )
 
-        return playerRepository.createPlayer(player)
+        val createdPlayer = playerRepository.createPlayer(player)
+
+        if (request.parents.isNotEmpty()) {
+            val parentEmails = request.parents.map { it.email }
+            val existingUsers = userRepository.findByEmails(parentEmails).associateBy { it.email }
+
+            request.parents.forEach { parentRequest ->
+                val user = existingUsers[parentRequest.email]
+                if (user != null) {
+                    playerRepository.createUserPlayer(
+                        userId = user.id,
+                        playerId = createdPlayer.id,
+                        relationship = parentRequest.relationship
+                    )
+                } else {
+                    inviteRepository.createInvite(
+                        Invite(
+                            id = Uuid.random().toString(),
+                            email = parentRequest.email,
+                            clubId = request.clubId,
+                            type = InviteType.PARENT_PLAYER,
+                            playerId = createdPlayer.id,
+                            relationship = parentRequest.relationship,
+                            createdAt = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+                        )
+                    )
+                }
+            }
+        }
+
+        return createdPlayer
     }
 }

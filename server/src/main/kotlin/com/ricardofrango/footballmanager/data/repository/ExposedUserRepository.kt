@@ -11,6 +11,7 @@ import com.ricardofrango.footballmanager.model.User
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -29,6 +30,11 @@ class ExposedUserRepository : UserRepository {
         Users.selectAll().where { Users.email eq email }
             .map(::toUser)
             .singleOrNull()
+    }
+
+    override suspend fun findByEmails(emails: List<String>): List<User> = dbQuery {
+        Users.selectAll().where { Users.email inList emails }
+            .map(::toUser)
     }
 
     override suspend fun findPasswordHashByEmail(email: String): String? = dbQuery {

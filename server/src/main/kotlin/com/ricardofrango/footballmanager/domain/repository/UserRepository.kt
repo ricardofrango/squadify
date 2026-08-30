@@ -7,6 +7,7 @@ import kotlin.time.Instant
 interface UserRepository {
     suspend fun findById(id: String): User?
     suspend fun findByEmail(email: String): User?
+    suspend fun findByEmails(emails: List<String>): List<User>
     suspend fun findPasswordHashByEmail(email: String): String?
     suspend fun createUser(user: User, passwordHash: String): User
     suspend fun getUserRoleInClub(userId: String, clubId: String): Role?

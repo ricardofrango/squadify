@@ -6,6 +6,7 @@ This document contains behavioral rules and constraints for the AI assistant. Th
 - **Strict Adherence**: Do not perform any refactoring, file creation, or code changes that were not explicitly requested by the developer.
 - **Incremental Progress**: Focus only on the specific task described in the prompt. If a secondary improvement is identified, suggest it in the chat instead of applying it automatically.
 - **Minimal Changes**: When applying a fix or a feature, keep the changes to the minimum necessary to satisfy the requirement, respecting the existing code style.
+- **Database Efficiency**: Always avoid O(N) complexity when accessing the database. Prefer batch operations (e.g., `inList`, `batchInsert`) over multiple individual queries inside loops to prevent the N+1 problem.
 
 ## 2. Communication
 - **Conciseness**: Keep explanations brief and technical.

@@ -3,14 +3,17 @@ package com.ricardofrango.footballmanager.data.repository
 import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
 import com.ricardofrango.footballmanager.data.database.Players
 import com.ricardofrango.footballmanager.data.database.TeamPlayers
+import com.ricardofrango.footballmanager.data.database.UserPlayers
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.exception.DatabaseException
 import com.ricardofrango.footballmanager.model.Player
 import com.ricardofrango.footballmanager.model.TeamPlayer
+import com.ricardofrango.footballmanager.model.UserPlayerRelationship
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.batchInsert
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
@@ -56,6 +59,17 @@ class ExposedPlayerRepository : PlayerRepository {
             .singleOrNull()
     }
 
+    override suspend fun updatePlayer(player: Player): Boolean = dbQuery {
+        Players.update({ Players.id eq Uuid.parse(player.id) }) {
+            it[firstName] = player.firstName
+            it[lastName] = player.lastName
+            it[birthDate] = player.birthDate
+            it[shirtNumber] = player.shirtNumber
+            it[photoUrl] = player.photoUrl
+            it[active] = player.active
+        } > 0
+    }
+
     override suspend fun getPlayersData(playerIds: List<String>): List<Player> = dbQuery {
         Players.selectAll()
             .where { Players.id inList playerIds.map(Uuid::parse) }
@@ -74,16 +88,17 @@ class ExposedPlayerRepository : PlayerRepository {
             ?: throw DatabaseException("Failed to add player to team")
     }
 
-    override suspend fun addPlayersToTeam(teamPlayer: List<TeamPlayer>): List<TeamPlayer> = dbQuery {
-        TeamPlayers.batchInsert(teamPlayer) {
-            this[TeamPlayers.id] = Uuid.parse(it.id)
-            this[TeamPlayers.teamId] = Uuid.parse(it.teamId)
-            this[TeamPlayers.playerId] = Uuid.parse(it.playerId)
-            this[TeamPlayers.startDate] = it.startDate
-            this[TeamPlayers.endDate] = it.endDate
-            this[TeamPlayers.status] = it.status
-        }.map(::toTeamPlayer)
-    }
+    override suspend fun addPlayersToTeam(teamPlayer: List<TeamPlayer>): List<TeamPlayer> =
+        dbQuery {
+            TeamPlayers.batchInsert(teamPlayer) {
+                this[TeamPlayers.id] = Uuid.parse(it.id)
+                this[TeamPlayers.teamId] = Uuid.parse(it.teamId)
+                this[TeamPlayers.playerId] = Uuid.parse(it.playerId)
+                this[TeamPlayers.startDate] = it.startDate
+                this[TeamPlayers.endDate] = it.endDate
+                this[TeamPlayers.status] = it.status
+            }.map(::toTeamPlayer)
+        }
 
     override suspend fun getPlayersByTeam(teamId: String): List<Player> = dbQuery {
         (Players innerJoin TeamPlayers).selectAll()
@@ -95,6 +110,27 @@ class ExposedPlayerRepository : PlayerRepository {
         Players.update({ Players.id eq Uuid.parse(playerId) }) {
             it[Players.active] = active
         } > 0
+    }
+
+    override suspend fun createUserPlayer(
+        userId: String,
+        playerId: String,
+        relationship: UserPlayerRelationship
+    ) {
+        dbQuery {
+            UserPlayers.insert {
+                it[id] = Uuid.random()
+                it[UserPlayers.userId] = Uuid.parse(userId)
+                it[UserPlayers.playerId] = Uuid.parse(playerId)
+                it[UserPlayers.relationship] = relationship
+            }
+        }
+    }
+
+    override suspend fun deleteUserPlayersByPlayer(playerId: String) {
+        dbQuery {
+            UserPlayers.deleteWhere { UserPlayers.playerId eq Uuid.parse(playerId) }
+        }
     }
 
     private fun toTeamPlayer(row: ResultRow): TeamPlayer = TeamPlayer(

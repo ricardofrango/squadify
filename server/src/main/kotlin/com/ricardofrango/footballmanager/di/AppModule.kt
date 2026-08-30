@@ -2,6 +2,7 @@ package com.ricardofrango.footballmanager.di
 
 import com.ricardofrango.footballmanager.data.repository.ExposedAgeGroupRepository
 import com.ricardofrango.footballmanager.data.repository.ExposedClubRepository
+import com.ricardofrango.footballmanager.data.repository.ExposedInviteRepository
 import com.ricardofrango.footballmanager.data.repository.ExposedMatchEventRepository
 import com.ricardofrango.footballmanager.data.repository.ExposedMatchRepository
 import com.ricardofrango.footballmanager.data.repository.ExposedOpponentRepository
@@ -11,6 +12,7 @@ import com.ricardofrango.footballmanager.data.repository.ExposedTeamRepository
 import com.ricardofrango.footballmanager.data.repository.ExposedUserRepository
 import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.domain.repository.ClubRepository
+import com.ricardofrango.footballmanager.domain.repository.InviteRepository
 import com.ricardofrango.footballmanager.domain.repository.MatchEventRepository
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
 import com.ricardofrango.footballmanager.domain.repository.OpponentRepository
@@ -55,6 +57,7 @@ import com.ricardofrango.footballmanager.domain.usecase.RegisterUseCase
 import com.ricardofrango.footballmanager.domain.usecase.UpdateCallUpStatusUseCase
 import com.ricardofrango.footballmanager.domain.usecase.UpdateMatchStatusUseCase
 import com.ricardofrango.footballmanager.domain.usecase.UpdatePlayerStatusUseCase
+import com.ricardofrango.footballmanager.domain.usecase.UpdatePlayerUseCase
 import com.ricardofrango.footballmanager.domain.usecase.UpdateSeasonStatusUseCase
 import com.ricardofrango.footballmanager.domain.usecase.UpdateTeamStatusUseCase
 import org.koin.dsl.module
@@ -66,6 +69,7 @@ val appModule = module {
     single<SeasonRepository> { ExposedSeasonRepository() }
     single<AgeGroupRepository> { ExposedAgeGroupRepository() }
     single<PlayerRepository> { ExposedPlayerRepository() }
+    single<InviteRepository> { ExposedInviteRepository() }
     single<MatchRepository> { ExposedMatchRepository() }
     single<MatchEventRepository> { ExposedMatchEventRepository() }
     single<OpponentRepository> { ExposedOpponentRepository() }
@@ -74,8 +78,8 @@ val appModule = module {
     factory { GetClubsUseCase(get(), get()) }
     factory { GetClubDetailsUseCase(get(), get()) }
     factory { CreateClubUseCase(get(), get()) }
-    factory { ProvisionClubUseCase(get(), get(), get()) }
-    factory { RegisterUseCase(get()) }
+    factory { ProvisionClubUseCase(get(), get(), get(), get()) }
+    factory { RegisterUseCase(get(), get(), get(), get()) }
     factory { LoginUseCase(get()) }
     factory { RefreshTokenUseCase(get()) }
     factory { CheckUserPermissionUseCase(get(), get()) }
@@ -94,9 +98,10 @@ val appModule = module {
     factory { CreateAgeGroupUseCase(get(), get()) }
     factory { GetPlayerUseCase(get(), get()) }
     factory { GetPlayersUseCase(get(), get()) }
-    factory { CreatePlayerUseCase(get(), get()) }
+    factory { CreatePlayerUseCase(get(), get(), get(), get()) }
     factory { CreatePlayersUseCase(get(), get()) }
     factory { UpdatePlayerStatusUseCase(get(), get()) }
+    factory { UpdatePlayerUseCase(get(), get(), get(), get()) }
     factory { AddPlayerToTeamUseCase(get(), get(), get(), get()) }
     factory { AddPlayersToTeamUseCase(get(), get(), get(), get()) }
     factory { GetTeamsUseCase(get(), get()) }

@@ -34,7 +34,7 @@ fun Route.clubRoutes() {
                     call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                 val request = call.receive<ProvisionClubRequest>()
 
-                val club = provisionClubUseCase(currentUserId, request.directorId, request.clubName)
+                val club = provisionClubUseCase(currentUserId, request)
                 call.respond(HttpStatusCode.Created, club)
             }
 
