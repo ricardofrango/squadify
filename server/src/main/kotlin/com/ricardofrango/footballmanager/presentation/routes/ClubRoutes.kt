@@ -32,9 +32,7 @@ fun Route.clubRoutes() {
                 val clubs = getClubsUseCase(currentUserId)
                 call.respond(clubs)
             }
-        }
 
-        route("/club") {
             post("/provision") {
                 val currentUserId =
                     call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)

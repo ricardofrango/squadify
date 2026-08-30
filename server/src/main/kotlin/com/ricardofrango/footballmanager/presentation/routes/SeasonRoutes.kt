@@ -38,8 +38,7 @@ fun Route.seasonRoutes() {
                 val season = createSeasonUseCase(currentUserId, seasonRequest)
                 call.respond(HttpStatusCode.Created, season)
             }
-        }
-        route("/season") {
+
             patch("/{seasonId}/status") {
                 val seasonId = call.parameters["seasonId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
                 val currentUserId = call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)

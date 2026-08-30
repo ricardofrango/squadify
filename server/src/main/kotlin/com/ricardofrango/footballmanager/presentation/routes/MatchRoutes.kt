@@ -36,8 +36,7 @@ fun Route.matchRoutes() {
                 val matches = getMatchesUseCase(currentUserId, clubId, teamId)
                 call.respond(matches)
             }
-        }
-        route("/match") {
+
             post {
                 val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                 val request = call.receive<CreateMatchRequest>()
@@ -46,7 +45,7 @@ fun Route.matchRoutes() {
             }
 
             route("/{matchId}") {
-                get("/details") {
+                get {
                     val matchId = call.parameters["matchId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
                     val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
                     val details = getMatchDetailsUseCase(currentUserId, matchId)

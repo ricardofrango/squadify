@@ -30,8 +30,7 @@ fun Route.opponentRoutes() {
                 val opponents = getOpponentsUseCase(currentUserId, clubId)
                 call.respond(opponents)
             }
-        }
-        route("/opponent") {
+
             post {
                 val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                 val clubId = call.request.queryParameters["clubId"] ?: return@post call.respond(

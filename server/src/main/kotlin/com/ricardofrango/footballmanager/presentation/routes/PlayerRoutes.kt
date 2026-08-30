@@ -32,57 +32,6 @@ fun Route.playerRoutes() {
     val updatePlayerUseCase by inject<UpdatePlayerUseCase>()
 
     authenticate("auth-jwt") {
-        route("/player") {
-            get {
-                val playerId = call.request.queryParameters["playerId"] ?: return@get call.respond(
-                    HttpStatusCode.BadRequest,
-                    ErrorResponse("playerId is required", "VAL_001")
-                )
-                val currentUserId =
-                    call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
-                val player = getPlayerUseCase(currentUserId, playerId)
-                call.respond(player)
-            }
-
-            patch("/{playerId}") {
-                val playerId = call.parameters["playerId"] ?: return@patch call.respond(
-                    HttpStatusCode.BadRequest
-                )
-                val currentUserId =
-                    call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
-                val request = call.receive<UpdatePlayerRequest>()
-
-                val success = updatePlayerUseCase(currentUserId, playerId, request)
-                if (success) {
-                    call.respond(HttpStatusCode.NoContent)
-                } else {
-                    call.respond(
-                        HttpStatusCode.InternalServerError,
-                        ErrorResponse("Failed to update player")
-                    )
-                }
-            }
-
-            patch("/{playerId}/status") {
-                val playerId = call.parameters["playerId"] ?: return@patch call.respond(
-                    HttpStatusCode.BadRequest
-                )
-                val currentUserId =
-                    call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
-                val request = call.receive<UpdateActiveStatusRequest>()
-
-                val success = updatePlayerStatusUseCase(currentUserId, playerId, request.active)
-                if (success) {
-                    call.respond(HttpStatusCode.NoContent)
-                } else {
-                    call.respond(
-                        HttpStatusCode.InternalServerError,
-                        ErrorResponse("Failed to update player status")
-                    )
-                }
-            }
-        }
-
         route("/players") {
             get {
                 val clubId = call.request.queryParameters["clubId"] ?: return@get call.respond(
@@ -110,6 +59,55 @@ fun Route.playerRoutes() {
                 val teamPlayerRequest = call.receive<AddPlayersToTeamRequest>()
                 val teamPlayer = addPlayersToTeamUseCase(currentUserId, teamPlayerRequest)
                 call.respond(HttpStatusCode.Created, teamPlayer)
+            }
+
+            route("/{playerId}") {
+                get {
+                    val playerId =
+                        call.parameters["playerId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId =
+                        call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                    val player = getPlayerUseCase(currentUserId, playerId)
+                    call.respond(player)
+                }
+
+                patch {
+                    val playerId = call.parameters["playerId"] ?: return@patch call.respond(
+                        HttpStatusCode.BadRequest
+                    )
+                    val currentUserId =
+                        call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
+                    val request = call.receive<UpdatePlayerRequest>()
+
+                    val success = updatePlayerUseCase(currentUserId, playerId, request)
+                    if (success) {
+                        call.respond(HttpStatusCode.NoContent)
+                    } else {
+                        call.respond(
+                            HttpStatusCode.InternalServerError,
+                            ErrorResponse("Failed to update player")
+                        )
+                    }
+                }
+
+                patch("/status") {
+                    val playerId = call.parameters["playerId"] ?: return@patch call.respond(
+                        HttpStatusCode.BadRequest
+                    )
+                    val currentUserId =
+                        call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
+                    val request = call.receive<UpdateActiveStatusRequest>()
+
+                    val success = updatePlayerStatusUseCase(currentUserId, playerId, request.active)
+                    if (success) {
+                        call.respond(HttpStatusCode.NoContent)
+                    } else {
+                        call.respond(
+                            HttpStatusCode.InternalServerError,
+                            ErrorResponse("Failed to update player status")
+                        )
+                    }
+                }
             }
         }
     }
