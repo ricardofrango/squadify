@@ -4,9 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -18,7 +17,6 @@ import androidx.compose.ui.unit.sp
 import com.ricardofrango.footballmanager.presentation.ui.theme.CarbonGray
 import com.ricardofrango.footballmanager.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.footballmanager.presentation.ui.theme.PitchGreen
-import com.ricardofrango.footballmanager.presentation.viewmodel.login.LoginViewModel
 import footballmanager.app.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -26,11 +24,25 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun LoginScreen(
     onNavigateToRegister: () -> Unit,
+    onNavigateToDashboard: () -> Unit,
     viewModel: LoginViewModel = koinViewModel()
 ) {
-    val email by viewModel.email.collectAsState()
-    val password by viewModel.password.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val uiState by viewModel.state.collectAsState()
+    
+    // Local UI State for input fields
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+
+    val errorMessage = (uiState as? LoginUiState.Idle)?.error
+
+    // Observe Navigation Events
+    LaunchedEffect(viewModel.navigationEvent) {
+        viewModel.navigationEvent.collect { event ->
+            when (event) {
+                LoginNavigationEvent.NavigateToDashboard -> onNavigateToDashboard()
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -46,7 +58,7 @@ fun LoginScreen(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header Section - Improved Spacing and Visibility
+            // Header Section
             Spacer(modifier = Modifier.height(60.dp))
             
             Text(
@@ -58,7 +70,7 @@ fun LoginScreen(
                 )
             )
             
-            Spacer(modifier = Modifier.height(12.dp)) // More space between title and subtitle
+            Spacer(modifier = Modifier.height(12.dp))
             
             Text(
                 text = "Precision management for your club",
@@ -67,9 +79,9 @@ fun LoginScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.weight(1f)) // Push form down
+            Spacer(modifier = Modifier.weight(1f))
 
-            // Login Card - High Contrast White Surface
+            // Login Card
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -94,16 +106,17 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // Text Field with High Contrast Input Text
                     OutlinedTextField(
                         value = email,
-                        onValueChange = viewModel::onEmailChanged,
+                        onValueChange = { email = it },
                         label = { Text(stringResource(Res.string.label_email)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp),
+                        isError = errorMessage != null,
+                        enabled = uiState !is LoginUiState.Loading,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = DeepCarbon, // High contrast when typing
+                            focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
                             focusedBorderColor = PitchGreen,
                             unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
@@ -116,14 +129,16 @@ fun LoginScreen(
 
                     OutlinedTextField(
                         value = password,
-                        onValueChange = viewModel::onPasswordChanged,
+                        onValueChange = { password = it },
                         label = { Text(stringResource(Res.string.label_password)) },
                         modifier = Modifier.fillMaxWidth(),
                         visualTransformation = PasswordVisualTransformation(),
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp),
+                        isError = errorMessage != null,
+                        enabled = uiState !is LoginUiState.Loading,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = DeepCarbon, // High contrast when typing
+                            focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
                             focusedBorderColor = PitchGreen,
                             unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
@@ -132,11 +147,27 @@ fun LoginScreen(
                         )
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    // Error Message Handling with Reserved Space
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(32.dp) // Reserved space for error message
+                            .padding(top = 4.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        if (errorMessage != null) {
+                            Text(
+                                text = errorMessage,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
 
                     TextButton(
                         onClick = { /* Forgot Password */ },
-                        modifier = Modifier.align(Alignment.End)
+                        modifier = Modifier.align(Alignment.End),
+                        enabled = uiState !is LoginUiState.Loading
                     ) {
                         Text(
                             text = stringResource(Res.string.msg_forgot_password),
@@ -147,14 +178,14 @@ fun LoginScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Button(
-                        onClick = viewModel::onLoginClicked,
+                        onClick = { viewModel.onLoginClicked(email, password) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(58.dp),
-                        enabled = !isLoading,
+                        enabled = uiState !is LoginUiState.Loading,
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = PitchGreen,
@@ -162,7 +193,7 @@ fun LoginScreen(
                         ),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                     ) {
-                        if (isLoading) {
+                        if (uiState is LoginUiState.Loading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(24.dp),
                                 color = Color.White,
@@ -181,7 +212,10 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    TextButton(onClick = onNavigateToRegister) {
+                    TextButton(
+                        onClick = onNavigateToRegister,
+                        enabled = uiState !is LoginUiState.Loading
+                    ) {
                         Text(
                             text = stringResource(Res.string.msg_no_account_register),
                             style = MaterialTheme.typography.bodyMedium.copy(

@@ -19,6 +19,11 @@ fun AppNavigation() {
             LoginScreen(
                 onNavigateToRegister = {
                     navController.navigate(Screen.Register)
+                },
+                onNavigateToDashboard = {
+                    navController.navigate(Screen.Dashboard) {
+                        popUpTo(Screen.Login) { inclusive = true }
+                    }
                 }
             )
         }
@@ -27,6 +32,11 @@ fun AppNavigation() {
             RegisterScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToDashboard = {
+                    navController.navigate(Screen.Dashboard) {
+                        popUpTo(Screen.Login) { inclusive = true }
+                    }
                 }
             )
         }

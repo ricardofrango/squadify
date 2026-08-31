@@ -6,9 +6,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -20,24 +19,36 @@ import androidx.compose.ui.unit.sp
 import com.ricardofrango.footballmanager.presentation.ui.theme.CarbonGray
 import com.ricardofrango.footballmanager.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.footballmanager.presentation.ui.theme.PitchGreen
-import com.ricardofrango.footballmanager.presentation.viewmodel.register.RegisterViewModel
 import footballmanager.app.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToDashboard: () -> Unit,
     viewModel: RegisterViewModel = koinViewModel()
 ) {
-    val firstName by viewModel.firstName.collectAsState()
-    val lastName by viewModel.lastName.collectAsState()
-    val email by viewModel.email.collectAsState()
-    val phone by viewModel.phone.collectAsState()
-    val password by viewModel.password.collectAsState()
-    val confirmPassword by viewModel.confirmPassword.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val uiState by viewModel.state.collectAsState()
+
+    // Observe Navigation Events
+    LaunchedEffect(viewModel.navigationEvent) {
+        viewModel.navigationEvent.collect { event ->
+            when (event) {
+                RegisterNavigationEvent.NavigateToDashboard -> onNavigateToDashboard()
+            }
+        }
+    }
+
+    // Local UI State for form fields
+    var firstName by rememberSaveable { mutableStateOf("") }
+    var lastName by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var phone by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var confirmPassword by rememberSaveable { mutableStateOf("") }
+
+    val errorMessage = (uiState as? RegisterUiState.Idle)?.error
 
     Box(
         modifier = Modifier
@@ -102,13 +113,32 @@ fun RegisterScreen(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
+                    // Error Message Handling with Reserved Space
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(32.dp)
+                            .padding(bottom = 8.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        if (errorMessage != null) {
+                            Text(
+                                text = errorMessage,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+
                     OutlinedTextField(
                         value = firstName,
-                        onValueChange = viewModel::onFirstNameChanged,
+                        onValueChange = { firstName = it },
                         label = { Text(stringResource(Res.string.label_first_name)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp),
+                        isError = errorMessage != null,
+                        enabled = uiState !is RegisterUiState.Loading,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
@@ -121,11 +151,13 @@ fun RegisterScreen(
 
                     OutlinedTextField(
                         value = lastName,
-                        onValueChange = viewModel::onLastNameChanged,
+                        onValueChange = { lastName = it },
                         label = { Text(stringResource(Res.string.label_last_name)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp),
+                        isError = errorMessage != null,
+                        enabled = uiState !is RegisterUiState.Loading,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
@@ -138,11 +170,13 @@ fun RegisterScreen(
 
                     OutlinedTextField(
                         value = email,
-                        onValueChange = viewModel::onEmailChanged,
+                        onValueChange = { email = it },
                         label = { Text(stringResource(Res.string.label_email)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp),
+                        isError = errorMessage != null,
+                        enabled = uiState !is RegisterUiState.Loading,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
@@ -155,11 +189,13 @@ fun RegisterScreen(
 
                     OutlinedTextField(
                         value = phone,
-                        onValueChange = viewModel::onPhoneChanged,
+                        onValueChange = { phone = it },
                         label = { Text(stringResource(Res.string.label_phone)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp),
+                        isError = errorMessage != null,
+                        enabled = uiState !is RegisterUiState.Loading,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
@@ -172,12 +208,14 @@ fun RegisterScreen(
 
                     OutlinedTextField(
                         value = password,
-                        onValueChange = viewModel::onPasswordChanged,
+                        onValueChange = { password = it },
                         label = { Text(stringResource(Res.string.label_password)) },
                         modifier = Modifier.fillMaxWidth(),
                         visualTransformation = PasswordVisualTransformation(),
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp),
+                        isError = errorMessage != null,
+                        enabled = uiState !is RegisterUiState.Loading,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
@@ -190,12 +228,14 @@ fun RegisterScreen(
 
                     OutlinedTextField(
                         value = confirmPassword,
-                        onValueChange = viewModel::onConfirmPasswordChanged,
+                        onValueChange = { confirmPassword = it },
                         label = { Text(stringResource(Res.string.label_confirm_password)) },
                         modifier = Modifier.fillMaxWidth(),
                         visualTransformation = PasswordVisualTransformation(),
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp),
+                        isError = errorMessage != null,
+                        enabled = uiState !is RegisterUiState.Loading,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
@@ -207,11 +247,15 @@ fun RegisterScreen(
                     Spacer(modifier = Modifier.height(32.dp))
 
                     Button(
-                        onClick = viewModel::onRegisterClicked,
+                        onClick = {
+                            viewModel.onRegisterClicked(
+                                firstName, lastName, email, phone, password, confirmPassword
+                            )
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(58.dp),
-                        enabled = !isLoading,
+                        enabled = uiState !is RegisterUiState.Loading,
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = PitchGreen,
@@ -219,7 +263,7 @@ fun RegisterScreen(
                         ),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                     ) {
-                        if (isLoading) {
+                        if (uiState is RegisterUiState.Loading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(24.dp),
                                 color = Color.White,
@@ -238,7 +282,10 @@ fun RegisterScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    TextButton(onClick = onNavigateBack) {
+                    TextButton(
+                        onClick = onNavigateBack,
+                        enabled = uiState !is RegisterUiState.Loading
+                    ) {
                         Text(
                             text = stringResource(Res.string.msg_already_have_account),
                             style = MaterialTheme.typography.bodyMedium.copy(
