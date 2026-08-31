@@ -6,9 +6,11 @@ import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.exception.ConflictException
 import com.ricardofrango.footballmanager.exception.ValidationException
+import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.InviteType
 import com.ricardofrango.footballmanager.model.RegisterRequest
 import com.ricardofrango.footballmanager.model.User
+import com.ricardofrango.footballmanager.model.UserPlayerRelationship
 import com.ricardofrango.footballmanager.model.UserStatus
 import org.mindrot.jbcrypt.BCrypt
 import kotlin.time.Instant
@@ -45,27 +47,38 @@ class RegisterUseCase(
 
         // Process pending invites
         val invites = inviteRepository.findByEmail(createdUser.email)
-        invites.forEach { invite ->
-            when (invite.type) {
-                InviteType.CLUB_MEMBER -> {
-                    invite.role?.let { role ->
-                        clubRepository.addMember(invite.clubId, createdUser.id, role)
-                    }
-                }
+        if (invites.isNotEmpty()) {
+            val clubMemberships = mutableListOf<Pair<String, ClubRole>>()
+            val parentLinks = mutableListOf<Triple<String, String, UserPlayerRelationship>>()
 
-                InviteType.PARENT_PLAYER -> {
-                    val playerId = invite.playerId
-                    val relationship = invite.relationship
-                    if (playerId != null && relationship != null) {
-                        playerRepository.createUserPlayer(
-                            userId = createdUser.id,
-                            playerId = playerId,
-                            relationship = relationship
-                        )
+            invites.forEach { invite ->
+                when (invite.type) {
+                    InviteType.CLUB_MEMBER -> {
+                        invite.role
+                            ?.let { invite.clubId to it }
+                            ?.run(clubMemberships::add)
+                    }
+
+                    InviteType.PARENT_PLAYER -> {
+                        val playerId = invite.playerId
+                        val relationship = invite.relationship
+                        if (playerId != null && relationship != null) {
+                            parentLinks.add(Triple(createdUser.id, playerId, relationship))
+                        }
                     }
                 }
             }
-            inviteRepository.deleteInvite(invite.id)
+
+            if (clubMemberships.isNotEmpty()) {
+                clubMemberships.forEach { (clubId, role) ->
+                    clubRepository.addMember(clubId, createdUser.id, role)
+                }
+            }
+            if (parentLinks.isNotEmpty()) {
+                playerRepository.createUserPlayers(parentLinks)
+            }
+
+            inviteRepository.deleteInvites(invites.map { it.id })
         }
 
         return createdUser

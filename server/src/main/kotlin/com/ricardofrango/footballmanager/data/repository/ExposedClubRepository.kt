@@ -11,6 +11,7 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
@@ -70,6 +71,16 @@ class ExposedClubRepository : ClubRepository {
             it[active] = true
         }
         insertStatement.insertedCount > 0
+    }
+
+    override suspend fun addMembers(clubId: String, userIds: List<Pair<String, ClubRole>>): Boolean = dbQuery {
+        ClubMembers.batchInsert(userIds) { (uId, role) ->
+            this[ClubMembers.id] = Uuid.random()
+            this[ClubMembers.clubId] = Uuid.parse(clubId)
+            this[ClubMembers.userId] = Uuid.parse(uId)
+            this[ClubMembers.role] = role
+            this[ClubMembers.active] = true
+        }.size == userIds.size
     }
 
     override suspend fun updateMemberRole(clubId: String, userId: String, role: ClubRole): Boolean = dbQuery {

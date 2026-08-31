@@ -13,6 +13,7 @@ import com.ricardofrango.footballmanager.model.TeamStaffMember
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
@@ -67,6 +68,15 @@ class ExposedTeamRepository : TeamRepository {
             it[role] = teamStaff.role
         }
         insertStatement.insertedCount > 0
+    }
+
+    override suspend fun addStaffToTeam(staff: List<TeamStaff>): Boolean = dbQuery {
+        TeamStaffTable.batchInsert(staff) { teamStaff ->
+            this[TeamStaffTable.id] = Uuid.parse(teamStaff.id)
+            this[TeamStaffTable.teamId] = Uuid.parse(teamStaff.teamId)
+            this[TeamStaffTable.userId] = Uuid.parse(teamStaff.userId)
+            this[TeamStaffTable.role] = teamStaff.role
+        }.size == staff.size
     }
 
     override suspend fun getTeamStaff(teamId: String): List<TeamStaffMember> = dbQuery {

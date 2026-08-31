@@ -66,6 +66,12 @@ class ExposedUserRepository : UserRepository {
             .singleOrNull()
     }
 
+    override suspend fun getUserRolesInClub(userIds: List<String>, clubId: String): Map<String, ClubRole> = dbQuery {
+        ClubMembers.selectAll().where {
+            (ClubMembers.userId inList userIds.map(Uuid::parse)) and (ClubMembers.clubId eq Uuid.parse(clubId))
+        }.associate { it[ClubMembers.userId].toString() to it[ClubMembers.role] }
+    }
+
     override suspend fun saveRefreshToken(userId: String, token: String, expiresAt: Instant) {
         dbQuery {
             RefreshTokens.insert {

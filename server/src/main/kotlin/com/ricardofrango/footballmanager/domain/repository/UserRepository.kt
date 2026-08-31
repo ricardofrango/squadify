@@ -11,6 +11,7 @@ interface UserRepository {
     suspend fun findPasswordHashByEmail(email: String): String?
     suspend fun createUser(user: User, passwordHash: String): User
     suspend fun getUserRoleInClub(userId: String, clubId: String): ClubRole?
+    suspend fun getUserRolesInClub(userIds: List<String>, clubId: String): Map<String, ClubRole>
     suspend fun saveRefreshToken(userId: String, token: String, expiresAt: Instant)
     suspend fun findUserIdByRefreshToken(token: String): String?
     suspend fun deleteRefreshToken(token: String)

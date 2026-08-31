@@ -32,20 +32,22 @@ class AddStaffToTeamsUseCase(
         )
 
         // 3. Batch verify and add
-        request.staff.forEach { staffItem ->
-            // Verify user exists AND is already a member of this club
-            userRepository.getUserRoleInClub(staffItem.userId, team.clubId)
+        val staffUserIds = request.staff.map { it.userId }
+        val userRolesMap = userRepository.getUserRolesInClub(staffUserIds, team.clubId)
+
+        val staffToCreate = request.staff.map { staffItem ->
+            // Verify user is already a member of this club
+            userRolesMap[staffItem.userId]
                 ?: throw ForbiddenException("User ${staffItem.userId} must be a member of the club before being added to a team")
 
-            val teamStaff = TeamStaff(
+            TeamStaff(
                 id = Uuid.random().toString(),
                 teamId = teamId,
                 userId = staffItem.userId,
                 role = staffItem.role
             )
-            teamRepository.addStaffToTeam(teamStaff)
         }
 
-        return true
+        return teamRepository.addStaffToTeam(staffToCreate)
     }
 }

@@ -33,15 +33,18 @@ class AddClubMembersUseCase(
         val existingUsers = userRepository.findByEmails(uniqueEmails).associateBy { it.email }
         val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
 
+        val userIdsToCheck = existingUsers.values.map { it.id }
+        val userRolesMap = userRepository.getUserRolesInClub(userIdsToCheck, clubId)
+
         val invitesToCreate = mutableListOf<Invite>()
+        val membersToCreate = mutableListOf<Pair<String, ClubRole>>()
 
         uniqueEmails.forEach { email ->
             val user = existingUsers[email]
             if (user != null) {
                 // Check if already a member
-                val existingRole = userRepository.getUserRoleInClub(user.id, clubId)
-                if (existingRole == null) {
-                    clubRepository.addMember(clubId, user.id, ClubRole.MEMBER)
+                if (userRolesMap[user.id] == null) {
+                    membersToCreate.add(user.id to ClubRole.MEMBER)
                 }
             } else {
                 invitesToCreate.add(
@@ -55,6 +58,10 @@ class AddClubMembersUseCase(
                     )
                 )
             }
+        }
+
+        if (membersToCreate.isNotEmpty()) {
+            clubRepository.addMembers(clubId, membersToCreate)
         }
 
         if (invitesToCreate.isNotEmpty()) {

@@ -11,6 +11,7 @@ import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.core.inList
 import kotlin.uuid.Uuid
 
 class ExposedInviteRepository : InviteRepository {
@@ -44,6 +45,12 @@ class ExposedInviteRepository : InviteRepository {
     override suspend fun deleteInvite(inviteId: String) {
         dbQuery {
             Invites.deleteWhere { Invites.id eq Uuid.parse(inviteId) }
+        }
+    }
+
+    override suspend fun deleteInvites(inviteIds: List<String>) {
+        dbQuery {
+            Invites.deleteWhere { Invites.id inList inviteIds.map(Uuid::parse) }
         }
     }
 
