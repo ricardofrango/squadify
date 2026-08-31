@@ -6,5 +6,6 @@ sealed class RegisterUiState {
 }
 
 sealed class RegisterNavigationEvent {
+    data object NavigateBackToLogin : RegisterNavigationEvent()
     data object NavigateToDashboard : RegisterNavigationEvent()
 }

@@ -2,6 +2,8 @@ package com.ricardofrango.footballmanager.presentation.ui.register
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ricardofrango.footballmanager.domain.usecase.RegisterUseCase
+import com.ricardofrango.footballmanager.model.RegisterRequest
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -11,7 +13,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class RegisterViewModel : ViewModel() {
+class RegisterViewModel(
+    private val registerUseCase: RegisterUseCase
+) : ViewModel() {
     private val _state = MutableStateFlow<RegisterUiState>(RegisterUiState.Idle())
     val state: StateFlow<RegisterUiState> = _state.asStateFlow()
 
@@ -26,10 +30,28 @@ class RegisterViewModel : ViewModel() {
         password: String,
         confirmPassword: String
     ) {
+        if (password != confirmPassword) {
+            _state.update { RegisterUiState.Idle(error = "Passwords do not match") }
+            return
+        }
+
         viewModelScope.launch {
             _state.update { RegisterUiState.Loading }
-            // Implementation later
-            _navigationEvent.emit(RegisterNavigationEvent.NavigateToDashboard)
+            try {
+                registerUseCase(
+                    RegisterRequest(
+                        email = email,
+                        password = password,
+                        firstName = firstName,
+                        lastName = lastName,
+                        phone = phone.takeIf { it.isNotBlank() }
+                    )
+                )
+                _state.update { RegisterUiState.Idle() }
+                _navigationEvent.emit(RegisterNavigationEvent.NavigateBackToLogin)
+            } catch (e: Exception) {
+                _state.update { RegisterUiState.Idle(error = e.message ?: "Registration failed") }
+            }
         }
     }
 }

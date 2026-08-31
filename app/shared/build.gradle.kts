@@ -56,6 +56,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
+            implementation(libs.ktor.client.cio)
         }
         commonMain.dependencies {
             api(project(":core"))
@@ -76,6 +77,15 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
+
+            // Ktor Client
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.ktor.client.logging)
+
+            // Settings
+            implementation(libs.multiplatform.settings.no.arg)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

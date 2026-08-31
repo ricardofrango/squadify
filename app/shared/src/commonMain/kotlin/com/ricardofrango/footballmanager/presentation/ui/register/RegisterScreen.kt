@@ -35,6 +35,7 @@ fun RegisterScreen(
     LaunchedEffect(viewModel.navigationEvent) {
         viewModel.navigationEvent.collect { event ->
             when (event) {
+                RegisterNavigationEvent.NavigateBackToLogin -> onNavigateBack()
                 RegisterNavigationEvent.NavigateToDashboard -> onNavigateToDashboard()
             }
         }
