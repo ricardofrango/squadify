@@ -5,6 +5,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ricardofrango.footballmanager.presentation.ui.login.LoginScreen
+import com.ricardofrango.footballmanager.presentation.ui.register.RegisterScreen
 
 @Composable
 fun AppNavigation() {
@@ -23,7 +24,11 @@ fun AppNavigation() {
         }
         
         composable<Screen.Register> {
-            // RegisterScreen implementation later
+            RegisterScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
         
         composable<Screen.Dashboard> {
