@@ -3,6 +3,7 @@ package com.ricardofrango.footballmanager.domain.usecase
 import com.ricardofrango.footballmanager.domain.repository.MatchEventRepository
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
 import com.ricardofrango.footballmanager.domain.service.LiveMatchBus
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.NotFoundException
 import com.ricardofrango.footballmanager.model.*
 
@@ -10,13 +11,14 @@ class UpdateMatchStatusUseCase(
     private val matchRepository: MatchRepository,
     private val matchEventRepository: MatchEventRepository,
     private val liveMatchBus: LiveMatchBus,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
         userId: String,
         matchId: String,
         status: MatchStatus
-    ): Boolean {
+    ): Boolean = transactionManager.runInTransaction {
         // 1. Verify match exists first to get context
         val match = matchRepository.getMatchById(matchId)
             ?: throw NotFoundException("Match not found")
@@ -38,6 +40,6 @@ class UpdateMatchStatusUseCase(
                 update = LiveMatchUpdate(score = score, status = status)
             )
         }
-        return success
+        success
     }
 }

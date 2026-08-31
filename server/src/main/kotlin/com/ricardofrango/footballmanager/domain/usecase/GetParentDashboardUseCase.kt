@@ -3,15 +3,17 @@ package com.ricardofrango.footballmanager.domain.usecase
 import com.ricardofrango.footballmanager.domain.repository.MatchEventRepository
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.model.ParentDashboard
 import com.ricardofrango.footballmanager.model.ParentDashboardChild
 
 class GetParentDashboardUseCase(
     private val playerRepository: PlayerRepository,
     private val matchRepository: MatchRepository,
-    private val matchEventRepository: MatchEventRepository
+    private val matchEventRepository: MatchEventRepository,
+    private val transactionManager: TransactionManager
 ) {
-    suspend operator fun invoke(userId: String): ParentDashboard {
+    suspend operator fun invoke(userId: String): ParentDashboard = transactionManager.runInTransaction {
         // A Parent/User can always access their own dashboard (limited to their linked children)
         val children = playerRepository.getPlayersByUser(userId)
 
@@ -28,6 +30,6 @@ class GetParentDashboardUseCase(
             )
         }
 
-        return ParentDashboard(children = childSummaries)
+        ParentDashboard(children = childSummaries)
     }
 }

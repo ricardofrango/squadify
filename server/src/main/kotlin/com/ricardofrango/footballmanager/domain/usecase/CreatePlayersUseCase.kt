@@ -4,13 +4,9 @@ import com.ricardofrango.footballmanager.domain.repository.ClubRepository
 import com.ricardofrango.footballmanager.domain.repository.InviteRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ValidationException
-import com.ricardofrango.footballmanager.model.ClubRole
-import com.ricardofrango.footballmanager.model.CreatePlayersRequest
-import com.ricardofrango.footballmanager.model.Invite
-import com.ricardofrango.footballmanager.model.InviteType
-import com.ricardofrango.footballmanager.model.Player
-import com.ricardofrango.footballmanager.model.UserPlayerRelationship
+import com.ricardofrango.footballmanager.model.*
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
@@ -19,9 +15,10 @@ class CreatePlayersUseCase(
     private val userRepository: UserRepository,
     private val inviteRepository: InviteRepository,
     private val clubRepository: ClubRepository,
+    private val transactionManager: TransactionManager,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
-    suspend operator fun invoke(userId: String, request: CreatePlayersRequest): List<Player> {
+    suspend operator fun invoke(userId: String, request: CreatePlayersRequest): List<Player> = transactionManager.runInTransaction {
         checkUserPermissionUseCase(
             userId = userId,
             clubId = request.clubId,
@@ -125,6 +122,6 @@ class CreatePlayersUseCase(
             inviteRepository.createInvites(allInvites)
         }
 
-        return createdPlayers
+        createdPlayers
     }
 }

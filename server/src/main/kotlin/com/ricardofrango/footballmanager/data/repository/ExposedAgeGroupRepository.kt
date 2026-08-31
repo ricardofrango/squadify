@@ -1,7 +1,6 @@
 package com.ricardofrango.footballmanager.data.repository
 
 import com.ricardofrango.footballmanager.data.database.AgeGroups
-import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
 import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.exception.DatabaseException
 import com.ricardofrango.footballmanager.model.AgeGroup
@@ -16,15 +15,15 @@ import kotlin.uuid.Uuid
 
 class ExposedAgeGroupRepository : AgeGroupRepository {
 
-    override suspend fun getAgeGroupsByClub(clubId: String): List<AgeGroup> = dbQuery {
-        AgeGroups.selectAll()
+    override suspend fun getAgeGroupsByClub(clubId: String): List<AgeGroup> {
+        return AgeGroups.selectAll()
             .where { AgeGroups.clubId eq Uuid.parse(clubId) }
             .orderBy(AgeGroups.birthYear, SortOrder.DESC)
             .map(::toAgeGroup)
     }
 
-    override suspend fun createAgeGroup(ageGroup: AgeGroup): AgeGroup = dbQuery {
-        AgeGroups.insert {
+    override suspend fun createAgeGroup(ageGroup: AgeGroup): AgeGroup {
+        return AgeGroups.insert {
             it[id] = Uuid.parse(ageGroup.id)
             it[clubId] = Uuid.parse(ageGroup.clubId)
             it[seasonId] = Uuid.parse(ageGroup.seasonId)
@@ -34,21 +33,21 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
             ?: throw DatabaseException("Failed to create age group")
     }
 
-    override suspend fun getAgeGroupById(id: String): AgeGroup? = dbQuery {
-        AgeGroups.selectAll().where { AgeGroups.id eq Uuid.parse(id) }
+    override suspend fun getAgeGroupById(id: String): AgeGroup? {
+        return AgeGroups.selectAll().where { AgeGroups.id eq Uuid.parse(id) }
             .map(::toAgeGroup)
             .singleOrNull()
     }
 
-    override suspend fun updateAgeGroup(ageGroup: AgeGroup): Boolean = dbQuery {
-        AgeGroups.update({ AgeGroups.id eq Uuid.parse(ageGroup.id) }) {
+    override suspend fun updateAgeGroup(ageGroup: AgeGroup): Boolean {
+        return AgeGroups.update({ AgeGroups.id eq Uuid.parse(ageGroup.id) }) {
             it[name] = ageGroup.name
             it[birthYear] = ageGroup.birthYear
         } > 0
     }
 
-    override suspend fun findByDetails(clubId: String, seasonId: String, birthYear: Int): AgeGroup? = dbQuery {
-        AgeGroups.selectAll()
+    override suspend fun findByDetails(clubId: String, seasonId: String, birthYear: Int): AgeGroup? {
+        return AgeGroups.selectAll()
             .where { 
                 (AgeGroups.clubId eq Uuid.parse(clubId)) and 
                 (AgeGroups.seasonId eq Uuid.parse(seasonId)) and 

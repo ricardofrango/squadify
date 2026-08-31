@@ -1,6 +1,7 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.UnauthorizedException
 import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.LoginRequest
@@ -9,8 +10,11 @@ import com.ricardofrango.footballmanager.security.JwtConfig
 import kotlin.time.Instant
 import org.mindrot.jbcrypt.BCrypt
 
-class LoginUseCase(private val userRepository: UserRepository) {
-    suspend operator fun invoke(request: LoginRequest): LoginResponse {
+class LoginUseCase(
+    private val userRepository: UserRepository,
+    private val transactionManager: TransactionManager
+) {
+    suspend operator fun invoke(request: LoginRequest): LoginResponse = transactionManager.runInTransaction {
         if (request.email.isBlank() || request.password.isBlank()) {
             throw ValidationException("Email and password are required")
         }
@@ -31,6 +35,6 @@ class LoginUseCase(private val userRepository: UserRepository) {
         
         userRepository.saveRefreshToken(user.id, refreshToken, expiresAt)
         
-        return LoginResponse(accessToken, refreshToken, user)
+        LoginResponse(accessToken, refreshToken, user)
     }
 }

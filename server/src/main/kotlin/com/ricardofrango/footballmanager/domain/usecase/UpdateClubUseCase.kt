@@ -1,19 +1,21 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.ClubRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.NotFoundException
 import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.UpdateClubRequest
 
 class UpdateClubUseCase(
     private val clubRepository: ClubRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
         userId: String,
         clubId: String,
         request: UpdateClubRequest
-    ): Boolean {
+    ): Boolean = transactionManager.runInTransaction {
         val existingClub = clubRepository.getClubById(clubId)
             ?: throw NotFoundException("Club not found")
 
@@ -34,6 +36,6 @@ class UpdateClubUseCase(
             status = request.status ?: existingClub.status
         )
 
-        return clubRepository.updateClub(updatedClub)
+        clubRepository.updateClub(updatedClub)
     }
 }

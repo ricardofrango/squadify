@@ -1,18 +1,20 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.NotFoundException
 import com.ricardofrango.footballmanager.model.*
 
 class ManageCallUpsUseCase(
     private val matchRepository: MatchRepository,
+    private val transactionManager: TransactionManager,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
     suspend operator fun invoke(
         userId: String,
         matchId: String,
         request: ManageCallUpRequest
-    ): Boolean {
+    ): Boolean = transactionManager.runInTransaction {
         // 1. Fetch match first to get context (required for granular check)
         val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
 
@@ -25,6 +27,6 @@ class ManageCallUpsUseCase(
             errorMessage = "Insufficient permissions to manage call-ups"
         )
 
-        return matchRepository.manageCallUps(matchId, request.playerIds)
+        matchRepository.manageCallUps(matchId, request.playerIds)
     }
 }

@@ -1,6 +1,5 @@
 package com.ricardofrango.footballmanager.data.repository
 
-import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
 import com.ricardofrango.footballmanager.data.database.Invites
 import com.ricardofrango.footballmanager.domain.repository.InviteRepository
 import com.ricardofrango.footballmanager.exception.DatabaseException
@@ -15,7 +14,8 @@ import org.jetbrains.exposed.v1.core.inList
 import kotlin.uuid.Uuid
 
 class ExposedInviteRepository : InviteRepository {
-    override suspend fun createInvite(invite: Invite): Invite = dbQuery {
+
+    override suspend fun createInvite(invite: Invite): Invite =
         Invites.insert {
             it[id] = Uuid.parse(invite.id)
             it[email] = invite.email
@@ -25,11 +25,12 @@ class ExposedInviteRepository : InviteRepository {
             it[playerId] = invite.playerId?.let(Uuid::parse)
             it[relationship] = invite.relationship
             it[createdAt] = invite.createdAt
-        }.resultedValues?.singleOrNull()?.let(::toInvite)
+        }.resultedValues
+            ?.singleOrNull()
+            ?.let(::toInvite)
             ?: throw DatabaseException("Failed to create invite")
-    }
 
-    override suspend fun createInvites(invites: List<Invite>): List<Invite> = dbQuery {
+    override suspend fun createInvites(invites: List<Invite>): List<Invite> =
         Invites.batchInsert(invites) { invite ->
             this[Invites.id] = Uuid.parse(invite.id)
             this[Invites.email] = invite.email
@@ -40,29 +41,21 @@ class ExposedInviteRepository : InviteRepository {
             this[Invites.relationship] = invite.relationship
             this[Invites.createdAt] = invite.createdAt
         }.map(::toInvite)
-    }
 
     override suspend fun deleteInvite(inviteId: String) {
-        dbQuery {
-            Invites.deleteWhere { Invites.id eq Uuid.parse(inviteId) }
-        }
+        Invites.deleteWhere { Invites.id eq Uuid.parse(inviteId) }
     }
 
     override suspend fun deleteInvites(inviteIds: List<String>) {
-        dbQuery {
-            Invites.deleteWhere { Invites.id inList inviteIds.map(Uuid::parse) }
-        }
+        Invites.deleteWhere { Invites.id inList inviteIds.map(Uuid::parse) }
     }
 
-    override suspend fun findByEmail(email: String): List<Invite> = dbQuery {
+    override suspend fun findByEmail(email: String): List<Invite> =
         Invites.selectAll().where { Invites.email eq email }
             .map(::toInvite)
-    }
 
     override suspend fun deleteByPlayer(playerId: String) {
-        dbQuery {
-            Invites.deleteWhere { Invites.playerId eq Uuid.parse(playerId) }
-        }
+        Invites.deleteWhere { Invites.playerId eq Uuid.parse(playerId) }
     }
 
     private fun toInvite(row: ResultRow): Invite = Invite(

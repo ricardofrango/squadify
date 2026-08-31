@@ -3,6 +3,7 @@ package com.ricardofrango.footballmanager.domain.usecase
 import com.ricardofrango.footballmanager.domain.repository.MatchEventRepository
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
 import com.ricardofrango.footballmanager.domain.service.LiveMatchBus
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.*
 import kotlin.time.Instant
@@ -12,13 +13,14 @@ class AddMatchEventUseCase(
     private val matchEventRepository: MatchEventRepository,
     private val matchRepository: MatchRepository,
     private val liveMatchBus: LiveMatchBus,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
         userId: String,
         matchId: String,
         request: CreateMatchEventRequest
-    ): MatchEvent {
+    ): MatchEvent = transactionManager.runInTransaction {
         // 1. Verify match exists first to get context
         val match = matchRepository.getMatchById(matchId)
             ?: throw ValidationException("Match not found")
@@ -52,6 +54,6 @@ class AddMatchEventUseCase(
         // 5. Broadcast via the Live Match Bus
         liveMatchBus.publish(matchId, LiveMatchUpdate(savedEvent, score))
 
-        return savedEvent
+        savedEvent
     }
 }

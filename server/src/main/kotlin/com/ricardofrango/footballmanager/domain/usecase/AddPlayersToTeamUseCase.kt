@@ -3,6 +3,7 @@ package com.ricardofrango.footballmanager.domain.usecase
 import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.AddPlayersToTeamRequest
@@ -14,12 +15,13 @@ class AddPlayersToTeamUseCase(
     private val playerRepository: PlayerRepository,
     private val teamRepository: TeamRepository,
     private val ageGroupRepository: AgeGroupRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
         userId: String,
         request: AddPlayersToTeamRequest
-    ): List<TeamPlayer> {
+    ): List<TeamPlayer> = transactionManager.runInTransaction {
         // 1. Verify team exists first to get context
         val team = teamRepository.getTeamById(request.teamId)
             ?: throw ValidationException("Team not found")
@@ -64,6 +66,6 @@ class AddPlayersToTeamUseCase(
             )
         }
 
-        return playerRepository.addPlayersToTeam(teamPlayers)
+        playerRepository.addPlayersToTeam(teamPlayers)
     }
 }

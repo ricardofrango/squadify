@@ -2,23 +2,23 @@ package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.exception.ValidationException
-import com.ricardofrango.footballmanager.model.AddStaffToTeamsRequest
-import com.ricardofrango.footballmanager.model.ClubRole
-import com.ricardofrango.footballmanager.model.TeamStaff
+import com.ricardofrango.footballmanager.model.*
 import kotlin.uuid.Uuid
 
 class AddStaffToTeamsUseCase(
     private val teamRepository: TeamRepository,
     private val userRepository: UserRepository,
+    private val transactionManager: TransactionManager,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
     suspend operator fun invoke(
         userId: String,
         teamId: String,
         request: AddStaffToTeamsRequest
-    ): Boolean {
+    ): Boolean = transactionManager.runInTransaction {
         // 1. Verify team exists first to get context
         val team = teamRepository.getTeamById(teamId)
             ?: throw ValidationException("Team not found")
@@ -48,6 +48,6 @@ class AddStaffToTeamsUseCase(
             )
         }
 
-        return teamRepository.addStaffToTeam(staffToCreate)
+        teamRepository.addStaffToTeam(staffToCreate)
     }
 }

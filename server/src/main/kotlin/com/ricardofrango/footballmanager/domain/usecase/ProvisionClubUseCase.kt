@@ -3,6 +3,7 @@ package com.ricardofrango.footballmanager.domain.usecase
 import com.ricardofrango.footballmanager.domain.repository.ClubRepository
 import com.ricardofrango.footballmanager.domain.repository.InviteRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.model.*
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
@@ -11,9 +12,10 @@ class ProvisionClubUseCase(
     private val clubRepository: ClubRepository,
     private val userRepository: UserRepository,
     private val inviteRepository: InviteRepository,
-    private val checkUserIsAdminUseCase: CheckUserIsAdminUseCase
+    private val checkUserIsAdminUseCase: CheckUserIsAdminUseCase,
+    private val transactionManager: TransactionManager
 ) {
-    suspend operator fun invoke(userId: String, request: ProvisionClubRequest): Club {
+    suspend operator fun invoke(userId: String, request: ProvisionClubRequest): Club = transactionManager.runInTransaction {
         // 1. Check if executor is Platform Admin
         checkUserIsAdminUseCase(userId).takeIf { it }
             ?: throw com.ricardofrango.footballmanager.exception.ForbiddenException("Only platform admins can perform this action")
@@ -46,6 +48,6 @@ class ProvisionClubUseCase(
             inviteRepository.createInvite(invite)
         }
 
-        return createdClub
+        createdClub
     }
 }

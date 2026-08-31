@@ -4,6 +4,7 @@ import com.ricardofrango.footballmanager.domain.repository.MatchRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.SeasonRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.model.ClubAdminDashboard
 import com.ricardofrango.footballmanager.model.ClubRole
 
@@ -12,9 +13,10 @@ class GetClubAdminDashboardUseCase(
     private val playerRepository: PlayerRepository,
     private val matchRepository: MatchRepository,
     private val seasonRepository: SeasonRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val transactionManager: TransactionManager
 ) {
-    suspend operator fun invoke(userId: String, clubId: String): ClubAdminDashboard {
+    suspend operator fun invoke(userId: String, clubId: String): ClubAdminDashboard = transactionManager.runInTransaction {
         checkUserPermissionUseCase(
             userId = userId,
             clubId = clubId,
@@ -28,7 +30,7 @@ class GetClubAdminDashboardUseCase(
         val upcomingMatches = matchRepository.getUpcomingMatchesByClub(clubId, limit = 10)
         val activeSeasons = seasonRepository.getActiveSeasonsByClub(clubId)
 
-        return ClubAdminDashboard(
+        ClubAdminDashboard(
             totalTeams = totalTeams,
             totalPlayers = totalPlayers,
             totalCoaches = totalCoaches,

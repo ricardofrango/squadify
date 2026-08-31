@@ -4,6 +4,7 @@ import com.ricardofrango.footballmanager.domain.repository.ClubRepository
 import com.ricardofrango.footballmanager.domain.repository.InviteRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.NotFoundException
 import com.ricardofrango.footballmanager.model.*
 import kotlin.time.Instant
@@ -14,13 +15,14 @@ class UpdatePlayerUseCase(
     private val userRepository: UserRepository,
     private val inviteRepository: InviteRepository,
     private val clubRepository: ClubRepository,
+    private val transactionManager: TransactionManager,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
     suspend operator fun invoke(
         userId: String,
         playerId: String,
         request: UpdatePlayerRequest
-    ): Boolean {
+    ): Boolean = transactionManager.runInTransaction {
         val existingPlayer = playerRepository.getPlayerById(playerId)
             ?: throw NotFoundException("Player not found")
 
@@ -91,7 +93,7 @@ class UpdatePlayerUseCase(
                     )
                 }
             }
-            
+
             if (linksToCreate.isNotEmpty()) {
                 playerRepository.createUserPlayers(linksToCreate)
             }
@@ -100,6 +102,6 @@ class UpdatePlayerUseCase(
             }
         }
 
-        return success
+        success
     }
 }

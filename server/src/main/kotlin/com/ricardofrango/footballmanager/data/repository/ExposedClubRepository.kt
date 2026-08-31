@@ -2,7 +2,6 @@ package com.ricardofrango.footballmanager.data.repository
 
 import com.ricardofrango.footballmanager.data.database.ClubMembers
 import com.ricardofrango.footballmanager.data.database.Clubs
-import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
 import com.ricardofrango.footballmanager.domain.repository.ClubRepository
 import com.ricardofrango.footballmanager.exception.DatabaseException
 import com.ricardofrango.footballmanager.model.Club
@@ -19,17 +18,15 @@ import kotlin.uuid.Uuid
 
 class ExposedClubRepository : ClubRepository {
 
-    override suspend fun getAllClubs(): List<Club> = dbQuery {
+    override suspend fun getAllClubs(): List<Club> =
         Clubs.selectAll().map(::toClub)
-    }
 
-    override suspend fun getClubsByUser(userId: String): List<Club> = dbQuery {
+    override suspend fun getClubsByUser(userId: String): List<Club> =
         (Clubs innerJoin ClubMembers).selectAll()
             .where { ClubMembers.userId eq Uuid.parse(userId) }
             .map(::toClub)
-    }
 
-    override suspend fun createClub(club: Club): Club = dbQuery {
+    override suspend fun createClub(club: Club): Club =
         Clubs.insert {
             it[id] = Uuid.parse(club.id)
             it[name] = club.name
@@ -42,15 +39,13 @@ class ExposedClubRepository : ClubRepository {
             it[createdAt] = club.createdAt
         }.resultedValues?.singleOrNull()?.let(::toClub)
             ?: throw DatabaseException("Failed to create club")
-    }
 
-    override suspend fun getClubById(id: String): Club? = dbQuery {
+    override suspend fun getClubById(id: String): Club? =
         Clubs.selectAll().where { Clubs.id eq Uuid.parse(id) }
             .map(::toClub)
             .singleOrNull()
-    }
 
-    override suspend fun updateClub(club: Club): Boolean = dbQuery {
+    override suspend fun updateClub(club: Club): Boolean =
         Clubs.update({ Clubs.id eq Uuid.parse(club.id) }) {
             it[name] = club.name
             it[shortName] = club.shortName
@@ -60,20 +55,17 @@ class ExposedClubRepository : ClubRepository {
             it[address] = club.address
             it[status] = club.status
         } > 0
-    }
 
-    override suspend fun addMember(clubId: String, userId: String, role: ClubRole): Boolean = dbQuery {
-        val insertStatement = ClubMembers.insert {
+    override suspend fun addMember(clubId: String, userId: String, role: ClubRole): Boolean =
+        ClubMembers.insert {
             it[id] = Uuid.random()
             it[this.clubId] = Uuid.parse(clubId)
             it[this.userId] = Uuid.parse(userId)
             it[this.role] = role
             it[active] = true
-        }
-        insertStatement.insertedCount > 0
-    }
+        }.insertedCount > 0
 
-    override suspend fun addMembers(clubId: String, userIds: List<Pair<String, ClubRole>>): Boolean = dbQuery {
+    override suspend fun addMembers(clubId: String, userIds: List<Pair<String, ClubRole>>): Boolean =
         ClubMembers.batchInsert(userIds) { (uId, role) ->
             this[ClubMembers.id] = Uuid.random()
             this[ClubMembers.clubId] = Uuid.parse(clubId)
@@ -81,24 +73,20 @@ class ExposedClubRepository : ClubRepository {
             this[ClubMembers.role] = role
             this[ClubMembers.active] = true
         }.size == userIds.size
-    }
 
-    override suspend fun updateMemberRole(clubId: String, userId: String, role: ClubRole): Boolean = dbQuery {
+    override suspend fun updateMemberRole(clubId: String, userId: String, role: ClubRole): Boolean =
         ClubMembers.update({ (ClubMembers.clubId eq Uuid.parse(clubId)) and (ClubMembers.userId eq Uuid.parse(userId)) }) {
             it[this.role] = role
         } > 0
-    }
 
-    override suspend fun countAllClubs(): Long = dbQuery {
+    override suspend fun countAllClubs(): Long =
         Clubs.selectAll().count()
-    }
 
-    override suspend fun getRecentClubs(limit: Int): List<Club> = dbQuery {
+    override suspend fun getRecentClubs(limit: Int): List<Club> =
         Clubs.selectAll()
             .orderBy(Clubs.createdAt, SortOrder.DESC)
             .limit(limit)
             .map(::toClub)
-    }
 
     private fun toClub(row: ResultRow): Club = Club(
         id = row[Clubs.id].toString(),

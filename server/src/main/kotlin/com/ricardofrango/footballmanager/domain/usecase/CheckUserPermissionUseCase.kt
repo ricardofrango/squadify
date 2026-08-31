@@ -2,13 +2,15 @@ package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.TeamRole
 
 class CheckUserPermissionUseCase(
     private val userRepository: UserRepository,
-    private val teamRepository: TeamRepository
+    private val teamRepository: TeamRepository,
+    private val transactionManager: TransactionManager
 ) {
     /**
      * Checks if a user has permission at the club or team level.
@@ -29,11 +31,11 @@ class CheckUserPermissionUseCase(
         minTeamRole: TeamRole? = null,
         teamId: String? = null,
         errorMessage: String = "Insufficient permissions to perform this action"
-    ) {
+    ) = transactionManager.runInTransaction {
         val user = userRepository.findById(userId) ?: throw ForbiddenException("User not found")
         
         // 1. Platform Admins have "God Mode"
-        if (user.isPlatformAdmin) return
+        if (user.isPlatformAdmin) return@runInTransaction
 
         // 2. Check Club Level Role
         val userClubRole = userRepository.getUserRoleInClub(userId, clubId)
@@ -43,13 +45,13 @@ class CheckUserPermissionUseCase(
             if (userClubRole == ClubRole.CLUB_ADMIN || userClubRole == ClubRole.COORDINATOR) {
                 // If we specifically required a CLUB_ADMIN and they are only COORDINATOR, we might still fail
                 // but usually COORDINATOR is enough for most things except sensitive club settings.
-                if (minClubRole == null || userClubRole.level >= minClubRole.level) return
+                if (minClubRole == null || userClubRole.level >= minClubRole.level) return@runInTransaction
             }
             
             // If we only needed a club membership (MEMBER level 1)
             if (minClubRole != null && minClubRole == ClubRole.MEMBER && userClubRole.level >= ClubRole.MEMBER.level) {
                 // For team-specific operations, we still need to check team role if not coordinator+
-                if (teamId == null) return
+                if (teamId == null) return@runInTransaction
             }
         }
 
@@ -60,7 +62,7 @@ class CheckUserPermissionUseCase(
             // We'll need to update TeamRepository to get the role.
             val userTeamRole = teamRepository.getUserRoleInTeam(userId, teamId)
             if (userTeamRole != null && userTeamRole.level >= minTeamRole.level) {
-                return
+                return@runInTransaction
             }
         }
 

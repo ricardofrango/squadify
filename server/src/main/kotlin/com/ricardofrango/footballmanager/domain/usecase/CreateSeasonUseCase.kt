@@ -1,6 +1,7 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.SeasonRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ConflictException
 import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.CreateSeasonRequest
@@ -10,9 +11,10 @@ import kotlin.uuid.Uuid
 
 class CreateSeasonUseCase(
     private val seasonRepository: SeasonRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val transactionManager: TransactionManager
 ) {
-    suspend operator fun invoke(userId: String, request: CreateSeasonRequest): Season {
+    suspend operator fun invoke(userId: String, request: CreateSeasonRequest): Season = transactionManager.runInTransaction {
         checkUserPermissionUseCase(
             userId = userId,
             clubId = request.clubId,
@@ -55,6 +57,6 @@ class CreateSeasonUseCase(
             active = true
         )
 
-        return seasonRepository.createSeason(season)
+        seasonRepository.createSeason(season)
     }
 }

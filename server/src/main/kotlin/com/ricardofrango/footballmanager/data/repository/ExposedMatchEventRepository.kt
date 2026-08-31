@@ -1,6 +1,5 @@
 package com.ricardofrango.footballmanager.data.repository
 
-import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
 import com.ricardofrango.footballmanager.data.database.MatchEvents
 import com.ricardofrango.footballmanager.domain.repository.MatchEventRepository
 import com.ricardofrango.footballmanager.exception.DatabaseException
@@ -18,7 +17,7 @@ import kotlin.uuid.Uuid
 
 class ExposedMatchEventRepository : MatchEventRepository {
 
-    override suspend fun addEvent(event: MatchEvent): MatchEvent = dbQuery {
+    override suspend fun addEvent(event: MatchEvent): MatchEvent =
         MatchEvents.insert {
             it[id] = Uuid.parse(event.id)
             it[matchId] = Uuid.parse(event.matchId)
@@ -28,17 +27,17 @@ class ExposedMatchEventRepository : MatchEventRepository {
             it[opponentPlayerName] = event.opponentPlayerName
             it[isOpponent] = event.isOpponent
             it[createdAt] = event.createdAt
-        }.resultedValues?.singleOrNull()?.let(::toMatchEvent)
+        }.resultedValues
+            ?.singleOrNull()
+            ?.let(::toMatchEvent)
             ?: throw DatabaseException("Failed to add match event")
-    }
 
-    override suspend fun getEventsByMatch(matchId: String): List<MatchEvent> = dbQuery {
+    override suspend fun getEventsByMatch(matchId: String): List<MatchEvent> =
         MatchEvents.selectAll().where { MatchEvents.matchId eq Uuid.parse(matchId) }
-            .orderBy(MatchEvents.minute to org.jetbrains.exposed.v1.core.SortOrder.ASC)
+            .orderBy(MatchEvents.minute to SortOrder.ASC)
             .map(::toMatchEvent)
-    }
 
-    override suspend fun getScoreByMatch(matchId: String): MatchScore = dbQuery {
+    override suspend fun getScoreByMatch(matchId: String): MatchScore {
         val events = MatchEvents.selectAll().where {
             (MatchEvents.matchId eq Uuid.parse(matchId)) and
                     ((MatchEvents.type eq EventType.GOAL) or (MatchEvents.type eq EventType.OWN_GOAL))
@@ -61,16 +60,15 @@ class ExposedMatchEventRepository : MatchEventRepository {
             }
         }
 
-        MatchScore(matchId, ourScore, opponentScore)
+        return MatchScore(matchId, ourScore, opponentScore)
     }
 
-    override suspend fun getRecentEventsByPlayer(playerId: String, limit: Int): List<MatchEvent> = dbQuery {
+    override suspend fun getRecentEventsByPlayer(playerId: String, limit: Int): List<MatchEvent> =
         MatchEvents.selectAll()
             .where { MatchEvents.playerId eq Uuid.parse(playerId) }
             .orderBy(MatchEvents.createdAt, SortOrder.DESC)
             .limit(limit)
             .map(::toMatchEvent)
-    }
 
     private fun toMatchEvent(row: ResultRow): MatchEvent = MatchEvent(
         id = row[MatchEvents.id].toString(),

@@ -1,6 +1,7 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.CreateTeamRequest
@@ -9,9 +10,10 @@ import kotlin.uuid.Uuid
 
 class CreateTeamUseCase(
     private val teamRepository: TeamRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val transactionManager: TransactionManager
 ) {
-    suspend operator fun invoke(userId: String, request: CreateTeamRequest): Team {
+    suspend operator fun invoke(userId: String, request: CreateTeamRequest): Team = transactionManager.runInTransaction {
         // Permission check: Only CLUB_ADMIN or COORDINATOR can create teams
         checkUserPermissionUseCase(
             userId = userId,
@@ -34,6 +36,6 @@ class CreateTeamUseCase(
             active = true
         )
 
-        return teamRepository.createTeam(team)
+        teamRepository.createTeam(team)
     }
 }

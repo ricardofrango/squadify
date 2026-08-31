@@ -2,6 +2,7 @@ package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
 import com.ricardofrango.footballmanager.domain.service.LiveMatchBus
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.NotFoundException
 import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.LiveMatchUpdate
@@ -10,9 +11,10 @@ import kotlinx.coroutines.flow.Flow
 class GetLiveMatchUpdatesUseCase(
     private val matchRepository: MatchRepository,
     private val liveMatchBus: LiveMatchBus,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val transactionManager: TransactionManager
 ) {
-    suspend operator fun invoke(userId: String, matchId: String): Flow<LiveMatchUpdate> {
+    suspend operator fun invoke(userId: String, matchId: String): Flow<LiveMatchUpdate> = transactionManager.runInTransaction {
         val match = matchRepository.getMatchById(matchId)
             ?: throw NotFoundException("Match not found")
 
@@ -24,6 +26,6 @@ class GetLiveMatchUpdatesUseCase(
         )
 
         // 2. Return the Reactive Stream
-        return liveMatchBus.subscribe(matchId)
+        liveMatchBus.subscribe(matchId)
     }
 }

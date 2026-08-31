@@ -22,6 +22,7 @@ We use **Exposed** as our SQL ORM.
 - **Version 1.4.0+**: We use the latest stable version (using the `v1` package structure).
 - **DSL Approach**: We prefer the Type-safe DSL for building queries.
 - **Multi-Tenancy**: Every club-specific table contains a `clubId` to ensure data isolation.
+- **Atomic Transactions**: We use a `TransactionManager` service in the Domain layer to orchestrate complex operations spanning multiple repositories. This ensures that a Use Case is either fully committed or completely rolled back in case of failure, maintaining data integrity (e.g., creating a player and their invitations must be an atomic unit).
 - **Concurrency**: All database operations are wrapped in a `dbQuery` utility using `suspendTransaction` to ensure they don't block the Ktor threads.
 
 ## 4. Shared Models & Serialization

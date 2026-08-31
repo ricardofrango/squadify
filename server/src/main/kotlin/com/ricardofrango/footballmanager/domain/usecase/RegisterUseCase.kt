@@ -4,14 +4,10 @@ import com.ricardofrango.footballmanager.domain.repository.ClubRepository
 import com.ricardofrango.footballmanager.domain.repository.InviteRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ConflictException
 import com.ricardofrango.footballmanager.exception.ValidationException
-import com.ricardofrango.footballmanager.model.ClubRole
-import com.ricardofrango.footballmanager.model.InviteType
-import com.ricardofrango.footballmanager.model.RegisterRequest
-import com.ricardofrango.footballmanager.model.User
-import com.ricardofrango.footballmanager.model.UserPlayerRelationship
-import com.ricardofrango.footballmanager.model.UserStatus
+import com.ricardofrango.footballmanager.model.*
 import org.mindrot.jbcrypt.BCrypt
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
@@ -20,9 +16,10 @@ class RegisterUseCase(
     private val userRepository: UserRepository,
     private val playerRepository: PlayerRepository,
     private val inviteRepository: InviteRepository,
-    private val clubRepository: ClubRepository
+    private val clubRepository: ClubRepository,
+    private val transactionManager: TransactionManager
 ) {
-    suspend operator fun invoke(request: RegisterRequest): User {
+    suspend operator fun invoke(request: RegisterRequest): User = transactionManager.runInTransaction {
         if (request.email.isBlank() || request.password.isBlank()) {
             throw ValidationException("Email and password are required")
         }
@@ -81,6 +78,6 @@ class RegisterUseCase(
             inviteRepository.deleteInvites(invites.map { it.id })
         }
 
-        return createdUser
+        createdUser
     }
 }

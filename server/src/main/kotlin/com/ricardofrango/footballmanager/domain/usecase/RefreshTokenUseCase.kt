@@ -1,13 +1,17 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.UnauthorizedException
 import com.ricardofrango.footballmanager.model.TokenResponse
 import com.ricardofrango.footballmanager.security.JwtConfig
 import kotlin.time.Instant
 
-class RefreshTokenUseCase(private val userRepository: UserRepository) {
-    suspend operator fun invoke(refreshToken: String): TokenResponse {
+class RefreshTokenUseCase(
+    private val userRepository: UserRepository,
+    private val transactionManager: TransactionManager
+) {
+    suspend operator fun invoke(refreshToken: String): TokenResponse = transactionManager.runInTransaction {
         val userId = userRepository.findUserIdByRefreshToken(refreshToken)
             ?: throw UnauthorizedException("Invalid refresh token")
 
@@ -22,6 +26,6 @@ class RefreshTokenUseCase(private val userRepository: UserRepository) {
         
         userRepository.saveRefreshToken(userId, newRefreshToken, expiresAt)
         
-        return TokenResponse(newAccessToken, newRefreshToken)
+        TokenResponse(newAccessToken, newRefreshToken)
     }
 }

@@ -1,6 +1,7 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ConflictException
 import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.AgeGroup
@@ -10,9 +11,10 @@ import kotlin.uuid.Uuid
 
 class CreateAgeGroupUseCase(
     private val ageGroupRepository: AgeGroupRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val transactionManager: TransactionManager
 ) {
-    suspend operator fun invoke(userId: String, request: CreateAgeGroupRequest): AgeGroup {
+    suspend operator fun invoke(userId: String, request: CreateAgeGroupRequest): AgeGroup = transactionManager.runInTransaction {
         checkUserPermissionUseCase(
             userId = userId,
             clubId = request.clubId,
@@ -39,6 +41,6 @@ class CreateAgeGroupUseCase(
             birthYear = request.birthYear
         )
 
-        return ageGroupRepository.createAgeGroup(ageGroup)
+        ageGroupRepository.createAgeGroup(ageGroup)
     }
 }

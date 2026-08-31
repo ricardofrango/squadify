@@ -3,6 +3,7 @@ package com.ricardofrango.footballmanager.domain.usecase
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
 import com.ricardofrango.footballmanager.domain.repository.OpponentRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.exception.NotFoundException
 import com.ricardofrango.footballmanager.model.*
@@ -12,12 +13,13 @@ class CreateMatchUseCase(
     private val matchRepository: MatchRepository,
     private val teamRepository: TeamRepository,
     private val opponentRepository: OpponentRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
         userId: String,
         request: CreateMatchRequest
-    ): Match {
+    ): Match = transactionManager.runInTransaction {
         // 1. Verify team exists first to get context
         val team =
             teamRepository.getTeamById(request.teamId) ?: throw NotFoundException("Team not found")
@@ -49,6 +51,6 @@ class CreateMatchUseCase(
             notes = request.notes
         )
 
-        return matchRepository.createMatch(match)
+        matchRepository.createMatch(match)
     }
 }

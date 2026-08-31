@@ -1,19 +1,21 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.OpponentRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.NotFoundException
 import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.UpdateOpponentRequest
 
 class UpdateOpponentUseCase(
     private val opponentRepository: OpponentRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
         userId: String,
         opponentId: String,
         request: UpdateOpponentRequest
-    ): Boolean {
+    ): Boolean = transactionManager.runInTransaction {
         val existingOpponent = opponentRepository.getOpponentById(opponentId)
             ?: throw NotFoundException("Opponent not found")
 
@@ -30,6 +32,6 @@ class UpdateOpponentUseCase(
             logoUrl = request.logoUrl ?: existingOpponent.logoUrl
         )
 
-        return opponentRepository.updateOpponent(updatedOpponent)
+        opponentRepository.updateOpponent(updatedOpponent)
     }
 }

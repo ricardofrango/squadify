@@ -1,5 +1,6 @@
 package com.ricardofrango.footballmanager.data.database
 
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.Dispatchers
@@ -10,7 +11,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
 
-object DatabaseFactory {
+object DatabaseFactory : TransactionManager {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     fun init() {
@@ -85,4 +86,6 @@ object DatabaseFactory {
         withContext(Dispatchers.IO) {
             suspendTransaction { block() }
         }
+
+    override suspend fun <T> runInTransaction(block: suspend () -> T): T = dbQuery(block)
 }
