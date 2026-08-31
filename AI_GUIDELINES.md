@@ -6,6 +6,8 @@ This document contains behavioral rules and constraints for the AI assistant. Th
 - **Strict Adherence**: Do not perform any refactoring, file creation, or code changes that were not explicitly requested by the developer.
 - **Incremental Progress**: Focus only on the specific task described in the prompt. If a secondary improvement is identified, suggest it in the chat instead of applying it automatically.
 - **Minimal Changes**: When applying a fix or a feature, keep the changes to the minimum necessary to satisfy the requirement, respecting the existing code style.
+- **Modern Code**: Avoid using deprecated APIs, methods, or features. Always check for the most current and recommended way to implement a functionality.
+- **Resource Management**: Never hardcode UI text (copys) in screens or components. Always use resource files (e.g., `strings.xml`) to support localization and maintenance.
 - **Database Efficiency**: Always avoid O(N) complexity when accessing the database. Prefer batch operations (e.g., `inList`, `batchInsert`) over multiple individual queries inside loops to prevent the N+1 problem.
 - **Scalability (Pagination)**: When creating list-based endpoints (GET), always consider or implement pagination (limit/offset) to ensure the system remains performant as data grows.
 - **Documentation Maintenance**: Always review and update relevant documentation files (`REQUIREMENTS.md`, `TECHNICAL_DECISIONS.md`, etc.) when implementing changes that affect business logic, architecture, or system flows.

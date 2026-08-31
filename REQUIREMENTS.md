@@ -83,8 +83,11 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [ ] **API Scalability**: Implement pagination for all list-based endpoints.
     - [ ] **Email Service**: Integration with an external provider for real-time invitation delivery.
     - [ ] **Production Database**: Migrate from H2 to a persistent PostgreSQL environment.
-- [ ] **Phase 7: Client Applications (KMP)**: Multiplatform UI development.
-    - [ ] Shared UI components & Themes.
-    - [ ] Authentication flows (Login/Register).
+- [/] **Phase 7: Client Applications (KMP)**: Multiplatform UI development.
+    - [x] Initial Project Setup (Shared, Android, iOS).
+    - [x] Multi-language support (EN, PT) implementation.
+    - [/] Shared UI components & Themes.
+    - [ ] Dynamic Club Theming (Adaptive UI based on club colors).
+    - [/] Authentication flows (Login/Register).
     - [ ] Role-specific Dashboards.
     - [ ] Match center (Live updates & History).

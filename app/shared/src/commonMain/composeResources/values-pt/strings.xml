@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Football Manager</string>
+    <string name="label_email">Email</string>
+    <string name="label_password">Senha</string>
+    <string name="btn_login">Entrar</string>
+    <string name="msg_forgot_password">Esqueceu a senha?</string>
+    <string name="msg_no_account_register">Não tem uma conta? Registe-se aqui</string>
+</resources>

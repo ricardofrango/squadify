@@ -196,3 +196,12 @@ sequenceDiagram
 - `:core`: Shared logic, models, and exceptions.
 - `:app:shared`: Shared UI components and logic (Compose Multiplatform).
 - `:app:androidApp`, `:app:iosApp`, `:app:webApp`: Platform-specific entry points.
+
+## 10. Client Architecture (KMP)
+The client follows a modern multiplatform architecture to share as much logic as possible while providing native performance and UI.
+
+- **UI Framework**: **Compose Multiplatform** for sharing UI code across Android, iOS, Desktop, and Web.
+- **Navigation**: **androidx.navigation:navigation-compose** (KMP version) for type-safe navigation using Kotlin Serialization.
+- **Dependency Injection**: **Koin** for managing ViewModels and services.
+- **State Management**: **MVVM (Model-View-ViewModel)** pattern using `androidx.lifecycle:lifecycle-viewmodel` (KMP).
+- **Communication (Future)**: Ktor Client will be used for REST and WebSocket communication.
