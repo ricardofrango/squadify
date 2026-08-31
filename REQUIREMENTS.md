@@ -77,6 +77,14 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Live Score calculation.
     - [ ] Historical match statistics (Post-match analysis).
 - [ ] **Phase 6: Dashboards & Aggregated Summaries**: Role-specific overview endpoints.
-    - [ ] **Super Admin Summary**: Global platform health (Total clubs, active users, system logs).
-    - [ ] **Club Admin Summary**: Club overview (Total players/teams, financial status placeholder, upcoming matches).
-    - [ ] **Parent/Player Summary**: Personalized view (My next matches, my recent performance/events).
+    - [/] **Super Admin Summary**: Global platform health (Total clubs, active users, system logs).
+    - [/] **Club Admin Summary**: Club overview (Total players/teams, financial status placeholder, upcoming matches).
+    - [/] **Parent/Player Summary**: Personalized view (My next matches, my recent performance/events).
+    - [ ] **API Scalability**: Implement pagination for all list-based endpoints.
+    - [ ] **Email Service**: Integration with an external provider for real-time invitation delivery.
+    - [ ] **Production Database**: Migrate from H2 to a persistent PostgreSQL environment.
+- [ ] **Phase 7: Client Applications (KMP)**: Multiplatform UI development.
+    - [ ] Shared UI components & Themes.
+    - [ ] Authentication flows (Login/Register).
+    - [ ] Role-specific Dashboards.
+    - [ ] Match center (Live updates & History).

@@ -21,6 +21,8 @@ We use **Koin** for dependency injection because it is lightweight, KMP-friendly
 We use **Exposed** as our SQL ORM.
 - **Version 1.4.0+**: We use the latest stable version (using the `v1` package structure).
 - **DSL Approach**: We prefer the Type-safe DSL for building queries.
+- **Development Database**: Currently using **H2** (file-based) for rapid prototyping and local development.
+- **Production Database (Pending)**: The system is designed to be compatible with **PostgreSQL**. A migration to a dedicated production database is required to ensure data persistence and reliability, as the current H2 setup is susceptible to data loss during clean builds.
 - **Multi-Tenancy**: Every club-specific table contains a `clubId` to ensure data isolation.
 - **Atomic Transactions**: We use a `TransactionManager` service in the Domain layer to orchestrate complex operations spanning multiple repositories. This ensures that a Use Case is either fully committed or completely rolled back in case of failure, maintaining data integrity (e.g., creating a player and their invitations must be an atomic unit).
 - **Concurrency**: All database operations are wrapped in a `dbQuery` utility using `suspendTransaction` to ensure they don't block the Ktor threads.
@@ -53,6 +55,8 @@ We use **Exposed** as our SQL ORM.
 - **Security Testing**: The permission logic is covered by a suite of unit tests (`CheckUserPermissionUseCaseTest`) to prevent regression in access control.
 - **Resource Management**: Support for partial updates (PATCH) to manage resource states (e.g., active/inactive status for teams, seasons and players).
 - **Match-Opponent Relationship**: Matches are linked to a dedicated `Opponents` table rather than using simple strings. This ensures data consistency across the club and allows for richer opponent data (e.g., logos).
+- **Pagination**: To ensure scalability and performance as data grows (e.g., hundreds of players or matches), list-based endpoints (GET) will implement a standard pagination strategy using `limit` and `offset` (or `page`) query parameters. This prevents excessive memory consumption and slow response times.
+- **Email System (Pending)**: While the Invitation logic is fully implemented at the database and domain levels, the physical sending of emails (SMTP/API integration) is currently not implemented. Invocations to the email service should be treated as placeholders until a provider (e.g., SendGrid, Mailjet) is selected.
 
 ## 6. Real-Time Communication: WebSockets
 We use **WebSockets** for delivering instantaneous updates during live matches (Live Score).
