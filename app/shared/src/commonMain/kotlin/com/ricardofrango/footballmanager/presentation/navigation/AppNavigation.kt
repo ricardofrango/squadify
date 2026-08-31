@@ -6,6 +6,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ricardofrango.footballmanager.presentation.ui.login.LoginScreen
 import com.ricardofrango.footballmanager.presentation.ui.register.RegisterScreen
+import com.ricardofrango.footballmanager.presentation.ui.splash.SplashScreen
 
 @Composable
 fun AppNavigation() {
@@ -13,8 +14,23 @@ fun AppNavigation() {
     
     NavHost(
         navController = navController,
-        startDestination = Screen.Login
+        startDestination = Screen.Splash
     ) {
+        composable<Screen.Splash> {
+            SplashScreen(
+                onNavigateToLogin = {
+                    navController.navigate(Screen.Login) {
+                        popUpTo(Screen.Splash) { inclusive = true }
+                    }
+                },
+                onNavigateToDashboard = {
+                    navController.navigate(Screen.Dashboard) {
+                        popUpTo(Screen.Splash) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable<Screen.Login> {
             LoginScreen(
                 onNavigateToRegister = {

@@ -6,10 +6,12 @@ import com.ricardofrango.footballmanager.data.remote.AuthRepositoryImpl
 import com.ricardofrango.footballmanager.domain.config.AppConfig
 import com.ricardofrango.footballmanager.domain.repository.AuthRepository
 import com.ricardofrango.footballmanager.domain.repository.SessionRepository
+import com.ricardofrango.footballmanager.domain.usecase.CheckAndRefreshSessionUseCase
 import com.ricardofrango.footballmanager.domain.usecase.LoginUseCase
 import com.ricardofrango.footballmanager.domain.usecase.RegisterUseCase
 import com.ricardofrango.footballmanager.presentation.ui.login.LoginViewModel
 import com.ricardofrango.footballmanager.presentation.ui.register.RegisterViewModel
+import com.ricardofrango.footballmanager.presentation.ui.splash.SplashViewModel
 import com.russhwolf.settings.Settings
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
@@ -63,11 +65,13 @@ val dataModule = module {
 val domainModule = module {
     factory { LoginUseCase(get(), get()) }
     factory { RegisterUseCase(get()) }
+    factory { CheckAndRefreshSessionUseCase(get(), get()) }
 }
 
 val presentationModule = module {
     viewModelOf(::LoginViewModel)
     viewModelOf(::RegisterViewModel)
+    viewModelOf(::SplashViewModel)
 }
 
 fun initKoin(appDeclaration: KoinAppDeclaration = {}) =
