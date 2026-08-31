@@ -15,4 +15,6 @@ interface MatchRepository {
     suspend fun updateCallUp(callUpId: String, status: CallUpStatus, notes: String?): Boolean
     suspend fun getCallUpByMatchAndPlayer(matchId: String, playerId: String): MatchCallUp?
     suspend fun getCallUpById(id: String): MatchCallUp?
+    suspend fun getUpcomingMatchesByClub(clubId: String, limit: Int): List<Match>
+    suspend fun getUpcomingMatchesByPlayer(playerId: String, limit: Int): List<Match>
 }

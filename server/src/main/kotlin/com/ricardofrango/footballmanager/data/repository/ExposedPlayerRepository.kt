@@ -144,6 +144,16 @@ class ExposedPlayerRepository : PlayerRepository {
         }
     }
 
+    override suspend fun countPlayersByClub(clubId: String): Long = dbQuery {
+        Players.selectAll().where { Players.clubId eq Uuid.parse(clubId) }.count()
+    }
+
+    override suspend fun getPlayersByUser(userId: String): List<Player> = dbQuery {
+        (Players innerJoin UserPlayers).selectAll()
+            .where { UserPlayers.userId eq Uuid.parse(userId) }
+            .map(::toPlayer)
+    }
+
     private fun toTeamPlayer(row: ResultRow): TeamPlayer = TeamPlayer(
         id = row[TeamPlayers.id].toString(),
         teamId = row[TeamPlayers.teamId].toString(),

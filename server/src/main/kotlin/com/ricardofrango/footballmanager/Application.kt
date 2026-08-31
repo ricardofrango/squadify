@@ -4,6 +4,7 @@ import com.ricardofrango.footballmanager.data.database.DatabaseFactory
 import com.ricardofrango.footballmanager.di.appModule
 import com.ricardofrango.footballmanager.presentation.routes.authRoutes
 import com.ricardofrango.footballmanager.presentation.routes.clubRoutes
+import com.ricardofrango.footballmanager.presentation.routes.dashboardRoutes
 import com.ricardofrango.footballmanager.presentation.routes.teamRoutes
 import com.ricardofrango.footballmanager.presentation.routes.seasonRoutes
 import com.ricardofrango.footballmanager.presentation.routes.ageGroupRoutes
@@ -137,6 +138,7 @@ fun Application.module() {
         }
         authRoutes()
         clubRoutes()
+        dashboardRoutes()
         teamRoutes()
         seasonRoutes()
         ageGroupRoutes()

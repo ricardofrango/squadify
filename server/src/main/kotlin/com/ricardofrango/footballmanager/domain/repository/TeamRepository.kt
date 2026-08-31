@@ -14,4 +14,6 @@ interface TeamRepository {
     suspend fun addStaffToTeam(teamStaff: TeamStaff): Boolean
     suspend fun getTeamStaff(teamId: String): List<TeamStaffMember>
     suspend fun updateActiveStatus(teamId: String, active: Boolean): Boolean
+    suspend fun countTeamsByClub(clubId: String): Long
+    suspend fun countCoachesByClub(clubId: String): Long
 }

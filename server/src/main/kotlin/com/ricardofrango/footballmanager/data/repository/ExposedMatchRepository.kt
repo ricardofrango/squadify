@@ -1,23 +1,33 @@
 package com.ricardofrango.footballmanager.data.repository
 
 import com.ricardofrango.footballmanager.data.database.DatabaseFactory.dbQuery
-import com.ricardofrango.footballmanager.data.database.MatchCallUps as CallUpsTable
-import com.ricardofrango.footballmanager.data.database.Matches as MatchesTable
-import com.ricardofrango.footballmanager.data.database.Players as PlayersTable
-import com.ricardofrango.footballmanager.data.database.Opponents as OpponentsTable
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
 import com.ricardofrango.footballmanager.exception.DatabaseException
-import com.ricardofrango.footballmanager.model.*
+import com.ricardofrango.footballmanager.model.CallUpStatus
+import com.ricardofrango.footballmanager.model.Match
+import com.ricardofrango.footballmanager.model.MatchCallUp
+import com.ricardofrango.footballmanager.model.MatchCallUpWithPlayer
+import com.ricardofrango.footballmanager.model.MatchDetails
+import com.ricardofrango.footballmanager.model.MatchStatus
+import com.ricardofrango.footballmanager.model.Opponent
+import com.ricardofrango.footballmanager.model.Player
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greaterEq
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
+import com.ricardofrango.footballmanager.data.database.MatchCallUps as CallUpsTable
+import com.ricardofrango.footballmanager.data.database.Matches as MatchesTable
+import com.ricardofrango.footballmanager.data.database.Opponents as OpponentsTable
+import com.ricardofrango.footballmanager.data.database.Players as PlayersTable
 
 class ExposedMatchRepository : MatchRepository {
 
@@ -75,58 +85,77 @@ class ExposedMatchRepository : MatchRepository {
             ?: throw DatabaseException("Failed to create match")
     }
 
-    override suspend fun updateMatchStatus(matchId: String, status: MatchStatus): Boolean = dbQuery {
-        MatchesTable.update({ MatchesTable.id eq Uuid.parse(matchId) }) {
-            it[MatchesTable.status] = status
-        } > 0
-    }
-
-    override suspend fun getCallUpsForMatch(matchId: String): List<MatchCallUpWithPlayer> = dbQuery {
-        (CallUpsTable innerJoin PlayersTable).selectAll()
-            .where { CallUpsTable.matchId eq Uuid.parse(matchId) }
-            .map {
-                MatchCallUpWithPlayer(
-                    callUp = toMatchCallUp(it),
-                    player = toPlayer(it)
-                )
-            }
-    }
-
-    override suspend fun manageCallUps(matchId: String, playerIds: List<String>): Boolean = dbQuery {
-        val matchUuid = Uuid.parse(matchId)
-        val currentPlayerIds = CallUpsTable.selectAll().where { CallUpsTable.matchId eq matchUuid }
-            .map { it[CallUpsTable.playerId].toString() }
-
-        val toAdd = playerIds.filter { it !in currentPlayerIds }
-        val toRemove = currentPlayerIds.filter { it !in playerIds }
-
-        if (toRemove.isNotEmpty()) {
-            CallUpsTable.deleteWhere { 
-                (CallUpsTable.matchId eq matchUuid) and (CallUpsTable.playerId inList toRemove.map { Uuid.parse(it) }) 
-            }
+    override suspend fun updateMatchStatus(matchId: String, status: MatchStatus): Boolean =
+        dbQuery {
+            MatchesTable.update({ MatchesTable.id eq Uuid.parse(matchId) }) {
+                it[MatchesTable.status] = status
+            } > 0
         }
 
-        if (toAdd.isNotEmpty()) {
-            CallUpsTable.batchInsert(toAdd) { playerIdStr ->
-                this[CallUpsTable.id] = Uuid.random()
-                this[CallUpsTable.matchId] = matchUuid
-                this[CallUpsTable.playerId] = Uuid.parse(playerIdStr)
-                this[CallUpsTable.status] = CallUpStatus.CALLED_UP
-            }
+    override suspend fun getCallUpsForMatch(matchId: String): List<MatchCallUpWithPlayer> =
+        dbQuery {
+            (CallUpsTable innerJoin PlayersTable).selectAll()
+                .where { CallUpsTable.matchId eq Uuid.parse(matchId) }
+                .map {
+                    MatchCallUpWithPlayer(
+                        callUp = toMatchCallUp(it),
+                        player = toPlayer(it)
+                    )
+                }
         }
-        true
-    }
 
-    override suspend fun updateCallUp(callUpId: String, status: CallUpStatus, notes: String?): Boolean = dbQuery {
+    override suspend fun manageCallUps(matchId: String, playerIds: List<String>): Boolean =
+        dbQuery {
+            val matchUuid = Uuid.parse(matchId)
+            val currentPlayerIds =
+                CallUpsTable.selectAll().where { CallUpsTable.matchId eq matchUuid }
+                    .map { it[CallUpsTable.playerId].toString() }
+
+            val toAdd = playerIds.filter { it !in currentPlayerIds }
+            val toRemove = currentPlayerIds.filter { it !in playerIds }
+
+            if (toRemove.isNotEmpty()) {
+                CallUpsTable.deleteWhere {
+                    (CallUpsTable.matchId eq matchUuid) and (CallUpsTable.playerId inList toRemove.map {
+                        Uuid.parse(
+                            it
+                        )
+                    })
+                }
+            }
+
+            if (toAdd.isNotEmpty()) {
+                CallUpsTable.batchInsert(toAdd) { playerIdStr ->
+                    this[CallUpsTable.id] = Uuid.random()
+                    this[CallUpsTable.matchId] = matchUuid
+                    this[CallUpsTable.playerId] = Uuid.parse(playerIdStr)
+                    this[CallUpsTable.status] = CallUpStatus.CALLED_UP
+                }
+            }
+            true
+        }
+
+    override suspend fun updateCallUp(
+        callUpId: String,
+        status: CallUpStatus,
+        notes: String?
+    ): Boolean = dbQuery {
         CallUpsTable.update({ CallUpsTable.id eq Uuid.parse(callUpId) }) {
             it[CallUpsTable.status] = status
             it[CallUpsTable.notes] = notes
         } > 0
     }
 
-    override suspend fun getCallUpByMatchAndPlayer(matchId: String, playerId: String): MatchCallUp? = dbQuery {
+    override suspend fun getCallUpByMatchAndPlayer(
+        matchId: String,
+        playerId: String
+    ): MatchCallUp? = dbQuery {
         CallUpsTable.selectAll()
-            .where { (CallUpsTable.matchId eq Uuid.parse(matchId)) and (CallUpsTable.playerId eq Uuid.parse(playerId)) }
+            .where {
+                (CallUpsTable.matchId eq Uuid.parse(matchId)) and (CallUpsTable.playerId eq Uuid.parse(
+                    playerId
+                ))
+            }
             .map(::toMatchCallUp)
             .singleOrNull()
     }
@@ -136,6 +165,27 @@ class ExposedMatchRepository : MatchRepository {
             .map(::toMatchCallUp)
             .singleOrNull()
     }
+
+    override suspend fun getUpcomingMatchesByClub(clubId: String, limit: Int): List<Match> =
+        dbQuery {
+            val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+            MatchesTable.selectAll()
+                .where { (MatchesTable.clubId eq Uuid.parse(clubId)) and (MatchesTable.dateTime greaterEq now) }
+                .orderBy(MatchesTable.dateTime, SortOrder.ASC)
+                .limit(limit)
+                .map(::toMatch)
+        }
+
+    override suspend fun getUpcomingMatchesByPlayer(playerId: String, limit: Int): List<Match> =
+        dbQuery {
+            val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+            val playerUuid = Uuid.parse(playerId)
+            (MatchesTable innerJoin CallUpsTable).selectAll()
+                .where { (CallUpsTable.playerId eq playerUuid) and (MatchesTable.dateTime greaterEq now) }
+                .orderBy(MatchesTable.dateTime, SortOrder.ASC)
+                .limit(limit)
+                .map(::toMatch)
+        }
 
     private fun toMatch(row: ResultRow): Match = Match(
         id = row[MatchesTable.id].toString(),
@@ -163,7 +213,7 @@ class ExposedMatchRepository : MatchRepository {
         status = row[CallUpsTable.status],
         notes = row[CallUpsTable.notes]
     )
-    
+
     private fun toPlayer(row: ResultRow): Player = Player(
         id = row[PlayersTable.id].toString(),
         clubId = row[PlayersTable.clubId].toString(),

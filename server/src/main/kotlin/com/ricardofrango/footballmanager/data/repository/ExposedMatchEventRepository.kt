@@ -11,6 +11,7 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.Uuid
@@ -38,9 +39,9 @@ class ExposedMatchEventRepository : MatchEventRepository {
     }
 
     override suspend fun getScoreByMatch(matchId: String): MatchScore = dbQuery {
-        val events = MatchEvents.selectAll().where { 
-            (MatchEvents.matchId eq Uuid.parse(matchId)) and 
-            ((MatchEvents.type eq EventType.GOAL) or (MatchEvents.type eq EventType.OWN_GOAL))
+        val events = MatchEvents.selectAll().where {
+            (MatchEvents.matchId eq Uuid.parse(matchId)) and
+                    ((MatchEvents.type eq EventType.GOAL) or (MatchEvents.type eq EventType.OWN_GOAL))
         }.map(::toMatchEvent)
 
         var ourScore = 0
@@ -51,14 +52,24 @@ class ExposedMatchEventRepository : MatchEventRepository {
                 EventType.GOAL -> {
                     if (event.isOpponent) opponentScore++ else ourScore++
                 }
+
                 EventType.OWN_GOAL -> {
                     if (event.isOpponent) ourScore++ else opponentScore++
                 }
+
                 else -> {}
             }
         }
 
         MatchScore(matchId, ourScore, opponentScore)
+    }
+
+    override suspend fun getRecentEventsByPlayer(playerId: String, limit: Int): List<MatchEvent> = dbQuery {
+        MatchEvents.selectAll()
+            .where { MatchEvents.playerId eq Uuid.parse(playerId) }
+            .orderBy(MatchEvents.createdAt, SortOrder.DESC)
+            .limit(limit)
+            .map(::toMatchEvent)
     }
 
     private fun toMatchEvent(row: ResultRow): MatchEvent = MatchEvent(

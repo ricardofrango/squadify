@@ -14,4 +14,5 @@ interface UserRepository {
     suspend fun saveRefreshToken(userId: String, token: String, expiresAt: Instant)
     suspend fun findUserIdByRefreshToken(token: String): String?
     suspend fun deleteRefreshToken(token: String)
+    suspend fun countAllUsers(): Long
 }

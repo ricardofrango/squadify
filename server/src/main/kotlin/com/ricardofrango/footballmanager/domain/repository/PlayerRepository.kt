@@ -18,4 +18,6 @@ interface PlayerRepository {
     suspend fun createUserPlayer(userId: String, playerId: String, relationship: UserPlayerRelationship)
     suspend fun createUserPlayers(userPlayers: List<Triple<String, String, UserPlayerRelationship>>)
     suspend fun deleteUserPlayersByPlayer(playerId: String)
+    suspend fun countPlayersByClub(clubId: String): Long
+    suspend fun getPlayersByUser(userId: String): List<Player>
 }

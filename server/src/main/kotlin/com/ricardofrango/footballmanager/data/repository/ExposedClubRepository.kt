@@ -10,6 +10,7 @@ import com.ricardofrango.footballmanager.model.ClubRole
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
@@ -75,6 +76,17 @@ class ExposedClubRepository : ClubRepository {
         ClubMembers.update({ (ClubMembers.clubId eq Uuid.parse(clubId)) and (ClubMembers.userId eq Uuid.parse(userId)) }) {
             it[this.role] = role
         } > 0
+    }
+
+    override suspend fun countAllClubs(): Long = dbQuery {
+        Clubs.selectAll().count()
+    }
+
+    override suspend fun getRecentClubs(limit: Int): List<Club> = dbQuery {
+        Clubs.selectAll()
+            .orderBy(Clubs.createdAt, SortOrder.DESC)
+            .limit(limit)
+            .map(::toClub)
     }
 
     private fun toClub(row: ResultRow): Club = Club(

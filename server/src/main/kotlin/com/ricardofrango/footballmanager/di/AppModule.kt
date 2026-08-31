@@ -33,6 +33,7 @@ import com.ricardofrango.footballmanager.domain.usecase.CreatePlayersUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CreateSeasonUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CreateTeamUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetAgeGroupsUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetClubAdminDashboardUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetClubDetailsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetClubsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetMatchDetailsUseCase
@@ -40,9 +41,11 @@ import com.ricardofrango.footballmanager.domain.usecase.GetMatchEventsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetMatchScoreUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetMatchesUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetOpponentsUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetParentDashboardUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetPlayerUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetPlayersUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetSeasonsUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetSuperAdminDashboardUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetTeamDetailsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetTeamPlayersUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetTeamStaffUseCase
@@ -123,4 +126,9 @@ val appModule = module {
     factory { AddMatchEventUseCase(get(), get(), get()) }
     factory { GetMatchEventsUseCase(get(), get(), get()) }
     factory { GetMatchScoreUseCase(get(), get(), get()) }
+
+    // Dashboards
+    factory { GetSuperAdminDashboardUseCase(get(), get(), get()) }
+    factory { GetClubAdminDashboardUseCase(get(), get(), get(), get(), get()) }
+    factory { GetParentDashboardUseCase(get(), get(), get()) }
 }

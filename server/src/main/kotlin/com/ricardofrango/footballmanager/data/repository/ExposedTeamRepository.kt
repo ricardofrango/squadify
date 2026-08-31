@@ -89,6 +89,18 @@ class ExposedTeamRepository : TeamRepository {
         } > 0
     }
 
+    override suspend fun countTeamsByClub(clubId: String): Long = dbQuery {
+        TeamsTable.selectAll().where { TeamsTable.clubId eq Uuid.parse(clubId) }.count()
+    }
+
+    override suspend fun countCoachesByClub(clubId: String): Long = dbQuery {
+        (TeamStaffTable innerJoin TeamsTable).selectAll()
+            .where { (TeamsTable.clubId eq Uuid.parse(clubId)) and (TeamStaffTable.role eq TeamRole.COACH) }
+            .map { it[TeamStaffTable.userId] }
+            .distinct()
+            .size.toLong()
+    }
+
     private fun toTeam(row: ResultRow): Team = Team(
         id = row[TeamsTable.id].toString(),
         clubId = row[TeamsTable.clubId].toString(),

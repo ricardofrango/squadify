@@ -474,3 +474,36 @@ data class UpdateMatchStatusRequest(
 data class ManageCallUpRequest(
     val playerIds: List<String>
 )
+
+// Dashboards
+
+@Serializable
+data class SuperAdminDashboard(
+    val totalClubs: Long,
+    val totalUsers: Long,
+    val activeSubscriptions: Int, // Placeholder for future use
+    val recentClubs: List<Club>
+)
+
+@Serializable
+data class ClubAdminDashboard(
+    val totalTeams: Long,
+    val totalPlayers: Long,
+    val totalCoaches: Long,
+    val upcomingMatches: List<Match>,
+    val activeSeasons: List<Season>
+)
+
+@Serializable
+data class ParentDashboardChild(
+    val playerId: String,
+    val firstName: String,
+    val lastName: String,
+    val upcomingMatches: List<Match>,
+    val recentEvents: List<MatchEvent>
+)
+
+@Serializable
+data class ParentDashboard(
+    val children: List<ParentDashboardChild>
+)

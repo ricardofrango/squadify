@@ -7,4 +7,5 @@ interface MatchEventRepository {
     suspend fun addEvent(event: MatchEvent): MatchEvent
     suspend fun getEventsByMatch(matchId: String): List<MatchEvent>
     suspend fun getScoreByMatch(matchId: String): MatchScore
+    suspend fun getRecentEventsByPlayer(playerId: String, limit: Int): List<MatchEvent>
 }

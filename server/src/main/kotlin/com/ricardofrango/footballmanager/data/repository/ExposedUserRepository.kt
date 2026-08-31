@@ -89,6 +89,10 @@ class ExposedUserRepository : UserRepository {
         }
     }
 
+    override suspend fun countAllUsers(): Long = dbQuery {
+        Users.selectAll().count()
+    }
+
     private fun toUser(row: ResultRow): User = User(
         id = row[Users.id].toString(),
         email = row[Users.email],

@@ -71,6 +71,11 @@ class ExposedSeasonRepository : SeasonRepository {
         } > 0
     }
 
+    override suspend fun getActiveSeasonsByClub(clubId: String): List<Season> = dbQuery {
+        Seasons.selectAll().where { (Seasons.clubId eq Uuid.parse(clubId)) and (Seasons.active eq true) }
+            .map(::toSeason)
+    }
+
     private fun toSeason(row: ResultRow): Season = Season(
         id = row[Seasons.id].toString(),
         clubId = row[Seasons.clubId].toString(),
