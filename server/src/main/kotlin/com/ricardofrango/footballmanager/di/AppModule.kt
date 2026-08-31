@@ -1,69 +1,10 @@
 package com.ricardofrango.footballmanager.di
 
-import com.ricardofrango.footballmanager.data.repository.ExposedAgeGroupRepository
-import com.ricardofrango.footballmanager.data.repository.ExposedClubRepository
-import com.ricardofrango.footballmanager.data.repository.ExposedInviteRepository
-import com.ricardofrango.footballmanager.data.repository.ExposedMatchEventRepository
-import com.ricardofrango.footballmanager.data.repository.ExposedMatchRepository
-import com.ricardofrango.footballmanager.data.repository.ExposedOpponentRepository
-import com.ricardofrango.footballmanager.data.repository.ExposedPlayerRepository
-import com.ricardofrango.footballmanager.data.repository.ExposedSeasonRepository
-import com.ricardofrango.footballmanager.data.repository.ExposedTeamRepository
-import com.ricardofrango.footballmanager.data.repository.ExposedUserRepository
-import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
-import com.ricardofrango.footballmanager.domain.repository.ClubRepository
-import com.ricardofrango.footballmanager.domain.repository.InviteRepository
-import com.ricardofrango.footballmanager.domain.repository.MatchEventRepository
-import com.ricardofrango.footballmanager.domain.repository.MatchRepository
-import com.ricardofrango.footballmanager.domain.repository.OpponentRepository
-import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
-import com.ricardofrango.footballmanager.domain.repository.SeasonRepository
-import com.ricardofrango.footballmanager.domain.repository.TeamRepository
-import com.ricardofrango.footballmanager.domain.repository.UserRepository
-import com.ricardofrango.footballmanager.domain.usecase.AddClubMembersUseCase
-import com.ricardofrango.footballmanager.domain.usecase.AddMatchEventUseCase
-import com.ricardofrango.footballmanager.domain.usecase.AddPlayersToTeamUseCase
-import com.ricardofrango.footballmanager.domain.usecase.AddStaffToTeamsUseCase
-import com.ricardofrango.footballmanager.domain.usecase.CheckUserIsAdminUseCase
-import com.ricardofrango.footballmanager.domain.usecase.CheckUserPermissionUseCase
-import com.ricardofrango.footballmanager.domain.usecase.CreateAgeGroupUseCase
-import com.ricardofrango.footballmanager.domain.usecase.CreateMatchUseCase
-import com.ricardofrango.footballmanager.domain.usecase.CreateOpponentUseCase
-import com.ricardofrango.footballmanager.domain.usecase.CreatePlayersUseCase
-import com.ricardofrango.footballmanager.domain.usecase.CreateSeasonUseCase
-import com.ricardofrango.footballmanager.domain.usecase.CreateTeamUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetAgeGroupsUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetClubAdminDashboardUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetClubDetailsUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetClubsUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetMatchDetailsUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetMatchEventsUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetMatchScoreUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetMatchesUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetOpponentsUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetParentDashboardUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetPlayerUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetPlayersUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetSeasonsUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetSuperAdminDashboardUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetTeamDetailsUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetTeamPlayersUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetTeamStaffUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetTeamsUseCase
-import com.ricardofrango.footballmanager.domain.usecase.LoginUseCase
-import com.ricardofrango.footballmanager.domain.usecase.ManageCallUpsUseCase
-import com.ricardofrango.footballmanager.domain.usecase.ProvisionClubUseCase
-import com.ricardofrango.footballmanager.domain.usecase.RefreshTokenUseCase
-import com.ricardofrango.footballmanager.domain.usecase.RegisterUseCase
-import com.ricardofrango.footballmanager.domain.usecase.UpdateAgeGroupUseCase
-import com.ricardofrango.footballmanager.domain.usecase.UpdateCallUpStatusUseCase
-import com.ricardofrango.footballmanager.domain.usecase.UpdateClubMemberRoleUseCase
-import com.ricardofrango.footballmanager.domain.usecase.UpdateClubUseCase
-import com.ricardofrango.footballmanager.domain.usecase.UpdateMatchStatusUseCase
-import com.ricardofrango.footballmanager.domain.usecase.UpdateOpponentUseCase
-import com.ricardofrango.footballmanager.domain.usecase.UpdatePlayerUseCase
-import com.ricardofrango.footballmanager.domain.usecase.UpdateSeasonUseCase
-import com.ricardofrango.footballmanager.domain.usecase.UpdateTeamUseCase
+import com.ricardofrango.footballmanager.data.repository.*
+import com.ricardofrango.footballmanager.data.service.KotlinFlowMatchBus
+import com.ricardofrango.footballmanager.domain.repository.*
+import com.ricardofrango.footballmanager.domain.service.LiveMatchBus
+import com.ricardofrango.footballmanager.domain.usecase.*
 import org.koin.dsl.module
 
 val appModule = module {
@@ -77,6 +18,9 @@ val appModule = module {
     single<MatchRepository> { ExposedMatchRepository() }
     single<MatchEventRepository> { ExposedMatchEventRepository() }
     single<OpponentRepository> { ExposedOpponentRepository() }
+
+    // Services
+    single<LiveMatchBus> { KotlinFlowMatchBus() }
 
     // Use Cases
     factory { GetClubsUseCase(get(), get()) }
@@ -116,16 +60,17 @@ val appModule = module {
     factory { CreateMatchUseCase(get(), get(), get(), get()) }
     factory { GetMatchesUseCase(get(), get()) }
     factory { GetMatchDetailsUseCase(get(), get(), get()) }
-    factory { UpdateMatchStatusUseCase(get(), get(), get()) }
+    factory { UpdateMatchStatusUseCase(get(), get(), get(), get()) }
     factory { ManageCallUpsUseCase(get(), get()) }
     factory { UpdateCallUpStatusUseCase(get(), get()) }
     factory { CreateOpponentUseCase(get(), get()) }
     factory { GetOpponentsUseCase(get(), get()) }
     factory { UpdateOpponentUseCase(get(), get()) }
 
-    factory { AddMatchEventUseCase(get(), get(), get()) }
+    factory { AddMatchEventUseCase(get(), get(), get(), get()) }
     factory { GetMatchEventsUseCase(get(), get(), get()) }
     factory { GetMatchScoreUseCase(get(), get(), get()) }
+    factory { GetLiveMatchUpdatesUseCase(get(), get(), get()) }
 
     // Dashboards
     factory { GetSuperAdminDashboardUseCase(get(), get(), get()) }

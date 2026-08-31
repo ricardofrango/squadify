@@ -2,14 +2,14 @@ package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.MatchEventRepository
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
-import com.ricardofrango.footballmanager.exception.ForbiddenException
+import com.ricardofrango.footballmanager.domain.service.LiveMatchBus
 import com.ricardofrango.footballmanager.exception.NotFoundException
 import com.ricardofrango.footballmanager.model.*
-import com.ricardofrango.footballmanager.security.MatchSessionManager
 
 class UpdateMatchStatusUseCase(
     private val matchRepository: MatchRepository,
     private val matchEventRepository: MatchEventRepository,
+    private val liveMatchBus: LiveMatchBus,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
     suspend operator fun invoke(
@@ -33,9 +33,9 @@ class UpdateMatchStatusUseCase(
         val success = matchRepository.updateMatchStatus(matchId, status)
         if (success) {
             val score = matchEventRepository.getScoreByMatch(matchId)
-            MatchSessionManager.broadcastUpdate(
-                matchId,
-                LiveMatchUpdate(score = score, status = status)
+            liveMatchBus.publish(
+                matchId = matchId,
+                update = LiveMatchUpdate(score = score, status = status)
             )
         }
         return success

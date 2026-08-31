@@ -2,15 +2,16 @@ package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.MatchEventRepository
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
+import com.ricardofrango.footballmanager.domain.service.LiveMatchBus
 import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.*
-import com.ricardofrango.footballmanager.security.MatchSessionManager
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 class AddMatchEventUseCase(
     private val matchEventRepository: MatchEventRepository,
     private val matchRepository: MatchRepository,
+    private val liveMatchBus: LiveMatchBus,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
     suspend operator fun invoke(
@@ -48,8 +49,8 @@ class AddMatchEventUseCase(
         // 4. Get updated score
         val score = matchEventRepository.getScoreByMatch(matchId)
 
-        // 5. Broadcast via WebSockets
-        MatchSessionManager.broadcastUpdate(matchId, LiveMatchUpdate(savedEvent, score))
+        // 5. Broadcast via the Live Match Bus
+        liveMatchBus.publish(matchId, LiveMatchUpdate(savedEvent, score))
 
         return savedEvent
     }
