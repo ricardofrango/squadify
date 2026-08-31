@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Football Manager</string>
+    <string name="app_name">Club Manager</string>
     <string name="label_email">Email</string>
     <string name="label_password">Password</string>
     <string name="btn_login">Login</string>

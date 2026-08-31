@@ -1,4 +1,4 @@
-# AI Interaction Guidelines - Football Manager
+# AI Interaction Guidelines - Club Manager
 
 This document contains behavioral rules and constraints for the AI assistant. These are not technical or business decisions, but instructions on how to interact with the developer and the codebase.
 

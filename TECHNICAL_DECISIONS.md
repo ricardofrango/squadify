@@ -1,4 +1,4 @@
-# Technical Decisions - Football Manager Platform
+# Technical Decisions - Club Manager Platform
 
 This document records the architectural patterns, libraries, and design principles adopted in this project.
 

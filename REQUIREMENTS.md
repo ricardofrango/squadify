@@ -1,6 +1,6 @@
-# Football Manager Platform - Requirements
+# Club Manager Platform - Requirements
 
-This document outlines the core requirements and architectural decisions for the Football Manager platform.
+This document outlines the core requirements and architectural decisions for the Club Manager platform.
 
 ## 1. User Profiles & Roles
 The application supports five primary user types:

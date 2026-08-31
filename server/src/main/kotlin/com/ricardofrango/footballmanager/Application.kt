@@ -134,7 +134,7 @@ fun Application.module() {
 
     routing {
         get("/") {
-            call.respondText("Football Manager API is running")
+            call.respondText("Club Manager API is running")
         }
         authRoutes()
         clubRoutes()
