@@ -3,12 +3,16 @@ package com.ricardofrango.footballmanager.di
 import com.ricardofrango.footballmanager.data.config.DevAppConfig
 import com.ricardofrango.footballmanager.data.local.SessionRepositoryImpl
 import com.ricardofrango.footballmanager.data.remote.AuthRepositoryImpl
+import com.ricardofrango.footballmanager.data.remote.ClubRepositoryImpl
 import com.ricardofrango.footballmanager.domain.config.AppConfig
 import com.ricardofrango.footballmanager.domain.repository.AuthRepository
+import com.ricardofrango.footballmanager.domain.repository.ClubRepository
 import com.ricardofrango.footballmanager.domain.repository.SessionRepository
 import com.ricardofrango.footballmanager.domain.usecase.CheckAndRefreshSessionUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetClubsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.LoginUseCase
 import com.ricardofrango.footballmanager.domain.usecase.RegisterUseCase
+import com.ricardofrango.footballmanager.presentation.ui.dashboard.DashboardViewModel
 import com.ricardofrango.footballmanager.presentation.ui.login.LoginViewModel
 import com.ricardofrango.footballmanager.presentation.ui.register.RegisterViewModel
 import com.ricardofrango.footballmanager.presentation.ui.splash.SplashViewModel
@@ -59,6 +63,7 @@ val dataModule = module {
 
     single<Settings> { Settings() }
     single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
+    single<ClubRepository> { ClubRepositoryImpl(get(), get(), get()) }
     single<SessionRepository> { SessionRepositoryImpl(get()) }
 }
 
@@ -66,12 +71,14 @@ val domainModule = module {
     factory { LoginUseCase(get(), get()) }
     factory { RegisterUseCase(get()) }
     factory { CheckAndRefreshSessionUseCase(get(), get()) }
+    factory { GetClubsUseCase(get()) }
 }
 
 val presentationModule = module {
     viewModelOf(::LoginViewModel)
     viewModelOf(::RegisterViewModel)
     viewModelOf(::SplashViewModel)
+    viewModelOf(::DashboardViewModel)
 }
 
 fun initKoin(appDeclaration: KoinAppDeclaration = {}) =

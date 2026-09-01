@@ -7,6 +7,7 @@ import androidx.navigation.compose.rememberNavController
 import com.ricardofrango.footballmanager.presentation.ui.login.LoginScreen
 import com.ricardofrango.footballmanager.presentation.ui.register.RegisterScreen
 import com.ricardofrango.footballmanager.presentation.ui.splash.SplashScreen
+import com.ricardofrango.footballmanager.presentation.ui.dashboard.DashboardScreen
 
 @Composable
 fun AppNavigation() {
@@ -58,7 +59,11 @@ fun AppNavigation() {
         }
         
         composable<Screen.Dashboard> {
-            // DashboardScreen implementation later
+            DashboardScreen(
+                onNavigateToClub = { clubId ->
+                    // Navigate to Club Details implementation later
+                }
+            )
         }
     }
 }

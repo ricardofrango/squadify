@@ -2,6 +2,8 @@ package com.ricardofrango.footballmanager.data.repository
 
 import com.ricardofrango.footballmanager.data.database.ClubMembers
 import com.ricardofrango.footballmanager.data.database.Clubs
+import com.ricardofrango.footballmanager.data.database.Players
+import com.ricardofrango.footballmanager.data.database.UserPlayers
 import com.ricardofrango.footballmanager.domain.repository.ClubRepository
 import com.ricardofrango.footballmanager.exception.DatabaseException
 import com.ricardofrango.footballmanager.model.Club
@@ -9,6 +11,8 @@ import com.ricardofrango.footballmanager.model.ClubRole
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.exists
+import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -21,10 +25,22 @@ class ExposedClubRepository : ClubRepository {
     override suspend fun getAllClubs(): List<Club> =
         Clubs.selectAll().map(::toClub)
 
-    override suspend fun getClubsByUser(userId: String): List<Club> =
-        (Clubs innerJoin ClubMembers).selectAll()
-            .where { ClubMembers.userId eq Uuid.parse(userId) }
-            .map(::toClub)
+    override suspend fun getClubsByUser(userId: String): List<Club> {
+        val userUuid = Uuid.parse(userId)
+
+        // Single query using UNION of two conditions (Member or Parent)
+        return Clubs.selectAll().where {
+            exists(
+                ClubMembers.selectAll().where {
+                    (ClubMembers.clubId eq Clubs.id) and (ClubMembers.userId eq userUuid)
+                }
+            ) or exists(
+                (Players innerJoin UserPlayers).selectAll().where {
+                    (Players.clubId eq Clubs.id) and (UserPlayers.userId eq userUuid)
+                }
+            )
+        }.map(::toClub)
+    }
 
     override suspend fun createClub(club: Club): Club =
         Clubs.insert {

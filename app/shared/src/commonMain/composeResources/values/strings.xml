@@ -11,4 +11,7 @@
     <string name="label_phone">Phone (optional)</string>
     <string name="label_confirm_password">Confirm Password</string>
     <string name="msg_already_have_account">Already have an account? Login</string>
+    <string name="title_my_clubs">My Clubs</string>
+    <string name="btn_retry">Retry</string>
+    <string name="msg_no_clubs">No clubs found</string>
 </resources>
