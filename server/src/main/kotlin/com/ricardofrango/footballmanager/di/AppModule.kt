@@ -50,7 +50,7 @@ val appModule = module {
     factory { UpdateSeasonUseCase(get(), get(), get()) }
 
     factory { GetAgeGroupsUseCase(get(), get(), get()) }
-    factory { CreateAgeGroupUseCase(get(), get(), get()) }
+    factory { CreateAgeGroupsUseCase(get(), get(), get()) }
     factory { UpdateAgeGroupUseCase(get(), get(), get()) }
 
     factory { GetPlayerUseCase(get(), get(), get()) }

@@ -245,10 +245,15 @@ data class CreateSeasonRequest(
 )
 
 @Serializable
-data class CreateAgeGroupRequest(
+data class CreateAgeGroupsRequest(
     val clubId: String,
-    val name: String,
     val seasonId: String,
+    val items: List<AgeGroupItemRequest>
+)
+
+@Serializable
+data class AgeGroupItemRequest(
+    val name: String,
     val birthYear: Int
 )
 

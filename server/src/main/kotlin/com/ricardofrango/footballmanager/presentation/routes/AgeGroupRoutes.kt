@@ -1,9 +1,9 @@
 package com.ricardofrango.footballmanager.presentation.routes
 
-import com.ricardofrango.footballmanager.domain.usecase.CreateAgeGroupUseCase
+import com.ricardofrango.footballmanager.domain.usecase.CreateAgeGroupsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetAgeGroupsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.UpdateAgeGroupUseCase
-import com.ricardofrango.footballmanager.model.CreateAgeGroupRequest
+import com.ricardofrango.footballmanager.model.CreateAgeGroupsRequest
 import com.ricardofrango.footballmanager.model.ErrorResponse
 import com.ricardofrango.footballmanager.model.UpdateAgeGroupRequest
 import com.ricardofrango.footballmanager.security.userId
@@ -20,7 +20,7 @@ import org.koin.ktor.ext.inject
 
 fun Route.ageGroupRoutes() {
     val getAgeGroupsUseCase by inject<GetAgeGroupsUseCase>()
-    val createAgeGroupUseCase by inject<CreateAgeGroupUseCase>()
+    val createAgeGroupsUseCase by inject<CreateAgeGroupsUseCase>()
     val updateAgeGroupUseCase by inject<UpdateAgeGroupUseCase>()
 
     authenticate("auth-jwt") {
@@ -39,9 +39,9 @@ fun Route.ageGroupRoutes() {
             post {
                 val currentUserId =
                     call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                val ageGroupRequest = call.receive<CreateAgeGroupRequest>()
-                val ageGroup = createAgeGroupUseCase(currentUserId, ageGroupRequest)
-                call.respond(HttpStatusCode.Created, ageGroup)
+                val request = call.receive<CreateAgeGroupsRequest>()
+                val ageGroups = createAgeGroupsUseCase(currentUserId, request)
+                call.respond(HttpStatusCode.Created, ageGroups)
             }
 
             patch("/{ageGroupId}") {

@@ -8,6 +8,7 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
@@ -33,6 +34,16 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
             ?: throw DatabaseException("Failed to create age group")
     }
 
+    override suspend fun createAgeGroups(ageGroups: List<AgeGroup>): List<AgeGroup> {
+        return AgeGroups.batchInsert(ageGroups) { ageGroup ->
+            this[AgeGroups.id] = Uuid.parse(ageGroup.id)
+            this[AgeGroups.clubId] = Uuid.parse(ageGroup.clubId)
+            this[AgeGroups.seasonId] = Uuid.parse(ageGroup.seasonId)
+            this[AgeGroups.name] = ageGroup.name
+            this[AgeGroups.birthYear] = ageGroup.birthYear
+        }.map(::toAgeGroup)
+    }
+
     override suspend fun getAgeGroupById(id: String): AgeGroup? {
         return AgeGroups.selectAll().where { AgeGroups.id eq Uuid.parse(id) }
             .map(::toAgeGroup)
@@ -55,6 +66,15 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
             }
             .map(::toAgeGroup)
             .singleOrNull()
+    }
+
+    override suspend fun findByClubAndSeason(clubId: String, seasonId: String): List<AgeGroup> {
+        return AgeGroups.selectAll()
+            .where {
+                (AgeGroups.clubId eq Uuid.parse(clubId)) and
+                (AgeGroups.seasonId eq Uuid.parse(seasonId))
+            }
+            .map(::toAgeGroup)
     }
 
     private fun toAgeGroup(row: ResultRow): AgeGroup = AgeGroup(
