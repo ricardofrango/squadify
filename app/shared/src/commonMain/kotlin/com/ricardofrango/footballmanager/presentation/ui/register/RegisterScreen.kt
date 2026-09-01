@@ -64,15 +64,15 @@ fun RegisterScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Header Section
+            // Header Section - Synchronized with Dashboard
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onNavigateBack) {
-                    Text("<", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("<", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                 }
                 Text(
                     text = stringResource(Res.string.app_name),
@@ -83,8 +83,6 @@ fun RegisterScreen(
                     )
                 )
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
 
             // Scrollable Form Card
             Surface(
@@ -112,7 +110,7 @@ fun RegisterScreen(
                         modifier = Modifier.align(Alignment.Start)
                     )
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(4.dp)) // Reduced spacing
 
                     // Error Message Handling with Reserved Space
                     Box(
@@ -144,7 +142,9 @@ fun RegisterScreen(
                             focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
                             focusedBorderColor = PitchGreen,
-                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f)
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
+                            focusedLabelColor = PitchGreen,
+                            unfocusedLabelColor = Color.Gray
                         )
                     )
 
@@ -163,7 +163,9 @@ fun RegisterScreen(
                             focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
                             focusedBorderColor = PitchGreen,
-                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f)
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
+                            focusedLabelColor = PitchGreen,
+                            unfocusedLabelColor = Color.Gray
                         )
                     )
 
@@ -182,7 +184,9 @@ fun RegisterScreen(
                             focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
                             focusedBorderColor = PitchGreen,
-                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f)
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
+                            focusedLabelColor = PitchGreen,
+                            unfocusedLabelColor = Color.Gray
                         )
                     )
 
@@ -201,7 +205,9 @@ fun RegisterScreen(
                             focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
                             focusedBorderColor = PitchGreen,
-                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f)
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
+                            focusedLabelColor = PitchGreen,
+                            unfocusedLabelColor = Color.Gray
                         )
                     )
 
@@ -221,7 +227,9 @@ fun RegisterScreen(
                             focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
                             focusedBorderColor = PitchGreen,
-                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f)
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
+                            focusedLabelColor = PitchGreen,
+                            unfocusedLabelColor = Color.Gray
                         )
                     )
 
@@ -241,7 +249,9 @@ fun RegisterScreen(
                             focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
                             focusedBorderColor = PitchGreen,
-                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f)
+                            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
+                            focusedLabelColor = PitchGreen,
+                            unfocusedLabelColor = Color.Gray
                         )
                     )
 
