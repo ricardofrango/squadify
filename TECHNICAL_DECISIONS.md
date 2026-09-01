@@ -21,6 +21,7 @@ We use **Koin** for dependency injection because it is lightweight, KMP-friendly
 We use **Exposed** as our SQL ORM.
 - **Version 1.4.0+**: We use the latest stable version (using the `v1` package structure).
 - **DSL Approach**: We prefer the Type-safe DSL for building queries.
+- **Aggregation Efficiency**: When fetching lists that depend on multiple conditions (e.g., getting clubs where a user is either a member OR a parent), we use the `exists` operator with subqueries to perform the logic in a single SQL command. This avoids multiple round-trips to the database and improves performance.
 - **Development Database**: Currently using **H2** (file-based) for rapid prototyping and local development.
 - **Production Database (Pending)**: The system is designed to be compatible with **PostgreSQL**. A migration to a dedicated production database is required to ensure data persistence and reliability, as the current H2 setup is susceptible to data loss during clean builds.
 - **Multi-Tenancy**: Every club-specific table contains a `clubId` to ensure data isolation.

@@ -21,6 +21,15 @@ class ClubRepositoryImpl(
             token?.let {
                 header(HttpHeaders.Authorization, "Bearer $it")
             }
-        }.body()
+        }.handleResponse()
+    }
+
+    override suspend fun getClubById(clubId: String): Club {
+        val token = sessionRepository.getToken()
+        return httpClient.get("${appConfig.baseUrl}/clubs/$clubId") {
+            token?.let {
+                header(HttpHeaders.Authorization, "Bearer $it")
+            }
+        }.handleResponse()
     }
 }

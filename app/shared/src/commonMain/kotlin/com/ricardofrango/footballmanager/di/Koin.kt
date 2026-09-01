@@ -2,14 +2,12 @@ package com.ricardofrango.footballmanager.di
 
 import com.ricardofrango.footballmanager.data.config.DevAppConfig
 import com.ricardofrango.footballmanager.data.local.SessionRepositoryImpl
-import com.ricardofrango.footballmanager.data.remote.AuthRepositoryImpl
-import com.ricardofrango.footballmanager.data.remote.ClubRepositoryImpl
+import com.ricardofrango.footballmanager.data.remote.*
 import com.ricardofrango.footballmanager.domain.config.AppConfig
-import com.ricardofrango.footballmanager.domain.repository.AuthRepository
-import com.ricardofrango.footballmanager.domain.repository.ClubRepository
-import com.ricardofrango.footballmanager.domain.repository.SessionRepository
+import com.ricardofrango.footballmanager.domain.repository.*
 import com.ricardofrango.footballmanager.domain.usecase.*
 import com.ricardofrango.footballmanager.presentation.ui.account.AccountViewModel
+import com.ricardofrango.footballmanager.presentation.ui.clubdetails.ClubDetailsViewModel
 import com.ricardofrango.footballmanager.presentation.ui.dashboard.DashboardViewModel
 import com.ricardofrango.footballmanager.presentation.ui.login.LoginViewModel
 import com.ricardofrango.footballmanager.presentation.ui.register.RegisterViewModel
@@ -65,6 +63,10 @@ val dataModule = module {
     single<Settings> { Settings() }
     single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
     single<ClubRepository> { ClubRepositoryImpl(get(), get(), get()) }
+    single<TeamRepository> { TeamRepositoryImpl(get(), get(), get()) }
+    single<PlayerRepository> { PlayerRepositoryImpl(get(), get(), get()) }
+    single<SeasonRepository> { SeasonRepositoryImpl(get(), get(), get()) }
+    single<AgeGroupRepository> { AgeGroupRepositoryImpl(get(), get(), get()) }
     single<SessionRepository> { SessionRepositoryImpl(get()) }
 }
 
@@ -74,6 +76,7 @@ val domainModule = module {
     factory { CheckAndRefreshSessionUseCase(get(), get()) }
     factory { GetClubsUseCase(get()) }
     factory { LogoutUseCase(get()) }
+    factory { GetClubDetailsUseCase(get(), get(), get(), get(), get()) }
 }
 
 val presentationModule = module {
@@ -82,6 +85,7 @@ val presentationModule = module {
     viewModelOf(::SplashViewModel)
     viewModelOf(::DashboardViewModel)
     viewModelOf(::AccountViewModel)
+    viewModelOf(::ClubDetailsViewModel)
 }
 
 fun initKoin(appDeclaration: KoinAppDeclaration = {}) =

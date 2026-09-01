@@ -4,11 +4,13 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.ricardofrango.footballmanager.presentation.ui.login.LoginScreen
 import com.ricardofrango.footballmanager.presentation.ui.register.RegisterScreen
 import com.ricardofrango.footballmanager.presentation.ui.splash.SplashScreen
 import com.ricardofrango.footballmanager.presentation.ui.dashboard.DashboardScreen
 import com.ricardofrango.footballmanager.presentation.ui.account.AccountScreen
+import com.ricardofrango.footballmanager.presentation.ui.clubdetails.ClubDetailsScreen
 
 @Composable
 fun AppNavigation() {
@@ -62,10 +64,20 @@ fun AppNavigation() {
         composable<Screen.Dashboard> {
             DashboardScreen(
                 onNavigateToClub = { clubId ->
-                    // Navigate to Club Details implementation later
+                    navController.navigate(Screen.ClubDetails(clubId))
                 },
                 onNavigateToAccount = {
                     navController.navigate(Screen.Account)
+                }
+            )
+        }
+
+        composable<Screen.ClubDetails> { backStackEntry ->
+            val screen: Screen.ClubDetails = backStackEntry.toRoute()
+            ClubDetailsScreen(
+                clubId = screen.clubId,
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
