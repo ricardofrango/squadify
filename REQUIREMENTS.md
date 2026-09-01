@@ -89,6 +89,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Shared UI components & Themes.
     - [ ] Dynamic Club Theming (Adaptive UI based on club colors).
     - [/] Authentication flows (Login/Register).
+    - [ ] Account Management: User profile viewing and editing.
     - [x] Client-side Architecture (MVVM, Koin, UseCases).
     - [ ] API Integration (Ktor Client).
     - [ ] Role-specific Dashboards.

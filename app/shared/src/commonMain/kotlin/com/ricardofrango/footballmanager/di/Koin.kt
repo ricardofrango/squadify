@@ -8,10 +8,8 @@ import com.ricardofrango.footballmanager.domain.config.AppConfig
 import com.ricardofrango.footballmanager.domain.repository.AuthRepository
 import com.ricardofrango.footballmanager.domain.repository.ClubRepository
 import com.ricardofrango.footballmanager.domain.repository.SessionRepository
-import com.ricardofrango.footballmanager.domain.usecase.CheckAndRefreshSessionUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetClubsUseCase
-import com.ricardofrango.footballmanager.domain.usecase.LoginUseCase
-import com.ricardofrango.footballmanager.domain.usecase.RegisterUseCase
+import com.ricardofrango.footballmanager.domain.usecase.*
+import com.ricardofrango.footballmanager.presentation.ui.account.AccountViewModel
 import com.ricardofrango.footballmanager.presentation.ui.dashboard.DashboardViewModel
 import com.ricardofrango.footballmanager.presentation.ui.login.LoginViewModel
 import com.ricardofrango.footballmanager.presentation.ui.register.RegisterViewModel
@@ -72,6 +70,7 @@ val domainModule = module {
     factory { RegisterUseCase(get()) }
     factory { CheckAndRefreshSessionUseCase(get(), get()) }
     factory { GetClubsUseCase(get()) }
+    factory { LogoutUseCase(get()) }
 }
 
 val presentationModule = module {
@@ -79,6 +78,7 @@ val presentationModule = module {
     viewModelOf(::RegisterViewModel)
     viewModelOf(::SplashViewModel)
     viewModelOf(::DashboardViewModel)
+    viewModelOf(::AccountViewModel)
 }
 
 fun initKoin(appDeclaration: KoinAppDeclaration = {}) =

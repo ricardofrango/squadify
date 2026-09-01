@@ -15,4 +15,7 @@ sealed class Screen {
 
     @Serializable
     data object Dashboard : Screen()
+    
+    @Serializable
+    data object Account : Screen()
 }

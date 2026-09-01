@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ricardofrango.footballmanager.model.Club
 import com.ricardofrango.footballmanager.presentation.ui.theme.CarbonGray
 import com.ricardofrango.footballmanager.presentation.ui.theme.DeepCarbon
@@ -28,6 +29,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun DashboardScreen(
     onNavigateToClub: (String) -> Unit,
+    onNavigateToAccount: () -> Unit,
     viewModel: DashboardViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
@@ -50,7 +52,7 @@ fun DashboardScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -61,6 +63,14 @@ fun DashboardScreen(
                         fontWeight = FontWeight.ExtraBold
                     )
                 )
+
+                IconButton(onClick = onNavigateToAccount) {
+                    Text(
+                        text = "⚙", // Gear emoji as placeholder for Account icon
+                        color = Color.White,
+                        fontSize = 24.sp
+                    )
+                }
             }
 
             // Content

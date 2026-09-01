@@ -8,6 +8,7 @@ import com.ricardofrango.footballmanager.presentation.ui.login.LoginScreen
 import com.ricardofrango.footballmanager.presentation.ui.register.RegisterScreen
 import com.ricardofrango.footballmanager.presentation.ui.splash.SplashScreen
 import com.ricardofrango.footballmanager.presentation.ui.dashboard.DashboardScreen
+import com.ricardofrango.footballmanager.presentation.ui.account.AccountScreen
 
 @Composable
 fun AppNavigation() {
@@ -62,6 +63,22 @@ fun AppNavigation() {
             DashboardScreen(
                 onNavigateToClub = { clubId ->
                     // Navigate to Club Details implementation later
+                },
+                onNavigateToAccount = {
+                    navController.navigate(Screen.Account)
+                }
+            )
+        }
+
+        composable<Screen.Account> {
+            AccountScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToLogin = {
+                    navController.navigate(Screen.Login) {
+                        popUpTo(Screen.Dashboard) { inclusive = true }
+                    }
                 }
             )
         }

@@ -15,7 +15,13 @@ class DashboardViewModel(
 
     private val _state = MutableStateFlow<DashboardUiState>(DashboardUiState.Idle())
     val state: StateFlow<DashboardUiState> = _state.asStateFlow()
-        .onSubscription { loadClubs() }
+        .onSubscription { 
+            // Only trigger load on subscription if we are in the initial Idle state with no data
+            val currentState = _state.value
+            if (currentState is DashboardUiState.Idle && currentState.clubs.isEmpty()) {
+                loadClubs()
+            }
+        }
 
     fun loadClubs() {
         viewModelScope.launch {

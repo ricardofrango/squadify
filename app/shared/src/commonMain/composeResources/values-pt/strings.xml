@@ -12,6 +12,8 @@
     <string name="label_confirm_password">Confirmar Senha</string>
     <string name="msg_already_have_account">Já tem uma conta? Entrar</string>
     <string name="title_my_clubs">Meus Clubes</string>
+    <string name="title_account">Conta</string>
+    <string name="btn_logout">Sair</string>
     <string name="btn_retry">Tentar novamente</string>
     <string name="msg_no_clubs">Nenhum clube encontrado</string>
 </resources>
