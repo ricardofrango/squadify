@@ -12,8 +12,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -21,7 +19,9 @@ import androidx.compose.ui.unit.sp
 import com.ricardofrango.footballmanager.model.Club
 import com.ricardofrango.footballmanager.presentation.ui.theme.CarbonGray
 import com.ricardofrango.footballmanager.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.footballmanager.presentation.ui.theme.PitchGreen
 import footballmanager.app.shared.generated.resources.*
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -35,68 +35,55 @@ fun DashboardScreen(
     val uiState by viewModel.state.collectAsState()
     val isRefreshing = uiState is DashboardUiState.Loading
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(CarbonGray, DeepCarbon)
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(Res.string.title_my_clubs),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold)
+                    )
+                },
+                actions = {
+                    IconButton(onClick = onNavigateToAccount) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_account),
+                            contentDescription = "Account",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = CarbonGray,
+                    titleContentColor = Color.White,
+                    actionIconContentColor = Color.White
                 )
             )
-            .statusBarsPadding()
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
+        }
+    )
+{ paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(Color.White)
         ) {
-            // Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.loadClubs() },
+                modifier = Modifier.fillMaxSize()
             ) {
-                Text(
-                    text = stringResource(Res.string.title_my_clubs),
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        color = Color.White,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                )
-
-                IconButton(onClick = onNavigateToAccount) {
-                    Text(
-                        text = "⚙", // Gear emoji as placeholder for Account icon
-                        color = Color.White,
-                        fontSize = 24.sp
-                    )
-                }
-            }
-
-            // Content
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(),
-                color = Color.White,
-                shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)
-            ) {
-                PullToRefreshBox(
-                    isRefreshing = isRefreshing,
-                    onRefresh = { viewModel.loadClubs() }
-                ) {
-                    when (val state = uiState) {
-                        is DashboardUiState.Loading -> {
-                            // Indicator handled by PullToRefreshBox
-                        }
-                        is DashboardUiState.Idle -> {
-                            if (state.error != null) {
-                                ErrorState(state.error, onRetry = { viewModel.loadClubs() })
-                            } else if (state.clubs.isEmpty()) {
-                                EmptyState()
-                            } else {
-                                ClubList(state.clubs, onNavigateToClub)
-                            }
+                when (val state = uiState) {
+                    is DashboardUiState.Loading -> {
+                        // Indicator handled by PullToRefreshBox
+                    }
+                    is DashboardUiState.Idle -> {
+                        if (state.error != null) {
+                            ErrorState(state.error, onRetry = { viewModel.loadClubs() })
+                        } else if (state.clubs.isEmpty()) {
+                            EmptyState()
+                        } else {
+                            ClubList(state.clubs, onNavigateToClub)
                         }
                     }
                 }

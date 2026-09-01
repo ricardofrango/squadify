@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -25,6 +24,7 @@ import footballmanager.app.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClubDetailsScreen(
     clubId: String,
@@ -39,6 +39,62 @@ fun ClubDetailsScreen(
     }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    val title = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name ?: "Club Details"
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_back),
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+                },
+                actions = {
+                    var showAddMenu by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(onClick = { showAddMenu = true }) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_more),
+                                contentDescription = "More options",
+                                tint = Color.White
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showAddMenu,
+                            onDismissRequest = { showAddMenu = false },
+                            modifier = Modifier.background(Color.White)
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Create Team", color = DeepCarbon) },
+                                onClick = { showAddMenu = false }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Create Age Group", color = DeepCarbon) },
+                                onClick = { showAddMenu = false }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Add Season", color = DeepCarbon) },
+                                onClick = { showAddMenu = false }
+                            )
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = CarbonGray,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White,
+                    actionIconContentColor = Color.White
+                )
+            )
+        },
         bottomBar = {
             NavigationBar(
                 containerColor = CarbonGray,
@@ -104,94 +160,28 @@ fun ClubDetailsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(CarbonGray, DeepCarbon)
-                    )
-                )
+                .background(Color.White)
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Header
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onNavigateBack) {
-                            Text("<", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                        }
-                        
-                        val title = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name ?: "Club Details"
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp
-                            )
-                        )
-                    }
-
-                    // Add Button
-                    var showAddMenu by remember { mutableStateOf(false) }
-                    Box {
-                        IconButton(onClick = { showAddMenu = true }) {
-                            Text("+", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                        }
-                        DropdownMenu(
-                            expanded = showAddMenu,
-                            onDismissRequest = { showAddMenu = false },
-                            modifier = Modifier.background(Color.White)
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Create Team", color = DeepCarbon) },
-                                onClick = { showAddMenu = false }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Create Age Group", color = DeepCarbon) },
-                                onClick = { showAddMenu = false }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Add Season", color = DeepCarbon) },
-                                onClick = { showAddMenu = false }
-                            )
-                        }
+            when (val state = uiState) {
+                is ClubDetailsUiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = PitchGreen)
                     }
                 }
-
-                // Content
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(),
-                    color = Color.White,
-                    shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)
-                ) {
-                    when (val state = uiState) {
-                        is ClubDetailsUiState.Loading -> {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(color = PitchGreen)
-                            }
-                        }
-                        is ClubDetailsUiState.Idle -> {
-                            if (state.error != null) {
-                                ErrorState(state.error, onRetry = { viewModel.loadClubDetails(clubId) })
-                            } else if (state.details != null) {
-                                Column {
-                                    if (selectedTab == 0) {
-                                        SelectorFilterSection(
-                                            state = state,
-                                            onSeasonSelected = viewModel::onSeasonSelected,
-                                            onAgeGroupSelected = viewModel::onAgeGroupSelected
-                                        )
-                                        TeamList(state.filteredTeams)
-                                    } else {
-                                        PlayerList(state.filteredPlayers)
-                                    }
-                                }
+                is ClubDetailsUiState.Idle -> {
+                    if (state.error != null) {
+                        ErrorState(state.error, onRetry = { viewModel.loadClubDetails(clubId) })
+                    } else if (state.details != null) {
+                        Column {
+                            if (selectedTab == 0) {
+                                SelectorFilterSection(
+                                    state = state,
+                                    onSeasonSelected = viewModel::onSeasonSelected,
+                                    onAgeGroupSelected = viewModel::onAgeGroupSelected
+                                )
+                                TeamList(state.filteredTeams)
+                            } else {
+                                PlayerList(state.filteredPlayers)
                             }
                         }
                     }
