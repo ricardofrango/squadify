@@ -1,0 +1,115 @@
+# Permission Test Matrix
+
+A concrete set of test personas and scenarios covering every user type described in the domain model — admin, coordinator, member (with and without team assignments, single- and multi-club), player, and parent — so the whole authorization surface can be validated in one pass. Each scenario lists what the code actually does **today** versus what it **should** do per the requirements discussed (see `issues to fix.md` for the underlying bugs); use this to drive new/rewritten unit tests.
+
+## Before you write these as tests: the existing permission test file doesn't compile
+
+`server/src/test/kotlin/.../domain/usecase/CheckUserPermissionUseCaseTest.kt` tests an obsolete shape of the permission model: a single unified `Role` enum, a `TeamRepository.isUserStaffOfTeam(...): Boolean`, and a `CheckUserPermissionUseCase` that takes two constructor args and *returns* the resolved role. None of that exists anymore — the model has since split into `ClubRole`/`TeamRole`, `TeamRepository.getUserRoleInTeam(...): TeamRole?`, a three-arg constructor (`userRepository, teamRepository, transactionManager`), and a `Unit`-returning use case. This file will not compile against the current `core`/`domain` code. Any new test work needs to replace it, not extend it — worth adding to `issues to fix.md` as its own item.
+
+## 1. Test personas
+
+| ID | Persona | Club role(s) | Team role(s) | Player/parent link | Purpose |
+|---|---|---|---|---|---|
+| P1 | **Super Admin** | — | — | — | `isPlatformAdmin = true`; should bypass every check ("God Mode") |
+| P2 | **Club A – Admin** | Club A: `CLUB_ADMIN` | — | — | Full access baseline |
+| P3 | **Club A – Coordinator** | Club A: `COORDINATOR` | — | — | Should be equivalent to P2 until billing exists |
+| P4 | **Club A – Plain Member** | Club A: `MEMBER` | none | — | Someone who works at the club but isn't assigned to any team yet — should see only the club |
+| P5 | **Club A – Coach of Team 1** | Club A: `MEMBER` | Team 1: `COACH` | — | The common case: a member with one team assignment |
+| P6 | **Club A – Staff of Team 2** | Club A: `MEMBER` | Team 2: `STAFF` | — | Same as P5 but `STAFF`, different team |
+| P7 | **Club A – Multi-role Member** | Club A: `MEMBER` | Team 1: `COACH`, Team 2: `STAFF` | — | "Coach of Team A and staff of Team B" from the spec |
+| P8 | **Cross-club Coach** | Club A: `MEMBER`, Club B: `MEMBER` | Club A/Team 1: `COACH`, Club B/Team 5: `COACH` | — | "Coach in two different teams in two different clubs" from the spec |
+| P9 | **Player with own login** | *(current code: Club A `MEMBER`, granted incidentally; target: none)* | none | `Player` row, on `TeamPlayers` for Team 1 (Club A) | Exposes the current-vs-target divergence for a player who self-registered |
+| P10 | **Parent of one child** | none | none | `UserPlayers` → a player on Team 1 (Club A) | The baseline family-member persona |
+| P11 | **Parent of two children, different clubs** | none | none | `UserPlayers` → Player X (Club A/Team 1), `UserPlayers` → Player Y (Club B/Team 5) | The exact "father with two sons in two different clubs" scenario from the spec |
+| P12 | **Outsider** | none | none | none | Registered user with zero relationship to Club A or B — negative control |
+| P13 | **Suspended member** | Club A: `MEMBER`, `user.status = SUSPENDED` | none | — | Tests whether account status is enforced |
+
+## 2. Scenario matrix
+
+Legend: ✅ current behavior matches target · ❌ gap (current ≠ target) · — not applicable.
+
+### Platform-level
+
+| Persona | Action | Current | Target | |
+|---|---|---|---|---|
+| P1 | View Super Admin dashboard | Allow | Allow | ✅ |
+| P2 | View Super Admin dashboard | Deny | Deny | ✅ |
+| P12 | View Super Admin dashboard | Deny | Deny | ✅ |
+| P1 | Provision a new club | Allow | Allow | ✅ |
+| P2 | Provision a new club | Deny | Deny | ✅ |
+
+### Club profile
+
+| Persona | Action | Current | Target | |
+|---|---|---|---|---|
+| P2 | View Club A details | Allow | Allow | ✅ |
+| P3 | View Club A details | Allow | Allow | ✅ |
+| P4 | View Club A details | Allow | Allow | ✅ (this *is* "sees only the club") |
+| P5 | View Club A details | Allow | Allow | ✅ |
+| P9 | View Club A details | Allow (via incidental `MEMBER` grant) | Allow | ⚠️ right outcome, wrong mechanism |
+| P10 | View Club A details | **Deny** | Allow | ❌ no auth path for parents/players |
+| P13 | View Club A details | **Allow** | Deny | ❌ user status never checked |
+| P12 | View Club A details | Deny | Deny | ✅ |
+| P3 | Update Club A profile | **Deny** | Allow | ❌ `UpdateClubUseCase` requires `CLUB_ADMIN`, excludes `COORDINATOR` |
+| P2 | Update Club A profile | Allow | Allow | ✅ |
+| P5 | Update Club A profile | Deny | Deny | ✅ |
+| P3 | Change a Club A member's role | **Deny** | Allow | ❌ same `CLUB_ADMIN`-only gap, `UpdateClubMemberRoleUseCase` |
+| P2 | Change a Club A member's role | Allow | Allow | ✅ |
+
+### Teams & roster
+
+| Persona | Action | Current | Target | |
+|---|---|---|---|---|
+| P2 | List Club A's teams | Allow, all teams | Allow, all teams | ✅ |
+| P4 | List Club A's teams | **Allow, all teams** | Deny, or empty (sees only the club) | ❌ `teamId == null` shortcut in `CheckUserPermissionUseCase` |
+| P5 | List Club A's teams | **Allow, all teams** | Allow, Team 1 only | ❌ same shortcut — `GetTeamsUseCase` never filters by staff assignment |
+| P12 | List Club A's teams | Deny | Deny | ✅ |
+| P2 | View Team 1 details/roster | Allow | Allow | ✅ |
+| P5 | View Team 1 details/roster (their own team) | **Deny** | Allow | ❌ **new finding**: `GetTeamDetailsUseCase`/`GetTeamPlayersUseCase`/`GetTeamStaffUseCase` pass `teamId` but never set `minTeamRole`, so the team-role check never actually runs — only club admin/coordinator can pass, blocking the team's own coach |
+| P6 | View Team 2 details/roster (their own team) | **Deny** | Allow | ❌ same gap as above |
+| P6 | View Team 1 details/roster (not their team) | Deny | Deny | ✅ |
+| P10 | View Team 1 details (their child's team) | Deny | Allow | ❌ no auth path for parents/players |
+| P8 | View Club B/Team 5 details (their other coaching job) | **Deny** | Allow | ❌ same `minTeamRole` gap, confirms it isn't club-specific |
+| P8 | View Club A/Team 3 details (a team they have no role on) | Deny | Deny | ✅ |
+| P12 | View Team 1 details | Deny | Deny | ✅ |
+
+### Age groups & seasons
+
+| Persona | Action | Current | Target | |
+|---|---|---|---|---|
+| P3 | Create a season / age group for Club A | Allow | Allow | ✅ |
+| P4 | Create a season / age group for Club A | Deny | Deny | ✅ |
+| P4 | List Club A's seasons/age groups | **Allow** | Deny (sees only the club) | ❌ same `teamId == null` shortcut |
+| P2 | Create a Team under Age Group X / Season Y where X doesn't actually belong to Y | **Allow (no cross-check)** | Deny / validation error | ❌ `CreateTeamUseCase` never validates `ageGroupId` ↔ `seasonId` consistency |
+
+### Matches
+
+| Persona | Action | Current | Target | |
+|---|---|---|---|---|
+| P5 | Create a match for Team 1 | Allow | Allow | ✅ |
+| P6 | Create a match for Team 1 (not their team) | Deny | Deny | ✅ |
+| P2 | Create a match for any team in Club A | Allow | Allow | ✅ |
+| P4 | Create a match | Deny | Deny | ✅ |
+| P5 | List Team 1's matches (with a team filter) | **Deny** | Allow | ❌ same `minTeamRole`-never-set gap, `GetMatchesUseCase` |
+| P5 | List Club A's matches (no team filter) | **Allow, every team's matches** | Allow, Team 1's only | ❌ `teamId == null` shortcut |
+| P10 | View Team 1's match calendar | Deny | Allow | ❌ no auth path for parents/players |
+| P10 | View a specific match's details | Deny | Allow | ❌ no auth path for parents/players |
+| P5 | Log a match event for Team 1 | Allow | Allow | ✅ (this one correctly sets `minTeamRole = COACH`) |
+| P5 | Manage call-ups for Team 1 | Allow | Allow | ✅ |
+| P6 | Manage call-ups for Team 1 (not their team) | Deny | Deny | ✅ |
+
+### Dashboards
+
+| Persona | Action | Current | Target | |
+|---|---|---|---|---|
+| P11 | View clubs list | Allow, both clubs returned | Allow, both clubs | ✅ (already works — `GetClubsUseCase` checks `UserPlayers` too) |
+| P11 | View Parent dashboard | Allow (no permission check at all, by design — self-scoped) | Allow | ✅ |
+| P2 | View Club Admin dashboard for Club A | Allow | Allow | ✅ |
+| P3 | View Club Admin dashboard for Club A | Allow | Allow | ✅ |
+| P4 | View Club Admin dashboard for Club A | Deny | Deny | ✅ |
+
+## 3. How to use this
+
+Each row above is meant to become one test case (unit tests mocking `UserRepository`/`TeamRepository` for `CheckUserPermissionUseCase` itself, or higher-level tests per use case for the ones with extra logic like `CreateTeamUseCase`'s missing cross-check). The ❌ rows are the ones that should currently **fail** if written against the target behavior — that's expected until the corresponding fix in `issues to fix.md` lands; write them as failing/`@Ignore`d tests first if you want a red-to-green trail, or as passing tests against *current* behavior if you'd rather lock in today's contract while the redesign is planned.
+
+Per `AI_GUIDELINES.md`, once the access-control fixes are made, the corresponding rows here should flip from ❌ to ✅ in the same change, and this file should stay in sync with `PROCESS_FLOWS.md` §1.1 (the `CheckUserPermissionUseCase` flowchart) and `issues to fix.md`.
