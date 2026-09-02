@@ -10,6 +10,7 @@ sealed class ClubDetailsUiState {
         val details: ClubDetails? = null,
         val filteredTeams: List<Team> = emptyList(),
         val filteredPlayers: List<Player> = emptyList(),
+        val selectedTab: Int = 0,
         // Available Filter Options (Contextual)
         val availableAgeGroups: List<AgeGroup> = emptyList(),
         val availableTeams: List<Team> = emptyList(),

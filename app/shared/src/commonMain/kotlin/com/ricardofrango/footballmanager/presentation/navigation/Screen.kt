@@ -21,4 +21,10 @@ sealed class Screen {
 
     @Serializable
     data class ClubDetails(val clubId: String) : Screen()
+
+    @Serializable
+    data class TeamDetails(val teamId: String) : Screen()
+
+    @Serializable
+    data class PlayerDetails(val playerId: String) : Screen()
 }

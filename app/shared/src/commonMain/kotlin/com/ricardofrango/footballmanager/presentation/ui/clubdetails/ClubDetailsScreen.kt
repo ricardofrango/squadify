@@ -32,10 +32,12 @@ import org.koin.compose.viewmodel.koinViewModel
 fun ClubDetailsScreen(
     clubId: String,
     onNavigateBack: () -> Unit,
+    onNavigateToTeam: (String) -> Unit,
+    onNavigateToPlayer: (String) -> Unit,
     viewModel: ClubDetailsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
-    var selectedTab by remember { mutableIntStateOf(0) }
+    val selectedTab = (uiState as? ClubDetailsUiState.Idle)?.selectedTab ?: 0
 
     LaunchedEffect(clubId) {
         viewModel.loadClubDetails(clubId)
@@ -106,7 +108,7 @@ fun ClubDetailsScreen(
             ) {
                 NavigationBarItem(
                     selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
+                    onClick = { viewModel.onTabSelected(0) },
                     icon = { 
                         Icon(
                             painter = painterResource(Res.drawable.ic_teams),
@@ -132,7 +134,7 @@ fun ClubDetailsScreen(
                 )
                 NavigationBarItem(
                     selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
+                    onClick = { viewModel.onTabSelected(1) },
                     icon = { 
                         Icon(
                             painter = painterResource(Res.drawable.ic_player),
@@ -182,14 +184,14 @@ fun ClubDetailsScreen(
                                     state = state,
                                     viewModel = viewModel
                                 )
-                                TeamList(state.filteredTeams)
+                                TeamList(state.filteredTeams, onNavigateToTeam)
                             } else {
                                 // Filters for Players
                                 PlayerFilterSection(
                                     state = state,
                                     viewModel = viewModel
                                 )
-                                PlayerList(state.filteredPlayers)
+                                PlayerList(state.filteredPlayers, onNavigateToPlayer)
                             }
                         }
                     }
@@ -325,7 +327,7 @@ private fun <T> FilterSelector(
 }
 
 @Composable
-private fun TeamList(teams: List<Team>) {
+private fun TeamList(teams: List<Team>, onNavigateToTeam: (String) -> Unit) {
     if (teams.isEmpty()) {
         EmptyState("No teams found for these filters")
     } else {
@@ -335,14 +337,14 @@ private fun TeamList(teams: List<Team>) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(teams) { team ->
-                TeamCard(team)
+                TeamCard(team, onClick = { onNavigateToTeam(team.id) })
             }
         }
     }
 }
 
 @Composable
-private fun PlayerList(players: List<Player>) {
+private fun PlayerList(players: List<Player>, onNavigateToPlayer: (String) -> Unit) {
     if (players.isEmpty()) {
         EmptyState("No players found for these filters")
     } else {
@@ -352,15 +354,16 @@ private fun PlayerList(players: List<Player>) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(players) { player ->
-                PlayerCard(player)
+                PlayerCard(player, onClick = { onNavigateToPlayer(player.id) })
             }
         }
     }
 }
 
 @Composable
-private fun TeamCard(team: Team) {
+private fun TeamCard(team: Team, onClick: () -> Unit) {
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -388,8 +391,9 @@ private fun TeamCard(team: Team) {
 }
 
 @Composable
-private fun PlayerCard(player: Player) {
+private fun PlayerCard(player: Player, onClick: () -> Unit) {
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),

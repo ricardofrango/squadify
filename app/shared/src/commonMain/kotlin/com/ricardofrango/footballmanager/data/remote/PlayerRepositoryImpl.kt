@@ -23,4 +23,13 @@ class PlayerRepositoryImpl(
             }
         }.handleResponse()
     }
+
+    override suspend fun getPlayerById(playerId: String): Player {
+        val token = sessionRepository.getToken()
+        return httpClient.get("${appConfig.baseUrl}/players/$playerId") {
+            token?.let {
+                header(HttpHeaders.Authorization, "Bearer $it")
+            }
+        }.handleResponse()
+    }
 }

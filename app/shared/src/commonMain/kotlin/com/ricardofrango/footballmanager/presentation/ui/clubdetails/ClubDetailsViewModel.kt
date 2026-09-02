@@ -16,6 +16,16 @@ class ClubDetailsViewModel(
     val state: StateFlow<ClubDetailsUiState> = _state.asStateFlow()
 
     fun loadClubDetails(clubId: String) {
+        val currentState = _state.value
+
+        // If we already have details for this club, don't trigger a full reload/flicker
+        if (currentState is ClubDetailsUiState.Idle && currentState.details?.club?.id == clubId) {
+            return
+        }
+
+        // Capture current tab to preserve it across loading states
+        val currentTab = (currentState as? ClubDetailsUiState.Idle)?.selectedTab ?: 0
+
         viewModelScope.launch {
             _state.update { ClubDetailsUiState.Loading }
             try {
@@ -25,8 +35,7 @@ class ClubDetailsViewModel(
                         details = details,
                         filteredTeams = details.teams,
                         filteredPlayers = details.players,
-                        availableAgeGroups = details.ageGroups,
-                        availableTeams = details.teams
+                        selectedTab = currentTab // Restore the captured tab
                     )
                 }
             } catch (e: Exception) {
@@ -76,6 +85,14 @@ class ClubDetailsViewModel(
             if (state is ClubDetailsUiState.Idle) {
                 val newState = state.copy(selectedPlayerTeamId = teamId)
                 applyFilters(newState)
+            } else state
+        }
+    }
+
+    fun onTabSelected(index: Int) {
+        _state.update { state ->
+            if (state is ClubDetailsUiState.Idle) {
+                state.copy(selectedTab = index)
             } else state
         }
     }

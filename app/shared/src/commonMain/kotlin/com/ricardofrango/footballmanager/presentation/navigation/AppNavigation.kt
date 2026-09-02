@@ -11,6 +11,8 @@ import com.ricardofrango.footballmanager.presentation.ui.splash.SplashScreen
 import com.ricardofrango.footballmanager.presentation.ui.dashboard.DashboardScreen
 import com.ricardofrango.footballmanager.presentation.ui.account.AccountScreen
 import com.ricardofrango.footballmanager.presentation.ui.clubdetails.ClubDetailsScreen
+import com.ricardofrango.footballmanager.presentation.ui.teamdetails.TeamDetailsScreen
+import com.ricardofrango.footballmanager.presentation.ui.playerdetails.PlayerDetailsScreen
 
 @Composable
 fun AppNavigation() {
@@ -76,6 +78,35 @@ fun AppNavigation() {
             val screen: Screen.ClubDetails = backStackEntry.toRoute()
             ClubDetailsScreen(
                 clubId = screen.clubId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToTeam = { teamId ->
+                    navController.navigate(Screen.TeamDetails(teamId))
+                },
+                onNavigateToPlayer = { playerId ->
+                    navController.navigate(Screen.PlayerDetails(playerId))
+                }
+            )
+        }
+
+        composable<Screen.TeamDetails> { backStackEntry ->
+            val screen: Screen.TeamDetails = backStackEntry.toRoute()
+            TeamDetailsScreen(
+                teamId = screen.teamId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToPlayer = { playerId ->
+                    navController.navigate(Screen.PlayerDetails(playerId))
+                }
+            )
+        }
+
+        composable<Screen.PlayerDetails> { backStackEntry ->
+            val screen: Screen.PlayerDetails = backStackEntry.toRoute()
+            PlayerDetailsScreen(
+                playerId = screen.playerId,
                 onNavigateBack = {
                     navController.popBackStack()
                 }
