@@ -1,9 +1,11 @@
 package com.ricardofrango.footballmanager.presentation.ui.clubdetails
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -13,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ricardofrango.footballmanager.model.Player
@@ -175,30 +178,16 @@ fun ClubDetailsScreen(
                         Column(modifier = Modifier.fillMaxSize()) {
                             if (selectedTab == 0) {
                                 // Filters for Teams
-                                SelectorFilterSection(
-                                    label1 = "Season",
-                                    selectedOption1 = state.details.seasons.find { it.id == state.selectedSeasonId }?.name ?: "All Seasons",
-                                    options1 = listOf(null to "All Seasons") + state.details.seasons.map { it.id to it.name },
-                                    onOption1Selected = viewModel::onSeasonSelected,
-                                    
-                                    label2 = "Age Group",
-                                    selectedOption2 = state.details.ageGroups.find { it.id == state.selectedAgeGroupId }?.name ?: "All Ages",
-                                    options2 = listOf(null to "All Ages") + state.details.ageGroups.map { it.id to it.name },
-                                    onOption2Selected = viewModel::onAgeGroupSelected
+                                TeamFilterSection(
+                                    state = state,
+                                    viewModel = viewModel
                                 )
                                 TeamList(state.filteredTeams)
                             } else {
                                 // Filters for Players
-                                SelectorFilterSection(
-                                    label1 = "Season",
-                                    selectedOption1 = state.details.seasons.find { it.id == state.selectedPlayerSeasonId }?.name ?: "All Seasons",
-                                    options1 = listOf(null to "All Seasons") + state.details.seasons.map { it.id to it.name },
-                                    onOption1Selected = viewModel::onPlayerSeasonSelected,
-                                    
-                                    label2 = "Team",
-                                    selectedOption2 = state.details.teams.find { it.id == state.selectedPlayerTeamId }?.name ?: "All Teams",
-                                    options2 = listOf(null to "All Teams") + state.details.teams.map { it.id to it.name },
-                                    onOption2Selected = viewModel::onPlayerTeamSelected
+                                PlayerFilterSection(
+                                    state = state,
+                                    viewModel = viewModel
                                 )
                                 PlayerList(state.filteredPlayers)
                             }
@@ -211,106 +200,125 @@ fun ClubDetailsScreen(
 }
 
 @Composable
-private fun SelectorFilterSection(
-    label1: String,
-    selectedOption1: String,
-    options1: List<Pair<String?, String>>,
-    onOption1Selected: (String?) -> Unit,
-    label2: String,
-    selectedOption2: String,
-    options2: List<Pair<String?, String>>,
-    onOption2Selected: (String?) -> Unit
+private fun TeamFilterSection(
+    state: ClubDetailsUiState.Idle,
+    viewModel: ClubDetailsViewModel
 ) {
-    Row(
+    LazyRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        FilterSelector(
-            label = label1,
-            selectedOption = selectedOption1,
-            options = options1,
-            onOptionSelected = onOption1Selected,
-            modifier = Modifier.weight(1f)
-        )
+        item {
+            FilterSelector(
+                selectedOption = state.details?.seasons?.find { it.id == state.selectedSeasonId }?.name ?: "All Seasons",
+                options = listOf(null to "All Seasons") + (state.details?.seasons?.map { it.id to it.name } ?: emptyList()),
+                onOptionSelected = viewModel::onSeasonSelected
+            )
+        }
+        item {
+            FilterSelector(
+                selectedOption = state.details?.ageGroups?.find { it.id == state.selectedAgeGroupId }?.name ?: "All Ages",
+                options = listOf(null to "All Ages") + viewModel.getAvailableAgeGroupsForTeams(state).map { it.id to it.name },
+                onOptionSelected = viewModel::onAgeGroupSelected
+            )
+        }
+    }
+}
 
-        FilterSelector(
-            label = label2,
-            selectedOption = selectedOption2,
-            options = options2,
-            onOptionSelected = onOption2Selected,
-            modifier = Modifier.weight(1f)
-        )
+@Composable
+private fun PlayerFilterSection(
+    state: ClubDetailsUiState.Idle,
+    viewModel: ClubDetailsViewModel
+) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        item {
+            FilterSelector(
+                selectedOption = state.details?.seasons?.find { it.id == state.selectedPlayerSeasonId }?.name ?: "All Seasons",
+                options = listOf(null to "All Seasons") + (state.details?.seasons?.map { it.id to it.name } ?: emptyList()),
+                onOptionSelected = viewModel::onPlayerSeasonSelected
+            )
+        }
+        item {
+            FilterSelector(
+                selectedOption = state.details?.ageGroups?.find { it.id == state.selectedPlayerAgeGroupId }?.name ?: "All Ages",
+                options = listOf(null to "All Ages") + viewModel.getAvailableAgeGroupsForPlayers(state).map { it.id to it.name },
+                onOptionSelected = viewModel::onPlayerAgeGroupSelected
+            )
+        }
+        item {
+            FilterSelector(
+                selectedOption = state.details?.teams?.find { it.id == state.selectedPlayerTeamId }?.name ?: "All Teams",
+                options = listOf(null to "All Teams") + viewModel.getAvailableTeamsForPlayers(state).map { it.id to it.name },
+                onOptionSelected = viewModel::onPlayerTeamSelected
+            )
+        }
     }
 }
 
 @Composable
 private fun <T> FilterSelector(
-    label: String,
     selectedOption: String,
     options: List<Pair<T, String>>,
-    onOptionSelected: (T) -> Unit,
-    modifier: Modifier = Modifier
+    onOptionSelected: (T) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    Column(modifier = modifier) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = FontWeight.Bold,
-                color = DeepCarbon.copy(alpha = 0.8f)
-            )
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-        Box {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .clickable { expanded = true },
-                shape = RoundedCornerShape(12.dp),
-                color = CarbonGray.copy(alpha = 0.08f),
-                border = null
+    Box {
+        Surface(
+            modifier = Modifier
+                .height(44.dp)
+                .clickable { expanded = true },
+            shape = RoundedCornerShape(12.dp),
+            color = CarbonGray.copy(alpha = 0.08f),
+            border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.1f))
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = selectedOption,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = DeepCarbon,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        maxLines = 1
-                    )
-                    Text("▾", color = DeepCarbon, fontWeight = FontWeight.Bold)
-                }
+                Text(
+                    text = selectedOption,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = DeepCarbon,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("▾", color = DeepCarbon, fontWeight = FontWeight.Bold)
             }
+        }
 
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.background(Color.White)
-            ) {
-                options.forEach { (value, name) ->
-                    DropdownMenuItem(
-                        text = { 
-                            Text(
-                                text = name,
-                                color = if (selectedOption == name) PitchGreen else DeepCarbon,
-                                fontWeight = if (selectedOption == name) FontWeight.Bold else FontWeight.Normal
-                            ) 
-                        },
-                        onClick = {
-                            onOptionSelected(value)
-                            expanded = false
-                        }
-                    )
-                }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(Color.White)
+        ) {
+            options.forEach { (value, name) ->
+                DropdownMenuItem(
+                    text = { 
+                        Text(
+                            text = name,
+                            color = if (selectedOption == name) PitchGreen else DeepCarbon,
+                            fontWeight = if (selectedOption == name) FontWeight.Bold else FontWeight.Normal
+                        ) 
+                    },
+                    onClick = {
+                        onOptionSelected(value)
+                        expanded = false
+                    }
+                )
             }
         }
     }
@@ -336,7 +344,7 @@ private fun TeamList(teams: List<Team>) {
 @Composable
 private fun PlayerList(players: List<Player>) {
     if (players.isEmpty()) {
-        EmptyState("No players found")
+        EmptyState("No players found for these filters")
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),

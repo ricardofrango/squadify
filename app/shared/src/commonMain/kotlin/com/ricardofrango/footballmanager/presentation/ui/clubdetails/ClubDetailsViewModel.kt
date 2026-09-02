@@ -3,6 +3,8 @@ package com.ricardofrango.footballmanager.presentation.ui.clubdetails
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.footballmanager.domain.usecase.GetClubDetailsUseCase
+import com.ricardofrango.footballmanager.model.AgeGroup
+import com.ricardofrango.footballmanager.model.Team
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -22,7 +24,9 @@ class ClubDetailsViewModel(
                     ClubDetailsUiState.Idle(
                         details = details,
                         filteredTeams = details.teams,
-                        filteredPlayers = details.players
+                        filteredPlayers = details.players,
+                        availableAgeGroups = details.ageGroups,
+                        availableTeams = details.teams
                     )
                 }
             } catch (e: Exception) {
@@ -58,6 +62,15 @@ class ClubDetailsViewModel(
         }
     }
 
+    fun onPlayerAgeGroupSelected(ageGroupId: String?) {
+        _state.update { state ->
+            if (state is ClubDetailsUiState.Idle) {
+                val newState = state.copy(selectedPlayerAgeGroupId = ageGroupId)
+                applyFilters(newState)
+            } else state
+        }
+    }
+
     fun onPlayerTeamSelected(teamId: String?) {
         _state.update { state ->
             if (state is ClubDetailsUiState.Idle) {
@@ -70,38 +83,63 @@ class ClubDetailsViewModel(
     private fun applyFilters(state: ClubDetailsUiState.Idle): ClubDetailsUiState.Idle {
         val details = state.details ?: return state
         
-        // Filter Teams
+        // Filter Teams List based on direct relations
         val filteredTeams = details.teams.filter { team ->
             (state.selectedSeasonId == null || team.seasonId == state.selectedSeasonId) &&
             (state.selectedAgeGroupId == null || team.ageGroupId == state.selectedAgeGroupId)
         }
         
-        // Filter Players
+        // Filter Players List based on team associations
         val filteredPlayers = details.players.filter { player ->
-            // Get all team associations for this player
             val playerTeamIds = details.teamPlayers
                 .filter { it.playerId == player.id }
                 .map { it.teamId }
             
             val matchesTeam = state.selectedPlayerTeamId == null || playerTeamIds.contains(state.selectedPlayerTeamId)
             
-            val matchesSeason = if (state.selectedPlayerSeasonId == null) {
-                true
-            } else {
-                // Get teams for the selected season
-                val teamsInSeasonIds = details.teams
-                    .filter { it.seasonId == state.selectedPlayerSeasonId }
-                    .map { it.id }
-                // Check if player belongs to any team in that season
+            val matchesSeason = if (state.selectedPlayerSeasonId == null) true else {
+                val teamsInSeasonIds = details.teams.filter { it.seasonId == state.selectedPlayerSeasonId }.map { it.id }
                 playerTeamIds.any { teamsInSeasonIds.contains(it) }
             }
             
-            matchesTeam && matchesSeason
+            val matchesAgeGroup = if (state.selectedPlayerAgeGroupId == null) true else {
+                val teamsInAgeGroupIds = details.teams.filter { it.ageGroupId == state.selectedPlayerAgeGroupId }.map { it.id }
+                playerTeamIds.any { teamsInAgeGroupIds.contains(it) }
+            }
+            
+            matchesTeam && matchesSeason && matchesAgeGroup
         }
         
         return state.copy(
             filteredTeams = filteredTeams,
             filteredPlayers = filteredPlayers
         )
+    }
+
+    // Helper functions to get contextual options for the UI
+    fun getAvailableAgeGroupsForTeams(state: ClubDetailsUiState.Idle): List<AgeGroup> {
+        return state.details?.ageGroups?.filter { 
+            state.selectedSeasonId == null || it.seasonId == state.selectedSeasonId 
+        } ?: emptyList()
+    }
+
+    fun getAvailableTeamsForTeams(state: ClubDetailsUiState.Idle): List<Team> {
+        return state.details?.teams?.filter { 
+            (state.selectedSeasonId == null || it.seasonId == state.selectedSeasonId) &&
+            (state.selectedAgeGroupId == null || it.ageGroupId == state.selectedAgeGroupId)
+        } ?: emptyList()
+    }
+
+    fun getAvailableAgeGroupsForPlayers(state: ClubDetailsUiState.Idle): List<AgeGroup> {
+        return state.details?.ageGroups?.filter { 
+            state.selectedPlayerSeasonId == null || it.seasonId == state.selectedPlayerSeasonId 
+        } ?: emptyList()
+    }
+
+    fun getAvailableTeamsForPlayers(state: ClubDetailsUiState.Idle): List<Team> {
+        return state.details?.teams?.filter { 
+            (state.selectedPlayerSeasonId == null || it.seasonId == state.selectedPlayerSeasonId) &&
+            (state.selectedPlayerAgeGroupId == null || it.ageGroupId == state.selectedPlayerAgeGroupId)
+        } ?: emptyList()
     }
 }
