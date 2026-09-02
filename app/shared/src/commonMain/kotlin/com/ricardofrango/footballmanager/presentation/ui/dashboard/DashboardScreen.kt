@@ -145,7 +145,7 @@ private fun ClubCard(club: Club, onClick: () -> Unit) {
                     )
                 )
                 Text(
-                    text = "Active Member", // TODO: Fetch real role
+                    text = stringResource(Res.string.label_active_member),
                     style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
                 )
             }

@@ -25,6 +25,7 @@ import com.ricardofrango.footballmanager.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.footballmanager.presentation.ui.theme.PitchGreen
 import footballmanager.app.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,7 +48,8 @@ fun ClubDetailsScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    val title = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name ?: "Club Details"
+                    val title = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name 
+                        ?: stringResource(Res.string.title_club_details)
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
@@ -57,7 +59,7 @@ fun ClubDetailsScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_back),
-                            contentDescription = "Back",
+                            contentDescription = stringResource(Res.string.label_back),
                             tint = Color.White
                         )
                     }
@@ -68,7 +70,7 @@ fun ClubDetailsScreen(
                         IconButton(onClick = { showAddMenu = true }) {
                             Icon(
                                 painter = painterResource(Res.drawable.ic_more),
-                                contentDescription = "More options",
+                                contentDescription = stringResource(Res.string.label_more_options),
                                 tint = Color.White
                             )
                         }
@@ -78,15 +80,15 @@ fun ClubDetailsScreen(
                             modifier = Modifier.background(Color.White)
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Create Team", color = DeepCarbon) },
+                                text = { Text(stringResource(Res.string.label_create_team), color = DeepCarbon) },
                                 onClick = { showAddMenu = false }
                             )
                             DropdownMenuItem(
-                                text = { Text("Create Age Group", color = DeepCarbon) },
+                                text = { Text(stringResource(Res.string.label_create_age_group), color = DeepCarbon) },
                                 onClick = { showAddMenu = false }
                             )
                             DropdownMenuItem(
-                                text = { Text("Add Season", color = DeepCarbon) },
+                                text = { Text(stringResource(Res.string.label_add_season), color = DeepCarbon) },
                                 onClick = { showAddMenu = false }
                             )
                         }
@@ -112,13 +114,13 @@ fun ClubDetailsScreen(
                     icon = { 
                         Icon(
                             painter = painterResource(Res.drawable.ic_teams),
-                            contentDescription = "Teams",
+                            contentDescription = stringResource(Res.string.tab_teams),
                             modifier = Modifier.size(24.dp)
                         ) 
                     },
                     label = { 
                         Text(
-                            text = "Teams",
+                            text = stringResource(Res.string.tab_teams),
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
                             )
@@ -138,13 +140,13 @@ fun ClubDetailsScreen(
                     icon = { 
                         Icon(
                             painter = painterResource(Res.drawable.ic_player),
-                            contentDescription = "Players",
+                            contentDescription = stringResource(Res.string.tab_players),
                             modifier = Modifier.size(24.dp)
                         ) 
                     },
                     label = { 
                         Text(
-                            text = "Players",
+                            text = stringResource(Res.string.tab_players),
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
                             )
@@ -215,15 +217,19 @@ private fun TeamFilterSection(
     ) {
         item {
             FilterSelector(
-                selectedOption = state.details?.seasons?.find { it.id == state.selectedSeasonId }?.name ?: "All Seasons",
-                options = listOf(null to "All Seasons") + (state.details?.seasons?.map { it.id to it.name } ?: emptyList()),
+                selectedOption = state.details?.seasons?.find { it.id == state.selectedSeasonId }?.name 
+                    ?: stringResource(Res.string.label_all_seasons),
+                options = listOf(null to stringResource(Res.string.label_all_seasons)) + 
+                    (state.details?.seasons?.map { it.id to it.name } ?: emptyList()),
                 onOptionSelected = viewModel::onSeasonSelected
             )
         }
         item {
             FilterSelector(
-                selectedOption = state.details?.ageGroups?.find { it.id == state.selectedAgeGroupId }?.name ?: "All Ages",
-                options = listOf(null to "All Ages") + viewModel.getAvailableAgeGroupsForTeams(state).map { it.id to it.name },
+                selectedOption = state.details?.ageGroups?.find { it.id == state.selectedAgeGroupId }?.name 
+                    ?: stringResource(Res.string.label_all_ages),
+                options = listOf(null to stringResource(Res.string.label_all_ages)) + 
+                    viewModel.getAvailableAgeGroupsForTeams(state).map { it.id to it.name },
                 onOptionSelected = viewModel::onAgeGroupSelected
             )
         }
@@ -244,22 +250,28 @@ private fun PlayerFilterSection(
     ) {
         item {
             FilterSelector(
-                selectedOption = state.details?.seasons?.find { it.id == state.selectedPlayerSeasonId }?.name ?: "All Seasons",
-                options = listOf(null to "All Seasons") + (state.details?.seasons?.map { it.id to it.name } ?: emptyList()),
+                selectedOption = state.details?.seasons?.find { it.id == state.selectedPlayerSeasonId }?.name 
+                    ?: stringResource(Res.string.label_all_seasons),
+                options = listOf(null to stringResource(Res.string.label_all_seasons)) + 
+                    (state.details?.seasons?.map { it.id to it.name } ?: emptyList()),
                 onOptionSelected = viewModel::onPlayerSeasonSelected
             )
         }
         item {
             FilterSelector(
-                selectedOption = state.details?.ageGroups?.find { it.id == state.selectedPlayerAgeGroupId }?.name ?: "All Ages",
-                options = listOf(null to "All Ages") + viewModel.getAvailableAgeGroupsForPlayers(state).map { it.id to it.name },
+                selectedOption = state.details?.ageGroups?.find { it.id == state.selectedPlayerAgeGroupId }?.name 
+                    ?: stringResource(Res.string.label_all_ages),
+                options = listOf(null to stringResource(Res.string.label_all_ages)) + 
+                    viewModel.getAvailableAgeGroupsForPlayers(state).map { it.id to it.name },
                 onOptionSelected = viewModel::onPlayerAgeGroupSelected
             )
         }
         item {
             FilterSelector(
-                selectedOption = state.details?.teams?.find { it.id == state.selectedPlayerTeamId }?.name ?: "All Teams",
-                options = listOf(null to "All Teams") + viewModel.getAvailableTeamsForPlayers(state).map { it.id to it.name },
+                selectedOption = state.details?.teams?.find { it.id == state.selectedPlayerTeamId }?.name 
+                    ?: stringResource(Res.string.label_all_teams),
+                options = listOf(null to stringResource(Res.string.label_all_teams)) + 
+                    viewModel.getAvailableTeamsForPlayers(state).map { it.id to it.name },
                 onOptionSelected = viewModel::onPlayerTeamSelected
             )
         }
@@ -329,7 +341,7 @@ private fun <T> FilterSelector(
 @Composable
 private fun TeamList(teams: List<Team>, onNavigateToTeam: (String) -> Unit) {
     if (teams.isEmpty()) {
-        EmptyState("No teams found for these filters")
+        EmptyState(stringResource(Res.string.msg_no_teams_filter))
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -346,7 +358,7 @@ private fun TeamList(teams: List<Team>, onNavigateToTeam: (String) -> Unit) {
 @Composable
 private fun PlayerList(players: List<Player>, onNavigateToPlayer: (String) -> Unit) {
     if (players.isEmpty()) {
-        EmptyState("No players found for these filters")
+        EmptyState(stringResource(Res.string.msg_no_players_filter))
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -419,7 +431,7 @@ private fun PlayerCard(player: Player, onClick: () -> Unit) {
                 )
                 player.shirtNumber?.let { 
                     Text(
-                        text = "Number: $it", 
+                        text = stringResource(Res.string.label_number_prefix, it.toString()), 
                         style = MaterialTheme.typography.bodySmall, 
                         color = DeepCarbon.copy(alpha = 0.7f)
                     ) 
@@ -438,7 +450,7 @@ private fun ErrorState(error: String, onRetry: () -> Unit) {
     ) {
         Text(text = error, color = MaterialTheme.colorScheme.error)
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onRetry) { Text("Retry") }
+        Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
     }
 }
 

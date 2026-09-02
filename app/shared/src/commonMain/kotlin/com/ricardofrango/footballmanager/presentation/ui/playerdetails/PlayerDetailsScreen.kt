@@ -8,7 +8,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -19,6 +18,7 @@ import com.ricardofrango.footballmanager.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.footballmanager.presentation.ui.theme.PitchGreen
 import footballmanager.app.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,7 +39,7 @@ fun PlayerDetailsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Player Profile",
+                        text = stringResource(Res.string.title_player_profile),
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                 },
@@ -47,7 +47,7 @@ fun PlayerDetailsScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_back),
-                            contentDescription = "Back",
+                            contentDescription = stringResource(Res.string.label_back),
                             tint = Color.White
                         )
                     }
@@ -119,7 +119,7 @@ private fun PlayerProfile(player: Player) {
         
         player.shirtNumber?.let {
             Text(
-                text = "Squad Number: $it",
+                text = stringResource(Res.string.label_squad_number_prefix, it.toString()),
                 style = MaterialTheme.typography.titleLarge.copy(color = PitchGreen, fontWeight = FontWeight.Bold)
             )
         }
@@ -134,13 +134,19 @@ private fun PlayerProfile(player: Player) {
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Text(
-                    text = "Player Information",
+                    text = stringResource(Res.string.label_player_info),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = DeepCarbon
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                InfoRow(label = "Status", value = if (player.active) "Active" else "Inactive")
-                InfoRow(label = "Birth Date", value = player.birthDate.toString())
+                InfoRow(
+                    label = stringResource(Res.string.label_status), 
+                    value = if (player.active) stringResource(Res.string.label_active) else stringResource(Res.string.label_inactive)
+                )
+                InfoRow(
+                    label = stringResource(Res.string.label_birth_date), 
+                    value = player.birthDate.toString()
+                )
             }
         }
     }
@@ -166,6 +172,6 @@ private fun ErrorState(error: String, onRetry: () -> Unit) {
     ) {
         Text(text = error, color = MaterialTheme.colorScheme.error)
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onRetry) { Text("Retry") }
+        Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
     }
 }

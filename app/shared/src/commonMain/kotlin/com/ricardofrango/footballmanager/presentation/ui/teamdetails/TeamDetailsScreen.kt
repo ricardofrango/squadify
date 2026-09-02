@@ -40,7 +40,8 @@ fun TeamDetailsScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    val title = (uiState as? TeamDetailsUiState.Idle)?.details?.team?.name ?: "Team Details"
+                    val title = (uiState as? TeamDetailsUiState.Idle)?.details?.team?.name 
+                        ?: stringResource(Res.string.title_team_details)
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
@@ -50,7 +51,7 @@ fun TeamDetailsScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_back),
-                            contentDescription = "Back",
+                            contentDescription = stringResource(Res.string.label_back),
                             tint = Color.White
                         )
                     }
@@ -91,7 +92,7 @@ fun TeamDetailsScreen(
 private fun TeamContent(players: List<Player>, onNavigateToPlayer: (String) -> Unit) {
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
-            text = "Players",
+            text = stringResource(Res.string.tab_players),
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
             color = DeepCarbon
@@ -99,7 +100,7 @@ private fun TeamContent(players: List<Player>, onNavigateToPlayer: (String) -> U
         
         if (players.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "No players in this team", color = Color.Gray)
+                Text(text = stringResource(Res.string.msg_no_players_team), color = Color.Gray)
             }
         } else {
             LazyColumn(
@@ -148,7 +149,11 @@ private fun PlayerCard(player: Player, onClick: () -> Unit) {
                     color = DeepCarbon
                 )
                 player.shirtNumber?.let {
-                    Text(text = "Nº $it", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    Text(
+                        text = stringResource(Res.string.label_number_prefix, it.toString()), 
+                        style = MaterialTheme.typography.bodySmall, 
+                        color = Color.Gray
+                    )
                 }
             }
         }
@@ -164,6 +169,6 @@ private fun ErrorState(error: String, onRetry: () -> Unit) {
     ) {
         Text(text = error, color = MaterialTheme.colorScheme.error)
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onRetry) { Text("Retry") }
+        Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
     }
 }

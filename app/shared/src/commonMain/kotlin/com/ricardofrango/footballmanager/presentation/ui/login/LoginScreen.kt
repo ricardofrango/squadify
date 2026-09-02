@@ -73,7 +73,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(12.dp))
             
             Text(
-                text = "Precision management for your club",
+                text = stringResource(Res.string.msg_precision_management),
                 style = MaterialTheme.typography.bodyLarge.copy(
                     color = Color.White.copy(alpha = 0.7f)
                 )
