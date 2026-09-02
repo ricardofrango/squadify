@@ -9,8 +9,12 @@ sealed class ClubDetailsUiState {
         val details: ClubDetails? = null,
         val filteredTeams: List<Team> = emptyList(),
         val filteredPlayers: List<Player> = emptyList(),
+        // Team Filters
         val selectedSeasonId: String? = null,
         val selectedAgeGroupId: String? = null,
+        // Player Filters
+        val selectedPlayerSeasonId: String? = null,
+        val selectedPlayerTeamId: String? = null,
         val error: String? = null
     ) : ClubDetailsUiState()
     data object Loading : ClubDetailsUiState()

@@ -8,7 +8,8 @@ data class ClubDetails(
     val teams: List<Team>,
     val players: List<Player>,
     val seasons: List<Season>,
-    val ageGroups: List<AgeGroup>
+    val ageGroups: List<AgeGroup>,
+    val teamPlayers: List<TeamPlayer>
 )
 
 class GetClubDetailsUseCase(
@@ -16,7 +17,8 @@ class GetClubDetailsUseCase(
     private val teamRepository: TeamRepository,
     private val playerRepository: PlayerRepository,
     private val seasonRepository: SeasonRepository,
-    private val ageGroupRepository: AgeGroupRepository
+    private val ageGroupRepository: AgeGroupRepository,
+    private val teamPlayerRepository: TeamPlayerRepository
 ) {
     suspend operator fun invoke(clubId: String): ClubDetails {
         val club = clubRepository.getClubById(clubId)
@@ -24,7 +26,8 @@ class GetClubDetailsUseCase(
         val players = playerRepository.getPlayers(clubId)
         val seasons = seasonRepository.getSeasons(clubId)
         val ageGroups = ageGroupRepository.getAgeGroups(clubId)
+        val teamPlayers = teamPlayerRepository.getTeamPlayersByClub(clubId)
         
-        return ClubDetails(club, teams, players, seasons, ageGroups)
+        return ClubDetails(club, teams, players, seasons, ageGroups, teamPlayers)
     }
 }

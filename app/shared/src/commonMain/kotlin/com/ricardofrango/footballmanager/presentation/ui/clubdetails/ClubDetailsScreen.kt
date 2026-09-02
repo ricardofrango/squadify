@@ -172,15 +172,34 @@ fun ClubDetailsScreen(
                     if (state.error != null) {
                         ErrorState(state.error, onRetry = { viewModel.loadClubDetails(clubId) })
                     } else if (state.details != null) {
-                        Column {
+                        Column(modifier = Modifier.fillMaxSize()) {
                             if (selectedTab == 0) {
+                                // Filters for Teams
                                 SelectorFilterSection(
-                                    state = state,
-                                    onSeasonSelected = viewModel::onSeasonSelected,
-                                    onAgeGroupSelected = viewModel::onAgeGroupSelected
+                                    label1 = "Season",
+                                    selectedOption1 = state.details.seasons.find { it.id == state.selectedSeasonId }?.name ?: "All Seasons",
+                                    options1 = listOf(null to "All Seasons") + state.details.seasons.map { it.id to it.name },
+                                    onOption1Selected = viewModel::onSeasonSelected,
+                                    
+                                    label2 = "Age Group",
+                                    selectedOption2 = state.details.ageGroups.find { it.id == state.selectedAgeGroupId }?.name ?: "All Ages",
+                                    options2 = listOf(null to "All Ages") + state.details.ageGroups.map { it.id to it.name },
+                                    onOption2Selected = viewModel::onAgeGroupSelected
                                 )
                                 TeamList(state.filteredTeams)
                             } else {
+                                // Filters for Players
+                                SelectorFilterSection(
+                                    label1 = "Season",
+                                    selectedOption1 = state.details.seasons.find { it.id == state.selectedPlayerSeasonId }?.name ?: "All Seasons",
+                                    options1 = listOf(null to "All Seasons") + state.details.seasons.map { it.id to it.name },
+                                    onOption1Selected = viewModel::onPlayerSeasonSelected,
+                                    
+                                    label2 = "Team",
+                                    selectedOption2 = state.details.teams.find { it.id == state.selectedPlayerTeamId }?.name ?: "All Teams",
+                                    options2 = listOf(null to "All Teams") + state.details.teams.map { it.id to it.name },
+                                    onOption2Selected = viewModel::onPlayerTeamSelected
+                                )
                                 PlayerList(state.filteredPlayers)
                             }
                         }
@@ -193,9 +212,14 @@ fun ClubDetailsScreen(
 
 @Composable
 private fun SelectorFilterSection(
-    state: ClubDetailsUiState.Idle,
-    onSeasonSelected: (String?) -> Unit,
-    onAgeGroupSelected: (String?) -> Unit
+    label1: String,
+    selectedOption1: String,
+    options1: List<Pair<String?, String>>,
+    onOption1Selected: (String?) -> Unit,
+    label2: String,
+    selectedOption2: String,
+    options2: List<Pair<String?, String>>,
+    onOption2Selected: (String?) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -203,21 +227,19 @@ private fun SelectorFilterSection(
             .padding(horizontal = 24.dp, vertical = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Season Selector
         FilterSelector(
-            label = "Season",
-            selectedOption = state.details?.seasons?.find { it.id == state.selectedSeasonId }?.name ?: "All Seasons",
-            options = listOf(null to "All Seasons") + (state.details?.seasons?.map { it.id to it.name } ?: emptyList()),
-            onOptionSelected = onSeasonSelected,
+            label = label1,
+            selectedOption = selectedOption1,
+            options = options1,
+            onOptionSelected = onOption1Selected,
             modifier = Modifier.weight(1f)
         )
 
-        // Age Group Selector
         FilterSelector(
-            label = "Age Group",
-            selectedOption = state.details?.ageGroups?.find { it.id == state.selectedAgeGroupId }?.name ?: "All Ages",
-            options = listOf(null to "All Ages") + (state.details?.ageGroups?.map { it.id to it.name } ?: emptyList()),
-            onOptionSelected = onAgeGroupSelected,
+            label = label2,
+            selectedOption = selectedOption2,
+            options = options2,
+            onOptionSelected = onOption2Selected,
             modifier = Modifier.weight(1f)
         )
     }
@@ -301,7 +323,7 @@ private fun TeamList(teams: List<Team>) {
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp),
+            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(teams) { team ->
@@ -318,7 +340,7 @@ private fun PlayerList(players: List<Player>) {
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp),
+            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(players) { player ->

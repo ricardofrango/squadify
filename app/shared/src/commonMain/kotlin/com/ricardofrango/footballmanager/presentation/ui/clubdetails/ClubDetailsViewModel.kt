@@ -49,17 +49,59 @@ class ClubDetailsViewModel(
         }
     }
 
+    fun onPlayerSeasonSelected(seasonId: String?) {
+        _state.update { state ->
+            if (state is ClubDetailsUiState.Idle) {
+                val newState = state.copy(selectedPlayerSeasonId = seasonId)
+                applyFilters(newState)
+            } else state
+        }
+    }
+
+    fun onPlayerTeamSelected(teamId: String?) {
+        _state.update { state ->
+            if (state is ClubDetailsUiState.Idle) {
+                val newState = state.copy(selectedPlayerTeamId = teamId)
+                applyFilters(newState)
+            } else state
+        }
+    }
+
     private fun applyFilters(state: ClubDetailsUiState.Idle): ClubDetailsUiState.Idle {
         val details = state.details ?: return state
         
+        // Filter Teams
         val filteredTeams = details.teams.filter { team ->
             (state.selectedSeasonId == null || team.seasonId == state.selectedSeasonId) &&
             (state.selectedAgeGroupId == null || team.ageGroupId == state.selectedAgeGroupId)
         }
         
-        // For players, filtering logic might be more complex if they belong to multiple teams/seasons.
-        // For now, we'll just filter teams and let players as is or filter by age group if applicable.
+        // Filter Players
+        val filteredPlayers = details.players.filter { player ->
+            // Get all team associations for this player
+            val playerTeamIds = details.teamPlayers
+                .filter { it.playerId == player.id }
+                .map { it.teamId }
+            
+            val matchesTeam = state.selectedPlayerTeamId == null || playerTeamIds.contains(state.selectedPlayerTeamId)
+            
+            val matchesSeason = if (state.selectedPlayerSeasonId == null) {
+                true
+            } else {
+                // Get teams for the selected season
+                val teamsInSeasonIds = details.teams
+                    .filter { it.seasonId == state.selectedPlayerSeasonId }
+                    .map { it.id }
+                // Check if player belongs to any team in that season
+                playerTeamIds.any { teamsInSeasonIds.contains(it) }
+            }
+            
+            matchesTeam && matchesSeason
+        }
         
-        return state.copy(filteredTeams = filteredTeams)
+        return state.copy(
+            filteredTeams = filteredTeams,
+            filteredPlayers = filteredPlayers
+        )
     }
 }

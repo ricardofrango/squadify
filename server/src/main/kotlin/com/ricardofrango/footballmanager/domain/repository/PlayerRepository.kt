@@ -20,4 +20,5 @@ interface PlayerRepository {
     suspend fun deleteUserPlayersByPlayer(playerId: String)
     suspend fun countPlayersByClub(clubId: String): Long
     suspend fun getPlayersByUser(userId: String): List<Player>
+    suspend fun getTeamPlayersByClub(clubId: String): List<TeamPlayer>
 }

@@ -65,6 +65,7 @@ val dataModule = module {
     single<ClubRepository> { ClubRepositoryImpl(get(), get(), get()) }
     single<TeamRepository> { TeamRepositoryImpl(get(), get(), get()) }
     single<PlayerRepository> { PlayerRepositoryImpl(get(), get(), get()) }
+    single<TeamPlayerRepository> { TeamPlayerRepositoryImpl(get(), get(), get()) }
     single<SeasonRepository> { SeasonRepositoryImpl(get(), get(), get()) }
     single<AgeGroupRepository> { AgeGroupRepositoryImpl(get(), get(), get()) }
     single<SessionRepository> { SessionRepositoryImpl(get()) }
@@ -76,7 +77,7 @@ val domainModule = module {
     factory { CheckAndRefreshSessionUseCase(get(), get()) }
     factory { GetClubsUseCase(get()) }
     factory { LogoutUseCase(get()) }
-    factory { GetClubDetailsUseCase(get(), get(), get(), get(), get()) }
+    factory { GetClubDetailsUseCase(get(), get(), get(), get(), get(), get()) }
 }
 
 val presentationModule = module {

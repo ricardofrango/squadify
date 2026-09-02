@@ -1,35 +1,47 @@
 package com.ricardofrango.footballmanager.presentation.routes
 
-import com.ricardofrango.footballmanager.domain.usecase.AddPlayersToTeamUseCase
-import com.ricardofrango.footballmanager.domain.usecase.CreatePlayersUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetPlayerUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetPlayersUseCase
-import com.ricardofrango.footballmanager.domain.usecase.UpdatePlayerUseCase
-import com.ricardofrango.footballmanager.model.AddPlayersToTeamRequest
-import com.ricardofrango.footballmanager.model.CreatePlayersRequest
-import com.ricardofrango.footballmanager.model.ErrorResponse
-import com.ricardofrango.footballmanager.model.UpdatePlayerRequest
+import com.ricardofrango.footballmanager.domain.usecase.*
+import com.ricardofrango.footballmanager.model.*
 import com.ricardofrango.footballmanager.security.userId
-import io.ktor.http.HttpStatusCode
+import io.ktor.http.*
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.get
-import io.ktor.server.routing.patch
-import io.ktor.server.routing.post
-import io.ktor.server.routing.route
+import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
 
 fun Route.playerRoutes() {
     val getPlayerUseCase by inject<GetPlayerUseCase>()
     val getPlayersUseCase by inject<GetPlayersUseCase>()
+    val getTeamPlayersByClubUseCase by inject<GetTeamPlayersByClubUseCase>()
     val createPlayersUseCase by inject<CreatePlayersUseCase>()
     val addPlayersToTeamUseCase by inject<AddPlayersToTeamUseCase>()
     val updatePlayerUseCase by inject<UpdatePlayerUseCase>()
 
     authenticate("auth-jwt") {
         route("/players") {
+            // 1. Specific paths first to avoid UUID collision or matching ambiguity
+            get("/associations/team") {
+                val clubId = call.request.queryParameters["clubId"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    ErrorResponse("clubId is required", "VAL_001")
+                )
+                val currentUserId =
+                    call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                
+                val teamPlayers = getTeamPlayersByClubUseCase(currentUserId, clubId)
+                call.respond(teamPlayers)
+            }
+
+            post("/add-to-team") {
+                val currentUserId =
+                    call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                val teamPlayerRequest = call.receive<AddPlayersToTeamRequest>()
+                val teamPlayer = addPlayersToTeamUseCase(currentUserId, teamPlayerRequest)
+                call.respond(HttpStatusCode.Created, teamPlayer)
+            }
+
+            // 2. Generic base paths
             get {
                 val clubId = call.request.queryParameters["clubId"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
@@ -50,14 +62,7 @@ fun Route.playerRoutes() {
                 call.respond(HttpStatusCode.Created, player)
             }
 
-            post("/add-to-team") {
-                val currentUserId =
-                    call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                val teamPlayerRequest = call.receive<AddPlayersToTeamRequest>()
-                val teamPlayer = addPlayersToTeamUseCase(currentUserId, teamPlayerRequest)
-                call.respond(HttpStatusCode.Created, teamPlayer)
-            }
-
+            // 3. ID-based paths last
             route("/{playerId}") {
                 get {
                     val playerId =

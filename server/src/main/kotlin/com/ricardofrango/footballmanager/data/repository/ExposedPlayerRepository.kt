@@ -136,6 +136,11 @@ class ExposedPlayerRepository : PlayerRepository {
             .where { UserPlayers.userId eq Uuid.parse(userId) }
             .map(::toPlayer)
 
+    override suspend fun getTeamPlayersByClub(clubId: String): List<TeamPlayer> =
+        (TeamPlayers innerJoin Players).selectAll()
+            .where { Players.clubId eq Uuid.parse(clubId) }
+            .map(::toTeamPlayer)
+
     private fun toTeamPlayer(row: ResultRow): TeamPlayer = TeamPlayer(
         id = row[TeamPlayers.id].toString(),
         teamId = row[TeamPlayers.teamId].toString(),
