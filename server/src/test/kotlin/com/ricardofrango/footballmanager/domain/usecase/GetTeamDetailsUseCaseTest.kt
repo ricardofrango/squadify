@@ -6,13 +6,17 @@ import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.model.ClubRole
+import com.ricardofrango.footballmanager.model.Player
 import com.ricardofrango.footballmanager.model.Team
+import com.ricardofrango.footballmanager.model.TeamPlayer
+import com.ricardofrango.footballmanager.model.TeamPlayerStatus
 import com.ricardofrango.footballmanager.model.TeamRole
 import com.ricardofrango.footballmanager.model.User
 import com.ricardofrango.footballmanager.model.UserStatus
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDate
 import org.junit.Test
 import kotlin.test.assertFailsWith
 import kotlin.time.Instant
@@ -36,7 +40,7 @@ class GetTeamDetailsUseCaseTest {
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
-    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, transactionManager)
+    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, transactionManager)
     private val useCase = GetTeamDetailsUseCase(teamRepository, playerRepository, checkUserPermissionUseCase, transactionManager)
 
     private val clubIdA = "club-a"
@@ -98,10 +102,45 @@ class GetTeamDetailsUseCaseTest {
         coEvery { userRepository.findById(outsider.id) } returns outsider
         coEvery { userRepository.getUserRoleInClub(outsider.id, clubIdA) } returns null
         coEvery { teamRepository.getUserRoleInTeam(outsider.id, teamId) } returns null
+        coEvery { playerRepository.getPlayersByUser(outsider.id) } returns emptyList()
 
         assertFailsWith<ForbiddenException> {
             useCase(outsider.id, teamId)
         }
+        Unit
+    }
+
+    @Test
+    fun parentOfAPlayerOnTheTeamCanSeeItsDetails() = runBlocking {
+        // The player/parent read path: a parent with no club role and no TeamStaff row, but linked
+        // via UserPlayers/TeamPlayers to a player on this team, can now view the team's details.
+        val parent = user("p10-parent")
+        val child = Player(
+            id = "child-1",
+            clubId = clubIdA,
+            firstName = "Test",
+            lastName = "Child",
+            birthDate = LocalDate(2012, 1, 1),
+            active = true
+        )
+        coEvery { teamRepository.getTeamById(teamId) } returns team
+        coEvery { userRepository.findById(parent.id) } returns parent
+        coEvery { userRepository.getUserRoleInClub(parent.id, clubIdA) } returns null
+        coEvery { teamRepository.getUserRoleInTeam(parent.id, teamId) } returns null
+        coEvery { playerRepository.getPlayersByUser(parent.id) } returns listOf(child)
+        coEvery { playerRepository.getTeamPlayersByClub(clubIdA) } returns listOf(
+            TeamPlayer(
+                id = "tp-1",
+                teamId = teamId,
+                playerId = child.id,
+                startDate = LocalDate(2020, 1, 1),
+                status = TeamPlayerStatus.ACTIVE
+            )
+        )
+        coEvery { playerRepository.getPlayersByTeam(teamId) } returns emptyList()
+        coEvery { teamRepository.getTeamStaff(teamId) } returns emptyList()
+
+        useCase(parent.id, teamId)
         Unit
     }
 }

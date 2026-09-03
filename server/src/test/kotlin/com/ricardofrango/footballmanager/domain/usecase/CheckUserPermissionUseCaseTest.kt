@@ -1,16 +1,21 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
+import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.model.ClubRole
+import com.ricardofrango.footballmanager.model.Player
+import com.ricardofrango.footballmanager.model.TeamPlayer
+import com.ricardofrango.footballmanager.model.TeamPlayerStatus
 import com.ricardofrango.footballmanager.model.TeamRole
 import com.ricardofrango.footballmanager.model.User
 import com.ricardofrango.footballmanager.model.UserStatus
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDate
 import org.junit.Test
 import kotlin.test.assertFailsWith
 import kotlin.time.Instant
@@ -30,10 +35,11 @@ class CheckUserPermissionUseCaseTest {
 
     private val userRepository = mockk<UserRepository>()
     private val teamRepository = mockk<TeamRepository>()
+    private val playerRepository = mockk<PlayerRepository>()
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
-    private val useCase = CheckUserPermissionUseCase(userRepository, teamRepository, transactionManager)
+    private val useCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, transactionManager)
 
     private val clubIdA = "club-a"
     private val clubIdB = "club-b"
@@ -50,6 +56,23 @@ class CheckUserPermissionUseCaseTest {
         status = status,
         isPlatformAdmin = isPlatformAdmin,
         createdAt = Instant.fromEpochMilliseconds(0)
+    )
+
+    private fun player(id: String, clubId: String) = Player(
+        id = id,
+        clubId = clubId,
+        firstName = "Test",
+        lastName = "Player",
+        birthDate = LocalDate(2012, 1, 1),
+        active = true
+    )
+
+    private fun teamPlayer(id: String, teamId: String, playerId: String) = TeamPlayer(
+        id = id,
+        teamId = teamId,
+        playerId = playerId,
+        startDate = LocalDate(2020, 1, 1),
+        status = TeamPlayerStatus.ACTIVE
     )
 
     // --- P1: Super Admin ---
@@ -207,24 +230,89 @@ class CheckUserPermissionUseCaseTest {
         Unit
     }
 
-    // --- P10: parent linked via UserPlayers -- TARGET BEHAVIOR, currently fails ---
+    // --- P10: parent linked via UserPlayers/TeamPlayers ---
 
     @Test
-    fun targetBehaviorParentShouldAccessChildsClubAndTeamButCurrentlyHasNoAuthPath() = runBlocking {
-        // There is no way to express "parent of a player on this team" through this function's current
-        // parameters at all -- it only ever consults ClubMembers (club role) and TeamStaff (team role),
-        // never TeamPlayers/UserPlayers. This test necessarily uses the exact same mocked inputs as
-        // outsiderWithNoRelationshipIsDenied() below: that is the point being demonstrated, not an
-        // oversight. Per the requirements, a parent/player linked via TeamPlayers/UserPlayers should be
-        // granted access to their own child's club and team; today they are indistinguishable from a
-        // total stranger and denied. See "issues to fix.md" -- "Players and family members have no
-        // authorization path at all."
+    fun parentIsGrantedAccessToChildsClubAndTeamWhenReadPathOptsIn() = runBlocking {
+        // Fixed: CheckUserPermissionUseCase now has an opt-in `allowPlayerOrParentAccess` branch that
+        // consults PlayerRepository (UserPlayers via getPlayersByUser, TeamPlayers via
+        // getTeamPlayersByClub) when club/team role checks fail. A read use case that passes
+        // allowPlayerOrParentAccess = true now grants a parent/player linked to this club and team.
+        // See "issues to fix.md" -- "Players and family members have no authorization path at all."
         val parent = user("p10-parent-of-one-child")
+        val child = player("child-1", clubIdA)
+        coEvery { userRepository.findById(parent.id) } returns parent
+        coEvery { userRepository.getUserRoleInClub(parent.id, clubIdA) } returns null
+        coEvery { teamRepository.getUserRoleInTeam(parent.id, team1) } returns null
+        coEvery { playerRepository.getPlayersByUser(parent.id) } returns listOf(child)
+        coEvery { playerRepository.getTeamPlayersByClub(clubIdA) } returns listOf(teamPlayer("tp-1", team1, child.id))
+
+        useCase(
+            parent.id,
+            clubIdA,
+            minClubRole = ClubRole.MEMBER,
+            teamId = team1,
+            allowPlayerOrParentAccess = true
+        )
+        Unit
+    }
+
+    @Test
+    fun parentLinkIsIgnoredWhenCallerDoesNotOptIn() = runBlocking {
+        // DESIGN INVARIANT: allowPlayerOrParentAccess defaults to false, so write/mutation use cases
+        // (which never pass it) remain safe even for a fully-linked parent/player.
+        val parent = user("p10-parent-of-one-child")
+        val child = player("child-1", clubIdA)
         coEvery { userRepository.findById(parent.id) } returns parent
         coEvery { userRepository.getUserRoleInClub(parent.id, clubIdA) } returns null
         coEvery { teamRepository.getUserRoleInTeam(parent.id, team1) } returns null
 
-        useCase(parent.id, clubIdA, minClubRole = ClubRole.MEMBER, teamId = team1) // should not throw; currently does
+        assertFailsWith<ForbiddenException> {
+            useCase(parent.id, clubIdA, minClubRole = ClubRole.MEMBER, teamId = team1)
+        }
+        Unit
+    }
+
+    @Test
+    fun parentLinkedToADifferentClubIsDeniedEvenWithOptIn() = runBlocking {
+        val parent = user("p10-parent-other-club")
+        val child = player("child-2", clubIdB)
+        coEvery { userRepository.findById(parent.id) } returns parent
+        coEvery { userRepository.getUserRoleInClub(parent.id, clubIdA) } returns null
+        coEvery { teamRepository.getUserRoleInTeam(parent.id, team1) } returns null
+        coEvery { playerRepository.getPlayersByUser(parent.id) } returns listOf(child)
+
+        assertFailsWith<ForbiddenException> {
+            useCase(
+                parent.id,
+                clubIdA,
+                minClubRole = ClubRole.MEMBER,
+                teamId = team1,
+                allowPlayerOrParentAccess = true
+            )
+        }
+        Unit
+    }
+
+    @Test
+    fun parentLinkedToTheRightClubButADifferentTeamIsDenied() = runBlocking {
+        val parent = user("p10-parent-different-team")
+        val child = player("child-3", clubIdA)
+        coEvery { userRepository.findById(parent.id) } returns parent
+        coEvery { userRepository.getUserRoleInClub(parent.id, clubIdA) } returns null
+        coEvery { teamRepository.getUserRoleInTeam(parent.id, team1) } returns null
+        coEvery { playerRepository.getPlayersByUser(parent.id) } returns listOf(child)
+        coEvery { playerRepository.getTeamPlayersByClub(clubIdA) } returns listOf(teamPlayer("tp-2", team2, child.id))
+
+        assertFailsWith<ForbiddenException> {
+            useCase(
+                parent.id,
+                clubIdA,
+                minClubRole = ClubRole.MEMBER,
+                teamId = team1,
+                allowPlayerOrParentAccess = true
+            )
+        }
         Unit
     }
 
@@ -243,7 +331,7 @@ class CheckUserPermissionUseCaseTest {
         Unit
     }
 
-    // --- P13: suspended member -- TARGET BEHAVIOR, currently fails ---
+    // --- P13: suspended member ---
 
     @Test
     fun suspendedMemberIsDeniedDespiteAValidClubRole() = runBlocking {

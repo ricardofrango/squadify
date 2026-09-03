@@ -47,7 +47,7 @@ Legend: ✅ current behavior matches target · ❌ gap (current ≠ target) · �
 | P4 | View Club A details | Allow | Allow | ✅ (this *is* "sees only the club") |
 | P5 | View Club A details | Allow | Allow | ✅ |
 | P9 | View Club A details | Allow (via incidental `MEMBER` grant) | Allow | ⚠️ right outcome, wrong mechanism |
-| P10 | View Club A details | **Deny** | Allow | ❌ no auth path for parents/players |
+| P10 | View Club A details | Allow | Allow | ✅ **fixed** -- `GetClubDetailsUseCase` now passes `allowPlayerOrParentAccess = true` |
 | P13 | View Club A details | Deny | Deny | ✅ **fixed** -- `CheckUserPermissionUseCase` now checks `user.status` |
 | P12 | View Club A details | Deny | Deny | ✅ |
 | P3 | Update Club A profile | Allow | Allow | ✅ **fixed** -- `UpdateClubUseCase` now requires `COORDINATOR` |
@@ -68,7 +68,7 @@ Legend: ✅ current behavior matches target · ❌ gap (current ≠ target) · �
 | P5 | View Team 1 details/roster (their own team) | Allow | Allow | ✅ **fixed** -- `GetTeamDetailsUseCase`/`GetTeamPlayersUseCase`/`GetTeamStaffUseCase` now pass `minTeamRole = TeamRole.STAFF` |
 | P6 | View Team 2 details/roster (their own team) | Allow | Allow | ✅ **fixed** -- see above |
 | P6 | View Team 1 details/roster (not their team) | Deny | Deny | ✅ |
-| P10 | View Team 1 details (their child's team) | Deny | Allow | ❌ no auth path for parents/players |
+| P10 | View Team 1 details (their child's team) | Allow | Allow | ✅ **fixed** -- `GetTeamDetailsUseCase`/`GetTeamPlayersUseCase`/`GetTeamStaffUseCase` now pass `allowPlayerOrParentAccess = true` |
 | P8 | View Club B/Team 5 details (their other coaching job) | Allow | Allow | ✅ **fixed** -- see above |
 | P8 | View Club A/Team 3 details (a team they have no role on) | Deny | Deny | ✅ |
 | P12 | View Team 1 details | Deny | Deny | ✅ |
@@ -92,8 +92,8 @@ Legend: ✅ current behavior matches target · ❌ gap (current ≠ target) · �
 | P4 | Create a match | Deny | Deny | ✅ |
 | P5 | List Team 1's matches (with a team filter) | Allow | Allow | ✅ **fixed** -- see above |
 | P5 | List Club A's matches (no team filter) | **Allow, every team's matches** | Allow, Team 1's only | ❌ `teamId == null` shortcut |
-| P10 | View Team 1's match calendar | Deny | Allow | ❌ no auth path for parents/players |
-| P10 | View a specific match's details | Deny | Allow | ❌ no auth path for parents/players |
+| P10 | View Team 1's match calendar | Allow | Allow | ✅ **fixed** -- `GetMatchesUseCase` now passes `allowPlayerOrParentAccess = true` |
+| P10 | View a specific match's details | Allow | Allow | ✅ **fixed** -- `GetMatchDetailsUseCase` now passes `minTeamRole = TeamRole.STAFF`, `teamId = match.teamId`, `allowPlayerOrParentAccess = true` |
 | P5 | Log a match event for Team 1 | Allow | Allow | ✅ (this one correctly sets `minTeamRole = COACH`) |
 | P5 | Manage call-ups for Team 1 | Allow | Allow | ✅ |
 | P6 | Manage call-ups for Team 1 (not their team) | Deny | Deny | ✅ |

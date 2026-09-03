@@ -17,6 +17,7 @@ class GetClubDetailsUseCase(
             userId = userId,
             clubId = clubId,
             minClubRole = ClubRole.MEMBER,
+            allowPlayerOrParentAccess = true,
             errorMessage = "You do not have access to this club"
         )
 

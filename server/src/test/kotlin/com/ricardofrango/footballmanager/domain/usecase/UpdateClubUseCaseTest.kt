@@ -1,6 +1,7 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.ClubRepository
+import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.domain.service.TransactionManager
@@ -28,10 +29,11 @@ class UpdateClubUseCaseTest {
     private val clubRepository = mockk<ClubRepository>()
     private val userRepository = mockk<UserRepository>()
     private val teamRepository = mockk<TeamRepository>()
+    private val playerRepository = mockk<PlayerRepository>()
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
-    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, transactionManager)
+    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, transactionManager)
     private val useCase = UpdateClubUseCase(clubRepository, checkUserPermissionUseCase, transactionManager)
 
     private val clubIdA = "club-a"

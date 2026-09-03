@@ -23,7 +23,8 @@ class GetTeamPlayersUseCase(
             clubId = team.clubId,
             minClubRole = ClubRole.MEMBER,
             minTeamRole = TeamRole.STAFF,
-            teamId = teamId
+            teamId = teamId,
+            allowPlayerOrParentAccess = true
         )
 
         playerRepository.getPlayersByTeam(teamId)

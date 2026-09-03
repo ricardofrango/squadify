@@ -1,5 +1,6 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
+import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.domain.service.TransactionManager
@@ -25,11 +26,12 @@ import kotlin.time.Instant
 class GetTeamsUseCaseTest {
 
     private val teamRepository = mockk<TeamRepository>()
+    private val playerRepository = mockk<PlayerRepository>()
     private val userRepository = mockk<UserRepository>()
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
-    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, transactionManager)
+    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, transactionManager)
     private val useCase = GetTeamsUseCase(teamRepository, userRepository, checkUserPermissionUseCase, transactionManager)
 
     private val clubIdA = "club-a"

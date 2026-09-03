@@ -24,7 +24,8 @@ class GetTeamDetailsUseCase(
             clubId = team.clubId,
             minClubRole = ClubRole.MEMBER,
             minTeamRole = TeamRole.STAFF,
-            teamId = teamId
+            teamId = teamId,
+            allowPlayerOrParentAccess = true
         )
 
         val players = playerRepository.getPlayersByTeam(teamId)

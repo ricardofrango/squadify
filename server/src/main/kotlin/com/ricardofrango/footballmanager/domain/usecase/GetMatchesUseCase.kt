@@ -18,7 +18,8 @@ class GetMatchesUseCase(
             clubId = clubId,
             minClubRole = ClubRole.MEMBER,
             minTeamRole = TeamRole.STAFF,
-            teamId = teamId
+            teamId = teamId,
+            allowPlayerOrParentAccess = true
         )
 
         if (teamId != null) {

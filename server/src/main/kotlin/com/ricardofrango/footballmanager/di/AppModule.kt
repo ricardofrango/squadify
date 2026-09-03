@@ -32,7 +32,7 @@ val appModule = module {
     factory { RegisterUseCase(get(), get(), get(), get(), get()) }
     factory { LoginUseCase(get(), get()) }
     factory { RefreshTokenUseCase(get(), get()) }
-    factory { CheckUserPermissionUseCase(get(), get(), get()) }
+    factory { CheckUserPermissionUseCase(get(), get(), get(), get()) }
     factory { CheckUserIsAdminUseCase(get(), get()) }
     factory { AddClubMembersUseCase(get(), get(), get(), get(), get()) }
     factory { UpdateClubMemberRoleUseCase(get(), get(), get()) }
