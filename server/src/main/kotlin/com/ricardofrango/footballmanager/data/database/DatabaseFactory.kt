@@ -74,6 +74,12 @@ object DatabaseFactory : TransactionManager {
                 driverClassName = driver
                 jdbcUrl = url
                 username = "sa"
+                // Intentionally blank: this is a local, file-based H2 database reachable only from
+                // this machine (the web console no longer accepts remote connections either -- see
+                // Application.kt). Not changed to avoid invalidating the existing local DB file's
+                // stored credentials (H2 persists them at creation time; changing the connecting
+                // password here would lock out the current dev database until it's recreated).
+                // Superseded once production moves to PostgreSQL with real credential handling.
                 password = ""
                 maximumPoolSize = 3
                 isAutoCommit = false

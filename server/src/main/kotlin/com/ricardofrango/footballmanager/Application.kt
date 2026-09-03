@@ -1,5 +1,7 @@
 package com.ricardofrango.footballmanager
 
+import com.ricardofrango.footballmanager.config.AppEnvironment
+import com.ricardofrango.footballmanager.config.ServerConfig
 import com.ricardofrango.footballmanager.data.database.DatabaseFactory
 import com.ricardofrango.footballmanager.di.appModule
 import com.ricardofrango.footballmanager.presentation.routes.authRoutes
@@ -40,12 +42,19 @@ import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
 
 fun main() {
-    // Start H2 Web Console on port 8082
-    try {
-        org.h2.tools.Server.createWebServer("-web", "-webAllowOthers", "-webPort", "8082").start()
-        println("H2 Web Console started at http://localhost:8082")
-    } catch (e: Exception) {
-        println("Failed to start H2 Console: ${e.message}")
+    // Fixed: the H2 web console is dev-only tooling for inspecting the local file-based database. It
+    // now only starts when APP_ENV is not "production", and no longer passes -webAllowOthers -- a
+    // browser on the same machine reaches the console via localhost without it, so dropping it closes
+    // the console to every other machine on the network with no change to the local workflow. See
+    // "issues to fix.md" -- Critical -- security. (Production is expected to move to PostgreSQL, which
+    // has its own tooling for inspecting data -- see REQUIREMENTS.md's "Production Database" item.)
+    if (ServerConfig.environment != AppEnvironment.PRODUCTION) {
+        try {
+            org.h2.tools.Server.createWebServer("-web", "-webPort", "8082").start()
+            println("H2 Web Console started at http://localhost:8082")
+        } catch (e: Exception) {
+            println("Failed to start H2 Console: ${e.message}")
+        }
     }
 
     embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)

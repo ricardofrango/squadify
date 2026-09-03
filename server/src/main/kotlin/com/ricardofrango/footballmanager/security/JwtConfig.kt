@@ -3,10 +3,14 @@ package com.ricardofrango.footballmanager.security
 import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
+import com.ricardofrango.footballmanager.config.ServerConfig
 import java.util.*
 
 object JwtConfig {
-    private const val SECRET = "my-super-secret-football-manager-key" // In production, use environment variables
+    // Fixed: previously a hardcoded literal (anyone with repo read access could forge tokens for any
+    // user). Now sourced from ServerConfig, which reads the JWT_SECRET environment variable and refuses
+    // to start in production without it. See "issues to fix.md" -- Critical -- security.
+    private val SECRET = ServerConfig.jwtSecret
     private const val ISSUER = "com.ricardofrango.footballmanager"
     private const val AUDIENCE = "football-manager-users"
     
