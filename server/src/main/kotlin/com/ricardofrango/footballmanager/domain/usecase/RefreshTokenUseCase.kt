@@ -12,14 +12,21 @@ class RefreshTokenUseCase(
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(refreshToken: String): TokenResponse = transactionManager.runInTransaction {
-        val userId = userRepository.findUserIdByRefreshToken(refreshToken)
+        val stored = userRepository.findRefreshToken(refreshToken)
             ?: throw UnauthorizedException("Invalid refresh token")
 
-        // In a real app, we should also check if the token has expired in the DB.
-        // For MVP, we can just delete the old one and generate a new pair.
-        
+        // Business rule: a refresh token is only usable until its stored expiry. An expired token is
+        // dropped and rejected the same way an unknown one is.
+        val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+        if (stored.expiresAt < now) {
+            userRepository.deleteRefreshToken(refreshToken)
+            throw UnauthorizedException("Refresh token expired")
+        }
+
+        // Rotate: drop the presented token and issue a fresh pair.
         userRepository.deleteRefreshToken(refreshToken)
-        
+        val userId = stored.userId
+
         val newAccessToken = JwtConfig.generateAccessToken(userId)
         val newRefreshToken = JwtConfig.generateRefreshToken()
         val expiresAt = Instant.fromEpochMilliseconds(JwtConfig.getRefreshTokenExpiration())

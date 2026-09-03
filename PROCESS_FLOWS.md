@@ -142,16 +142,18 @@ graph TD
 
 ```mermaid
 graph TD
-    A[Start: refreshToken] --> B[Find userId by refresh token]
+    A[Start: refreshToken] --> B[Load stored refresh token record]
     B -- not found --> U(["Throw UnauthorizedException: invalid refresh token"])
-    B -- found --> C[Delete the old refresh token]
-    C --> D[Generate new Access Token]
-    D --> E[Generate new Refresh Token]
-    E --> F[Save new Refresh Token to DB]
-    F --> Z(["Return new access + refresh token pair"])
+    B -- found --> C{expires_at < now?}
+    C -- Yes --> D[Delete the expired token] --> U2(["Throw UnauthorizedException: refresh token expired"])
+    C -- No --> E[Delete the old refresh token]
+    E --> F[Generate new Access Token]
+    F --> G[Generate new Refresh Token]
+    G --> H[Save new Refresh Token to DB — expires 30 days out]
+    H --> Z(["Return new access + refresh token pair"])
 ```
 
-Note: the old token is deleted purely by lookup success — there is no explicit "is this token expired" check against the stored `expiresAt` before issuing a new pair (see §11).
+Note: the repository (`findRefreshToken`) just retrieves the row as-is; the expiry decision is a business rule owned by the use case, which deletes an expired token as it rejects it. Rotation deletes the presented token on the success path too. Covered by `RefreshTokenUseCaseTest` and `JwtConfigTest`.
 
 ---
 

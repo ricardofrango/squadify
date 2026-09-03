@@ -1,6 +1,7 @@
 package com.ricardofrango.footballmanager.model
 
 import kotlinx.serialization.Serializable
+import kotlin.time.Instant
 
 @Serializable
 data class LoginRequest(
@@ -33,6 +34,16 @@ data class RefreshTokenRequest(
 data class TokenResponse(
     val accessToken: String,
     val refreshToken: String
+)
+
+/**
+ * A stored refresh-token record, as retrieved for validation. Server-internal (never returned to a
+ * client) — carries just what `RefreshTokenUseCase` needs to decide whether the token is still usable.
+ */
+@Serializable
+data class RefreshToken(
+    val userId: String,
+    val expiresAt: Instant
 )
 
 @Serializable

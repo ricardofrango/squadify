@@ -5,6 +5,8 @@ import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
 import com.ricardofrango.footballmanager.config.ServerConfig
 import java.util.*
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 
 object JwtConfig {
     // Fixed: previously a hardcoded literal (anyone with repo read access could forge tokens for any
@@ -14,8 +16,10 @@ object JwtConfig {
     private const val ISSUER = "com.ricardofrango.footballmanager"
     private const val AUDIENCE = "football-manager-users"
     
-    private const val ACCESS_TOKEN_VALIDITY_MS = 3_600_000 // 1 hour
-    private const val REFRESH_TOKEN_VALIDITY_MS = 36_000_000 * 24 // 24 days
+    // Expressed via kotlin.time.Duration so the values are unambiguous and can't silently overflow an
+    // Int (the previous `36_000_000 * 24` literal was meant to be 24 days but actually computed to 10).
+    private val ACCESS_TOKEN_VALIDITY_MS: Long = 1.hours.inWholeMilliseconds
+    private val REFRESH_TOKEN_VALIDITY_MS: Long = 30.days.inWholeMilliseconds
 
     private val algorithm = Algorithm.HMAC256(SECRET)
 
@@ -29,7 +33,7 @@ object JwtConfig {
     
     fun generateRefreshToken(): String = UUID.randomUUID().toString()
 
-    private fun generateToken(userId: String, validityMs: Int): String = JWT.create()
+    private fun generateToken(userId: String, validityMs: Long): String = JWT.create()
         .withSubject(userId)
         .withIssuer(ISSUER)
         .withAudience(AUDIENCE)

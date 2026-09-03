@@ -6,6 +6,7 @@ import com.ricardofrango.footballmanager.data.database.Users
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.exception.DatabaseException
 import com.ricardofrango.footballmanager.model.ClubRole
+import com.ricardofrango.footballmanager.model.RefreshToken
 import com.ricardofrango.footballmanager.model.User
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
@@ -85,9 +86,9 @@ class ExposedUserRepository : UserRepository {
         }
     }
 
-    override suspend fun findUserIdByRefreshToken(token: String): String? =
+    override suspend fun findRefreshToken(token: String): RefreshToken? =
         RefreshTokens.selectAll().where { RefreshTokens.token eq token }
-            .map { it[RefreshTokens.userId].toString() }
+            .map { RefreshToken(userId = it[RefreshTokens.userId].toString(), expiresAt = it[RefreshTokens.expiresAt]) }
             .singleOrNull()
 
     override suspend fun deleteRefreshToken(token: String) {
