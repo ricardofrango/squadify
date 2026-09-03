@@ -72,6 +72,12 @@ Legend: ✅ current behavior matches target · ❌ gap (current ≠ target) · �
 | P8 | View Club B/Team 5 details (their other coaching job) | Allow | Allow | ✅ **fixed** -- see above |
 | P8 | View Club A/Team 3 details (a team they have no role on) | Deny | Deny | ✅ |
 | P12 | View Team 1 details | Deny | Deny | ✅ |
+| P10 | List Club A's teams (their child's team only) | Empty list | Team 1 only | ✅ **fixed** -- `GetTeamsUseCase` now also filters in teams reached via `TeamPlayers`/`UserPlayers` |
+| P2 | List Club A's players (no team filter) | Allow, every player | Allow, every player | ✅ |
+| P4 | List Club A's players (no team filter) | **Allow, every player** | Empty list | ✅ **fixed** -- `GetPlayersUseCase` now scopes to the caller's own team(s), same as `GetTeamsUseCase` |
+| P5 | List Club A's players (no team filter) | **Allow, every player** | Allow, Team 1's roster only | ✅ **fixed** -- see above |
+| P10 | List Club A's players (no team filter) | Deny | Allow, their child's team roster only | ✅ **fixed** -- `GetPlayersUseCase` now also passes `allowPlayerOrParentAccess = true` |
+| P5 | List Team 1's players (with a team filter) | Deny (missing `minTeamRole`) | Allow | ✅ **fixed** -- `GetPlayersUseCase` never set `minTeamRole` on this path either; now passes `minTeamRole = TeamRole.STAFF` alongside `allowPlayerOrParentAccess = true` |
 
 ### Age groups & seasons
 
@@ -79,8 +85,23 @@ Legend: ✅ current behavior matches target · ❌ gap (current ≠ target) · �
 |---|---|---|---|---|
 | P3 | Create a season / age group for Club A | Allow | Allow | ✅ |
 | P4 | Create a season / age group for Club A | Deny | Deny | ✅ |
-| P4 | List Club A's seasons/age groups | **Allow** | Deny (sees only the club) | ❌ same `teamId == null` shortcut |
+| P4 | List Club A's seasons/age groups | Empty list | Empty list | ✅ **fixed** -- `GetSeasonsUseCase`/`GetAgeGroupsUseCase` now scope to the season(s)/age group(s) the caller's own team(s) actually belong to, instead of every club member seeing all of them. (Originally scoped as a hard Deny in this matrix; revised to a filtered/empty list for consistency with `GetTeamsUseCase`'s P4 target and the developer's explicit instruction that this filtering approach apply to every persona, including players/parents.) |
+| P7 | List Club A's seasons/age groups (two teams, two age groups, one season) | N/A (not previously modeled) | One season, two age groups | ✅ **fixed** -- see above; a caller's own teams are deduped per season/age group, not just unioned as raw team rows |
+| P10 | List Club A's seasons/age groups (their child's team only) | N/A (not previously modeled) | Their child's team's season and age group only | ✅ **fixed** -- see above |
 | P2 | Create a Team under Age Group X / Season Y where X doesn't actually belong to Y | Deny / validation error | Deny / validation error | ✅ **fixed** -- `CreateTeamUseCase` now validates the age group belongs to the club and season |
+
+### Opponents
+
+Unlike teams/players/matches/seasons/age groups, `GetOpponentsUseCase` is intentionally **not**
+scoped by team assignment (confirmed with the developer): an opponent isn't tied to any specific team
+in the data model, and the list is low-sensitivity reference data (just the names of other teams/clubs
+this club plays against). Any club member -- with or without a team assignment -- can list them.
+
+| Persona | Action | Current | Target | |
+|---|---|---|---|---|
+| P2 | List Club A's opponents | Allow | Allow | ✅ |
+| P4 | List Club A's opponents | Allow | Allow | ✅ (intentional -- see above, not scoped like Teams/Players/Matches/Seasons/AgeGroups) |
+| P12 | List Club A's opponents | Deny | Deny | ✅ |
 
 ### Matches
 
@@ -91,7 +112,7 @@ Legend: ✅ current behavior matches target · ❌ gap (current ≠ target) · �
 | P2 | Create a match for any team in Club A | Allow | Allow | ✅ |
 | P4 | Create a match | Deny | Deny | ✅ |
 | P5 | List Team 1's matches (with a team filter) | Allow | Allow | ✅ **fixed** -- see above |
-| P5 | List Club A's matches (no team filter) | **Allow, every team's matches** | Allow, Team 1's only | ❌ `teamId == null` shortcut |
+| P5 | List Club A's matches (no team filter) | Allow, Team 1's only | Allow, Team 1's only | ✅ **fixed** -- `GetMatchesUseCase` now scopes to the caller's own team(s) instead of every match in the club |
 | P10 | View Team 1's match calendar | Allow | Allow | ✅ **fixed** -- `GetMatchesUseCase` now passes `allowPlayerOrParentAccess = true` |
 | P10 | View a specific match's details | Allow | Allow | ✅ **fixed** -- `GetMatchDetailsUseCase` now passes `minTeamRole = TeamRole.STAFF`, `teamId = match.teamId`, `allowPlayerOrParentAccess = true` |
 | P5 | Log a match event for Team 1 | Allow | Allow | ✅ (this one correctly sets `minTeamRole = COACH`) |

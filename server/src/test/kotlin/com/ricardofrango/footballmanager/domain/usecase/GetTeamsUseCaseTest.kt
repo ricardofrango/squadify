@@ -32,7 +32,7 @@ class GetTeamsUseCaseTest {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, transactionManager)
-    private val useCase = GetTeamsUseCase(teamRepository, userRepository, checkUserPermissionUseCase, transactionManager)
+    private val useCase = GetTeamsUseCase(teamRepository, userRepository, playerRepository, checkUserPermissionUseCase, transactionManager)
 
     private val clubIdA = "club-a"
 
@@ -84,6 +84,7 @@ class GetTeamsUseCaseTest {
         coEvery { teamRepository.getUserRoleInTeam(member.id, team2.id) } returns null
         coEvery { teamRepository.getUserRoleInTeam(member.id, team3.id) } returns null
         coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team1, team2, team3)
+        coEvery { playerRepository.getPlayersByUser(member.id) } returns emptyList()
 
         val result = useCase(member.id, clubIdA)
 
@@ -102,10 +103,47 @@ class GetTeamsUseCaseTest {
         coEvery { teamRepository.getUserRoleInTeam(coach.id, team2.id) } returns null
         coEvery { teamRepository.getUserRoleInTeam(coach.id, team3.id) } returns null
         coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team1, team2, team3)
+        coEvery { playerRepository.getPlayersByUser(coach.id) } returns emptyList()
 
         val result = useCase(coach.id, clubIdA)
 
         assertEquals(listOf(team1), result)
+        Unit
+    }
+
+    @Test
+    fun parentOnlySeesTheTeamTheirChildIsOn() = runBlocking {
+        // A parent has no ClubRole and no TeamRole at all -- access flows entirely through
+        // TeamPlayers/UserPlayers via CheckUserPermissionUseCase's allowPlayerOrParentAccess path.
+        val parent = user("p10-parent")
+        val child = com.ricardofrango.footballmanager.model.Player(
+            id = "child-1",
+            clubId = clubIdA,
+            firstName = "Test",
+            lastName = "Child",
+            birthDate = kotlinx.datetime.LocalDate(2012, 1, 1),
+            active = true
+        )
+        coEvery { userRepository.findById(parent.id) } returns parent
+        coEvery { userRepository.getUserRoleInClub(parent.id, clubIdA) } returns null
+        coEvery { teamRepository.getUserRoleInTeam(parent.id, team1.id) } returns null
+        coEvery { teamRepository.getUserRoleInTeam(parent.id, team2.id) } returns null
+        coEvery { teamRepository.getUserRoleInTeam(parent.id, team3.id) } returns null
+        coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team1, team2, team3)
+        coEvery { playerRepository.getPlayersByUser(parent.id) } returns listOf(child)
+        coEvery { playerRepository.getTeamPlayersByClub(clubIdA) } returns listOf(
+            com.ricardofrango.footballmanager.model.TeamPlayer(
+                id = "tp-1",
+                teamId = team2.id,
+                playerId = child.id,
+                startDate = kotlinx.datetime.LocalDate(2020, 1, 1),
+                status = com.ricardofrango.footballmanager.model.TeamPlayerStatus.ACTIVE
+            )
+        )
+
+        val result = useCase(parent.id, clubIdA)
+
+        assertEquals(listOf(team2), result)
         Unit
     }
 }
