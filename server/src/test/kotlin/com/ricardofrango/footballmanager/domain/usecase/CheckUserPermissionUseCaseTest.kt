@@ -246,13 +246,13 @@ class CheckUserPermissionUseCaseTest {
     // --- P13: suspended member -- TARGET BEHAVIOR, currently fails ---
 
     @Test
-    fun targetBehaviorSuspendedMemberShouldBeDeniedDespiteAValidClubRole() = runBlocking {
+    fun suspendedMemberIsDeniedDespiteAValidClubRole() = runBlocking {
+        // Fixed: CheckUserPermissionUseCase now denies any non-ACTIVE account outright.
+        // See "issues to fix.md" -- "User status is never enforced."
         val suspended = user("p13-suspended-member", status = UserStatus.SUSPENDED)
         coEvery { userRepository.findById(suspended.id) } returns suspended
         coEvery { userRepository.getUserRoleInClub(suspended.id, clubIdA) } returns ClubRole.MEMBER
 
-        // Should be denied because the account is suspended; today user.status is never checked.
-        // See "issues to fix.md" -- "User status is never enforced."
         assertFailsWith<ForbiddenException> {
             useCase(suspended.id, clubIdA, minClubRole = ClubRole.MEMBER)
         }

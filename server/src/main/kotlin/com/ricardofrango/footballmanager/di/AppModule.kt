@@ -38,7 +38,7 @@ val appModule = module {
     factory { UpdateClubMemberRoleUseCase(get(), get(), get()) }
     factory { UpdateClubUseCase(get(), get(), get()) }
 
-    factory { CreateTeamUseCase(get(), get(), get()) }
+    factory { CreateTeamUseCase(get(), get(), get(), get()) }
     factory { AddStaffToTeamsUseCase(get(), get(), get(), get()) }
     factory { GetTeamStaffUseCase(get(), get(), get()) }
     factory { GetTeamPlayersUseCase(get(), get(), get(), get()) }
@@ -60,7 +60,7 @@ val appModule = module {
     factory { UpdatePlayerUseCase(get(), get(), get(), get(), get(), get()) }
     factory { AddPlayersToTeamUseCase(get(), get(), get(), get(), get()) }
 
-    factory { GetTeamsUseCase(get(), get(), get()) }
+    factory { GetTeamsUseCase(get(), get(), get(), get()) }
     factory { CreateMatchUseCase(get(), get(), get(), get(), get()) }
     factory { GetMatchesUseCase(get(), get(), get()) }
     factory { GetMatchDetailsUseCase(get(), get(), get(), get()) }

@@ -30,7 +30,7 @@ class GetTeamsUseCaseTest {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, transactionManager)
-    private val useCase = GetTeamsUseCase(teamRepository, checkUserPermissionUseCase, transactionManager)
+    private val useCase = GetTeamsUseCase(teamRepository, userRepository, checkUserPermissionUseCase, transactionManager)
 
     private val clubIdA = "club-a"
 
@@ -72,24 +72,27 @@ class GetTeamsUseCaseTest {
     }
 
     @Test
-    fun plainMemberWithNoTeamAssignmentCurrentlySeesEveryTeamInTheClub() = runBlocking {
-        // Documents today's actual behavior: GetTeamsUseCase never checks TeamStaff at all.
+    fun plainMemberWithNoTeamAssignmentSeesNoTeams() = runBlocking {
+        // Fixed: a plain member with zero TeamStaff rows now sees an empty list, not the whole club's
+        // teams. See "issues to fix.md" -- "A plain club member sees the whole club, not just 'the club.'"
         val member = user("p4-plain-member")
         coEvery { userRepository.findById(member.id) } returns member
         coEvery { userRepository.getUserRoleInClub(member.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { teamRepository.getUserRoleInTeam(member.id, team1.id) } returns null
+        coEvery { teamRepository.getUserRoleInTeam(member.id, team2.id) } returns null
+        coEvery { teamRepository.getUserRoleInTeam(member.id, team3.id) } returns null
         coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team1, team2, team3)
 
         val result = useCase(member.id, clubIdA)
 
-        assertEquals(listOf(team1, team2, team3), result) // should be scoped down per requirements; isn't
+        assertEquals(emptyList(), result)
         Unit
     }
 
     @Test
-    fun targetBehaviorMemberShouldOnlySeeTeamsTheyAreAssignedToButCurrentlySeesAll() = runBlocking {
-        // TARGET BEHAVIOR (currently fails): a member who coaches Team 1 only should get back [team1],
-        // not every team in the club. GetTeamsUseCase does no such filtering today -- it never even
-        // calls TeamRepository.getUserRoleInTeam. See "issues to fix.md".
+    fun memberOnlySeesTeamsTheyAreAssignedTo() = runBlocking {
+        // Fixed: a member who coaches Team 1 only now gets back [team1], not every team in the club.
+        // GetTeamsUseCase now filters using TeamRepository.getUserRoleInTeam. See "issues to fix.md".
         val coach = user("p5-coach-team1")
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER

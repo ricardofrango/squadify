@@ -69,16 +69,15 @@ class UpdateClubMemberRoleUseCaseTest {
     }
 
     @Test
-    fun targetBehaviorCoordinatorShouldBeAbleToChangeAMembersRoleButCurrentlyCannot() = runBlocking {
-        // TARGET BEHAVIOR (currently fails): same admin/coordinator equivalence gap as
-        // UpdateClubUseCaseTest -- this use case also requires CLUB_ADMIN specifically.
-        // See "issues to fix.md".
+    fun coordinatorCanChangeAMembersRole() = runBlocking {
+        // Fixed: same admin/coordinator equivalence gap as UpdateClubUseCaseTest -- this use case now
+        // passes minClubRole = COORDINATOR instead of CLUB_ADMIN. See "issues to fix.md".
         val coordinator = user("p3-coordinator")
         coEvery { userRepository.findById(coordinator.id) } returns coordinator
         coEvery { userRepository.getUserRoleInClub(coordinator.id, clubIdA) } returns ClubRole.COORDINATOR
         coEvery { clubRepository.updateMemberRole(clubIdA, targetUserId, ClubRole.COORDINATOR) } returns true
 
-        useCase(coordinator.id, clubIdA, targetUserId, UpdateClubMemberRoleRequest(role = ClubRole.COORDINATOR)) // should succeed; currently throws
+        useCase(coordinator.id, clubIdA, targetUserId, UpdateClubMemberRoleRequest(role = ClubRole.COORDINATOR))
         Unit
     }
 }

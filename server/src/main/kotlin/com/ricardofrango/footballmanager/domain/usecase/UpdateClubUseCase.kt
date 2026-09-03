@@ -22,8 +22,8 @@ class UpdateClubUseCase(
         checkUserPermissionUseCase(
             userId = userId,
             clubId = clubId,
-            minClubRole = ClubRole.CLUB_ADMIN,
-            errorMessage = "Only club admins can update club details"
+            minClubRole = ClubRole.COORDINATOR,
+            errorMessage = "Only club admins or coordinators can update club details"
         )
 
         val updatedClub = existingClub.copy(

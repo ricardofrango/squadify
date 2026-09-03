@@ -63,9 +63,9 @@ class GetTeamDetailsUseCaseTest {
     )
 
     @Test
-    fun targetBehaviorCoachOfTheTeamShouldSeeItsDetailsButIsCurrentlyDenied() = runBlocking {
-        // TARGET BEHAVIOR (currently fails): a coach genuinely assigned to this team should be able
-        // to view its own details/roster/staff.
+    fun coachOfTheTeamCanSeeItsDetails() = runBlocking {
+        // Fixed: GetTeamDetailsUseCase now passes minTeamRole = TeamRole.STAFF, so a coach (or staff
+        // member) genuinely assigned to this team can view its own details/roster/staff.
         val coach = user("p5-coach-team1")
         coEvery { teamRepository.getTeamById(teamId) } returns team
         coEvery { userRepository.findById(coach.id) } returns coach
@@ -74,8 +74,6 @@ class GetTeamDetailsUseCaseTest {
         coEvery { playerRepository.getPlayersByTeam(teamId) } returns emptyList()
         coEvery { teamRepository.getTeamStaff(teamId) } returns emptyList()
 
-        // Currently throws ForbiddenException because GetTeamDetailsUseCase never sets minTeamRole,
-        // so the team-role branch in CheckUserPermissionUseCase never runs for this coach.
         useCase(coach.id, teamId)
         Unit
     }

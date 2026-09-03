@@ -1,10 +1,12 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
+import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.exception.ValidationException
+import com.ricardofrango.footballmanager.model.AgeGroup
 import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.CreateTeamRequest
 import com.ricardofrango.footballmanager.model.Team
@@ -28,13 +30,22 @@ class CreateTeamUseCaseTest {
 
     private val teamRepository = mockk<TeamRepository>()
     private val userRepository = mockk<UserRepository>()
+    private val ageGroupRepository = mockk<AgeGroupRepository>()
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, transactionManager)
-    private val useCase = CreateTeamUseCase(teamRepository, checkUserPermissionUseCase, transactionManager)
+    private val useCase = CreateTeamUseCase(teamRepository, ageGroupRepository, checkUserPermissionUseCase, transactionManager)
 
     private val clubIdA = "club-a"
+
+    private val consistentAgeGroup = AgeGroup(
+        id = "age-group-1",
+        clubId = clubIdA,
+        name = "U12",
+        seasonId = "season-1",
+        birthYear = 2014
+    )
 
     private val dummyTeam = Team(
         id = "generated-team-id",
@@ -61,6 +72,7 @@ class CreateTeamUseCaseTest {
         val coordinator = user("p3-coordinator")
         coEvery { userRepository.findById(coordinator.id) } returns coordinator
         coEvery { userRepository.getUserRoleInClub(coordinator.id, clubIdA) } returns ClubRole.COORDINATOR
+        coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns consistentAgeGroup
         coEvery { teamRepository.createTeam(any()) } returns dummyTeam
         val request = CreateTeamRequest(clubId = clubIdA, ageGroupId = "age-group-1", seasonId = "season-1", name = "Team 1")
 
@@ -82,15 +94,19 @@ class CreateTeamUseCaseTest {
     }
 
     @Test
-    fun targetBehaviorAgeGroupFromADifferentSeasonShouldBeRejectedButCurrentlyIsNot() = runBlocking {
-        // TARGET BEHAVIOR (currently fails): ageGroupId "age-group-from-season-X" doesn't actually
-        // belong to seasonId "season-Y" -- this should be a validation error. CreateTeamUseCase has no
-        // AgeGroupRepository dependency at all today, so it cannot check this and happily creates the
-        // team regardless. See "issues to fix.md".
+    fun ageGroupFromADifferentSeasonIsRejected() = runBlocking {
+        // Fixed: CreateTeamUseCase now checks that the age group actually belongs to the given club and
+        // season before creating the team. See "issues to fix.md".
         val admin = user("p2-club-admin")
         coEvery { userRepository.findById(admin.id) } returns admin
         coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
-        coEvery { teamRepository.createTeam(any()) } returns dummyTeam
+        coEvery { ageGroupRepository.getAgeGroupById("age-group-from-season-X") } returns AgeGroup(
+            id = "age-group-from-season-X",
+            clubId = clubIdA,
+            name = "U14",
+            seasonId = "season-X-actual", // deliberately inconsistent with the request's seasonId below
+            birthYear = 2012
+        )
         val request = CreateTeamRequest(
             clubId = clubIdA,
             ageGroupId = "age-group-from-season-X",

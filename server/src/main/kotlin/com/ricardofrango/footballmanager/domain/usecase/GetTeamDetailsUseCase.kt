@@ -5,6 +5,7 @@ import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.ClubRole
+import com.ricardofrango.footballmanager.model.TeamRole
 import com.ricardofrango.footballmanager.model.TeamDetails
 
 class GetTeamDetailsUseCase(
@@ -18,7 +19,13 @@ class GetTeamDetailsUseCase(
             ?: throw ValidationException("Team not found")
 
         // 1. Check permissions first (Member of club)
-        checkUserPermissionUseCase(userId, team.clubId, minClubRole = ClubRole.MEMBER, teamId = teamId)
+        checkUserPermissionUseCase(
+            userId = userId,
+            clubId = team.clubId,
+            minClubRole = ClubRole.MEMBER,
+            minTeamRole = TeamRole.STAFF,
+            teamId = teamId
+        )
 
         val players = playerRepository.getPlayersByTeam(teamId)
         val staff = teamRepository.getTeamStaff(teamId)

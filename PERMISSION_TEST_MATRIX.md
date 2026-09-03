@@ -48,12 +48,12 @@ Legend: ✅ current behavior matches target · ❌ gap (current ≠ target) · �
 | P5 | View Club A details | Allow | Allow | ✅ |
 | P9 | View Club A details | Allow (via incidental `MEMBER` grant) | Allow | ⚠️ right outcome, wrong mechanism |
 | P10 | View Club A details | **Deny** | Allow | ❌ no auth path for parents/players |
-| P13 | View Club A details | **Allow** | Deny | ❌ user status never checked |
+| P13 | View Club A details | Deny | Deny | ✅ **fixed** -- `CheckUserPermissionUseCase` now checks `user.status` |
 | P12 | View Club A details | Deny | Deny | ✅ |
-| P3 | Update Club A profile | **Deny** | Allow | ❌ `UpdateClubUseCase` requires `CLUB_ADMIN`, excludes `COORDINATOR` |
+| P3 | Update Club A profile | Allow | Allow | ✅ **fixed** -- `UpdateClubUseCase` now requires `COORDINATOR` |
 | P2 | Update Club A profile | Allow | Allow | ✅ |
 | P5 | Update Club A profile | Deny | Deny | ✅ |
-| P3 | Change a Club A member's role | **Deny** | Allow | ❌ same `CLUB_ADMIN`-only gap, `UpdateClubMemberRoleUseCase` |
+| P3 | Change a Club A member's role | Allow | Allow | ✅ **fixed** -- `UpdateClubMemberRoleUseCase` now requires `COORDINATOR` |
 | P2 | Change a Club A member's role | Allow | Allow | ✅ |
 
 ### Teams & roster
@@ -61,15 +61,15 @@ Legend: ✅ current behavior matches target · ❌ gap (current ≠ target) · �
 | Persona | Action | Current | Target | |
 |---|---|---|---|---|
 | P2 | List Club A's teams | Allow, all teams | Allow, all teams | ✅ |
-| P4 | List Club A's teams | **Allow, all teams** | Deny, or empty (sees only the club) | ❌ `teamId == null` shortcut in `CheckUserPermissionUseCase` |
-| P5 | List Club A's teams | **Allow, all teams** | Allow, Team 1 only | ❌ same shortcut — `GetTeamsUseCase` never filters by staff assignment |
+| P4 | List Club A's teams | Empty list | Empty list | ✅ **fixed** -- `GetTeamsUseCase` now filters by the caller's `TeamRole` |
+| P5 | List Club A's teams | Allow, Team 1 only | Allow, Team 1 only | ✅ **fixed** -- see above |
 | P12 | List Club A's teams | Deny | Deny | ✅ |
 | P2 | View Team 1 details/roster | Allow | Allow | ✅ |
-| P5 | View Team 1 details/roster (their own team) | **Deny** | Allow | ❌ **new finding**: `GetTeamDetailsUseCase`/`GetTeamPlayersUseCase`/`GetTeamStaffUseCase` pass `teamId` but never set `minTeamRole`, so the team-role check never actually runs — only club admin/coordinator can pass, blocking the team's own coach |
-| P6 | View Team 2 details/roster (their own team) | **Deny** | Allow | ❌ same gap as above |
+| P5 | View Team 1 details/roster (their own team) | Allow | Allow | ✅ **fixed** -- `GetTeamDetailsUseCase`/`GetTeamPlayersUseCase`/`GetTeamStaffUseCase` now pass `minTeamRole = TeamRole.STAFF` |
+| P6 | View Team 2 details/roster (their own team) | Allow | Allow | ✅ **fixed** -- see above |
 | P6 | View Team 1 details/roster (not their team) | Deny | Deny | ✅ |
 | P10 | View Team 1 details (their child's team) | Deny | Allow | ❌ no auth path for parents/players |
-| P8 | View Club B/Team 5 details (their other coaching job) | **Deny** | Allow | ❌ same `minTeamRole` gap, confirms it isn't club-specific |
+| P8 | View Club B/Team 5 details (their other coaching job) | Allow | Allow | ✅ **fixed** -- see above |
 | P8 | View Club A/Team 3 details (a team they have no role on) | Deny | Deny | ✅ |
 | P12 | View Team 1 details | Deny | Deny | ✅ |
 
@@ -80,7 +80,7 @@ Legend: ✅ current behavior matches target · ❌ gap (current ≠ target) · �
 | P3 | Create a season / age group for Club A | Allow | Allow | ✅ |
 | P4 | Create a season / age group for Club A | Deny | Deny | ✅ |
 | P4 | List Club A's seasons/age groups | **Allow** | Deny (sees only the club) | ❌ same `teamId == null` shortcut |
-| P2 | Create a Team under Age Group X / Season Y where X doesn't actually belong to Y | **Allow (no cross-check)** | Deny / validation error | ❌ `CreateTeamUseCase` never validates `ageGroupId` ↔ `seasonId` consistency |
+| P2 | Create a Team under Age Group X / Season Y where X doesn't actually belong to Y | Deny / validation error | Deny / validation error | ✅ **fixed** -- `CreateTeamUseCase` now validates the age group belongs to the club and season |
 
 ### Matches
 
@@ -90,7 +90,7 @@ Legend: ✅ current behavior matches target · ❌ gap (current ≠ target) · �
 | P6 | Create a match for Team 1 (not their team) | Deny | Deny | ✅ |
 | P2 | Create a match for any team in Club A | Allow | Allow | ✅ |
 | P4 | Create a match | Deny | Deny | ✅ |
-| P5 | List Team 1's matches (with a team filter) | **Deny** | Allow | ❌ same `minTeamRole`-never-set gap, `GetMatchesUseCase` |
+| P5 | List Team 1's matches (with a team filter) | Allow | Allow | ✅ **fixed** -- see above |
 | P5 | List Club A's matches (no team filter) | **Allow, every team's matches** | Allow, Team 1's only | ❌ `teamId == null` shortcut |
 | P10 | View Team 1's match calendar | Deny | Allow | ❌ no auth path for parents/players |
 | P10 | View a specific match's details | Deny | Allow | ❌ no auth path for parents/players |

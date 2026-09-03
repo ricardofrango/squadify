@@ -78,18 +78,17 @@ class UpdateClubUseCaseTest {
     }
 
     @Test
-    fun targetBehaviorCoordinatorShouldBeAbleToUpdateTheClubProfileButCurrentlyCannot() = runBlocking {
-        // TARGET BEHAVIOR (currently fails): the only planned difference between CLUB_ADMIN and
-        // COORDINATOR is billing access, not implemented yet, so a coordinator should be able to do
-        // this today. UpdateClubUseCase passes minClubRole = CLUB_ADMIN, excluding COORDINATOR
-        // (level 4 < 5). See "issues to fix.md".
+    fun coordinatorCanUpdateTheClubProfile() = runBlocking {
+        // Fixed: the only planned difference between CLUB_ADMIN and COORDINATOR is billing access, not
+        // implemented yet, so a coordinator can now do this too. UpdateClubUseCase now passes
+        // minClubRole = COORDINATOR instead of CLUB_ADMIN. See "issues to fix.md".
         val coordinator = user("p3-coordinator")
         coEvery { userRepository.findById(coordinator.id) } returns coordinator
         coEvery { userRepository.getUserRoleInClub(coordinator.id, clubIdA) } returns ClubRole.COORDINATOR
         coEvery { clubRepository.getClubById(clubIdA) } returns club
         coEvery { clubRepository.updateClub(any()) } returns true
 
-        useCase(coordinator.id, clubIdA, UpdateClubRequest(name = "New Name")) // should succeed; currently throws
+        useCase(coordinator.id, clubIdA, UpdateClubRequest(name = "New Name"))
         Unit
     }
 }

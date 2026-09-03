@@ -20,8 +20,8 @@ class UpdateClubMemberRoleUseCase(
         checkUserPermissionUseCase(
             userId = userId,
             clubId = clubId,
-            minClubRole = ClubRole.CLUB_ADMIN,
-            errorMessage = "Only club admins can manage user roles at the club level"
+            minClubRole = ClubRole.COORDINATOR,
+            errorMessage = "Only club admins or coordinators can manage user roles at the club level"
         )
 
         // 2. Update role in the club_members table

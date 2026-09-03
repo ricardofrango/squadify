@@ -6,6 +6,7 @@ import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.TeamRole
+import com.ricardofrango.footballmanager.model.UserStatus
 
 class CheckUserPermissionUseCase(
     private val userRepository: UserRepository,
@@ -40,7 +41,10 @@ class CheckUserPermissionUseCase(
         errorMessage: String = "Insufficient permissions to perform this action"
     ) = transactionManager.runInTransaction {
         val user = userRepository.findById(userId) ?: throw ForbiddenException("User not found")
-        
+
+        // 0. A non-active account (suspended/inactive) is denied outright, even a platform admin's
+        if (user.status != UserStatus.ACTIVE) throw ForbiddenException("User account is not active")
+
         // 1. Platform Admins have "God Mode"
         if (user.isPlatformAdmin) return@runInTransaction
 
