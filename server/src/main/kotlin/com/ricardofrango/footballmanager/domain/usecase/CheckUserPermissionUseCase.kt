@@ -23,6 +23,13 @@ class CheckUserPermissionUseCase(
      * @param teamId Optional team ID for team-specific operations.
      * @param errorMessage Optional custom error message.
      * @throws ForbiddenException if permission is denied.
+     *
+     * DESIGN INVARIANT (see "issues to fix.md" and PERMISSION_TEST_MATRIX.md): this function only ever
+     * grants access via ClubRole (club_members) and TeamRole (team_staff). Players and family members
+     * have no path through here today. If/when a player/parent path is added (checking TeamPlayers /
+     * UserPlayers), it must only ever be reachable from READ use cases -- no write/mutation use case may
+     * pass a player/parent identity through this check. Players and family members must never gain write
+     * access.
      */
     suspend operator fun invoke(
         userId: String,

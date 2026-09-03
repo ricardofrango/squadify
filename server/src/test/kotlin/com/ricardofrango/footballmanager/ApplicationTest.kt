@@ -15,6 +15,6 @@ class ApplicationTest {
         }
         val response = client.get("/")
         assertEquals(HttpStatusCode.OK, response.status)
-        assertEquals("Football Manager API is running", response.bodyAsText())
+        assertEquals("Club Manager API is running", response.bodyAsText())
     }
 }

@@ -108,6 +108,34 @@ Legend: ✅ current behavior matches target · ❌ gap (current ≠ target) · �
 | P3 | View Club Admin dashboard for Club A | Allow | Allow | ✅ |
 | P4 | View Club Admin dashboard for Club A | Deny | Deny | ✅ |
 
+## 2b. Write permissions: audited against the existing use cases
+
+Separate from the read-scoping rules above, the developer asked whether writes need a distinct
+permission-checking mechanism. They don't -- `CheckUserPermissionUseCase` is action-agnostic, and the
+convention already used by most mutation use cases already implements the intended rule: omit
+`minClubRole` (or use `null`) so `CLUB_ADMIN`/`COORDINATOR` auto-pass club-wide, and set
+`minTeamRole = TeamRole.COACH` with the specific `teamId` so only that team's own coach passes
+otherwise. Audited on 2026-09-03:
+
+| Use case | Pattern today | Status |
+|---|---|---|
+| `CreateMatchUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct |
+| `AddPlayersToTeamUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct |
+| `ManageCallUpsUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct |
+| `UpdateCallUpStatusUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct |
+| `UpdateMatchStatusUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct |
+| `AddMatchEventUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct |
+| `UpdateTeamUseCase` | was `minClubRole = COORDINATOR` only, no team-role path at all -- a coach could never edit their own team's name | ❌ was a bug; **fixed** -- added `minTeamRole = TeamRole.COACH` alongside the club-role check, see `UpdateTeamUseCaseTest` |
+| `AddStaffToTeamsUseCase` | `minClubRole = COORDINATOR` only, no team-role path, no `teamId` | Intentional (decided with the developer): assigning staff grants someone else write access to the team, so it stays admin/coordinator-only |
+| `CreatePlayersUseCase`, `UpdatePlayerUseCase`, `CreateAgeGroupsUseCase`, `UpdateAgeGroupUseCase`, `CreateSeasonUseCase`, `UpdateSeasonUseCase`, `CreateOpponentUseCase`, `UpdateOpponentUseCase`, `AddClubMembersUseCase` | `minClubRole = COORDINATOR` only, club-wide, no team scoping | Intentional -- these are club-structural/administrative actions, not team-scoped |
+
+Players and family members get zero write access everywhere today, by construction: there is no branch
+in `CheckUserPermissionUseCase` that ever grants access via `TeamPlayers`/`UserPlayers`. When their
+read-only path is eventually built (see "issues to fix.md"), the agreed design is to keep a single
+`CheckUserPermissionUseCase` rather than split into separate read/write functions, and rely on
+discipline + tests to guarantee no write use case ever passes a player/parent identity through it. See
+the design-invariant comment on `CheckUserPermissionUseCase.kt`.
+
 ## 3. How to use this
 
 Each row above is meant to become one test case (unit tests mocking `UserRepository`/`TeamRepository` for `CheckUserPermissionUseCase` itself, or higher-level tests per use case for the ones with extra logic like `CreateTeamUseCase`'s missing cross-check). The ❌ rows are the ones that should currently **fail** if written against the target behavior — that's expected until the corresponding fix in `issues to fix.md` lands; write them as failing/`@Ignore`d tests first if you want a red-to-green trail, or as passing tests against *current* behavior if you'd rather lock in today's contract while the redesign is planned.

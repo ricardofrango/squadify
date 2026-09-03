@@ -1,0 +1,106 @@
+package com.ricardofrango.footballmanager.domain.usecase
+
+import com.ricardofrango.footballmanager.domain.repository.TeamRepository
+import com.ricardofrango.footballmanager.domain.repository.UserRepository
+import com.ricardofrango.footballmanager.domain.service.TransactionManager
+import com.ricardofrango.footballmanager.exception.ForbiddenException
+import com.ricardofrango.footballmanager.exception.ValidationException
+import com.ricardofrango.footballmanager.model.ClubRole
+import com.ricardofrango.footballmanager.model.CreateTeamRequest
+import com.ricardofrango.footballmanager.model.Team
+import com.ricardofrango.footballmanager.model.User
+import com.ricardofrango.footballmanager.model.UserStatus
+import io.mockk.coEvery
+import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
+import org.junit.Test
+import kotlin.test.assertFailsWith
+import kotlin.time.Instant
+
+/**
+ * Covers the "Age groups & seasons" team-creation rows of `PERMISSION_TEST_MATRIX.md`.
+ * CreateTeamUseCase already treats CLUB_ADMIN and COORDINATOR equivalently (it passes
+ * `minClubRole = ClubRole.COORDINATOR`), so that part is correct. What's missing: it never checks
+ * that `ageGroupId` actually belongs to `seasonId` (or to `clubId` at all) before creating the team.
+ * See "issues to fix.md" -- "A team's season isn't validated against its age group's season."
+ */
+class CreateTeamUseCaseTest {
+
+    private val teamRepository = mockk<TeamRepository>()
+    private val userRepository = mockk<UserRepository>()
+    private val transactionManager = object : TransactionManager {
+        override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
+    }
+    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, transactionManager)
+    private val useCase = CreateTeamUseCase(teamRepository, checkUserPermissionUseCase, transactionManager)
+
+    private val clubIdA = "club-a"
+
+    private val dummyTeam = Team(
+        id = "generated-team-id",
+        clubId = clubIdA,
+        ageGroupId = "age-group-1",
+        seasonId = "season-1",
+        name = "Team 1",
+        code = null,
+        active = true
+    )
+
+    private fun user(id: String) = User(
+        id = id,
+        email = "$id@test.com",
+        firstName = "Test",
+        lastName = "User",
+        status = UserStatus.ACTIVE,
+        isPlatformAdmin = false,
+        createdAt = Instant.fromEpochMilliseconds(0)
+    )
+
+    @Test
+    fun coordinatorCanCreateATeamJustLikeAnAdmin() = runBlocking {
+        val coordinator = user("p3-coordinator")
+        coEvery { userRepository.findById(coordinator.id) } returns coordinator
+        coEvery { userRepository.getUserRoleInClub(coordinator.id, clubIdA) } returns ClubRole.COORDINATOR
+        coEvery { teamRepository.createTeam(any()) } returns dummyTeam
+        val request = CreateTeamRequest(clubId = clubIdA, ageGroupId = "age-group-1", seasonId = "season-1", name = "Team 1")
+
+        useCase(coordinator.id, request)
+        Unit
+    }
+
+    @Test
+    fun plainMemberCannotCreateATeam() = runBlocking {
+        val member = user("p4-plain-member")
+        coEvery { userRepository.findById(member.id) } returns member
+        coEvery { userRepository.getUserRoleInClub(member.id, clubIdA) } returns ClubRole.MEMBER
+        val request = CreateTeamRequest(clubId = clubIdA, ageGroupId = "age-group-1", seasonId = "season-1", name = "Team 1")
+
+        assertFailsWith<ForbiddenException> {
+            useCase(member.id, request)
+        }
+        Unit
+    }
+
+    @Test
+    fun targetBehaviorAgeGroupFromADifferentSeasonShouldBeRejectedButCurrentlyIsNot() = runBlocking {
+        // TARGET BEHAVIOR (currently fails): ageGroupId "age-group-from-season-X" doesn't actually
+        // belong to seasonId "season-Y" -- this should be a validation error. CreateTeamUseCase has no
+        // AgeGroupRepository dependency at all today, so it cannot check this and happily creates the
+        // team regardless. See "issues to fix.md".
+        val admin = user("p2-club-admin")
+        coEvery { userRepository.findById(admin.id) } returns admin
+        coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
+        coEvery { teamRepository.createTeam(any()) } returns dummyTeam
+        val request = CreateTeamRequest(
+            clubId = clubIdA,
+            ageGroupId = "age-group-from-season-X",
+            seasonId = "season-Y", // deliberately inconsistent with the age group's real season
+            name = "Team 1"
+        )
+
+        assertFailsWith<ValidationException> {
+            useCase(admin.id, request)
+        }
+        Unit
+    }
+}

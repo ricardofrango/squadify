@@ -4,6 +4,7 @@ import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.NotFoundException
 import com.ricardofrango.footballmanager.model.ClubRole
+import com.ricardofrango.footballmanager.model.TeamRole
 import com.ricardofrango.footballmanager.model.UpdateTeamRequest
 
 class UpdateTeamUseCase(
@@ -23,8 +24,9 @@ class UpdateTeamUseCase(
             userId = userId,
             clubId = existingTeam.clubId,
             minClubRole = ClubRole.COORDINATOR,
+            minTeamRole = TeamRole.COACH,
             teamId = teamId,
-            errorMessage = "Only admins or coordinators can update teams"
+            errorMessage = "Only admins, coordinators, or this team's coach can update it"
         )
 
         val updatedTeam = existingTeam.copy(
