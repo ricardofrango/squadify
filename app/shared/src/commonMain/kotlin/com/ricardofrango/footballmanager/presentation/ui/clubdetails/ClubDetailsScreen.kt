@@ -36,13 +36,27 @@ fun ClubDetailsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToTeam: (String) -> Unit,
     onNavigateToPlayer: (String) -> Unit,
+    // Takes the club's name because CreateSeasonScreen shows it in its header, and the only place
+    // that name is loaded is here.
+    onNavigateToCreateSeason: (clubName: String) -> Unit,
+    // True exactly once, right after returning from CreateSeasonScreen having created a season --
+    // forces a reload past loadClubDetails' "already have this club" guard, since Koin scopes this
+    // ViewModel to the nav back-stack entry (so popping back here reuses the same stale state).
+    refreshAfterSeasonCreated: Boolean = false,
     viewModel: ClubDetailsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
     val selectedTab = (uiState as? ClubDetailsUiState.Idle)?.selectedTab ?: 0
+    val clubName = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name ?: ""
 
     LaunchedEffect(clubId) {
         viewModel.loadClubDetails(clubId)
+    }
+
+    LaunchedEffect(refreshAfterSeasonCreated) {
+        if (refreshAfterSeasonCreated) {
+            viewModel.loadClubDetails(clubId, forceReload = true)
+        }
     }
 
     Scaffold(
@@ -90,7 +104,10 @@ fun ClubDetailsScreen(
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(Res.string.label_add_season), color = DeepCarbon) },
-                                onClick = { showAddMenu = false }
+                                onClick = {
+                                    showAddMenu = false
+                                    onNavigateToCreateSeason(clubName)
+                                }
                             )
                         }
                     }
@@ -184,7 +201,10 @@ fun ClubDetailsScreen(
                     // (CreateSeasonUseCase requires COORDINATOR+), so they get offered a way to create
                     // one; a plain member just sees that there are none yet.
                     state.showNoSeasonsState ->
-                        NoSeasonsState(canCreateSeason = state.canCreateSeason)
+                        NoSeasonsState(
+                            canCreateSeason = state.canCreateSeason,
+                            onCreateSeasonClick = { onNavigateToCreateSeason(clubName) }
+                        )
                     state.details != null ->
                         ClubDetailsTabContent(
                             state = state,
@@ -480,32 +500,32 @@ private fun EmptyState(message: String) {
 }
 
 @Composable
-private fun NoSeasonsState(canCreateSeason: Boolean) {
+private fun NoSeasonsState(canCreateSeason: Boolean, onCreateSeasonClick: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        when (canCreateSeason) {
-            // Admin/coordinator: framed as an error, since this club is effectively unusable until a
-            // season exists, plus a way to act on it.
-            true -> {
-                NoSeasonsMessage(
-                    text = stringResource(Res.string.msg_no_seasons_admin),
-                    color = MaterialTheme.colorScheme.error
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                // Season creation isn't implemented yet anywhere in the app (the "Add Season" item in
-                // the top bar's menu is the same stub); this mirrors that until the flow exists.
-                Button(onClick = {}) {
-                    Text(stringResource(Res.string.label_add_season))
-                }
+        // Both lines share the same title; only the second line (and its color) differs by whether
+        // this user could act on it -- an admin/coordinator gets told what's broken, a plain member
+        // gets told who to ask. See the design canvas linked in AI_GUIDELINES.md ("UI Design Reference").
+        val subtitleColor = if (canCreateSeason) MaterialTheme.colorScheme.error else DeepCarbon.copy(alpha = 0.6f)
+        NoSeasonsMessage(
+            text = stringResource(Res.string.msg_no_seasons_title),
+            color = if (canCreateSeason) MaterialTheme.colorScheme.error else DeepCarbon
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        NoSeasonsMessage(
+            text = stringResource(
+                if (canCreateSeason) Res.string.msg_no_seasons_admin_subtitle else Res.string.msg_no_seasons_member_subtitle
+            ),
+            color = subtitleColor
+        )
+        if (canCreateSeason) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onCreateSeasonClick) {
+                Text(stringResource(Res.string.label_add_season))
             }
-            // Plain member: informational only, they have no way to act on it.
-            false -> NoSeasonsMessage(
-                text = stringResource(Res.string.msg_no_seasons_member),
-                color = DeepCarbon.copy(alpha = 0.6f)
-            )
         }
     }
 }

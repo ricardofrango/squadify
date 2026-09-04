@@ -24,8 +24,9 @@
     <string name="label_all_teams">Todas as Equipas</string>
     <string name="msg_no_teams_filter">Nenhuma equipa encontrada para estes filtros</string>
     <string name="msg_no_players_filter">Nenhum jogador encontrado para estes filtros</string>
-    <string name="msg_no_seasons_admin">Este clube ainda não tem épocas. Crie uma época para começar.</string>
-    <string name="msg_no_seasons_member">Este clube ainda não tem épocas.</string>
+    <string name="msg_no_seasons_title">Este clube ainda não tem épocas.</string>
+    <string name="msg_no_seasons_admin_subtitle">As equipas e jogadores não podem ser organizados até que exista uma.</string>
+    <string name="msg_no_seasons_member_subtitle">Peça a um coordenador para criar uma.</string>
     <string name="label_number_prefix">Número: %s</string>
     <string name="label_create_team">Criar Equipa</string>
     <string name="label_create_age_group">Criar Escalão</string>
@@ -44,4 +45,28 @@
     <string name="label_active">Ativo</string>
     <string name="label_inactive">Inativo</string>
     <string name="msg_precision_management">Gestão de precisão para o seu clube</string>
+
+    <!-- Create Season -->
+    <string name="title_create_season">Nova época</string>
+    <string name="label_season_type">Tipo de época</string>
+    <string name="label_season_type_european">Ano europeu</string>
+    <string name="label_season_type_european_range">Julho → Junho</string>
+    <string name="label_season_type_calendar">Ano civil</string>
+    <string name="label_season_type_calendar_range">Janeiro → Dezembro</string>
+    <string name="msg_season_type_helper_european">Decorre de Jul a Jun, tal como o futebol jovem português está organizado. Escolher um tipo preenche as datas abaixo — altere-as se a sua liga for diferente.</string>
+    <string name="msg_season_type_helper_calendar">Decorre de Jan a Dez, o ano civil padrão. Escolher um tipo preenche as datas abaixo — altere-as se a sua liga for diferente.</string>
+    <string name="label_dates_section">Datas</string>
+    <string name="label_days_count">%s dias</string>
+    <string name="label_starts">Início</string>
+    <string name="label_ends">Fim</string>
+    <string name="label_name_section">Nome</string>
+    <string name="label_optional">Opcional</string>
+    <string name="label_season_name_field">Nome da época</string>
+    <string name="label_season_name_placeholder">%s · inferido a partir das datas</string>
+    <string name="msg_season_name_helper">Deixe em branco e a época será chamada %s a partir das datas.</string>
+    <string name="btn_create_season">Criar época</string>
+    <string name="btn_confirm">Confirmar</string>
+    <string name="msg_create_season_failed">Ocorreu um erro ao criar a época. Por favor, tente novamente.</string>
+    <string name="msg_create_season_conflict">Entra em conflito com a época existente \"%s\".</string>
+    <string name="msg_create_season_conflict_unknown">Já existe uma época com estas datas.</string>
 </resources>

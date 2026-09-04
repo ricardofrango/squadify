@@ -23,11 +23,13 @@ class ClubDetailsViewModel(
     private val _state = MutableStateFlow<ClubDetailsUiState>(ClubDetailsUiState.Loading)
     val state: StateFlow<ClubDetailsUiState> = _state.asStateFlow()
 
-    fun loadClubDetails(clubId: String) {
+    fun loadClubDetails(clubId: String, forceReload: Boolean = false) {
         val currentState = _state.value
 
-        // If we already have details for this club, don't trigger a full reload/flicker
-        if (currentState is ClubDetailsUiState.Idle && currentState.details?.club?.id == clubId) {
+        // If we already have details for this club, don't trigger a full reload/flicker -- unless the
+        // caller knows the data is stale (e.g. just returned from creating a season) and explicitly
+        // asks to bypass this.
+        if (!forceReload && currentState is ClubDetailsUiState.Idle && currentState.details?.club?.id == clubId) {
             return
         }
 

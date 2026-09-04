@@ -24,8 +24,9 @@
     <string name="label_all_teams">All Teams</string>
     <string name="msg_no_teams_filter">No teams found for these filters</string>
     <string name="msg_no_players_filter">No players found for these filters</string>
-    <string name="msg_no_seasons_admin">This club has no seasons yet. Create a season to get started.</string>
-    <string name="msg_no_seasons_member">This club has no seasons yet.</string>
+    <string name="msg_no_seasons_title">This club has no seasons yet.</string>
+    <string name="msg_no_seasons_admin_subtitle">Teams and players can\'t be organised until one exists.</string>
+    <string name="msg_no_seasons_member_subtitle">Ask a coordinator to set one up.</string>
     <string name="label_number_prefix">Number: %s</string>
     <string name="label_create_team">Create Team</string>
     <string name="label_create_age_group">Create Age Group</string>
@@ -44,4 +45,28 @@
     <string name="label_active">Active</string>
     <string name="label_inactive">Inactive</string>
     <string name="msg_precision_management">Precision management for your club</string>
+
+    <!-- Create Season -->
+    <string name="title_create_season">New season</string>
+    <string name="label_season_type">Season type</string>
+    <string name="label_season_type_european">European year</string>
+    <string name="label_season_type_european_range">July → June</string>
+    <string name="label_season_type_calendar">Calendar year</string>
+    <string name="label_season_type_calendar_range">January → December</string>
+    <string name="msg_season_type_helper_european">Runs Jul → Jun, the way Portuguese youth football is organised. Picking a type fills the dates below — change them if your league differs.</string>
+    <string name="msg_season_type_helper_calendar">Runs Jan → Dec, the standard calendar year. Picking a type fills the dates below — change them if your league differs.</string>
+    <string name="label_dates_section">Dates</string>
+    <string name="label_days_count">%s days</string>
+    <string name="label_starts">Starts</string>
+    <string name="label_ends">Ends</string>
+    <string name="label_name_section">Name</string>
+    <string name="label_optional">Optional</string>
+    <string name="label_season_name_field">Season name</string>
+    <string name="label_season_name_placeholder">%s · inferred from the dates</string>
+    <string name="msg_season_name_helper">Leave it blank and the season is named %s from the dates.</string>
+    <string name="btn_create_season">Create season</string>
+    <string name="btn_confirm">Confirm</string>
+    <string name="msg_create_season_failed">Something went wrong creating the season. Please try again.</string>
+    <string name="msg_create_season_conflict">Conflicts with the existing season \"%s\".</string>
+    <string name="msg_create_season_conflict_unknown">A season with these dates already exists.</string>
 </resources>

@@ -1,6 +1,8 @@
 package com.ricardofrango.footballmanager.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -11,8 +13,14 @@ import com.ricardofrango.footballmanager.presentation.ui.splash.SplashScreen
 import com.ricardofrango.footballmanager.presentation.ui.dashboard.DashboardScreen
 import com.ricardofrango.footballmanager.presentation.ui.account.AccountScreen
 import com.ricardofrango.footballmanager.presentation.ui.clubdetails.ClubDetailsScreen
+import com.ricardofrango.footballmanager.presentation.ui.createseason.CreateSeasonScreen
 import com.ricardofrango.footballmanager.presentation.ui.teamdetails.TeamDetailsScreen
 import com.ricardofrango.footballmanager.presentation.ui.playerdetails.PlayerDetailsScreen
+
+// Key used on the ClubDetails back-stack entry's SavedStateHandle to signal "a season was just
+// created, force a reload" -- the standard Compose Navigation pattern for a screen to return a
+// result to the screen that pushed it. See ClubDetailsScreen's `refreshAfterSeasonCreated` doc.
+private const val KEY_SEASON_CREATED = "seasonCreated"
 
 @Composable
 fun AppNavigation() {
@@ -76,6 +84,13 @@ fun AppNavigation() {
 
         composable<Screen.ClubDetails> { backStackEntry ->
             val screen: Screen.ClubDetails = backStackEntry.toRoute()
+            val seasonCreated by backStackEntry.savedStateHandle
+                .getStateFlow(KEY_SEASON_CREATED, false)
+                .collectAsState()
+            if (seasonCreated) {
+                // Consume the flag so it doesn't keep forcing reloads on every recomposition.
+                backStackEntry.savedStateHandle[KEY_SEASON_CREATED] = false
+            }
             ClubDetailsScreen(
                 clubId = screen.clubId,
                 onNavigateBack = {
@@ -86,6 +101,27 @@ fun AppNavigation() {
                 },
                 onNavigateToPlayer = { playerId ->
                     navController.navigate(Screen.PlayerDetails(playerId))
+                },
+                onNavigateToCreateSeason = { clubName ->
+                    navController.navigate(Screen.CreateSeason(screen.clubId, clubName))
+                },
+                refreshAfterSeasonCreated = seasonCreated
+            )
+        }
+
+        composable<Screen.CreateSeason> { backStackEntry ->
+            val screen: Screen.CreateSeason = backStackEntry.toRoute()
+            CreateSeasonScreen(
+                clubId = screen.clubId,
+                clubName = screen.clubName,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onSeasonCreated = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(KEY_SEASON_CREATED, true)
+                    navController.popBackStack()
                 }
             )
         }
