@@ -155,6 +155,25 @@ graph TD
 
 Note: the repository (`findRefreshToken`) just retrieves the row as-is; the expiry decision is a business rule owned by the use case, which deletes an expired token as it rejects it. Rotation deletes the presented token on the success path too. Covered by `RefreshTokenUseCaseTest` and `JwtConfigTest`.
 
+### 2.4 Platform Admin Seeding (`SeedPlatformAdminUseCase`) — startup, not request-driven
+
+Runs once from `Application.module()` (right after Koin is installed), so a freshly-created or wiped **dev** database is immediately usable with no manual bootstrapping. Idempotent — never mutates an existing account.
+
+```mermaid
+graph TD
+    A[Server startup] --> B{seeding enabled?}
+    B -- No --> Z(["Skip — log and return"])
+    B -- Yes --> C{email and password configured?}
+    C -- No --> Z2(["Skip — warn and return"])
+    C -- Yes --> D[Find user by configured email]
+    D -- exists --> Z3(["Skip — admin already present"])
+    D -- not exists --> E[Hash password with BCrypt]
+    E --> F[Create User — isPlatformAdmin = true, status ACTIVE]
+    F --> Z4(["Log 'Seeded platform admin'"])
+```
+
+Config comes from `ServerConfig` and is injected into the use case: `DEV` enables it by default with labelled fallback credentials (`admin@local.dev` / `admin1234`); `PRODUCTION` keeps it off unless `SEED_ADMIN_ENABLED=true`, which then makes `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` mandatory (no password fallback in production). Covered by `SeedPlatformAdminUseCaseTest`. See `TECHNICAL_DECISIONS.md` §5.
+
 ---
 
 ## 3. Platform & Club Administration

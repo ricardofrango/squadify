@@ -1,5 +1,6 @@
 package com.ricardofrango.footballmanager.di
 
+import com.ricardofrango.footballmanager.config.ServerConfig
 import com.ricardofrango.footballmanager.data.database.DatabaseFactory
 import com.ricardofrango.footballmanager.data.repository.*
 import com.ricardofrango.footballmanager.data.service.KotlinFlowMatchBus
@@ -30,6 +31,15 @@ val appModule = module {
     factory { GetClubDetailsUseCase(get(), get(), get()) }
     factory { ProvisionClubUseCase(get(), get(), get(), get(), get()) }
     factory { RegisterUseCase(get(), get(), get(), get(), get()) }
+    factory {
+        SeedPlatformAdminUseCase(
+            get(),
+            get(),
+            enabled = ServerConfig.seedAdminEnabled,
+            adminEmail = ServerConfig.seedAdminEmail,
+            adminPassword = ServerConfig.seedAdminPassword,
+        )
+    }
     factory { LoginUseCase(get(), get()) }
     factory { RefreshTokenUseCase(get(), get()) }
     factory { CheckUserPermissionUseCase(get(), get(), get(), get()) }

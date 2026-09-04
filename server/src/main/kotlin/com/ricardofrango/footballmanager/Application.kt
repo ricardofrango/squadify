@@ -13,6 +13,7 @@ import com.ricardofrango.footballmanager.presentation.routes.ageGroupRoutes
 import com.ricardofrango.footballmanager.presentation.routes.playerRoutes
 import com.ricardofrango.footballmanager.presentation.routes.matchRoutes
 import com.ricardofrango.footballmanager.presentation.routes.opponentRoutes
+import com.ricardofrango.footballmanager.domain.usecase.SeedPlatformAdminUseCase
 import com.ricardofrango.footballmanager.security.JwtConfig
 import com.ricardofrango.footballmanager.model.ErrorResponse
 import com.ricardofrango.footballmanager.exception.*
@@ -37,7 +38,9 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import org.koin.ktor.ext.getKoin
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
 
@@ -68,6 +71,11 @@ fun Application.module() {
         slf4jLogger()
         modules(appModule)
     }
+
+    // One-shot: guarantee a platform-admin account exists so a freshly-wiped dev database is usable
+    // immediately, with no manual bootstrapping. Idempotent -- a no-op when the admin already exists
+    // or when seeding is disabled (see SeedPlatformAdminUseCase / ServerConfig).
+    runBlocking { getKoin().get<SeedPlatformAdminUseCase>().invoke() }
 
     install(Authentication) {
         jwt("auth-jwt") {

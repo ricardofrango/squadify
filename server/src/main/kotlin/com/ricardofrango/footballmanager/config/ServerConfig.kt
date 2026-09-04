@@ -38,4 +38,48 @@ object ServerConfig {
         } else {
             "dev-only-insecure-secret-do-not-use-in-production"
         }
+
+    /**
+     * Startup seeding of a platform-admin ("superuser") account. Lets a freshly-wiped dev database
+     * come back up with an admin already present, so there is no manual bootstrapping step after a
+     * clean build. The seeding itself is idempotent (see `SeedPlatformAdminUseCase`): it only creates
+     * the account when no user with [seedAdminEmail] exists yet.
+     *
+     * - `DEV`: enabled by default, with clearly-labelled fallback credentials so `./gradlew run` works
+     *   out of the box. Override with `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`.
+     * - `PRODUCTION`: disabled unless `SEED_ADMIN_ENABLED=true` is set explicitly, and then both
+     *   `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` are required -- there is never a password
+     *   fallback in production.
+     */
+    val seedAdminEnabled: Boolean = when (System.getenv("SEED_ADMIN_ENABLED")?.trim()?.lowercase()) {
+        "true", "1", "yes" -> true
+        "false", "0", "no" -> false
+        else -> environment == AppEnvironment.DEV
+    }
+
+    val seedAdminEmail: String = System.getenv("SEED_ADMIN_EMAIL")?.takeIf { it.isNotBlank() }
+        ?: if (environment == AppEnvironment.PRODUCTION) {
+            if (seedAdminEnabled) {
+                throw IllegalStateException(
+                    "SEED_ADMIN_EMAIL environment variable must be set when SEED_ADMIN_ENABLED=true in production."
+                )
+            } else {
+                ""
+            }
+        } else {
+            "ricardo.short.frango@gmail.com"
+        }
+
+    val seedAdminPassword: String = System.getenv("SEED_ADMIN_PASSWORD")?.takeIf { it.isNotBlank() }
+        ?: if (environment == AppEnvironment.PRODUCTION) {
+            if (seedAdminEnabled) {
+                throw IllegalStateException(
+                    "SEED_ADMIN_PASSWORD environment variable must be set when SEED_ADMIN_ENABLED=true in production."
+                )
+            } else {
+                ""
+            }
+        } else {
+            "123456789"
+        }
 }
