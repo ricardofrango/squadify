@@ -198,7 +198,8 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     PrimaryLoadingButton(
-                        text = stringResource(Res.string.btn_login),
+                        text = Res.string.btn_login,
+                        submittingText = Res.string.btn_loging_in,
                         isLoading = uiState is LoginUiState.Loading,
                         onClick = { viewModel.onLoginClicked(email, password) }
                     )

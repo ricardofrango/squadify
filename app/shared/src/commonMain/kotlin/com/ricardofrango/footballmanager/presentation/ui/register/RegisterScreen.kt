@@ -250,7 +250,8 @@ fun RegisterScreen(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 PrimaryLoadingButton(
-                    text = stringResource(Res.string.btn_register),
+                    text = Res.string.btn_register,
+                    submittingText = Res.string.btn_registering,
                     isLoading = uiState is RegisterUiState.Loading,
                     onClick = {
                         viewModel.onRegisterClicked(

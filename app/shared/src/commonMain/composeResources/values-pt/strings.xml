@@ -3,9 +3,11 @@
     <string name="label_email">Email</string>
     <string name="label_password">Senha</string>
     <string name="btn_login">Entrar</string>
+    <string name="btn_loging_in">A entrar...</string>
     <string name="msg_forgot_password">Esqueceu a senha?</string>
     <string name="msg_no_account_register">Não tem uma conta? Registe-se aqui</string>
     <string name="btn_register">Registar</string>
+    <string name="btn_registering">A registar...</string>
     <string name="label_first_name">Primeiro Nome</string>
     <string name="label_last_name">Último Nome</string>
     <string name="label_phone">Telemóvel (opcional)</string>
@@ -65,8 +67,11 @@
     <string name="label_season_name_placeholder">%1$s · inferido a partir das datas</string>
     <string name="msg_season_name_helper">Deixe em branco e a época será chamada %1$s a partir das datas.</string>
     <string name="btn_create_season">Criar época</string>
+    <string name="btn_creating_season">A criar...</string>
     <string name="btn_confirm">Confirmar</string>
     <string name="msg_create_season_failed">Ocorreu um erro ao criar a época. Por favor, tente novamente.</string>
     <string name="msg_create_season_conflict">Entra em conflito com a época existente \"%1$s\".</string>
     <string name="msg_create_season_conflict_unknown">Já existe uma época com estas datas.</string>
+    <string name="label_select_start_date">Selecione a data de inicio</string>
+    <string name="label_select_end_date">Selecione a data de fim</string>
 </resources>
