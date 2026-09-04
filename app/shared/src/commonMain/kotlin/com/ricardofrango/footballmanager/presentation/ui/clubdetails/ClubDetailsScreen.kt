@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -58,6 +59,7 @@ import com.ricardofrango.footballmanager.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.footballmanager.presentation.ui.theme.PitchGreen
 import footballmanager.app.shared.generated.resources.Res
 import footballmanager.app.shared.generated.resources.btn_retry
+import footballmanager.app.shared.generated.resources.ic_calendar
 import footballmanager.app.shared.generated.resources.ic_more
 import footballmanager.app.shared.generated.resources.ic_player
 import footballmanager.app.shared.generated.resources.ic_teams
@@ -560,6 +562,13 @@ private fun NoSeasonsState(canCreateSeason: Boolean, onCreateSeasonClick: () -> 
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Icon(
+            painter = painterResource(Res.drawable.ic_calendar),
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = DeepCarbon.copy(alpha = 0.3f)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
         // Both lines share the same title; only the second line (and its color) differs by whether
         // this user could act on it -- an admin/coordinator gets told what's broken, a plain member
         // gets told who to ask. See the design canvas linked in AI_GUIDELINES.md ("UI Design Reference").
@@ -567,7 +576,8 @@ private fun NoSeasonsState(canCreateSeason: Boolean, onCreateSeasonClick: () -> 
             if (canCreateSeason) MaterialTheme.colorScheme.error else DeepCarbon.copy(alpha = 0.6f)
         NoSeasonsMessage(
             text = stringResource(Res.string.msg_no_seasons_title),
-            color = if (canCreateSeason) MaterialTheme.colorScheme.error else DeepCarbon
+            color = if (canCreateSeason) MaterialTheme.colorScheme.error else DeepCarbon,
+            bold = true
         )
         Spacer(modifier = Modifier.height(4.dp))
         NoSeasonsMessage(
@@ -578,7 +588,11 @@ private fun NoSeasonsState(canCreateSeason: Boolean, onCreateSeasonClick: () -> 
         )
         if (canCreateSeason) {
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onCreateSeasonClick) {
+            Button(
+                onClick = onCreateSeasonClick,
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)
+            ) {
                 Text(stringResource(Res.string.label_add_season))
             }
         }
@@ -586,11 +600,13 @@ private fun NoSeasonsState(canCreateSeason: Boolean, onCreateSeasonClick: () -> 
 }
 
 @Composable
-private fun NoSeasonsMessage(text: String, color: Color) {
+private fun NoSeasonsMessage(text: String, color: Color, bold: Boolean = false) {
     Text(
         text = text,
         color = color,
-        style = MaterialTheme.typography.bodyLarge,
+        style = MaterialTheme.typography.bodyLarge.copy(
+            fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal
+        ),
         textAlign = TextAlign.Center
     )
 }
