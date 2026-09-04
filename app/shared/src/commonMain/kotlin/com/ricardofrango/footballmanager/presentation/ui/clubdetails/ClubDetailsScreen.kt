@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -179,21 +180,29 @@ fun ClubDetailsScreen(
                     if (state.error != null) {
                         ErrorState(state.error, onRetry = { viewModel.loadClubDetails(clubId) })
                     } else if (state.details != null) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            if (selectedTab == 0) {
-                                // Filters for Teams
-                                TeamFilterSection(
-                                    state = state,
-                                    viewModel = viewModel
-                                )
-                                TeamList(state.filteredTeams, onNavigateToTeam)
-                            } else {
-                                // Filters for Players
-                                PlayerFilterSection(
-                                    state = state,
-                                    viewModel = viewModel
-                                )
-                                PlayerList(state.filteredPlayers, onNavigateToPlayer)
+                        if (state.details.seasons.isEmpty()) {
+                            // Everything below (teams, players, filters) is season-scoped, so with no
+                            // seasons there is nothing meaningful to show. Only an admin/coordinator can
+                            // fix this (CreateSeasonUseCase requires COORDINATOR+), so they get told to
+                            // create one; a plain member just sees that there are none yet.
+                            NoSeasonsState(canCreateSeason = state.details.canCreateSeason)
+                        } else {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                if (selectedTab == 0) {
+                                    // Filters for Teams
+                                    TeamFilterSection(
+                                        state = state,
+                                        viewModel = viewModel
+                                    )
+                                    TeamList(state.filteredTeams, onNavigateToTeam)
+                                } else {
+                                    // Filters for Players
+                                    PlayerFilterSection(
+                                        state = state,
+                                        viewModel = viewModel
+                                    )
+                                    PlayerList(state.filteredPlayers, onNavigateToPlayer)
+                                }
                             }
                         }
                     }
@@ -458,5 +467,33 @@ private fun ErrorState(error: String, onRetry: () -> Unit) {
 private fun EmptyState(message: String) {
     Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
         Text(text = message, color = DeepCarbon.copy(alpha = 0.6f))
+    }
+}
+
+@Composable
+private fun NoSeasonsState(canCreateSeason: Boolean) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        if (canCreateSeason) {
+            // Admin/coordinator: framed as an error state, since this club is effectively unusable
+            // until a season exists.
+            Text(
+                text = stringResource(Res.string.msg_no_seasons_admin),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center
+            )
+        } else {
+            // Plain member: informational only, they have no way to act on it.
+            Text(
+                text = stringResource(Res.string.msg_no_seasons_member),
+                color = DeepCarbon.copy(alpha = 0.6f),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }

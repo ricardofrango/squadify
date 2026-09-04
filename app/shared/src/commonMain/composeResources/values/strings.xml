@@ -24,6 +24,8 @@
     <string name="label_all_teams">All Teams</string>
     <string name="msg_no_teams_filter">No teams found for these filters</string>
     <string name="msg_no_players_filter">No players found for these filters</string>
+    <string name="msg_no_seasons_admin">This club has no seasons yet. Create a season to get started.</string>
+    <string name="msg_no_seasons_member">This club has no seasons yet.</string>
     <string name="label_number_prefix">Number: %s</string>
     <string name="label_create_team">Create Team</string>
     <string name="label_create_age_group">Create Age Group</string>

@@ -24,6 +24,8 @@
     <string name="label_all_teams">Todas as Equipas</string>
     <string name="msg_no_teams_filter">Nenhuma equipa encontrada para estes filtros</string>
     <string name="msg_no_players_filter">Nenhum jogador encontrado para estes filtros</string>
+    <string name="msg_no_seasons_admin">Este clube ainda não tem épocas. Crie uma época para começar.</string>
+    <string name="msg_no_seasons_member">Este clube ainda não tem épocas.</string>
     <string name="label_number_prefix">Número: %s</string>
     <string name="label_create_team">Criar Equipa</string>
     <string name="label_create_age_group">Criar Escalão</string>
