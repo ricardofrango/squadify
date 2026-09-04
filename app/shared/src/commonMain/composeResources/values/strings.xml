@@ -27,7 +27,7 @@
     <string name="msg_no_seasons_title">This club has no seasons yet.</string>
     <string name="msg_no_seasons_admin_subtitle">Teams and players can\'t be organised until one exists.</string>
     <string name="msg_no_seasons_member_subtitle">Ask a coordinator to set one up.</string>
-    <string name="label_number_prefix">Number: %s</string>
+    <string name="label_number_prefix">Number: %1$s</string>
     <string name="label_create_team">Create Team</string>
     <string name="label_create_age_group">Create Age Group</string>
     <string name="label_add_season">Add Season</string>
@@ -38,7 +38,7 @@
     <string name="title_team_details">Team Details</string>
     <string name="title_player_profile">Player Profile</string>
     <string name="msg_no_players_team">No players in this team</string>
-    <string name="label_squad_number_prefix">Squad Number: %s</string>
+    <string name="label_squad_number_prefix">Squad Number: %1$s</string>
     <string name="label_player_info">Player Information</string>
     <string name="label_status">Status</string>
     <string name="label_birth_date">Birth Date</string>
@@ -56,17 +56,17 @@
     <string name="msg_season_type_helper_european">Runs Jul → Jun, the way Portuguese youth football is organised. Picking a type fills the dates below — change them if your league differs.</string>
     <string name="msg_season_type_helper_calendar">Runs Jan → Dec, the standard calendar year. Picking a type fills the dates below — change them if your league differs.</string>
     <string name="label_dates_section">Dates</string>
-    <string name="label_days_count">%s days</string>
+    <string name="label_days_count">%1$s days</string>
     <string name="label_starts">Starts</string>
     <string name="label_ends">Ends</string>
     <string name="label_name_section">Name</string>
     <string name="label_optional">Optional</string>
     <string name="label_season_name_field">Season name</string>
-    <string name="label_season_name_placeholder">%s · inferred from the dates</string>
-    <string name="msg_season_name_helper">Leave it blank and the season is named %s from the dates.</string>
+    <string name="label_season_name_placeholder">%1$s · inferred from the dates</string>
+    <string name="msg_season_name_helper">Leave it blank and the season is named %1$s from the dates.</string>
     <string name="btn_create_season">Create season</string>
     <string name="btn_confirm">Confirm</string>
     <string name="msg_create_season_failed">Something went wrong creating the season. Please try again.</string>
-    <string name="msg_create_season_conflict">Conflicts with the existing season \"%s\".</string>
+    <string name="msg_create_season_conflict">Conflicts with the existing season \"%1$s\".</string>
     <string name="msg_create_season_conflict_unknown">A season with these dates already exists.</string>
 </resources>

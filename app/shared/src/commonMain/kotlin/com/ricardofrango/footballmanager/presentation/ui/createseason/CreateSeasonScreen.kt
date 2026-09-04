@@ -1,6 +1,7 @@
 package com.ricardofrango.footballmanager.presentation.ui.createseason
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,11 +15,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.footballmanager.domain.SeasonDateDefaults
 import com.ricardofrango.footballmanager.model.SeasonType
 import com.ricardofrango.footballmanager.presentation.ui.theme.CarbonGray
 import com.ricardofrango.footballmanager.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.footballmanager.presentation.ui.theme.FootballManagerTheme
 import com.ricardofrango.footballmanager.presentation.ui.theme.PitchGreen
 import footballmanager.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
@@ -53,8 +56,11 @@ private val FormRoundedShape = RoundedCornerShape(18.dp)
  * fields with that type's default range (even over a manual edit), because the type determines both
  * the date rule and the inferred name; the name field stays last and optional, previewing the
  * inferred value as its placeholder rather than pre-filling it.
+ *
+ * Owns all form state (this is where it needs to live -- ViewModel only tracks submit/load status);
+ * rendering itself is delegated to the stateless [CreateSeasonContent] so it can be exercised from
+ * `@Preview` without a Koin-backed ViewModel.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateSeasonScreen(
     clubId: String,
@@ -79,20 +85,6 @@ fun CreateSeasonScreen(
     var showStartPicker by rememberSaveable { mutableStateOf(false) }
     var showEndPicker by rememberSaveable { mutableStateOf(false) }
 
-    val inferredName = SeasonDateDefaults.inferredName(selectedType, startDate, endDate)
-    val europeanDefaults = remember(today) { SeasonDateDefaults.datesFor(SeasonType.EUROPEAN_YEAR, today) }
-    val calendarDefaults = remember(today) { SeasonDateDefaults.datesFor(SeasonType.CALENDAR_YEAR, today) }
-    val europeanPill = SeasonDateDefaults.inferredName(SeasonType.EUROPEAN_YEAR, europeanDefaults.first, europeanDefaults.second)
-    val calendarPill = SeasonDateDefaults.inferredName(SeasonType.CALENDAR_YEAR, calendarDefaults.first, calendarDefaults.second)
-
-    fun applyType(type: SeasonType) {
-        selectedTypeName = type.name
-        val (start, end) = SeasonDateDefaults.datesFor(type, today)
-        startDateIso = start.toString()
-        endDateIso = end.toString()
-        viewModel.clearSubmitError()
-    }
-
     LaunchedEffect(clubId) {
         viewModel.loadExistingSeasons(clubId)
     }
@@ -105,7 +97,89 @@ fun CreateSeasonScreen(
         }
     }
 
+    CreateSeasonContent(
+        uiState = uiState,
+        clubName = clubName,
+        today = today,
+        selectedType = selectedType,
+        startDate = startDate,
+        endDate = endDate,
+        name = name,
+        showStartPicker = showStartPicker,
+        showEndPicker = showEndPicker,
+        onNavigateBack = onNavigateBack,
+        onTypeSelected = { type ->
+            selectedTypeName = type.name
+            val (start, end) = SeasonDateDefaults.datesFor(type, today)
+            startDateIso = start.toString()
+            endDateIso = end.toString()
+            viewModel.clearSubmitError()
+        },
+        onNameChange = {
+            name = it
+            viewModel.clearSubmitError()
+        },
+        onStartDateClick = { showStartPicker = true },
+        onEndDateClick = { showEndPicker = true },
+        onStartDateConfirmed = {
+            startDateIso = it.toString()
+            showStartPicker = false
+            viewModel.clearSubmitError()
+        },
+        onEndDateConfirmed = {
+            endDateIso = it.toString()
+            showEndPicker = false
+            viewModel.clearSubmitError()
+        },
+        onDismissStartPicker = { showStartPicker = false },
+        onDismissEndPicker = { showEndPicker = false },
+        onCreateClick = {
+            viewModel.onCreateClicked(
+                clubId = clubId,
+                type = selectedType,
+                startDate = startDate,
+                endDate = endDate,
+                name = name
+            )
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CreateSeasonContent(
+    uiState: CreateSeasonUiState,
+    clubName: String,
+    today: LocalDate,
+    selectedType: SeasonType,
+    startDate: LocalDate,
+    endDate: LocalDate,
+    name: String,
+    showStartPicker: Boolean,
+    showEndPicker: Boolean,
+    onNavigateBack: () -> Unit,
+    onTypeSelected: (SeasonType) -> Unit,
+    onNameChange: (String) -> Unit,
+    onStartDateClick: () -> Unit,
+    onEndDateClick: () -> Unit,
+    onStartDateConfirmed: (LocalDate) -> Unit,
+    onEndDateConfirmed: (LocalDate) -> Unit,
+    onDismissStartPicker: () -> Unit,
+    onDismissEndPicker: () -> Unit,
+    onCreateClick: () -> Unit
+) {
+    val inferredName = SeasonDateDefaults.inferredName(selectedType, startDate, endDate)
+    val europeanDefaults = remember(today) { SeasonDateDefaults.datesFor(SeasonType.EUROPEAN_YEAR, today) }
+    val calendarDefaults = remember(today) { SeasonDateDefaults.datesFor(SeasonType.CALENDAR_YEAR, today) }
+    val europeanPill = SeasonDateDefaults.inferredName(SeasonType.EUROPEAN_YEAR, europeanDefaults.first, europeanDefaults.second)
+    val calendarPill = SeasonDateDefaults.inferredName(SeasonType.CALENDAR_YEAR, calendarDefaults.first, calendarDefaults.second)
+
     Scaffold(
+        // Explicit white, not MaterialTheme.colorScheme.background: every screen in this app renders
+        // light content regardless of system theme (only the header bars are dark) -- same convention
+        // ClubDetailsScreen etc. follow. Without this, a device in dark mode gets FootballManagerTheme's
+        // DeepCarbon background here instead.
+        containerColor = Color.White,
         topBar = {
             TopAppBar(
                 title = {
@@ -137,10 +211,10 @@ fun CreateSeasonScreen(
             )
         }
     ) { paddingValues ->
-        when (val state = uiState) {
+        when (uiState) {
             is CreateSeasonUiState.Loading -> {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = PitchGreen)
@@ -152,6 +226,7 @@ fun CreateSeasonScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
+                        .background(Color.White)
                         .verticalScroll(rememberScrollState())
                         .padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -163,14 +238,14 @@ fun CreateSeasonScreen(
                         rangeLabel = stringResource(Res.string.label_season_type_european_range),
                         valuePill = europeanPill,
                         selected = selectedType == SeasonType.EUROPEAN_YEAR,
-                        onClick = { applyType(SeasonType.EUROPEAN_YEAR) }
+                        onClick = { onTypeSelected(SeasonType.EUROPEAN_YEAR) }
                     )
                     SeasonTypeRow(
                         title = stringResource(Res.string.label_season_type_calendar),
                         rangeLabel = stringResource(Res.string.label_season_type_calendar_range),
                         valuePill = calendarPill,
                         selected = selectedType == SeasonType.CALENDAR_YEAR,
-                        onClick = { applyType(SeasonType.CALENDAR_YEAR) }
+                        onClick = { onTypeSelected(SeasonType.CALENDAR_YEAR) }
                     )
 
                     Text(
@@ -206,19 +281,19 @@ fun CreateSeasonScreen(
                     DateRow(
                         label = stringResource(Res.string.label_starts),
                         date = startDate,
-                        isError = state.isConflict,
-                        onClick = { showStartPicker = true }
+                        isError = uiState.isConflict,
+                        onClick = onStartDateClick
                     )
                     DateRow(
                         label = stringResource(Res.string.label_ends),
                         date = endDate,
-                        isError = state.isConflict,
-                        onClick = { showEndPicker = true }
+                        isError = uiState.isConflict,
+                        onClick = onEndDateClick
                     )
 
-                    if (state.isConflict) {
+                    if (uiState.isConflict) {
                         Text(
-                            text = state.conflictingSeasonName
+                            text = uiState.conflictingSeasonName
                                 ?.let { stringResource(Res.string.msg_create_season_conflict, it) }
                                 ?: stringResource(Res.string.msg_create_season_conflict_unknown),
                             style = MaterialTheme.typography.bodySmall,
@@ -243,10 +318,7 @@ fun CreateSeasonScreen(
 
                     OutlinedTextField(
                         value = name,
-                        onValueChange = {
-                            name = it
-                            viewModel.clearSubmitError()
-                        },
+                        onValueChange = onNameChange,
                         label = { Text(stringResource(Res.string.label_season_name_field)) },
                         placeholder = {
                             Text(stringResource(Res.string.label_season_name_placeholder, inferredName))
@@ -271,9 +343,9 @@ fun CreateSeasonScreen(
                         color = DeepCarbon.copy(alpha = 0.6f)
                     )
 
-                    if (state.error != null) {
+                    if (uiState.error != null) {
                         Text(
-                            text = state.error,
+                            text = uiState.error,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -282,21 +354,13 @@ fun CreateSeasonScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Button(
-                        onClick = {
-                            viewModel.onCreateClicked(
-                                clubId = clubId,
-                                type = selectedType,
-                                startDate = startDate,
-                                endDate = endDate,
-                                name = name
-                            )
-                        },
+                        onClick = onCreateClick,
                         modifier = Modifier.fillMaxWidth().height(58.dp),
-                        enabled = !state.isSubmitting,
+                        enabled = !uiState.isSubmitting,
                         shape = FormRoundedShape,
                         colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)
                     ) {
-                        if (state.isSubmitting) {
+                        if (uiState.isSubmitting) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(24.dp),
                                 color = Color.White,
@@ -319,23 +383,15 @@ fun CreateSeasonScreen(
     if (showStartPicker) {
         SeasonDatePickerSheet(
             initialDate = startDate,
-            onConfirm = {
-                startDateIso = it.toString()
-                showStartPicker = false
-                viewModel.clearSubmitError()
-            },
-            onDismiss = { showStartPicker = false }
+            onConfirm = onStartDateConfirmed,
+            onDismiss = onDismissStartPicker
         )
     }
     if (showEndPicker) {
         SeasonDatePickerSheet(
             initialDate = endDate,
-            onConfirm = {
-                endDateIso = it.toString()
-                showEndPicker = false
-                viewModel.clearSubmitError()
-            },
-            onDismiss = { showEndPicker = false }
+            onConfirm = onEndDateConfirmed,
+            onDismiss = onDismissEndPicker
         )
     }
 }
@@ -467,5 +523,98 @@ private fun SeasonDatePickerSheet(
         ) {
             Text(stringResource(Res.string.btn_confirm))
         }
+    }
+}
+
+@Preview
+@Composable
+private fun CreateSeasonContentPreviewLight() {
+    val today = remember { LocalDate(2026, 9, 4) }
+    val (start, end) = remember { SeasonDateDefaults.datesFor(SeasonType.EUROPEAN_YEAR, today) }
+    FootballManagerTheme(darkTheme = false) {
+        CreateSeasonContent(
+            uiState = CreateSeasonUiState.Idle(),
+            clubName = "CD Ribamar",
+            today = today,
+            selectedType = SeasonType.EUROPEAN_YEAR,
+            startDate = start,
+            endDate = end,
+            name = "",
+            showStartPicker = false,
+            showEndPicker = false,
+            onNavigateBack = {},
+            onTypeSelected = {},
+            onNameChange = {},
+            onStartDateClick = {},
+            onEndDateClick = {},
+            onStartDateConfirmed = {},
+            onEndDateConfirmed = {},
+            onDismissStartPicker = {},
+            onDismissEndPicker = {},
+            onCreateClick = {}
+        )
+    }
+}
+
+// Screens in this app always render a light content area regardless of system theme (only the header
+// bars are dark) -- this preview exists to prove that stays true even when FootballManagerTheme
+// resolves its dark color scheme, per AI_GUIDELINES.md "Compose Previews & Orientation Support".
+@Preview
+@Composable
+private fun CreateSeasonContentPreviewDarkSystemTheme() {
+    val today = remember { LocalDate(2026, 9, 4) }
+    val (start, end) = remember { SeasonDateDefaults.datesFor(SeasonType.CALENDAR_YEAR, today) }
+    FootballManagerTheme(darkTheme = true) {
+        CreateSeasonContent(
+            uiState = CreateSeasonUiState.Idle(isConflict = true, conflictingSeasonName = "2026"),
+            clubName = "CD Ribamar",
+            today = today,
+            selectedType = SeasonType.CALENDAR_YEAR,
+            startDate = start,
+            endDate = end,
+            name = "",
+            showStartPicker = false,
+            showEndPicker = false,
+            onNavigateBack = {},
+            onTypeSelected = {},
+            onNameChange = {},
+            onStartDateClick = {},
+            onEndDateClick = {},
+            onStartDateConfirmed = {},
+            onEndDateConfirmed = {},
+            onDismissStartPicker = {},
+            onDismissEndPicker = {},
+            onCreateClick = {}
+        )
+    }
+}
+
+@Preview(widthDp = 780, heightDp = 360)
+@Composable
+private fun CreateSeasonContentPreviewLandscape() {
+    val today = remember { LocalDate(2026, 9, 4) }
+    val (start, end) = remember { SeasonDateDefaults.datesFor(SeasonType.EUROPEAN_YEAR, today) }
+    FootballManagerTheme(darkTheme = false) {
+        CreateSeasonContent(
+            uiState = CreateSeasonUiState.Idle(),
+            clubName = "CD Ribamar",
+            today = today,
+            selectedType = SeasonType.EUROPEAN_YEAR,
+            startDate = start,
+            endDate = end,
+            name = "",
+            showStartPicker = false,
+            showEndPicker = false,
+            onNavigateBack = {},
+            onTypeSelected = {},
+            onNameChange = {},
+            onStartDateClick = {},
+            onEndDateClick = {},
+            onStartDateConfirmed = {},
+            onEndDateConfirmed = {},
+            onDismissStartPicker = {},
+            onDismissEndPicker = {},
+            onCreateClick = {}
+        )
     }
 }

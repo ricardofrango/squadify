@@ -27,7 +27,7 @@
     <string name="msg_no_seasons_title">Este clube ainda não tem épocas.</string>
     <string name="msg_no_seasons_admin_subtitle">As equipas e jogadores não podem ser organizados até que exista uma.</string>
     <string name="msg_no_seasons_member_subtitle">Peça a um coordenador para criar uma.</string>
-    <string name="label_number_prefix">Número: %s</string>
+    <string name="label_number_prefix">Número: %1$s</string>
     <string name="label_create_team">Criar Equipa</string>
     <string name="label_create_age_group">Criar Escalão</string>
     <string name="label_add_season">Adicionar Época</string>
@@ -38,7 +38,7 @@
     <string name="title_team_details">Detalhes da Equipa</string>
     <string name="title_player_profile">Perfil do Jogador</string>
     <string name="msg_no_players_team">Não existem jogadores nesta equipa</string>
-    <string name="label_squad_number_prefix">Número da Camisola: %s</string>
+    <string name="label_squad_number_prefix">Número da Camisola: %1$s</string>
     <string name="label_player_info">Informação do Jogador</string>
     <string name="label_status">Estado</string>
     <string name="label_birth_date">Data de Nascimento</string>
@@ -56,17 +56,17 @@
     <string name="msg_season_type_helper_european">Decorre de Jul a Jun, tal como o futebol jovem português está organizado. Escolher um tipo preenche as datas abaixo — altere-as se a sua liga for diferente.</string>
     <string name="msg_season_type_helper_calendar">Decorre de Jan a Dez, o ano civil padrão. Escolher um tipo preenche as datas abaixo — altere-as se a sua liga for diferente.</string>
     <string name="label_dates_section">Datas</string>
-    <string name="label_days_count">%s dias</string>
+    <string name="label_days_count">%1$s dias</string>
     <string name="label_starts">Início</string>
     <string name="label_ends">Fim</string>
     <string name="label_name_section">Nome</string>
     <string name="label_optional">Opcional</string>
     <string name="label_season_name_field">Nome da época</string>
-    <string name="label_season_name_placeholder">%s · inferido a partir das datas</string>
-    <string name="msg_season_name_helper">Deixe em branco e a época será chamada %s a partir das datas.</string>
+    <string name="label_season_name_placeholder">%1$s · inferido a partir das datas</string>
+    <string name="msg_season_name_helper">Deixe em branco e a época será chamada %1$s a partir das datas.</string>
     <string name="btn_create_season">Criar época</string>
     <string name="btn_confirm">Confirmar</string>
     <string name="msg_create_season_failed">Ocorreu um erro ao criar a época. Por favor, tente novamente.</string>
-    <string name="msg_create_season_conflict">Entra em conflito com a época existente \"%s\".</string>
+    <string name="msg_create_season_conflict">Entra em conflito com a época existente \"%1$s\".</string>
     <string name="msg_create_season_conflict_unknown">Já existe uma época com estas datas.</string>
 </resources>
