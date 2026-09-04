@@ -5,8 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.ricardofrango.footballmanager.domain.usecase.GetClubDetailsUseCase
 import com.ricardofrango.footballmanager.model.AgeGroup
 import com.ricardofrango.footballmanager.model.Team
+import footballmanager.app.shared.generated.resources.Res
+import footballmanager.app.shared.generated.resources.msg_failed_to_load_club_details
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 
 class ClubDetailsViewModel(
     private val getClubDetailsUseCase: GetClubDetailsUseCase
@@ -41,7 +44,11 @@ class ClubDetailsViewModel(
                     )
                 }
             } catch (e: Exception) {
-                _state.update { ClubDetailsUiState.Idle(error = e.message ?: "Failed to load club details") }
+                // Never surface e.message to the UI: it's an implementation detail (can leak server
+                // internals, exception class names, etc.), not user-facing copy. See AI_GUIDELINES.md
+                // "No Raw Exception Messages in UI".
+                val message = getString(Res.string.msg_failed_to_load_club_details)
+                _state.update { ClubDetailsUiState.Idle(error = message) }
             }
         }
     }
