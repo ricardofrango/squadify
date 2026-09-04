@@ -19,6 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.footballmanager.domain.SeasonDateDefaults
 import com.ricardofrango.footballmanager.model.SeasonType
+import com.ricardofrango.footballmanager.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.footballmanager.presentation.ui.theme.CarbonGray
 import com.ricardofrango.footballmanager.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.footballmanager.presentation.ui.theme.FootballManagerTheme
@@ -353,26 +354,11 @@ private fun CreateSeasonContent(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Button(
-                        onClick = onCreateClick,
-                        modifier = Modifier.fillMaxWidth().height(58.dp),
-                        enabled = !uiState.isSubmitting,
-                        shape = FormRoundedShape,
-                        colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)
-                    ) {
-                        if (uiState.isSubmitting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = Color.White,
-                                strokeWidth = 3.dp
-                            )
-                        } else {
-                            Text(
-                                text = stringResource(Res.string.btn_create_season).uppercase(),
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
-                            )
-                        }
-                    }
+                    PrimaryLoadingButton(
+                        text = stringResource(Res.string.btn_create_season),
+                        isLoading = uiState.isSubmitting,
+                        onClick = onCreateClick
+                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
                 }

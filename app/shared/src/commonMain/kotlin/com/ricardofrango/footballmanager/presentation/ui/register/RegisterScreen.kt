@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.ricardofrango.footballmanager.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.footballmanager.presentation.ui.theme.CarbonGray
 import com.ricardofrango.footballmanager.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.footballmanager.presentation.ui.theme.PitchGreen
@@ -249,39 +249,15 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                Button(
+                PrimaryLoadingButton(
+                    text = stringResource(Res.string.btn_register),
+                    isLoading = uiState is RegisterUiState.Loading,
                     onClick = {
                         viewModel.onRegisterClicked(
                             firstName, lastName, email, phone, password, confirmPassword
                         )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(58.dp),
-                    enabled = uiState !is RegisterUiState.Loading,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PitchGreen,
-                        contentColor = Color.White
-                    ),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-                ) {
-                    if (uiState is RegisterUiState.Loading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = Color.White,
-                            strokeWidth = 3.dp
-                        )
-                    } else {
-                        Text(
-                            text = stringResource(Res.string.btn_register).uppercase(),
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = 1.sp
-                            )
-                        )
                     }
-                }
+                )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
