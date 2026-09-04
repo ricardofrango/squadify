@@ -3,6 +3,7 @@ package com.ricardofrango.footballmanager.domain.usecase
 import com.ricardofrango.footballmanager.domain.repository.SeasonRepository
 import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ConflictException
+import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.CreateSeasonRequest
 import com.ricardofrango.footballmanager.model.Season
@@ -21,6 +22,13 @@ class CreateSeasonUseCase(
             minClubRole = ClubRole.COORDINATOR,
             errorMessage = "Only admins or coordinators can create seasons"
         )
+
+        // Client-side (the date pickers) already keeps this from happening in normal use, but the
+        // client can't be trusted alone -- validate here too, and fail fast before the duplicate-
+        // season query does any DB work for an already-invalid request.
+        if (request.startDate > request.endDate) {
+            throw ValidationException("Season start date must not be after the end date")
+        }
 
         // Check for duplicate season
         val existing = seasonRepository.findByDetails(

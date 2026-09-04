@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ricardofrango.footballmanager.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.footballmanager.presentation.ui.theme.CarbonGray
 import com.ricardofrango.footballmanager.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.footballmanager.presentation.ui.theme.PitchGreen
@@ -196,35 +197,12 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Button(
-                        onClick = { viewModel.onLoginClicked(email, password) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(58.dp),
-                        enabled = uiState !is LoginUiState.Loading,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PitchGreen,
-                            contentColor = Color.White
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-                    ) {
-                        if (uiState is LoginUiState.Loading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = Color.White,
-                                strokeWidth = 3.dp
-                            )
-                        } else {
-                            Text(
-                                text = stringResource(Res.string.btn_login).uppercase(),
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.ExtraBold,
-                                    letterSpacing = 1.sp
-                                )
-                            )
-                        }
-                    }
+                    PrimaryLoadingButton(
+                        text = Res.string.btn_login,
+                        submittingText = Res.string.btn_loging_in,
+                        isLoading = uiState is LoginUiState.Loading,
+                        onClick = { viewModel.onLoginClicked(email, password) }
+                    )
 
                     Spacer(modifier = Modifier.weight(1f))
 

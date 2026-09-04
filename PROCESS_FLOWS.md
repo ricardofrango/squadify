@@ -266,7 +266,9 @@ graph TD
 graph TD
     A[Start: userId, clubId, type, startDate, endDate, name?] --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
     B -- denied --> F(["Throw ForbiddenException"])
-    B -- allowed --> C[Find existing season with same club + type + dates]
+    B -- allowed --> V{startDate > endDate?}
+    V -- Yes --> VN(["Throw ValidationException: start date after end date"])
+    V -- No --> C[Find existing season with same club + type + dates]
     C -- exists --> CN(["Throw ConflictException: duplicate season"])
     C -- not exists --> D{name provided?}
     D -- Yes --> H[Use provided name]
@@ -278,6 +280,8 @@ graph TD
     E2 --> I
     I --> Z(["Persist Season"])
 ```
+
+The client's `DatePickerSheet` (`minDate`/`maxDate`) already keeps the start/end ordering from happening in normal use — picking an end date before the current start date (or a start date after the current end date) simply isn't offered in the picker — but the server validates it independently since the client can't be trusted alone. Covered by `CreateSeasonUseCaseTest`.
 
 ### 4.2 Update Season (`UpdateSeasonUseCase`)
 

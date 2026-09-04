@@ -3,6 +3,7 @@ package com.ricardofrango.footballmanager.data.remote
 import com.ricardofrango.footballmanager.domain.config.AppConfig
 import com.ricardofrango.footballmanager.domain.repository.SeasonRepository
 import com.ricardofrango.footballmanager.domain.repository.SessionRepository
+import com.ricardofrango.footballmanager.model.CreateSeasonRequest
 import com.ricardofrango.footballmanager.model.Season
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -18,6 +19,17 @@ class SeasonRepositoryImpl(
         val token = sessionRepository.getToken()
         return httpClient.get("${appConfig.baseUrl}/seasons") {
             parameter("clubId", clubId)
+            token?.let {
+                header(HttpHeaders.Authorization, "Bearer $it")
+            }
+        }.handleResponse()
+    }
+
+    override suspend fun createSeason(request: CreateSeasonRequest): Season {
+        val token = sessionRepository.getToken()
+        return httpClient.post("${appConfig.baseUrl}/seasons") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
             token?.let {
                 header(HttpHeaders.Authorization, "Bearer $it")
             }

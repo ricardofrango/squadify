@@ -3,28 +3,80 @@ package com.ricardofrango.footballmanager.presentation.ui.clubdetails
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.ricardofrango.footballmanager.model.Player
 import com.ricardofrango.footballmanager.model.Team
+import com.ricardofrango.footballmanager.presentation.ui.components.FMTopBar
 import com.ricardofrango.footballmanager.presentation.ui.theme.CarbonGray
 import com.ricardofrango.footballmanager.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.footballmanager.presentation.ui.theme.PitchGreen
-import footballmanager.app.shared.generated.resources.*
+import footballmanager.app.shared.generated.resources.Res
+import footballmanager.app.shared.generated.resources.btn_retry
+import footballmanager.app.shared.generated.resources.ic_more
+import footballmanager.app.shared.generated.resources.ic_player
+import footballmanager.app.shared.generated.resources.ic_teams
+import footballmanager.app.shared.generated.resources.label_add_season
+import footballmanager.app.shared.generated.resources.label_all_ages
+import footballmanager.app.shared.generated.resources.label_all_seasons
+import footballmanager.app.shared.generated.resources.label_all_teams
+import footballmanager.app.shared.generated.resources.label_create_age_group
+import footballmanager.app.shared.generated.resources.label_create_team
+import footballmanager.app.shared.generated.resources.label_more_options
+import footballmanager.app.shared.generated.resources.label_number_prefix
+import footballmanager.app.shared.generated.resources.msg_no_players_filter
+import footballmanager.app.shared.generated.resources.msg_no_seasons_admin_subtitle
+import footballmanager.app.shared.generated.resources.msg_no_seasons_member_subtitle
+import footballmanager.app.shared.generated.resources.msg_no_seasons_title
+import footballmanager.app.shared.generated.resources.msg_no_teams_filter
+import footballmanager.app.shared.generated.resources.tab_players
+import footballmanager.app.shared.generated.resources.tab_teams
+import footballmanager.app.shared.generated.resources.title_club_details
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -36,35 +88,35 @@ fun ClubDetailsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToTeam: (String) -> Unit,
     onNavigateToPlayer: (String) -> Unit,
+    // Takes the club's name because CreateSeasonScreen shows it in its header, and the only place
+    // that name is loaded is here.
+    onNavigateToCreateSeason: (clubName: String) -> Unit,
+    // True exactly once, right after returning from CreateSeasonScreen having created a season --
+    // forces a reload past loadClubDetails' "already have this club" guard, since Koin scopes this
+    // ViewModel to the nav back-stack entry (so popping back here reuses the same stale state).
+    refreshAfterSeasonCreated: Boolean = false,
     viewModel: ClubDetailsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
     val selectedTab = (uiState as? ClubDetailsUiState.Idle)?.selectedTab ?: 0
+    val clubName = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name ?: ""
 
     LaunchedEffect(clubId) {
         viewModel.loadClubDetails(clubId)
     }
 
+    LaunchedEffect(refreshAfterSeasonCreated) {
+        if (refreshAfterSeasonCreated) {
+            viewModel.loadClubDetails(clubId, forceReload = true)
+        }
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    val title = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name 
-                        ?: stringResource(Res.string.title_club_details)
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            painter = painterResource(Res.drawable.ic_back),
-                            contentDescription = stringResource(Res.string.label_back),
-                            tint = Color.White
-                        )
-                    }
-                },
+            FMTopBar(
+                title = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name
+                    ?: stringResource(Res.string.title_club_details),
+                onNavigateBack = onNavigateBack,
                 actions = {
                     var showAddMenu by remember { mutableStateOf(false) }
                     Box {
@@ -81,26 +133,38 @@ fun ClubDetailsScreen(
                             modifier = Modifier.background(Color.White)
                         ) {
                             DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.label_create_team), color = DeepCarbon) },
+                                text = {
+                                    Text(
+                                        stringResource(Res.string.label_create_team),
+                                        color = DeepCarbon
+                                    )
+                                },
                                 onClick = { showAddMenu = false }
                             )
                             DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.label_create_age_group), color = DeepCarbon) },
+                                text = {
+                                    Text(
+                                        stringResource(Res.string.label_create_age_group),
+                                        color = DeepCarbon
+                                    )
+                                },
                                 onClick = { showAddMenu = false }
                             )
                             DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.label_add_season), color = DeepCarbon) },
-                                onClick = { showAddMenu = false }
+                                text = {
+                                    Text(
+                                        stringResource(Res.string.label_add_season),
+                                        color = DeepCarbon
+                                    )
+                                },
+                                onClick = {
+                                    showAddMenu = false
+                                    onNavigateToCreateSeason(clubName)
+                                }
                             )
                         }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = CarbonGray,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White,
-                    actionIconContentColor = Color.White
-                )
+                }
             )
         },
         bottomBar = {
@@ -112,20 +176,20 @@ fun ClubDetailsScreen(
                 NavigationBarItem(
                     selected = selectedTab == 0,
                     onClick = { viewModel.onTabSelected(0) },
-                    icon = { 
+                    icon = {
                         Icon(
                             painter = painterResource(Res.drawable.ic_teams),
                             contentDescription = stringResource(Res.string.tab_teams),
                             modifier = Modifier.size(24.dp)
-                        ) 
+                        )
                     },
-                    label = { 
+                    label = {
                         Text(
                             text = stringResource(Res.string.tab_teams),
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
                             )
-                        ) 
+                        )
                     },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = PitchGreen,
@@ -138,20 +202,20 @@ fun ClubDetailsScreen(
                 NavigationBarItem(
                     selected = selectedTab == 1,
                     onClick = { viewModel.onTabSelected(1) },
-                    icon = { 
+                    icon = {
                         Icon(
                             painter = painterResource(Res.drawable.ic_player),
                             contentDescription = stringResource(Res.string.tab_players),
                             modifier = Modifier.size(24.dp)
-                        ) 
+                        )
                     },
-                    label = { 
+                    label = {
                         Text(
                             text = stringResource(Res.string.tab_players),
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
                             )
-                        ) 
+                        )
                     },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = PitchGreen,
@@ -176,6 +240,7 @@ fun ClubDetailsScreen(
                         CircularProgressIndicator(color = PitchGreen)
                     }
                 }
+
                 is ClubDetailsUiState.Idle -> when {
                     state.error != null ->
                         ErrorState(state.error, onRetry = { viewModel.loadClubDetails(clubId) })
@@ -184,7 +249,11 @@ fun ClubDetailsScreen(
                     // (CreateSeasonUseCase requires COORDINATOR+), so they get offered a way to create
                     // one; a plain member just sees that there are none yet.
                     state.showNoSeasonsState ->
-                        NoSeasonsState(canCreateSeason = state.canCreateSeason)
+                        NoSeasonsState(
+                            canCreateSeason = state.canCreateSeason,
+                            onCreateSeasonClick = { onNavigateToCreateSeason(clubName) }
+                        )
+
                     state.details != null ->
                         ClubDetailsTabContent(
                             state = state,
@@ -213,6 +282,7 @@ private fun ClubDetailsTabContent(
                 TeamFilterSection(state = state, viewModel = viewModel)
                 TeamList(state.filteredTeams, onNavigateToTeam)
             }
+
             else -> {
                 PlayerFilterSection(state = state, viewModel = viewModel)
                 PlayerList(state.filteredPlayers, onNavigateToPlayer)
@@ -235,19 +305,19 @@ private fun TeamFilterSection(
     ) {
         item {
             FilterSelector(
-                selectedOption = state.details?.seasons?.find { it.id == state.selectedSeasonId }?.name 
+                selectedOption = state.details?.seasons?.find { it.id == state.selectedSeasonId }?.name
                     ?: stringResource(Res.string.label_all_seasons),
-                options = listOf(null to stringResource(Res.string.label_all_seasons)) + 
-                    (state.details?.seasons?.map { it.id to it.name } ?: emptyList()),
+                options = listOf(null to stringResource(Res.string.label_all_seasons)) +
+                        (state.details?.seasons?.map { it.id to it.name } ?: emptyList()),
                 onOptionSelected = viewModel::onSeasonSelected
             )
         }
         item {
             FilterSelector(
-                selectedOption = state.details?.ageGroups?.find { it.id == state.selectedAgeGroupId }?.name 
+                selectedOption = state.details?.ageGroups?.find { it.id == state.selectedAgeGroupId }?.name
                     ?: stringResource(Res.string.label_all_ages),
-                options = listOf(null to stringResource(Res.string.label_all_ages)) + 
-                    viewModel.getAvailableAgeGroupsForTeams(state).map { it.id to it.name },
+                options = listOf(null to stringResource(Res.string.label_all_ages)) +
+                        viewModel.getAvailableAgeGroupsForTeams(state).map { it.id to it.name },
                 onOptionSelected = viewModel::onAgeGroupSelected
             )
         }
@@ -268,28 +338,28 @@ private fun PlayerFilterSection(
     ) {
         item {
             FilterSelector(
-                selectedOption = state.details?.seasons?.find { it.id == state.selectedPlayerSeasonId }?.name 
+                selectedOption = state.details?.seasons?.find { it.id == state.selectedPlayerSeasonId }?.name
                     ?: stringResource(Res.string.label_all_seasons),
-                options = listOf(null to stringResource(Res.string.label_all_seasons)) + 
-                    (state.details?.seasons?.map { it.id to it.name } ?: emptyList()),
+                options = listOf(null to stringResource(Res.string.label_all_seasons)) +
+                        (state.details?.seasons?.map { it.id to it.name } ?: emptyList()),
                 onOptionSelected = viewModel::onPlayerSeasonSelected
             )
         }
         item {
             FilterSelector(
-                selectedOption = state.details?.ageGroups?.find { it.id == state.selectedPlayerAgeGroupId }?.name 
+                selectedOption = state.details?.ageGroups?.find { it.id == state.selectedPlayerAgeGroupId }?.name
                     ?: stringResource(Res.string.label_all_ages),
-                options = listOf(null to stringResource(Res.string.label_all_ages)) + 
-                    viewModel.getAvailableAgeGroupsForPlayers(state).map { it.id to it.name },
+                options = listOf(null to stringResource(Res.string.label_all_ages)) +
+                        viewModel.getAvailableAgeGroupsForPlayers(state).map { it.id to it.name },
                 onOptionSelected = viewModel::onPlayerAgeGroupSelected
             )
         }
         item {
             FilterSelector(
-                selectedOption = state.details?.teams?.find { it.id == state.selectedPlayerTeamId }?.name 
+                selectedOption = state.details?.teams?.find { it.id == state.selectedPlayerTeamId }?.name
                     ?: stringResource(Res.string.label_all_teams),
-                options = listOf(null to stringResource(Res.string.label_all_teams)) + 
-                    viewModel.getAvailableTeamsForPlayers(state).map { it.id to it.name },
+                options = listOf(null to stringResource(Res.string.label_all_teams)) +
+                        viewModel.getAvailableTeamsForPlayers(state).map { it.id to it.name },
                 onOptionSelected = viewModel::onPlayerTeamSelected
             )
         }
@@ -339,12 +409,12 @@ private fun <T> FilterSelector(
         ) {
             options.forEach { (value, name) ->
                 DropdownMenuItem(
-                    text = { 
+                    text = {
                         Text(
                             text = name,
                             color = if (selectedOption == name) PitchGreen else DeepCarbon,
                             fontWeight = if (selectedOption == name) FontWeight.Bold else FontWeight.Normal
-                        ) 
+                        )
                     },
                     onClick = {
                         onOptionSelected(value)
@@ -411,8 +481,8 @@ private fun TeamCard(team: Team, onClick: () -> Unit) {
             }
             Spacer(modifier = Modifier.width(16.dp))
             Text(
-                text = team.name, 
-                style = MaterialTheme.typography.titleMedium, 
+                text = team.name,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = DeepCarbon
             )
@@ -434,25 +504,29 @@ private fun PlayerCard(player: Player, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier.size(40.dp).background(CarbonGray.copy(alpha = 0.1f), RoundedCornerShape(20.dp)),
+                modifier = Modifier.size(40.dp)
+                    .background(CarbonGray.copy(alpha = 0.1f), RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "${player.firstName.take(1)}${player.lastName.take(1)}", color = DeepCarbon)
+                Text(
+                    text = "${player.firstName.take(1)}${player.lastName.take(1)}",
+                    color = DeepCarbon
+                )
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column {
                 Text(
-                    text = "${player.firstName} ${player.lastName}", 
-                    style = MaterialTheme.typography.titleMedium, 
+                    text = "${player.firstName} ${player.lastName}",
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = DeepCarbon
                 )
-                player.shirtNumber?.let { 
+                player.shirtNumber?.let {
                     Text(
-                        text = stringResource(Res.string.label_number_prefix, it.toString()), 
-                        style = MaterialTheme.typography.bodySmall, 
+                        text = stringResource(Res.string.label_number_prefix, it.toString()),
+                        style = MaterialTheme.typography.bodySmall,
                         color = DeepCarbon.copy(alpha = 0.7f)
-                    ) 
+                    )
                 }
             }
         }
@@ -480,32 +554,33 @@ private fun EmptyState(message: String) {
 }
 
 @Composable
-private fun NoSeasonsState(canCreateSeason: Boolean) {
+private fun NoSeasonsState(canCreateSeason: Boolean, onCreateSeasonClick: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        when (canCreateSeason) {
-            // Admin/coordinator: framed as an error, since this club is effectively unusable until a
-            // season exists, plus a way to act on it.
-            true -> {
-                NoSeasonsMessage(
-                    text = stringResource(Res.string.msg_no_seasons_admin),
-                    color = MaterialTheme.colorScheme.error
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                // Season creation isn't implemented yet anywhere in the app (the "Add Season" item in
-                // the top bar's menu is the same stub); this mirrors that until the flow exists.
-                Button(onClick = {}) {
-                    Text(stringResource(Res.string.label_add_season))
-                }
+        // Both lines share the same title; only the second line (and its color) differs by whether
+        // this user could act on it -- an admin/coordinator gets told what's broken, a plain member
+        // gets told who to ask. See the design canvas linked in AI_GUIDELINES.md ("UI Design Reference").
+        val subtitleColor =
+            if (canCreateSeason) MaterialTheme.colorScheme.error else DeepCarbon.copy(alpha = 0.6f)
+        NoSeasonsMessage(
+            text = stringResource(Res.string.msg_no_seasons_title),
+            color = if (canCreateSeason) MaterialTheme.colorScheme.error else DeepCarbon
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        NoSeasonsMessage(
+            text = stringResource(
+                if (canCreateSeason) Res.string.msg_no_seasons_admin_subtitle else Res.string.msg_no_seasons_member_subtitle
+            ),
+            color = subtitleColor
+        )
+        if (canCreateSeason) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onCreateSeasonClick) {
+                Text(stringResource(Res.string.label_add_season))
             }
-            // Plain member: informational only, they have no way to act on it.
-            false -> NoSeasonsMessage(
-                text = stringResource(Res.string.msg_no_seasons_member),
-                color = DeepCarbon.copy(alpha = 0.6f)
-            )
         }
     }
 }
