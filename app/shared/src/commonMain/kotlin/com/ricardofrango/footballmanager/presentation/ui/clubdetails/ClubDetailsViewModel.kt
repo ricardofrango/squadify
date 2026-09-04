@@ -15,7 +15,12 @@ class ClubDetailsViewModel(
     private val getClubDetailsUseCase: GetClubDetailsUseCase
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow<ClubDetailsUiState>(ClubDetailsUiState.Idle())
+    // Starts in Loading, not Idle(): loadClubDetails() always runs immediately on mount (from the
+    // screen's LaunchedEffect), so an initial Idle() only bought a one-frame gap where none of the
+    // screen's `when` branches match (error/showNoSeasonsState/details are all null/false) and nothing
+    // renders -- during a nav transition that let the previous screen (e.g. Dashboard's pull-to-refresh
+    // spinner) stay visible instead of this screen's own full-screen loading indicator.
+    private val _state = MutableStateFlow<ClubDetailsUiState>(ClubDetailsUiState.Loading)
     val state: StateFlow<ClubDetailsUiState> = _state.asStateFlow()
 
     fun loadClubDetails(clubId: String) {
