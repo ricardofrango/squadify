@@ -9,7 +9,11 @@ data class ClubDetails(
     val players: List<Player>,
     val seasons: List<Season>,
     val ageGroups: List<AgeGroup>,
-    val teamPlayers: List<TeamPlayer>
+    val teamPlayers: List<TeamPlayer>,
+    // Whether the current user is allowed to create a season in this club (CLUB_ADMIN/COORDINATOR/
+    // platform admin) -- lets the UI tell an admin "no seasons yet, create one" apart from a plain
+    // member's "no seasons yet" when `seasons` is empty. See PROCESS_FLOWS.md §3.3.
+    val canCreateSeason: Boolean
 )
 
 class GetClubDetailsUseCase(
@@ -21,13 +25,21 @@ class GetClubDetailsUseCase(
     private val teamPlayerRepository: TeamPlayerRepository
 ) {
     suspend operator fun invoke(clubId: String): ClubDetails {
-        val club = clubRepository.getClubById(clubId)
+        val clubDetailsResponse = clubRepository.getClubById(clubId)
         val teams = teamRepository.getTeams(clubId)
         val players = playerRepository.getPlayers(clubId)
         val seasons = seasonRepository.getSeasons(clubId)
         val ageGroups = ageGroupRepository.getAgeGroups(clubId)
         val teamPlayers = teamPlayerRepository.getTeamPlayersByClub(clubId)
-        
-        return ClubDetails(club, teams, players, seasons, ageGroups, teamPlayers)
+
+        return ClubDetails(
+            club = clubDetailsResponse.club,
+            teams = teams,
+            players = players,
+            seasons = seasons,
+            ageGroups = ageGroups,
+            teamPlayers = teamPlayers,
+            canCreateSeason = clubDetailsResponse.canCreateSeason
+        )
     }
 }

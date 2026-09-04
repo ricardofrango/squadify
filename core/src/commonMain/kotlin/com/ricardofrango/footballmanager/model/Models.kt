@@ -137,6 +137,17 @@ data class Club(
     val createdAt: Instant
 )
 
+/**
+ * Response for `GET /clubs/{clubId}`. Carries [canCreateSeason] alongside the [club] so the client can
+ * tell an empty seasons list apart for an admin/coordinator (who should be told a season is required)
+ * versus a plain member (who should just see "no seasons yet").
+ */
+@Serializable
+data class ClubDetailsResponse(
+    val club: Club,
+    val canCreateSeason: Boolean
+)
+
 @Serializable
 data class Season(
     val id: String,

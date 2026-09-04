@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -175,29 +176,46 @@ fun ClubDetailsScreen(
                         CircularProgressIndicator(color = PitchGreen)
                     }
                 }
-                is ClubDetailsUiState.Idle -> {
-                    if (state.error != null) {
+                is ClubDetailsUiState.Idle -> when {
+                    state.error != null ->
                         ErrorState(state.error, onRetry = { viewModel.loadClubDetails(clubId) })
-                    } else if (state.details != null) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            if (selectedTab == 0) {
-                                // Filters for Teams
-                                TeamFilterSection(
-                                    state = state,
-                                    viewModel = viewModel
-                                )
-                                TeamList(state.filteredTeams, onNavigateToTeam)
-                            } else {
-                                // Filters for Players
-                                PlayerFilterSection(
-                                    state = state,
-                                    viewModel = viewModel
-                                )
-                                PlayerList(state.filteredPlayers, onNavigateToPlayer)
-                            }
-                        }
-                    }
+                    // Everything below (teams, players, filters) is season-scoped, so with no seasons
+                    // there is nothing meaningful to show. Only an admin/coordinator can fix this
+                    // (CreateSeasonUseCase requires COORDINATOR+), so they get offered a way to create
+                    // one; a plain member just sees that there are none yet.
+                    state.showNoSeasonsState ->
+                        NoSeasonsState(canCreateSeason = state.canCreateSeason)
+                    state.details != null ->
+                        ClubDetailsTabContent(
+                            state = state,
+                            selectedTab = selectedTab,
+                            viewModel = viewModel,
+                            onNavigateToTeam = onNavigateToTeam,
+                            onNavigateToPlayer = onNavigateToPlayer
+                        )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ClubDetailsTabContent(
+    state: ClubDetailsUiState.Idle,
+    selectedTab: Int,
+    viewModel: ClubDetailsViewModel,
+    onNavigateToTeam: (String) -> Unit,
+    onNavigateToPlayer: (String) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        when (selectedTab) {
+            0 -> {
+                TeamFilterSection(state = state, viewModel = viewModel)
+                TeamList(state.filteredTeams, onNavigateToTeam)
+            }
+            else -> {
+                PlayerFilterSection(state = state, viewModel = viewModel)
+                PlayerList(state.filteredPlayers, onNavigateToPlayer)
             }
         }
     }
@@ -459,4 +477,45 @@ private fun EmptyState(message: String) {
     Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
         Text(text = message, color = DeepCarbon.copy(alpha = 0.6f))
     }
+}
+
+@Composable
+private fun NoSeasonsState(canCreateSeason: Boolean) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        when (canCreateSeason) {
+            // Admin/coordinator: framed as an error, since this club is effectively unusable until a
+            // season exists, plus a way to act on it.
+            true -> {
+                NoSeasonsMessage(
+                    text = stringResource(Res.string.msg_no_seasons_admin),
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                // Season creation isn't implemented yet anywhere in the app (the "Add Season" item in
+                // the top bar's menu is the same stub); this mirrors that until the flow exists.
+                Button(onClick = {}) {
+                    Text(stringResource(Res.string.label_add_season))
+                }
+            }
+            // Plain member: informational only, they have no way to act on it.
+            false -> NoSeasonsMessage(
+                text = stringResource(Res.string.msg_no_seasons_member),
+                color = DeepCarbon.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun NoSeasonsMessage(text: String, color: Color) {
+    Text(
+        text = text,
+        color = color,
+        style = MaterialTheme.typography.bodyLarge,
+        textAlign = TextAlign.Center
+    )
 }

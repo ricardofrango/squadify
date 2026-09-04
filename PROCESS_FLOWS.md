@@ -201,7 +201,21 @@ graph TD
     B -- False --> D(["Return clubs where user is a member OR a parent — single exists-subquery"])
 ```
 
-### 3.3 Update Club (`UpdateClubUseCase`)
+### 3.3 Get Club Details (`GetClubDetailsUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, clubId] --> B[CheckUserPermissionUseCase — minClubRole=MEMBER, allowPlayerOrParentAccess=true]
+    B -- denied --> F(["Throw ForbiddenException"])
+    B -- allowed --> C[Fetch Club by id]
+    C -- not found --> N(["Throw NotFoundException"])
+    C -- found --> D["Probe CheckUserPermissionUseCase — minClubRole=COORDINATOR (non-throwing: ForbiddenException caught to false)"]
+    D --> Z(["Return ClubDetailsResponse — club + canCreateSeason"])
+```
+
+`canCreateSeason` mirrors `CreateSeasonUseCase`'s own `minClubRole=COORDINATOR` gate exactly (same use case, called a second time as a probe) so the two can never drift. The client uses it to distinguish, when a club has zero seasons, an admin/coordinator ("no seasons yet, create one") from a plain member ("no seasons yet") — see §4.1.
+
+### 3.4 Update Club (`UpdateClubUseCase`)
 
 ```mermaid
 graph TD
@@ -213,7 +227,7 @@ graph TD
     D --> Z(["Persist updated Club"])
 ```
 
-### 3.4 Update Club Member Role (`UpdateClubMemberRoleUseCase`)
+### 3.5 Update Club Member Role (`UpdateClubMemberRoleUseCase`)
 
 ```mermaid
 graph TD
@@ -223,7 +237,7 @@ graph TD
     C --> Z(["Return success"])
 ```
 
-### 3.5 Add Club Members (`AddClubMembersUseCase`)
+### 3.6 Add Club Members (`AddClubMembersUseCase`)
 
 ```mermaid
 graph TD

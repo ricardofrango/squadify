@@ -5,14 +5,22 @@ import androidx.lifecycle.viewModelScope
 import com.ricardofrango.footballmanager.domain.usecase.GetClubDetailsUseCase
 import com.ricardofrango.footballmanager.model.AgeGroup
 import com.ricardofrango.footballmanager.model.Team
+import footballmanager.app.shared.generated.resources.Res
+import footballmanager.app.shared.generated.resources.msg_failed_to_load_club_details
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 
 class ClubDetailsViewModel(
     private val getClubDetailsUseCase: GetClubDetailsUseCase
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow<ClubDetailsUiState>(ClubDetailsUiState.Idle())
+    // Starts in Loading, not Idle(): loadClubDetails() always runs immediately on mount (from the
+    // screen's LaunchedEffect), so an initial Idle() only bought a one-frame gap where none of the
+    // screen's `when` branches match (error/showNoSeasonsState/details are all null/false) and nothing
+    // renders -- during a nav transition that let the previous screen (e.g. Dashboard's pull-to-refresh
+    // spinner) stay visible instead of this screen's own full-screen loading indicator.
+    private val _state = MutableStateFlow<ClubDetailsUiState>(ClubDetailsUiState.Loading)
     val state: StateFlow<ClubDetailsUiState> = _state.asStateFlow()
 
     fun loadClubDetails(clubId: String) {
@@ -30,16 +38,22 @@ class ClubDetailsViewModel(
             _state.update { ClubDetailsUiState.Loading }
             try {
                 val details = getClubDetailsUseCase(clubId)
-                _state.update { 
+                _state.update {
                     ClubDetailsUiState.Idle(
                         details = details,
                         filteredTeams = details.teams,
                         filteredPlayers = details.players,
-                        selectedTab = currentTab // Restore the captured tab
+                        selectedTab = currentTab, // Restore the captured tab
+                        showNoSeasonsState = details.seasons.isEmpty(),
+                        canCreateSeason = details.canCreateSeason
                     )
                 }
             } catch (e: Exception) {
-                _state.update { ClubDetailsUiState.Idle(error = e.message ?: "Failed to load club details") }
+                // Never surface e.message to the UI: it's an implementation detail (can leak server
+                // internals, exception class names, etc.), not user-facing copy. See AI_GUIDELINES.md
+                // "No Raw Exception Messages in UI".
+                val message = getString(Res.string.msg_failed_to_load_club_details)
+                _state.update { ClubDetailsUiState.Idle(error = message) }
             }
         }
     }
