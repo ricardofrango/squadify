@@ -30,12 +30,14 @@ class ClubDetailsViewModel(
             _state.update { ClubDetailsUiState.Loading }
             try {
                 val details = getClubDetailsUseCase(clubId)
-                _state.update { 
+                _state.update {
                     ClubDetailsUiState.Idle(
                         details = details,
                         filteredTeams = details.teams,
                         filteredPlayers = details.players,
-                        selectedTab = currentTab // Restore the captured tab
+                        selectedTab = currentTab, // Restore the captured tab
+                        showNoSeasonsState = details.seasons.isEmpty(),
+                        canCreateSeason = details.canCreateSeason
                     )
                 }
             } catch (e: Exception) {
