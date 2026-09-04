@@ -413,17 +413,21 @@ private fun CreateSeasonContent(
     }
 
     if (showStartPicker) {
+        // Can't pick a start date after the current end date -- see DatePickerSheet's minDate/maxDate.
         DatePickerSheet(
             initialDate = startDate,
             title = Res.string.label_select_start_date,
+            maxDate = endDate,
             onConfirm = onStartDateConfirmed,
             onDismiss = onDismissStartPicker
         )
     }
     if (showEndPicker) {
+        // Can't pick an end date before the current start date.
         DatePickerSheet(
             initialDate = endDate,
             title = Res.string.label_select_end_date,
+            minDate = startDate,
             onConfirm = onEndDateConfirmed,
             onDismiss = onDismissEndPicker
         )

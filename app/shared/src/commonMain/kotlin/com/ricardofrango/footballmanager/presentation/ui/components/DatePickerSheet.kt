@@ -9,10 +9,12 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
@@ -30,17 +32,33 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Instant
 
+/**
+ * @param minDate When set, dates before it can't be selected in the picker -- e.g. pass the season's
+ *   current start date when picking the end date, so it's not possible to pick an end date before the
+ *   start date (and vice versa for [maxDate] on the start-date picker). Both bounds are inclusive.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatePickerSheet(
     title: StringResource,
     initialDate: LocalDate,
     onConfirm: (LocalDate) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    minDate: LocalDate? = null,
+    maxDate: LocalDate? = null
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val minMillis = remember(minDate) { minDate?.atStartOfDayIn(TimeZone.UTC)?.toEpochMilliseconds() }
+    val maxMillis = remember(maxDate) { maxDate?.atStartOfDayIn(TimeZone.UTC)?.toEpochMilliseconds() }
+    val selectableDates = remember(minMillis, maxMillis) {
+        object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                (minMillis == null || utcTimeMillis >= minMillis) && (maxMillis == null || utcTimeMillis <= maxMillis)
+        }
+    }
     val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = initialDate.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+        initialSelectedDateMillis = initialDate.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds(),
+        selectableDates = selectableDates
     )
 
     ModalBottomSheet(

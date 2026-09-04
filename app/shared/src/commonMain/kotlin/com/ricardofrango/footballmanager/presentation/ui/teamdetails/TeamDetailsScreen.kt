@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ricardofrango.footballmanager.model.Player
+import com.ricardofrango.footballmanager.presentation.ui.components.FMTopBar
 import com.ricardofrango.footballmanager.presentation.ui.theme.CarbonGray
 import com.ricardofrango.footballmanager.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.footballmanager.presentation.ui.theme.PitchGreen
@@ -38,30 +39,11 @@ fun TeamDetailsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    val title = (uiState as? TeamDetailsUiState.Idle)?.details?.team?.name 
-                        ?: stringResource(Res.string.title_team_details)
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            painter = painterResource(Res.drawable.ic_back),
-                            contentDescription = stringResource(Res.string.label_back),
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = CarbonGray,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
-                )
+            FMTopBar(
+                title = (uiState as? TeamDetailsUiState.Idle)?.details?.team?.name ?: stringResource(Res.string.title_team_details),
+                onNavigateBack = onNavigateBack,
             )
+            
         }
     ) { paddingValues ->
         Box(

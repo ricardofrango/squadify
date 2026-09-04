@@ -1,6 +1,7 @@
 package com.ricardofrango.footballmanager.presentation.ui.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,7 +26,8 @@ import org.jetbrains.compose.resources.stringResource
 fun FMTopBar(
     title: String,
     subtitle: String? = null,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    actions: @Composable RowScope.() -> Unit = {},
 ) {
     TopAppBar(
         title = {
@@ -55,6 +57,7 @@ fun FMTopBar(
                 )
             }
         },
+        actions = actions,
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = CarbonGray,
             titleContentColor = Color.White,
