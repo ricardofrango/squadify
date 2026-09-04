@@ -8,8 +8,12 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalAutofillManager
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -28,7 +32,11 @@ fun LoginScreen(
     viewModel: LoginViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
-    
+
+    // Lets the platform password manager offer to save the entered credentials once login succeeds
+    // (null on targets without an autofill service, e.g. desktop/web/iOS).
+    val autofillManager = LocalAutofillManager.current
+
     // Local UI State for input fields
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -39,7 +47,11 @@ fun LoginScreen(
     LaunchedEffect(viewModel.navigationEvent) {
         viewModel.navigationEvent.collect { event ->
             when (event) {
-                LoginNavigationEvent.NavigateToDashboard -> onNavigateToDashboard()
+                LoginNavigationEvent.NavigateToDashboard -> {
+                    // Commit the autofill session so the OS shows its "save password?" prompt.
+                    autofillManager?.commit()
+                    onNavigateToDashboard()
+                }
             }
         }
     }
@@ -110,7 +122,9 @@ fun LoginScreen(
                         value = email,
                         onValueChange = { email = it },
                         label = { Text(stringResource(Res.string.label_email)) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics { contentType = ContentType.Username + ContentType.EmailAddress },
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp),
                         isError = errorMessage != null,
@@ -131,7 +145,9 @@ fun LoginScreen(
                         value = password,
                         onValueChange = { password = it },
                         label = { Text(stringResource(Res.string.label_password)) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics { contentType = ContentType.Password },
                         visualTransformation = PasswordVisualTransformation(),
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp),

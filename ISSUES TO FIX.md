@@ -57,6 +57,7 @@ Confirmed against the actual intended domain model (as described by the develope
 
 - [ ] **`collectAsState()` instead of `collectAsStateWithLifecycle()`.** All 7 screens in `app/shared/.../presentation/ui/*` use plain `collectAsState()`. This was flagged as a recommendation in `TECHNICAL_DECISIONS.md` §11.3; confirmed by direct check to be 0-for-7 today.
 - [ ] **Client config points nowhere real.** Both `DevAppConfig` and `ProdAppConfig` in `AppConfigs.kt` hardcode the same LAN IP over plain HTTP (`"http://192.168.1.84:8080"`, with the comment "For now the same address as requested") — credentials and tokens currently travel unencrypted, and "prod" isn't configured for anything resembling production yet.
+- [ ] **Login uses autofill hints only; migrate to Credential Manager.** `LoginScreen.kt` now tags its email/password fields with `contentType` semantics and calls `autofillManager.commit()` after a successful login, which lets the platform's autofill service offer to save the password. The current-guidance approach is Jetpack **Credential Manager** (`androidx.credentials` + `credentials-play-services-auth`): call `createCredential(CreatePasswordRequest(email, password))` after login for an explicit "save password" sheet, and `getCredential(GetPasswordOption())` on screen open for prefill/sign-in. It's Android-only, so it needs an `expect`/`actual` wrapper in `app/shared` (real `androidMain`, no-op elsewhere) plus an Activity context from `app/androidApp`. Register/change-password screens should use the same wrapper.
 
 ## Already tracked elsewhere
 
