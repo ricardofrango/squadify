@@ -40,7 +40,6 @@ fun AccountScreen(
                 title = stringResource(Res.string.title_account),
                 onNavigateBack = onNavigateBack,
             )
-            
         }
     ) { paddingValues ->
         Box(

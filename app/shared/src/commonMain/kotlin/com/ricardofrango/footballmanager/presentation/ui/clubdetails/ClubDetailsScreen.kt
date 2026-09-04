@@ -36,8 +36,6 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -60,7 +58,6 @@ import com.ricardofrango.footballmanager.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.footballmanager.presentation.ui.theme.PitchGreen
 import footballmanager.app.shared.generated.resources.Res
 import footballmanager.app.shared.generated.resources.btn_retry
-import footballmanager.app.shared.generated.resources.ic_back
 import footballmanager.app.shared.generated.resources.ic_more
 import footballmanager.app.shared.generated.resources.ic_player
 import footballmanager.app.shared.generated.resources.ic_teams
@@ -68,7 +65,6 @@ import footballmanager.app.shared.generated.resources.label_add_season
 import footballmanager.app.shared.generated.resources.label_all_ages
 import footballmanager.app.shared.generated.resources.label_all_seasons
 import footballmanager.app.shared.generated.resources.label_all_teams
-import footballmanager.app.shared.generated.resources.label_back
 import footballmanager.app.shared.generated.resources.label_create_age_group
 import footballmanager.app.shared.generated.resources.label_create_team
 import footballmanager.app.shared.generated.resources.label_more_options

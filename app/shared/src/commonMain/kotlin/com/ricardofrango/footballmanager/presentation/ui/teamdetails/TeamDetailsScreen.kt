@@ -43,7 +43,6 @@ fun TeamDetailsScreen(
                 title = (uiState as? TeamDetailsUiState.Idle)?.details?.team?.name ?: stringResource(Res.string.title_team_details),
                 onNavigateBack = onNavigateBack,
             )
-            
         }
     ) { paddingValues ->
         Box(
