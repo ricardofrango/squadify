@@ -9,6 +9,7 @@ interface TeamRepository {
     suspend fun getTeamsByClub(clubId: String): List<Team>
     suspend fun getTeamById(id: String): Team?
     suspend fun createTeam(team: Team): Team
+    suspend fun createTeams(teams: List<Team>): List<Team>
     suspend fun updateTeam(team: Team): Boolean
     suspend fun getUserRoleInTeam(userId: String, teamId: String): TeamRole?
     suspend fun addStaffToTeam(teamStaff: TeamStaff): Boolean

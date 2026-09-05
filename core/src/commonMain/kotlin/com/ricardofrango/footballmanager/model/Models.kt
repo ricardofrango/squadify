@@ -138,7 +138,7 @@ data class Club(
 )
 
 /**
- * Response for `GET /clubs/{clubId}`. Carries [canCreateSeason] alongside the [club] so the client can
+ * Response for `GET /clubs/{clubId}`. Carries [canEditClub] alongside the [club] so the client can
  * tell an empty seasons list apart for an admin/coordinator (who should be told a season is required)
  * versus a plain member (who should just see "no seasons yet").
  */
@@ -273,6 +273,25 @@ data class CreateTeamRequest(
     val clubId: String,
     val ageGroupId: String,
     val seasonId: String,
+    val name: String,
+    val code: String? = null
+)
+
+/**
+ * Batch team creation: all [items] are created under the same [seasonId]/[ageGroupId] in one
+ * transaction (all or nothing), mirroring [CreateAgeGroupsRequest]. The age group must belong to
+ * both the club and the season, same rule [CreateTeamRequest] enforces for the single case.
+ */
+@Serializable
+data class CreateTeamsRequest(
+    val clubId: String,
+    val seasonId: String,
+    val ageGroupId: String,
+    val items: List<TeamItemRequest>
+)
+
+@Serializable
+data class TeamItemRequest(
     val name: String,
     val code: String? = null
 )

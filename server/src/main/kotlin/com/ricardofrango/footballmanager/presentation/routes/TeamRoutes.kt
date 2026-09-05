@@ -2,6 +2,7 @@ package com.ricardofrango.footballmanager.presentation.routes
 
 import com.ricardofrango.footballmanager.domain.usecase.AddStaffToTeamsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CreateTeamUseCase
+import com.ricardofrango.footballmanager.domain.usecase.CreateTeamsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetTeamDetailsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetTeamPlayersUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetTeamStaffUseCase
@@ -9,6 +10,7 @@ import com.ricardofrango.footballmanager.domain.usecase.GetTeamsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.UpdateTeamUseCase
 import com.ricardofrango.footballmanager.model.AddStaffToTeamsRequest
 import com.ricardofrango.footballmanager.model.CreateTeamRequest
+import com.ricardofrango.footballmanager.model.CreateTeamsRequest
 import com.ricardofrango.footballmanager.model.ErrorResponse
 import com.ricardofrango.footballmanager.model.UpdateTeamRequest
 import com.ricardofrango.footballmanager.security.userId
@@ -25,6 +27,7 @@ import org.koin.ktor.ext.inject
 
 fun Route.teamRoutes() {
     val createTeamUseCase by inject<CreateTeamUseCase>()
+    val createTeamsUseCase by inject<CreateTeamsUseCase>()
     val getTeamsUseCase by inject<GetTeamsUseCase>()
     val addStaffToTeamsUseCase by inject<AddStaffToTeamsUseCase>()
     val getTeamStaffUseCase by inject<GetTeamStaffUseCase>()
@@ -52,6 +55,15 @@ fun Route.teamRoutes() {
 
                 val team = createTeamUseCase(currentUserId, teamRequest)
                 call.respond(HttpStatusCode.Created, team)
+            }
+
+            post("/batch") {
+                val currentUserId =
+                    call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                val request = call.receive<CreateTeamsRequest>()
+
+                val teams = createTeamsUseCase(currentUserId, request)
+                call.respond(HttpStatusCode.Created, teams)
             }
 
             route("/{teamId}") {

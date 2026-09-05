@@ -16,6 +16,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -67,8 +68,7 @@ class GetClubDetailsUseCaseTest {
 
         val result = useCase(admin.id, clubIdA)
 
-        assertTrue(result.canCreateSeason)
-        assertTrue(result.canCreateAgeGroup)
+        assertTrue(result.canEditClub)
     }
 
     @Test
@@ -80,8 +80,7 @@ class GetClubDetailsUseCaseTest {
 
         val result = useCase(coordinator.id, clubIdA)
 
-        assertTrue(result.canCreateSeason)
-        assertTrue(result.canCreateAgeGroup)
+        assertTrue(result.canEditClub)
     }
 
     @Test
@@ -93,8 +92,7 @@ class GetClubDetailsUseCaseTest {
 
         val result = useCase(platformAdmin.id, clubIdA)
 
-        assertTrue(result.canCreateSeason)
-        assertTrue(result.canCreateAgeGroup)
+        assertTrue(result.canEditClub)
     }
 
     @Test
@@ -106,9 +104,8 @@ class GetClubDetailsUseCaseTest {
 
         val result = useCase(member.id, clubIdA)
 
-        assertFalse(result.canCreateSeason)
-        assertFalse(result.canCreateAgeGroup)
-        assertTrue(result.club.id == clubIdA)
+        assertFalse(result.canEditClub)
+        assertEquals(result.club.id, clubIdA)
     }
 
     @Test
