@@ -14,13 +14,14 @@ import com.ricardofrango.footballmanager.presentation.ui.dashboard.DashboardScre
 import com.ricardofrango.footballmanager.presentation.ui.account.AccountScreen
 import com.ricardofrango.footballmanager.presentation.ui.clubdetails.ClubDetailsScreen
 import com.ricardofrango.footballmanager.presentation.ui.createseason.CreateSeasonScreen
+import com.ricardofrango.footballmanager.presentation.ui.createagegroups.CreateAgeGroupsScreen
 import com.ricardofrango.footballmanager.presentation.ui.teamdetails.TeamDetailsScreen
 import com.ricardofrango.footballmanager.presentation.ui.playerdetails.PlayerDetailsScreen
 
-// Key used on the ClubDetails back-stack entry's SavedStateHandle to signal "a season was just
-// created, force a reload" -- the standard Compose Navigation pattern for a screen to return a
-// result to the screen that pushed it. See ClubDetailsScreen's `refreshAfterSeasonCreated` doc.
-private const val KEY_SEASON_CREATED = "seasonCreated"
+// Key used on the ClubDetails back-stack entry's SavedStateHandle to signal "a season or age group was
+// just created, force a reload" -- the standard Compose Navigation pattern for a screen to return a
+// result to the screen that pushed it. See ClubDetailsScreen's `refreshClubDetails` doc.
+private const val KEY_CLUB_STRUCTURE_CHANGED = "clubStructureChanged"
 
 @Composable
 fun AppNavigation() {
@@ -84,12 +85,12 @@ fun AppNavigation() {
 
         composable<Screen.ClubDetails> { backStackEntry ->
             val screen: Screen.ClubDetails = backStackEntry.toRoute()
-            val seasonCreated by backStackEntry.savedStateHandle
-                .getStateFlow(KEY_SEASON_CREATED, false)
+            val structureChanged by backStackEntry.savedStateHandle
+                .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
                 .collectAsState()
-            if (seasonCreated) {
+            if (structureChanged) {
                 // Consume the flag so it doesn't keep forcing reloads on every recomposition.
-                backStackEntry.savedStateHandle[KEY_SEASON_CREATED] = false
+                backStackEntry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false
             }
             ClubDetailsScreen(
                 clubId = screen.clubId,
@@ -105,7 +106,12 @@ fun AppNavigation() {
                 onNavigateToCreateSeason = { clubName ->
                     navController.navigate(Screen.CreateSeason(screen.clubId, clubName))
                 },
-                refreshAfterSeasonCreated = seasonCreated
+                onNavigateToCreateAgeGroups = { clubName, initialSeasonId ->
+                    navController.navigate(
+                        Screen.CreateAgeGroups(screen.clubId, clubName, initialSeasonId)
+                    )
+                },
+                refreshClubDetails = structureChanged
             )
         }
 
@@ -120,7 +126,25 @@ fun AppNavigation() {
                 onSeasonCreated = {
                     navController.previousBackStackEntry
                         ?.savedStateHandle
-                        ?.set(KEY_SEASON_CREATED, true)
+                        ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable<Screen.CreateAgeGroups> { backStackEntry ->
+            val screen: Screen.CreateAgeGroups = backStackEntry.toRoute()
+            CreateAgeGroupsScreen(
+                clubId = screen.clubId,
+                clubName = screen.clubName,
+                initialSeasonId = screen.initialSeasonId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onAgeGroupsCreated = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
                     navController.popBackStack()
                 }
             )

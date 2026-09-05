@@ -29,6 +29,9 @@
     <string name="msg_no_seasons_title">Este clube ainda não tem épocas.</string>
     <string name="msg_no_seasons_admin_subtitle">As equipas e jogadores não podem ser organizados até que exista uma.</string>
     <string name="msg_no_seasons_member_subtitle">Peça a um coordenador para criar uma.</string>
+    <string name="msg_no_age_groups_title">Este clube ainda não tem escalões.</string>
+    <string name="msg_no_age_groups_admin_subtitle">As equipas e jogadores não podem ser organizados até que exista um.</string>
+    <string name="msg_no_age_groups_member_subtitle">Peça a um coordenador para criar um.</string>
     <string name="label_number_prefix">Número: %1$s</string>
     <string name="label_create_team">Criar Equipa</string>
     <string name="label_create_age_group">Criar Escalão</string>
@@ -74,4 +77,24 @@
     <string name="msg_create_season_conflict_unknown">Já existe uma época com estas datas.</string>
     <string name="label_select_start_date">Selecione a data de inicio</string>
     <string name="label_select_end_date">Selecione a data de fim</string>
+
+    <!-- Create Age Groups -->
+    <string name="title_create_age_groups">Escalões</string>
+    <string name="label_age_groups_header_subtitle">%1$s · época %2$s</string>
+    <string name="label_season_field">Época</string>
+    <string name="label_choose_season">Escolha uma época</string>
+    <string name="msg_no_seasons_for_age_groups">Crie uma época antes de adicionar escalões.</string>
+    <string name="msg_age_groups_intro">Uma linha por escalão. Escolha o ano de nascimento e o nome preenche-se sozinho — substitua-o se a sua liga usar outros nomes.</string>
+    <string name="label_age_group_section">Escalão</string>
+    <string name="label_year_of_birth">Ano de nascimento *</string>
+    <string name="label_choose_year">Escolher</string>
+    <string name="label_age_group_name_field">Nome *</string>
+    <string name="label_name_placeholder_pick_year_first">Escolha primeiro um ano de nascimento</string>
+    <string name="label_remove_age_group">Remover</string>
+    <string name="label_add_another_age_group">Adicionar outro escalão</string>
+    <string name="btn_create_age_group">Criar escalão</string>
+    <string name="btn_creating_age_groups">A criar...</string>
+    <string name="msg_age_groups_footer_helper">Todas as linhas são guardadas em conjunto — se uma falhar, nenhuma é guardada.</string>
+    <string name="msg_create_age_groups_failed">Ocorreu um erro ao criar os escalões. Por favor, tente novamente.</string>
+    <string name="msg_age_group_conflict">Um destes anos de nascimento já tem um escalão nesta época.</string>
 </resources>

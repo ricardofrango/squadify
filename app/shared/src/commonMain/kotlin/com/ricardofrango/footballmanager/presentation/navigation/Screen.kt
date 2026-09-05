@@ -26,6 +26,18 @@ sealed class Screen {
     data class CreateSeason(val clubId: String, val clubName: String) : Screen()
 
     @Serializable
+    data class CreateAgeGroups(
+        val clubId: String,
+        val clubName: String,
+        // Optional pre-selection for the screen's own season picker: set when the caller already knows
+        // which season is meant (a specific season's "no age groups" empty state), null from the
+        // ambiguous overflow-menu entry so the user has to pick one explicitly. The screen loads the
+        // club's seasons itself and resolves the name / start year (for AgeGroupDefaults.inferredName)
+        // from the picked one.
+        val initialSeasonId: String? = null
+    ) : Screen()
+
+    @Serializable
     data class TeamDetails(val teamId: String) : Screen()
 
     @Serializable

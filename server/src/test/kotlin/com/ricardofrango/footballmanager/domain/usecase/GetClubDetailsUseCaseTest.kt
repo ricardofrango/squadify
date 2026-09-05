@@ -22,10 +22,11 @@ import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /**
- * `canCreateSeason` on `ClubDetailsResponse` mirrors `CreateSeasonUseCase`'s own `minClubRole =
- * COORDINATOR` gate exactly (same `CheckUserPermissionUseCase` call, used as a non-throwing probe), so
- * the client can tell an empty seasons list apart for an admin/coordinator ("no seasons yet, create
- * one") versus a plain member ("no seasons yet"). See `PROCESS_FLOWS.md` §3.3.
+ * `canCreateSeason` and `canCreateAgeGroup` on `ClubDetailsResponse` both mirror the identical
+ * `minClubRole = COORDINATOR` gate `CreateSeasonUseCase` and `CreateAgeGroupsUseCase` each enforce
+ * (same `CheckUserPermissionUseCase` call, used as a single non-throwing probe for both fields), so the
+ * client can tell an empty seasons/age-groups list apart for an admin/coordinator ("nothing here yet,
+ * create one") versus a plain member ("nothing here yet"). See `PROCESS_FLOWS.md` §3.3.
  */
 class GetClubDetailsUseCaseTest {
 
@@ -67,6 +68,7 @@ class GetClubDetailsUseCaseTest {
         val result = useCase(admin.id, clubIdA)
 
         assertTrue(result.canCreateSeason)
+        assertTrue(result.canCreateAgeGroup)
     }
 
     @Test
@@ -79,6 +81,7 @@ class GetClubDetailsUseCaseTest {
         val result = useCase(coordinator.id, clubIdA)
 
         assertTrue(result.canCreateSeason)
+        assertTrue(result.canCreateAgeGroup)
     }
 
     @Test
@@ -91,6 +94,7 @@ class GetClubDetailsUseCaseTest {
         val result = useCase(platformAdmin.id, clubIdA)
 
         assertTrue(result.canCreateSeason)
+        assertTrue(result.canCreateAgeGroup)
     }
 
     @Test
@@ -103,6 +107,7 @@ class GetClubDetailsUseCaseTest {
         val result = useCase(member.id, clubIdA)
 
         assertFalse(result.canCreateSeason)
+        assertFalse(result.canCreateAgeGroup)
         assertTrue(result.club.id == clubIdA)
     }
 

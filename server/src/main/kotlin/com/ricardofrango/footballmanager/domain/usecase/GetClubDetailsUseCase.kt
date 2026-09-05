@@ -24,21 +24,23 @@ class GetClubDetailsUseCase(
 
         val club = clubRepository.getClubById(clubId) ?: throw NotFoundException("Club not found")
 
-        // Seasons can only be created by COORDINATOR+ (see CreateSeasonUseCase's identical check). Reuse
-        // that same gate here -- as a non-throwing probe -- so the client can tell an admin/coordinator
-        // "no seasons yet, create one" apart from a plain member's "no seasons yet".
-        val canCreateSeason = try {
+        // Seasons and age groups are both created by COORDINATOR+ (see CreateSeasonUseCase and
+        // CreateAgeGroupsUseCase -- identical gate in both). One non-throwing probe covers both fields
+        // rather than repeating the same permission check twice; it's still two separate response
+        // fields so either could diverge later without an API shape change. Lets the client tell an
+        // admin/coordinator "nothing here yet, create one" apart from a plain member's "nothing here yet".
+        val canEditClub = try {
             checkUserPermissionUseCase(
                 userId = userId,
                 clubId = clubId,
                 minClubRole = ClubRole.COORDINATOR,
-                errorMessage = "Only admins or coordinators can create seasons"
+                errorMessage = "Only admins or coordinators can manage seasons and age groups"
             )
             true
         } catch (e: ForbiddenException) {
             false
         }
 
-        ClubDetailsResponse(club, canCreateSeason)
+        ClubDetailsResponse(club, canEditClub)
     }
 }

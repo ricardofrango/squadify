@@ -210,10 +210,10 @@ graph TD
     B -- allowed --> C[Fetch Club by id]
     C -- not found --> N(["Throw NotFoundException"])
     C -- found --> D["Probe CheckUserPermissionUseCase — minClubRole=COORDINATOR (non-throwing: ForbiddenException caught to false)"]
-    D --> Z(["Return ClubDetailsResponse — club + canCreateSeason"])
+    D --> Z(["Return ClubDetailsResponse — club + canCreateSeason + canCreateAgeGroup"])
 ```
 
-`canCreateSeason` mirrors `CreateSeasonUseCase`'s own `minClubRole=COORDINATOR` gate exactly (same use case, called a second time as a probe) so the two can never drift. The client uses it to distinguish, when a club has zero seasons, an admin/coordinator ("no seasons yet, create one") from a plain member ("no seasons yet") — see §4.1.
+`canCreateSeason` and `canCreateAgeGroup` both come from the same single probe above — `CreateSeasonUseCase` and `CreateAgeGroupsUseCase` enforce the identical `minClubRole=COORDINATOR` gate, so one non-throwing check covers both response fields (they're separate fields, not one shared boolean, only so either could diverge later without an API shape change). The client uses them to distinguish, when a club has zero seasons or zero age groups, an admin/coordinator ("nothing here yet, create one") from a plain member ("nothing here yet") — see §4.1 and §4.3.
 
 ### 3.4 Update Club (`UpdateClubUseCase`)
 
