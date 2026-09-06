@@ -45,6 +45,17 @@ class ExposedTeamRepository : TeamRepository {
             ?.let(::toTeam)
             ?: throw DatabaseException("Failed to create team")
 
+    override suspend fun createTeams(teams: List<Team>): List<Team> =
+        TeamsTable.batchInsert(teams) { team ->
+            this[TeamsTable.id] = Uuid.parse(team.id)
+            this[TeamsTable.clubId] = Uuid.parse(team.clubId)
+            this[TeamsTable.ageGroupId] = Uuid.parse(team.ageGroupId)
+            this[TeamsTable.seasonId] = Uuid.parse(team.seasonId)
+            this[TeamsTable.name] = team.name
+            this[TeamsTable.code] = team.code
+            this[TeamsTable.active] = team.active
+        }.map(::toTeam)
+
     override suspend fun updateTeam(team: Team): Boolean =
         TeamsTable.update({ TeamsTable.id eq Uuid.parse(team.id) }) {
             it[name] = team.name

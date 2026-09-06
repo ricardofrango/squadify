@@ -78,7 +78,9 @@ import footballmanager.app.shared.generated.resources.msg_no_age_groups_title
 import footballmanager.app.shared.generated.resources.msg_no_seasons_admin_subtitle
 import footballmanager.app.shared.generated.resources.msg_no_seasons_member_subtitle
 import footballmanager.app.shared.generated.resources.msg_no_seasons_title
+import footballmanager.app.shared.generated.resources.msg_no_teams_admin_subtitle
 import footballmanager.app.shared.generated.resources.msg_no_teams_filter
+import footballmanager.app.shared.generated.resources.msg_no_teams_member_subtitle
 import footballmanager.app.shared.generated.resources.tab_players
 import footballmanager.app.shared.generated.resources.tab_teams
 import footballmanager.app.shared.generated.resources.title_club_details
@@ -93,16 +95,18 @@ fun ClubDetailsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToTeam: (String) -> Unit,
     onNavigateToPlayer: (String) -> Unit,
-    // Takes the club's name because CreateSeasonScreen/CreateAgeGroupsScreen show it in their header,
-    // and the only place that name is loaded is here.
+    // Takes the club's name because CreateSeasonScreen/CreateAgeGroupsScreen/CreateTeamsScreen show it
+    // in their header, and the only place that name is loaded is here.
     onNavigateToCreateSeason: (clubName: String) -> Unit,
     // The Create Age Groups screen has its own season picker, so it only needs an optional
     // pre-selection: a concrete season id when the entry point already implies one (a specific
     // season's "no age groups" state), or null from the overflow menu where the user should choose.
     onNavigateToCreateAgeGroups: (clubName: String, initialSeasonId: String?) -> Unit,
-    // True exactly once, right after returning from CreateSeasonScreen/CreateAgeGroupsScreen having
-    // created something -- forces a reload past loadClubDetails' "already have this club" guard, since
-    // Koin scopes this ViewModel to the nav back-stack entry (so popping back here reuses stale state).
+    // The Create Teams screen has its own season + age-group pickers, so this only needs the club name.
+    onNavigateToCreateTeams: (clubName: String) -> Unit,
+    // True exactly once, right after returning from a Create* screen having created something --
+    // forces a reload past loadClubDetails' "already have this club" guard, since Koin scopes this
+    // ViewModel to the nav back-stack entry (so popping back here reuses stale state).
     refreshClubDetails: Boolean = false,
     viewModel: ClubDetailsViewModel = koinViewModel()
 ) {
@@ -148,7 +152,10 @@ fun ClubDetailsScreen(
                                         color = DeepCarbon
                                     )
                                 },
-                                onClick = { showAddMenu = false }
+                                onClick = {
+                                    showAddMenu = false
+                                    onNavigateToCreateTeams(clubName)
+                                }
                             )
                             DropdownMenuItem(
                                 text = {
@@ -295,6 +302,7 @@ fun ClubDetailsScreen(
                             onNavigateToTeam = onNavigateToTeam,
                             onNavigateToPlayer = onNavigateToPlayer,
                             onNavigateToCreateAgeGroups = onNavigateToCreateAgeGroups,
+                            onNavigateToCreateTeams = onNavigateToCreateTeams,
                             clubName = clubName
                         )
                 }
@@ -311,6 +319,7 @@ private fun ClubDetailsTabContent(
     onNavigateToTeam: (String) -> Unit,
     onNavigateToPlayer: (String) -> Unit,
     onNavigateToCreateAgeGroups: (clubName: String, initialSeasonId: String?) -> Unit,
+    onNavigateToCreateTeams: (clubName: String) -> Unit,
     clubName: String
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -320,17 +329,25 @@ private fun ClubDetailsTabContent(
                 // The club-wide "no age groups" state above only fires when *no* season has any; once
                 // some do, narrowing the season filter to one that still has none would otherwise just
                 // show an empty team list with no hint that an age group is what's missing.
-                if (state.selectedSeasonId != null &&
-                    viewModel.getAvailableAgeGroupsForTeams(state).isEmpty()
-                ) {
-                    NoAgeGroupsState(
-                        canEditClub = state.canEditClub,
-                        onCreateAgeGroupClick = {
-                            onNavigateToCreateAgeGroups(clubName, state.selectedSeasonId)
-                        }
-                    )
-                } else {
-                    TeamList(state.filteredTeams, onNavigateToTeam)
+                when {
+                    state.selectedSeasonId != null &&
+                        viewModel.getAvailableAgeGroupsForTeams(state).isEmpty() ->
+                        NoAgeGroupsState(
+                            canEditClub = state.canEditClub,
+                            onCreateAgeGroupClick = {
+                                onNavigateToCreateAgeGroups(clubName, state.selectedSeasonId)
+                            }
+                        )
+
+                    // Age groups exist for this scope but no team matches the current filters --
+                    // offer a coordinator a way to add one (CreateTeamsUseCase requires COORDINATOR+).
+                    state.filteredTeams.isEmpty() ->
+                        NoTeamsState(
+                            canEditClub = state.canEditClub,
+                            onCreateTeamClick = { onNavigateToCreateTeams(clubName) }
+                        )
+
+                    else -> TeamList(state.filteredTeams, onNavigateToTeam)
                 }
             }
 
@@ -490,17 +507,15 @@ private fun <T> FilterSelector(
 
 @Composable
 private fun TeamList(teams: List<Team>, onNavigateToTeam: (String) -> Unit) {
-    if (teams.isEmpty()) {
-        EmptyState(stringResource(Res.string.msg_no_teams_filter))
-    } else {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(teams) { team ->
-                TeamCard(team, onClick = { onNavigateToTeam(team.id) })
-            }
+    // Callers only reach here with a non-empty list -- the empty case is handled one level up by
+    // NoTeamsState (which also offers a coordinator the "create a team" action).
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(teams) { team ->
+            TeamCard(team, onClick = { onNavigateToTeam(team.id) })
         }
     }
 }
@@ -640,5 +655,22 @@ private fun NoAgeGroupsState(canEditClub: Boolean, onCreateAgeGroupClick: () -> 
         canAct = canEditClub,
         actionLabel = stringResource(Res.string.label_create_age_group),
         onActionClick = onCreateAgeGroupClick
+    )
+}
+
+// Shown on the Teams tab when age groups exist for the current scope but no team matches the active
+// filters. Unlike the two states above this isn't a structural gap -- a plain member may just need to
+// change the filters -- but a coordinator gets offered the same create action as the overflow menu.
+@Composable
+private fun NoTeamsState(canEditClub: Boolean, onCreateTeamClick: () -> Unit) {
+    EmptyStateCallToAction(
+        icon = Res.drawable.ic_teams,
+        title = stringResource(Res.string.msg_no_teams_filter),
+        subtitle = stringResource(
+            if (canEditClub) Res.string.msg_no_teams_admin_subtitle else Res.string.msg_no_teams_member_subtitle
+        ),
+        canAct = canEditClub,
+        actionLabel = stringResource(Res.string.label_create_team),
+        onActionClick = onCreateTeamClick
     )
 }

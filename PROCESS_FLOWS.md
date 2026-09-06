@@ -210,10 +210,10 @@ graph TD
     B -- allowed --> C[Fetch Club by id]
     C -- not found --> N(["Throw NotFoundException"])
     C -- found --> D["Probe CheckUserPermissionUseCase — minClubRole=COORDINATOR (non-throwing: ForbiddenException caught to false)"]
-    D --> Z(["Return ClubDetailsResponse — club + canCreateSeason + canCreateAgeGroup"])
+    D --> Z(["Return ClubDetailsResponse — club + canEditClub"])
 ```
 
-`canCreateSeason` and `canCreateAgeGroup` both come from the same single probe above — `CreateSeasonUseCase` and `CreateAgeGroupsUseCase` enforce the identical `minClubRole=COORDINATOR` gate, so one non-throwing check covers both response fields (they're separate fields, not one shared boolean, only so either could diverge later without an API shape change). The client uses them to distinguish, when a club has zero seasons or zero age groups, an admin/coordinator ("nothing here yet, create one") from a plain member ("nothing here yet") — see §4.1 and §4.3.
+`canEditClub` from the same single probe above — `CreateSeasonUseCase` and `CreateAgeGroupsUseCase` enforce the identical `minClubRole=COORDINATOR` gate, so one non-throwing check covers both response fields (they're separate fields, not one shared boolean, only so either could diverge later without an API shape change). The client uses them to distinguish, when a club has zero seasons or zero age groups, an admin/coordinator ("nothing here yet, create one") from a plain member ("nothing here yet") — see §4.1 and §4.3.
 
 ### 3.4 Update Club (`UpdateClubUseCase`)
 
@@ -333,11 +333,34 @@ graph TD
     B -- denied --> F(["Throw ForbiddenException"])
     B -- allowed --> C{name blank?}
     C -- Yes --> V(["Throw ValidationException"])
-    C -- No --> D[Create Team — active=true]
-    D --> Z(["Persist Team"])
+    C -- No --> D[Load age group by id]
+    D -- not found --> V
+    D -- found --> E{"age group's clubId == request clubId AND seasonId == request seasonId?"}
+    E -- No --> V
+    E -- Yes --> G[Create Team — active=true]
+    G --> Z(["Persist Team"])
 ```
 
-Note: no check here that `ageGroupId` / `seasonId` actually exist or belong to `clubId` before creating the team (see §11).
+### 4.5b Create Teams (`CreateTeamsUseCase`) — batch
+
+```mermaid
+graph TD
+    A[Start: userId, clubId, seasonId, ageGroupId, items list] --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    B -- denied --> F(["Throw ForbiddenException"])
+    B -- allowed --> C{items list empty?}
+    C -- Yes --> V(["Throw ValidationException"])
+    C -- No --> D[Load age group by id]
+    D -- not found --> V
+    D -- found --> E{"age group belongs to this club AND this season?"}
+    E -- No --> V
+    E -- Yes --> G{For each item}
+    G -- name blank --> V
+    G -- valid --> H[Build Team entity — active=true]
+    H --> I[Batch insert all Teams]
+    I --> Z(["Return created Teams"])
+```
+
+Whole batch runs in one transaction (all or nothing), mirroring `CreateAgeGroupsUseCase`. Teams have no name-uniqueness constraint, so there's no conflict branch. Covered by `CreateTeamsUseCaseTest`. The client's Create Teams screen defaults the season to the most recent one (by end date), requires an age group to be picked, and requires a name on every row before it will submit.
 
 ### 4.6 Update Team (`UpdateTeamUseCase`)
 
@@ -658,7 +681,7 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
 - [ ] **"Not found" is modelled inconsistently for the same resource.** A missing `Team` throws `NotFoundException` in `UpdateTeamUseCase` and `CreateMatchUseCase`, but `ValidationException` in `GetTeamDetailsUseCase`, `GetTeamPlayersUseCase`, `GetTeamStaffUseCase`, `AddPlayersToTeamUseCase`, and `AddStaffToTeamsUseCase`. Similarly, a missing `Match` throws `ValidationException` in `AddMatchEventUseCase` but `NotFoundException` everywhere else a Match is looked up.
 - [ ] **Pagination is still missing.** `AI_GUIDELINES.md`, `TECHNICAL_DECISIONS.md` §5 and the `REQUIREMENTS.md` roadmap all call for `limit`/`offset` pagination on list endpoints, but none of the current list use cases (`GetTeamsUseCase`, `GetPlayersUseCase`, `GetMatchesUseCase`, `GetSeasonsUseCase`, `GetOpponentsUseCase`, `GetTeamPlayersByClubUseCase`) implement it yet — this confirms the open roadmap item "API Scalability: Implement pagination for all list-based endpoints" is genuinely still pending, not just undocumented.
 - [ ] **`UpdateClubMemberRoleUseCase` has no existence guard.** Unlike almost every other `Update*UseCase`, it never verifies `targetUserId` is a real user or an existing member of `clubId` before writing the new role.
-- [ ] **`CreateTeamUseCase` doesn't validate its foreign keys.** It never checks that `ageGroupId` or `seasonId` exist (or belong to `clubId`) before creating the Team.
+- [x] **`CreateTeamUseCase` foreign-key validation.** It now loads the age group and rejects the request (`ValidationException`) if it doesn't exist, or its `clubId`/`seasonId` don't match the request — see §4.5. `CreateTeamsUseCase` (batch, §4.5b) applies the same check once for the whole batch.
 - [ ] **No self-service call-up confirmation.** `UpdateCallUpStatusUseCase` requires `COACH`+ team role — there is no path for a Parent/Player to set their own call-up to "Confirmed", even though `REQUIREMENTS.md` §5 lists "Confirmed" as a call-up status a family member would set. This lines up with the still-open "Account Management" and parent-facing client roadmap items.
 - [ ] **No match-status transition validation.** `UpdateMatchStatusUseCase` accepts any `MatchStatus` value from any current status — nothing stops jumping straight from `SCHEDULED` to `FINISHED`, for instance.
 - [ ] **No historical/aggregated match statistics use case exists yet.** `GetMatchScoreUseCase`/`GetMatchEventsUseCase` only expose live/raw data — this matches the open `REQUIREMENTS.md` Phase 5 item "Historical match statistics (Post-match analysis)".

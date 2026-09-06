@@ -14,13 +14,14 @@ import com.ricardofrango.footballmanager.presentation.ui.dashboard.DashboardScre
 import com.ricardofrango.footballmanager.presentation.ui.account.AccountScreen
 import com.ricardofrango.footballmanager.presentation.ui.clubdetails.ClubDetailsScreen
 import com.ricardofrango.footballmanager.presentation.ui.createseason.CreateSeasonScreen
+import com.ricardofrango.footballmanager.presentation.ui.createteams.CreateTeamsScreen
 import com.ricardofrango.footballmanager.presentation.ui.createagegroups.CreateAgeGroupsScreen
 import com.ricardofrango.footballmanager.presentation.ui.teamdetails.TeamDetailsScreen
 import com.ricardofrango.footballmanager.presentation.ui.playerdetails.PlayerDetailsScreen
 
-// Key used on the ClubDetails back-stack entry's SavedStateHandle to signal "a season or age group was
-// just created, force a reload" -- the standard Compose Navigation pattern for a screen to return a
-// result to the screen that pushed it. See ClubDetailsScreen's `refreshClubDetails` doc.
+// Key used on the ClubDetails back-stack entry's SavedStateHandle to signal "a season, age group, or
+// team was just created, force a reload" -- the standard Compose Navigation pattern for a screen to
+// return a result to the screen that pushed it. See ClubDetailsScreen's `refreshClubDetails` doc.
 private const val KEY_CLUB_STRUCTURE_CHANGED = "clubStructureChanged"
 
 @Composable
@@ -111,6 +112,9 @@ fun AppNavigation() {
                         Screen.CreateAgeGroups(screen.clubId, clubName, initialSeasonId)
                     )
                 },
+                onNavigateToCreateTeams = { clubName ->
+                    navController.navigate(Screen.CreateTeams(screen.clubId, clubName))
+                },
                 refreshClubDetails = structureChanged
             )
         }
@@ -142,6 +146,23 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
                 onAgeGroupsCreated = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable<Screen.CreateTeams> { backStackEntry ->
+            val screen: Screen.CreateTeams = backStackEntry.toRoute()
+            CreateTeamsScreen(
+                clubId = screen.clubId,
+                clubName = screen.clubName,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onTeamsCreated = {
                     navController.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)

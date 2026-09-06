@@ -32,6 +32,8 @@
     <string name="msg_no_age_groups_title">This club has no age groups yet.</string>
     <string name="msg_no_age_groups_admin_subtitle">Teams and players can\'t be organised until one exists.</string>
     <string name="msg_no_age_groups_member_subtitle">Ask a coordinator to set one up.</string>
+    <string name="msg_no_teams_admin_subtitle">Create a team, or adjust the filters above.</string>
+    <string name="msg_no_teams_member_subtitle">Try adjusting the filters above.</string>
     <string name="label_number_prefix">Number: %1$s</string>
     <string name="label_create_team">Create Team</string>
     <string name="label_create_age_group">Create Age Group</string>
@@ -97,4 +99,22 @@
     <string name="msg_age_groups_footer_helper">All rows are written together — if one fails, none are saved.</string>
     <string name="msg_create_age_groups_failed">Something went wrong creating the age groups. Please try again.</string>
     <string name="msg_age_group_conflict">One of these birth years already has an age group in this season.</string>
+
+    <!-- Create Teams -->
+    <string name="title_create_teams">New teams</string>
+    <string name="label_age_group_field">Age group</string>
+    <string name="label_choose_age_group">Choose an age group</string>
+    <string name="msg_select_age_group_error">Select an age group for these teams.</string>
+    <string name="msg_season_has_no_age_groups">This season has no age groups yet — create one before adding teams.</string>
+    <string name="msg_no_seasons_for_teams">Create a season before adding teams.</string>
+    <string name="msg_teams_intro">One row per team. Every team needs a name — the rest can be filled in later.</string>
+    <string name="label_team_section">Team</string>
+    <string name="label_team_name_field">Name *</string>
+    <string name="label_team_name_placeholder">e.g. Team A</string>
+    <string name="msg_team_name_required">Give every team a name.</string>
+    <string name="label_add_another_team">Add another team</string>
+    <string name="btn_create_teams">Create teams</string>
+    <string name="btn_creating_teams">Creating...</string>
+    <string name="msg_teams_footer_helper">All teams are created together — if one fails, none are saved.</string>
+    <string name="msg_create_teams_failed">Something went wrong creating the teams. Please try again.</string>
 </resources>
