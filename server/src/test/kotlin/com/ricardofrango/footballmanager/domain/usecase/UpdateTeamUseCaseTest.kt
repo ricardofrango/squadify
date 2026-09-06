@@ -1,5 +1,6 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
+import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
@@ -29,12 +30,13 @@ import kotlin.time.Instant
 class UpdateTeamUseCaseTest {
 
     private val teamRepository = mockk<TeamRepository>()
+    private val ageGroupRepository = mockk<AgeGroupRepository>()
     private val playerRepository = mockk<PlayerRepository>()
     private val userRepository = mockk<UserRepository>()
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
-    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, transactionManager)
+    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager)
     private val useCase = UpdateTeamUseCase(teamRepository, checkUserPermissionUseCase, transactionManager)
 
     private val clubIdA = "club-a"
@@ -79,7 +81,7 @@ class UpdateTeamUseCaseTest {
         coEvery { teamRepository.getTeamById(team1) } returns team
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { teamRepository.getUserRoleInTeam(coach.id, team1) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "age-group-1") } returns TeamRole.COACH
         coEvery { teamRepository.updateTeam(any()) } returns true
 
         useCase(coach.id, team1, UpdateTeamRequest(name = "New Name"))
@@ -92,7 +94,7 @@ class UpdateTeamUseCaseTest {
         coEvery { teamRepository.getTeamById(team1) } returns team
         coEvery { userRepository.findById(otherCoach.id) } returns otherCoach
         coEvery { userRepository.getUserRoleInClub(otherCoach.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { teamRepository.getUserRoleInTeam(otherCoach.id, team1) } returns null // coaches team2, not team1
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(otherCoach.id, "age-group-1") } returns null // coaches team2, not team1
 
         assertFailsWith<ForbiddenException> {
             useCase(otherCoach.id, team1, UpdateTeamRequest(name = "New Name"))
@@ -106,7 +108,7 @@ class UpdateTeamUseCaseTest {
         coEvery { teamRepository.getTeamById(team1) } returns team
         coEvery { userRepository.findById(member.id) } returns member
         coEvery { userRepository.getUserRoleInClub(member.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { teamRepository.getUserRoleInTeam(member.id, team1) } returns null
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(member.id, "age-group-1") } returns null
 
         assertFailsWith<ForbiddenException> {
             useCase(member.id, team1, UpdateTeamRequest(name = "New Name"))

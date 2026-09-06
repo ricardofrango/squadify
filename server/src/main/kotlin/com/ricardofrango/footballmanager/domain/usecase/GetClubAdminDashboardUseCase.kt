@@ -1,5 +1,6 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
+import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.SeasonRepository
@@ -13,6 +14,7 @@ class GetClubAdminDashboardUseCase(
     private val playerRepository: PlayerRepository,
     private val matchRepository: MatchRepository,
     private val seasonRepository: SeasonRepository,
+    private val ageGroupRepository: AgeGroupRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager
 ) {
@@ -26,7 +28,7 @@ class GetClubAdminDashboardUseCase(
 
         val totalTeams = teamRepository.countTeamsByClub(clubId)
         val totalPlayers = playerRepository.countPlayersByClub(clubId)
-        val totalCoaches = teamRepository.countCoachesByClub(clubId)
+        val totalCoaches = ageGroupRepository.countCoachesByClub(clubId)
         val upcomingMatches = matchRepository.getUpcomingMatchesByClub(clubId, limit = 10)
         val activeSeasons = seasonRepository.getActiveSeasonsByClub(clubId)
 

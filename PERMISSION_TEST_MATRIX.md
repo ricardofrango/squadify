@@ -1,5 +1,12 @@
 # Permission Test Matrix
 
+> **Model change (players & coaches → age groups):** coaches/staff now attach to **age groups**
+> (`age_group_staff`), not teams, and players belong to **age-group pools** (`age_group_players`).
+> `CheckUserPermissionUseCase` resolves any `teamId` a caller passes to its age group before checking.
+> Read every "Team X" role / link in the tables below as "the **age group** of Team X". `TeamRole` is
+> now `COACH`/`STAFF` only (`PARENT`/`PLAYER` removed). The `*UseCaseTest` files have been rewritten to
+> the age-group model; this matrix's prose is pending a full rewrite. See `PROCESS_FLOWS.md` §1.1.
+
 A concrete set of test personas and scenarios covering every user type described in the domain model — admin, coordinator, member (with and without team assignments, single- and multi-club), player, and parent — so the whole authorization surface can be validated in one pass. Each scenario lists what the code actually does **today** versus what it **should** do per the requirements discussed (see `issues to fix.md` for the underlying bugs); use this to drive new/rewritten unit tests.
 
 ## Before you write these as tests: the existing permission test file doesn't compile

@@ -45,6 +45,8 @@
     <string name="title_team_details">Detalhes da Equipa</string>
     <string name="title_player_profile">Perfil do Jogador</string>
     <string name="msg_no_players_team">Não existem jogadores nesta equipa</string>
+    <string name="label_age_group_staff">Equipa técnica</string>
+    <string name="msg_no_staff_age_group">Ainda não há equipa técnica atribuída a este escalão</string>
     <string name="label_squad_number_prefix">Número da Camisola: %1$s</string>
     <string name="label_player_info">Informação do Jogador</string>
     <string name="label_status">Estado</string>

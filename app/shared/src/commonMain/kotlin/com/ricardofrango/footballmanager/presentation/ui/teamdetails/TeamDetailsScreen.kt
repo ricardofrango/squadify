@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ricardofrango.footballmanager.model.Player
+import com.ricardofrango.footballmanager.model.AgeGroupStaffMember
 import com.ricardofrango.footballmanager.presentation.ui.components.FMTopBar
 import com.ricardofrango.footballmanager.presentation.ui.theme.CarbonGray
 import com.ricardofrango.footballmanager.presentation.ui.theme.DeepCarbon
@@ -28,7 +28,9 @@ import org.koin.compose.viewmodel.koinViewModel
 fun TeamDetailsScreen(
     teamId: String,
     onNavigateBack: () -> Unit,
-    onNavigateToPlayer: (String) -> Unit,
+    // Players are no longer shown on team detail (they belong to the age group; the match-day squad
+    // is decided via call-ups) -- kept for navigation-graph compatibility, currently unused.
+    @Suppress("UNUSED_PARAMETER") onNavigateToPlayer: (String) -> Unit,
     viewModel: TeamDetailsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
@@ -61,7 +63,7 @@ fun TeamDetailsScreen(
                     if (state.error != null) {
                         ErrorState(state.error, onRetry = { viewModel.loadTeamDetails(teamId) })
                     } else if (state.details != null) {
-                        TeamContent(state.details.players, onNavigateToPlayer)
+                        TeamContent(state.details.staff)
                     }
                 }
             }
@@ -70,18 +72,18 @@ fun TeamDetailsScreen(
 }
 
 @Composable
-private fun TeamContent(players: List<Player>, onNavigateToPlayer: (String) -> Unit) {
+private fun TeamContent(staff: List<AgeGroupStaffMember>) {
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
-            text = stringResource(Res.string.tab_players),
+            text = stringResource(Res.string.label_age_group_staff),
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
             color = DeepCarbon
         )
-        
-        if (players.isEmpty()) {
+
+        if (staff.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = stringResource(Res.string.msg_no_players_team), color = Color.Gray)
+                Text(text = stringResource(Res.string.msg_no_staff_age_group), color = Color.Gray)
             }
         } else {
             LazyColumn(
@@ -89,18 +91,15 @@ private fun TeamContent(players: List<Player>, onNavigateToPlayer: (String) -> U
                 contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(players) { player ->
-                    PlayerCard(player, onClick = { onNavigateToPlayer(player.id) })
-                }
+                items(staff) { member -> StaffCard(member) }
             }
         }
     }
 }
 
 @Composable
-private fun PlayerCard(player: Player, onClick: () -> Unit) {
+private fun StaffCard(member: AgeGroupStaffMember) {
     Card(
-        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = CarbonGray.copy(alpha = 0.05f))
@@ -116,7 +115,7 @@ private fun PlayerCard(player: Player, onClick: () -> Unit) {
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = "${player.firstName.take(1)}${player.lastName.take(1)}",
+                        text = "${member.firstName.take(1)}${member.lastName.take(1)}",
                         color = PitchGreen,
                         fontWeight = FontWeight.Bold
                     )
@@ -125,17 +124,15 @@ private fun PlayerCard(player: Player, onClick: () -> Unit) {
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(
-                    text = "${player.firstName} ${player.lastName}",
+                    text = "${member.firstName} ${member.lastName}",
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                     color = DeepCarbon
                 )
-                player.shirtNumber?.let {
-                    Text(
-                        text = stringResource(Res.string.label_number_prefix, it.toString()), 
-                        style = MaterialTheme.typography.bodySmall, 
-                        color = Color.Gray
-                    )
-                }
+                Text(
+                    text = member.role.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
             }
         }
     }

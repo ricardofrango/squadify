@@ -1,9 +1,14 @@
 package com.ricardofrango.footballmanager.data.repository
 
+import com.ricardofrango.footballmanager.data.database.AgeGroupStaff
 import com.ricardofrango.footballmanager.data.database.AgeGroups
+import com.ricardofrango.footballmanager.data.database.Users
 import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.exception.DatabaseException
 import com.ricardofrango.footballmanager.model.AgeGroup
+import com.ricardofrango.footballmanager.model.AgeGroupStaffMember
+import com.ricardofrango.footballmanager.model.TeamRole
+import com.ricardofrango.footballmanager.model.AgeGroupStaff as AgeGroupStaffModel
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
@@ -76,6 +81,43 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
             }
             .map(::toAgeGroup)
     }
+
+    override suspend fun getUserRoleInAgeGroup(userId: String, ageGroupId: String): TeamRole? =
+        AgeGroupStaff.selectAll()
+            .where {
+                (AgeGroupStaff.userId eq Uuid.parse(userId)) and
+                (AgeGroupStaff.ageGroupId eq Uuid.parse(ageGroupId))
+            }
+            .map { it[AgeGroupStaff.role] }
+            .maxByOrNull { it.level }
+
+    override suspend fun addStaffToAgeGroup(staff: List<AgeGroupStaffModel>): Boolean =
+        AgeGroupStaff.batchInsert(staff) { s ->
+            this[AgeGroupStaff.id] = Uuid.parse(s.id)
+            this[AgeGroupStaff.ageGroupId] = Uuid.parse(s.ageGroupId)
+            this[AgeGroupStaff.userId] = Uuid.parse(s.userId)
+            this[AgeGroupStaff.role] = s.role
+        }.size == staff.size
+
+    override suspend fun getAgeGroupStaff(ageGroupId: String): List<AgeGroupStaffMember> =
+        (AgeGroupStaff innerJoin Users).selectAll()
+            .where { AgeGroupStaff.ageGroupId eq Uuid.parse(ageGroupId) }
+            .map {
+                AgeGroupStaffMember(
+                    userId = it[Users.id].toString(),
+                    firstName = it[Users.firstName],
+                    lastName = it[Users.lastName],
+                    role = it[AgeGroupStaff.role],
+                    avatarUrl = it[Users.avatarUrl]
+                )
+            }
+
+    override suspend fun countCoachesByClub(clubId: String): Long =
+        (AgeGroupStaff innerJoin AgeGroups).selectAll()
+            .where { (AgeGroups.clubId eq Uuid.parse(clubId)) and (AgeGroupStaff.role eq TeamRole.COACH) }
+            .map { it[AgeGroupStaff.userId] }
+            .distinct()
+            .size.toLong()
 
     private fun toAgeGroup(row: ResultRow): AgeGroup = AgeGroup(
         id = row[AgeGroups.id].toString(),

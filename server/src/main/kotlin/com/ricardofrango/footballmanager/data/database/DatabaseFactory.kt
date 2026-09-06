@@ -31,8 +31,8 @@ object DatabaseFactory : TransactionManager {
                     AgeGroups,
                     Teams,
                     Players,
-                    TeamPlayers,
-                    TeamStaff,
+                    AgeGroupPlayers,
+                    AgeGroupStaff,
                     UserPlayers,
                     Invites,
                     Opponents,
@@ -50,8 +50,7 @@ object DatabaseFactory : TransactionManager {
                     exec("""UPDATE CLUBS SET status = 'ACTIVE' WHERE status = 'active'""")
                     exec("""UPDATE CLUBS SET status = 'INACTIVE' WHERE status = 'inactive'""")
                     exec("""UPDATE CLUB_MEMBERS SET role = UPPER(role)""")
-                    exec("""UPDATE TEAM_PLAYERS SET status = UPPER(status)""")
-                    exec("""UPDATE TEAM_STAFF SET role = UPPER(role)""")
+                    exec("""UPDATE AGE_GROUP_STAFF SET role = UPPER(role)""")
                     exec("""UPDATE USER_PLAYERS SET relationship = UPPER(relationship)""")
                     exec("""UPDATE SEASONS SET type = UPPER(type)""")
                     exec("""UPDATE MATCH_EVENTS SET type = UPPER(type)""")

@@ -11,12 +11,15 @@ enum class ClubRole(val level: Int) {
     MEMBER(1)
 }
 
+/**
+ * A working role held on an **age group** (via `age_group_staff`), not a team -- teams are now just a
+ * scheduling handle for matches. Only people who work at the club ever hold one of these; players and
+ * family members are modelled entirely through `AgeGroupPlayer` / `UserPlayer` and never appear here.
+ */
 @Serializable
 enum class TeamRole(val level: Int) {
     COACH(3),
-    STAFF(2),
-    PARENT(1),
-    PLAYER(1)
+    STAFF(2)
 }
 
 @Serializable
@@ -32,14 +35,6 @@ enum class ClubStatus {
     ACTIVE,
     INACTIVE,
     PENDING
-}
-
-@Serializable
-enum class TeamPlayerStatus {
-    ACTIVE,
-    INACTIVE,
-    TRANSFERRED,
-    INJURED
 }
 
 @Serializable
@@ -191,20 +186,23 @@ data class Player(
     val active: Boolean
 )
 
+/**
+ * A player's membership of an age-group pool. Many-to-many: a player can sit in several age groups at
+ * once (their own birth-year group plus any older one they're eligible to play up into). The
+ * `(ageGroupId, playerId)` pair is unique. Teams within an age group all draw from this same pool;
+ * who actually plays a given match is decided per-match via `MatchCallUp`.
+ */
 @Serializable
-data class TeamPlayer(
+data class AgeGroupPlayer(
     val id: String,
-    val teamId: String,
-    val playerId: String,
-    val startDate: LocalDate,
-    val endDate: LocalDate? = null,
-    val status: TeamPlayerStatus
+    val ageGroupId: String,
+    val playerId: String
 )
 
 @Serializable
-data class TeamStaff(
+data class AgeGroupStaff(
     val id: String,
-    val teamId: String,
+    val ageGroupId: String,
     val userId: String,
     val role: TeamRole
 )
@@ -380,29 +378,23 @@ data class UpdateOpponentRequest(
     val logoUrl: String? = null
 )
 
+/** Body of `POST /age-groups/{ageGroupId}/players`. Every player must already belong to the club and
+ * be age-eligible for the group (`player.birthDate.year >= ageGroup.birthYear`). Players already in
+ * the group are ignored, so the call is idempotent. */
 @Serializable
-data class AddPlayersToTeamRequest(
-    val teamId: String,
-    val players: List<AddPlayerToTeam>
+data class AddPlayersToAgeGroupRequest(
+    val playerIds: List<String>
 )
 
 @Serializable
-data class AddPlayerToTeam(
-    val playerId: String,
-    val startDate: LocalDate,
-    val endDate: LocalDate? = null,
-    val status: TeamPlayerStatus = TeamPlayerStatus.ACTIVE
-)
-
-@Serializable
-data class AddStaffToTeam(
+data class AddStaffToAgeGroup(
     val userId: String,
     val role: TeamRole
 )
 
 @Serializable
-data class AddStaffToTeamsRequest(
-    val staff: List<AddStaffToTeam>
+data class AddStaffToAgeGroupRequest(
+    val staff: List<AddStaffToAgeGroup>
 )
 
 @Serializable
@@ -411,7 +403,7 @@ data class UpdateActiveStatusRequest(
 )
 
 @Serializable
-data class TeamStaffMember(
+data class AgeGroupStaffMember(
     val userId: String,
     val firstName: String,
     val lastName: String,
@@ -419,11 +411,15 @@ data class TeamStaffMember(
     val avatarUrl: String? = null
 )
 
+/**
+ * Team detail no longer carries a player list -- players belong to the age group, not the team, and
+ * the match-day squad is decided through call-ups. [staff] is the age group's staff, surfaced here so
+ * a team screen can still show who runs it.
+ */
 @Serializable
 data class TeamDetails(
     val team: Team,
-    val players: List<Player>,
-    val staff: List<TeamStaffMember>
+    val staff: List<AgeGroupStaffMember>
 )
 
 @Serializable

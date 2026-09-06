@@ -1,8 +1,14 @@
 package com.ricardofrango.footballmanager.presentation.routes
 
+import com.ricardofrango.footballmanager.domain.usecase.AddPlayersToAgeGroupUseCase
+import com.ricardofrango.footballmanager.domain.usecase.AddStaffToAgeGroupUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CreateAgeGroupsUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetAgeGroupStaffUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetAgeGroupsUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetEligiblePlayersForAgeGroupUseCase
 import com.ricardofrango.footballmanager.domain.usecase.UpdateAgeGroupUseCase
+import com.ricardofrango.footballmanager.model.AddPlayersToAgeGroupRequest
+import com.ricardofrango.footballmanager.model.AddStaffToAgeGroupRequest
 import com.ricardofrango.footballmanager.model.CreateAgeGroupsRequest
 import com.ricardofrango.footballmanager.model.ErrorResponse
 import com.ricardofrango.footballmanager.model.UpdateAgeGroupRequest
@@ -22,6 +28,10 @@ fun Route.ageGroupRoutes() {
     val getAgeGroupsUseCase by inject<GetAgeGroupsUseCase>()
     val createAgeGroupsUseCase by inject<CreateAgeGroupsUseCase>()
     val updateAgeGroupUseCase by inject<UpdateAgeGroupUseCase>()
+    val addPlayersToAgeGroupUseCase by inject<AddPlayersToAgeGroupUseCase>()
+    val getEligiblePlayersForAgeGroupUseCase by inject<GetEligiblePlayersForAgeGroupUseCase>()
+    val addStaffToAgeGroupUseCase by inject<AddStaffToAgeGroupUseCase>()
+    val getAgeGroupStaffUseCase by inject<GetAgeGroupStaffUseCase>()
 
     authenticate("auth-jwt") {
         route("/age-groups") {
@@ -60,6 +70,56 @@ fun Route.ageGroupRoutes() {
                         HttpStatusCode.InternalServerError,
                         ErrorResponse("Failed to update age group")
                     )
+                }
+            }
+
+            route("/{ageGroupId}/players") {
+                // Players eligible to be added (club players old enough, not already in the group).
+                get("/eligible") {
+                    val ageGroupId = call.parameters["ageGroupId"]
+                        ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId =
+                        call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                    call.respond(getEligiblePlayersForAgeGroupUseCase(currentUserId, ageGroupId))
+                }
+
+                post {
+                    val ageGroupId = call.parameters["ageGroupId"]
+                        ?: return@post call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId =
+                        call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                    val request = call.receive<AddPlayersToAgeGroupRequest>()
+                    call.respond(
+                        HttpStatusCode.Created,
+                        addPlayersToAgeGroupUseCase(currentUserId, ageGroupId, request)
+                    )
+                }
+            }
+
+            route("/{ageGroupId}/staff") {
+                get {
+                    val ageGroupId = call.parameters["ageGroupId"]
+                        ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId =
+                        call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                    call.respond(getAgeGroupStaffUseCase(currentUserId, ageGroupId))
+                }
+
+                post {
+                    val ageGroupId = call.parameters["ageGroupId"]
+                        ?: return@post call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId =
+                        call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                    val request = call.receive<AddStaffToAgeGroupRequest>()
+                    val success = addStaffToAgeGroupUseCase(currentUserId, ageGroupId, request)
+                    if (success) {
+                        call.respond(HttpStatusCode.Created)
+                    } else {
+                        call.respond(
+                            HttpStatusCode.InternalServerError,
+                            ErrorResponse("Failed to add staff")
+                        )
+                    }
                 }
             }
         }

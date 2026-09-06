@@ -1,9 +1,11 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
+import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.domain.service.TransactionManager
+import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.Player
 import com.ricardofrango.footballmanager.model.TeamRole
@@ -12,6 +14,7 @@ class GetPlayersUseCase(
     private val playerRepository: PlayerRepository,
     private val teamRepository: TeamRepository,
     private val userRepository: UserRepository,
+    private val ageGroupRepository: AgeGroupRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager
 ) {
@@ -21,8 +24,8 @@ class GetPlayersUseCase(
         teamId: String? = null
     ): List<Player> = transactionManager.runInTransaction {
         if (teamId != null) {
-            // Scoped to one team: a club admin/coordinator, that team's coach/staff, or a player/parent
-            // linked to that team can see its roster.
+            // Scoped to one team: a club admin/coordinator, that team's age-group coach/staff, or a
+            // player/parent linked to a player in that age group can see the pool.
             checkUserPermissionUseCase(
                 userId = userId,
                 clubId = clubId,
@@ -32,12 +35,12 @@ class GetPlayersUseCase(
                 allowPlayerOrParentAccess = true
             )
 
-            playerRepository.getPlayersByTeam(teamId)
+            val team = teamRepository.getTeamById(teamId) ?: throw ValidationException("Team not found")
+            playerRepository.getPlayersByAgeGroup(team.ageGroupId)
         } else {
-            // No team filter: club admins/coordinators see every player in the club. Everyone else --
-            // plain member, coach/staff, player, parent -- only sees players on teams they actually have
-            // access to (a TeamRole assignment or a linked player via TeamPlayers/UserPlayers). See
-            // "issues to fix.md" -- "A plain club member sees the whole club, not just 'the club.'"
+            // No team filter: club admins/coordinators see every player in the club. Everyone else
+            // only sees players in age groups they're attached to -- an AgeGroupStaff assignment or a
+            // linked player in that age group's pool.
             checkUserPermissionUseCase(userId, clubId, minClubRole = ClubRole.MEMBER, allowPlayerOrParentAccess = true)
 
             val user = userRepository.findById(userId)
@@ -53,20 +56,23 @@ class GetPlayersUseCase(
                     .filter { it.clubId == clubId }
                     .map { it.id }
                     .toSet()
-                val linkedTeamIds = if (linkedPlayerIds.isEmpty()) {
+                val linkedAgeGroupIds = if (linkedPlayerIds.isEmpty()) {
                     emptySet()
                 } else {
-                    playerRepository.getTeamPlayersByClub(clubId)
+                    playerRepository.getAgeGroupPlayersByClub(clubId)
                         .filter { it.playerId in linkedPlayerIds }
-                        .map { it.teamId }
+                        .map { it.ageGroupId }
                         .toSet()
                 }
 
-                val visibleTeamIds = teamRepository.getTeamsByClub(clubId)
-                    .filter { team -> teamRepository.getUserRoleInTeam(userId, team.id) != null || team.id in linkedTeamIds }
+                val visibleAgeGroupIds = ageGroupRepository.getAgeGroupsByClub(clubId)
+                    .filter { ag ->
+                        ageGroupRepository.getUserRoleInAgeGroup(userId, ag.id) != null || ag.id in linkedAgeGroupIds
+                    }
                     .map { it.id }
+                    .toSet()
 
-                visibleTeamIds.flatMap { playerRepository.getPlayersByTeam(it) }.distinctBy { it.id }
+                visibleAgeGroupIds.flatMap { playerRepository.getPlayersByAgeGroup(it) }.distinctBy { it.id }
             }
         }
     }

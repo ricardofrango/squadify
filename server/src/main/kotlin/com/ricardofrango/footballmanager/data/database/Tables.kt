@@ -108,20 +108,23 @@ object Players : Table("players") {
     override val primaryKey = PrimaryKey(id)
 }
 
-object TeamPlayers : Table("team_players") {
+object AgeGroupPlayers : Table("age_group_players") {
     val id = uuid("id")
-    val teamId = uuid("team_id").references(Teams.id)
+    val ageGroupId = uuid("age_group_id").references(AgeGroups.id)
     val playerId = uuid("player_id").references(Players.id)
-    val startDate = date("start_date")
-    val endDate = date("end_date").nullable()
-    val status = enumerationByName("status", 50, TeamPlayerStatus::class).default(TeamPlayerStatus.ACTIVE)
 
     override val primaryKey = PrimaryKey(id)
+
+    init {
+        // A player is in an age group at most once -- makes the "same player on two teams in one age
+        // group" duplication impossible by construction.
+        uniqueIndex("unique_age_group_player", ageGroupId, playerId)
+    }
 }
 
-object TeamStaff : Table("team_staff") {
+object AgeGroupStaff : Table("age_group_staff") {
     val id = uuid("id")
-    val teamId = uuid("team_id").references(Teams.id)
+    val ageGroupId = uuid("age_group_id").references(AgeGroups.id)
     val userId = uuid("user_id").references(Users.id)
     val role = enumerationByName("role", 50, TeamRole::class)
 

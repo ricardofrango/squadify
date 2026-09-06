@@ -70,7 +70,7 @@ val dataModule = module {
     single<ClubRepository> { ClubRepositoryImpl(get(), get(), get()) }
     single<TeamRepository> { TeamRepositoryImpl(get(), get(), get()) }
     single<PlayerRepository> { PlayerRepositoryImpl(get(), get(), get()) }
-    single<TeamPlayerRepository> { TeamPlayerRepositoryImpl(get(), get(), get()) }
+    single<AgeGroupPlayerRepository> { AgeGroupPlayerRepositoryImpl(get(), get(), get()) }
     single<SeasonRepository> { SeasonRepositoryImpl(get(), get(), get()) }
     single<AgeGroupRepository> { AgeGroupRepositoryImpl(get(), get(), get()) }
     single<SessionRepository> { SessionRepositoryImpl(get()) }

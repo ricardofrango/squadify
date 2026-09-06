@@ -1,17 +1,17 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
+import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.SeasonRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.domain.service.TransactionManager
+import com.ricardofrango.footballmanager.model.AgeGroup
+import com.ricardofrango.footballmanager.model.AgeGroupPlayer
 import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.Player
 import com.ricardofrango.footballmanager.model.Season
 import com.ricardofrango.footballmanager.model.SeasonType
-import com.ricardofrango.footballmanager.model.Team
-import com.ricardofrango.footballmanager.model.TeamPlayer
-import com.ricardofrango.footballmanager.model.TeamPlayerStatus
 import com.ricardofrango.footballmanager.model.TeamRole
 import com.ricardofrango.footballmanager.model.User
 import com.ricardofrango.footballmanager.model.UserStatus
@@ -24,11 +24,8 @@ import org.junit.Test
 import kotlin.test.assertEquals
 
 /**
- * Covers GetSeasonsUseCase per "issues to fix.md" -- "A plain club member sees the whole club, not just
- * 'the club.'" and `PERMISSION_TEST_MATRIX.md`'s "List Club A's seasons/age groups" row: rather than a
- * hard deny for a caller with no team assignment, the list is scoped down to the season(s) their own
- * team(s) actually belong to (empty when they have none) -- the same filtering approach as
- * GetTeamsUseCase, applied consistently across every list use case, including players/parents.
+ * A non-admin is scoped to the season(s) of the age group(s) they're attached to (an `AgeGroupStaff`
+ * role or a linked player in that age group's pool). Empty when they have none.
  */
 class GetSeasonsUseCaseTest {
 
@@ -36,48 +33,42 @@ class GetSeasonsUseCaseTest {
     private val teamRepository = mockk<TeamRepository>()
     private val userRepository = mockk<UserRepository>()
     private val playerRepository = mockk<PlayerRepository>()
+    private val ageGroupRepository = mockk<AgeGroupRepository>()
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
-    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, transactionManager)
-    private val useCase = GetSeasonsUseCase(seasonRepository, teamRepository, userRepository, playerRepository, checkUserPermissionUseCase, transactionManager)
+    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
+        userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager
+    )
+    private val useCase = GetSeasonsUseCase(
+        seasonRepository, ageGroupRepository, userRepository, playerRepository, checkUserPermissionUseCase, transactionManager
+    )
 
     private val clubIdA = "club-a"
     private val season2627 = "season-26-27"
     private val season2728 = "season-27-28"
 
-    private fun team(id: String, seasonId: String) = Team(
-        id = id,
-        clubId = clubIdA,
-        ageGroupId = "age-group-$id",
-        seasonId = seasonId,
-        name = id,
-        code = null,
-        active = true
+    private fun ageGroup(id: String, seasonId: String) = AgeGroup(
+        id = id, clubId = clubIdA, name = id, seasonId = seasonId, birthYear = 2014
     )
 
-    private val team1 = team("team-1", season2627)
-    private val team2 = team("team-2", season2627)
-    private val team3 = team("team-3", season2728)
+    private val ag1 = ageGroup("ag-1", season2627)
+    private val ag2 = ageGroup("ag-2", season2627)
+    private val ag3 = ageGroup("ag-3", season2728)
 
     private fun season(id: String) = Season(
-        id = id,
-        clubId = clubIdA,
-        name = id,
-        type = SeasonType.EUROPEAN_YEAR,
-        startDate = LocalDate(2026, 8, 1),
-        endDate = LocalDate(2027, 6, 30),
-        active = true
+        id = id, clubId = clubIdA, name = id, type = SeasonType.EUROPEAN_YEAR,
+        startDate = LocalDate(2026, 8, 1), endDate = LocalDate(2027, 6, 30), active = true
     )
 
     private fun user(id: String) = User(
-        id = id,
-        email = "$id@test.com",
-        firstName = "Test",
-        lastName = "User",
-        status = UserStatus.ACTIVE,
-        isPlatformAdmin = false,
-        createdAt = Instant.fromEpochMilliseconds(0)
+        id = id, email = "$id@test.com", firstName = "Test", lastName = "User",
+        status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0)
+    )
+
+    private fun child(id: String) = Player(
+        id = id, clubId = clubIdA, firstName = "Test", lastName = "Child",
+        birthDate = LocalDate(2012, 1, 1), active = true
     )
 
     @Test
@@ -88,91 +79,70 @@ class GetSeasonsUseCaseTest {
         val everySeason = listOf(season(season2627), season(season2728))
         coEvery { seasonRepository.getSeasonsByClub(clubIdA) } returns everySeason
 
-        val result = useCase(admin.id, clubIdA)
-
-        assertEquals(everySeason, result)
+        assertEquals(everySeason, useCase(admin.id, clubIdA))
         Unit
     }
 
     @Test
-    fun plainMemberWithNoTeamAssignmentSeesNoSeasons() = runBlocking {
+    fun plainMemberWithNoAgeGroupSeesNoSeasons() = runBlocking {
         val member = user("p4-plain-member")
         coEvery { userRepository.findById(member.id) } returns member
         coEvery { userRepository.getUserRoleInClub(member.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team1, team2, team3)
-        coEvery { teamRepository.getUserRoleInTeam(member.id, team1.id) } returns null
-        coEvery { teamRepository.getUserRoleInTeam(member.id, team2.id) } returns null
-        coEvery { teamRepository.getUserRoleInTeam(member.id, team3.id) } returns null
         coEvery { playerRepository.getPlayersByUser(member.id) } returns emptyList()
+        coEvery { ageGroupRepository.getAgeGroupsByClub(clubIdA) } returns listOf(ag1, ag2, ag3)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(member.id, any()) } returns null
 
-        val result = useCase(member.id, clubIdA)
-
-        assertEquals(emptyList(), result)
+        assertEquals(emptyList(), useCase(member.id, clubIdA))
         Unit
     }
 
     @Test
-    fun coachWithTwoTeamsInTheSameSeasonSeesThatSeasonOnce() = runBlocking {
-        // A coach on Team 1 and Team 2 (both season 26/27) sees season 26/27 exactly once, not twice.
-        val coach = user("p7-multi-team-coach")
+    fun coachWithTwoAgeGroupsInTheSameSeasonSeesThatSeasonOnce() = runBlocking {
+        val coach = user("p7-multi-ag-coach")
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team1, team2, team3)
-        coEvery { teamRepository.getUserRoleInTeam(coach.id, team1.id) } returns TeamRole.COACH
-        coEvery { teamRepository.getUserRoleInTeam(coach.id, team2.id) } returns TeamRole.COACH
-        coEvery { teamRepository.getUserRoleInTeam(coach.id, team3.id) } returns null
         coEvery { playerRepository.getPlayersByUser(coach.id) } returns emptyList()
+        coEvery { ageGroupRepository.getAgeGroupsByClub(clubIdA) } returns listOf(ag1, ag2, ag3)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1.id) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag2.id) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag3.id) } returns null
         coEvery { seasonRepository.getSeasonById(season2627) } returns season(season2627)
 
-        val result = useCase(coach.id, clubIdA)
-
-        assertEquals(listOf(season(season2627)), result)
+        assertEquals(listOf(season(season2627)), useCase(coach.id, clubIdA))
         Unit
     }
 
     @Test
-    fun coachWithTeamsInDifferentSeasonsSeesBothSeasons() = runBlocking {
+    fun coachWithAgeGroupsInDifferentSeasonsSeesBothSeasons() = runBlocking {
         val coach = user("p8-cross-season-coach")
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team1, team3)
-        coEvery { teamRepository.getUserRoleInTeam(coach.id, team1.id) } returns TeamRole.COACH
-        coEvery { teamRepository.getUserRoleInTeam(coach.id, team3.id) } returns TeamRole.COACH
         coEvery { playerRepository.getPlayersByUser(coach.id) } returns emptyList()
+        coEvery { ageGroupRepository.getAgeGroupsByClub(clubIdA) } returns listOf(ag1, ag3)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1.id) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag3.id) } returns TeamRole.COACH
         coEvery { seasonRepository.getSeasonById(season2627) } returns season(season2627)
         coEvery { seasonRepository.getSeasonById(season2728) } returns season(season2728)
 
-        val result = useCase(coach.id, clubIdA)
-
-        assertEquals(setOf(season2627, season2728), result.map { it.id }.toSet())
+        assertEquals(setOf(season2627, season2728), useCase(coach.id, clubIdA).map { it.id }.toSet())
         Unit
     }
 
     @Test
-    fun parentSeesOnlyTheirChildsTeamsSeason() = runBlocking {
+    fun parentSeesOnlyTheirChildsAgeGroupSeason() = runBlocking {
         val parent = user("p10-parent")
-        val child = Player(
-            id = "child-1",
-            clubId = clubIdA,
-            firstName = "Test",
-            lastName = "Child",
-            birthDate = LocalDate(2012, 1, 1),
-            active = true
-        )
+        val kid = child("child-1")
         coEvery { userRepository.findById(parent.id) } returns parent
         coEvery { userRepository.getUserRoleInClub(parent.id, clubIdA) } returns null
-        coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team1, team3)
-        coEvery { teamRepository.getUserRoleInTeam(parent.id, team1.id) } returns null
-        coEvery { teamRepository.getUserRoleInTeam(parent.id, team3.id) } returns null
-        coEvery { playerRepository.getPlayersByUser(parent.id) } returns listOf(child)
-        coEvery { playerRepository.getTeamPlayersByClub(clubIdA) } returns listOf(
-            TeamPlayer(id = "tp-1", teamId = team3.id, playerId = child.id, startDate = LocalDate(2020, 1, 1), status = TeamPlayerStatus.ACTIVE)
+        coEvery { playerRepository.getPlayersByUser(parent.id) } returns listOf(kid)
+        coEvery { playerRepository.getAgeGroupPlayersByClub(clubIdA) } returns listOf(
+            AgeGroupPlayer(id = "agp-1", ageGroupId = ag3.id, playerId = kid.id)
         )
+        coEvery { ageGroupRepository.getAgeGroupsByClub(clubIdA) } returns listOf(ag1, ag3)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(parent.id, any()) } returns null
         coEvery { seasonRepository.getSeasonById(season2728) } returns season(season2728)
 
-        val result = useCase(parent.id, clubIdA)
-
-        assertEquals(listOf(season(season2728)), result)
+        assertEquals(listOf(season(season2728)), useCase(parent.id, clubIdA))
         Unit
     }
 }

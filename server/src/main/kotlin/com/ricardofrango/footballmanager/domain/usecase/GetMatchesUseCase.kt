@@ -1,5 +1,6 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
+import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
@@ -14,6 +15,7 @@ class GetMatchesUseCase(
     private val teamRepository: TeamRepository,
     private val userRepository: UserRepository,
     private val playerRepository: PlayerRepository,
+    private val ageGroupRepository: AgeGroupRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager
 ) {
@@ -47,21 +49,11 @@ class GetMatchesUseCase(
             if (seesEverything) {
                 matchRepository.getMatchesByClub(clubId)
             } else {
-                val linkedPlayerIds = playerRepository.getPlayersByUser(userId)
-                    .filter { it.clubId == clubId }
+                val visibleAgeGroupIds = visibleAgeGroups(playerRepository, ageGroupRepository, userId, clubId)
                     .map { it.id }
                     .toSet()
-                val linkedTeamIds = if (linkedPlayerIds.isEmpty()) {
-                    emptySet()
-                } else {
-                    playerRepository.getTeamPlayersByClub(clubId)
-                        .filter { it.playerId in linkedPlayerIds }
-                        .map { it.teamId }
-                        .toSet()
-                }
-
                 val visibleTeamIds = teamRepository.getTeamsByClub(clubId)
-                    .filter { team -> teamRepository.getUserRoleInTeam(userId, team.id) != null || team.id in linkedTeamIds }
+                    .filter { it.ageGroupId in visibleAgeGroupIds }
                     .map { it.id }
 
                 visibleTeamIds.flatMap { matchRepository.getMatchesByTeam(it) }.distinctBy { it.id }

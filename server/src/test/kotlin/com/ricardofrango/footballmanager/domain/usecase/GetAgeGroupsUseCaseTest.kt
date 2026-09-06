@@ -6,11 +6,9 @@ import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.model.AgeGroup
+import com.ricardofrango.footballmanager.model.AgeGroupPlayer
 import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.Player
-import com.ricardofrango.footballmanager.model.Team
-import com.ricardofrango.footballmanager.model.TeamPlayer
-import com.ricardofrango.footballmanager.model.TeamPlayerStatus
 import com.ricardofrango.footballmanager.model.TeamRole
 import com.ricardofrango.footballmanager.model.User
 import com.ricardofrango.footballmanager.model.UserStatus
@@ -23,11 +21,8 @@ import org.junit.Test
 import kotlin.test.assertEquals
 
 /**
- * Covers GetAgeGroupsUseCase per "issues to fix.md" -- "A plain club member sees the whole club, not
- * just 'the club.'" and `PERMISSION_TEST_MATRIX.md`'s "List Club A's seasons/age groups" row: rather
- * than a hard deny for a caller with no team assignment, the list is scoped down to the age group(s)
- * their own team(s) actually belong to (empty when they have none), consistent with GetSeasonsUseCase
- * and GetTeamsUseCase -- including for players/parents.
+ * A non-admin is scoped to the age group(s) they're attached to directly -- an `AgeGroupStaff` role
+ * or a linked player in that age group's pool. Empty when they have none.
  */
 class GetAgeGroupsUseCaseTest {
 
@@ -38,43 +33,31 @@ class GetAgeGroupsUseCaseTest {
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
-    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, transactionManager)
-    private val useCase = GetAgeGroupsUseCase(ageGroupRepository, teamRepository, userRepository, playerRepository, checkUserPermissionUseCase, transactionManager)
+    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
+        userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager
+    )
+    private val useCase = GetAgeGroupsUseCase(
+        ageGroupRepository, userRepository, playerRepository, checkUserPermissionUseCase, transactionManager
+    )
 
     private val clubIdA = "club-a"
-    private val ageGroupU10 = "age-group-u10"
-    private val ageGroupU12 = "age-group-u12"
-
-    private fun team(id: String, ageGroupId: String) = Team(
-        id = id,
-        clubId = clubIdA,
-        ageGroupId = ageGroupId,
-        seasonId = "season-1",
-        name = id,
-        code = null,
-        active = true
-    )
-
-    private val team1 = team("team-1", ageGroupU10)
-    private val team2 = team("team-2", ageGroupU10)
-    private val team3 = team("team-3", ageGroupU12)
 
     private fun ageGroup(id: String) = AgeGroup(
-        id = id,
-        clubId = clubIdA,
-        name = id,
-        seasonId = "season-1",
-        birthYear = 2016
+        id = id, clubId = clubIdA, name = id, seasonId = "season-1", birthYear = 2016
     )
 
+    private val agU10 = ageGroup("age-group-u10")
+    private val agU12 = ageGroup("age-group-u12")
+    private val agU14 = ageGroup("age-group-u14")
+
     private fun user(id: String) = User(
-        id = id,
-        email = "$id@test.com",
-        firstName = "Test",
-        lastName = "User",
-        status = UserStatus.ACTIVE,
-        isPlatformAdmin = false,
-        createdAt = Instant.fromEpochMilliseconds(0)
+        id = id, email = "$id@test.com", firstName = "Test", lastName = "User",
+        status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0)
+    )
+
+    private fun child(id: String) = Player(
+        id = id, clubId = clubIdA, firstName = "Test", lastName = "Child",
+        birthDate = LocalDate(2012, 1, 1), active = true
     )
 
     @Test
@@ -82,93 +65,55 @@ class GetAgeGroupsUseCaseTest {
         val admin = user("p2-club-admin")
         coEvery { userRepository.findById(admin.id) } returns admin
         coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
-        val everyAgeGroup = listOf(ageGroup(ageGroupU10), ageGroup(ageGroupU12))
-        coEvery { ageGroupRepository.getAgeGroupsByClub(clubIdA) } returns everyAgeGroup
+        val every = listOf(agU10, agU12)
+        coEvery { ageGroupRepository.getAgeGroupsByClub(clubIdA) } returns every
 
-        val result = useCase(admin.id, clubIdA)
-
-        assertEquals(everyAgeGroup, result)
+        assertEquals(every, useCase(admin.id, clubIdA))
         Unit
     }
 
     @Test
-    fun plainMemberWithNoTeamAssignmentSeesNoAgeGroups() = runBlocking {
+    fun plainMemberWithNoAgeGroupSeesNone() = runBlocking {
         val member = user("p4-plain-member")
         coEvery { userRepository.findById(member.id) } returns member
         coEvery { userRepository.getUserRoleInClub(member.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team1, team2, team3)
-        coEvery { teamRepository.getUserRoleInTeam(member.id, team1.id) } returns null
-        coEvery { teamRepository.getUserRoleInTeam(member.id, team2.id) } returns null
-        coEvery { teamRepository.getUserRoleInTeam(member.id, team3.id) } returns null
         coEvery { playerRepository.getPlayersByUser(member.id) } returns emptyList()
+        coEvery { ageGroupRepository.getAgeGroupsByClub(clubIdA) } returns listOf(agU10, agU12, agU14)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(member.id, any()) } returns null
 
-        val result = useCase(member.id, clubIdA)
-
-        assertEquals(emptyList(), result)
+        assertEquals(emptyList(), useCase(member.id, clubIdA))
         Unit
     }
 
     @Test
-    fun coachWithTwoTeamsOnTheSameAgeGroupSeesItOnce() = runBlocking {
-        val coach = user("p7-multi-team-coach")
+    fun coachSeesOnlyTheAgeGroupsTheyStaff() = runBlocking {
+        val coach = user("p7-coach")
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team1, team2, team3)
-        coEvery { teamRepository.getUserRoleInTeam(coach.id, team1.id) } returns TeamRole.COACH
-        coEvery { teamRepository.getUserRoleInTeam(coach.id, team2.id) } returns TeamRole.COACH
-        coEvery { teamRepository.getUserRoleInTeam(coach.id, team3.id) } returns null
         coEvery { playerRepository.getPlayersByUser(coach.id) } returns emptyList()
-        coEvery { ageGroupRepository.getAgeGroupById(ageGroupU10) } returns ageGroup(ageGroupU10)
+        coEvery { ageGroupRepository.getAgeGroupsByClub(clubIdA) } returns listOf(agU10, agU12, agU14)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, agU10.id) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, agU14.id) } returns TeamRole.STAFF
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, agU12.id) } returns null
 
-        val result = useCase(coach.id, clubIdA)
-
-        assertEquals(listOf(ageGroup(ageGroupU10)), result)
+        assertEquals(setOf(agU10.id, agU14.id), useCase(coach.id, clubIdA).map { it.id }.toSet())
         Unit
     }
 
     @Test
-    fun coachWithTeamsOnDifferentAgeGroupsSeesBoth() = runBlocking {
-        val coach = user("p8-cross-age-group-coach")
-        coEvery { userRepository.findById(coach.id) } returns coach
-        coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team1, team3)
-        coEvery { teamRepository.getUserRoleInTeam(coach.id, team1.id) } returns TeamRole.COACH
-        coEvery { teamRepository.getUserRoleInTeam(coach.id, team3.id) } returns TeamRole.COACH
-        coEvery { playerRepository.getPlayersByUser(coach.id) } returns emptyList()
-        coEvery { ageGroupRepository.getAgeGroupById(ageGroupU10) } returns ageGroup(ageGroupU10)
-        coEvery { ageGroupRepository.getAgeGroupById(ageGroupU12) } returns ageGroup(ageGroupU12)
-
-        val result = useCase(coach.id, clubIdA)
-
-        assertEquals(setOf(ageGroupU10, ageGroupU12), result.map { it.id }.toSet())
-        Unit
-    }
-
-    @Test
-    fun parentSeesOnlyTheirChildsTeamsAgeGroup() = runBlocking {
+    fun parentSeesOnlyTheirChildsAgeGroup() = runBlocking {
         val parent = user("p10-parent")
-        val child = Player(
-            id = "child-1",
-            clubId = clubIdA,
-            firstName = "Test",
-            lastName = "Child",
-            birthDate = LocalDate(2012, 1, 1),
-            active = true
-        )
+        val kid = child("child-1")
         coEvery { userRepository.findById(parent.id) } returns parent
         coEvery { userRepository.getUserRoleInClub(parent.id, clubIdA) } returns null
-        coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team1, team3)
-        coEvery { teamRepository.getUserRoleInTeam(parent.id, team1.id) } returns null
-        coEvery { teamRepository.getUserRoleInTeam(parent.id, team3.id) } returns null
-        coEvery { playerRepository.getPlayersByUser(parent.id) } returns listOf(child)
-        coEvery { playerRepository.getTeamPlayersByClub(clubIdA) } returns listOf(
-            TeamPlayer(id = "tp-1", teamId = team3.id, playerId = child.id, startDate = LocalDate(2020, 1, 1), status = TeamPlayerStatus.ACTIVE)
+        coEvery { playerRepository.getPlayersByUser(parent.id) } returns listOf(kid)
+        coEvery { playerRepository.getAgeGroupPlayersByClub(clubIdA) } returns listOf(
+            AgeGroupPlayer(id = "agp-1", ageGroupId = agU12.id, playerId = kid.id)
         )
-        coEvery { ageGroupRepository.getAgeGroupById(ageGroupU12) } returns ageGroup(ageGroupU12)
+        coEvery { ageGroupRepository.getAgeGroupsByClub(clubIdA) } returns listOf(agU10, agU12, agU14)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(parent.id, any()) } returns null
 
-        val result = useCase(parent.id, clubIdA)
-
-        assertEquals(listOf(ageGroup(ageGroupU12)), result)
+        assertEquals(listOf(agU12), useCase(parent.id, clubIdA))
         Unit
     }
 }
