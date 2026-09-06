@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -48,17 +47,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.footballmanager.model.Player
 import com.ricardofrango.footballmanager.model.Team
+import com.ricardofrango.footballmanager.presentation.ui.components.EmptyStateCallToAction
 import com.ricardofrango.footballmanager.presentation.ui.components.FMTopBar
 import com.ricardofrango.footballmanager.presentation.ui.theme.CarbonGray
 import com.ricardofrango.footballmanager.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.footballmanager.presentation.ui.theme.PitchGreen
 import footballmanager.app.shared.generated.resources.Res
 import footballmanager.app.shared.generated.resources.btn_retry
+import footballmanager.app.shared.generated.resources.ic_age_group
 import footballmanager.app.shared.generated.resources.ic_calendar
 import footballmanager.app.shared.generated.resources.ic_more
 import footballmanager.app.shared.generated.resources.ic_player
@@ -72,6 +72,9 @@ import footballmanager.app.shared.generated.resources.label_create_team
 import footballmanager.app.shared.generated.resources.label_more_options
 import footballmanager.app.shared.generated.resources.label_number_prefix
 import footballmanager.app.shared.generated.resources.msg_no_players_filter
+import footballmanager.app.shared.generated.resources.msg_no_age_groups_admin_subtitle
+import footballmanager.app.shared.generated.resources.msg_no_age_groups_member_subtitle
+import footballmanager.app.shared.generated.resources.msg_no_age_groups_title
 import footballmanager.app.shared.generated.resources.msg_no_seasons_admin_subtitle
 import footballmanager.app.shared.generated.resources.msg_no_seasons_member_subtitle
 import footballmanager.app.shared.generated.resources.msg_no_seasons_title
@@ -90,13 +93,17 @@ fun ClubDetailsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToTeam: (String) -> Unit,
     onNavigateToPlayer: (String) -> Unit,
-    // Takes the club's name because CreateSeasonScreen shows it in its header, and the only place
-    // that name is loaded is here.
+    // Takes the club's name because CreateSeasonScreen/CreateAgeGroupsScreen show it in their header,
+    // and the only place that name is loaded is here.
     onNavigateToCreateSeason: (clubName: String) -> Unit,
-    // True exactly once, right after returning from CreateSeasonScreen having created a season --
-    // forces a reload past loadClubDetails' "already have this club" guard, since Koin scopes this
-    // ViewModel to the nav back-stack entry (so popping back here reuses the same stale state).
-    refreshAfterSeasonCreated: Boolean = false,
+    // The Create Age Groups screen has its own season picker, so it only needs an optional
+    // pre-selection: a concrete season id when the entry point already implies one (a specific
+    // season's "no age groups" state), or null from the overflow menu where the user should choose.
+    onNavigateToCreateAgeGroups: (clubName: String, initialSeasonId: String?) -> Unit,
+    // True exactly once, right after returning from CreateSeasonScreen/CreateAgeGroupsScreen having
+    // created something -- forces a reload past loadClubDetails' "already have this club" guard, since
+    // Koin scopes this ViewModel to the nav back-stack entry (so popping back here reuses stale state).
+    refreshClubDetails: Boolean = false,
     viewModel: ClubDetailsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
@@ -107,8 +114,8 @@ fun ClubDetailsScreen(
         viewModel.loadClubDetails(clubId)
     }
 
-    LaunchedEffect(refreshAfterSeasonCreated) {
-        if (refreshAfterSeasonCreated) {
+    LaunchedEffect(refreshClubDetails) {
+        if (refreshClubDetails) {
             viewModel.loadClubDetails(clubId, forceReload = true)
         }
     }
@@ -150,7 +157,15 @@ fun ClubDetailsScreen(
                                         color = DeepCarbon
                                     )
                                 },
-                                onClick = { showAddMenu = false }
+                                onClick = {
+                                    showAddMenu = false
+                                    // The Create Age Groups screen picks the season itself; from here
+                                    // the user hasn't indicated one, so pass no pre-selection. Still
+                                    // no-ops if the club has no seasons at all yet -- create one first.
+                                    val hasSeasons = (uiState as? ClubDetailsUiState.Idle)
+                                        ?.details?.seasons?.isNotEmpty() == true
+                                    if (hasSeasons) onNavigateToCreateAgeGroups(clubName, null)
+                                }
                             )
                             DropdownMenuItem(
                                 text = {
@@ -252,8 +267,24 @@ fun ClubDetailsScreen(
                     // one; a plain member just sees that there are none yet.
                     state.showNoSeasonsState ->
                         NoSeasonsState(
-                            canCreateSeason = state.canCreateSeason,
+                            canEditClub = state.canEditClub,
                             onCreateSeasonClick = { onNavigateToCreateSeason(clubName) }
+                        )
+
+                    // One level down from the above: seasons exist, but nothing has been organised
+                    // into age groups yet, so teams and players still have nothing to attach to. Same
+                    // permission gate as seasons (CreateAgeGroupsUseCase also requires COORDINATOR+).
+                    state.showNoAgeGroupsState ->
+                        NoAgeGroupsState(
+                            canEditClub = state.canEditClub,
+                            onCreateAgeGroupClick = {
+                                // Whole club has no age groups yet: seed the screen's picker with the
+                                // most recently started season, still overridable there.
+                                onNavigateToCreateAgeGroups(
+                                    clubName,
+                                    state.details?.seasons?.maxByOrNull { it.startDate }?.id
+                                )
+                            }
                         )
 
                     state.details != null ->
@@ -262,7 +293,9 @@ fun ClubDetailsScreen(
                             selectedTab = selectedTab,
                             viewModel = viewModel,
                             onNavigateToTeam = onNavigateToTeam,
-                            onNavigateToPlayer = onNavigateToPlayer
+                            onNavigateToPlayer = onNavigateToPlayer,
+                            onNavigateToCreateAgeGroups = onNavigateToCreateAgeGroups,
+                            clubName = clubName
                         )
                 }
             }
@@ -276,18 +309,45 @@ private fun ClubDetailsTabContent(
     selectedTab: Int,
     viewModel: ClubDetailsViewModel,
     onNavigateToTeam: (String) -> Unit,
-    onNavigateToPlayer: (String) -> Unit
+    onNavigateToPlayer: (String) -> Unit,
+    onNavigateToCreateAgeGroups: (clubName: String, initialSeasonId: String?) -> Unit,
+    clubName: String
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         when (selectedTab) {
             0 -> {
                 TeamFilterSection(state = state, viewModel = viewModel)
-                TeamList(state.filteredTeams, onNavigateToTeam)
+                // The club-wide "no age groups" state above only fires when *no* season has any; once
+                // some do, narrowing the season filter to one that still has none would otherwise just
+                // show an empty team list with no hint that an age group is what's missing.
+                if (state.selectedSeasonId != null &&
+                    viewModel.getAvailableAgeGroupsForTeams(state).isEmpty()
+                ) {
+                    NoAgeGroupsState(
+                        canEditClub = state.canEditClub,
+                        onCreateAgeGroupClick = {
+                            onNavigateToCreateAgeGroups(clubName, state.selectedSeasonId)
+                        }
+                    )
+                } else {
+                    TeamList(state.filteredTeams, onNavigateToTeam)
+                }
             }
 
             else -> {
                 PlayerFilterSection(state = state, viewModel = viewModel)
-                PlayerList(state.filteredPlayers, onNavigateToPlayer)
+                if (state.selectedPlayerSeasonId != null &&
+                    viewModel.getAvailableAgeGroupsForPlayers(state).isEmpty()
+                ) {
+                    NoAgeGroupsState(
+                        canEditClub = state.canEditClub,
+                        onCreateAgeGroupClick = {
+                            onNavigateToCreateAgeGroups(clubName, state.selectedPlayerSeasonId)
+                        }
+                    )
+                } else {
+                    PlayerList(state.filteredPlayers, onNavigateToPlayer)
+                }
             }
         }
     }
@@ -556,57 +616,29 @@ private fun EmptyState(message: String) {
 }
 
 @Composable
-private fun NoSeasonsState(canCreateSeason: Boolean, onCreateSeasonClick: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            painter = painterResource(Res.drawable.ic_calendar),
-            contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = DeepCarbon.copy(alpha = 0.3f)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        // Both lines share the same title; only the second line (and its color) differs by whether
-        // this user could act on it -- an admin/coordinator gets told what's broken, a plain member
-        // gets told who to ask. See the design canvas linked in AI_GUIDELINES.md ("UI Design Reference").
-        val subtitleColor =
-            if (canCreateSeason) MaterialTheme.colorScheme.error else DeepCarbon.copy(alpha = 0.6f)
-        NoSeasonsMessage(
-            text = stringResource(Res.string.msg_no_seasons_title),
-            color = if (canCreateSeason) MaterialTheme.colorScheme.error else DeepCarbon,
-            bold = true
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        NoSeasonsMessage(
-            text = stringResource(
-                if (canCreateSeason) Res.string.msg_no_seasons_admin_subtitle else Res.string.msg_no_seasons_member_subtitle
-            ),
-            color = subtitleColor
-        )
-        if (canCreateSeason) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = onCreateSeasonClick,
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)
-            ) {
-                Text(stringResource(Res.string.label_add_season))
-            }
-        }
-    }
+private fun NoSeasonsState(canEditClub: Boolean, onCreateSeasonClick: () -> Unit) {
+    EmptyStateCallToAction(
+        icon = Res.drawable.ic_calendar,
+        title = stringResource(Res.string.msg_no_seasons_title),
+        subtitle = stringResource(
+            if (canEditClub) Res.string.msg_no_seasons_admin_subtitle else Res.string.msg_no_seasons_member_subtitle
+        ),
+        canAct = canEditClub,
+        actionLabel = stringResource(Res.string.label_add_season),
+        onActionClick = onCreateSeasonClick
+    )
 }
 
 @Composable
-private fun NoSeasonsMessage(text: String, color: Color, bold: Boolean = false) {
-    Text(
-        text = text,
-        color = color,
-        style = MaterialTheme.typography.bodyLarge.copy(
-            fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal
+private fun NoAgeGroupsState(canEditClub: Boolean, onCreateAgeGroupClick: () -> Unit) {
+    EmptyStateCallToAction(
+        icon = Res.drawable.ic_age_group,
+        title = stringResource(Res.string.msg_no_age_groups_title),
+        subtitle = stringResource(
+            if (canEditClub) Res.string.msg_no_age_groups_admin_subtitle else Res.string.msg_no_age_groups_member_subtitle
         ),
-        textAlign = TextAlign.Center
+        canAct = canEditClub,
+        actionLabel = stringResource(Res.string.label_create_age_group),
+        onActionClick = onCreateAgeGroupClick
     )
 }

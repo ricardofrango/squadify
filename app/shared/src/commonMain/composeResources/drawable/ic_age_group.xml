@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Three tiers, narrowing towards the bottom: age groups as size-ordered categories. -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M4,5 H20 V8 H4 Z"/>
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M6,11 H18 V14 H6 Z"/>
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M8,17 H16 V20 H8 Z"/>
+</vector>

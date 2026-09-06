@@ -28,7 +28,11 @@ sealed class ClubDetailsUiState {
         val showNoSeasonsState: Boolean = false,
         // Whether the "no seasons" state should offer a create-season action -- only a CLUB_ADMIN,
         // COORDINATOR, or platform admin can create one (see CreateSeasonUseCase / PROCESS_FLOWS.md §3.3).
-        val canCreateSeason: Boolean = false
+        val canEditClub: Boolean = false,
+        // Same idea, one level down: a club can have seasons but no age groups yet, which leaves teams
+        // and players just as unorganisable. Only checked once there's at least one season -- see
+        // ClubDetailsViewModel.
+        val showNoAgeGroupsState: Boolean = false,
     ) : ClubDetailsUiState()
     data object Loading : ClubDetailsUiState()
 }

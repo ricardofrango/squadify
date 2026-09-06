@@ -47,7 +47,10 @@ class ClubDetailsViewModel(
                         filteredPlayers = details.players,
                         selectedTab = currentTab, // Restore the captured tab
                         showNoSeasonsState = details.seasons.isEmpty(),
-                        canCreateSeason = details.canCreateSeason
+                        canEditClub = details.canEditClub,
+                        // Only meaningful once there's at least one season to attach age groups to --
+                        // an empty club (no seasons either) is already covered by showNoSeasonsState.
+                        showNoAgeGroupsState = details.seasons.isNotEmpty() && details.ageGroups.isEmpty(),
                     )
                 }
             } catch (e: Exception) {

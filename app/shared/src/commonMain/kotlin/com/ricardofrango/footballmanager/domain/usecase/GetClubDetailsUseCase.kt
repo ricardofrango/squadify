@@ -10,10 +10,11 @@ data class ClubDetails(
     val seasons: List<Season>,
     val ageGroups: List<AgeGroup>,
     val teamPlayers: List<TeamPlayer>,
-    // Whether the current user is allowed to create a season in this club (CLUB_ADMIN/COORDINATOR/
-    // platform admin) -- lets the UI tell an admin "no seasons yet, create one" apart from a plain
-    // member's "no seasons yet" when `seasons` is empty. See PROCESS_FLOWS.md §3.3.
-    val canCreateSeason: Boolean
+    // Whether the current user is allowed to create a season/age group in this club
+    // (CLUB_ADMIN/COORDINATOR/platform admin) -- lets the UI tell an admin "nothing here yet, create
+    // one" apart from a plain member's "nothing here yet" when `seasons`/`ageGroups` is empty. See
+    // PROCESS_FLOWS.md §3.3.
+    val canEditClub: Boolean,
 )
 
 class GetClubDetailsUseCase(
@@ -39,7 +40,7 @@ class GetClubDetailsUseCase(
             seasons = seasons,
             ageGroups = ageGroups,
             teamPlayers = teamPlayers,
-            canCreateSeason = clubDetailsResponse.canCreateSeason
+            canEditClub = clubDetailsResponse.canEditClub,
         )
     }
 }

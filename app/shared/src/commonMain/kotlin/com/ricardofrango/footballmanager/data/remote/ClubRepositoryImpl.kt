@@ -6,7 +6,6 @@ import com.ricardofrango.footballmanager.domain.repository.SessionRepository
 import com.ricardofrango.footballmanager.model.Club
 import com.ricardofrango.footballmanager.model.ClubDetailsResponse
 import io.ktor.client.*
-import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 

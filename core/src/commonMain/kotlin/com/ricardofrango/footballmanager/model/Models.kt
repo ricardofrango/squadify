@@ -145,7 +145,7 @@ data class Club(
 @Serializable
 data class ClubDetailsResponse(
     val club: Club,
-    val canCreateSeason: Boolean
+    val canEditClub: Boolean,
 )
 
 @Serializable

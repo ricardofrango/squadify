@@ -9,6 +9,7 @@ import com.ricardofrango.footballmanager.domain.usecase.*
 import com.ricardofrango.footballmanager.presentation.ui.account.AccountViewModel
 import com.ricardofrango.footballmanager.presentation.ui.clubdetails.ClubDetailsViewModel
 import com.ricardofrango.footballmanager.presentation.ui.createseason.CreateSeasonViewModel
+import com.ricardofrango.footballmanager.presentation.ui.createagegroups.CreateAgeGroupsViewModel
 import com.ricardofrango.footballmanager.presentation.ui.teamdetails.TeamDetailsViewModel
 import com.ricardofrango.footballmanager.presentation.ui.playerdetails.PlayerDetailsViewModel
 import com.ricardofrango.footballmanager.presentation.ui.dashboard.DashboardViewModel
@@ -85,6 +86,8 @@ val domainModule = module {
     factory { GetPlayerDetailsUseCase(get()) }
     factory { GetSeasonsUseCase(get()) }
     factory { CreateSeasonUseCase(get()) }
+    factory { GetAgeGroupsUseCase(get()) }
+    factory { CreateAgeGroupsUseCase(get()) }
 }
 
 val presentationModule = module {
@@ -95,6 +98,7 @@ val presentationModule = module {
     viewModelOf(::AccountViewModel)
     viewModelOf(::ClubDetailsViewModel)
     viewModelOf(::CreateSeasonViewModel)
+    viewModelOf(::CreateAgeGroupsViewModel)
     viewModelOf(::TeamDetailsViewModel)
     viewModelOf(::PlayerDetailsViewModel)
 }
