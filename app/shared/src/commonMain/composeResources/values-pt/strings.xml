@@ -119,4 +119,19 @@
     <string name="btn_creating_teams">A criar...</string>
     <string name="msg_teams_footer_helper">Todas as equipas são criadas em conjunto — se uma falhar, nenhuma é guardada.</string>
     <string name="msg_create_teams_failed">Ocorreu um erro ao criar as equipas. Por favor, tente novamente.</string>
+
+    <!-- Add Players to Age Group -->
+    <string name="title_add_players_to_age_group">Adicionar jogadores</string>
+    <string name="label_add_players_to_age_group">Adicionar jogadores ao escalão</string>
+    <string name="label_search_players">Procurar jogadores</string>
+    <string name="label_players_selected">%1$d selecionados</string>
+    <string name="label_plays_up">joga acima</string>
+    <string name="btn_add_player_one">Adicionar jogador</string>
+    <string name="btn_add_players_other">Adicionar %1$d jogadores</string>
+    <string name="btn_adding_players">A adicionar...</string>
+    <string name="msg_add_players_failed">Ocorreu um erro ao adicionar os jogadores. Por favor, tente novamente.</string>
+    <string name="msg_no_age_groups_for_add_players">Crie um escalão antes de adicionar jogadores.</string>
+    <string name="msg_no_eligible_players_title">Todos os jogadores elegíveis já estão neste escalão</string>
+    <string name="msg_no_eligible_players_hint">Adicione jogadores ao clube primeiro se não houver plantel.</string>
+    <string name="msg_no_players_match_search">Nenhum jogador corresponde à procura</string>
 </resources>

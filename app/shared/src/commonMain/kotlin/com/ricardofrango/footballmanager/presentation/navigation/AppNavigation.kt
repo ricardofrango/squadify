@@ -15,6 +15,7 @@ import com.ricardofrango.footballmanager.presentation.ui.account.AccountScreen
 import com.ricardofrango.footballmanager.presentation.ui.clubdetails.ClubDetailsScreen
 import com.ricardofrango.footballmanager.presentation.ui.createseason.CreateSeasonScreen
 import com.ricardofrango.footballmanager.presentation.ui.createteams.CreateTeamsScreen
+import com.ricardofrango.footballmanager.presentation.ui.addplayerstoagegroup.AddPlayersToAgeGroupScreen
 import com.ricardofrango.footballmanager.presentation.ui.createagegroups.CreateAgeGroupsScreen
 import com.ricardofrango.footballmanager.presentation.ui.teamdetails.TeamDetailsScreen
 import com.ricardofrango.footballmanager.presentation.ui.playerdetails.PlayerDetailsScreen
@@ -115,6 +116,9 @@ fun AppNavigation() {
                 onNavigateToCreateTeams = { clubName ->
                     navController.navigate(Screen.CreateTeams(screen.clubId, clubName))
                 },
+                onNavigateToAddPlayersToAgeGroup = {
+                    navController.navigate(Screen.AddPlayersToAgeGroup(screen.clubId))
+                },
                 refreshClubDetails = structureChanged
             )
         }
@@ -163,6 +167,22 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
                 onTeamsCreated = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable<Screen.AddPlayersToAgeGroup> { backStackEntry ->
+            val screen: Screen.AddPlayersToAgeGroup = backStackEntry.toRoute()
+            AddPlayersToAgeGroupScreen(
+                clubId = screen.clubId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onPlayersAdded = {
                     navController.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)

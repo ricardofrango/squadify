@@ -119,4 +119,19 @@
     <string name="btn_creating_teams">Creating...</string>
     <string name="msg_teams_footer_helper">All teams are created together — if one fails, none are saved.</string>
     <string name="msg_create_teams_failed">Something went wrong creating the teams. Please try again.</string>
+
+    <!-- Add Players to Age Group -->
+    <string name="title_add_players_to_age_group">Add players</string>
+    <string name="label_add_players_to_age_group">Add players to age group</string>
+    <string name="label_search_players">Search players</string>
+    <string name="label_players_selected">%1$d selected</string>
+    <string name="label_plays_up">plays up</string>
+    <string name="btn_add_player_one">Add player</string>
+    <string name="btn_add_players_other">Add %1$d players</string>
+    <string name="btn_adding_players">Adding...</string>
+    <string name="msg_add_players_failed">Something went wrong adding the players. Please try again.</string>
+    <string name="msg_no_age_groups_for_add_players">Create an age group before adding players.</string>
+    <string name="msg_no_eligible_players_title">Every eligible player is already in this age group</string>
+    <string name="msg_no_eligible_players_hint">Add players to the club first if the roster is empty.</string>
+    <string name="msg_no_players_match_search">No players match your search</string>
 </resources>
