@@ -21,6 +21,7 @@
     <string name="label_active_member">Membro Ativo</string>
     <string name="tab_teams">Equipas</string>
     <string name="tab_players">Jogadores</string>
+    <string name="tab_age_groups">Escalões</string>
     <string name="label_all_seasons">Todas as Épocas</string>
     <string name="label_all_ages">Todos os Escalões</string>
     <string name="label_all_teams">Todas as Equipas</string>
@@ -136,6 +137,7 @@
     <string name="msg_no_eligible_players_title">Todos os jogadores elegíveis já estão neste escalão</string>
     <string name="msg_no_eligible_players_hint">Adicione jogadores ao clube primeiro se não houver plantel.</string>
     <string name="msg_no_players_match_search">Nenhum jogador corresponde à procura</string>
+    <string name="label_age_group_summary">%1$d equipas · %2$d jogadores</string>
 
     <!-- Add Players to the Club -->
     <string name="title_create_players">Adicionar jogadores</string>

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -85,9 +86,12 @@ import footballmanager.app.shared.generated.resources.msg_no_seasons_title
 import footballmanager.app.shared.generated.resources.msg_no_teams_admin_subtitle
 import footballmanager.app.shared.generated.resources.msg_no_teams_filter
 import footballmanager.app.shared.generated.resources.msg_no_teams_member_subtitle
+import footballmanager.app.shared.generated.resources.label_age_group_summary
+import footballmanager.app.shared.generated.resources.tab_age_groups
 import footballmanager.app.shared.generated.resources.tab_players
 import footballmanager.app.shared.generated.resources.tab_teams
 import footballmanager.app.shared.generated.resources.title_club_details
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -228,57 +232,23 @@ fun ClubDetailsScreen(
                 tonalElevation = 0.dp,
                 windowInsets = NavigationBarDefaults.windowInsets
             ) {
-                NavigationBarItem(
+                ClubTabItem(
                     selected = selectedTab == 0,
                     onClick = { viewModel.onTabSelected(0) },
-                    icon = {
-                        Icon(
-                            painter = painterResource(Res.drawable.ic_teams),
-                            contentDescription = stringResource(Res.string.tab_teams),
-                            modifier = Modifier.size(24.dp)
-                        )
-                    },
-                    label = {
-                        Text(
-                            text = stringResource(Res.string.tab_teams),
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
-                            )
-                        )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = PitchGreen,
-                        selectedTextColor = PitchGreen,
-                        unselectedIconColor = Color.White.copy(alpha = 0.5f),
-                        unselectedTextColor = Color.White.copy(alpha = 0.5f),
-                        indicatorColor = PitchGreen.copy(alpha = 0.15f)
-                    )
+                    icon = Res.drawable.ic_teams,
+                    label = stringResource(Res.string.tab_teams)
                 )
-                NavigationBarItem(
+                ClubTabItem(
                     selected = selectedTab == 1,
                     onClick = { viewModel.onTabSelected(1) },
-                    icon = {
-                        Icon(
-                            painter = painterResource(Res.drawable.ic_player),
-                            contentDescription = stringResource(Res.string.tab_players),
-                            modifier = Modifier.size(24.dp)
-                        )
-                    },
-                    label = {
-                        Text(
-                            text = stringResource(Res.string.tab_players),
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
-                            )
-                        )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = PitchGreen,
-                        selectedTextColor = PitchGreen,
-                        unselectedIconColor = Color.White.copy(alpha = 0.5f),
-                        unselectedTextColor = Color.White.copy(alpha = 0.5f),
-                        indicatorColor = PitchGreen.copy(alpha = 0.15f)
-                    )
+                    icon = Res.drawable.ic_player,
+                    label = stringResource(Res.string.tab_players)
+                )
+                ClubTabItem(
+                    selected = selectedTab == 2,
+                    onClick = { viewModel.onTabSelected(2) },
+                    icon = Res.drawable.ic_age_group,
+                    label = stringResource(Res.string.tab_age_groups)
                 )
             }
         }
@@ -386,7 +356,7 @@ private fun ClubDetailsTabContent(
                 }
             }
 
-            else -> {
+            1 -> {
                 PlayerFilterSection(state = state, viewModel = viewModel)
                 when {
                     state.selectedPlayerSeasonId != null &&
@@ -411,6 +381,154 @@ private fun ClubDetailsTabContent(
 
                     else -> PlayerList(state.filteredPlayers, onNavigateToPlayer)
                 }
+            }
+
+            else -> {
+                AgeGroupsFilterSection(state = state, viewModel = viewModel)
+                val ageGroups = viewModel.getAgeGroupsForAgeGroupsTab(state)
+                if (ageGroups.isEmpty()) {
+                    // Some other season has age groups (the club-wide "none at all" case is handled
+                    // above), but the selected one doesn't -- offer creating one in that season.
+                    NoAgeGroupsState(
+                        canEditClub = state.canEditClub,
+                        onCreateAgeGroupClick = {
+                            onNavigateToCreateAgeGroups(clubName, state.selectedAgeGroupsSeasonId)
+                        }
+                    )
+                } else {
+                    AgeGroupList(
+                        ageGroups = ageGroups,
+                        teamCountFor = { ag -> state.details?.teams?.count { it.ageGroupId == ag } ?: 0 },
+                        playerCountFor = { ag ->
+                            state.details?.ageGroupPlayers?.count { it.ageGroupId == ag } ?: 0
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.ClubTabItem(
+    selected: Boolean,
+    onClick: () -> Unit,
+    icon: DrawableResource,
+    label: String
+) {
+    NavigationBarItem(
+        selected = selected,
+        onClick = onClick,
+        icon = {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = label,
+                modifier = Modifier.size(24.dp)
+            )
+        },
+        label = {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                )
+            )
+        },
+        colors = NavigationBarItemDefaults.colors(
+            selectedIconColor = PitchGreen,
+            selectedTextColor = PitchGreen,
+            unselectedIconColor = Color.White.copy(alpha = 0.5f),
+            unselectedTextColor = Color.White.copy(alpha = 0.5f),
+            indicatorColor = PitchGreen.copy(alpha = 0.15f)
+        )
+    )
+}
+
+@Composable
+private fun AgeGroupsFilterSection(
+    state: ClubDetailsUiState.Idle,
+    viewModel: ClubDetailsViewModel
+) {
+    val seasons = state.details?.seasons ?: return
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        item {
+            // Season only, and no "All seasons": an age group only means something within one season.
+            FilterSelector(
+                selectedOption = seasons.find { it.id == state.selectedAgeGroupsSeasonId }?.name
+                    ?: seasons.firstOrNull()?.name.orEmpty(),
+                options = seasons.map { it.id to it.name },
+                onOptionSelected = viewModel::onAgeGroupsSeasonSelected
+            )
+        }
+    }
+}
+
+@Composable
+private fun AgeGroupList(
+    ageGroups: List<com.ricardofrango.footballmanager.model.AgeGroup>,
+    teamCountFor: (ageGroupId: String) -> Int,
+    playerCountFor: (ageGroupId: String) -> Int
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(ageGroups) { ageGroup ->
+            AgeGroupCard(
+                ageGroup = ageGroup,
+                teamCount = teamCountFor(ageGroup.id),
+                playerCount = playerCountFor(ageGroup.id)
+            )
+        }
+    }
+}
+
+@Composable
+private fun AgeGroupCard(
+    ageGroup: com.ricardofrango.footballmanager.model.AgeGroup,
+    teamCount: Int,
+    playerCount: Int
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier.size(40.dp).background(PitchGreen, RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = ageGroup.birthYear.toString().takeLast(2),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(
+                    text = ageGroup.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = DeepCarbon
+                )
+                Text(
+                    text = stringResource(Res.string.label_age_group_summary, teamCount, playerCount),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DeepCarbon.copy(alpha = 0.6f)
+                )
             }
         }
     }

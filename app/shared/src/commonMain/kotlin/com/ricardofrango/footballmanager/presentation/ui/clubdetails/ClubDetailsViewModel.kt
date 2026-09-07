@@ -51,6 +51,7 @@ class ClubDetailsViewModel(
                         // Only meaningful once there's at least one season to attach age groups to --
                         // an empty club (no seasons either) is already covered by showNoSeasonsState.
                         showNoAgeGroupsState = details.seasons.isNotEmpty() && details.ageGroups.isEmpty(),
+                        selectedAgeGroupsSeasonId = details.seasons.maxByOrNull { it.endDate }?.id,
                     )
                 }
             } catch (e: Exception) {
@@ -105,6 +106,12 @@ class ClubDetailsViewModel(
                 val newState = state.copy(selectedPlayerTeamId = teamId)
                 applyFilters(newState)
             } else state
+        }
+    }
+
+    fun onAgeGroupsSeasonSelected(seasonId: String) {
+        _state.update { state ->
+            if (state is ClubDetailsUiState.Idle) state.copy(selectedAgeGroupsSeasonId = seasonId) else state
         }
     }
 
@@ -178,9 +185,18 @@ class ClubDetailsViewModel(
     }
 
     fun getAvailableTeamsForPlayers(state: ClubDetailsUiState.Idle): List<Team> {
-        return state.details?.teams?.filter { 
+        return state.details?.teams?.filter {
             (state.selectedPlayerSeasonId == null || it.seasonId == state.selectedPlayerSeasonId) &&
             (state.selectedPlayerAgeGroupId == null || it.ageGroupId == state.selectedPlayerAgeGroupId)
         } ?: emptyList()
+    }
+
+    /** Age groups for the season selected on the Age Groups tab, youngest (highest birth year) first. */
+    fun getAgeGroupsForAgeGroupsTab(state: ClubDetailsUiState.Idle): List<AgeGroup> {
+        val seasonId = state.selectedAgeGroupsSeasonId ?: state.details?.seasons?.firstOrNull()?.id
+        return state.details?.ageGroups
+            ?.filter { it.seasonId == seasonId }
+            ?.sortedByDescending { it.birthYear }
+            ?: emptyList()
     }
 }

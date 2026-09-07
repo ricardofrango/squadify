@@ -21,6 +21,7 @@
     <string name="label_active_member">Active Member</string>
     <string name="tab_teams">Teams</string>
     <string name="tab_players">Players</string>
+    <string name="tab_age_groups">Age Groups</string>
     <string name="label_all_seasons">All Seasons</string>
     <string name="label_all_ages">All Ages</string>
     <string name="label_all_teams">All Teams</string>
@@ -136,6 +137,7 @@
     <string name="msg_no_eligible_players_title">Every eligible player is already in this age group</string>
     <string name="msg_no_eligible_players_hint">Add players to the club first if the roster is empty.</string>
     <string name="msg_no_players_match_search">No players match your search</string>
+    <string name="label_age_group_summary">%1$d teams · %2$d players</string>
 
     <!-- Add Players to the Club -->
     <string name="title_create_players">Add players</string>

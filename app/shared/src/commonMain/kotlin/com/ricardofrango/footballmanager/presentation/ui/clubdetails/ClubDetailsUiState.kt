@@ -21,6 +21,10 @@ sealed class ClubDetailsUiState {
         val selectedPlayerSeasonId: String? = null,
         val selectedPlayerAgeGroupId: String? = null,
         val selectedPlayerTeamId: String? = null,
+        // Age Groups tab filter -- season only, and unlike the other tabs there's no "All seasons":
+        // an age group only means something within one season. Defaults to the most recent season
+        // (by end date) when details load.
+        val selectedAgeGroupsSeasonId: String? = null,
         val error: String? = null,
         // Resolved once when details load, so the screen just reads a flag instead of re-deriving it
         // from `details` on every recomposition: everything on this screen (teams, players, filters)
