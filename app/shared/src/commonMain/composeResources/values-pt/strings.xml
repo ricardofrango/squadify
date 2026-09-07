@@ -34,6 +34,8 @@
     <string name="msg_no_age_groups_member_subtitle">Peça a um coordenador para criar um.</string>
     <string name="msg_no_teams_admin_subtitle">Crie uma equipa ou ajuste os filtros acima.</string>
     <string name="msg_no_teams_member_subtitle">Experimente ajustar os filtros acima.</string>
+    <string name="msg_no_players_admin_subtitle">Adicione jogadores a um escalão ou ajuste os filtros acima.</string>
+    <string name="msg_no_players_admin_subtitle_no_club_players">Adicione jogadores ao clube primeiro e depois coloque-os em escalões.</string>
     <string name="label_number_prefix">Número: %1$s</string>
     <string name="label_create_team">Criar Equipa</string>
     <string name="label_create_age_group">Criar Escalão</string>

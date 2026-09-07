@@ -73,6 +73,8 @@ import footballmanager.app.shared.generated.resources.label_create_age_group
 import footballmanager.app.shared.generated.resources.label_create_team
 import footballmanager.app.shared.generated.resources.label_more_options
 import footballmanager.app.shared.generated.resources.label_number_prefix
+import footballmanager.app.shared.generated.resources.msg_no_players_admin_subtitle
+import footballmanager.app.shared.generated.resources.msg_no_players_admin_subtitle_no_club_players
 import footballmanager.app.shared.generated.resources.msg_no_players_filter
 import footballmanager.app.shared.generated.resources.msg_no_age_groups_admin_subtitle
 import footballmanager.app.shared.generated.resources.msg_no_age_groups_member_subtitle
@@ -332,6 +334,8 @@ fun ClubDetailsScreen(
                             onNavigateToPlayer = onNavigateToPlayer,
                             onNavigateToCreateAgeGroups = onNavigateToCreateAgeGroups,
                             onNavigateToCreateTeams = onNavigateToCreateTeams,
+                            onNavigateToCreatePlayers = onNavigateToCreatePlayers,
+                            onNavigateToAddPlayersToAgeGroup = onNavigateToAddPlayersToAgeGroup,
                             clubName = clubName
                         )
                 }
@@ -349,6 +353,8 @@ private fun ClubDetailsTabContent(
     onNavigateToPlayer: (String) -> Unit,
     onNavigateToCreateAgeGroups: (clubName: String, initialSeasonId: String?) -> Unit,
     onNavigateToCreateTeams: (clubName: String) -> Unit,
+    onNavigateToCreatePlayers: (clubName: String) -> Unit,
+    onNavigateToAddPlayersToAgeGroup: () -> Unit,
     clubName: String
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -382,17 +388,28 @@ private fun ClubDetailsTabContent(
 
             else -> {
                 PlayerFilterSection(state = state, viewModel = viewModel)
-                if (state.selectedPlayerSeasonId != null &&
-                    viewModel.getAvailableAgeGroupsForPlayers(state).isEmpty()
-                ) {
-                    NoAgeGroupsState(
-                        canEditClub = state.canEditClub,
-                        onCreateAgeGroupClick = {
-                            onNavigateToCreateAgeGroups(clubName, state.selectedPlayerSeasonId)
-                        }
-                    )
-                } else {
-                    PlayerList(state.filteredPlayers, onNavigateToPlayer)
+                when {
+                    state.selectedPlayerSeasonId != null &&
+                        viewModel.getAvailableAgeGroupsForPlayers(state).isEmpty() ->
+                        NoAgeGroupsState(
+                            canEditClub = state.canEditClub,
+                            onCreateAgeGroupClick = {
+                                onNavigateToCreateAgeGroups(clubName, state.selectedPlayerSeasonId)
+                            }
+                        )
+
+                    // No player matches the current filters. If the club has no players at all the
+                    // first step is to register them; otherwise it's assigning existing players to an
+                    // age group's pool (both require COORDINATOR+; an age-group coach can also assign).
+                    state.filteredPlayers.isEmpty() ->
+                        NoPlayersState(
+                            canEditClub = state.canEditClub,
+                            hasClubPlayers = state.details?.players?.isNotEmpty() == true,
+                            onAddPlayersToClub = { onNavigateToCreatePlayers(clubName) },
+                            onAddPlayersToAgeGroup = onNavigateToAddPlayersToAgeGroup
+                        )
+
+                    else -> PlayerList(state.filteredPlayers, onNavigateToPlayer)
                 }
             }
         }
@@ -551,17 +568,15 @@ private fun TeamList(teams: List<Team>, onNavigateToTeam: (String) -> Unit) {
 
 @Composable
 private fun PlayerList(players: List<Player>, onNavigateToPlayer: (String) -> Unit) {
-    if (players.isEmpty()) {
-        EmptyState(stringResource(Res.string.msg_no_players_filter))
-    } else {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(players) { player ->
-                PlayerCard(player, onClick = { onNavigateToPlayer(player.id) })
-            }
+    // Callers only reach here with a non-empty list -- the empty case is handled one level up by
+    // NoPlayersState (which also offers the right "add players" action).
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(players) { player ->
+            PlayerCard(player, onClick = { onNavigateToPlayer(player.id) })
         }
     }
 }
@@ -653,13 +668,6 @@ private fun ErrorState(error: String, onRetry: () -> Unit) {
 }
 
 @Composable
-private fun EmptyState(message: String) {
-    Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-        Text(text = message, color = DeepCarbon.copy(alpha = 0.6f))
-    }
-}
-
-@Composable
 private fun NoSeasonsState(canEditClub: Boolean, onCreateSeasonClick: () -> Unit) {
     EmptyStateCallToAction(
         icon = Res.drawable.ic_calendar,
@@ -701,5 +709,34 @@ private fun NoTeamsState(canEditClub: Boolean, onCreateTeamClick: () -> Unit) {
         canAct = canEditClub,
         actionLabel = stringResource(Res.string.label_create_team),
         onActionClick = onCreateTeamClick
+    )
+}
+
+// Shown on the Players tab when no player matches the active filters. Two-step model: players are
+// registered on the club first, then added to age-group pools. [hasClubPlayers] picks which step the
+// button points at; a plain member with no edit rights just gets a "adjust the filters" nudge.
+@Composable
+private fun NoPlayersState(
+    canEditClub: Boolean,
+    hasClubPlayers: Boolean,
+    onAddPlayersToClub: () -> Unit,
+    onAddPlayersToAgeGroup: () -> Unit
+) {
+    EmptyStateCallToAction(
+        icon = Res.drawable.ic_player,
+        title = stringResource(Res.string.msg_no_players_filter),
+        subtitle = stringResource(
+            when {
+                !canEditClub -> Res.string.msg_no_teams_member_subtitle
+                hasClubPlayers -> Res.string.msg_no_players_admin_subtitle
+                else -> Res.string.msg_no_players_admin_subtitle_no_club_players
+            }
+        ),
+        canAct = canEditClub,
+        actionLabel = stringResource(
+            if (hasClubPlayers) Res.string.label_add_players_to_age_group
+            else Res.string.label_add_players_to_club
+        ),
+        onActionClick = if (hasClubPlayers) onAddPlayersToAgeGroup else onAddPlayersToClub
     )
 }

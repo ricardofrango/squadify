@@ -34,6 +34,8 @@
     <string name="msg_no_age_groups_member_subtitle">Ask a coordinator to set one up.</string>
     <string name="msg_no_teams_admin_subtitle">Create a team, or adjust the filters above.</string>
     <string name="msg_no_teams_member_subtitle">Try adjusting the filters above.</string>
+    <string name="msg_no_players_admin_subtitle">Add players to an age group, or adjust the filters above.</string>
+    <string name="msg_no_players_admin_subtitle_no_club_players">Add players to the club first, then put them in age groups.</string>
     <string name="label_number_prefix">Number: %1$s</string>
     <string name="label_create_team">Create Team</string>
     <string name="label_create_age_group">Create Age Group</string>
