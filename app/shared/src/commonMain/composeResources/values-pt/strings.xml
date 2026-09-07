@@ -134,4 +134,22 @@
     <string name="msg_no_eligible_players_title">Todos os jogadores elegíveis já estão neste escalão</string>
     <string name="msg_no_eligible_players_hint">Adicione jogadores ao clube primeiro se não houver plantel.</string>
     <string name="msg_no_players_match_search">Nenhum jogador corresponde à procura</string>
+
+    <!-- Add Players to the Club -->
+    <string name="title_create_players">Adicionar jogadores</string>
+    <string name="label_add_players_to_club">Adicionar jogadores ao clube</string>
+    <string name="msg_players_intro">Adicione o nome e a data de nascimento de cada jogador. Pode colocá-los em escalões depois.</string>
+    <string name="label_player_section">Jogador</string>
+    <string name="label_first_name_field">Primeiro nome *</string>
+    <string name="label_last_name_field">Último nome *</string>
+    <string name="label_date_of_birth">Data de nascimento *</string>
+    <string name="msg_date_of_birth_helper">Usada para verificar em que escalões o jogador é elegível.</string>
+    <string name="label_pick_a_date">Escolher uma data</string>
+    <string name="label_shirt_number">Número da camisola</string>
+    <string name="label_add_another_player">Adicionar outro jogador</string>
+    <string name="msg_player_name_required">Dê um primeiro e último nome a todos os jogadores.</string>
+    <string name="msg_player_dob_required">Escolha uma data de nascimento para todos os jogadores.</string>
+    <string name="msg_players_footer_helper">Todos os jogadores são adicionados em conjunto — se um falhar, nenhum é guardado.</string>
+    <string name="msg_create_players_failed">Ocorreu um erro ao adicionar os jogadores. Por favor, tente novamente.</string>
+    <string name="label_select_birth_date">Selecione a data de nascimento</string>
 </resources>

@@ -64,6 +64,7 @@ import footballmanager.app.shared.generated.resources.ic_more
 import footballmanager.app.shared.generated.resources.ic_player
 import footballmanager.app.shared.generated.resources.ic_teams
 import footballmanager.app.shared.generated.resources.label_add_players_to_age_group
+import footballmanager.app.shared.generated.resources.label_add_players_to_club
 import footballmanager.app.shared.generated.resources.label_add_season
 import footballmanager.app.shared.generated.resources.label_all_ages
 import footballmanager.app.shared.generated.resources.label_all_seasons
@@ -107,6 +108,7 @@ fun ClubDetailsScreen(
     onNavigateToCreateTeams: (clubName: String) -> Unit,
     // The Add Players screen picks the age group itself.
     onNavigateToAddPlayersToAgeGroup: () -> Unit,
+    onNavigateToCreatePlayers: (clubName: String) -> Unit,
     // True exactly once, right after returning from a Create* screen having created something --
     // forces a reload past loadClubDetails' "already have this club" guard, since Koin scopes this
     // ViewModel to the nav back-stack entry (so popping back here reuses stale state).
@@ -158,6 +160,18 @@ fun ClubDetailsScreen(
                                 onClick = {
                                     showAddMenu = false
                                     onNavigateToCreateTeams(clubName)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(Res.string.label_add_players_to_club),
+                                        color = DeepCarbon
+                                    )
+                                },
+                                onClick = {
+                                    showAddMenu = false
+                                    onNavigateToCreatePlayers(clubName)
                                 }
                             )
                             DropdownMenuItem(

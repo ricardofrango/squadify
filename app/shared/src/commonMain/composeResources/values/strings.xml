@@ -134,4 +134,22 @@
     <string name="msg_no_eligible_players_title">Every eligible player is already in this age group</string>
     <string name="msg_no_eligible_players_hint">Add players to the club first if the roster is empty.</string>
     <string name="msg_no_players_match_search">No players match your search</string>
+
+    <!-- Add Players to the Club -->
+    <string name="title_create_players">Add players</string>
+    <string name="label_add_players_to_club">Add players to the club</string>
+    <string name="msg_players_intro">Add each player\'s name and date of birth. You can put them in age groups afterwards.</string>
+    <string name="label_player_section">Player</string>
+    <string name="label_first_name_field">First name *</string>
+    <string name="label_last_name_field">Last name *</string>
+    <string name="label_date_of_birth">Date of birth *</string>
+    <string name="msg_date_of_birth_helper">Used to check which age groups this player is eligible for.</string>
+    <string name="label_pick_a_date">Pick a date</string>
+    <string name="label_shirt_number">Shirt number</string>
+    <string name="label_add_another_player">Add another player</string>
+    <string name="msg_player_name_required">Give every player a first and last name.</string>
+    <string name="msg_player_dob_required">Pick a date of birth for every player.</string>
+    <string name="msg_players_footer_helper">All players are added together — if one fails, none are saved.</string>
+    <string name="msg_create_players_failed">Something went wrong adding the players. Please try again.</string>
+    <string name="label_select_birth_date">Select date of birth</string>
 </resources>
