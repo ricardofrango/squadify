@@ -14,6 +14,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -236,8 +239,7 @@ private fun TeamBody(
         }
         item {
             AgeGroupLink(
-                prefix = stringResource(Res.string.msg_staff_managed_at_age_group, ""),
-                linkText = details.ageGroup.name,
+                ageGroupName = details.ageGroup.name,
                 onClick = { onNavigateToAgeGroup(details.ageGroup.id) }
             )
         }
@@ -476,25 +478,28 @@ private fun StaffRow(member: AgeGroupStaffMember) {
     }
 }
 
+/**
+ * Footnote: "...managed at the age-group level — {name}", where {name} is a green, bold, tappable
+ * link. One [Text] with an [androidx.compose.ui.text.AnnotatedString] so it wraps as a single
+ * paragraph -- rendering the name in a sibling [Text] pushes it to the edge of the row.
+ */
 @Composable
-private fun AgeGroupLink(prefix: String, linkText: String, onClick: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            prefix,
-            style = MaterialTheme.typography.bodySmall,
-            color = DeepCarbon.copy(alpha = 0.5f)
-        )
-        Text(
-            linkText,
-            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-            color = PitchGreen,
-            modifier = Modifier.clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            )
-        )
+private fun AgeGroupLink(ageGroupName: String, onClick: () -> Unit) {
+    val full = stringResource(Res.string.msg_staff_managed_at_age_group, ageGroupName)
+    val annotated = buildAnnotatedString {
+        append(full)
+        val start = full.lastIndexOf(ageGroupName)
+        if (start >= 0) {
+            val end = start + ageGroupName.length
+            addStyle(SpanStyle(color = PitchGreen, fontWeight = FontWeight.Bold), start, end)
+            addLink(LinkAnnotation.Clickable(tag = "ageGroup") { onClick() }, start, end)
+        }
     }
+    Text(
+        annotated,
+        style = MaterialTheme.typography.bodySmall,
+        color = DeepCarbon.copy(alpha = 0.5f)
+    )
 }
 
 @Composable
