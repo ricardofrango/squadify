@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -63,6 +64,8 @@ import footballmanager.app.shared.generated.resources.ic_calendar
 import footballmanager.app.shared.generated.resources.ic_more
 import footballmanager.app.shared.generated.resources.ic_player
 import footballmanager.app.shared.generated.resources.ic_teams
+import footballmanager.app.shared.generated.resources.label_add_players_to_age_group
+import footballmanager.app.shared.generated.resources.label_add_players_to_club
 import footballmanager.app.shared.generated.resources.label_add_season
 import footballmanager.app.shared.generated.resources.label_all_ages
 import footballmanager.app.shared.generated.resources.label_all_seasons
@@ -71,6 +74,8 @@ import footballmanager.app.shared.generated.resources.label_create_age_group
 import footballmanager.app.shared.generated.resources.label_create_team
 import footballmanager.app.shared.generated.resources.label_more_options
 import footballmanager.app.shared.generated.resources.label_number_prefix
+import footballmanager.app.shared.generated.resources.msg_no_players_admin_subtitle
+import footballmanager.app.shared.generated.resources.msg_no_players_admin_subtitle_no_club_players
 import footballmanager.app.shared.generated.resources.msg_no_players_filter
 import footballmanager.app.shared.generated.resources.msg_no_age_groups_admin_subtitle
 import footballmanager.app.shared.generated.resources.msg_no_age_groups_member_subtitle
@@ -81,9 +86,12 @@ import footballmanager.app.shared.generated.resources.msg_no_seasons_title
 import footballmanager.app.shared.generated.resources.msg_no_teams_admin_subtitle
 import footballmanager.app.shared.generated.resources.msg_no_teams_filter
 import footballmanager.app.shared.generated.resources.msg_no_teams_member_subtitle
+import footballmanager.app.shared.generated.resources.label_age_group_summary
+import footballmanager.app.shared.generated.resources.tab_age_groups
 import footballmanager.app.shared.generated.resources.tab_players
 import footballmanager.app.shared.generated.resources.tab_teams
 import footballmanager.app.shared.generated.resources.title_club_details
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -104,6 +112,9 @@ fun ClubDetailsScreen(
     onNavigateToCreateAgeGroups: (clubName: String, initialSeasonId: String?) -> Unit,
     // The Create Teams screen has its own season + age-group pickers, so this only needs the club name.
     onNavigateToCreateTeams: (clubName: String) -> Unit,
+    // The Add Players screen picks the age group itself.
+    onNavigateToAddPlayersToAgeGroup: () -> Unit,
+    onNavigateToCreatePlayers: (clubName: String) -> Unit,
     // True exactly once, right after returning from a Create* screen having created something --
     // forces a reload past loadClubDetails' "already have this club" guard, since Koin scopes this
     // ViewModel to the nav back-stack entry (so popping back here reuses stale state).
@@ -160,6 +171,30 @@ fun ClubDetailsScreen(
                             DropdownMenuItem(
                                 text = {
                                     Text(
+                                        stringResource(Res.string.label_add_players_to_club),
+                                        color = DeepCarbon
+                                    )
+                                },
+                                onClick = {
+                                    showAddMenu = false
+                                    onNavigateToCreatePlayers(clubName)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(Res.string.label_add_players_to_age_group),
+                                        color = DeepCarbon
+                                    )
+                                },
+                                onClick = {
+                                    showAddMenu = false
+                                    onNavigateToAddPlayersToAgeGroup()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
                                         stringResource(Res.string.label_create_age_group),
                                         color = DeepCarbon
                                     )
@@ -197,57 +232,23 @@ fun ClubDetailsScreen(
                 tonalElevation = 0.dp,
                 windowInsets = NavigationBarDefaults.windowInsets
             ) {
-                NavigationBarItem(
+                ClubTabItem(
                     selected = selectedTab == 0,
                     onClick = { viewModel.onTabSelected(0) },
-                    icon = {
-                        Icon(
-                            painter = painterResource(Res.drawable.ic_teams),
-                            contentDescription = stringResource(Res.string.tab_teams),
-                            modifier = Modifier.size(24.dp)
-                        )
-                    },
-                    label = {
-                        Text(
-                            text = stringResource(Res.string.tab_teams),
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
-                            )
-                        )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = PitchGreen,
-                        selectedTextColor = PitchGreen,
-                        unselectedIconColor = Color.White.copy(alpha = 0.5f),
-                        unselectedTextColor = Color.White.copy(alpha = 0.5f),
-                        indicatorColor = PitchGreen.copy(alpha = 0.15f)
-                    )
+                    icon = Res.drawable.ic_teams,
+                    label = stringResource(Res.string.tab_teams)
                 )
-                NavigationBarItem(
+                ClubTabItem(
                     selected = selectedTab == 1,
                     onClick = { viewModel.onTabSelected(1) },
-                    icon = {
-                        Icon(
-                            painter = painterResource(Res.drawable.ic_player),
-                            contentDescription = stringResource(Res.string.tab_players),
-                            modifier = Modifier.size(24.dp)
-                        )
-                    },
-                    label = {
-                        Text(
-                            text = stringResource(Res.string.tab_players),
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
-                            )
-                        )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = PitchGreen,
-                        selectedTextColor = PitchGreen,
-                        unselectedIconColor = Color.White.copy(alpha = 0.5f),
-                        unselectedTextColor = Color.White.copy(alpha = 0.5f),
-                        indicatorColor = PitchGreen.copy(alpha = 0.15f)
-                    )
+                    icon = Res.drawable.ic_player,
+                    label = stringResource(Res.string.tab_players)
+                )
+                ClubTabItem(
+                    selected = selectedTab == 2,
+                    onClick = { viewModel.onTabSelected(2) },
+                    icon = Res.drawable.ic_age_group,
+                    label = stringResource(Res.string.tab_age_groups)
                 )
             }
         }
@@ -303,6 +304,8 @@ fun ClubDetailsScreen(
                             onNavigateToPlayer = onNavigateToPlayer,
                             onNavigateToCreateAgeGroups = onNavigateToCreateAgeGroups,
                             onNavigateToCreateTeams = onNavigateToCreateTeams,
+                            onNavigateToCreatePlayers = onNavigateToCreatePlayers,
+                            onNavigateToAddPlayersToAgeGroup = onNavigateToAddPlayersToAgeGroup,
                             clubName = clubName
                         )
                 }
@@ -320,6 +323,8 @@ private fun ClubDetailsTabContent(
     onNavigateToPlayer: (String) -> Unit,
     onNavigateToCreateAgeGroups: (clubName: String, initialSeasonId: String?) -> Unit,
     onNavigateToCreateTeams: (clubName: String) -> Unit,
+    onNavigateToCreatePlayers: (clubName: String) -> Unit,
+    onNavigateToAddPlayersToAgeGroup: () -> Unit,
     clubName: String
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -351,20 +356,179 @@ private fun ClubDetailsTabContent(
                 }
             }
 
-            else -> {
+            1 -> {
                 PlayerFilterSection(state = state, viewModel = viewModel)
-                if (state.selectedPlayerSeasonId != null &&
-                    viewModel.getAvailableAgeGroupsForPlayers(state).isEmpty()
-                ) {
+                when {
+                    state.selectedPlayerSeasonId != null &&
+                        viewModel.getAvailableAgeGroupsForPlayers(state).isEmpty() ->
+                        NoAgeGroupsState(
+                            canEditClub = state.canEditClub,
+                            onCreateAgeGroupClick = {
+                                onNavigateToCreateAgeGroups(clubName, state.selectedPlayerSeasonId)
+                            }
+                        )
+
+                    // No player matches the current filters. If the club has no players at all the
+                    // first step is to register them; otherwise it's assigning existing players to an
+                    // age group's pool (both require COORDINATOR+; an age-group coach can also assign).
+                    state.filteredPlayers.isEmpty() ->
+                        NoPlayersState(
+                            canEditClub = state.canEditClub,
+                            hasClubPlayers = state.details?.players?.isNotEmpty() == true,
+                            onAddPlayersToClub = { onNavigateToCreatePlayers(clubName) },
+                            onAddPlayersToAgeGroup = onNavigateToAddPlayersToAgeGroup
+                        )
+
+                    else -> PlayerList(state.filteredPlayers, onNavigateToPlayer)
+                }
+            }
+
+            else -> {
+                AgeGroupsFilterSection(state = state, viewModel = viewModel)
+                val ageGroups = viewModel.getAgeGroupsForAgeGroupsTab(state)
+                if (ageGroups.isEmpty()) {
+                    // Some other season has age groups (the club-wide "none at all" case is handled
+                    // above), but the selected one doesn't -- offer creating one in that season.
                     NoAgeGroupsState(
                         canEditClub = state.canEditClub,
                         onCreateAgeGroupClick = {
-                            onNavigateToCreateAgeGroups(clubName, state.selectedPlayerSeasonId)
+                            onNavigateToCreateAgeGroups(clubName, state.selectedAgeGroupsSeasonId)
                         }
                     )
                 } else {
-                    PlayerList(state.filteredPlayers, onNavigateToPlayer)
+                    AgeGroupList(
+                        ageGroups = ageGroups,
+                        teamCountFor = { ag -> state.details?.teams?.count { it.ageGroupId == ag } ?: 0 },
+                        playerCountFor = { ag ->
+                            state.details?.ageGroupPlayers?.count { it.ageGroupId == ag } ?: 0
+                        }
+                    )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.ClubTabItem(
+    selected: Boolean,
+    onClick: () -> Unit,
+    icon: DrawableResource,
+    label: String
+) {
+    NavigationBarItem(
+        selected = selected,
+        onClick = onClick,
+        icon = {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = label,
+                modifier = Modifier.size(24.dp)
+            )
+        },
+        label = {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                )
+            )
+        },
+        colors = NavigationBarItemDefaults.colors(
+            selectedIconColor = PitchGreen,
+            selectedTextColor = PitchGreen,
+            unselectedIconColor = Color.White.copy(alpha = 0.5f),
+            unselectedTextColor = Color.White.copy(alpha = 0.5f),
+            indicatorColor = PitchGreen.copy(alpha = 0.15f)
+        )
+    )
+}
+
+@Composable
+private fun AgeGroupsFilterSection(
+    state: ClubDetailsUiState.Idle,
+    viewModel: ClubDetailsViewModel
+) {
+    val seasons = state.details?.seasons ?: return
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        item {
+            // Season only, and no "All seasons": an age group only means something within one season.
+            FilterSelector(
+                selectedOption = seasons.find { it.id == state.selectedAgeGroupsSeasonId }?.name
+                    ?: seasons.firstOrNull()?.name.orEmpty(),
+                options = seasons.map { it.id to it.name },
+                onOptionSelected = viewModel::onAgeGroupsSeasonSelected
+            )
+        }
+    }
+}
+
+@Composable
+private fun AgeGroupList(
+    ageGroups: List<com.ricardofrango.footballmanager.model.AgeGroup>,
+    teamCountFor: (ageGroupId: String) -> Int,
+    playerCountFor: (ageGroupId: String) -> Int
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(ageGroups) { ageGroup ->
+            AgeGroupCard(
+                ageGroup = ageGroup,
+                teamCount = teamCountFor(ageGroup.id),
+                playerCount = playerCountFor(ageGroup.id)
+            )
+        }
+    }
+}
+
+@Composable
+private fun AgeGroupCard(
+    ageGroup: com.ricardofrango.footballmanager.model.AgeGroup,
+    teamCount: Int,
+    playerCount: Int
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier.size(40.dp).background(PitchGreen, RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = ageGroup.birthYear.toString().takeLast(2),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(
+                    text = ageGroup.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = DeepCarbon
+                )
+                Text(
+                    text = stringResource(Res.string.label_age_group_summary, teamCount, playerCount),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DeepCarbon.copy(alpha = 0.6f)
+                )
             }
         }
     }
@@ -522,17 +686,15 @@ private fun TeamList(teams: List<Team>, onNavigateToTeam: (String) -> Unit) {
 
 @Composable
 private fun PlayerList(players: List<Player>, onNavigateToPlayer: (String) -> Unit) {
-    if (players.isEmpty()) {
-        EmptyState(stringResource(Res.string.msg_no_players_filter))
-    } else {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(players) { player ->
-                PlayerCard(player, onClick = { onNavigateToPlayer(player.id) })
-            }
+    // Callers only reach here with a non-empty list -- the empty case is handled one level up by
+    // NoPlayersState (which also offers the right "add players" action).
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(players) { player ->
+            PlayerCard(player, onClick = { onNavigateToPlayer(player.id) })
         }
     }
 }
@@ -624,13 +786,6 @@ private fun ErrorState(error: String, onRetry: () -> Unit) {
 }
 
 @Composable
-private fun EmptyState(message: String) {
-    Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-        Text(text = message, color = DeepCarbon.copy(alpha = 0.6f))
-    }
-}
-
-@Composable
 private fun NoSeasonsState(canEditClub: Boolean, onCreateSeasonClick: () -> Unit) {
     EmptyStateCallToAction(
         icon = Res.drawable.ic_calendar,
@@ -672,5 +827,34 @@ private fun NoTeamsState(canEditClub: Boolean, onCreateTeamClick: () -> Unit) {
         canAct = canEditClub,
         actionLabel = stringResource(Res.string.label_create_team),
         onActionClick = onCreateTeamClick
+    )
+}
+
+// Shown on the Players tab when no player matches the active filters. Two-step model: players are
+// registered on the club first, then added to age-group pools. [hasClubPlayers] picks which step the
+// button points at; a plain member with no edit rights just gets a "adjust the filters" nudge.
+@Composable
+private fun NoPlayersState(
+    canEditClub: Boolean,
+    hasClubPlayers: Boolean,
+    onAddPlayersToClub: () -> Unit,
+    onAddPlayersToAgeGroup: () -> Unit
+) {
+    EmptyStateCallToAction(
+        icon = Res.drawable.ic_player,
+        title = stringResource(Res.string.msg_no_players_filter),
+        subtitle = stringResource(
+            when {
+                !canEditClub -> Res.string.msg_no_teams_member_subtitle
+                hasClubPlayers -> Res.string.msg_no_players_admin_subtitle
+                else -> Res.string.msg_no_players_admin_subtitle_no_club_players
+            }
+        ),
+        canAct = canEditClub,
+        actionLabel = stringResource(
+            if (hasClubPlayers) Res.string.label_add_players_to_age_group
+            else Res.string.label_add_players_to_club
+        ),
+        onActionClick = if (hasClubPlayers) onAddPlayersToAgeGroup else onAddPlayersToClub
     )
 }

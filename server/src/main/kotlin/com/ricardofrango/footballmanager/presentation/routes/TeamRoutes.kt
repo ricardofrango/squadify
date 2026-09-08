@@ -1,14 +1,11 @@
 package com.ricardofrango.footballmanager.presentation.routes
 
-import com.ricardofrango.footballmanager.domain.usecase.AddStaffToTeamsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CreateTeamUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CreateTeamsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetTeamDetailsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetTeamPlayersUseCase
-import com.ricardofrango.footballmanager.domain.usecase.GetTeamStaffUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetTeamsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.UpdateTeamUseCase
-import com.ricardofrango.footballmanager.model.AddStaffToTeamsRequest
 import com.ricardofrango.footballmanager.model.CreateTeamRequest
 import com.ricardofrango.footballmanager.model.CreateTeamsRequest
 import com.ricardofrango.footballmanager.model.ErrorResponse
@@ -29,8 +26,6 @@ fun Route.teamRoutes() {
     val createTeamUseCase by inject<CreateTeamUseCase>()
     val createTeamsUseCase by inject<CreateTeamsUseCase>()
     val getTeamsUseCase by inject<GetTeamsUseCase>()
-    val addStaffToTeamsUseCase by inject<AddStaffToTeamsUseCase>()
-    val getTeamStaffUseCase by inject<GetTeamStaffUseCase>()
     val getTeamPlayersUseCase by inject<GetTeamPlayersUseCase>()
     val getTeamDetailsUseCase by inject<GetTeamDetailsUseCase>()
     val updateTeamUseCase by inject<UpdateTeamUseCase>()
@@ -67,37 +62,8 @@ fun Route.teamRoutes() {
             }
 
             route("/{teamId}") {
-                route("/staff") {
-                    get {
-                        val teamId = call.parameters["teamId"] ?: return@get call.respond(
-                            HttpStatusCode.BadRequest
-                        )
-                        val currentUserId =
-                            call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
-                        val staff = getTeamStaffUseCase(currentUserId, teamId)
-                        call.respond(staff)
-                    }
-
-                    post {
-                        val teamId = call.parameters["teamId"] ?: return@post call.respond(
-                            HttpStatusCode.BadRequest
-                        )
-                        val currentUserId =
-                            call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                        val staffRequest = call.receive<AddStaffToTeamsRequest>()
-
-                        val success = addStaffToTeamsUseCase(currentUserId, teamId, staffRequest)
-                        if (success) {
-                            call.respond(HttpStatusCode.Created)
-                        } else {
-                            call.respond(
-                                HttpStatusCode.InternalServerError,
-                                ErrorResponse("Failed to add staff")
-                            )
-                        }
-                    }
-                }
-
+                // A team's players are its age group's pool (players belong to age groups now);
+                // staff is served from /age-groups/{ageGroupId}/staff.
                 get("/players") {
                     val teamId = call.parameters["teamId"]
                         ?: return@get call.respond(HttpStatusCode.BadRequest)

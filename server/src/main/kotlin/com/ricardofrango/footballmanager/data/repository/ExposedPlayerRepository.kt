@@ -1,12 +1,12 @@
 package com.ricardofrango.footballmanager.data.repository
 
+import com.ricardofrango.footballmanager.data.database.AgeGroupPlayers
 import com.ricardofrango.footballmanager.data.database.Players
-import com.ricardofrango.footballmanager.data.database.TeamPlayers
 import com.ricardofrango.footballmanager.data.database.UserPlayers
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.exception.DatabaseException
+import com.ricardofrango.footballmanager.model.AgeGroupPlayer
 import com.ricardofrango.footballmanager.model.Player
-import com.ricardofrango.footballmanager.model.TeamPlayer
 import com.ricardofrango.footballmanager.model.UserPlayerRelationship
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
@@ -69,32 +69,16 @@ class ExposedPlayerRepository : PlayerRepository {
             .where { Players.id inList playerIds.map(Uuid::parse) }
             .map(::toPlayer)
 
-    override suspend fun addPlayerToTeam(teamPlayer: TeamPlayer): TeamPlayer =
-        TeamPlayers.insert {
-            it[id] = Uuid.parse(teamPlayer.id)
-            it[teamId] = Uuid.parse(teamPlayer.teamId)
-            it[playerId] = Uuid.parse(teamPlayer.playerId)
-            it[startDate] = teamPlayer.startDate
-            it[endDate] = teamPlayer.endDate
-            it[status] = teamPlayer.status
-        }.resultedValues
-            ?.singleOrNull()
-            ?.let(::toTeamPlayer)
-            ?: throw DatabaseException("Failed to add player to team")
+    override suspend fun addPlayersToAgeGroup(links: List<AgeGroupPlayer>): List<AgeGroupPlayer> =
+        AgeGroupPlayers.batchInsert(links) {
+            this[AgeGroupPlayers.id] = Uuid.parse(it.id)
+            this[AgeGroupPlayers.ageGroupId] = Uuid.parse(it.ageGroupId)
+            this[AgeGroupPlayers.playerId] = Uuid.parse(it.playerId)
+        }.map(::toAgeGroupPlayer)
 
-    override suspend fun addPlayersToTeam(teamPlayer: List<TeamPlayer>): List<TeamPlayer> =
-        TeamPlayers.batchInsert(teamPlayer) {
-            this[TeamPlayers.id] = Uuid.parse(it.id)
-            this[TeamPlayers.teamId] = Uuid.parse(it.teamId)
-            this[TeamPlayers.playerId] = Uuid.parse(it.playerId)
-            this[TeamPlayers.startDate] = it.startDate
-            this[TeamPlayers.endDate] = it.endDate
-            this[TeamPlayers.status] = it.status
-        }.map(::toTeamPlayer)
-
-    override suspend fun getPlayersByTeam(teamId: String): List<Player> =
-        (Players innerJoin TeamPlayers).selectAll()
-            .where { TeamPlayers.teamId eq Uuid.parse(teamId) }
+    override suspend fun getPlayersByAgeGroup(ageGroupId: String): List<Player> =
+        (Players innerJoin AgeGroupPlayers).selectAll()
+            .where { AgeGroupPlayers.ageGroupId eq Uuid.parse(ageGroupId) }
             .map(::toPlayer)
 
     override suspend fun updateActiveStatus(playerId: String, active: Boolean): Boolean =
@@ -136,18 +120,15 @@ class ExposedPlayerRepository : PlayerRepository {
             .where { UserPlayers.userId eq Uuid.parse(userId) }
             .map(::toPlayer)
 
-    override suspend fun getTeamPlayersByClub(clubId: String): List<TeamPlayer> =
-        (TeamPlayers innerJoin Players).selectAll()
+    override suspend fun getAgeGroupPlayersByClub(clubId: String): List<AgeGroupPlayer> =
+        (AgeGroupPlayers innerJoin Players).selectAll()
             .where { Players.clubId eq Uuid.parse(clubId) }
-            .map(::toTeamPlayer)
+            .map(::toAgeGroupPlayer)
 
-    private fun toTeamPlayer(row: ResultRow): TeamPlayer = TeamPlayer(
-        id = row[TeamPlayers.id].toString(),
-        teamId = row[TeamPlayers.teamId].toString(),
-        playerId = row[TeamPlayers.playerId].toString(),
-        startDate = row[TeamPlayers.startDate],
-        endDate = row[TeamPlayers.endDate],
-        status = row[TeamPlayers.status]
+    private fun toAgeGroupPlayer(row: ResultRow): AgeGroupPlayer = AgeGroupPlayer(
+        id = row[AgeGroupPlayers.id].toString(),
+        ageGroupId = row[AgeGroupPlayers.ageGroupId].toString(),
+        playerId = row[AgeGroupPlayers.playerId].toString()
     )
 
     private fun toPlayer(row: ResultRow): Player = Player(

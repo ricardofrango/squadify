@@ -13,32 +13,23 @@ import org.koin.ktor.ext.inject
 fun Route.playerRoutes() {
     val getPlayerUseCase by inject<GetPlayerUseCase>()
     val getPlayersUseCase by inject<GetPlayersUseCase>()
-    val getTeamPlayersByClubUseCase by inject<GetTeamPlayersByClubUseCase>()
+    val getAgeGroupPlayersByClubUseCase by inject<GetAgeGroupPlayersByClubUseCase>()
     val createPlayersUseCase by inject<CreatePlayersUseCase>()
-    val addPlayersToTeamUseCase by inject<AddPlayersToTeamUseCase>()
     val updatePlayerUseCase by inject<UpdatePlayerUseCase>()
 
     authenticate("auth-jwt") {
         route("/players") {
             // 1. Specific paths first to avoid UUID collision or matching ambiguity
-            get("/associations/team") {
+            get("/associations/age-group") {
                 val clubId = call.request.queryParameters["clubId"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
                     ErrorResponse("clubId is required", "VAL_001")
                 )
                 val currentUserId =
                     call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
-                
-                val teamPlayers = getTeamPlayersByClubUseCase(currentUserId, clubId)
-                call.respond(teamPlayers)
-            }
 
-            post("/add-to-team") {
-                val currentUserId =
-                    call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                val teamPlayerRequest = call.receive<AddPlayersToTeamRequest>()
-                val teamPlayer = addPlayersToTeamUseCase(currentUserId, teamPlayerRequest)
-                call.respond(HttpStatusCode.Created, teamPlayer)
+                val ageGroupPlayers = getAgeGroupPlayersByClubUseCase(currentUserId, clubId)
+                call.respond(ageGroupPlayers)
             }
 
             // 2. Generic base paths

@@ -40,6 +40,13 @@ sealed class Screen {
     @Serializable
     data class CreateTeams(val clubId: String, val clubName: String) : Screen()
 
+    // The screen picks the age group itself (via a picker), so it only needs the club.
+    @Serializable
+    data class AddPlayersToAgeGroup(val clubId: String) : Screen()
+
+    @Serializable
+    data class CreatePlayers(val clubId: String, val clubName: String) : Screen()
+
     @Serializable
     data class TeamDetails(val teamId: String) : Screen()
 

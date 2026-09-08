@@ -1,5 +1,6 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
+import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
@@ -11,6 +12,7 @@ class GetTeamsUseCase(
     private val teamRepository: TeamRepository,
     private val userRepository: UserRepository,
     private val playerRepository: PlayerRepository,
+    private val ageGroupRepository: AgeGroupRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager
 ) {
@@ -20,11 +22,9 @@ class GetTeamsUseCase(
 
         val allTeams = teamRepository.getTeamsByClub(clubId)
 
-        // 2. Club admins/coordinators (and platform admins, who never even reach here with a denial)
-        //    see every team. Everyone else -- plain member, coach/staff, player, parent -- only sees the
-        //    teams they actually have access to: a TeamRole assignment (TeamStaff) or a linked player on
-        //    that team (TeamPlayers/UserPlayers). They should not see the whole club's team list just by
-        //    being a club member.
+        // 2. Club admins/coordinators (and platform admins) see every team. Everyone else -- plain
+        //    member, coach/staff, player, parent -- only sees teams whose age group they're attached
+        //    to: an AgeGroupStaff assignment (coach/staff) or a linked player in that age group's pool.
         val user = userRepository.findById(userId)
         val userClubRole = userRepository.getUserRoleInClub(userId, clubId)
         val seesEverything = user?.isPlatformAdmin == true ||
@@ -38,17 +38,18 @@ class GetTeamsUseCase(
                 .filter { it.clubId == clubId }
                 .map { it.id }
                 .toSet()
-            val linkedTeamIds = if (linkedPlayerIds.isEmpty()) {
+            val linkedAgeGroupIds = if (linkedPlayerIds.isEmpty()) {
                 emptySet()
             } else {
-                playerRepository.getTeamPlayersByClub(clubId)
+                playerRepository.getAgeGroupPlayersByClub(clubId)
                     .filter { it.playerId in linkedPlayerIds }
-                    .map { it.teamId }
+                    .map { it.ageGroupId }
                     .toSet()
             }
 
             allTeams.filter { team ->
-                teamRepository.getUserRoleInTeam(userId, team.id) != null || team.id in linkedTeamIds
+                ageGroupRepository.getUserRoleInAgeGroup(userId, team.ageGroupId) != null ||
+                    team.ageGroupId in linkedAgeGroupIds
             }
         }
     }

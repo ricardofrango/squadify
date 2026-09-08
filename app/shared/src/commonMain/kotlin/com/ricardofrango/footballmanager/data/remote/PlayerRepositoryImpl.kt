@@ -3,6 +3,7 @@ package com.ricardofrango.footballmanager.data.remote
 import com.ricardofrango.footballmanager.domain.config.AppConfig
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.SessionRepository
+import com.ricardofrango.footballmanager.model.CreatePlayersRequest
 import com.ricardofrango.footballmanager.model.Player
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -27,6 +28,17 @@ class PlayerRepositoryImpl(
     override suspend fun getPlayerById(playerId: String): Player {
         val token = sessionRepository.getToken()
         return httpClient.get("${appConfig.baseUrl}/players/$playerId") {
+            token?.let {
+                header(HttpHeaders.Authorization, "Bearer $it")
+            }
+        }.handleResponse()
+    }
+
+    override suspend fun createPlayers(request: CreatePlayersRequest): List<Player> {
+        val token = sessionRepository.getToken()
+        return httpClient.post("${appConfig.baseUrl}/players") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
             token?.let {
                 header(HttpHeaders.Authorization, "Bearer $it")
             }

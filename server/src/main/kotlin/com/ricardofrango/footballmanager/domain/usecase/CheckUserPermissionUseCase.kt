@@ -1,5 +1,6 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
+import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
@@ -13,21 +14,27 @@ class CheckUserPermissionUseCase(
     private val userRepository: UserRepository,
     private val teamRepository: TeamRepository,
     private val playerRepository: PlayerRepository,
+    private val ageGroupRepository: AgeGroupRepository,
     private val transactionManager: TransactionManager
 ) {
     /**
-     * Checks if a user has permission at the club or team level.
+     * Checks if a user has permission at the club or age-group level.
      * Platform Admins always have permission.
-     * 
+     *
      * @param userId The ID of the user performing the action.
      * @param clubId The ID of the club context.
      * @param minClubRole The minimum ClubRole required (e.g., COORDINATOR).
-     * @param minTeamRole The minimum TeamRole required if teamId is provided.
-     * @param teamId Optional team ID for team-specific operations.
+     * @param minTeamRole The minimum age-group staff role required (`age_group_staff`) once an
+     *   age-group context is known -- either [ageGroupId] directly or [teamId] resolved to its age
+     *   group. Coaches/staff attach to age groups now, not teams.
+     * @param teamId Optional team ID; used only to derive its age group for the staff / player-link
+     *   checks below.
+     * @param ageGroupId Optional age-group ID for operations that act on an age group directly
+     *   (adding players/staff, reading the pool). Takes precedence over [teamId].
      * @param allowPlayerOrParentAccess When true, also grants access if the caller is linked (via
-     *   `UserPlayers`) to a player in this club (and, when `teamId` is given, specifically on that
-     *   team via `TeamPlayers`). Defaults to false and must be explicitly opted into by READ use cases
-     *   only -- see the DESIGN INVARIANT below.
+     *   `UserPlayers`) to a player in this club (and, when an age-group context is given, specifically
+     *   to a player in that age group's pool via `AgeGroupPlayers`). Defaults to false and must be
+     *   explicitly opted into by READ use cases only -- see the DESIGN INVARIANT below.
      * @param errorMessage Optional custom error message.
      * @throws ForbiddenException if permission is denied.
      *
@@ -44,6 +51,7 @@ class CheckUserPermissionUseCase(
         minClubRole: ClubRole? = null,
         minTeamRole: TeamRole? = null,
         teamId: String? = null,
+        ageGroupId: String? = null,
         allowPlayerOrParentAccess: Boolean = false,
         errorMessage: String = "Insufficient permissions to perform this action"
     ) = transactionManager.runInTransaction {
@@ -55,46 +63,46 @@ class CheckUserPermissionUseCase(
         // 1. Platform Admins have "God Mode"
         if (user.isPlatformAdmin) return@runInTransaction
 
+        // The age-group context for the staff and player-link checks: given directly, or derived
+        // from the team the operation targets.
+        val effectiveAgeGroupId = ageGroupId
+            ?: teamId?.let { teamRepository.getTeamById(it)?.ageGroupId }
+
         // 2. Check Club Level Role
         val userClubRole = userRepository.getUserRoleInClub(userId, clubId)
-        
-        // If they are Club Admin or Coordinator, they have global access in the club
+
         if (userClubRole != null) {
             if (userClubRole == ClubRole.CLUB_ADMIN || userClubRole == ClubRole.COORDINATOR) {
-                // If we specifically required a CLUB_ADMIN and they are only COORDINATOR, we might still fail
-                // but usually COORDINATOR is enough for most things except sensitive club settings.
                 if (minClubRole == null || userClubRole.level >= minClubRole.level) return@runInTransaction
             }
-            
+
             // If we only needed a club membership (MEMBER level 1)
             if (minClubRole != null && minClubRole == ClubRole.MEMBER && userClubRole.level >= ClubRole.MEMBER.level) {
-                // For team-specific operations, we still need to check team role if not coordinator+
-                if (teamId == null) return@runInTransaction
+                // For age-group-specific operations, we still need the age-group staff check below
+                if (effectiveAgeGroupId == null) return@runInTransaction
             }
         }
 
-        // 3. Check Team Level Role if teamId is provided
-        if (teamId != null && minTeamRole != null) {
-            // isUserStaffOfTeam should be updated to return the TeamRole? Or we check specific level.
-            // For now, let's assume if they are staff, they have permission if minTeamRole is reached.
-            // We'll need to update TeamRepository to get the role.
-            val userTeamRole = teamRepository.getUserRoleInTeam(userId, teamId)
-            if (userTeamRole != null && userTeamRole.level >= minTeamRole.level) {
+        // 3. Check age-group staff role
+        if (effectiveAgeGroupId != null && minTeamRole != null) {
+            val userAgeGroupRole = ageGroupRepository.getUserRoleInAgeGroup(userId, effectiveAgeGroupId)
+            if (userAgeGroupRole != null && userAgeGroupRole.level >= minTeamRole.level) {
                 return@runInTransaction
             }
         }
 
-        // 4. Check Player/Parent link via TeamPlayers/UserPlayers -- READ-ONLY, opt-in only
+        // 4. Check Player/Parent link via AgeGroupPlayers/UserPlayers -- READ-ONLY, opt-in only
         if (allowPlayerOrParentAccess) {
             val linkedPlayerIds = playerRepository.getPlayersByUser(userId)
                 .filter { it.clubId == clubId }
                 .map { it.id }
                 .toSet()
             if (linkedPlayerIds.isNotEmpty()) {
-                if (teamId == null) return@runInTransaction
-                val isOnRequestedTeam = playerRepository.getTeamPlayersByClub(clubId)
-                    .any { it.playerId in linkedPlayerIds && it.teamId == teamId }
-                if (isOnRequestedTeam) return@runInTransaction
+                if (effectiveAgeGroupId == null) return@runInTransaction
+                val poolPlayerIds = playerRepository.getPlayersByAgeGroup(effectiveAgeGroupId)
+                    .map { it.id }
+                    .toSet()
+                if (linkedPlayerIds.any { it in poolPlayerIds }) return@runInTransaction
             }
         }
 

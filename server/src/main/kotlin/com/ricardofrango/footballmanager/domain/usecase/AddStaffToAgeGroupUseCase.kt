@@ -1,6 +1,6 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
-import com.ricardofrango.footballmanager.domain.repository.TeamRepository
+import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ForbiddenException
@@ -8,46 +8,42 @@ import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.*
 import kotlin.uuid.Uuid
 
-class AddStaffToTeamsUseCase(
-    private val teamRepository: TeamRepository,
+class AddStaffToAgeGroupUseCase(
+    private val ageGroupRepository: AgeGroupRepository,
     private val userRepository: UserRepository,
     private val transactionManager: TransactionManager,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
     suspend operator fun invoke(
         userId: String,
-        teamId: String,
-        request: AddStaffToTeamsRequest
+        ageGroupId: String,
+        request: AddStaffToAgeGroupRequest
     ): Boolean = transactionManager.runInTransaction {
-        // 1. Verify team exists first to get context
-        val team = teamRepository.getTeamById(teamId)
-            ?: throw ValidationException("Team not found")
+        val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId)
+            ?: throw ValidationException("Age group not found")
 
-        // 2. Check permissions (Admin/Coordinator required at club level)
         checkUserPermissionUseCase(
             userId = userId,
-            clubId = team.clubId,
+            clubId = ageGroup.clubId,
             minClubRole = ClubRole.COORDINATOR,
-            errorMessage = "Only admins or coordinators can add staff to teams"
+            errorMessage = "Only admins or coordinators can add staff to age groups"
         )
 
-        // 3. Batch verify and add
         val staffUserIds = request.staff.map { it.userId }
-        val userRolesMap = userRepository.getUserRolesInClub(staffUserIds, team.clubId)
+        val userRolesMap = userRepository.getUserRolesInClub(staffUserIds, ageGroup.clubId)
 
         val staffToCreate = request.staff.map { staffItem ->
-            // Verify user is already a member of this club
             userRolesMap[staffItem.userId]
-                ?: throw ForbiddenException("User ${staffItem.userId} must be a member of the club before being added to a team")
+                ?: throw ForbiddenException("User ${staffItem.userId} must be a member of the club before being added to an age group")
 
-            TeamStaff(
+            AgeGroupStaff(
                 id = Uuid.random().toString(),
-                teamId = teamId,
+                ageGroupId = ageGroupId,
                 userId = staffItem.userId,
                 role = staffItem.role
             )
         }
 
-        teamRepository.addStaffToTeam(staffToCreate)
+        ageGroupRepository.addStaffToAgeGroup(staffToCreate)
     }
 }

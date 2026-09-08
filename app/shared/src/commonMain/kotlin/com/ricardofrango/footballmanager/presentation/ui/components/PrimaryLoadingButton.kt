@@ -44,6 +44,27 @@ fun PrimaryLoadingButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true
+) = PrimaryLoadingButton(
+    text = stringResource(text),
+    submittingText = stringResource(submittingText),
+    isLoading = isLoading,
+    onClick = onClick,
+    modifier = modifier,
+    enabled = enabled
+)
+
+/**
+ * String overload of [PrimaryLoadingButton] for labels that need runtime values (e.g. a count):
+ * resolve the formatted string yourself and pass it here.
+ */
+@Composable
+fun PrimaryLoadingButton(
+    text: String,
+    submittingText: String,
+    isLoading: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     Button(
         onClick = onClick,
@@ -66,7 +87,7 @@ fun PrimaryLoadingButton(
                     strokeWidth = 3.dp
                 )
                 Text(
-                    text = stringResource(submittingText).uppercase(),
+                    text = submittingText.uppercase(),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = 1.sp
@@ -75,7 +96,7 @@ fun PrimaryLoadingButton(
             }
         } else {
             Text(
-                text = stringResource(text).uppercase(),
+                text = text.uppercase(),
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 1.sp

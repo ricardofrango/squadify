@@ -1,30 +1,30 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
-import com.ricardofrango.footballmanager.domain.repository.TeamRepository
+import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ValidationException
+import com.ricardofrango.footballmanager.model.AgeGroupStaffMember
 import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.TeamRole
-import com.ricardofrango.footballmanager.model.TeamStaffMember
 
-class GetTeamStaffUseCase(
-    private val teamRepository: TeamRepository,
+class GetAgeGroupStaffUseCase(
+    private val ageGroupRepository: AgeGroupRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager
 ) {
-    suspend operator fun invoke(userId: String, teamId: String): List<TeamStaffMember> = transactionManager.runInTransaction {
-        val team = teamRepository.getTeamById(teamId) ?: throw ValidationException("Team not found")
+    suspend operator fun invoke(userId: String, ageGroupId: String): List<AgeGroupStaffMember> = transactionManager.runInTransaction {
+        val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId)
+            ?: throw ValidationException("Age group not found")
 
-        // 1. Check permissions first (Member of club)
         checkUserPermissionUseCase(
             userId = userId,
-            clubId = team.clubId,
+            clubId = ageGroup.clubId,
             minClubRole = ClubRole.MEMBER,
             minTeamRole = TeamRole.STAFF,
-            teamId = teamId,
+            ageGroupId = ageGroupId,
             allowPlayerOrParentAccess = true
         )
 
-        teamRepository.getTeamStaff(teamId)
+        ageGroupRepository.getAgeGroupStaff(ageGroupId)
     }
 }

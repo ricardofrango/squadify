@@ -36,7 +36,7 @@ class CreateTeamUseCaseTest {
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
-    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, transactionManager)
+    private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager)
     private val useCase = CreateTeamUseCase(teamRepository, ageGroupRepository, checkUserPermissionUseCase, transactionManager)
 
     private val clubIdA = "club-a"

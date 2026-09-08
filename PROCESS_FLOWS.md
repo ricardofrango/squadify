@@ -36,28 +36,36 @@ Almost every use case starts by fetching a parent resource for context, then del
 
 ```mermaid
 graph TD
-    A[Start: userId, clubId, minClubRole?, minTeamRole?, teamId?] --> B[Load user by id]
+    A[Start: userId, clubId, minClubRole?, minTeamRole?, teamId?, ageGroupId?] --> B[Load user by id]
     B -- not found --> X1(["Throw ForbiddenException: User not found"])
     B -- found --> C{user.isPlatformAdmin?}
     C -- Yes --> ALLOW(["Allow — God Mode"])
-    C -- No --> D[Get user's ClubRole for clubId]
+    C -- No --> R["Resolve age-group context: ageGroupId, else team.ageGroupId for teamId"]
+    R --> D[Get user's ClubRole for clubId]
     D --> E{Has a club role?}
     E -- No --> H
     E -- Yes --> F{Role is CLUB_ADMIN or COORDINATOR?}
     F -- Yes --> G{minClubRole is null OR role.level >= minClubRole.level?}
     G -- Yes --> ALLOW
     G -- No --> H
-    F -- No --> I{minClubRole == MEMBER AND role.level >= MEMBER.level AND teamId is null?}
+    F -- No --> I{minClubRole == MEMBER AND role.level >= MEMBER.level AND no age-group context?}
     I -- Yes --> ALLOW
-    I -- No --> H{teamId provided AND minTeamRole provided?}
-    H -- No --> DENY(["Throw ForbiddenException: errorMessage"])
-    H -- Yes --> J[Get user's TeamRole for teamId]
-    J --> K{TeamRole exists AND level >= minTeamRole.level?}
+    I -- No --> H{age-group context AND minTeamRole provided?}
+    H -- No --> P{allowPlayerOrParentAccess?}
+    H -- Yes --> J["Get user's role in the age group (age_group_staff)"]
+    J --> K{role exists AND level >= minTeamRole.level?}
     K -- Yes --> ALLOW
-    K -- No --> DENY
+    K -- No --> P
+    P -- No --> DENY(["Throw ForbiddenException: errorMessage"])
+    P -- Yes --> L["Linked players (user_players) in this club?"]
+    L -- none --> DENY
+    L -- some, no age-group context --> ALLOW
+    L -- some --> M{a linked player is in the age group's pool (age_group_players)?}
+    M -- Yes --> ALLOW
+    M -- No --> DENY
 ```
 
-Key behaviours baked into this one function: Platform Admins bypass everything ("God Mode"); a club-level `CLUB_ADMIN`/`COORDINATOR` role satisfies almost any check without needing a team role; a plain `MEMBER` role is only sufficient when no team-specific check is requested; `COACH`/`STAFF` roles are validated per-team via `team_staff`.
+Key behaviours baked into this one function: Platform Admins bypass everything ("God Mode"); a club-level `CLUB_ADMIN`/`COORDINATOR` role satisfies almost any check without needing a lower-level role; a plain `MEMBER` role is only sufficient when no age-group-specific check is requested; `COACH`/`STAFF` roles are validated per **age group** via `age_group_staff` (a `teamId` passed by a caller is resolved to its age group first); the opt-in player/parent path grants a read when a linked player sits in the relevant age group's pool.
 
 ### 1.2 `CheckUserIsAdminUseCase` — platform-level gate
 
@@ -87,7 +95,7 @@ graph TD
     D -- allowed --> R[Fetch and return data from repository]
 ```
 
-Use cases that follow this pattern exactly (fetch-context → require at least `MEMBER` → return): `GetClubDetailsUseCase`, `GetAgeGroupsUseCase`, `GetSeasonsUseCase`, `GetTeamsUseCase`, `GetTeamDetailsUseCase` (adds an aggregation step: also fetches players + staff), `GetTeamPlayersUseCase`, `GetTeamPlayersByClubUseCase`, `GetTeamStaffUseCase`, `GetPlayersUseCase`, `GetPlayerUseCase`, `GetMatchesUseCase`, `GetMatchDetailsUseCase` (adds aggregation: opponent + call-ups), `GetMatchEventsUseCase`, `GetMatchScoreUseCase`, `GetOpponentsUseCase`, and `GetLiveMatchUpdatesUseCase` (terminal step is "subscribe to the live bus" instead of "return data" — see §8.3).
+Use cases that follow this pattern exactly (fetch-context → require at least `MEMBER` → return): `GetClubDetailsUseCase`, `GetAgeGroupsUseCase`, `GetSeasonsUseCase`, `GetTeamsUseCase`, `GetTeamDetailsUseCase` (adds an aggregation step: also fetches players + staff), `GetTeamPlayersUseCase`, `GetAgeGroupPlayersByClubUseCase`, `GetAgeGroupStaffUseCase`, `GetPlayersUseCase`, `GetPlayerUseCase`, `GetMatchesUseCase`, `GetMatchDetailsUseCase` (adds aggregation: opponent + call-ups), `GetMatchEventsUseCase`, `GetMatchScoreUseCase`, `GetOpponentsUseCase`, and `GetLiveMatchUpdatesUseCase` (terminal step is "subscribe to the live bus" instead of "return data" — see §8.3).
 
 Their individual diagrams are omitted below to avoid 15 near-identical copies; only the use cases with distinct branching logic get a dedicated diagram.
 
@@ -437,39 +445,47 @@ graph TD
 
 The `parents` list is a **total replacement**, not a merge: every existing parent link and pending parent-invite is deleted before the new list is applied.
 
-### 5.3 Add Players to Team (`AddPlayersToTeamUseCase`) — with age eligibility
+### 5.3 Add Players to Age Group (`AddPlayersToAgeGroupUseCase`) — with age eligibility
+
+Players belong to **age-group pools**, not teams. A player can be in several age groups at once (their birth-year group plus any older one they're eligible to play up into). `(age_group_id, player_id)` is unique. Which players actually appear for a given match is decided per-match via call-ups.
 
 ```mermaid
 graph TD
-    A[Start: userId, teamId, players list] --> B[Fetch Team by id]
-    B -- not found --> V0(["Throw ValidationException: Team not found"])
-    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=COACH, teamId]
+    A[Start: userId, ageGroupId, playerIds list] --> B[Fetch AgeGroup by id]
+    B -- not found --> V0(["Throw ValidationException: Age group not found"])
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR OR minTeamRole=COACH on ageGroupId]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D["Fetch the Team's AgeGroup"]
-    D -- not found --> V1(["Throw ValidationException: Age Group not found"])
-    D -- found --> E[Batch fetch Player data for all requested playerIds]
+    C -- allowed --> E0{playerIds empty?}
+    E0 -- Yes --> V0b(["Throw ValidationException"])
+    E0 -- No --> E[Batch fetch Player data + players already in this age group]
     E --> G{For each requested player}
+    G -- already in this age group --> SK[skip — idempotent]
     G -- player not found --> V2(["Throw ValidationException"])
-    G -- player.clubId != team.clubId --> FB(["Throw ForbiddenException: wrong club"])
+    G -- player.clubId != ageGroup.clubId --> FB(["Throw ForbiddenException: wrong club"])
     G -- "player.birthDate.year < ageGroup.birthYear" --> V3(["Throw ValidationException: too old for age group"])
-    G -- eligible --> H[Build TeamPlayer link]
-    H --> I[Batch insert TeamPlayer links]
-    I --> Z(["Return created TeamPlayer links"])
+    G -- eligible --> H[Build AgeGroupPlayer link]
+    SK --> I
+    H --> I[Batch insert AgeGroupPlayer links]
+    I --> Z(["Return created AgeGroupPlayer links"])
 ```
 
-### 5.4 Add Staff to Team (`AddStaffToTeamsUseCase`)
+`GetEligiblePlayersForAgeGroupUseCase` is the read counterpart: every club player with `birthDate.year >= ageGroup.birthYear` who isn't already in the group; visible to a coordinator or any age-group staff. Playing up is unbounded — a young player is eligible for any older age group, never a younger one.
+
+### 5.4 Add Staff to Age Group (`AddStaffToAgeGroupUseCase`)
+
+Coaches/support staff attach to an **age group**, not a team (`age_group_staff`). Matches are run by whoever staffs the match's team's age group.
 
 ```mermaid
 graph TD
-    A[Start: userId, teamId, staff list] --> B[Fetch Team by id]
-    B -- not found --> V(["Throw ValidationException: Team not found"])
+    A[Start: userId, ageGroupId, staff list] --> B[Fetch AgeGroup by id]
+    B -- not found --> V(["Throw ValidationException: Age group not found"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D[Batch fetch club roles for all staff userIds]
     D --> E{For each staff item}
-    E -- user has no club role --> FB(["Throw ForbiddenException: must join club before team"])
-    E -- user is already a club member --> G[Build TeamStaff record]
-    G --> H[Batch insert TeamStaff records]
+    E -- user has no club role --> FB(["Throw ForbiddenException: must join club first"])
+    E -- user is already a club member --> G[Build AgeGroupStaff record]
+    G --> H[Batch insert AgeGroupStaff records]
     H --> Z(["Return success"])
 ```
 
@@ -678,8 +694,8 @@ The physical sending of the invite email is still a placeholder everywhere (`TEC
 Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_DECISIONS.md` surfaced a few concrete, current-code observations worth tracking:
 
 - [ ] **`NotFoundException` is undocumented.** It's thrown throughout the codebase (`CreateMatchUseCase`, `UpdateClubUseCase`, `UpdateSeasonUseCase`, `UpdateOpponentUseCase`, `UpdatePlayerUseCase`, `UpdateTeamUseCase`, `UpdateAgeGroupUseCase`, `ManageCallUpsUseCase`, `UpdateCallUpStatusUseCase`, `UpdateMatchStatusUseCase`, most `GetMatch*`/`GetClubDetails`/`GetPlayer` use cases) but is **not** listed in `TECHNICAL_DECISIONS.md` §4's exception hierarchy table alongside `Unauthorized/Forbidden/Validation/Conflict/Database`. Its HTTP status mapping isn't documented.
-- [ ] **"Not found" is modelled inconsistently for the same resource.** A missing `Team` throws `NotFoundException` in `UpdateTeamUseCase` and `CreateMatchUseCase`, but `ValidationException` in `GetTeamDetailsUseCase`, `GetTeamPlayersUseCase`, `GetTeamStaffUseCase`, `AddPlayersToTeamUseCase`, and `AddStaffToTeamsUseCase`. Similarly, a missing `Match` throws `ValidationException` in `AddMatchEventUseCase` but `NotFoundException` everywhere else a Match is looked up.
-- [ ] **Pagination is still missing.** `AI_GUIDELINES.md`, `TECHNICAL_DECISIONS.md` §5 and the `REQUIREMENTS.md` roadmap all call for `limit`/`offset` pagination on list endpoints, but none of the current list use cases (`GetTeamsUseCase`, `GetPlayersUseCase`, `GetMatchesUseCase`, `GetSeasonsUseCase`, `GetOpponentsUseCase`, `GetTeamPlayersByClubUseCase`) implement it yet — this confirms the open roadmap item "API Scalability: Implement pagination for all list-based endpoints" is genuinely still pending, not just undocumented.
+- [ ] **"Not found" is modelled inconsistently for the same resource.** A missing `Team` throws `NotFoundException` in `UpdateTeamUseCase` and `CreateMatchUseCase`, but `ValidationException` in `GetTeamDetailsUseCase`, `GetTeamPlayersUseCase`, `GetAgeGroupStaffUseCase`, `AddPlayersToAgeGroupUseCase`, and `AddStaffToAgeGroupUseCase`. Similarly, a missing `Match` throws `ValidationException` in `AddMatchEventUseCase` but `NotFoundException` everywhere else a Match is looked up.
+- [ ] **Pagination is still missing.** `AI_GUIDELINES.md`, `TECHNICAL_DECISIONS.md` §5 and the `REQUIREMENTS.md` roadmap all call for `limit`/`offset` pagination on list endpoints, but none of the current list use cases (`GetTeamsUseCase`, `GetPlayersUseCase`, `GetMatchesUseCase`, `GetSeasonsUseCase`, `GetOpponentsUseCase`, `GetAgeGroupPlayersByClubUseCase`) implement it yet — this confirms the open roadmap item "API Scalability: Implement pagination for all list-based endpoints" is genuinely still pending, not just undocumented.
 - [ ] **`UpdateClubMemberRoleUseCase` has no existence guard.** Unlike almost every other `Update*UseCase`, it never verifies `targetUserId` is a real user or an existing member of `clubId` before writing the new role.
 - [x] **`CreateTeamUseCase` foreign-key validation.** It now loads the age group and rejects the request (`ValidationException`) if it doesn't exist, or its `clubId`/`seasonId` don't match the request — see §4.5. `CreateTeamsUseCase` (batch, §4.5b) applies the same check once for the whole batch.
 - [ ] **No self-service call-up confirmation.** `UpdateCallUpStatusUseCase` requires `COACH`+ team role — there is no path for a Parent/Player to set their own call-up to "Confirmed", even though `REQUIREMENTS.md` §5 lists "Confirmed" as a call-up status a family member would set. This lines up with the still-open "Account Management" and parent-facing client roadmap items.
@@ -708,10 +724,10 @@ erDiagram
     AGE_GROUPS ||--o{ TEAMS : groups
     SEASONS ||--o{ TEAMS : scopes
     CLUBS ||--o{ PLAYERS : registers
-    TEAMS ||--o{ TEAM_PLAYERS : rosters
-    PLAYERS ||--o{ TEAM_PLAYERS : plays_for
-    TEAMS ||--o{ TEAM_STAFF : staffed_by
-    USERS ||--o{ TEAM_STAFF : serves_as
+    AGE_GROUPS ||--o{ AGE_GROUP_PLAYERS : pools
+    PLAYERS ||--o{ AGE_GROUP_PLAYERS : eligible_for
+    AGE_GROUPS ||--o{ AGE_GROUP_STAFF : staffed_by
+    USERS ||--o{ AGE_GROUP_STAFF : serves_as
     USERS ||--o{ USER_PLAYERS : guardian_of
     PLAYERS ||--o{ USER_PLAYERS : guarded_by
     CLUBS ||--o{ INVITES : issues_invite
@@ -796,17 +812,14 @@ erDiagram
         varchar photo_url "500 chars, nullable"
         boolean active "default true"
     }
-    TEAM_PLAYERS {
+    AGE_GROUP_PLAYERS {
         uuid id PK
-        uuid team_id FK
+        uuid age_group_id FK
         uuid player_id FK
-        date start_date
-        date end_date "nullable"
-        enum status "TeamPlayerStatus, default ACTIVE"
     }
-    TEAM_STAFF {
+    AGE_GROUP_STAFF {
         uuid id PK
-        uuid team_id FK
+        uuid age_group_id FK
         uuid user_id FK
         enum role "TeamRole"
     }
@@ -864,10 +877,10 @@ erDiagram
 
 ### 12.2 Constraints & defaults worth knowing
 
-- **Unique indexes**: `users.email`; `refresh_tokens.token`; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, birth_year)` — one age group per birth year per club per season; `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list.
+- **Unique indexes**: `users.email`; `refresh_tokens.token`; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, birth_year)` — one age group per birth year per club per season; `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list.
 - **Nullable foreign keys**: `invites.player_id` (only set for `PARENT_PLAYER` invites) and `match_events.player_id` (null when `is_opponent = true`, since the event belongs to a player on the opposing team who isn't in the `players` table).
 - **No `onDelete` behavior is configured on any foreign key** — every `.references(...)` call in `Tables.kt` uses the Exposed default (`NO ACTION`). Deleting a row that still has children (e.g. a `Club` with existing `Teams`) will fail at the database level rather than cascading, nulling out, or being blocked at the application layer with a friendlier error.
-- Several `enum` columns are nullable independently of their parent row's lifecycle: `club_members.role`/`team_staff.role`/`user_players.relationship` are all non-null (required at creation), while `invites.role` and `invites.relationship` are nullable because a single `Invite` row is reused for both invite shapes (see §10) and only one of the two is populated depending on `type`.
+- Several `enum` columns are nullable independently of their parent row's lifecycle: `club_members.role`/`age_group_staff.role`/`user_players.relationship` are all non-null (required at creation), while `invites.role` and `invites.relationship` are nullable because a single `Invite` row is reused for both invite shapes (see §10) and only one of the two is populated depending on `type`.
 
 ### 12.3 Enum reference
 
@@ -876,21 +889,20 @@ erDiagram
 | `UserStatus` | `ACTIVE`, `INACTIVE`, `PENDING`, `SUSPENDED` | `users.status` (default `ACTIVE`) |
 | `ClubStatus` | `ACTIVE`, `INACTIVE`, `PENDING` | `clubs.status` (default `ACTIVE`) |
 | `ClubRole` | `CLUB_ADMIN`(5), `COORDINATOR`(4), `MEMBER`(1) | `club_members.role`, `invites.role` |
-| `TeamRole` | `COACH`(3), `STAFF`(2), `PARENT`(1), `PLAYER`(1) | `team_staff.role` |
+| `TeamRole` | `COACH`(3), `STAFF`(2) | `age_group_staff.role` |
 | `SeasonType` | `CALENDAR_YEAR`, `EUROPEAN_YEAR` | `seasons.type` (default `EUROPEAN_YEAR`) |
-| `TeamPlayerStatus` | `ACTIVE`, `INACTIVE`, `TRANSFERRED`, `INJURED` | `team_players.status` (default `ACTIVE`) |
 | `UserPlayerRelationship` | `FATHER`, `MOTHER`, `GUARDIAN`, `OTHER` | `user_players.relationship`, `invites.relationship` |
 | `InviteType` | `CLUB_MEMBER`, `PARENT_PLAYER` | `invites.type` |
 | `MatchStatus` | `SCHEDULED`, `LIVE`, `HALF_TIME`, `FINISHED`, `CANCELLED` | `matches.status` (default `SCHEDULED`) |
 | `CallUpStatus` | `CALLED_UP`, `CONFIRMED`, `DECLINED`, `NOT_AVAILABLE`, `STANDBY` | `match_call_ups.status` (default `CALLED_UP`) |
 | `EventType` | `GOAL`, `OWN_GOAL`, `ASSIST`, `SUBSTITUTION_IN`, `SUBSTITUTION_OUT`, `YELLOW_CARD`, `RED_CARD` | `match_events.type` |
 
-Note `TeamRole` has 4 values (`COACH`, `STAFF`, `PARENT`, `PLAYER`), not just the `COACH`/`STAFF` pair called out in `TECHNICAL_DECISIONS.md` §5 — `PARENT` and `PLAYER` exist on the enum and are used by `CheckUserPermissionUseCase`'s `minTeamRole` comparisons, but no current use case actually writes a `PARENT` or `PLAYER` row into `team_staff`.
+`TeamRole` is now `COACH`/`STAFF` only — the unused `PARENT`/`PLAYER` values were removed when coaches/staff moved from teams to age groups (`age_group_staff`). Players and family members are modelled entirely through `age_group_players` / `user_players` and never appear in a staff table. The enum keeps the name `TeamRole` for now; `CheckUserPermissionUseCase`'s `minTeamRole` parameter is interpreted as the minimum age-group staff role.
 
 ### 12.4 Current persistence setup
 
 - **Engine**: H2, file-based, at a path hardcoded in `DatabaseFactory.kt` (`jdbc:h2:file:/Users/ricardofrango/Dev/KMM/FootballManager/server/build/db;AUTO_SERVER=TRUE`). PostgreSQL for production is still pending, per `TECHNICAL_DECISIONS.md` §3.
-- **Schema creation**: `SchemaUtils.createMissingTablesAndColumns(...)` runs on every boot, listing all 16 tables explicitly. It's additive-only — it can add a missing table or column, but never drops or alters an existing one.
+- **Schema creation**: `SchemaUtils.createMissingTablesAndColumns(...)` runs on every boot, listing all tables explicitly. It's additive-only — it can add a missing table or column, but never drops or alters an existing one.
 - **Flyway vs. reality**: Flyway is a declared build dependency and is named as the migrations tool in `REQUIREMENTS.md` §7 and `TECHNICAL_DECISIONS.md` §3, but no Flyway migration scripts exist anywhere in the repo, and `DatabaseFactory.kt` never invokes Flyway at all. The actual mechanism today is `createMissingTablesAndColumns` plus a hardcoded block of idempotent `UPDATE ... SET status = UPPER(...)`-style statements in `DatabaseFactory.init()` that normalize legacy lowercase enum values on every startup — a hand-rolled, one-off substitute for a real migration history.
 - **Connection pool**: HikariCP, `maximumPoolSize = 3`, `autoCommit = false`, isolation level `TRANSACTION_REPEATABLE_READ`.
 

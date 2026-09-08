@@ -8,6 +8,9 @@ import com.ricardofrango.footballmanager.model.ClubRole
 import com.ricardofrango.footballmanager.model.TeamRole
 import com.ricardofrango.footballmanager.model.Player
 
+/**
+ * "The players available to a team" is now the pool of its **age group** -- teams don't own players.
+ */
 class GetTeamPlayersUseCase(
     private val playerRepository: PlayerRepository,
     private val teamRepository: TeamRepository,
@@ -17,7 +20,6 @@ class GetTeamPlayersUseCase(
     suspend operator fun invoke(userId: String, teamId: String): List<Player> = transactionManager.runInTransaction {
         val team = teamRepository.getTeamById(teamId) ?: throw ValidationException("Team not found")
 
-        // 1. Check permissions first (Member of club)
         checkUserPermissionUseCase(
             userId = userId,
             clubId = team.clubId,
@@ -27,6 +29,6 @@ class GetTeamPlayersUseCase(
             allowPlayerOrParentAccess = true
         )
 
-        playerRepository.getPlayersByTeam(teamId)
+        playerRepository.getPlayersByAgeGroup(team.ageGroupId)
     }
 }

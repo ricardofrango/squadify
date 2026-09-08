@@ -9,7 +9,9 @@ data class ClubDetails(
     val players: List<Player>,
     val seasons: List<Season>,
     val ageGroups: List<AgeGroup>,
-    val teamPlayers: List<TeamPlayer>,
+    // Which age-group pool(s) each player belongs to. A player can be in several; teams within an age
+    // group all draw from the same pool.
+    val ageGroupPlayers: List<AgeGroupPlayer>,
     // Whether the current user is allowed to create a season/age group in this club
     // (CLUB_ADMIN/COORDINATOR/platform admin) -- lets the UI tell an admin "nothing here yet, create
     // one" apart from a plain member's "nothing here yet" when `seasons`/`ageGroups` is empty. See
@@ -23,7 +25,7 @@ class GetClubDetailsUseCase(
     private val playerRepository: PlayerRepository,
     private val seasonRepository: SeasonRepository,
     private val ageGroupRepository: AgeGroupRepository,
-    private val teamPlayerRepository: TeamPlayerRepository
+    private val ageGroupPlayerRepository: AgeGroupPlayerRepository
 ) {
     suspend operator fun invoke(clubId: String): ClubDetails {
         val clubDetailsResponse = clubRepository.getClubById(clubId)
@@ -31,7 +33,7 @@ class GetClubDetailsUseCase(
         val players = playerRepository.getPlayers(clubId)
         val seasons = seasonRepository.getSeasons(clubId)
         val ageGroups = ageGroupRepository.getAgeGroups(clubId)
-        val teamPlayers = teamPlayerRepository.getTeamPlayersByClub(clubId)
+        val ageGroupPlayers = ageGroupPlayerRepository.getAgeGroupPlayersByClub(clubId)
 
         return ClubDetails(
             club = clubDetailsResponse.club,
@@ -39,7 +41,7 @@ class GetClubDetailsUseCase(
             players = players,
             seasons = seasons,
             ageGroups = ageGroups,
-            teamPlayers = teamPlayers,
+            ageGroupPlayers = ageGroupPlayers,
             canEditClub = clubDetailsResponse.canEditClub,
         )
     }

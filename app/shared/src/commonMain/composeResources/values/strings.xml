@@ -21,6 +21,7 @@
     <string name="label_active_member">Active Member</string>
     <string name="tab_teams">Teams</string>
     <string name="tab_players">Players</string>
+    <string name="tab_age_groups">Age Groups</string>
     <string name="label_all_seasons">All Seasons</string>
     <string name="label_all_ages">All Ages</string>
     <string name="label_all_teams">All Teams</string>
@@ -34,6 +35,8 @@
     <string name="msg_no_age_groups_member_subtitle">Ask a coordinator to set one up.</string>
     <string name="msg_no_teams_admin_subtitle">Create a team, or adjust the filters above.</string>
     <string name="msg_no_teams_member_subtitle">Try adjusting the filters above.</string>
+    <string name="msg_no_players_admin_subtitle">Add players to an age group, or adjust the filters above.</string>
+    <string name="msg_no_players_admin_subtitle_no_club_players">Add players to the club first, then put them in age groups.</string>
     <string name="label_number_prefix">Number: %1$s</string>
     <string name="label_create_team">Create Team</string>
     <string name="label_create_age_group">Create Age Group</string>
@@ -45,6 +48,8 @@
     <string name="title_team_details">Team Details</string>
     <string name="title_player_profile">Player Profile</string>
     <string name="msg_no_players_team">No players in this team</string>
+    <string name="label_age_group_staff">Staff</string>
+    <string name="msg_no_staff_age_group">No staff assigned to this age group yet</string>
     <string name="label_squad_number_prefix">Squad Number: %1$s</string>
     <string name="label_player_info">Player Information</string>
     <string name="label_status">Status</string>
@@ -117,4 +122,38 @@
     <string name="btn_creating_teams">Creating...</string>
     <string name="msg_teams_footer_helper">All teams are created together — if one fails, none are saved.</string>
     <string name="msg_create_teams_failed">Something went wrong creating the teams. Please try again.</string>
+
+    <!-- Add Players to Age Group -->
+    <string name="title_add_players_to_age_group">Add players</string>
+    <string name="label_add_players_to_age_group">Add players to age group</string>
+    <string name="label_search_players">Search players</string>
+    <string name="label_players_selected">%1$d selected</string>
+    <string name="label_plays_up">plays up</string>
+    <string name="btn_add_player_one">Add player</string>
+    <string name="btn_add_players_other">Add %1$d players</string>
+    <string name="btn_adding_players">Adding...</string>
+    <string name="msg_add_players_failed">Something went wrong adding the players. Please try again.</string>
+    <string name="msg_no_age_groups_for_add_players">Create an age group before adding players.</string>
+    <string name="msg_no_eligible_players_title">Every eligible player is already in this age group</string>
+    <string name="msg_no_eligible_players_hint">Add players to the club first if the roster is empty.</string>
+    <string name="msg_no_players_match_search">No players match your search</string>
+    <string name="label_age_group_summary">%1$d teams · %2$d players</string>
+
+    <!-- Add Players to the Club -->
+    <string name="title_create_players">Add players</string>
+    <string name="label_add_players_to_club">Add players to the club</string>
+    <string name="msg_players_intro">Add each player\'s name and date of birth. You can put them in age groups afterwards.</string>
+    <string name="label_player_section">Player</string>
+    <string name="label_first_name_field">First name *</string>
+    <string name="label_last_name_field">Last name *</string>
+    <string name="label_date_of_birth">Date of birth *</string>
+    <string name="msg_date_of_birth_helper">Used to check which age groups this player is eligible for.</string>
+    <string name="label_pick_a_date">Pick a date</string>
+    <string name="label_shirt_number">Shirt number</string>
+    <string name="label_add_another_player">Add another player</string>
+    <string name="msg_player_name_required">Give every player a first and last name.</string>
+    <string name="msg_player_dob_required">Pick a date of birth for every player.</string>
+    <string name="msg_players_footer_helper">All players are added together — if one fails, none are saved.</string>
+    <string name="msg_create_players_failed">Something went wrong adding the players. Please try again.</string>
+    <string name="label_select_birth_date">Select date of birth</string>
 </resources>

@@ -51,6 +51,7 @@ class ClubDetailsViewModel(
                         // Only meaningful once there's at least one season to attach age groups to --
                         // an empty club (no seasons either) is already covered by showNoSeasonsState.
                         showNoAgeGroupsState = details.seasons.isNotEmpty() && details.ageGroups.isEmpty(),
+                        selectedAgeGroupsSeasonId = details.seasons.maxByOrNull { it.endDate }?.id,
                     )
                 }
             } catch (e: Exception) {
@@ -108,6 +109,12 @@ class ClubDetailsViewModel(
         }
     }
 
+    fun onAgeGroupsSeasonSelected(seasonId: String) {
+        _state.update { state ->
+            if (state is ClubDetailsUiState.Idle) state.copy(selectedAgeGroupsSeasonId = seasonId) else state
+        }
+    }
+
     fun onTabSelected(index: Int) {
         _state.update { state ->
             if (state is ClubDetailsUiState.Idle) {
@@ -125,24 +132,29 @@ class ClubDetailsViewModel(
             (state.selectedAgeGroupId == null || team.ageGroupId == state.selectedAgeGroupId)
         }
         
-        // Filter Players List based on team associations
+        // Filter Players List by age-group membership (players belong to age-group pools, not teams).
         val filteredPlayers = details.players.filter { player ->
-            val playerTeamIds = details.teamPlayers
+            val playerAgeGroupIds = details.ageGroupPlayers
                 .filter { it.playerId == player.id }
-                .map { it.teamId }
-            
-            val matchesTeam = state.selectedPlayerTeamId == null || playerTeamIds.contains(state.selectedPlayerTeamId)
-            
+                .map { it.ageGroupId }
+                .toSet()
+
+            val matchesAgeGroup = state.selectedPlayerAgeGroupId == null ||
+                playerAgeGroupIds.contains(state.selectedPlayerAgeGroupId)
+
             val matchesSeason = if (state.selectedPlayerSeasonId == null) true else {
-                val teamsInSeasonIds = details.teams.filter { it.seasonId == state.selectedPlayerSeasonId }.map { it.id }
-                playerTeamIds.any { teamsInSeasonIds.contains(it) }
+                details.ageGroups.any {
+                    it.id in playerAgeGroupIds && it.seasonId == state.selectedPlayerSeasonId
+                }
             }
-            
-            val matchesAgeGroup = if (state.selectedPlayerAgeGroupId == null) true else {
-                val teamsInAgeGroupIds = details.teams.filter { it.ageGroupId == state.selectedPlayerAgeGroupId }.map { it.id }
-                playerTeamIds.any { teamsInAgeGroupIds.contains(it) }
+
+            // "Filter by team" = players in that team's age group, since every team in an age group
+            // draws from the same pool.
+            val matchesTeam = if (state.selectedPlayerTeamId == null) true else {
+                val teamAgeGroupId = details.teams.find { it.id == state.selectedPlayerTeamId }?.ageGroupId
+                teamAgeGroupId != null && playerAgeGroupIds.contains(teamAgeGroupId)
             }
-            
+
             matchesTeam && matchesSeason && matchesAgeGroup
         }
         
@@ -173,9 +185,18 @@ class ClubDetailsViewModel(
     }
 
     fun getAvailableTeamsForPlayers(state: ClubDetailsUiState.Idle): List<Team> {
-        return state.details?.teams?.filter { 
+        return state.details?.teams?.filter {
             (state.selectedPlayerSeasonId == null || it.seasonId == state.selectedPlayerSeasonId) &&
             (state.selectedPlayerAgeGroupId == null || it.ageGroupId == state.selectedPlayerAgeGroupId)
         } ?: emptyList()
+    }
+
+    /** Age groups for the season selected on the Age Groups tab, youngest (highest birth year) first. */
+    fun getAgeGroupsForAgeGroupsTab(state: ClubDetailsUiState.Idle): List<AgeGroup> {
+        val seasonId = state.selectedAgeGroupsSeasonId ?: state.details?.seasons?.firstOrNull()?.id
+        return state.details?.ageGroups
+            ?.filter { it.seasonId == seasonId }
+            ?.sortedByDescending { it.birthYear }
+            ?: emptyList()
     }
 }

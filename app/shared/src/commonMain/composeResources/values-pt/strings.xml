@@ -21,6 +21,7 @@
     <string name="label_active_member">Membro Ativo</string>
     <string name="tab_teams">Equipas</string>
     <string name="tab_players">Jogadores</string>
+    <string name="tab_age_groups">Escalões</string>
     <string name="label_all_seasons">Todas as Épocas</string>
     <string name="label_all_ages">Todos os Escalões</string>
     <string name="label_all_teams">Todas as Equipas</string>
@@ -34,6 +35,8 @@
     <string name="msg_no_age_groups_member_subtitle">Peça a um coordenador para criar um.</string>
     <string name="msg_no_teams_admin_subtitle">Crie uma equipa ou ajuste os filtros acima.</string>
     <string name="msg_no_teams_member_subtitle">Experimente ajustar os filtros acima.</string>
+    <string name="msg_no_players_admin_subtitle">Adicione jogadores a um escalão ou ajuste os filtros acima.</string>
+    <string name="msg_no_players_admin_subtitle_no_club_players">Adicione jogadores ao clube primeiro e depois coloque-os em escalões.</string>
     <string name="label_number_prefix">Número: %1$s</string>
     <string name="label_create_team">Criar Equipa</string>
     <string name="label_create_age_group">Criar Escalão</string>
@@ -45,6 +48,8 @@
     <string name="title_team_details">Detalhes da Equipa</string>
     <string name="title_player_profile">Perfil do Jogador</string>
     <string name="msg_no_players_team">Não existem jogadores nesta equipa</string>
+    <string name="label_age_group_staff">Equipa técnica</string>
+    <string name="msg_no_staff_age_group">Ainda não há equipa técnica atribuída a este escalão</string>
     <string name="label_squad_number_prefix">Número da Camisola: %1$s</string>
     <string name="label_player_info">Informação do Jogador</string>
     <string name="label_status">Estado</string>
@@ -117,4 +122,38 @@
     <string name="btn_creating_teams">A criar...</string>
     <string name="msg_teams_footer_helper">Todas as equipas são criadas em conjunto — se uma falhar, nenhuma é guardada.</string>
     <string name="msg_create_teams_failed">Ocorreu um erro ao criar as equipas. Por favor, tente novamente.</string>
+
+    <!-- Add Players to Age Group -->
+    <string name="title_add_players_to_age_group">Adicionar jogadores</string>
+    <string name="label_add_players_to_age_group">Adicionar jogadores ao escalão</string>
+    <string name="label_search_players">Procurar jogadores</string>
+    <string name="label_players_selected">%1$d selecionados</string>
+    <string name="label_plays_up">joga acima</string>
+    <string name="btn_add_player_one">Adicionar jogador</string>
+    <string name="btn_add_players_other">Adicionar %1$d jogadores</string>
+    <string name="btn_adding_players">A adicionar...</string>
+    <string name="msg_add_players_failed">Ocorreu um erro ao adicionar os jogadores. Por favor, tente novamente.</string>
+    <string name="msg_no_age_groups_for_add_players">Crie um escalão antes de adicionar jogadores.</string>
+    <string name="msg_no_eligible_players_title">Todos os jogadores elegíveis já estão neste escalão</string>
+    <string name="msg_no_eligible_players_hint">Adicione jogadores ao clube primeiro se não houver plantel.</string>
+    <string name="msg_no_players_match_search">Nenhum jogador corresponde à procura</string>
+    <string name="label_age_group_summary">%1$d equipas · %2$d jogadores</string>
+
+    <!-- Add Players to the Club -->
+    <string name="title_create_players">Adicionar jogadores</string>
+    <string name="label_add_players_to_club">Adicionar jogadores ao clube</string>
+    <string name="msg_players_intro">Adicione o nome e a data de nascimento de cada jogador. Pode colocá-los em escalões depois.</string>
+    <string name="label_player_section">Jogador</string>
+    <string name="label_first_name_field">Primeiro nome *</string>
+    <string name="label_last_name_field">Último nome *</string>
+    <string name="label_date_of_birth">Data de nascimento *</string>
+    <string name="msg_date_of_birth_helper">Usada para verificar em que escalões o jogador é elegível.</string>
+    <string name="label_pick_a_date">Escolher uma data</string>
+    <string name="label_shirt_number">Número da camisola</string>
+    <string name="label_add_another_player">Adicionar outro jogador</string>
+    <string name="msg_player_name_required">Dê um primeiro e último nome a todos os jogadores.</string>
+    <string name="msg_player_dob_required">Escolha uma data de nascimento para todos os jogadores.</string>
+    <string name="msg_players_footer_helper">Todos os jogadores são adicionados em conjunto — se um falhar, nenhum é guardado.</string>
+    <string name="msg_create_players_failed">Ocorreu um erro ao adicionar os jogadores. Por favor, tente novamente.</string>
+    <string name="label_select_birth_date">Selecione a data de nascimento</string>
 </resources>

@@ -1,6 +1,6 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
-import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
+import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ValidationException
@@ -10,7 +10,7 @@ import com.ricardofrango.footballmanager.model.TeamDetails
 
 class GetTeamDetailsUseCase(
     private val teamRepository: TeamRepository,
-    private val playerRepository: PlayerRepository,
+    private val ageGroupRepository: AgeGroupRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager
 ) {
@@ -18,7 +18,6 @@ class GetTeamDetailsUseCase(
         val team = teamRepository.getTeamById(teamId)
             ?: throw ValidationException("Team not found")
 
-        // 1. Check permissions first (Member of club)
         checkUserPermissionUseCase(
             userId = userId,
             clubId = team.clubId,
@@ -28,13 +27,10 @@ class GetTeamDetailsUseCase(
             allowPlayerOrParentAccess = true
         )
 
-        val players = playerRepository.getPlayersByTeam(teamId)
-        val staff = teamRepository.getTeamStaff(teamId)
-
+        // Players belong to the age group, not the team -- see TeamDetails / the call-up flow.
         TeamDetails(
             team = team,
-            players = players,
-            staff = staff
+            staff = ageGroupRepository.getAgeGroupStaff(team.ageGroupId)
         )
     }
 }

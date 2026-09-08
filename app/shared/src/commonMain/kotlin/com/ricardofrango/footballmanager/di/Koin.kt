@@ -11,6 +11,8 @@ import com.ricardofrango.footballmanager.presentation.ui.clubdetails.ClubDetails
 import com.ricardofrango.footballmanager.presentation.ui.createseason.CreateSeasonViewModel
 import com.ricardofrango.footballmanager.presentation.ui.createagegroups.CreateAgeGroupsViewModel
 import com.ricardofrango.footballmanager.presentation.ui.createteams.CreateTeamsViewModel
+import com.ricardofrango.footballmanager.presentation.ui.addplayerstoagegroup.AddPlayersToAgeGroupViewModel
+import com.ricardofrango.footballmanager.presentation.ui.createplayers.CreatePlayersViewModel
 import com.ricardofrango.footballmanager.presentation.ui.teamdetails.TeamDetailsViewModel
 import com.ricardofrango.footballmanager.presentation.ui.playerdetails.PlayerDetailsViewModel
 import com.ricardofrango.footballmanager.presentation.ui.dashboard.DashboardViewModel
@@ -70,7 +72,7 @@ val dataModule = module {
     single<ClubRepository> { ClubRepositoryImpl(get(), get(), get()) }
     single<TeamRepository> { TeamRepositoryImpl(get(), get(), get()) }
     single<PlayerRepository> { PlayerRepositoryImpl(get(), get(), get()) }
-    single<TeamPlayerRepository> { TeamPlayerRepositoryImpl(get(), get(), get()) }
+    single<AgeGroupPlayerRepository> { AgeGroupPlayerRepositoryImpl(get(), get(), get()) }
     single<SeasonRepository> { SeasonRepositoryImpl(get(), get(), get()) }
     single<AgeGroupRepository> { AgeGroupRepositoryImpl(get(), get(), get()) }
     single<SessionRepository> { SessionRepositoryImpl(get()) }
@@ -88,9 +90,11 @@ val domainModule = module {
     factory { GetSeasonsUseCase(get()) }
     factory { GetAgeGroupsUseCase(get()) }
     factory { CreateSeasonUseCase(get()) }
-    factory { GetAgeGroupsUseCase(get()) }
     factory { CreateAgeGroupsUseCase(get()) }
     factory { CreateTeamsUseCase(get()) }
+    factory { GetEligiblePlayersForAgeGroupUseCase(get()) }
+    factory { AddPlayersToAgeGroupUseCase(get()) }
+    factory { CreatePlayersUseCase(get()) }
 }
 
 val presentationModule = module {
@@ -103,6 +107,8 @@ val presentationModule = module {
     viewModelOf(::CreateSeasonViewModel)
     viewModelOf(::CreateAgeGroupsViewModel)
     viewModelOf(::CreateTeamsViewModel)
+    viewModelOf(::AddPlayersToAgeGroupViewModel)
+    viewModelOf(::CreatePlayersViewModel)
     viewModelOf(::TeamDetailsViewModel)
     viewModelOf(::PlayerDetailsViewModel)
 }

@@ -15,6 +15,8 @@ import com.ricardofrango.footballmanager.presentation.ui.account.AccountScreen
 import com.ricardofrango.footballmanager.presentation.ui.clubdetails.ClubDetailsScreen
 import com.ricardofrango.footballmanager.presentation.ui.createseason.CreateSeasonScreen
 import com.ricardofrango.footballmanager.presentation.ui.createteams.CreateTeamsScreen
+import com.ricardofrango.footballmanager.presentation.ui.addplayerstoagegroup.AddPlayersToAgeGroupScreen
+import com.ricardofrango.footballmanager.presentation.ui.createplayers.CreatePlayersScreen
 import com.ricardofrango.footballmanager.presentation.ui.createagegroups.CreateAgeGroupsScreen
 import com.ricardofrango.footballmanager.presentation.ui.teamdetails.TeamDetailsScreen
 import com.ricardofrango.footballmanager.presentation.ui.playerdetails.PlayerDetailsScreen
@@ -115,6 +117,12 @@ fun AppNavigation() {
                 onNavigateToCreateTeams = { clubName ->
                     navController.navigate(Screen.CreateTeams(screen.clubId, clubName))
                 },
+                onNavigateToAddPlayersToAgeGroup = {
+                    navController.navigate(Screen.AddPlayersToAgeGroup(screen.clubId))
+                },
+                onNavigateToCreatePlayers = { clubName ->
+                    navController.navigate(Screen.CreatePlayers(screen.clubId, clubName))
+                },
                 refreshClubDetails = structureChanged
             )
         }
@@ -163,6 +171,39 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
                 onTeamsCreated = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable<Screen.AddPlayersToAgeGroup> { backStackEntry ->
+            val screen: Screen.AddPlayersToAgeGroup = backStackEntry.toRoute()
+            AddPlayersToAgeGroupScreen(
+                clubId = screen.clubId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onPlayersAdded = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable<Screen.CreatePlayers> { backStackEntry ->
+            val screen: Screen.CreatePlayers = backStackEntry.toRoute()
+            CreatePlayersScreen(
+                clubId = screen.clubId,
+                clubName = screen.clubName,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onPlayersCreated = {
                     navController.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
