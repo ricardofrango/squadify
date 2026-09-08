@@ -100,15 +100,6 @@ class ClubDetailsViewModel(
         }
     }
 
-    fun onPlayerTeamSelected(teamId: String?) {
-        _state.update { state ->
-            if (state is ClubDetailsUiState.Idle) {
-                val newState = state.copy(selectedPlayerTeamId = teamId)
-                applyFilters(newState)
-            } else state
-        }
-    }
-
     fun onAgeGroupsSeasonSelected(seasonId: String) {
         _state.update { state ->
             if (state is ClubDetailsUiState.Idle) state.copy(selectedAgeGroupsSeasonId = seasonId) else state
@@ -148,14 +139,7 @@ class ClubDetailsViewModel(
                 }
             }
 
-            // "Filter by team" = players in that team's age group, since every team in an age group
-            // draws from the same pool.
-            val matchesTeam = if (state.selectedPlayerTeamId == null) true else {
-                val teamAgeGroupId = details.teams.find { it.id == state.selectedPlayerTeamId }?.ageGroupId
-                teamAgeGroupId != null && playerAgeGroupIds.contains(teamAgeGroupId)
-            }
-
-            matchesTeam && matchesSeason && matchesAgeGroup
+            matchesSeason && matchesAgeGroup
         }
         
         return state.copy(
@@ -181,13 +165,6 @@ class ClubDetailsViewModel(
     fun getAvailableAgeGroupsForPlayers(state: ClubDetailsUiState.Idle): List<AgeGroup> {
         return state.details?.ageGroups?.filter { 
             state.selectedPlayerSeasonId == null || it.seasonId == state.selectedPlayerSeasonId 
-        } ?: emptyList()
-    }
-
-    fun getAvailableTeamsForPlayers(state: ClubDetailsUiState.Idle): List<Team> {
-        return state.details?.teams?.filter {
-            (state.selectedPlayerSeasonId == null || it.seasonId == state.selectedPlayerSeasonId) &&
-            (state.selectedPlayerAgeGroupId == null || it.ageGroupId == state.selectedPlayerAgeGroupId)
         } ?: emptyList()
     }
 

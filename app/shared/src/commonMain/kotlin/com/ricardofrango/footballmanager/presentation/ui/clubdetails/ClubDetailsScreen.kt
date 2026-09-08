@@ -69,7 +69,6 @@ import footballmanager.app.shared.generated.resources.label_add_players_to_club
 import footballmanager.app.shared.generated.resources.label_add_season
 import footballmanager.app.shared.generated.resources.label_all_ages
 import footballmanager.app.shared.generated.resources.label_all_seasons
-import footballmanager.app.shared.generated.resources.label_all_teams
 import footballmanager.app.shared.generated.resources.label_create_age_group
 import footballmanager.app.shared.generated.resources.label_create_team
 import footballmanager.app.shared.generated.resources.label_more_options
@@ -548,9 +547,8 @@ private fun TeamFilterSection(
     viewModel: ClubDetailsViewModel
 ) {
     LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 20.dp),
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -581,9 +579,8 @@ private fun PlayerFilterSection(
     viewModel: ClubDetailsViewModel
 ) {
     LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 20.dp),
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -603,15 +600,6 @@ private fun PlayerFilterSection(
                 options = listOf(null to stringResource(Res.string.label_all_ages)) +
                         viewModel.getAvailableAgeGroupsForPlayers(state).map { it.id to it.name },
                 onOptionSelected = viewModel::onPlayerAgeGroupSelected
-            )
-        }
-        item {
-            FilterSelector(
-                selectedOption = state.details?.teams?.find { it.id == state.selectedPlayerTeamId }?.name
-                    ?: stringResource(Res.string.label_all_teams),
-                options = listOf(null to stringResource(Res.string.label_all_teams)) +
-                        viewModel.getAvailableTeamsForPlayers(state).map { it.id to it.name },
-                onOptionSelected = viewModel::onPlayerTeamSelected
             )
         }
     }
