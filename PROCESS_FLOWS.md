@@ -95,7 +95,7 @@ graph TD
     D -- allowed --> R[Fetch and return data from repository]
 ```
 
-Use cases that follow this pattern exactly (fetch-context → require at least `MEMBER` → return): `GetClubDetailsUseCase`, `GetAgeGroupsUseCase`, `GetSeasonsUseCase`, `GetTeamsUseCase`, `GetTeamDetailsUseCase` (adds an aggregation step: also fetches players + staff), `GetTeamPlayersUseCase`, `GetAgeGroupPlayersByClubUseCase`, `GetAgeGroupStaffUseCase`, `GetPlayersUseCase`, `GetPlayerUseCase`, `GetMatchesUseCase`, `GetMatchDetailsUseCase` (adds aggregation: opponent + call-ups), `GetMatchEventsUseCase`, `GetMatchScoreUseCase`, `GetOpponentsUseCase`, and `GetLiveMatchUpdatesUseCase` (terminal step is "subscribe to the live bus" instead of "return data" — see §8.3).
+Use cases that follow this pattern exactly (fetch-context → require at least `MEMBER` → return): `GetClubDetailsUseCase`, `GetAgeGroupsUseCase`, `GetSeasonsUseCase`, `GetTeamsUseCase`, `GetTeamDetailsUseCase` (adds aggregation + a `canManage` probe — see §4.6b), `GetTeamPlayersUseCase`, `GetAgeGroupPlayersByClubUseCase`, `GetAgeGroupStaffUseCase`, `GetPlayersUseCase`, `GetPlayerUseCase`, `GetMatchesUseCase`, `GetMatchDetailsUseCase` (adds aggregation: opponent + call-ups), `GetMatchEventsUseCase`, `GetMatchScoreUseCase`, `GetOpponentsUseCase`, and `GetLiveMatchUpdatesUseCase` (terminal step is "subscribe to the live bus" instead of "return data" — see §8.3).
 
 Their individual diagrams are omitted below to avoid 15 near-identical copies; only the use cases with distinct branching logic get a dedicated diagram.
 
@@ -400,6 +400,28 @@ graph TD
     C -- allowed --> D["Merge patch fields (name, code, active)"]
     D --> Z(["Persist updated Team"])
 ```
+
+### 4.6b Get Team Details (`GetTeamDetailsUseCase`)
+
+The aggregate behind the team detail screen. A team is only a scheduling handle, so the payload leads with its fixtures and carries the age group's pool size + staff read-only. Standard permission-gated read (§1.3) with an aggregation step and a `canManage` probe:
+
+```mermaid
+graph TD
+    A[Start: userId, teamId] --> B[Fetch Team by id]
+    B -- not found --> N(["Throw ValidationException"])
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER, minTeamRole=STAFF, teamId, allowPlayerOrParentAccess]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D[Fetch age group + season]
+    D --> G["canManage = non-throwing probe: minClubRole=COORDINATOR OR minTeamRole=COACH on teamId"]
+    G --> H[matches = matchRepository.getMatchesByTeam]
+    H --> I["upcomingMatches = SCHEDULED with dateTime >= now, sorted ascending"]
+    H --> J["recentResults = FINISHED, newest first, each paired with its scoreline from matchEventRepository.getScoreByMatch → WIN/DRAW/LOSS"]
+    I --> K[siblingTeamNames = other teams in the same age group]
+    J --> K
+    K --> Z(["Return TeamDetails: team, ageGroup, season, poolSize, siblingTeamNames, staff, upcomingMatches, recentResults, opponents, canManage"])
+```
+
+`poolSize` / `staff` come from the age group (players and staff belong to it, not the team); the screen links back to the age-group detail for both. `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canManage` gates the schedule-match / edit-team actions.
 
 ---
 

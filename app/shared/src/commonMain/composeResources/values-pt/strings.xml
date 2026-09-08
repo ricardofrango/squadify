@@ -174,4 +174,26 @@
     <string name="msg_no_teams_in_age_group_hint">O plantel está definido — adicione uma equipa para começar a agendar jogos.</string>
     <string name="label_role_coach">Treinador</string>
     <string name="label_role_staff">Equipa técnica</string>
+
+    <!-- Team Details -->
+    <string name="msg_failed_to_load_team">Não foi possível carregar esta equipa. Por favor, tente novamente.</string>
+    <string name="label_pool">Plantel</string>
+    <string name="label_played">Jogados</string>
+    <string name="label_next">Próximo</string>
+    <string name="label_schedule_match">Agendar jogo</string>
+    <string name="label_edit_team">Editar equipa</string>
+    <string name="label_recent_results">Resultados recentes</string>
+    <string name="label_form">Forma</string>
+    <string name="msg_no_results_yet">Ainda não há jogos disputados</string>
+    <string name="label_team_away">Fora</string>
+    <string name="label_relative_today">Hoje</string>
+    <string name="label_relative_tomorrow">Amanhã</string>
+    <string name="label_relative_in_days">daqui a %1$d dias</string>
+    <string name="label_relative_in_weeks">daqui a %1$d semanas</string>
+    <string name="label_team_pool_title">Plantel</string>
+    <string name="label_players_in_pool">%1$d jogadores no plantel %2$s</string>
+    <string name="msg_pool_no_fixed_squad">Uma equipa não tem plantel fixo — as convocatórias são por jogo.</string>
+    <string name="msg_pool_shared_with">Partilhado com %1$s.</string>
+    <string name="label_view_pool">Ver plantel</string>
+    <string name="msg_staff_managed_at_age_group">A equipa técnica e os jogadores são geridos ao nível do escalão — %1$s</string>
 </resources>

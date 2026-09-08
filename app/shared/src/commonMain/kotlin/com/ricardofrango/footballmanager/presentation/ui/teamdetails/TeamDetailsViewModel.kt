@@ -3,24 +3,32 @@ package com.ricardofrango.footballmanager.presentation.ui.teamdetails
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.footballmanager.domain.usecase.GetTeamDetailsUseCase
-import kotlinx.coroutines.flow.*
+import footballmanager.app.shared.generated.resources.Res
+import footballmanager.app.shared.generated.resources.msg_failed_to_load_team
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 
 class TeamDetailsViewModel(
     private val getTeamDetailsUseCase: GetTeamDetailsUseCase
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow<TeamDetailsUiState>(TeamDetailsUiState.Idle())
+    private val _state = MutableStateFlow<TeamDetailsUiState>(TeamDetailsUiState.Loading)
     val state: StateFlow<TeamDetailsUiState> = _state.asStateFlow()
 
-    fun loadTeamDetails(teamId: String) {
+    fun load(teamId: String, forceReload: Boolean = false) {
+        if (!forceReload && _state.value is TeamDetailsUiState.Idle) return
+
         viewModelScope.launch {
             _state.update { TeamDetailsUiState.Loading }
             try {
-                val details = getTeamDetailsUseCase(teamId)
-                _state.update { TeamDetailsUiState.Idle(details = details) }
+                _state.update { TeamDetailsUiState.Idle(getTeamDetailsUseCase(teamId)) }
             } catch (e: Exception) {
-                _state.update { TeamDetailsUiState.Idle(error = e.message ?: "Failed to load team details") }
+                // Per AI_GUIDELINES "No Raw Exception Messages in UI" -- never surface e.message.
+                _state.update { TeamDetailsUiState.Error(getString(Res.string.msg_failed_to_load_team)) }
             }
         }
     }

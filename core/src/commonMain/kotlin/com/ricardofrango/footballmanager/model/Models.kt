@@ -411,15 +411,42 @@ data class AgeGroupStaffMember(
     val avatarUrl: String? = null
 )
 
+@Serializable
+enum class MatchOutcome { WIN, DRAW, LOSS }
+
 /**
- * Team detail no longer carries a player list -- players belong to the age group, not the team, and
- * the match-day squad is decided through call-ups. [staff] is the age group's staff, surfaced here so
- * a team screen can still show who runs it.
+ * One finished match for a team, with the final [score][ourScore]/[opponentScore] and the resulting
+ * [outcome] from this team's point of view. Fed to the "Recent results" list on the team screen.
+ */
+@Serializable
+data class TeamMatchResult(
+    val match: Match,
+    val ourScore: Int,
+    val opponentScore: Int,
+    val outcome: MatchOutcome
+)
+
+/**
+ * Everything attached to one team, for its detail screen. A team is only a scheduling handle under an
+ * [ageGroup] / [season]: its own content is the fixture list ([upcomingMatches] / [recentResults]),
+ * while players and staff belong to the age group. [poolSize] and [staff] are surfaced read-only so
+ * the screen can point back to the age group; [siblingTeamNames] are the other teams sharing that
+ * same player pool. [opponents] is the club's opponent list so the client can resolve
+ * `match.opponentId`. [canManage] gates the edit / schedule actions -- true for a club
+ * admin/coordinator or a coach of this age group, same idea as `AgeGroupDetails.canManage`.
  */
 @Serializable
 data class TeamDetails(
     val team: Team,
-    val staff: List<AgeGroupStaffMember>
+    val ageGroup: AgeGroup,
+    val season: Season,
+    val poolSize: Int,
+    val siblingTeamNames: List<String>,
+    val staff: List<AgeGroupStaffMember>,
+    val upcomingMatches: List<Match>,
+    val recentResults: List<TeamMatchResult>,
+    val opponents: List<Opponent>,
+    val canManage: Boolean
 )
 
 /**

@@ -242,14 +242,28 @@ fun AppNavigation() {
 
         composable<Screen.TeamDetails> { backStackEntry ->
             val screen: Screen.TeamDetails = backStackEntry.toRoute()
+            val structureChanged by backStackEntry.savedStateHandle
+                .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
+                .collectAsState()
+            if (structureChanged) {
+                backStackEntry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false
+            }
             TeamDetailsScreen(
                 teamId = screen.teamId,
                 onNavigateBack = {
                     navController.popBackStack()
                 },
+                onNavigateToAgeGroup = { ageGroupId ->
+                    navController.navigate(Screen.AgeGroupDetails(ageGroupId))
+                },
                 onNavigateToPlayer = { playerId ->
                     navController.navigate(Screen.PlayerDetails(playerId))
-                }
+                },
+                // Match scheduling / team editing screens don't exist yet -- the canManage-gated
+                // affordances are wired but inert until those are built.
+                onScheduleMatch = {},
+                onEditTeam = {},
+                refreshOnReturn = structureChanged
             )
         }
 

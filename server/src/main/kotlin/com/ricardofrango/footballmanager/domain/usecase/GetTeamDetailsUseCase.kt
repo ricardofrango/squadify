@@ -1,16 +1,38 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
+import com.ricardofrango.footballmanager.domain.repository.MatchEventRepository
+import com.ricardofrango.footballmanager.domain.repository.MatchRepository
+import com.ricardofrango.footballmanager.domain.repository.OpponentRepository
+import com.ricardofrango.footballmanager.domain.repository.PlayerRepository
+import com.ricardofrango.footballmanager.domain.repository.SeasonRepository
 import com.ricardofrango.footballmanager.domain.repository.TeamRepository
 import com.ricardofrango.footballmanager.domain.service.TransactionManager
+import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.exception.ValidationException
 import com.ricardofrango.footballmanager.model.ClubRole
-import com.ricardofrango.footballmanager.model.TeamRole
+import com.ricardofrango.footballmanager.model.MatchOutcome
+import com.ricardofrango.footballmanager.model.MatchStatus
 import com.ricardofrango.footballmanager.model.TeamDetails
+import com.ricardofrango.footballmanager.model.TeamMatchResult
+import com.ricardofrango.footballmanager.model.TeamRole
+import kotlin.time.Clock
 
+/**
+ * Everything attached to one team, for its detail screen. A team is a scheduling handle under an age
+ * group, so this returns its fixtures ([TeamDetails.upcomingMatches] / [TeamDetails.recentResults])
+ * plus a read-only view of the age group's pool size and staff. Readable by any club member (and a
+ * linked player/parent of a player in the age-group pool); [TeamDetails.canManage] is a non-throwing
+ * probe for the COORDINATOR / age-group-coach gate that guards the edit / schedule actions.
+ */
 class GetTeamDetailsUseCase(
     private val teamRepository: TeamRepository,
     private val ageGroupRepository: AgeGroupRepository,
+    private val seasonRepository: SeasonRepository,
+    private val playerRepository: PlayerRepository,
+    private val matchRepository: MatchRepository,
+    private val matchEventRepository: MatchEventRepository,
+    private val opponentRepository: OpponentRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager
 ) {
@@ -27,10 +49,64 @@ class GetTeamDetailsUseCase(
             allowPlayerOrParentAccess = true
         )
 
-        // Players belong to the age group, not the team -- see TeamDetails / the call-up flow.
+        val ageGroup = ageGroupRepository.getAgeGroupById(team.ageGroupId)
+            ?: throw ValidationException("Age group not found")
+        val season = seasonRepository.getSeasonById(team.seasonId)
+            ?: throw ValidationException("Season not found")
+
+        val canManage = try {
+            checkUserPermissionUseCase(
+                userId = userId,
+                clubId = team.clubId,
+                minClubRole = ClubRole.COORDINATOR,
+                minTeamRole = TeamRole.COACH,
+                teamId = teamId
+            )
+            true
+        } catch (e: ForbiddenException) {
+            false
+        }
+
+        val now = Clock.System.now()
+        val allMatches = matchRepository.getMatchesByTeam(teamId)
+
+        val upcomingMatches = allMatches
+            .filter { it.status == MatchStatus.SCHEDULED && it.dateTime >= now }
+            .sortedBy { it.dateTime }
+
+        // Finished matches, newest first, each paired with its scoreline (rebuilt from match events).
+        val recentResults = allMatches
+            .filter { it.status == MatchStatus.FINISHED }
+            .sortedByDescending { it.dateTime }
+            .map { match ->
+                val score = matchEventRepository.getScoreByMatch(match.id)
+                TeamMatchResult(
+                    match = match,
+                    ourScore = score.ourScore,
+                    opponentScore = score.opponentScore,
+                    outcome = when {
+                        score.ourScore > score.opponentScore -> MatchOutcome.WIN
+                        score.ourScore < score.opponentScore -> MatchOutcome.LOSS
+                        else -> MatchOutcome.DRAW
+                    }
+                )
+            }
+
+        val siblingTeamNames = teamRepository.getTeamsByClub(team.clubId)
+            .filter { it.ageGroupId == team.ageGroupId && it.id != team.id }
+            .map { it.name }
+
         TeamDetails(
             team = team,
-            staff = ageGroupRepository.getAgeGroupStaff(team.ageGroupId)
+            ageGroup = ageGroup,
+            season = season,
+            poolSize = playerRepository.getPlayersByAgeGroup(team.ageGroupId).size,
+            siblingTeamNames = siblingTeamNames,
+            staff = ageGroupRepository.getAgeGroupStaff(team.ageGroupId),
+            upcomingMatches = upcomingMatches,
+            recentResults = recentResults,
+            opponents = opponentRepository.getOpponentsByClub(team.clubId),
+            canManage = canManage
         )
     }
 }

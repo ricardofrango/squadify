@@ -174,4 +174,26 @@
     <string name="msg_no_teams_in_age_group_hint">The player pool is set — add a team to start scheduling matches.</string>
     <string name="label_role_coach">Coach</string>
     <string name="label_role_staff">Staff</string>
+
+    <!-- Team Details -->
+    <string name="msg_failed_to_load_team">Couldn\'t load this team. Please try again.</string>
+    <string name="label_pool">Pool</string>
+    <string name="label_played">Played</string>
+    <string name="label_next">Next</string>
+    <string name="label_schedule_match">Schedule match</string>
+    <string name="label_edit_team">Edit team</string>
+    <string name="label_recent_results">Recent results</string>
+    <string name="label_form">Form</string>
+    <string name="msg_no_results_yet">No matches played yet</string>
+    <string name="label_team_away">Away</string>
+    <string name="label_relative_today">Today</string>
+    <string name="label_relative_tomorrow">Tomorrow</string>
+    <string name="label_relative_in_days">in %1$d days</string>
+    <string name="label_relative_in_weeks">in %1$d weeks</string>
+    <string name="label_team_pool_title">Player pool</string>
+    <string name="label_players_in_pool">%1$d players in the %2$s pool</string>
+    <string name="msg_pool_no_fixed_squad">A team has no fixed squad — call-ups are per match.</string>
+    <string name="msg_pool_shared_with">Shared with %1$s.</string>
+    <string name="label_view_pool">View pool</string>
+    <string name="msg_staff_managed_at_age_group">Staff and players are managed at the age-group level — %1$s</string>
 </resources>
