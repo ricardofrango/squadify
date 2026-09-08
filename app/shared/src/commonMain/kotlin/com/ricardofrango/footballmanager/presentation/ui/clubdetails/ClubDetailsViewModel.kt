@@ -40,18 +40,23 @@ class ClubDetailsViewModel(
             _state.update { ClubDetailsUiState.Loading }
             try {
                 val details = getClubDetailsUseCase(clubId)
+                // Teams and players are only meaningful within a season, so both tabs default to the
+                // most recent one (by end date) rather than "All seasons".
+                val mostRecentSeasonId = details.seasons.maxByOrNull { it.endDate }?.id
                 _state.update {
-                    ClubDetailsUiState.Idle(
-                        details = details,
-                        filteredTeams = details.teams,
-                        filteredPlayers = details.players,
-                        selectedTab = currentTab, // Restore the captured tab
-                        showNoSeasonsState = details.seasons.isEmpty(),
-                        canEditClub = details.canEditClub,
-                        // Only meaningful once there's at least one season to attach age groups to --
-                        // an empty club (no seasons either) is already covered by showNoSeasonsState.
-                        showNoAgeGroupsState = details.seasons.isNotEmpty() && details.ageGroups.isEmpty(),
-                        selectedAgeGroupsSeasonId = details.seasons.maxByOrNull { it.endDate }?.id,
+                    applyFilters(
+                        ClubDetailsUiState.Idle(
+                            details = details,
+                            selectedTab = currentTab, // Restore the captured tab
+                            selectedSeasonId = mostRecentSeasonId,
+                            selectedPlayerSeasonId = mostRecentSeasonId,
+                            showNoSeasonsState = details.seasons.isEmpty(),
+                            canEditClub = details.canEditClub,
+                            // Only meaningful once there's at least one season to attach age groups to --
+                            // an empty club (no seasons either) is already covered by showNoSeasonsState.
+                            showNoAgeGroupsState = details.seasons.isNotEmpty() && details.ageGroups.isEmpty(),
+                            selectedAgeGroupsSeasonId = mostRecentSeasonId,
+                        )
                     )
                 }
             } catch (e: Exception) {
