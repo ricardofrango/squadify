@@ -333,6 +333,25 @@ graph TD
     D --> Z(["Persist updated AgeGroup"])
 ```
 
+### 4.4b Get Age Group Details (`GetAgeGroupDetailsUseCase`)
+
+The aggregate behind the age-group detail screen. Follows the standard permission-gated read (§1.3) with an aggregation step and a `canManage` probe:
+
+```mermaid
+graph TD
+    A[Start: userId, ageGroupId] --> B[Fetch AgeGroup by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER, minTeamRole=STAFF, ageGroupId, allowPlayerOrParentAccess]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D[Fetch club + season]
+    D --> E[teams = club teams filtered to this age group]
+    E --> G[upcomingMatches = each team's SCHEDULED matches with dateTime >= now, sorted]
+    G --> H["canManage = non-throwing probe: minClubRole=COORDINATOR OR minTeamRole=COACH on ageGroupId"]
+    H --> Z(["Return AgeGroupDetails: ageGroup, club, season, players (pool), staff, teams, upcomingMatches, opponents, canManage"])
+```
+
+`opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canManage` gates the add/edit actions on the detail screen, the same way `ClubDetailsResponse.canEditClub` does.
+
 ### 4.5 Create Team (`CreateTeamUseCase`)
 
 ```mermaid

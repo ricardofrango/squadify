@@ -115,6 +115,7 @@ fun ClubDetailsScreen(
     // The Add Players screen picks the age group itself.
     onNavigateToAddPlayersToAgeGroup: () -> Unit,
     onNavigateToCreatePlayers: (clubName: String) -> Unit,
+    onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
     // True exactly once, right after returning from a Create* screen having created something --
     // forces a reload past loadClubDetails' "already have this club" guard, since Koin scopes this
     // ViewModel to the nav back-stack entry (so popping back here reuses stale state).
@@ -306,6 +307,7 @@ fun ClubDetailsScreen(
                             onNavigateToCreateTeams = onNavigateToCreateTeams,
                             onNavigateToCreatePlayers = onNavigateToCreatePlayers,
                             onNavigateToAddPlayersToAgeGroup = onNavigateToAddPlayersToAgeGroup,
+                            onNavigateToAgeGroup = onNavigateToAgeGroup,
                             clubName = clubName
                         )
                 }
@@ -325,6 +327,7 @@ private fun ClubDetailsTabContent(
     onNavigateToCreateTeams: (clubName: String) -> Unit,
     onNavigateToCreatePlayers: (clubName: String) -> Unit,
     onNavigateToAddPlayersToAgeGroup: () -> Unit,
+    onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
     clubName: String
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -401,7 +404,8 @@ private fun ClubDetailsTabContent(
                         teamCountFor = { ag -> state.details?.teams?.count { it.ageGroupId == ag } ?: 0 },
                         playerCountFor = { ag ->
                             state.details?.ageGroupPlayers?.count { it.ageGroupId == ag } ?: 0
-                        }
+                        },
+                        onAgeGroupClick = onNavigateToAgeGroup
                     )
                 }
             }
@@ -473,7 +477,8 @@ private fun AgeGroupsFilterSection(
 private fun AgeGroupList(
     ageGroups: List<com.ricardofrango.footballmanager.model.AgeGroup>,
     teamCountFor: (ageGroupId: String) -> Int,
-    playerCountFor: (ageGroupId: String) -> Int
+    playerCountFor: (ageGroupId: String) -> Int,
+    onAgeGroupClick: (ageGroupId: String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -484,7 +489,8 @@ private fun AgeGroupList(
             AgeGroupCard(
                 ageGroup = ageGroup,
                 teamCount = teamCountFor(ageGroup.id),
-                playerCount = playerCountFor(ageGroup.id)
+                playerCount = playerCountFor(ageGroup.id),
+                onClick = { onAgeGroupClick(ageGroup.id) }
             )
         }
     }
@@ -494,9 +500,11 @@ private fun AgeGroupList(
 private fun AgeGroupCard(
     ageGroup: com.ricardofrango.footballmanager.model.AgeGroup,
     teamCount: Int,
-    playerCount: Int
+    playerCount: Int,
+    onClick: () -> Unit
 ) {
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),

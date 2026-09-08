@@ -422,6 +422,27 @@ data class TeamDetails(
     val staff: List<AgeGroupStaffMember>
 )
 
+/**
+ * Everything attached to one age group, for its detail screen: the group and its [season], the full
+ * player [pool][players], the [staff], the [teams] under it (all sharing the same pool), and the
+ * upcoming matches across those teams ([opponents] is the club's opponent list so the client can
+ * resolve `match.opponentId` to a name/logo). [canManage] is true for a club admin/coordinator or a
+ * coach assigned to this age group -- it gates the add/edit actions, same idea as
+ * `ClubDetailsResponse.canEditClub`.
+ */
+@Serializable
+data class AgeGroupDetails(
+    val ageGroup: AgeGroup,
+    val club: Club,
+    val season: Season,
+    val players: List<Player>,
+    val staff: List<AgeGroupStaffMember>,
+    val teams: List<Team>,
+    val upcomingMatches: List<Match>,
+    val opponents: List<Opponent>,
+    val canManage: Boolean
+)
+
 @Serializable
 enum class CallUpStatus {
     CALLED_UP,

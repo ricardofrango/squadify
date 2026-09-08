@@ -32,7 +32,7 @@ class AddPlayersToAgeGroupViewModel(
     private val _navigationEvent = MutableSharedFlow<AddPlayersToAgeGroupNavigationEvent>()
     val navigationEvent: SharedFlow<AddPlayersToAgeGroupNavigationEvent> = _navigationEvent.asSharedFlow()
 
-    fun load(clubId: String) {
+    fun load(clubId: String, initialAgeGroupId: String? = null) {
         if (_state.value is AddPlayersToAgeGroupUiState.Idle) return
 
         viewModelScope.launch {
@@ -46,15 +46,17 @@ class AddPlayersToAgeGroupViewModel(
             } catch (e: Exception) {
                 emptyList()
             }
-            // Default to the age group in the most recently ending season; tiebreak oldest players.
-            val selectedAgeGroupId = ageGroups
-                .sortedWith(
-                    compareByDescending<com.ricardofrango.footballmanager.model.AgeGroup> {
-                        seasons.find { s -> s.id == it.seasonId }?.endDate
-                    }.thenBy { it.birthYear }
-                )
-                .firstOrNull()
-                ?.id
+            // Honour a caller-supplied pre-selection; otherwise default to the age group in the most
+            // recently ending season (tiebreak oldest players).
+            val selectedAgeGroupId = initialAgeGroupId?.takeIf { id -> ageGroups.any { it.id == id } }
+                ?: ageGroups
+                    .sortedWith(
+                        compareByDescending<com.ricardofrango.footballmanager.model.AgeGroup> {
+                            seasons.find { s -> s.id == it.seasonId }?.endDate
+                        }.thenBy { it.birthYear }
+                    )
+                    .firstOrNull()
+                    ?.id
 
             _state.update {
                 AddPlayersToAgeGroupUiState.Idle(

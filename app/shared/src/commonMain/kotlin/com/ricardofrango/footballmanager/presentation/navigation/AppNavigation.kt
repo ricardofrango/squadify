@@ -17,6 +17,7 @@ import com.ricardofrango.footballmanager.presentation.ui.createseason.CreateSeas
 import com.ricardofrango.footballmanager.presentation.ui.createteams.CreateTeamsScreen
 import com.ricardofrango.footballmanager.presentation.ui.addplayerstoagegroup.AddPlayersToAgeGroupScreen
 import com.ricardofrango.footballmanager.presentation.ui.createplayers.CreatePlayersScreen
+import com.ricardofrango.footballmanager.presentation.ui.agegroupdetails.AgeGroupDetailsScreen
 import com.ricardofrango.footballmanager.presentation.ui.createagegroups.CreateAgeGroupsScreen
 import com.ricardofrango.footballmanager.presentation.ui.teamdetails.TeamDetailsScreen
 import com.ricardofrango.footballmanager.presentation.ui.playerdetails.PlayerDetailsScreen
@@ -123,6 +124,9 @@ fun AppNavigation() {
                 onNavigateToCreatePlayers = { clubName ->
                     navController.navigate(Screen.CreatePlayers(screen.clubId, clubName))
                 },
+                onNavigateToAgeGroup = { ageGroupId ->
+                    navController.navigate(Screen.AgeGroupDetails(ageGroupId))
+                },
                 refreshClubDetails = structureChanged
             )
         }
@@ -183,6 +187,7 @@ fun AppNavigation() {
             val screen: Screen.AddPlayersToAgeGroup = backStackEntry.toRoute()
             AddPlayersToAgeGroupScreen(
                 clubId = screen.clubId,
+                initialAgeGroupId = screen.initialAgeGroupId,
                 onNavigateBack = {
                     navController.popBackStack()
                 },
@@ -192,6 +197,29 @@ fun AppNavigation() {
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
                     navController.popBackStack()
                 }
+            )
+        }
+
+        composable<Screen.AgeGroupDetails> { backStackEntry ->
+            val screen: Screen.AgeGroupDetails = backStackEntry.toRoute()
+            val structureChanged by backStackEntry.savedStateHandle
+                .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
+                .collectAsState()
+            if (structureChanged) {
+                backStackEntry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false
+            }
+            AgeGroupDetailsScreen(
+                ageGroupId = screen.ageGroupId,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToTeam = { teamId -> navController.navigate(Screen.TeamDetails(teamId)) },
+                onNavigateToPlayer = { playerId -> navController.navigate(Screen.PlayerDetails(playerId)) },
+                onNavigateToAddPlayers = { clubId, ageGroupId ->
+                    navController.navigate(Screen.AddPlayersToAgeGroup(clubId, ageGroupId))
+                },
+                onNavigateToCreateTeams = { clubId, clubName ->
+                    navController.navigate(Screen.CreateTeams(clubId, clubName))
+                },
+                refreshOnReturn = structureChanged
             )
         }
 

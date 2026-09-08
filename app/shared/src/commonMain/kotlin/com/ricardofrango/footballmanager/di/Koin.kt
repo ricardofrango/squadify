@@ -13,6 +13,7 @@ import com.ricardofrango.footballmanager.presentation.ui.createagegroups.CreateA
 import com.ricardofrango.footballmanager.presentation.ui.createteams.CreateTeamsViewModel
 import com.ricardofrango.footballmanager.presentation.ui.addplayerstoagegroup.AddPlayersToAgeGroupViewModel
 import com.ricardofrango.footballmanager.presentation.ui.createplayers.CreatePlayersViewModel
+import com.ricardofrango.footballmanager.presentation.ui.agegroupdetails.AgeGroupDetailsViewModel
 import com.ricardofrango.footballmanager.presentation.ui.teamdetails.TeamDetailsViewModel
 import com.ricardofrango.footballmanager.presentation.ui.playerdetails.PlayerDetailsViewModel
 import com.ricardofrango.footballmanager.presentation.ui.dashboard.DashboardViewModel
@@ -89,6 +90,7 @@ val domainModule = module {
     factory { GetPlayerDetailsUseCase(get()) }
     factory { GetSeasonsUseCase(get()) }
     factory { GetAgeGroupsUseCase(get()) }
+    factory { GetAgeGroupDetailsUseCase(get()) }
     factory { CreateSeasonUseCase(get()) }
     factory { CreateAgeGroupsUseCase(get()) }
     factory { CreateTeamsUseCase(get()) }
@@ -109,6 +111,7 @@ val presentationModule = module {
     viewModelOf(::CreateTeamsViewModel)
     viewModelOf(::AddPlayersToAgeGroupViewModel)
     viewModelOf(::CreatePlayersViewModel)
+    viewModelOf(::AgeGroupDetailsViewModel)
     viewModelOf(::TeamDetailsViewModel)
     viewModelOf(::PlayerDetailsViewModel)
 }
