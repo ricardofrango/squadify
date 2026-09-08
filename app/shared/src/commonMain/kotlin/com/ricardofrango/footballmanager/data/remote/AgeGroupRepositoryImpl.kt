@@ -4,6 +4,7 @@ import com.ricardofrango.footballmanager.domain.config.AppConfig
 import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.footballmanager.domain.repository.SessionRepository
 import com.ricardofrango.footballmanager.model.AgeGroup
+import com.ricardofrango.footballmanager.model.AgeGroupDetails
 import com.ricardofrango.footballmanager.model.CreateAgeGroupsRequest
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -30,6 +31,15 @@ class AgeGroupRepositoryImpl(
         return httpClient.post("${appConfig.baseUrl}/age-groups") {
             contentType(ContentType.Application.Json)
             setBody(request)
+            token?.let {
+                header(HttpHeaders.Authorization, "Bearer $it")
+            }
+        }.handleResponse()
+    }
+
+    override suspend fun getAgeGroupDetails(ageGroupId: String): AgeGroupDetails {
+        val token = sessionRepository.getToken()
+        return httpClient.get("${appConfig.baseUrl}/age-groups/$ageGroupId/details") {
             token?.let {
                 header(HttpHeaders.Authorization, "Bearer $it")
             }

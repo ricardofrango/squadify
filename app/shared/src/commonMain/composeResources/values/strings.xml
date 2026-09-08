@@ -156,4 +156,22 @@
     <string name="msg_players_footer_helper">All players are added together — if one fails, none are saved.</string>
     <string name="msg_create_players_failed">Something went wrong adding the players. Please try again.</string>
     <string name="label_select_birth_date">Select date of birth</string>
+
+    <!-- Age Group Details -->
+    <string name="msg_failed_to_load_age_group">Couldn\'t load this age group. Please try again.</string>
+    <string name="label_eligibility_rule">Players born in %1$d or later</string>
+    <string name="label_upcoming">Upcoming</string>
+    <string name="label_upcoming_matches">Upcoming matches</string>
+    <string name="msg_no_upcoming_matches">No matches scheduled</string>
+    <string name="label_sort">Sort</string>
+    <string name="label_sort_name">Name</string>
+    <string name="label_sort_birth_year">Birth year</string>
+    <string name="label_add">Add</string>
+    <string name="btn_add_players">Add players</string>
+    <string name="msg_no_players_in_age_group_title">No players in this age group yet</string>
+    <string name="msg_no_players_in_age_group_hint">Players are registered on the club first, then added here.</string>
+    <string name="msg_no_teams_in_age_group">No teams yet</string>
+    <string name="msg_no_teams_in_age_group_hint">The player pool is set — add a team to start scheduling matches.</string>
+    <string name="label_role_coach">Coach</string>
+    <string name="label_role_staff">Staff</string>
 </resources>

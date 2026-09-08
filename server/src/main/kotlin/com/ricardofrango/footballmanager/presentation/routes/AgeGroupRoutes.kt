@@ -3,6 +3,7 @@ package com.ricardofrango.footballmanager.presentation.routes
 import com.ricardofrango.footballmanager.domain.usecase.AddPlayersToAgeGroupUseCase
 import com.ricardofrango.footballmanager.domain.usecase.AddStaffToAgeGroupUseCase
 import com.ricardofrango.footballmanager.domain.usecase.CreateAgeGroupsUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetAgeGroupDetailsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetAgeGroupStaffUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetAgeGroupsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetEligiblePlayersForAgeGroupUseCase
@@ -32,6 +33,7 @@ fun Route.ageGroupRoutes() {
     val getEligiblePlayersForAgeGroupUseCase by inject<GetEligiblePlayersForAgeGroupUseCase>()
     val addStaffToAgeGroupUseCase by inject<AddStaffToAgeGroupUseCase>()
     val getAgeGroupStaffUseCase by inject<GetAgeGroupStaffUseCase>()
+    val getAgeGroupDetailsUseCase by inject<GetAgeGroupDetailsUseCase>()
 
     authenticate("auth-jwt") {
         route("/age-groups") {
@@ -71,6 +73,14 @@ fun Route.ageGroupRoutes() {
                         ErrorResponse("Failed to update age group")
                     )
                 }
+            }
+
+            get("/{ageGroupId}/details") {
+                val ageGroupId = call.parameters["ageGroupId"]
+                    ?: return@get call.respond(HttpStatusCode.BadRequest)
+                val currentUserId =
+                    call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                call.respond(getAgeGroupDetailsUseCase(currentUserId, ageGroupId))
             }
 
             route("/{ageGroupId}/players") {

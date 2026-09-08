@@ -48,6 +48,7 @@ private val FormRoundedShape = RoundedCornerShape(18.dp)
 @Composable
 fun AddPlayersToAgeGroupScreen(
     clubId: String,
+    initialAgeGroupId: String? = null,
     onNavigateBack: () -> Unit,
     onPlayersAdded: () -> Unit,
     viewModel: AddPlayersToAgeGroupViewModel = koinViewModel()
@@ -56,7 +57,7 @@ fun AddPlayersToAgeGroupScreen(
     var searchQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(clubId) {
-        viewModel.load(clubId)
+        viewModel.load(clubId, initialAgeGroupId)
     }
 
     LaunchedEffect(viewModel.navigationEvent) {
