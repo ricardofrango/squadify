@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -486,13 +487,14 @@ private fun StaffRow(member: AgeGroupStaffMember) {
 @Composable
 private fun AgeGroupLink(ageGroupName: String, onClick: () -> Unit) {
     val full = stringResource(Res.string.msg_staff_managed_at_age_group, ageGroupName)
+    // The green/bold has to ride on the LinkAnnotation via TextLinkStyles -- a plain SpanStyle over
+    // the same range is ignored once the range is also a link, so the name rendered grey.
+    val linkStyle = TextLinkStyles(style = SpanStyle(color = PitchGreen, fontWeight = FontWeight.Bold))
     val annotated = buildAnnotatedString {
         append(full)
         val start = full.lastIndexOf(ageGroupName)
         if (start >= 0) {
-            val end = start + ageGroupName.length
-            addStyle(SpanStyle(color = PitchGreen, fontWeight = FontWeight.Bold), start, end)
-            addLink(LinkAnnotation.Clickable(tag = "ageGroup") { onClick() }, start, end)
+            addLink(LinkAnnotation.Clickable(tag = "ageGroup", styles = linkStyle) { onClick() }, start, start + ageGroupName.length)
         }
     }
     Text(
