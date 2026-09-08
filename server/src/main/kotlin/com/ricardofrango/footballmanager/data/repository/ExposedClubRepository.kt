@@ -11,6 +11,7 @@ import com.ricardofrango.footballmanager.model.ClubRole
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.exists
 import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.jdbc.batchInsert
@@ -27,15 +28,21 @@ class ExposedClubRepository : ClubRepository {
     override suspend fun getClubsByUser(userId: String): List<Club> {
         val userUuid = Uuid.parse(userId)
 
-        // Refactored to a single query using LEFT JOINs and OR
-        // This avoids multiple subqueries and fetches all unique clubs in one go
-        return (Clubs leftJoin ClubMembers leftJoin Players leftJoin UserPlayers)
-            .selectAll()
-            .where { 
-                (ClubMembers.userId eq userUuid) or (UserPlayers.userId eq userUuid)
-            }
-            .withDistinct()
-            .map(::toClub)
+        // One row per club, via two correlated EXISTS conditions (member OR parent of a player in
+        // the club). A LEFT JOIN + withDistinct() version was tried but fans out: when the same user
+        // is both a member and a linked parent, the join yields several wide rows for the one club
+        // that DISTINCT can't collapse, so the club came back duplicated.
+        return Clubs.selectAll().where {
+            exists(
+                ClubMembers.selectAll().where {
+                    (ClubMembers.clubId eq Clubs.id) and (ClubMembers.userId eq userUuid)
+                }
+            ) or exists(
+                (Players innerJoin UserPlayers).selectAll().where {
+                    (Players.clubId eq Clubs.id) and (UserPlayers.userId eq userUuid)
+                }
+            )
+        }.map(::toClub)
     }
 
     override suspend fun createClub(club: Club): Club =
