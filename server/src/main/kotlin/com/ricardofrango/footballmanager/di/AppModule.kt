@@ -29,6 +29,7 @@ val appModule = module {
     // Use Cases
     factory { GetClubsUseCase(get(), get(), get()) }
     factory { GetClubDetailsUseCase(get(), get(), get()) }
+    factory { GetClubHomeUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { ProvisionClubUseCase(get(), get(), get(), get(), get()) }
     factory { RegisterUseCase(get(), get(), get(), get(), get()) }
     factory {

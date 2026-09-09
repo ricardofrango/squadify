@@ -61,6 +61,7 @@ import footballmanager.app.shared.generated.resources.Res
 import footballmanager.app.shared.generated.resources.btn_retry
 import footballmanager.app.shared.generated.resources.ic_age_group
 import footballmanager.app.shared.generated.resources.ic_calendar
+import footballmanager.app.shared.generated.resources.ic_home
 import footballmanager.app.shared.generated.resources.ic_more
 import footballmanager.app.shared.generated.resources.ic_player
 import footballmanager.app.shared.generated.resources.ic_teams
@@ -87,6 +88,7 @@ import footballmanager.app.shared.generated.resources.msg_no_teams_filter
 import footballmanager.app.shared.generated.resources.msg_no_teams_member_subtitle
 import footballmanager.app.shared.generated.resources.label_age_group_summary
 import footballmanager.app.shared.generated.resources.tab_age_groups
+import footballmanager.app.shared.generated.resources.tab_home
 import footballmanager.app.shared.generated.resources.tab_players
 import footballmanager.app.shared.generated.resources.tab_teams
 import footballmanager.app.shared.generated.resources.title_club_details
@@ -235,18 +237,24 @@ fun ClubDetailsScreen(
                 ClubTabItem(
                     selected = selectedTab == 0,
                     onClick = { viewModel.onTabSelected(0) },
-                    icon = Res.drawable.ic_teams,
-                    label = stringResource(Res.string.tab_teams)
+                    icon = Res.drawable.ic_home,
+                    label = stringResource(Res.string.tab_home)
                 )
                 ClubTabItem(
                     selected = selectedTab == 1,
                     onClick = { viewModel.onTabSelected(1) },
-                    icon = Res.drawable.ic_player,
-                    label = stringResource(Res.string.tab_players)
+                    icon = Res.drawable.ic_teams,
+                    label = stringResource(Res.string.tab_teams)
                 )
                 ClubTabItem(
                     selected = selectedTab == 2,
                     onClick = { viewModel.onTabSelected(2) },
+                    icon = Res.drawable.ic_player,
+                    label = stringResource(Res.string.tab_players)
+                )
+                ClubTabItem(
+                    selected = selectedTab == 3,
+                    onClick = { viewModel.onTabSelected(3) },
                     icon = Res.drawable.ic_age_group,
                     label = stringResource(Res.string.tab_age_groups)
                 )
@@ -299,6 +307,7 @@ fun ClubDetailsScreen(
                         ClubDetailsTabContent(
                             state = state,
                             selectedTab = selectedTab,
+                            clubId = clubId,
                             viewModel = viewModel,
                             onNavigateToTeam = onNavigateToTeam,
                             onNavigateToPlayer = onNavigateToPlayer,
@@ -319,6 +328,7 @@ fun ClubDetailsScreen(
 private fun ClubDetailsTabContent(
     state: ClubDetailsUiState.Idle,
     selectedTab: Int,
+    clubId: String,
     viewModel: ClubDetailsViewModel,
     onNavigateToTeam: (String) -> Unit,
     onNavigateToPlayer: (String) -> Unit,
@@ -331,7 +341,13 @@ private fun ClubDetailsTabContent(
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         when (selectedTab) {
-            0 -> {
+            0 -> HomeTab(
+                home = state.home,
+                onRetry = { viewModel.loadClubDetails(clubId, forceReload = true) },
+                onNavigateToAgeGroup = onNavigateToAgeGroup
+            )
+
+            1 -> {
                 TeamFilterSection(state = state, viewModel = viewModel)
                 // The club-wide "no age groups" state above only fires when *no* season has any; once
                 // some do, narrowing the season filter to one that still has none would otherwise just
@@ -358,7 +374,7 @@ private fun ClubDetailsTabContent(
                 }
             }
 
-            1 -> {
+            2 -> {
                 PlayerFilterSection(state = state, viewModel = viewModel)
                 when {
                     state.selectedPlayerSeasonId != null &&

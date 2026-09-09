@@ -4,12 +4,17 @@ import com.ricardofrango.footballmanager.domain.usecase.ClubDetails
 import com.ricardofrango.footballmanager.model.Team
 import com.ricardofrango.footballmanager.model.Player
 import com.ricardofrango.footballmanager.model.AgeGroup
+import com.ricardofrango.footballmanager.model.ClubHome
 
 sealed class ClubDetailsUiState {
     data class Idle(
         val details: ClubDetails? = null,
+        // The Home tab's aggregate. Loaded alongside `details`; null while loading or if it failed
+        // (the Home tab then shows its own light empty/error state).
+        val home: ClubHome? = null,
         val filteredTeams: List<Team> = emptyList(),
         val filteredPlayers: List<Player> = emptyList(),
+        // Tab order: 0 Home, 1 Teams, 2 Players, 3 Age Groups. Home is the default.
         val selectedTab: Int = 0,
         // Available Filter Options (Contextual)
         val availableAgeGroups: List<AgeGroup> = emptyList(),

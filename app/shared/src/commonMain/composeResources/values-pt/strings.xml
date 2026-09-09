@@ -221,4 +221,25 @@
     <string name="label_select_kickoff_time">Hora de início</string>
     <string name="msg_failed_to_load_match_form">Não foi possível carregar. Por favor, tente novamente.</string>
     <string name="msg_create_match_failed">Ocorreu um erro ao agendar o jogo. Por favor, tente novamente.</string>
+
+    <!-- Club Home tab -->
+    <string name="tab_home">Início</string>
+    <string name="label_role_club_admin">Administrador do Clube</string>
+    <string name="label_role_coordinator">Coordenador</string>
+    <string name="label_role_member">Membro</string>
+    <string name="label_home_coaches">Treinadores</string>
+    <string name="label_home_matches_this_week">Jogos esta semana</string>
+    <string name="label_home_next_up">A seguir</string>
+    <string name="label_home_needs_you">Precisa de si</string>
+    <string name="msg_home_no_next_up">Nenhum jogo agendado</string>
+    <string name="msg_home_needs_coach">%1$s não tem treinador atribuído</string>
+    <string name="msg_home_callups_unsent">%1$d convocatórias por enviar para %2$s</string>
+    <string name="msg_failed_to_load_home">Não foi possível carregar o início. Por favor, tente novamente.</string>
+    <string name="weekday_monday">segunda-feira</string>
+    <string name="weekday_tuesday">terça-feira</string>
+    <string name="weekday_wednesday">quarta-feira</string>
+    <string name="weekday_thursday">quinta-feira</string>
+    <string name="weekday_friday">sexta-feira</string>
+    <string name="weekday_saturday">sábado</string>
+    <string name="weekday_sunday">domingo</string>
 </resources>

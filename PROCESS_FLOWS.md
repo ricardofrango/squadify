@@ -223,6 +223,28 @@ graph TD
 
 `canEditClub` from the same single probe above — `CreateSeasonUseCase` and `CreateAgeGroupsUseCase` enforce the identical `minClubRole=COORDINATOR` gate, so one non-throwing check covers both response fields (they're separate fields, not one shared boolean, only so either could diverge later without an API shape change). The client uses them to distinguish, when a club has zero seasons or zero age groups, an admin/coordinator ("nothing here yet, create one") from a plain member ("nothing here yet") — see §4.1 and §4.3.
 
+### 3.3b Get Club Home (`GetClubHomeUseCase`)
+
+The aggregate behind the club screen's default **Home** tab: stat-grid counts, one "Next up" row per team with an upcoming match, and role-scoped "Needs you" alerts. `GET /clubs/{clubId}/home`, readable by any club member.
+
+```mermaid
+graph TD
+    A[Start: userId, clubId] --> B[CheckUserPermissionUseCase — minClubRole=MEMBER, allowPlayerOrParentAccess=true]
+    B -- denied --> F(["Throw ForbiddenException"])
+    B -- allowed --> C[Fetch club; resolve role + season (active, else latest-ending)]
+    C --> D["Counts: teams, players, coaches; matchesThisWeek = club matches whose date is in the Mon–Sun week containing today"]
+    D --> E["Next up: per team, soonest SCHEDULED future match → opponent name + call-up counts (total, CONFIRMED)"]
+    E --> G{role >= COORDINATOR or platform admin?}
+    G -- Yes --> H["alert per season age group with no COACH in age_group_staff (AGE_GROUP_NEEDS_COACH)"]
+    G -- No --> I
+    H --> I{coaches any season age group?}
+    I -- Yes --> J["group that age group's SCHEDULED matches within 5 days that have zero call-ups, one CALLUPS_UNSENT alert per day"]
+    I -- No --> Z
+    J --> Z(["Return ClubHome — club, seasonName, role, counts, nextUp, alerts"])
+```
+
+Alerts carry structured parts (`ageGroupName`, `date`, `count`) rather than rendered strings, so the client formats them in the user's language. Someone who is both a coordinator and an age-group coach gets both alert types.
+
 ### 3.4 Update Club (`UpdateClubUseCase`)
 
 ```mermaid

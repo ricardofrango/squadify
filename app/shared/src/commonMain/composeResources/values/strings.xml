@@ -221,4 +221,25 @@
     <string name="label_select_kickoff_time">Kick-off time</string>
     <string name="msg_failed_to_load_match_form">Couldn\'t load this. Please try again.</string>
     <string name="msg_create_match_failed">Something went wrong scheduling the match. Please try again.</string>
+
+    <!-- Club Home tab -->
+    <string name="tab_home">Home</string>
+    <string name="label_role_club_admin">Club Admin</string>
+    <string name="label_role_coordinator">Coordinator</string>
+    <string name="label_role_member">Member</string>
+    <string name="label_home_coaches">Coaches</string>
+    <string name="label_home_matches_this_week">Matches this week</string>
+    <string name="label_home_next_up">Next up</string>
+    <string name="label_home_needs_you">Needs you</string>
+    <string name="msg_home_no_next_up">No matches scheduled</string>
+    <string name="msg_home_needs_coach">%1$s has no coach assigned</string>
+    <string name="msg_home_callups_unsent">%1$d call-ups unsent for %2$s</string>
+    <string name="msg_failed_to_load_home">Couldn\'t load the home view. Please try again.</string>
+    <string name="weekday_monday">Monday</string>
+    <string name="weekday_tuesday">Tuesday</string>
+    <string name="weekday_wednesday">Wednesday</string>
+    <string name="weekday_thursday">Thursday</string>
+    <string name="weekday_friday">Friday</string>
+    <string name="weekday_saturday">Saturday</string>
+    <string name="weekday_sunday">Sunday</string>
 </resources>
