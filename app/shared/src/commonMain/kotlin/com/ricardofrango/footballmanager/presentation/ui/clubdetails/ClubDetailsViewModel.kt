@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.footballmanager.domain.usecase.GetClubDetailsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetClubHomeUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetMatchesUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetOpponentsUseCase
 import com.ricardofrango.footballmanager.model.AgeGroup
 import com.ricardofrango.footballmanager.model.Team
 import footballmanager.app.shared.generated.resources.Res
@@ -14,7 +16,9 @@ import org.jetbrains.compose.resources.getString
 
 class ClubDetailsViewModel(
     private val getClubDetailsUseCase: GetClubDetailsUseCase,
-    private val getClubHomeUseCase: GetClubHomeUseCase
+    private val getClubHomeUseCase: GetClubHomeUseCase,
+    private val getMatchesUseCase: GetMatchesUseCase,
+    private val getOpponentsUseCase: GetOpponentsUseCase
 ) : ViewModel() {
 
     // Starts in Loading, not Idle(): loadClubDetails() always runs immediately on mount (from the
@@ -49,6 +53,17 @@ class ClubDetailsViewModel(
                 } catch (e: Exception) {
                     null
                 }
+                // Same best-effort treatment for the Matches tab's data.
+                val matches = try {
+                    getMatchesUseCase(clubId)
+                } catch (e: Exception) {
+                    emptyList()
+                }
+                val opponents = try {
+                    getOpponentsUseCase(clubId)
+                } catch (e: Exception) {
+                    emptyList()
+                }
                 // Teams and players are only meaningful within a season, so both tabs default to the
                 // most recent one (by end date) rather than "All seasons".
                 val mostRecentSeasonId = details.seasons.maxByOrNull { it.endDate }?.id
@@ -57,9 +72,12 @@ class ClubDetailsViewModel(
                         ClubDetailsUiState.Idle(
                             details = details,
                             home = home,
+                            matches = matches,
+                            opponents = opponents,
                             selectedTab = currentTab, // Restore the captured tab
                             selectedSeasonId = mostRecentSeasonId,
                             selectedPlayerSeasonId = mostRecentSeasonId,
+                            selectedMatchesSeasonId = mostRecentSeasonId,
                             showNoSeasonsState = details.seasons.isEmpty(),
                             canEditClub = details.canEditClub,
                             // Only meaningful once there's at least one season to attach age groups to --
@@ -119,6 +137,29 @@ class ClubDetailsViewModel(
         _state.update { state ->
             if (state is ClubDetailsUiState.Idle) state.copy(selectedAgeGroupsSeasonId = seasonId) else state
         }
+    }
+
+    // ---- Matches tab filters (the list itself is filtered + grouped in the screen) ----
+
+    fun onMatchesSeasonSelected(seasonId: String?) = updateMatchesIdle {
+        // A different season -> the picked age group / team may not belong to it; reset them.
+        it.copy(selectedMatchesSeasonId = seasonId, selectedMatchesAgeGroupId = null, selectedMatchesTeamId = null)
+    }
+
+    fun onMatchesAgeGroupSelected(ageGroupId: String?) = updateMatchesIdle {
+        it.copy(selectedMatchesAgeGroupId = ageGroupId, selectedMatchesTeamId = null)
+    }
+
+    fun onMatchesTeamSelected(teamId: String?) = updateMatchesIdle {
+        it.copy(selectedMatchesTeamId = teamId)
+    }
+
+    fun onMatchesStatusSelected(status: MatchesStatusFilter) = updateMatchesIdle {
+        it.copy(matchesStatus = status)
+    }
+
+    private inline fun updateMatchesIdle(block: (ClubDetailsUiState.Idle) -> ClubDetailsUiState.Idle) {
+        _state.update { if (it is ClubDetailsUiState.Idle) block(it) else it }
     }
 
     fun onTabSelected(index: Int) {

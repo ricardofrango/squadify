@@ -225,7 +225,25 @@
     <!-- Club Home tab -->
     <string name="tab_home">Home</string>
     <string name="tab_matches">Matches</string>
-    <string name="msg_matches_coming_soon">The club match schedule is coming soon.</string>
+
+    <!-- Club Matches tab -->
+    <string name="matches_status_upcoming">Upcoming</string>
+    <string name="matches_status_finished">Finished</string>
+    <string name="matches_status_all">All</string>
+    <string name="matches_group_earlier">Earlier</string>
+    <string name="matches_group_today">Today</string>
+    <string name="matches_group_later_today">Later today</string>
+    <string name="matches_group_this_weekend">This weekend</string>
+    <string name="matches_group_later">Later</string>
+    <string name="matches_group_results">Results</string>
+    <string name="matches_live">LIVE</string>
+    <string name="matches_half_time">HT</string>
+    <string name="matches_full_time">FT</string>
+    <string name="matches_minute">%1$d\'</string>
+    <string name="msg_no_matches_title">No matches scheduled yet</string>
+    <string name="msg_no_matches_subtitle">Fixtures are scheduled from a team, so we know who\'s playing.</string>
+    <string name="btn_go_to_age_groups">Go to age groups</string>
+    <string name="msg_no_matches_for_filters">No matches for these filters.</string>
     <string name="label_role_club_admin">Club Admin</string>
     <string name="label_role_coordinator">Coordinator</string>
     <string name="label_role_member">Member</string>

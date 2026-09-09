@@ -23,4 +23,12 @@ class MatchRepositoryImpl(
             token?.let { header(HttpHeaders.Authorization, "Bearer $it") }
         }.handleResponse()
     }
+
+    override suspend fun getMatches(clubId: String): List<Match> {
+        val token = sessionRepository.getToken()
+        return httpClient.get("${appConfig.baseUrl}/matches") {
+            parameter("clubId", clubId)
+            token?.let { header(HttpHeaders.Authorization, "Bearer $it") }
+        }.handleResponse()
+    }
 }
