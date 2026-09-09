@@ -438,6 +438,7 @@ data class TeamMatchResult(
 @Serializable
 data class TeamDetails(
     val team: Team,
+    val club: Club,
     val ageGroup: AgeGroup,
     val season: Season,
     val poolSize: Int,

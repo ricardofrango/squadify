@@ -53,7 +53,7 @@ val appModule = module {
     factory { AddStaffToAgeGroupUseCase(get(), get(), get(), get()) }
     factory { GetAgeGroupStaffUseCase(get(), get(), get()) }
     factory { GetTeamPlayersUseCase(get(), get(), get(), get()) }
-    factory { GetTeamDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { GetTeamDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { UpdateTeamUseCase(get(), get(), get()) }
 
     factory { GetSeasonsUseCase(get(), get(), get(), get(), get(), get()) }

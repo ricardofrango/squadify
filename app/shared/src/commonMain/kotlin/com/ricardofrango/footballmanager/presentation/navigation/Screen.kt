@@ -54,6 +54,15 @@ sealed class Screen {
     @Serializable
     data class TeamDetails(val teamId: String) : Screen()
 
+    // Schedule one fixture. Exactly one of [ageGroupId] / [teamId] is set: from an age group the
+    // team is picked on the screen; from a team it's fixed. The screen loads the club / season /
+    // teams context from whichever id it's given.
+    @Serializable
+    data class CreateMatch(
+        val ageGroupId: String? = null,
+        val teamId: String? = null
+    ) : Screen()
+
     @Serializable
     data class PlayerDetails(val playerId: String) : Screen()
 }

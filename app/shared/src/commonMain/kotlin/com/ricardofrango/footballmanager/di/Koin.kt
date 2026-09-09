@@ -15,6 +15,7 @@ import com.ricardofrango.footballmanager.presentation.ui.addplayerstoagegroup.Ad
 import com.ricardofrango.footballmanager.presentation.ui.createplayers.CreatePlayersViewModel
 import com.ricardofrango.footballmanager.presentation.ui.agegroupdetails.AgeGroupDetailsViewModel
 import com.ricardofrango.footballmanager.presentation.ui.teamdetails.TeamDetailsViewModel
+import com.ricardofrango.footballmanager.presentation.ui.creatematch.CreateMatchViewModel
 import com.ricardofrango.footballmanager.presentation.ui.playerdetails.PlayerDetailsViewModel
 import com.ricardofrango.footballmanager.presentation.ui.dashboard.DashboardViewModel
 import com.ricardofrango.footballmanager.presentation.ui.login.LoginViewModel
@@ -76,6 +77,8 @@ val dataModule = module {
     single<AgeGroupPlayerRepository> { AgeGroupPlayerRepositoryImpl(get(), get(), get()) }
     single<SeasonRepository> { SeasonRepositoryImpl(get(), get(), get()) }
     single<AgeGroupRepository> { AgeGroupRepositoryImpl(get(), get(), get()) }
+    single<MatchRepository> { MatchRepositoryImpl(get(), get(), get()) }
+    single<OpponentRepository> { OpponentRepositoryImpl(get(), get(), get()) }
     single<SessionRepository> { SessionRepositoryImpl(get()) }
 }
 
@@ -97,6 +100,9 @@ val domainModule = module {
     factory { GetEligiblePlayersForAgeGroupUseCase(get()) }
     factory { AddPlayersToAgeGroupUseCase(get()) }
     factory { CreatePlayersUseCase(get()) }
+    factory { GetOpponentsUseCase(get()) }
+    factory { CreateOpponentUseCase(get()) }
+    factory { CreateMatchUseCase(get()) }
 }
 
 val presentationModule = module {
@@ -113,6 +119,7 @@ val presentationModule = module {
     viewModelOf(::CreatePlayersViewModel)
     viewModelOf(::AgeGroupDetailsViewModel)
     viewModelOf(::TeamDetailsViewModel)
+    viewModelOf(::CreateMatchViewModel)
     viewModelOf(::PlayerDetailsViewModel)
 }
 

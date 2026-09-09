@@ -196,4 +196,29 @@
     <string name="msg_pool_shared_with">Shared with %1$s.</string>
     <string name="label_view_pool">View pool</string>
     <string name="msg_staff_managed_at_age_group">Staff and players are managed at the age-group level — %1$s</string>
+
+    <!-- Schedule Match -->
+    <string name="title_schedule_match">Schedule match</string>
+    <string name="label_team_field">Team</string>
+    <string name="label_choose_team">Choose a team</string>
+    <string name="label_opponent_field">Opponent</string>
+    <string name="label_choose_opponent">Choose an opponent</string>
+    <string name="label_new_opponent">New opponent</string>
+    <string name="label_new_opponent_name">Opponent name</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="label_when_field">When</string>
+    <string name="label_match_date">Date</string>
+    <string name="label_match_kickoff">Kick-off</string>
+    <string name="msg_match_when_helper">Defaults to the next Saturday at 10:30.</string>
+    <string name="label_details_section">Details</string>
+    <string name="label_match_location">Location</string>
+    <string name="label_match_location_placeholder">e.g. Campo do Ribamar</string>
+    <string name="label_match_notes">Notes</string>
+    <string name="label_match_notes_placeholder">Optional — meeting time, kit, travel</string>
+    <string name="btn_schedule_match">Schedule match</string>
+    <string name="btn_scheduling_match">Scheduling…</string>
+    <string name="label_select_match_date">Match date</string>
+    <string name="label_select_kickoff_time">Kick-off time</string>
+    <string name="msg_failed_to_load_match_form">Couldn\'t load this. Please try again.</string>
+    <string name="msg_create_match_failed">Something went wrong scheduling the match. Please try again.</string>
 </resources>

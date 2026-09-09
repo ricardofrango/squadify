@@ -411,17 +411,17 @@ graph TD
     B -- not found --> N(["Throw ValidationException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER, minTeamRole=STAFF, teamId, allowPlayerOrParentAccess]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D[Fetch age group + season]
+    C -- allowed --> D[Fetch club + age group + season]
     D --> G["canManage = non-throwing probe: minClubRole=COORDINATOR OR minTeamRole=COACH on teamId"]
     G --> H[matches = matchRepository.getMatchesByTeam]
     H --> I["upcomingMatches = SCHEDULED with dateTime >= now, sorted ascending"]
     H --> J["recentResults = FINISHED, newest first, each paired with its scoreline from matchEventRepository.getScoreByMatch → WIN/DRAW/LOSS"]
     I --> K[siblingTeamNames = other teams in the same age group]
     J --> K
-    K --> Z(["Return TeamDetails: team, ageGroup, season, poolSize, siblingTeamNames, staff, upcomingMatches, recentResults, opponents, canManage"])
+    K --> Z(["Return TeamDetails: team, club, ageGroup, season, poolSize, siblingTeamNames, staff, upcomingMatches, recentResults, opponents, canManage"])
 ```
 
-`poolSize` / `staff` come from the age group (players and staff belong to it, not the team); the screen links back to the age-group detail for both. `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canManage` gates the schedule-match / edit-team actions.
+`poolSize` / `staff` come from the age group (players and staff belong to it, not the team); the screen links back to the age-group detail for both. `club` is carried so a screen opened from here (e.g. Schedule Match) has the club name without another call. `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canManage` gates the schedule-match / edit-team actions.
 
 ---
 
