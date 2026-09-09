@@ -50,7 +50,7 @@
     <string name="msg_no_players_team">Não existem jogadores nesta equipa</string>
     <string name="label_age_group_staff">Equipa técnica</string>
     <string name="msg_no_staff_age_group">Ainda não há equipa técnica atribuída a este escalão</string>
-    <string name="label_squad_number_prefix">Número da Camisola: %1$s</string>
+    <string name="label_squad_number_prefix">Número: %1$s</string>
     <string name="label_player_info">Informação do Jogador</string>
     <string name="label_status">Estado</string>
     <string name="label_birth_date">Data de Nascimento</string>
@@ -149,7 +149,7 @@
     <string name="label_date_of_birth">Data de nascimento *</string>
     <string name="msg_date_of_birth_helper">Usada para verificar em que escalões o jogador é elegível.</string>
     <string name="label_pick_a_date">Escolher uma data</string>
-    <string name="label_shirt_number">Número da camisola</string>
+    <string name="label_shirt_number">Número</string>
     <string name="label_add_another_player">Adicionar outro jogador</string>
     <string name="msg_player_name_required">Dê um primeiro e último nome a todos os jogadores.</string>
     <string name="msg_player_dob_required">Escolha uma data de nascimento para todos os jogadores.</string>
