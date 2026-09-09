@@ -2,6 +2,7 @@ package com.ricardofrango.footballmanager.presentation.routes
 
 import com.ricardofrango.footballmanager.domain.usecase.AddClubMembersUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetClubDetailsUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetClubHomeUseCase
 import com.ricardofrango.footballmanager.domain.usecase.GetClubsUseCase
 import com.ricardofrango.footballmanager.domain.usecase.ProvisionClubUseCase
 import com.ricardofrango.footballmanager.domain.usecase.UpdateClubUseCase
@@ -24,6 +25,7 @@ import org.koin.ktor.ext.inject
 fun Route.clubRoutes() {
     val getClubsUseCase by inject<GetClubsUseCase>()
     val getClubDetailsUseCase by inject<GetClubDetailsUseCase>()
+    val getClubHomeUseCase by inject<GetClubHomeUseCase>()
     val provisionClubUseCase by inject<ProvisionClubUseCase>()
     val addClubMembersUseCase by inject<AddClubMembersUseCase>()
     val updateClubUseCase by inject<UpdateClubUseCase>()
@@ -56,6 +58,16 @@ fun Route.clubRoutes() {
 
                     val club = getClubDetailsUseCase(currentUserId, clubId)
                     call.respond(club)
+                }
+
+                get("/home") {
+                    val clubId =
+                        call.parameters["clubId"]
+                            ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId =
+                        call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+
+                    call.respond(getClubHomeUseCase(currentUserId, clubId))
                 }
 
                 patch {

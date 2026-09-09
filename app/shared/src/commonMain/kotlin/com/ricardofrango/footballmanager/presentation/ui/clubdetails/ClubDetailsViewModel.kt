@@ -3,6 +3,7 @@ package com.ricardofrango.footballmanager.presentation.ui.clubdetails
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.footballmanager.domain.usecase.GetClubDetailsUseCase
+import com.ricardofrango.footballmanager.domain.usecase.GetClubHomeUseCase
 import com.ricardofrango.footballmanager.model.AgeGroup
 import com.ricardofrango.footballmanager.model.Team
 import footballmanager.app.shared.generated.resources.Res
@@ -12,7 +13,8 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 
 class ClubDetailsViewModel(
-    private val getClubDetailsUseCase: GetClubDetailsUseCase
+    private val getClubDetailsUseCase: GetClubDetailsUseCase,
+    private val getClubHomeUseCase: GetClubHomeUseCase
 ) : ViewModel() {
 
     // Starts in Loading, not Idle(): loadClubDetails() always runs immediately on mount (from the
@@ -40,6 +42,13 @@ class ClubDetailsViewModel(
             _state.update { ClubDetailsUiState.Loading }
             try {
                 val details = getClubDetailsUseCase(clubId)
+                // Best-effort: the Home tab is nice-to-have, so a failure here shouldn't block the
+                // rest of the club screen -- the Home tab renders its own light empty state.
+                val home = try {
+                    getClubHomeUseCase(clubId)
+                } catch (e: Exception) {
+                    null
+                }
                 // Teams and players are only meaningful within a season, so both tabs default to the
                 // most recent one (by end date) rather than "All seasons".
                 val mostRecentSeasonId = details.seasons.maxByOrNull { it.endDate }?.id
@@ -47,6 +56,7 @@ class ClubDetailsViewModel(
                     applyFilters(
                         ClubDetailsUiState.Idle(
                             details = details,
+                            home = home,
                             selectedTab = currentTab, // Restore the captured tab
                             selectedSeasonId = mostRecentSeasonId,
                             selectedPlayerSeasonId = mostRecentSeasonId,

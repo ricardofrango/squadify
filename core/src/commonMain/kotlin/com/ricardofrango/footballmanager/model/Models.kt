@@ -587,3 +587,57 @@ data class ParentDashboardChild(
 data class ParentDashboard(
     val children: List<ParentDashboardChild>
 )
+
+// Club Home (the default tab of the club screen)
+
+/** One row of the Home "Next up" list: the soonest upcoming match for a team that has one. Teams
+ * with no scheduled match don't produce a row. [callUpsConfirmed] / [callUpsTotal] back the `X/Y`
+ * pill (Y = call-ups on the match, X = how many are CONFIRMED). */
+@Serializable
+data class ClubHomeNextUp(
+    val teamId: String,
+    val teamName: String,
+    val opponentName: String,
+    val location: String? = null,
+    val dateTime: Instant,
+    val callUpsConfirmed: Int,
+    val callUpsTotal: Int
+)
+
+@Serializable
+enum class ClubHomeAlertType {
+    /** A coordinator alert: an age group in the current season has no coach in `age_group_staff`. */
+    AGE_GROUP_NEEDS_COACH,
+    /** A coach alert: matches within 5 days for age groups they coach that have no call-ups yet. */
+    CALLUPS_UNSENT
+}
+
+/** One "Needs you" row. The client formats the copy from these parts so it stays localized. */
+@Serializable
+data class ClubHomeAlert(
+    val type: ClubHomeAlertType,
+    val count: Int,
+    // AGE_GROUP_NEEDS_COACH only:
+    val ageGroupId: String? = null,
+    val ageGroupName: String? = null,
+    // CALLUPS_UNSENT only -- the day those matches fall on:
+    val date: LocalDate? = null
+)
+
+/**
+ * Everything behind the club Home tab. Counts for the stat grid, one [nextUp] row per team with an
+ * upcoming match, and role-scoped [alerts] ("Needs you"): coordinators get AGE_GROUP_NEEDS_COACH,
+ * coaches get CALLUPS_UNSENT, someone who is both gets both.
+ */
+@Serializable
+data class ClubHome(
+    val club: Club,
+    val seasonName: String? = null,
+    val role: ClubRole,
+    val teamCount: Int,
+    val playerCount: Int,
+    val coachCount: Int,
+    val matchesThisWeek: Int,
+    val nextUp: List<ClubHomeNextUp>,
+    val alerts: List<ClubHomeAlert>
+)

@@ -5,6 +5,7 @@ import com.ricardofrango.footballmanager.domain.repository.ClubRepository
 import com.ricardofrango.footballmanager.domain.repository.SessionRepository
 import com.ricardofrango.footballmanager.model.Club
 import com.ricardofrango.footballmanager.model.ClubDetailsResponse
+import com.ricardofrango.footballmanager.model.ClubHome
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.http.*
@@ -27,6 +28,15 @@ class ClubRepositoryImpl(
     override suspend fun getClubById(clubId: String): ClubDetailsResponse {
         val token = sessionRepository.getToken()
         return httpClient.get("${appConfig.baseUrl}/clubs/$clubId") {
+            token?.let {
+                header(HttpHeaders.Authorization, "Bearer $it")
+            }
+        }.handleResponse()
+    }
+
+    override suspend fun getClubHome(clubId: String): ClubHome {
+        val token = sessionRepository.getToken()
+        return httpClient.get("${appConfig.baseUrl}/clubs/$clubId/home") {
             token?.let {
                 header(HttpHeaders.Authorization, "Bearer $it")
             }
