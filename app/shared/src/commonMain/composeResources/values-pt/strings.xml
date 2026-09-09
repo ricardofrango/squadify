@@ -65,7 +65,7 @@
     <string name="label_season_type_european_range">Julho → Junho</string>
     <string name="label_season_type_calendar">Ano civil</string>
     <string name="label_season_type_calendar_range">Janeiro → Dezembro</string>
-    <string name="msg_season_type_helper_european">Decorre de Jul a Jun, tal como o futebol jovem português está organizado. Escolher um tipo preenche as datas abaixo — altere-as se a sua liga for diferente.</string>
+    <string name="msg_season_type_helper_european">Decorre de Jul a Jun, como a maioria das épocas jovens europeias. Escolher um tipo preenche as datas abaixo — altere-as se a sua liga for diferente.</string>
     <string name="msg_season_type_helper_calendar">Decorre de Jan a Dez, o ano civil padrão. Escolher um tipo preenche as datas abaixo — altere-as se a sua liga for diferente.</string>
     <string name="label_dates_section">Datas</string>
     <string name="label_days_count">%1$s dias</string>

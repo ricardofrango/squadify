@@ -5,10 +5,10 @@ plugins {
     application
 }
 
-group = "com.ricardofrango.footballmanager"
+group = "com.ricardofrango.clubmanager"
 version = "1.0.0"
 application {
-    mainClass = "com.ricardofrango.footballmanager.ApplicationKt"
+    mainClass = "com.ricardofrango.clubmanager.ApplicationKt"
 }
 
 dependencies {

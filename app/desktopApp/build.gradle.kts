@@ -17,11 +17,11 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "com.ricardofrango.footballmanager.MainKt"
+        mainClass = "com.ricardofrango.clubmanager.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.ricardofrango.footballmanager"
+            packageName = "com.ricardofrango.clubmanager"
             packageVersion = "1.0.0"
         }
     }

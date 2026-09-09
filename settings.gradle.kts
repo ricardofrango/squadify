@@ -1,4 +1,4 @@
-rootProject.name = "FootballManager"
+rootProject.name = "ClubManager"
 
 pluginManagement {
     repositories {
