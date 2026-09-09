@@ -144,7 +144,7 @@ data class Club(
     val createdAt: Instant,
     // Defaulted so the many `Club(...)` test/preview constructions stay valid; the choice is forced
     // where a human actually makes it (`ProvisionClubRequest.sport`).
-    val sport: SportType = SportType.FOOTBALL
+    val sport: SportType
 )
 
 /**
