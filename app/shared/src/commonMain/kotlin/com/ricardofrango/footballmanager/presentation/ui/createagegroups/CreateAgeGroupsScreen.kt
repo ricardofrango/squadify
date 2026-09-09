@@ -82,9 +82,9 @@ fun CreateAgeGroupsScreen(
     var nextRowKey by remember { mutableStateOf(1) }
     val rows = remember { mutableStateListOf(AgeGroupRow(key = 0)) }
 
-    // Start year of the currently picked season -- drives the inferred "Sub N" name. Null until a
-    // season is selected (or when the club has none), in which case the name column stays disabled.
-    val seasonStartYear = (uiState as? CreateAgeGroupsUiState.Idle)?.selectedSeason?.startDate?.year
+    // End year of the currently picked season -- drives the inferred "Sub N" name (age reached within
+    // the season). Null until a season is selected, in which case the name column stays disabled.
+    val seasonEndYear = (uiState as? CreateAgeGroupsUiState.Idle)?.selectedSeason?.endDate?.year
 
     LaunchedEffect(clubId, initialSeasonId) {
         viewModel.load(clubId, initialSeasonId)
@@ -116,15 +116,17 @@ fun CreateAgeGroupsScreen(
             val index = rows.indexOfFirst { it.key == rowKey }
             if (index >= 0) {
                 val row = rows[index]
-                // Only replace the name if it was still the placeholder-driven inferred value (or
-                // blank) -- a name the user typed themselves is never silently overwritten.
+                // Fill the name with the inferred "Sub N" as real, editable text. A name the user
+                // typed themselves is kept; one that's still the previous year's inferred value (or
+                // blank) is replaced with the new year's.
                 val previousInferred = row.birthYear?.let { year ->
-                    seasonStartYear?.let { AgeGroupDefaults.inferredName(year, it) }
+                    seasonEndYear?.let { AgeGroupDefaults.inferredName(year, it) }
                 }
+                val newInferred = seasonEndYear?.let { AgeGroupDefaults.inferredName(birthYear, it) }.orEmpty()
                 val keepName = row.name.isNotBlank() && row.name != previousInferred
                 rows[index] = row.copy(
                     birthYear = birthYear,
-                    name = if (keepName) row.name else ""
+                    name = if (keepName) row.name else newInferred
                 )
             }
             viewModel.clearSubmitError()
@@ -142,11 +144,11 @@ fun CreateAgeGroupsScreen(
             rows.removeAll { it.key == rowKey }
         },
         onCreateClick = onCreateClick@{
-            val startYear = seasonStartYear ?: return@onCreateClick
+            val endYear = seasonEndYear ?: return@onCreateClick
             val items = rows.mapNotNull { row ->
                 val birthYear = row.birthYear ?: return@mapNotNull null
                 AgeGroupItemRequest(
-                    name = row.name.ifBlank { AgeGroupDefaults.inferredName(birthYear, startYear) },
+                    name = row.name.ifBlank { AgeGroupDefaults.inferredName(birthYear, endYear) },
                     birthYear = birthYear
                 )
             }
@@ -209,7 +211,7 @@ private fun CreateAgeGroupsContent(
                     )
                 }
             } else {
-                val seasonStartYear = uiState.selectedSeason?.startDate?.year
+                val seasonEndYear = uiState.selectedSeason?.endDate?.year
                 val allYearOptions = remember(today) { AgeGroupDefaults.birthYearOptions(today) }
 
                 Column(
@@ -242,7 +244,7 @@ private fun CreateAgeGroupsContent(
                             row = row,
                             availableYears = availableYears,
                             inferredName = row.birthYear?.let { year ->
-                                seasonStartYear?.let { AgeGroupDefaults.inferredName(year, it) }
+                                seasonEndYear?.let { AgeGroupDefaults.inferredName(year, it) }
                             },
                             canRemove = rows.size > 1,
                             onBirthYearSelected = { onRowBirthYearSelected(row.key, it) },

@@ -16,10 +16,9 @@ class AgeGroupDefaultsTest {
     }
 
     @Test
-    fun inferredNameIsSubAgeAtSeasonStart() {
-        // Matches the real data this convention was reverse-engineered from: a 2015-born player in a
-        // season starting 2026 is "Sub 11".
-        assertEquals("Sub 11", AgeGroupDefaults.inferredName(birthYear = 2015, seasonStartYear = 2026))
-        assertEquals("Sub 12", AgeGroupDefaults.inferredName(birthYear = 2014, seasonStartYear = 2026))
+    fun inferredNameIsSubAgeReachedWithinTheSeason() {
+        // Age = season END year - birth year: a 2015-born player in a season ending 2027 is "Sub 12".
+        assertEquals("Sub 12", AgeGroupDefaults.inferredName(birthYear = 2015, seasonEndYear = 2027))
+        assertEquals("Sub 13", AgeGroupDefaults.inferredName(birthYear = 2014, seasonEndYear = 2027))
     }
 }
