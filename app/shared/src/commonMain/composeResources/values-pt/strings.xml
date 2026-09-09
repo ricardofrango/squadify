@@ -224,6 +224,8 @@
 
     <!-- Club Home tab -->
     <string name="tab_home">Início</string>
+    <string name="tab_matches">Jogos</string>
+    <string name="msg_matches_coming_soon">O calendário de jogos do clube está para breve.</string>
     <string name="label_role_club_admin">Administrador do Clube</string>
     <string name="label_role_coordinator">Coordenador</string>
     <string name="label_role_member">Membro</string>

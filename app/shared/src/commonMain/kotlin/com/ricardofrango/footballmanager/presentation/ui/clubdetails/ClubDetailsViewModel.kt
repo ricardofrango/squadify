@@ -36,7 +36,7 @@ class ClubDetailsViewModel(
         }
 
         // Capture current tab to preserve it across loading states
-        val currentTab = (currentState as? ClubDetailsUiState.Idle)?.selectedTab ?: 0
+        val currentTab = (currentState as? ClubDetailsUiState.Idle)?.selectedTab ?: CLUB_TAB_HOME
 
         viewModelScope.launch {
             _state.update { ClubDetailsUiState.Loading }

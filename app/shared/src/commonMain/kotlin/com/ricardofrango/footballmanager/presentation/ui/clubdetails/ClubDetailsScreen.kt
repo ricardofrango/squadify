@@ -87,8 +87,10 @@ import footballmanager.app.shared.generated.resources.msg_no_teams_admin_subtitl
 import footballmanager.app.shared.generated.resources.msg_no_teams_filter
 import footballmanager.app.shared.generated.resources.msg_no_teams_member_subtitle
 import footballmanager.app.shared.generated.resources.label_age_group_summary
+import footballmanager.app.shared.generated.resources.msg_matches_coming_soon
 import footballmanager.app.shared.generated.resources.tab_age_groups
 import footballmanager.app.shared.generated.resources.tab_home
+import footballmanager.app.shared.generated.resources.tab_matches
 import footballmanager.app.shared.generated.resources.tab_players
 import footballmanager.app.shared.generated.resources.tab_teams
 import footballmanager.app.shared.generated.resources.title_club_details
@@ -124,7 +126,7 @@ fun ClubDetailsScreen(
     viewModel: ClubDetailsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
-    val selectedTab = (uiState as? ClubDetailsUiState.Idle)?.selectedTab ?: 0
+    val selectedTab = (uiState as? ClubDetailsUiState.Idle)?.selectedTab ?: CLUB_TAB_HOME
     val clubName = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name ?: ""
 
     LaunchedEffect(clubId) {
@@ -237,8 +239,8 @@ fun ClubDetailsScreen(
                 ClubTabItem(
                     selected = selectedTab == 0,
                     onClick = { viewModel.onTabSelected(0) },
-                    icon = Res.drawable.ic_home,
-                    label = stringResource(Res.string.tab_home)
+                    icon = Res.drawable.ic_age_group,
+                    label = stringResource(Res.string.tab_age_groups)
                 )
                 ClubTabItem(
                     selected = selectedTab == 1,
@@ -249,14 +251,20 @@ fun ClubDetailsScreen(
                 ClubTabItem(
                     selected = selectedTab == 2,
                     onClick = { viewModel.onTabSelected(2) },
-                    icon = Res.drawable.ic_player,
-                    label = stringResource(Res.string.tab_players)
+                    icon = Res.drawable.ic_home,
+                    label = stringResource(Res.string.tab_home)
                 )
                 ClubTabItem(
                     selected = selectedTab == 3,
                     onClick = { viewModel.onTabSelected(3) },
-                    icon = Res.drawable.ic_age_group,
-                    label = stringResource(Res.string.tab_age_groups)
+                    icon = Res.drawable.ic_player,
+                    label = stringResource(Res.string.tab_players)
+                )
+                ClubTabItem(
+                    selected = selectedTab == 4,
+                    onClick = { viewModel.onTabSelected(4) },
+                    icon = Res.drawable.ic_calendar,
+                    label = stringResource(Res.string.tab_matches)
                 )
             }
         }
@@ -340,8 +348,9 @@ private fun ClubDetailsTabContent(
     clubName: String
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
+        // Tab order: 0 Age groups, 1 Teams, 2 Home (default), 3 Players, 4 Matches.
         when (selectedTab) {
-            0 -> HomeTab(
+            2 -> HomeTab(
                 home = state.home,
                 onRetry = { viewModel.loadClubDetails(clubId, forceReload = true) },
                 onNavigateToAgeGroup = onNavigateToAgeGroup
@@ -374,7 +383,7 @@ private fun ClubDetailsTabContent(
                 }
             }
 
-            2 -> {
+            3 -> {
                 PlayerFilterSection(state = state, viewModel = viewModel)
                 when {
                     state.selectedPlayerSeasonId != null &&
@@ -401,7 +410,7 @@ private fun ClubDetailsTabContent(
                 }
             }
 
-            else -> {
+            0 -> {
                 AgeGroupsFilterSection(state = state, viewModel = viewModel)
                 val ageGroups = viewModel.getAgeGroupsForAgeGroupsTab(state)
                 if (ageGroups.isEmpty()) {
@@ -424,7 +433,25 @@ private fun ClubDetailsTabContent(
                     )
                 }
             }
+
+            // Matches — the club-wide fixture list. Screen still to be built; empty for now.
+            else -> MatchesTab()
         }
+    }
+}
+
+/** Placeholder for the club Matches tab until the fixture-list screen is built. */
+@Composable
+private fun MatchesTab() {
+    Box(
+        modifier = Modifier.fillMaxSize().background(Color.White).padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = stringResource(Res.string.msg_matches_coming_soon),
+            style = MaterialTheme.typography.bodyMedium,
+            color = DeepCarbon.copy(alpha = 0.6f)
+        )
     }
 }
 
