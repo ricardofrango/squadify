@@ -5,6 +5,11 @@ import com.ricardofrango.footballmanager.model.Team
 import com.ricardofrango.footballmanager.model.Player
 import com.ricardofrango.footballmanager.model.AgeGroup
 import com.ricardofrango.footballmanager.model.ClubHome
+import com.ricardofrango.footballmanager.model.Match
+import com.ricardofrango.footballmanager.model.Opponent
+
+/** Which slice of the club's fixtures the Matches tab shows. */
+enum class MatchesStatusFilter { UPCOMING, FINISHED, ALL }
 
 /** Club-screen tab indices. Order: Age groups, Teams, Home, Players, Matches -- Home is the default. */
 const val CLUB_TAB_AGE_GROUPS = 0
@@ -35,6 +40,14 @@ sealed class ClubDetailsUiState {
         // an age group only means something within one season. Defaults to the most recent season
         // (by end date) when details load.
         val selectedAgeGroupsSeasonId: String? = null,
+        // Matches tab -- the club's fixtures + opponent list (best-effort, see ClubDetailsViewModel),
+        // plus its own filter set (season defaults to the most recent, status to UPCOMING).
+        val matches: List<Match> = emptyList(),
+        val opponents: List<Opponent> = emptyList(),
+        val selectedMatchesSeasonId: String? = null,
+        val selectedMatchesAgeGroupId: String? = null,
+        val selectedMatchesTeamId: String? = null,
+        val matchesStatus: MatchesStatusFilter = MatchesStatusFilter.UPCOMING,
         val error: String? = null,
         // Resolved once when details load, so the screen just reads a flag instead of re-deriving it
         // from `details` on every recomposition: everything on this screen (teams, players, filters)

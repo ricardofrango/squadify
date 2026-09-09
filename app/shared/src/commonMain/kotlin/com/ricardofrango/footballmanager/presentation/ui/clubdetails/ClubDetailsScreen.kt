@@ -87,7 +87,6 @@ import footballmanager.app.shared.generated.resources.msg_no_teams_admin_subtitl
 import footballmanager.app.shared.generated.resources.msg_no_teams_filter
 import footballmanager.app.shared.generated.resources.msg_no_teams_member_subtitle
 import footballmanager.app.shared.generated.resources.label_age_group_summary
-import footballmanager.app.shared.generated.resources.msg_matches_coming_soon
 import footballmanager.app.shared.generated.resources.tab_age_groups
 import footballmanager.app.shared.generated.resources.tab_home
 import footballmanager.app.shared.generated.resources.tab_matches
@@ -434,24 +433,13 @@ private fun ClubDetailsTabContent(
                 }
             }
 
-            // Matches — the club-wide fixture list. Screen still to be built; empty for now.
-            else -> MatchesTab()
+            // Matches — the club-wide fixture list (see MatchesTab.kt).
+            else -> MatchesTab(
+                state = state,
+                viewModel = viewModel,
+                onGoToAgeGroups = { viewModel.onTabSelected(CLUB_TAB_AGE_GROUPS) }
+            )
         }
-    }
-}
-
-/** Placeholder for the club Matches tab until the fixture-list screen is built. */
-@Composable
-private fun MatchesTab() {
-    Box(
-        modifier = Modifier.fillMaxSize().background(Color.White).padding(24.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = stringResource(Res.string.msg_matches_coming_soon),
-            style = MaterialTheme.typography.bodyMedium,
-            color = DeepCarbon.copy(alpha = 0.6f)
-        )
     }
 }
 
@@ -649,7 +637,7 @@ private fun PlayerFilterSection(
 }
 
 @Composable
-private fun <T> FilterSelector(
+internal fun <T> FilterSelector(
     selectedOption: String,
     options: List<Pair<T, String>>,
     onOptionSelected: (T) -> Unit

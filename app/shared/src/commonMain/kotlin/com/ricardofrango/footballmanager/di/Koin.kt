@@ -104,6 +104,7 @@ val domainModule = module {
     factory { GetOpponentsUseCase(get()) }
     factory { CreateOpponentUseCase(get()) }
     factory { CreateMatchUseCase(get()) }
+    factory { GetMatchesUseCase(get()) }
 }
 
 val presentationModule = module {
