@@ -20,6 +20,7 @@ import com.ricardofrango.footballmanager.presentation.ui.createplayers.CreatePla
 import com.ricardofrango.footballmanager.presentation.ui.agegroupdetails.AgeGroupDetailsScreen
 import com.ricardofrango.footballmanager.presentation.ui.createagegroups.CreateAgeGroupsScreen
 import com.ricardofrango.footballmanager.presentation.ui.teamdetails.TeamDetailsScreen
+import com.ricardofrango.footballmanager.presentation.ui.creatematch.CreateMatchScreen
 import com.ricardofrango.footballmanager.presentation.ui.playerdetails.PlayerDetailsScreen
 
 // Key used on the ClubDetails back-stack entry's SavedStateHandle to signal "a season, age group, or
@@ -219,9 +220,9 @@ fun AppNavigation() {
                 onNavigateToCreateTeams = { clubId, clubName ->
                     navController.navigate(Screen.CreateTeams(clubId, clubName))
                 },
-                // TODO: the match-creation screen doesn't exist yet -- the button is in place and
-                // will route to it (passing the age group; team picked there) once it's built.
-                onNavigateToCreateMatch = {},
+                onNavigateToCreateMatch = { ageGroupId ->
+                    navController.navigate(Screen.CreateMatch(ageGroupId = ageGroupId))
+                },
                 refreshOnReturn = structureChanged
             )
         }
@@ -262,11 +263,27 @@ fun AppNavigation() {
                 onNavigateToPlayer = { playerId ->
                     navController.navigate(Screen.PlayerDetails(playerId))
                 },
-                // Match scheduling / team editing screens don't exist yet -- the canManage-gated
-                // affordances are wired but inert until those are built.
-                onScheduleMatch = {},
+                onScheduleMatch = {
+                    navController.navigate(Screen.CreateMatch(teamId = screen.teamId))
+                },
+                // The team-editing screen doesn't exist yet -- this affordance stays inert.
                 onEditTeam = {},
                 refreshOnReturn = structureChanged
+            )
+        }
+
+        composable<Screen.CreateMatch> { backStackEntry ->
+            val screen: Screen.CreateMatch = backStackEntry.toRoute()
+            CreateMatchScreen(
+                ageGroupId = screen.ageGroupId,
+                teamId = screen.teamId,
+                onNavigateBack = { navController.popBackStack() },
+                onMatchCreated = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
             )
         }
 

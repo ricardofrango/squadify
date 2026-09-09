@@ -1,6 +1,7 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
+import com.ricardofrango.footballmanager.domain.repository.ClubRepository
 import com.ricardofrango.footballmanager.domain.repository.MatchEventRepository
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
 import com.ricardofrango.footballmanager.domain.repository.OpponentRepository
@@ -11,7 +12,9 @@ import com.ricardofrango.footballmanager.domain.repository.UserRepository
 import com.ricardofrango.footballmanager.domain.service.TransactionManager
 import com.ricardofrango.footballmanager.exception.ForbiddenException
 import com.ricardofrango.footballmanager.model.AgeGroup
+import com.ricardofrango.footballmanager.model.Club
 import com.ricardofrango.footballmanager.model.ClubRole
+import com.ricardofrango.footballmanager.model.ClubStatus
 import com.ricardofrango.footballmanager.model.MatchOutcome
 import com.ricardofrango.footballmanager.model.MatchScore
 import com.ricardofrango.footballmanager.model.MatchStatus
@@ -44,6 +47,7 @@ import kotlin.time.Instant
 class GetTeamDetailsUseCaseTest {
 
     private val teamRepository = mockk<TeamRepository>()
+    private val clubRepository = mockk<ClubRepository>()
     private val ageGroupRepository = mockk<AgeGroupRepository>()
     private val seasonRepository = mockk<SeasonRepository>()
     private val playerRepository = mockk<PlayerRepository>()
@@ -58,8 +62,9 @@ class GetTeamDetailsUseCaseTest {
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager
     )
     private val useCase = GetTeamDetailsUseCase(
-        teamRepository, ageGroupRepository, seasonRepository, playerRepository, matchRepository,
-        matchEventRepository, opponentRepository, checkUserPermissionUseCase, transactionManager
+        teamRepository, clubRepository, ageGroupRepository, seasonRepository, playerRepository,
+        matchRepository, matchEventRepository, opponentRepository, checkUserPermissionUseCase,
+        transactionManager
     )
 
     private val clubIdA = "club-a"
@@ -69,6 +74,10 @@ class GetTeamDetailsUseCaseTest {
     private val team = Team(
         id = teamId, clubId = clubIdA, ageGroupId = ag1, seasonId = "season-1",
         name = "Sub-15 A", code = "S15A", active = true
+    )
+    private val club = Club(
+        id = clubIdA, name = "CD Ribamar", status = ClubStatus.ACTIVE,
+        createdAt = Instant.fromEpochMilliseconds(0)
     )
     private val ageGroup = AgeGroup(
         id = ag1, clubId = clubIdA, name = "Sub-15", seasonId = "season-1", birthYear = 2011
@@ -86,6 +95,7 @@ class GetTeamDetailsUseCaseTest {
     /** Stubs shared by every test: the team resolves, and every downstream repo returns empty. */
     private fun stubResolvedTeamWithNoData() {
         coEvery { teamRepository.getTeamById(teamId) } returns team
+        coEvery { clubRepository.getClubById(clubIdA) } returns club
         coEvery { ageGroupRepository.getAgeGroupById(ag1) } returns ageGroup
         coEvery { seasonRepository.getSeasonById("season-1") } returns season
         coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team)

@@ -196,4 +196,29 @@
     <string name="msg_pool_shared_with">Partilhado com %1$s.</string>
     <string name="label_view_pool">Ver plantel</string>
     <string name="msg_staff_managed_at_age_group">A equipa técnica e os jogadores são geridos ao nível do escalão — %1$s</string>
+
+    <!-- Schedule Match -->
+    <string name="title_schedule_match">Agendar jogo</string>
+    <string name="label_team_field">Equipa</string>
+    <string name="label_choose_team">Escolher uma equipa</string>
+    <string name="label_opponent_field">Adversário</string>
+    <string name="label_choose_opponent">Escolher um adversário</string>
+    <string name="label_new_opponent">Novo adversário</string>
+    <string name="label_new_opponent_name">Nome do adversário</string>
+    <string name="btn_cancel">Cancelar</string>
+    <string name="label_when_field">Quando</string>
+    <string name="label_match_date">Data</string>
+    <string name="label_match_kickoff">Início</string>
+    <string name="msg_match_when_helper">Predefinido para o próximo sábado às 10:30.</string>
+    <string name="label_details_section">Detalhes</string>
+    <string name="label_match_location">Local</string>
+    <string name="label_match_location_placeholder">ex. Campo do Ribamar</string>
+    <string name="label_match_notes">Notas</string>
+    <string name="label_match_notes_placeholder">Opcional — hora de encontro, equipamento, viagem</string>
+    <string name="btn_schedule_match">Agendar jogo</string>
+    <string name="btn_scheduling_match">A agendar…</string>
+    <string name="label_select_match_date">Data do jogo</string>
+    <string name="label_select_kickoff_time">Hora de início</string>
+    <string name="msg_failed_to_load_match_form">Não foi possível carregar. Por favor, tente novamente.</string>
+    <string name="msg_create_match_failed">Ocorreu um erro ao agendar o jogo. Por favor, tente novamente.</string>
 </resources>

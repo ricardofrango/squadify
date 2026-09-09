@@ -1,6 +1,7 @@
 package com.ricardofrango.footballmanager.domain.usecase
 
 import com.ricardofrango.footballmanager.domain.repository.AgeGroupRepository
+import com.ricardofrango.footballmanager.domain.repository.ClubRepository
 import com.ricardofrango.footballmanager.domain.repository.MatchEventRepository
 import com.ricardofrango.footballmanager.domain.repository.MatchRepository
 import com.ricardofrango.footballmanager.domain.repository.OpponentRepository
@@ -27,6 +28,7 @@ import kotlin.time.Clock
  */
 class GetTeamDetailsUseCase(
     private val teamRepository: TeamRepository,
+    private val clubRepository: ClubRepository,
     private val ageGroupRepository: AgeGroupRepository,
     private val seasonRepository: SeasonRepository,
     private val playerRepository: PlayerRepository,
@@ -49,6 +51,8 @@ class GetTeamDetailsUseCase(
             allowPlayerOrParentAccess = true
         )
 
+        val club = clubRepository.getClubById(team.clubId)
+            ?: throw ValidationException("Club not found")
         val ageGroup = ageGroupRepository.getAgeGroupById(team.ageGroupId)
             ?: throw ValidationException("Age group not found")
         val season = seasonRepository.getSeasonById(team.seasonId)
@@ -98,6 +102,7 @@ class GetTeamDetailsUseCase(
 
         TeamDetails(
             team = team,
+            club = club,
             ageGroup = ageGroup,
             season = season,
             poolSize = playerRepository.getPlayersByAgeGroup(team.ageGroupId).size,
