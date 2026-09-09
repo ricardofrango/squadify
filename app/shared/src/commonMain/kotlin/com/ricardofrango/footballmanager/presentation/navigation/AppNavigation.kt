@@ -219,6 +219,9 @@ fun AppNavigation() {
                 onNavigateToCreateTeams = { clubId, clubName ->
                     navController.navigate(Screen.CreateTeams(clubId, clubName))
                 },
+                // TODO: the match-creation screen doesn't exist yet -- the button is in place and
+                // will route to it (passing the age group; team picked there) once it's built.
+                onNavigateToCreateMatch = {},
                 refreshOnReturn = structureChanged
             )
         }

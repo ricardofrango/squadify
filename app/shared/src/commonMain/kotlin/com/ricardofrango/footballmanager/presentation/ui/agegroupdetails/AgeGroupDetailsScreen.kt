@@ -60,6 +60,7 @@ fun AgeGroupDetailsScreen(
     onNavigateToPlayer: (playerId: String) -> Unit,
     onNavigateToAddPlayers: (clubId: String, ageGroupId: String) -> Unit,
     onNavigateToCreateTeams: (clubId: String, clubName: String) -> Unit,
+    onNavigateToCreateMatch: (ageGroupId: String) -> Unit,
     refreshOnReturn: Boolean = false,
     viewModel: AgeGroupDetailsViewModel = koinViewModel()
 ) {
@@ -81,7 +82,8 @@ fun AgeGroupDetailsScreen(
         onPlayerClick = onNavigateToPlayer,
         onTeamClick = onNavigateToTeam,
         onAddPlayers = { d -> onNavigateToAddPlayers(d.ageGroup.clubId, d.ageGroup.id) },
-        onCreateTeam = { d -> onNavigateToCreateTeams(d.ageGroup.clubId, d.club.name) }
+        onCreateTeam = { d -> onNavigateToCreateTeams(d.ageGroup.clubId, d.club.name) },
+        onCreateMatch = { d -> onNavigateToCreateMatch(d.ageGroup.id) }
     )
 }
 
@@ -98,7 +100,8 @@ private fun AgeGroupDetailsContent(
     onPlayerClick: (String) -> Unit,
     onTeamClick: (String) -> Unit,
     onAddPlayers: (AgeGroupDetails) -> Unit,
-    onCreateTeam: (AgeGroupDetails) -> Unit
+    onCreateTeam: (AgeGroupDetails) -> Unit,
+    onCreateMatch: (AgeGroupDetails) -> Unit
 ) {
     val details = (uiState as? AgeGroupDetailsUiState.Idle)?.details
     Scaffold(
@@ -130,6 +133,12 @@ private fun AgeGroupDetailsContent(
                                     text = { Text(stringResource(Res.string.label_create_team), color = DeepCarbon) },
                                     onClick = { open = false; onCreateTeam(details) }
                                 )
+                                if (details.teams.isNotEmpty()) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(Res.string.label_schedule_match), color = DeepCarbon) },
+                                        onClick = { open = false; onCreateMatch(details) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -169,7 +178,8 @@ private fun AgeGroupDetailsContent(
                     onPlayerClick = onPlayerClick,
                     onTeamClick = onTeamClick,
                     onAddPlayers = { onAddPlayers(uiState.details) },
-                    onCreateTeam = { onCreateTeam(uiState.details) }
+                    onCreateTeam = { onCreateTeam(uiState.details) },
+                    onCreateMatch = { onCreateMatch(uiState.details) }
                 )
             }
         }
@@ -187,7 +197,8 @@ private fun AgeGroupBody(
     onPlayerClick: (String) -> Unit,
     onTeamClick: (String) -> Unit,
     onAddPlayers: () -> Unit,
-    onCreateTeam: () -> Unit
+    onCreateTeam: () -> Unit,
+    onCreateMatch: () -> Unit
 ) {
     val ag = details.ageGroup
     val opponentsById = remember(details.opponents) { details.opponents.associateBy { it.id } }
@@ -299,9 +310,23 @@ private fun AgeGroupBody(
         }
 
         // ---- Upcoming matches ----
-        item { SectionHeader(title = stringResource(Res.string.label_upcoming_matches), count = details.upcomingMatches.size, onAdd = null) }
+        // A match belongs to a team, so scheduling is only offered once the age group has one.
+        val canSchedule = details.canManage && details.teams.isNotEmpty()
+        item {
+            SectionHeader(
+                title = stringResource(Res.string.label_upcoming_matches),
+                count = details.upcomingMatches.size,
+                onAdd = if (canSchedule) onCreateMatch else null
+            )
+        }
         if (details.upcomingMatches.isEmpty()) {
-            item { EmptySectionCard(title = stringResource(Res.string.msg_no_upcoming_matches), hint = null, action = null) }
+            item {
+                EmptySectionCard(
+                    title = stringResource(Res.string.msg_no_upcoming_matches),
+                    hint = null,
+                    action = if (canSchedule) stringResource(Res.string.label_schedule_match) to onCreateMatch else null
+                )
+            }
         } else {
             items(details.upcomingMatches, key = { it.id }) { match ->
                 MatchRow(
@@ -610,7 +635,7 @@ private fun AgeGroupDetailsPopulatedPreview() {
             uiState = AgeGroupDetailsUiState.Idle(sampleDetails(populated = true, canManage = true)),
             playerSort = PlayerSort.NAME, searchQuery = "",
             onNavigateBack = {}, onRetry = {}, onPlayerSortChange = {}, onSearchChange = {},
-            onPlayerClick = {}, onTeamClick = {}, onAddPlayers = {}, onCreateTeam = {}
+            onPlayerClick = {}, onTeamClick = {}, onAddPlayers = {}, onCreateTeam = {}, onCreateMatch = {}
         )
     }
 }
@@ -623,7 +648,7 @@ private fun AgeGroupDetailsEmptyReadOnlyPreview() {
             uiState = AgeGroupDetailsUiState.Idle(sampleDetails(populated = false, canManage = false)),
             playerSort = PlayerSort.NAME, searchQuery = "",
             onNavigateBack = {}, onRetry = {}, onPlayerSortChange = {}, onSearchChange = {},
-            onPlayerClick = {}, onTeamClick = {}, onAddPlayers = {}, onCreateTeam = {}
+            onPlayerClick = {}, onTeamClick = {}, onAddPlayers = {}, onCreateTeam = {}, onCreateMatch = {}
         )
     }
 }
@@ -636,7 +661,7 @@ private fun AgeGroupDetailsLandscapePreview() {
             uiState = AgeGroupDetailsUiState.Idle(sampleDetails(populated = true, canManage = true)),
             playerSort = PlayerSort.BIRTH_YEAR, searchQuery = "",
             onNavigateBack = {}, onRetry = {}, onPlayerSortChange = {}, onSearchChange = {},
-            onPlayerClick = {}, onTeamClick = {}, onAddPlayers = {}, onCreateTeam = {}
+            onPlayerClick = {}, onTeamClick = {}, onAddPlayers = {}, onCreateTeam = {}, onCreateMatch = {}
         )
     }
 }
