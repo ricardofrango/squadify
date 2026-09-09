@@ -35,28 +35,6 @@ class ExposedMatchRepository : MatchRepository {
             .map(::toMatch)
             .singleOrNull()
 
-    override suspend fun getMatchDetails(id: String): MatchDetails? {
-        val matchUuid = Uuid.parse(id)
-        val matchAndOpponent = (MatchesTable innerJoin OpponentsTable)
-            .selectAll().where { MatchesTable.id eq matchUuid }
-            .singleOrNull() ?: return null
-
-        val callUps = (CallUpsTable innerJoin PlayersTable).selectAll()
-            .where { CallUpsTable.matchId eq matchUuid }
-            .map {
-                MatchCallUpWithPlayer(
-                    callUp = toMatchCallUp(it),
-                    player = toPlayer(it)
-                )
-            }
-
-        return MatchDetails(
-            match = toMatch(matchAndOpponent),
-            opponent = toOpponent(matchAndOpponent),
-            callUps = callUps
-        )
-    }
-
     override suspend fun getMatchesByTeam(teamId: String): List<Match> =
         MatchesTable.selectAll().where { MatchesTable.teamId eq Uuid.parse(teamId) }
             .orderBy(MatchesTable.dateTime)
@@ -81,6 +59,14 @@ class ExposedMatchRepository : MatchRepository {
             ?.singleOrNull()
             ?.let(::toMatch)
             ?: throw DatabaseException("Failed to create match")
+
+    override suspend fun updateMatch(match: Match): Boolean =
+        MatchesTable.update({ MatchesTable.id eq Uuid.parse(match.id) }) {
+            it[opponentId] = Uuid.parse(match.opponentId)
+            it[location] = match.location
+            it[dateTime] = match.dateTime
+            it[notes] = match.notes
+        } > 0
 
     override suspend fun updateMatchStatus(matchId: String, status: MatchStatus): Boolean =
         MatchesTable.update({ MatchesTable.id eq Uuid.parse(matchId) }) {

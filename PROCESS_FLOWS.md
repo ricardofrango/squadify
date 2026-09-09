@@ -95,7 +95,7 @@ graph TD
     D -- allowed --> R[Fetch and return data from repository]
 ```
 
-Use cases that follow this pattern exactly (fetch-context → require at least `MEMBER` → return): `GetClubDetailsUseCase`, `GetAgeGroupsUseCase`, `GetSeasonsUseCase`, `GetTeamsUseCase`, `GetTeamDetailsUseCase` (adds aggregation + a `canManage` probe — see §4.6b), `GetTeamPlayersUseCase`, `GetAgeGroupPlayersByClubUseCase`, `GetAgeGroupStaffUseCase`, `GetPlayersUseCase`, `GetPlayerUseCase`, `GetMatchesUseCase`, `GetMatchDetailsUseCase` (adds aggregation: opponent + call-ups), `GetMatchEventsUseCase`, `GetMatchScoreUseCase`, `GetOpponentsUseCase`, and `GetLiveMatchUpdatesUseCase` (terminal step is "subscribe to the live bus" instead of "return data" — see §8.3).
+Use cases that follow this pattern exactly (fetch-context → require at least `MEMBER` → return): `GetClubDetailsUseCase`, `GetAgeGroupsUseCase`, `GetSeasonsUseCase`, `GetTeamsUseCase`, `GetTeamDetailsUseCase` (adds aggregation + a `canManage` probe — see §4.6b), `GetTeamPlayersUseCase`, `GetAgeGroupPlayersByClubUseCase`, `GetAgeGroupStaffUseCase`, `GetPlayersUseCase`, `GetPlayerUseCase`, `GetMatchesUseCase`, `GetMatchDetailsUseCase` (adds aggregation + a `canManage` probe — see §7.1b), `GetMatchEventsUseCase`, `GetMatchScoreUseCase`, `GetOpponentsUseCase`, and `GetLiveMatchUpdatesUseCase` (terminal step is "subscribe to the live bus" instead of "return data" — see §8.3).
 
 Their individual diagrams are omitted below to avoid 15 near-identical copies; only the use cases with distinct branching logic get a dedicated diagram.
 
@@ -596,6 +596,39 @@ graph TD
     E -- Yes --> FB(["Throw ForbiddenException: opponent belongs to another club"])
     E -- No --> G[Create Match — status SCHEDULED]
     G --> Z(["Persist Match"])
+```
+
+### 7.1b Get Match Details (`GetMatchDetailsUseCase`)
+
+The aggregate behind the match screen. Standard permission-gated read (§1.3, `MEMBER` + age-group `STAFF` + linked player/parent) plus an aggregation step and a `canManage` probe:
+
+```mermaid
+graph TD
+    A[Start: userId, matchId] --> B[Fetch Match by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER, minTeamRole=STAFF, teamId=match.teamId, allowPlayerOrParentAccess]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D[Fetch opponent + team + age group + season]
+    D --> E["callUps = call-ups for the match; poolPlayers = age group's players MINUS whoever is already called up"]
+    E --> G["canManage = non-throwing probe: minClubRole=COORDINATOR OR minTeamRole=COACH on the team"]
+    G --> Z(["Return MatchDetails: match, opponent, team, ageGroup, season, callUps, poolPlayers, canManage"])
+```
+
+The use case composes `MatchDetails` itself now — the old `MatchRepository.getMatchDetails` (opponent + call-ups only) was removed. `poolPlayers` is the "Available" list on the call-up screen; `canManage` gates the edit sheet and call-up management. The bottom button just opens the live match screen (a placeholder for now); starting the game and recording events will live there.
+
+### 7.1c Update Match (`UpdateMatchUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, matchId, patch (opponentId?, dateTime?, location?, notes?)] --> B[Fetch Match by id]
+    B -- not found --> N1(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=COACH, teamId=match.teamId]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D{patch.opponentId set?}
+    D -- Yes --> E[Fetch Opponent; reject if it belongs to another club]
+    D -- No --> G
+    E --> G["Merge non-null patch fields onto the match"]
+    G --> Z(["Persist updated Match — status and call-ups are untouched"])
 ```
 
 ### 7.2 Manage Call-ups (`ManageCallUpsUseCase`) — batch replace

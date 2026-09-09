@@ -54,7 +54,8 @@ private val LiveRed = Color(0xFFC0392B)
 fun MatchesTab(
     state: ClubDetailsUiState.Idle,
     viewModel: ClubDetailsViewModel,
-    onGoToAgeGroups: () -> Unit
+    onGoToAgeGroups: () -> Unit,
+    onNavigateToMatch: (matchId: String) -> Unit
 ) {
     val details = state.details ?: return
 
@@ -186,7 +187,8 @@ fun MatchesTab(
                         MatchRow(
                             match = match,
                             teamName = teamsById[match.teamId]?.name ?: "—",
-                            opponentName = opponentsById[match.opponentId]?.let { it.shortName ?: it.name } ?: "—"
+                            opponentName = opponentsById[match.opponentId]?.let { it.shortName ?: it.name } ?: "—",
+                            onClick = { onNavigateToMatch(match.id) }
                         )
                     }
                 }
@@ -213,10 +215,11 @@ private fun StatusChip(label: StringResource, selected: Boolean, onClick: () -> 
 }
 
 @Composable
-private fun MatchRow(match: Match, teamName: String, opponentName: String) {
+private fun MatchRow(match: Match, teamName: String, opponentName: String, onClick: () -> Unit) {
     val live = match.status == MatchStatus.LIVE || match.status == MatchStatus.HALF_TIME
     val finished = match.status == MatchStatus.FINISHED
     Surface(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = CardShape,
         color = Color.White,

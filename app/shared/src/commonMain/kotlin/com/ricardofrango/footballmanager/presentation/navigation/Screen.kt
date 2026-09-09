@@ -64,5 +64,12 @@ sealed class Screen {
     ) : Screen()
 
     @Serializable
+    data class MatchDetails(val matchId: String) : Screen()
+
+    // The live / in-progress match screen (start, substitutions, goals, cards). Placeholder for now.
+    @Serializable
+    data class LiveMatch(val matchId: String) : Screen()
+
+    @Serializable
     data class PlayerDetails(val playerId: String) : Screen()
 }

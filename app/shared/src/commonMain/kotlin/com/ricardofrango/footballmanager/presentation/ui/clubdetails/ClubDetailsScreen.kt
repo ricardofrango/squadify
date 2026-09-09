@@ -118,6 +118,7 @@ fun ClubDetailsScreen(
     onNavigateToAddPlayersToAgeGroup: () -> Unit,
     onNavigateToCreatePlayers: (clubName: String) -> Unit,
     onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
+    onNavigateToMatch: (matchId: String) -> Unit,
     // True exactly once, right after returning from a Create* screen having created something --
     // forces a reload past loadClubDetails' "already have this club" guard, since Koin scopes this
     // ViewModel to the nav back-stack entry (so popping back here reuses stale state).
@@ -323,6 +324,7 @@ fun ClubDetailsScreen(
                             onNavigateToCreatePlayers = onNavigateToCreatePlayers,
                             onNavigateToAddPlayersToAgeGroup = onNavigateToAddPlayersToAgeGroup,
                             onNavigateToAgeGroup = onNavigateToAgeGroup,
+                            onNavigateToMatch = onNavigateToMatch,
                             clubName = clubName
                         )
                 }
@@ -344,6 +346,7 @@ private fun ClubDetailsTabContent(
     onNavigateToCreatePlayers: (clubName: String) -> Unit,
     onNavigateToAddPlayersToAgeGroup: () -> Unit,
     onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
+    onNavigateToMatch: (matchId: String) -> Unit,
     clubName: String
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -352,7 +355,8 @@ private fun ClubDetailsTabContent(
             2 -> HomeTab(
                 home = state.home,
                 onRetry = { viewModel.loadClubDetails(clubId, forceReload = true) },
-                onNavigateToAgeGroup = onNavigateToAgeGroup
+                onNavigateToAgeGroup = onNavigateToAgeGroup,
+                onNavigateToMatch = onNavigateToMatch
             )
 
             1 -> {
@@ -437,7 +441,8 @@ private fun ClubDetailsTabContent(
             else -> MatchesTab(
                 state = state,
                 viewModel = viewModel,
-                onGoToAgeGroups = { viewModel.onTabSelected(CLUB_TAB_AGE_GROUPS) }
+                onGoToAgeGroups = { viewModel.onTabSelected(CLUB_TAB_AGE_GROUPS) },
+                onNavigateToMatch = onNavigateToMatch
             )
         }
     }
