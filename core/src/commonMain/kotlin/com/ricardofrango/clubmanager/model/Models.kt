@@ -37,6 +37,13 @@ enum class ClubStatus {
     PENDING
 }
 
+/** The sport a club runs. Everything else (age groups, teams, matches, call-ups) is sport-agnostic. */
+@Serializable
+enum class SportType {
+    FOOTBALL,
+    FUTSAL
+}
+
 @Serializable
 enum class UserPlayerRelationship {
     FATHER,
@@ -129,7 +136,8 @@ data class Club(
     val phone: String? = null,
     val address: String? = null,
     val status: ClubStatus,
-    val createdAt: Instant
+    val createdAt: Instant,
+    val sport: SportType
 )
 
 /**

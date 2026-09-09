@@ -190,9 +190,9 @@ Config comes from `ServerConfig` and is injected into the use case: `DEV` enable
 
 ```mermaid
 graph TD
-    A[Start: executorUserId, clubName, directorEmail] --> B[CheckUserIsAdminUseCase]
+    A[Start: executorUserId, clubName, directorEmail, sport] --> B[CheckUserIsAdminUseCase]
     B -- False --> F(["Throw ForbiddenException: only platform admins"])
-    B -- True --> C[Create Club — status ACTIVE]
+    B -- True --> C[Create Club — status ACTIVE, sport from request]
     C --> D[Find user by directorEmail]
     D -- exists --> E[Add existing user as ClubMember, role CLUB_ADMIN]
     D -- not exists --> G[Create Invite — type CLUB_MEMBER, role CLUB_ADMIN]
@@ -864,6 +864,7 @@ erDiagram
         varchar phone "50 chars, nullable"
         varchar address "500 chars, nullable"
         enum status "ClubStatus, default ACTIVE"
+        enum sport "SportType, default FOOTBALL"
         timestamp created_at
     }
     CLUB_MEMBERS {
@@ -984,6 +985,7 @@ erDiagram
 |---|---|---|
 | `UserStatus` | `ACTIVE`, `INACTIVE`, `PENDING`, `SUSPENDED` | `users.status` (default `ACTIVE`) |
 | `ClubStatus` | `ACTIVE`, `INACTIVE`, `PENDING` | `clubs.status` (default `ACTIVE`) |
+| `SportType` | `FOOTBALL`, `FUTSAL` | `clubs.sport` (default `FOOTBALL`); required in `ProvisionClubRequest` |
 | `ClubRole` | `CLUB_ADMIN`(5), `COORDINATOR`(4), `MEMBER`(1) | `club_members.role`, `invites.role` |
 | `TeamRole` | `COACH`(3), `STAFF`(2) | `age_group_staff.role` |
 | `SeasonType` | `CALENDAR_YEAR`, `EUROPEAN_YEAR` | `seasons.type` (default `EUROPEAN_YEAR`) |

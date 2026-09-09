@@ -38,6 +38,7 @@ object Clubs : Table("clubs") {
     val phone = varchar("phone", 50).nullable()
     val address = varchar("address", 500).nullable()
     val status = enumerationByName("status", 50, ClubStatus::class).default(ClubStatus.ACTIVE)
+    val sport = enumerationByName("sport", 50, SportType::class)
     val createdAt = timestamp("created_at")
 
     override val primaryKey = PrimaryKey(id)

@@ -22,7 +22,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 
 ## 3. Core Entities
 - **User**: Account data (email, phone, name, avatar, status).
-- **Club**: Branding and contact info.
+- **Club**: Branding and contact info, plus a **sport** (`FOOTBALL` / `FUTSAL` for now) chosen when the club is provisioned. Everything below the club is sport-agnostic.
 - **Season**: Time-bound periods. Supports two types:
     - **Calendar Year**: January 1st to December 31st (e.g., Brazil).
     - **European Year**: July 1st to June 30th (e.g., Europe).

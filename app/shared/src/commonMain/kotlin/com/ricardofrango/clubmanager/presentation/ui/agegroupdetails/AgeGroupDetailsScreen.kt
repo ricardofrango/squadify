@@ -605,7 +605,7 @@ private fun EmptySectionCard(title: String, hint: String?, action: Pair<String, 
 
 private fun sampleDetails(populated: Boolean, canManage: Boolean): AgeGroupDetails {
     val ag = AgeGroup(id = "ag1", clubId = "c1", name = "Sub 2015", seasonId = "s1", birthYear = 2015)
-    val club = Club(id = "c1", name = "CD Ribamar", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0))
+    val club = Club(id = "c1", name = "CD Ribamar", status = ClubStatus.ACTIVE, sport = SportType.FOOTBALL, createdAt = Instant.fromEpochMilliseconds(0))
     val season = Season(id = "s1", clubId = "c1", name = "26/27", type = SeasonType.EUROPEAN_YEAR, startDate = LocalDate(2026, 7, 1), endDate = LocalDate(2027, 6, 30), active = true)
     fun p(id: String, f: String, l: String, y: Int, n: Int?) = Player(id, "c1", f, l, LocalDate(y, 3, 1), n, null, true)
     return AgeGroupDetails(
