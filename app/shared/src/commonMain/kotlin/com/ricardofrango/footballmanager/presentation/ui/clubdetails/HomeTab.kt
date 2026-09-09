@@ -48,7 +48,8 @@ private val CardShape = RoundedCornerShape(16.dp)
 fun HomeTab(
     home: ClubHome?,
     onRetry: () -> Unit,
-    onNavigateToAgeGroup: (ageGroupId: String) -> Unit
+    onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
+    onNavigateToMatch: (matchId: String) -> Unit
 ) {
     if (home == null) {
         Column(
@@ -96,7 +97,7 @@ fun HomeTab(
                     color = DeepCarbon.copy(alpha = 0.5f)
                 )
             } else {
-                home.nextUp.forEach { NextUpRow(it) }
+                home.nextUp.forEach { row -> NextUpRow(row, onClick = { onNavigateToMatch(row.matchId) }) }
             }
         }
 
@@ -168,8 +169,9 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun NextUpRow(item: ClubHomeNextUp) {
+private fun NextUpRow(item: ClubHomeNextUp, onClick: () -> Unit) {
     Surface(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = CardShape,
         color = Color.White,
@@ -313,8 +315,8 @@ private fun HomeTabPreview() {
                 role = ClubRole.CLUB_ADMIN,
                 teamCount = 7, playerCount = 118, coachCount = 9, matchesThisWeek = 5,
                 nextUp = listOf(
-                    ClubHomeNextUp("t1", "Sub-15 A", "AD Fontelas", "Campo do Ribamar", base, 16, 18),
-                    ClubHomeNextUp("t2", "Sub-17 A", "GD Marinhas", "Away", base, 0, 20)
+                    ClubHomeNextUp("m1", "t1", "Sub-15 A", "AD Fontelas", "Campo do Ribamar", base, 16, 18),
+                    ClubHomeNextUp("m2", "t2", "Sub-17 A", "GD Marinhas", "Away", base, 0, 20)
                 ),
                 alerts = listOf(
                     ClubHomeAlert(ClubHomeAlertType.CALLUPS_UNSENT, count = 2, date = kotlinx.datetime.LocalDate(2026, 9, 12)),
@@ -322,7 +324,8 @@ private fun HomeTabPreview() {
                 )
             ),
             onRetry = {},
-            onNavigateToAgeGroup = {}
+            onNavigateToAgeGroup = {},
+            onNavigateToMatch = {}
         )
     }
 }

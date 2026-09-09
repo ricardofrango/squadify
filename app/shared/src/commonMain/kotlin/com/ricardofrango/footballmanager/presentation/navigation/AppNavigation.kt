@@ -21,6 +21,8 @@ import com.ricardofrango.footballmanager.presentation.ui.agegroupdetails.AgeGrou
 import com.ricardofrango.footballmanager.presentation.ui.createagegroups.CreateAgeGroupsScreen
 import com.ricardofrango.footballmanager.presentation.ui.teamdetails.TeamDetailsScreen
 import com.ricardofrango.footballmanager.presentation.ui.creatematch.CreateMatchScreen
+import com.ricardofrango.footballmanager.presentation.ui.matchdetails.MatchDetailsScreen
+import com.ricardofrango.footballmanager.presentation.ui.livematch.LiveMatchScreen
 import com.ricardofrango.footballmanager.presentation.ui.playerdetails.PlayerDetailsScreen
 
 // Key used on the ClubDetails back-stack entry's SavedStateHandle to signal "a season, age group, or
@@ -127,6 +129,9 @@ fun AppNavigation() {
                 },
                 onNavigateToAgeGroup = { ageGroupId ->
                     navController.navigate(Screen.AgeGroupDetails(ageGroupId))
+                },
+                onNavigateToMatch = { matchId ->
+                    navController.navigate(Screen.MatchDetails(matchId))
                 },
                 refreshClubDetails = structureChanged
             )
@@ -284,6 +289,30 @@ fun AppNavigation() {
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
                     navController.popBackStack()
                 }
+            )
+        }
+
+        composable<Screen.MatchDetails> { backStackEntry ->
+            val screen: Screen.MatchDetails = backStackEntry.toRoute()
+            val structureChanged by backStackEntry.savedStateHandle
+                .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
+                .collectAsState()
+            if (structureChanged) {
+                backStackEntry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false
+            }
+            MatchDetailsScreen(
+                matchId = screen.matchId,
+                onNavigateBack = { navController.popBackStack() },
+                onEnterLiveMatch = { matchId -> navController.navigate(Screen.LiveMatch(matchId)) },
+                refreshOnReturn = structureChanged
+            )
+        }
+
+        composable<Screen.LiveMatch> { backStackEntry ->
+            val screen: Screen.LiveMatch = backStackEntry.toRoute()
+            LiveMatchScreen(
+                matchId = screen.matchId,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

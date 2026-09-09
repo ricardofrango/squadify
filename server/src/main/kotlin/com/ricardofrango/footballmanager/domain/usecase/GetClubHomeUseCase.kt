@@ -86,6 +86,7 @@ class GetClubHomeUseCase(
                 ?: return@mapNotNull null
             val callUps = matchRepository.getCallUpsForMatch(next.id)
             ClubHomeNextUp(
+                matchId = next.id,
                 teamId = team.id,
                 teamName = team.name,
                 opponentName = opponentsById[next.opponentId]?.let { it.shortName ?: it.name } ?: "—",

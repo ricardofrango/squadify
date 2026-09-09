@@ -294,7 +294,7 @@ private fun CreateMatchForm(
             shadowElevation = 8.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Box(Modifier.padding(24.dp)) {
+            Box(Modifier.navigationBarsPadding().padding(24.dp)) {
                 PrimaryLoadingButton(
                     text = Res.string.btn_schedule_match,
                     submittingText = Res.string.btn_scheduling_match,

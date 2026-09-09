@@ -262,4 +262,34 @@
     <string name="weekday_friday">sexta-feira</string>
     <string name="weekday_saturday">sábado</string>
     <string name="weekday_sunday">domingo</string>
+
+    <!-- Match screen -->
+    <string name="title_match">Jogo</string>
+    <string name="msg_failed_to_load_match">Não foi possível carregar este jogo. Por favor, tente novamente.</string>
+    <string name="msg_match_change_failed">A alteração não foi guardada. Por favor, tente novamente.</string>
+    <string name="label_edit">Editar</string>
+    <string name="label_edit_match">Editar jogo</string>
+    <string name="title_edit_match">Editar jogo</string>
+    <string name="btn_save">Guardar</string>
+    <string name="label_match_directions">Direções</string>
+    <string name="label_call_up">Convocatória</string>
+    <string name="label_sort_status">Estado</string>
+    <string name="label_remind">Lembrar</string>
+    <string name="label_standby">Suplência</string>
+    <string name="label_available">Disponíveis</string>
+    <string name="label_available_from_pool">do plantel %1$s</string>
+    <string name="label_callup_summary">%1$d/%2$d convocados · %3$d confirmados · %4$d fora · %5$d pendentes</string>
+    <string name="msg_squad_hint">%1$d confirmados — costuma alinhar %2$d.</string>
+    <string name="msg_tap_status_hint">Toque num estado para o alternar — guarda automaticamente.</string>
+    <string name="msg_no_callups">Ainda ninguém foi convocado.</string>
+    <string name="btn_start_match">Iniciar jogo</string>
+    <string name="btn_enter_live_match">Entrar no jogo ao vivo</string>
+    <string name="msg_kickoff_countdown">O pontapé de saída é %1$s — vamos pedir-lhe para confirmar.</string>
+    <string name="label_callup_status_called_up">Convocado</string>
+    <string name="label_callup_status_confirmed">Confirmado</string>
+    <string name="label_callup_status_declined">Recusou</string>
+    <string name="label_callup_status_not_available">Indisponível</string>
+    <string name="label_callup_status_standby">Suplente</string>
+    <string name="title_live_match">Jogo ao vivo</string>
+    <string name="msg_live_match_coming_soon">O ecrã de jogo ao vivo está para breve — iniciar, substituições, golos e cartões ficarão aqui.</string>
 </resources>

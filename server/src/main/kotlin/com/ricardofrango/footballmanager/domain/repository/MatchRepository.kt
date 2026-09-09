@@ -4,10 +4,10 @@ import com.ricardofrango.footballmanager.model.*
 
 interface MatchRepository {
     suspend fun getMatchById(id: String): Match?
-    suspend fun getMatchDetails(id: String): MatchDetails?
     suspend fun getMatchesByTeam(teamId: String): List<Match>
     suspend fun getMatchesByClub(clubId: String): List<Match>
     suspend fun createMatch(match: Match): Match
+    suspend fun updateMatch(match: Match): Boolean
     suspend fun updateMatchStatus(matchId: String, status: MatchStatus): Boolean
     
     suspend fun getCallUpsForMatch(matchId: String): List<MatchCallUpWithPlayer>

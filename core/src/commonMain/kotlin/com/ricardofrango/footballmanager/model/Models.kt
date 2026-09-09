@@ -516,11 +516,31 @@ data class MatchCallUpWithPlayer(
     val player: Player
 )
 
+/**
+ * The match plus everything its detail screen needs: the [opponent], the current [callUps], the
+ * [team] / [ageGroup] / [season] it belongs to, and the age group's [poolPlayers] (who can be added
+ * to the call-up). [canManage] is true for a club admin/coordinator or a coach of the age group --
+ * it gates the edit / call-up / lifecycle actions.
+ */
 @Serializable
 data class MatchDetails(
     val match: Match,
     val opponent: Opponent,
-    val callUps: List<MatchCallUpWithPlayer>
+    val team: Team,
+    val ageGroup: AgeGroup,
+    val season: Season,
+    val callUps: List<MatchCallUpWithPlayer>,
+    val poolPlayers: List<Player>,
+    val canManage: Boolean
+)
+
+/** Body of `PATCH /matches/{matchId}`. Every field is optional; nulls are left untouched. */
+@Serializable
+data class UpdateMatchRequest(
+    val opponentId: String? = null,
+    val dateTime: Instant? = null,
+    val location: String? = null,
+    val notes: String? = null
 )
 
 @Serializable
@@ -595,6 +615,7 @@ data class ParentDashboard(
  * pill (Y = call-ups on the match, X = how many are CONFIRMED). */
 @Serializable
 data class ClubHomeNextUp(
+    val matchId: String,
     val teamId: String,
     val teamName: String,
     val opponentName: String,

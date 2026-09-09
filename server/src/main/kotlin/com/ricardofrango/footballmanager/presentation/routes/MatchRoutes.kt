@@ -17,6 +17,7 @@ fun Route.matchRoutes() {
     val createMatchUseCase by inject<CreateMatchUseCase>()
     val getMatchesUseCase by inject<GetMatchesUseCase>()
     val getMatchDetailsUseCase by inject<GetMatchDetailsUseCase>()
+    val updateMatchUseCase by inject<UpdateMatchUseCase>()
     val updateMatchStatusUseCase by inject<UpdateMatchStatusUseCase>()
     val manageCallUpsUseCase by inject<ManageCallUpsUseCase>()
     val updateCallUpStatusUseCase by inject<UpdateCallUpStatusUseCase>()
@@ -51,6 +52,19 @@ fun Route.matchRoutes() {
                     val matchId = call.parameters["matchId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
                     val details = getMatchDetailsUseCase(currentUserId, matchId)
                     call.respond(details)
+                }
+
+                patch {
+                    val currentUserId = call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
+                    val matchId = call.parameters["matchId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
+                    val request = call.receive<UpdateMatchRequest>()
+
+                    val success = updateMatchUseCase(currentUserId, matchId, request)
+                    if (success) {
+                        call.respond(HttpStatusCode.NoContent)
+                    } else {
+                        call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to update match"))
+                    }
                 }
 
                 patch("/status") {
