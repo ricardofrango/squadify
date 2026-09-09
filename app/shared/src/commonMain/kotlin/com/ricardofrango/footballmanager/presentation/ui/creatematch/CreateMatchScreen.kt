@@ -461,6 +461,8 @@ private fun LinkText(text: String, onClick: () -> Unit) {
 
 @Composable
 private fun fieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = DeepCarbon,
+    unfocusedTextColor = DeepCarbon,
     focusedBorderColor = PitchGreen,
     unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
     focusedLabelColor = PitchGreen,

@@ -257,6 +257,8 @@ private fun AgeGroupBody(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
                     colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = DeepCarbon,
+                        unfocusedTextColor = DeepCarbon,
                         focusedBorderColor = PitchGreen,
                         unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
                         focusedLabelColor = PitchGreen,
