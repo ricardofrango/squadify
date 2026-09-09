@@ -65,7 +65,7 @@
     <string name="label_season_type_european_range">July → June</string>
     <string name="label_season_type_calendar">Calendar year</string>
     <string name="label_season_type_calendar_range">January → December</string>
-    <string name="msg_season_type_helper_european">Runs Jul → Jun, the way Portuguese youth football is organised. Picking a type fills the dates below — change them if your league differs.</string>
+    <string name="msg_season_type_helper_european">Runs Jul → Jun, the way most European youth seasons are organised. Picking a type fills the dates below — change them if your league differs.</string>
     <string name="msg_season_type_helper_calendar">Runs Jan → Dec, the standard calendar year. Picking a type fills the dates below — change them if your league differs.</string>
     <string name="label_dates_section">Dates</string>
     <string name="label_days_count">%1$s days</string>

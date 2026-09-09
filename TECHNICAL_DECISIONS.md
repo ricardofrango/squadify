@@ -31,7 +31,7 @@ We use **Exposed** as our SQL ORM.
 ## 4. Shared Models & Serialization
 - **kotlinx.serialization**: Used for all JSON encoding/decoding. All status and type fields use Enums for type safety.
 - **kotlinx-datetime**: Used for handling dates and times. Logical dates (like season start/end) use `LocalDate`, while audit timestamps use `kotlin.time.Instant`.
-- **Error Handling**: A standardized system based on a custom `FootballManagerException` hierarchy. 
+- **Error Handling**: A standardized system based on a custom `ClubManagerException` hierarchy. 
     - **Exception Types**:
         - `UnauthorizedException` (AUTH_001 -> 401): Authentication failures.
         - `ForbiddenException` (AUTH_002 -> 403): RBAC/Permission violations.

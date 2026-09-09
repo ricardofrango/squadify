@@ -32,7 +32,7 @@ kotlin {
     }
     
     android {
-       namespace = "com.ricardofrango.footballmanager.app.shared"
+       namespace = "com.ricardofrango.clubmanager.app.shared"
        compileSdk = libs.versions.android.compileSdk.get().toInt()
        minSdk = libs.versions.android.minSdk.get().toInt()
     

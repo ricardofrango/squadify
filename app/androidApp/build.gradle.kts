@@ -23,11 +23,11 @@ dependencies {
 }
 
 android {
-    namespace = "com.ricardofrango.footballmanager"
+    namespace = "com.ricardofrango.clubmanager"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.ricardofrango.footballmanager"
+        applicationId = "com.ricardofrango.clubmanager"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
