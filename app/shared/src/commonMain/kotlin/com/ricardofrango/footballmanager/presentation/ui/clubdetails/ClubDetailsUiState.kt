@@ -6,6 +6,13 @@ import com.ricardofrango.footballmanager.model.Player
 import com.ricardofrango.footballmanager.model.AgeGroup
 import com.ricardofrango.footballmanager.model.ClubHome
 
+/** Club-screen tab indices. Order: Age groups, Teams, Home, Players, Matches -- Home is the default. */
+const val CLUB_TAB_AGE_GROUPS = 0
+const val CLUB_TAB_TEAMS = 1
+const val CLUB_TAB_HOME = 2
+const val CLUB_TAB_PLAYERS = 3
+const val CLUB_TAB_MATCHES = 4
+
 sealed class ClubDetailsUiState {
     data class Idle(
         val details: ClubDetails? = null,
@@ -14,8 +21,7 @@ sealed class ClubDetailsUiState {
         val home: ClubHome? = null,
         val filteredTeams: List<Team> = emptyList(),
         val filteredPlayers: List<Player> = emptyList(),
-        // Tab order: 0 Home, 1 Teams, 2 Players, 3 Age Groups. Home is the default.
-        val selectedTab: Int = 0,
+        val selectedTab: Int = CLUB_TAB_HOME,
         // Available Filter Options (Contextual)
         val availableAgeGroups: List<AgeGroup> = emptyList(),
         val availableTeams: List<Team> = emptyList(),
