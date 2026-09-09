@@ -17,11 +17,11 @@ object AgeGroupDefaults {
     fun birthYearOptions(today: LocalDate): List<Int> = (today.year - 4 downTo today.year - 19).toList()
 
     /**
-     * Mirrors the "Sub N" naming already used by real age-group data in this club (e.g. a 2015-born
-     * player in a season starting 2026 is "Sub 11"): age = the season's start year minus the birth year.
+     * "Sub N" naming: N = the age a player of [birthYear] reaches within the season, i.e. the season's
+     * **end** year minus the birth year. A 2015-born player in a season ending 2027 is "Sub 12".
      */
-    fun inferredName(birthYear: Int, seasonStartYear: Int): String {
-        val age = seasonStartYear - birthYear
+    fun inferredName(birthYear: Int, seasonEndYear: Int): String {
+        val age = seasonEndYear - birthYear
         return "Sub $age"
     }
 }
