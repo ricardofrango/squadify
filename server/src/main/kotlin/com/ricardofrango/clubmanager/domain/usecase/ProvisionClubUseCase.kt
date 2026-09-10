@@ -26,6 +26,7 @@ class ProvisionClubUseCase(
             id = clubId,
             name = request.clubName,
             status = ClubStatus.ACTIVE,
+            sport = request.sport,
             createdAt = Instant.fromEpochMilliseconds(System.currentTimeMillis())
         )
         val createdClub = clubRepository.createClub(club)

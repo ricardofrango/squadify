@@ -305,7 +305,7 @@ private fun weekdayLabel(day: DayOfWeek): StringResource = when (day) {
 @Preview
 @Composable
 private fun HomeTabPreview() {
-    val club = Club("c1", "CD Ribamar", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0))
+    val club = Club("c1", "CD Ribamar", status = ClubStatus.ACTIVE, sport = SportType.FOOTBALL, createdAt = Instant.fromEpochMilliseconds(0))
     val base = Instant.fromEpochMilliseconds(1_760_000_000_000)
     ClubManagerTheme {
         HomeTab(

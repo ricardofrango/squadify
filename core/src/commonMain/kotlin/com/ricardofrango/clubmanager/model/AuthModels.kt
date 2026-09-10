@@ -49,5 +49,6 @@ data class RefreshToken(
 @Serializable
 data class ProvisionClubRequest(
     val directorEmail: String,
-    val clubName: String
+    val clubName: String,
+    val sport: SportType
 )

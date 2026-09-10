@@ -55,6 +55,7 @@ class ExposedClubRepository : ClubRepository {
             it[phone] = club.phone
             it[address] = club.address
             it[status] = club.status
+            it[sport] = club.sport
             it[createdAt] = club.createdAt
         }.resultedValues?.singleOrNull()?.let(::toClub)
             ?: throw DatabaseException("Failed to create club")
@@ -116,6 +117,7 @@ class ExposedClubRepository : ClubRepository {
         phone = row[Clubs.phone],
         address = row[Clubs.address],
         status = row[Clubs.status],
-        createdAt = row[Clubs.createdAt]
+        createdAt = row[Clubs.createdAt],
+        sport = row[Clubs.sport]
     )
 }
