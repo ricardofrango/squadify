@@ -131,6 +131,7 @@
     <string name="title_add_players_to_age_group">Add players</string>
     <string name="label_add_players_to_age_group">Add players to age group</string>
     <string name="label_search_players">Search players</string>
+    <string name="btn_add_new_player">New player</string>
     <string name="label_players_selected">%1$d selected</string>
     <string name="label_plays_up">plays up</string>
     <string name="btn_add_player_one">Add player</string>

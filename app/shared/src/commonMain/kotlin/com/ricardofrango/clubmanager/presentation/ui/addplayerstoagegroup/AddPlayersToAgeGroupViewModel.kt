@@ -101,6 +101,18 @@ class AddPlayersToAgeGroupViewModel(
         }
     }
 
+    /**
+     * Re-fetch the eligible list for the currently selected age group, keeping the current
+     * selection -- called when the user comes back from registering new club players via the
+     * "New player" shortcut, so those players appear without leaving the screen.
+     */
+    fun refreshEligiblePlayers() {
+        val current = _state.value as? AddPlayersToAgeGroupUiState.Idle ?: return
+        val ageGroupId = current.selectedAgeGroupId ?: return
+        _state.update { current.copy(loadingEligible = true, error = null) }
+        loadEligible(ageGroupId)
+    }
+
     fun onPlayerToggled(playerId: String) {
         _state.update { state ->
             if (state is AddPlayersToAgeGroupUiState.Idle) {

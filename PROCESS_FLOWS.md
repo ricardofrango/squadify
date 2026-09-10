@@ -545,6 +545,8 @@ graph TD
 
 `GetEligiblePlayersForAgeGroupUseCase` is the read counterpart: every club player with `birthDate.year >= ageGroup.birthYear` who isn't already in the group; visible to a coordinator or any age-group staff. Playing up is unbounded — a young player is eligible for any older age group, never a younger one.
 
+The client's Add Players screen has a "New player" shortcut that pushes the Create Players (register-to-club) screen; on return it reloads the eligible list so the just-registered players are pickable without leaving, and propagates the reload down to Club Details / Age Group Details.
+
 ### 5.4 Add Staff to Age Group (`AddStaffToAgeGroupUseCase`)
 
 Coaches/support staff attach to an **age group**, not a team (`age_group_staff`). Matches are run by whoever staffs the match's team's age group.
