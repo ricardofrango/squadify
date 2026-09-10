@@ -22,12 +22,12 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 
 ## 3. Core Entities
 - **User**: Account data (email, phone, name, avatar, status).
-- **Club**: Branding and contact info, plus a **sport** (`FOOTBALL` / `FUTSAL` for now) chosen when the club is provisioned. Everything below the club is sport-agnostic.
+- **Club**: Branding and contact info, plus a **sport** (`FOOTBALL` / `FUTSAL` for now) chosen when the club is provisioned. The sport also fixes the set of allowed **team sizes** (a-side counts) — football 4/5/7/9/11, futsal 4/5 — used by age groups and teams below. Everything else below the club is sport-agnostic.
 - **Season**: Time-bound periods. Supports two types:
     - **Calendar Year**: January 1st to December 31st (e.g., Brazil).
     - **European Year**: July 1st to June 30th (e.g., Europe).
-- **Age Group**: Categorization of players by birth year; owns the player pool and the coaching staff.
-- **Team**: A named group under an age group, used to schedule matches.
+- **Age Group**: Categorization of players by birth year; owns the player pool and the coaching staff. Carries an optional **team size** — the a-side count its teams play by default (one of the club sport's allowed sizes).
+- **Team**: A named group under an age group, used to schedule matches. Has its own **team size**, pre-filled from the age group's default but overridable (e.g. a 7-a-side age group with one team that plays 9-a-side).
 - **Player**: Personal data and stats.
 - **Opponent**: Management of external clubs/teams for matches (name, short name, logo).
 - **ClubMember**: Links Users to Clubs with a specific Role.

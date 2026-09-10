@@ -21,6 +21,7 @@ import com.ricardofrango.clubmanager.domain.AgeGroupDefaults
 import com.ricardofrango.clubmanager.model.AgeGroupItemRequest
 import com.ricardofrango.clubmanager.model.Season
 import com.ricardofrango.clubmanager.model.SeasonType
+import com.ricardofrango.clubmanager.model.SportType
 import com.ricardofrango.clubmanager.presentation.ui.components.FMTopBar
 import com.ricardofrango.clubmanager.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.clubmanager.presentation.ui.theme.CarbonGray
@@ -40,7 +41,10 @@ import kotlin.time.Clock
 private data class AgeGroupRow(
     val key: Int,
     val birthYear: Int? = null,
-    val name: String = ""
+    val name: String = "",
+    // The a-side count this age group's teams play by default. Seeded from the club sport's largest
+    // format and overridable per row; sent as `AgeGroupItemRequest.teamSize`.
+    val teamSize: Int? = null
 )
 
 private val FormRoundedShape = RoundedCornerShape(18.dp)
@@ -71,6 +75,8 @@ private val FormRoundedShape = RoundedCornerShape(18.dp)
 fun CreateAgeGroupsScreen(
     clubId: String,
     clubName: String,
+    // The club's sport -- its `teamSizes` are the options for the per-row team-size picker.
+    sport: SportType,
     initialSeasonId: String? = null,
     onNavigateBack: () -> Unit,
     onAgeGroupsCreated: () -> Unit,
@@ -79,8 +85,12 @@ fun CreateAgeGroupsScreen(
     val uiState by viewModel.state.collectAsState()
     val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
 
+    // Default a new age group to the sport's largest format (e.g. 11-a-side football); the coordinator
+    // narrows it for the younger groups.
+    val defaultTeamSize = sport.teamSizes.last()
+
     var nextRowKey by remember { mutableStateOf(1) }
-    val rows = remember { mutableStateListOf(AgeGroupRow(key = 0)) }
+    val rows = remember { mutableStateListOf(AgeGroupRow(key = 0, teamSize = defaultTeamSize)) }
 
     // End year of the currently picked season -- drives the inferred "Sub N" name (age reached within
     // the season). Null until a season is selected, in which case the name column stays disabled.
@@ -103,6 +113,7 @@ fun CreateAgeGroupsScreen(
         clubName = clubName,
         today = today,
         rows = rows,
+        teamSizeOptions = sport.teamSizes,
         onNavigateBack = onNavigateBack,
         onSeasonSelected = { seasonId ->
             viewModel.onSeasonSelected(seasonId)
@@ -136,8 +147,13 @@ fun CreateAgeGroupsScreen(
             if (index >= 0) rows[index] = rows[index].copy(name = name)
             viewModel.clearSubmitError()
         },
+        onRowTeamSizeSelected = { rowKey, teamSize ->
+            val index = rows.indexOfFirst { it.key == rowKey }
+            if (index >= 0) rows[index] = rows[index].copy(teamSize = teamSize)
+            viewModel.clearSubmitError()
+        },
         onAddRow = {
-            rows.add(AgeGroupRow(key = nextRowKey))
+            rows.add(AgeGroupRow(key = nextRowKey, teamSize = defaultTeamSize))
             nextRowKey += 1
         },
         onRemoveRow = { rowKey ->
@@ -149,7 +165,8 @@ fun CreateAgeGroupsScreen(
                 val birthYear = row.birthYear ?: return@mapNotNull null
                 AgeGroupItemRequest(
                     name = row.name.ifBlank { AgeGroupDefaults.inferredName(birthYear, endYear) },
-                    birthYear = birthYear
+                    birthYear = birthYear,
+                    teamSize = row.teamSize
                 )
             }
             viewModel.onCreateClicked(clubId, items)
@@ -164,10 +181,12 @@ private fun CreateAgeGroupsContent(
     clubName: String,
     today: LocalDate,
     rows: List<AgeGroupRow>,
+    teamSizeOptions: List<Int>,
     onNavigateBack: () -> Unit,
     onSeasonSelected: (seasonId: String) -> Unit,
     onRowBirthYearSelected: (rowKey: Int, birthYear: Int) -> Unit,
     onRowNameChanged: (rowKey: Int, name: String) -> Unit,
+    onRowTeamSizeSelected: (rowKey: Int, teamSize: Int) -> Unit,
     onAddRow: () -> Unit,
     onRemoveRow: (rowKey: Int) -> Unit,
     onCreateClick: () -> Unit
@@ -243,12 +262,14 @@ private fun CreateAgeGroupsContent(
                             index = index + 1,
                             row = row,
                             availableYears = availableYears,
+                            teamSizeOptions = teamSizeOptions,
                             inferredName = row.birthYear?.let { year ->
                                 seasonEndYear?.let { AgeGroupDefaults.inferredName(year, it) }
                             },
                             canRemove = rows.size > 1,
                             onBirthYearSelected = { onRowBirthYearSelected(row.key, it) },
                             onNameChanged = { onRowNameChanged(row.key, it) },
+                            onTeamSizeSelected = { onRowTeamSizeSelected(row.key, it) },
                             onRemove = { onRemoveRow(row.key) }
                         )
                     }
@@ -354,10 +375,12 @@ private fun AgeGroupRowCard(
     index: Int,
     row: AgeGroupRow,
     availableYears: List<Int>,
+    teamSizeOptions: List<Int>,
     inferredName: String?,
     canRemove: Boolean,
     onBirthYearSelected: (Int) -> Unit,
     onNameChanged: (String) -> Unit,
+    onTeamSizeSelected: (Int) -> Unit,
     onRemove: () -> Unit
 ) {
     Surface(
@@ -427,6 +450,72 @@ private fun AgeGroupRowCard(
                     unfocusedLabelColor = CarbonGray
                 )
             )
+
+            TeamSizeField(
+                label = stringResource(Res.string.label_team_size),
+                selectedTeamSize = row.teamSize,
+                options = teamSizeOptions,
+                onTeamSizeSelected = onTeamSizeSelected
+            )
+        }
+    }
+}
+
+@Composable
+private fun TeamSizeField(
+    label: String,
+    selectedTeamSize: Int?,
+    options: List<Int>,
+    onTeamSizeSelected: (Int) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Column {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = DeepCarbon.copy(alpha = 0.5f)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Box {
+            Surface(
+                onClick = { expanded = true },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                shape = FormRoundedShape,
+                color = Color.White,
+                border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.3f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp).fillMaxSize(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = selectedTeamSize?.let {
+                            stringResource(Res.string.label_team_size_value, it)
+                        } ?: stringResource(Res.string.label_choose_team_size),
+                        color = if (selectedTeamSize != null) DeepCarbon else DeepCarbon.copy(alpha = 0.4f),
+                        fontWeight = if (selectedTeamSize != null) FontWeight.Bold else FontWeight.Normal
+                    )
+                    Text("▾", color = DeepCarbon.copy(alpha = 0.4f), fontWeight = FontWeight.Bold)
+                }
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.background(Color.White)
+            ) {
+                options.forEach { size ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(stringResource(Res.string.label_team_size_value, size), color = DeepCarbon)
+                        },
+                        onClick = {
+                            onTeamSizeSelected(size)
+                            expanded = false
+                        }
+                    )
+                }
+            }
         }
     }
 }
@@ -508,11 +597,16 @@ private fun CreateAgeGroupsContentPreview() {
             ),
             clubName = "CD Ribamar",
             today = today,
-            rows = listOf(AgeGroupRow(key = 0, birthYear = 2015), AgeGroupRow(key = 1)),
+            rows = listOf(
+                AgeGroupRow(key = 0, birthYear = 2015, teamSize = 11),
+                AgeGroupRow(key = 1, teamSize = 11)
+            ),
+            teamSizeOptions = listOf(4, 5, 7, 9, 11),
             onNavigateBack = {},
             onSeasonSelected = {},
             onRowBirthYearSelected = { _, _ -> },
             onRowNameChanged = { _, _ -> },
+            onRowTeamSizeSelected = { _, _ -> },
             onAddRow = {},
             onRemoveRow = {},
             onCreateClick = {}
@@ -533,11 +627,13 @@ private fun CreateAgeGroupsContentSubmittingPreview() {
             ),
             clubName = "CD Ribamar",
             today = today,
-            rows = listOf(AgeGroupRow(key = 0, birthYear = 2015)),
+            rows = listOf(AgeGroupRow(key = 0, birthYear = 2015, teamSize = 11)),
+            teamSizeOptions = listOf(4, 5, 7, 9, 11),
             onNavigateBack = {},
             onSeasonSelected = {},
             onRowBirthYearSelected = { _, _ -> },
             onRowNameChanged = { _, _ -> },
+            onRowTeamSizeSelected = { _, _ -> },
             onAddRow = {},
             onRemoveRow = {},
             onCreateClick = {}

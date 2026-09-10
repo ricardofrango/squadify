@@ -1,6 +1,7 @@
 package com.ricardofrango.clubmanager.domain.usecase
 
 import com.ricardofrango.clubmanager.domain.repository.AgeGroupRepository
+import com.ricardofrango.clubmanager.domain.repository.ClubRepository
 import com.ricardofrango.clubmanager.domain.repository.TeamRepository
 import com.ricardofrango.clubmanager.domain.service.TransactionManager
 import com.ricardofrango.clubmanager.exception.ValidationException
@@ -18,6 +19,7 @@ import kotlin.uuid.Uuid
 class CreateTeamsUseCase(
     private val teamRepository: TeamRepository,
     private val ageGroupRepository: AgeGroupRepository,
+    private val clubRepository: ClubRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager
 ) {
@@ -44,9 +46,15 @@ class CreateTeamsUseCase(
             throw ValidationException("Age group does not belong to the given season")
         }
 
+        val club = clubRepository.getClubById(request.clubId)
+            ?: throw ValidationException("Club not found")
+
         val newTeams = request.items.map { item ->
             if (item.name.isBlank()) {
                 throw ValidationException("Team name cannot be empty")
+            }
+            if (item.teamSize != null && item.teamSize !in club.sport.teamSizes) {
+                throw ValidationException("Team size ${item.teamSize} is not valid for ${club.sport}")
             }
             Team(
                 id = Uuid.random().toString(),
@@ -55,7 +63,9 @@ class CreateTeamsUseCase(
                 seasonId = request.seasonId,
                 name = item.name,
                 code = item.code,
-                active = true
+                active = true,
+                // Fall back to the age group's default when the row didn't override it.
+                teamSize = item.teamSize ?: ageGroup.teamSize
             )
         }
 

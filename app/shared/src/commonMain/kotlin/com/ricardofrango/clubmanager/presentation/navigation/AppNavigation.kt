@@ -113,13 +113,13 @@ fun AppNavigation() {
                 onNavigateToCreateSeason = { clubName ->
                     navController.navigate(Screen.CreateSeason(screen.clubId, clubName))
                 },
-                onNavigateToCreateAgeGroups = { clubName, initialSeasonId ->
+                onNavigateToCreateAgeGroups = { clubName, sport, initialSeasonId ->
                     navController.navigate(
-                        Screen.CreateAgeGroups(screen.clubId, clubName, initialSeasonId)
+                        Screen.CreateAgeGroups(screen.clubId, clubName, sport, initialSeasonId)
                     )
                 },
-                onNavigateToCreateTeams = { clubName ->
-                    navController.navigate(Screen.CreateTeams(screen.clubId, clubName))
+                onNavigateToCreateTeams = { clubName, sport ->
+                    navController.navigate(Screen.CreateTeams(screen.clubId, clubName, sport))
                 },
                 onNavigateToAddPlayersToAgeGroup = {
                     navController.navigate(Screen.AddPlayersToAgeGroup(screen.clubId))
@@ -159,6 +159,7 @@ fun AppNavigation() {
             CreateAgeGroupsScreen(
                 clubId = screen.clubId,
                 clubName = screen.clubName,
+                sport = screen.sport,
                 initialSeasonId = screen.initialSeasonId,
                 onNavigateBack = {
                     navController.popBackStack()
@@ -177,6 +178,7 @@ fun AppNavigation() {
             CreateTeamsScreen(
                 clubId = screen.clubId,
                 clubName = screen.clubName,
+                sport = screen.sport,
                 onNavigateBack = {
                     navController.popBackStack()
                 },
@@ -222,8 +224,8 @@ fun AppNavigation() {
                 onNavigateToAddPlayers = { clubId, ageGroupId ->
                     navController.navigate(Screen.AddPlayersToAgeGroup(clubId, ageGroupId))
                 },
-                onNavigateToCreateTeams = { clubId, clubName ->
-                    navController.navigate(Screen.CreateTeams(clubId, clubName))
+                onNavigateToCreateTeams = { clubId, clubName, sport ->
+                    navController.navigate(Screen.CreateTeams(clubId, clubName, sport))
                 },
                 onNavigateToCreateMatch = { ageGroupId ->
                     navController.navigate(Screen.CreateMatch(ageGroupId = ageGroupId))

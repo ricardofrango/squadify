@@ -51,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.clubmanager.model.Player
+import com.ricardofrango.clubmanager.model.SportType
 import com.ricardofrango.clubmanager.model.Team
 import com.ricardofrango.clubmanager.presentation.ui.components.EmptyStateCallToAction
 import com.ricardofrango.clubmanager.presentation.ui.components.FMTopBar
@@ -111,9 +112,9 @@ fun ClubDetailsScreen(
     // The Create Age Groups screen has its own season picker, so it only needs an optional
     // pre-selection: a concrete season id when the entry point already implies one (a specific
     // season's "no age groups" state), or null from the overflow menu where the user should choose.
-    onNavigateToCreateAgeGroups: (clubName: String, initialSeasonId: String?) -> Unit,
-    // The Create Teams screen has its own season + age-group pickers, so this only needs the club name.
-    onNavigateToCreateTeams: (clubName: String) -> Unit,
+    onNavigateToCreateAgeGroups: (clubName: String, sport: SportType, initialSeasonId: String?) -> Unit,
+    // The Create Teams screen has its own season + age-group pickers, so this only needs the club name + sport.
+    onNavigateToCreateTeams: (clubName: String, sport: SportType) -> Unit,
     // The Add Players screen picks the age group itself.
     onNavigateToAddPlayersToAgeGroup: () -> Unit,
     onNavigateToCreatePlayers: (clubName: String) -> Unit,
@@ -128,6 +129,7 @@ fun ClubDetailsScreen(
     val uiState by viewModel.state.collectAsState()
     val selectedTab = (uiState as? ClubDetailsUiState.Idle)?.selectedTab ?: CLUB_TAB_HOME
     val clubName = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name ?: ""
+    val sport = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.sport ?: SportType.FOOTBALL
 
     LaunchedEffect(clubId) {
         viewModel.loadClubDetails(clubId)
@@ -169,7 +171,7 @@ fun ClubDetailsScreen(
                                 },
                                 onClick = {
                                     showAddMenu = false
-                                    onNavigateToCreateTeams(clubName)
+                                    onNavigateToCreateTeams(clubName, sport)
                                 }
                             )
                             DropdownMenuItem(
@@ -210,7 +212,7 @@ fun ClubDetailsScreen(
                                     // no-ops if the club has no seasons at all yet -- create one first.
                                     val hasSeasons = (uiState as? ClubDetailsUiState.Idle)
                                         ?.details?.seasons?.isNotEmpty() == true
-                                    if (hasSeasons) onNavigateToCreateAgeGroups(clubName, null)
+                                    if (hasSeasons) onNavigateToCreateAgeGroups(clubName, sport, null)
                                 }
                             )
                             DropdownMenuItem(
@@ -306,6 +308,7 @@ fun ClubDetailsScreen(
                                 // most recently started season, still overridable there.
                                 onNavigateToCreateAgeGroups(
                                     clubName,
+                                    sport,
                                     state.details?.seasons?.maxByOrNull { it.startDate }?.id
                                 )
                             }
@@ -321,6 +324,7 @@ fun ClubDetailsScreen(
                             onNavigateToPlayer = onNavigateToPlayer,
                             onNavigateToCreateAgeGroups = onNavigateToCreateAgeGroups,
                             onNavigateToCreateTeams = onNavigateToCreateTeams,
+                            sport = sport,
                             onNavigateToCreatePlayers = onNavigateToCreatePlayers,
                             onNavigateToAddPlayersToAgeGroup = onNavigateToAddPlayersToAgeGroup,
                             onNavigateToAgeGroup = onNavigateToAgeGroup,
@@ -341,8 +345,9 @@ private fun ClubDetailsTabContent(
     viewModel: ClubDetailsViewModel,
     onNavigateToTeam: (String) -> Unit,
     onNavigateToPlayer: (String) -> Unit,
-    onNavigateToCreateAgeGroups: (clubName: String, initialSeasonId: String?) -> Unit,
-    onNavigateToCreateTeams: (clubName: String) -> Unit,
+    onNavigateToCreateAgeGroups: (clubName: String, sport: SportType, initialSeasonId: String?) -> Unit,
+    onNavigateToCreateTeams: (clubName: String, sport: SportType) -> Unit,
+    sport: SportType,
     onNavigateToCreatePlayers: (clubName: String) -> Unit,
     onNavigateToAddPlayersToAgeGroup: () -> Unit,
     onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
@@ -370,7 +375,7 @@ private fun ClubDetailsTabContent(
                         NoAgeGroupsState(
                             canEditClub = state.canEditClub,
                             onCreateAgeGroupClick = {
-                                onNavigateToCreateAgeGroups(clubName, state.selectedSeasonId)
+                                onNavigateToCreateAgeGroups(clubName, sport, state.selectedSeasonId)
                             }
                         )
 
@@ -379,7 +384,7 @@ private fun ClubDetailsTabContent(
                     state.filteredTeams.isEmpty() ->
                         NoTeamsState(
                             canEditClub = state.canEditClub,
-                            onCreateTeamClick = { onNavigateToCreateTeams(clubName) }
+                            onCreateTeamClick = { onNavigateToCreateTeams(clubName, sport) }
                         )
 
                     else -> TeamList(state.filteredTeams, onNavigateToTeam)
@@ -394,7 +399,7 @@ private fun ClubDetailsTabContent(
                         NoAgeGroupsState(
                             canEditClub = state.canEditClub,
                             onCreateAgeGroupClick = {
-                                onNavigateToCreateAgeGroups(clubName, state.selectedPlayerSeasonId)
+                                onNavigateToCreateAgeGroups(clubName, sport, state.selectedPlayerSeasonId)
                             }
                         )
 
@@ -422,7 +427,7 @@ private fun ClubDetailsTabContent(
                     NoAgeGroupsState(
                         canEditClub = state.canEditClub,
                         onCreateAgeGroupClick = {
-                            onNavigateToCreateAgeGroups(clubName, state.selectedAgeGroupsSeasonId)
+                            onNavigateToCreateAgeGroups(clubName, sport, state.selectedAgeGroupsSeasonId)
                         }
                     )
                 } else {

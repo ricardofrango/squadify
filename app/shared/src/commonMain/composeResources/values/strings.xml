@@ -104,6 +104,9 @@
     <string name="msg_age_groups_footer_helper">All rows are written together — if one fails, none are saved.</string>
     <string name="msg_create_age_groups_failed">Something went wrong creating the age groups. Please try again.</string>
     <string name="msg_age_group_conflict">One of these birth years already has an age group in this season.</string>
+    <string name="label_team_size">Team size *</string>
+    <string name="label_choose_team_size">Choose</string>
+    <string name="label_team_size_value">%1$d-a-side</string>
 
     <!-- Create Teams -->
     <string name="title_create_teams">New teams</string>
@@ -122,6 +125,7 @@
     <string name="btn_creating_teams">Creating...</string>
     <string name="msg_teams_footer_helper">All teams are created together — if one fails, none are saved.</string>
     <string name="msg_create_teams_failed">Something went wrong creating the teams. Please try again.</string>
+    <string name="msg_team_size_age_group_default">Starts from the age group\'s default — change it for a team that plays a different format.</string>
 
     <!-- Add Players to Age Group -->
     <string name="title_add_players_to_age_group">Add players</string>

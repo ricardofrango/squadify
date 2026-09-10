@@ -34,6 +34,7 @@ class ExposedTeamRepository : TeamRepository {
             it[name] = team.name
             it[code] = team.code
             it[active] = team.active
+            it[teamSize] = team.teamSize
         }.resultedValues
             ?.singleOrNull()
             ?.let(::toTeam)
@@ -48,6 +49,7 @@ class ExposedTeamRepository : TeamRepository {
             this[TeamsTable.name] = team.name
             this[TeamsTable.code] = team.code
             this[TeamsTable.active] = team.active
+            this[TeamsTable.teamSize] = team.teamSize
         }.map(::toTeam)
 
     override suspend fun updateTeam(team: Team): Boolean =
@@ -74,6 +76,7 @@ class ExposedTeamRepository : TeamRepository {
         seasonId = row[TeamsTable.seasonId].toString(),
         name = row[TeamsTable.name],
         code = row[TeamsTable.code],
-        active = row[TeamsTable.active]
+        active = row[TeamsTable.active],
+        teamSize = row[TeamsTable.teamSize]
     )
 }

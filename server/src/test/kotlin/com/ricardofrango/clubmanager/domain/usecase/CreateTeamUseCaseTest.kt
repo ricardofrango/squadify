@@ -33,11 +33,12 @@ class CreateTeamUseCaseTest {
     private val playerRepository = mockk<PlayerRepository>()
     private val userRepository = mockk<UserRepository>()
     private val ageGroupRepository = mockk<AgeGroupRepository>()
+    private val clubRepository = mockk<com.ricardofrango.clubmanager.domain.repository.ClubRepository>()
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager)
-    private val useCase = CreateTeamUseCase(teamRepository, ageGroupRepository, checkUserPermissionUseCase, transactionManager)
+    private val useCase = CreateTeamUseCase(teamRepository, ageGroupRepository, clubRepository, checkUserPermissionUseCase, transactionManager)
 
     private val clubIdA = "club-a"
 

@@ -334,14 +334,19 @@ graph TD
     B -- allowed --> C{items list empty?}
     C -- Yes --> V(["Throw ValidationException"])
     C -- No --> D[Load existing age groups for this club + season]
-    D --> E[Collect existing birth years as a Set]
+    D --> D2[Load club — for its sport's allowed team sizes]
+    D2 -- not found --> V2b(["Throw ValidationException"])
+    D2 --> E[Collect existing birth years as a Set]
     E --> G{For each item}
     G -- name blank --> V2(["Throw ValidationException"])
+    G -- teamSize set AND not in club.sport.teamSizes --> V2(["Throw ValidationException"])
     G -- birthYear already in set --> CN(["Throw ConflictException: duplicate birth year"])
-    G -- valid --> H[Build AgeGroup entity]
+    G -- valid --> H[Build AgeGroup entity — teamSize nullable]
     H --> I[Batch insert all AgeGroups]
     I --> Z(["Return created AgeGroups"])
 ```
+
+Each item carries an optional `teamSize` (an a-side count like 7 or 11). It's the default the age group's teams play; a team can override it (§4.5 / §4.5b). When set it must be one of the values the club's `sport` allows (`SportType.teamSizes` — a code-level constant, not a DB config). The client's Create Age Groups screen shows a per-row team-size picker seeded from the sport's largest format.
 
 ### 4.4 Update Age Group (`UpdateAgeGroupUseCase`)
 
@@ -378,7 +383,7 @@ graph TD
 
 ```mermaid
 graph TD
-    A[Start: userId, clubId, ageGroupId, seasonId, name, code] --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    A[Start: userId, clubId, ageGroupId, seasonId, name, code, teamSize?] --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
     B -- denied --> F(["Throw ForbiddenException"])
     B -- allowed --> C{name blank?}
     C -- Yes --> V(["Throw ValidationException"])
@@ -386,9 +391,13 @@ graph TD
     D -- not found --> V
     D -- found --> E{"age group's clubId == request clubId AND seasonId == request seasonId?"}
     E -- No --> V
-    E -- Yes --> G[Create Team — active=true]
+    E -- Yes --> E2{"teamSize set? — load club, must be in club.sport.teamSizes"}
+    E2 -- invalid --> V
+    E2 -- ok / not set --> G["Create Team — active=true, teamSize = request.teamSize ?: ageGroup.teamSize"]
     G --> Z(["Persist Team"])
 ```
+
+`teamSize` is the a-side count this team plays. The request field is optional: when omitted the team inherits the age group's default (`ageGroup.teamSize`, itself nullable for age groups created before team sizes existed). When supplied it must be one of the club sport's allowed sizes. The client's Create Team screen pre-selects the age group's default and lets the user change it (e.g. an age group defined as 7-a-side with one team that plays 9-a-side).
 
 ### 4.5b Create Teams (`CreateTeamsUseCase`) — batch
 
@@ -402,14 +411,16 @@ graph TD
     D -- not found --> V
     D -- found --> E{"age group belongs to this club AND this season?"}
     E -- No --> V
-    E -- Yes --> G{For each item}
+    E -- Yes --> E2[Load club — for its sport's allowed team sizes]
+    E2 --> G{For each item}
     G -- name blank --> V
-    G -- valid --> H[Build Team entity — active=true]
+    G -- teamSize set AND not in club.sport.teamSizes --> V
+    G -- valid --> H["Build Team entity — active=true, teamSize = item.teamSize ?: ageGroup.teamSize"]
     H --> I[Batch insert all Teams]
     I --> Z(["Return created Teams"])
 ```
 
-Whole batch runs in one transaction (all or nothing), mirroring `CreateAgeGroupsUseCase`. Teams have no name-uniqueness constraint, so there's no conflict branch. Covered by `CreateTeamsUseCaseTest`. The client's Create Teams screen defaults the season to the most recent one (by end date), requires an age group to be picked, and requires a name on every row before it will submit.
+Whole batch runs in one transaction (all or nothing), mirroring `CreateAgeGroupsUseCase`. Teams have no name-uniqueness constraint, so there's no conflict branch. Covered by `CreateTeamsUseCaseTest`. The client's Create Teams screen defaults the season to the most recent one (by end date), requires an age group to be picked, and requires a name on every row before it will submit. Each row also has a team-size picker pre-selected to the chosen age group's default (`ageGroup.teamSize`), overridable per row; an omitted `teamSize` falls back to that default server-side.
 
 ### 4.6 Update Team (`UpdateTeamUseCase`)
 
@@ -889,6 +900,7 @@ erDiagram
         uuid season_id FK
         varchar name "100 chars"
         integer birth_year "default 0"
+        integer team_size "nullable — default a-side count for this age group's teams"
     }
     TEAMS {
         uuid id PK
@@ -898,6 +910,7 @@ erDiagram
         varchar name "100 chars"
         varchar code "50 chars, nullable"
         boolean active "default true"
+        integer team_size "nullable — a-side count this team plays"
     }
     PLAYERS {
         uuid id PK
@@ -985,7 +998,7 @@ erDiagram
 |---|---|---|
 | `UserStatus` | `ACTIVE`, `INACTIVE`, `PENDING`, `SUSPENDED` | `users.status` (default `ACTIVE`) |
 | `ClubStatus` | `ACTIVE`, `INACTIVE`, `PENDING` | `clubs.status` (default `ACTIVE`) |
-| `SportType` | `FOOTBALL`, `FUTSAL` | `clubs.sport` (default `FOOTBALL`); required in `ProvisionClubRequest` |
+| `SportType` | `FOOTBALL`, `FUTSAL` | `clubs.sport` (default `FOOTBALL`); required in `ProvisionClubRequest`. Each constant also carries a code-level `teamSizes: List<Int>` (FOOTBALL → 4/5/7/9/11, FUTSAL → 4/5) — the allowed a-side counts for `age_groups.team_size` / `teams.team_size`; not persisted, not configurable per club. |
 | `ClubRole` | `CLUB_ADMIN`(5), `COORDINATOR`(4), `MEMBER`(1) | `club_members.role`, `invites.role` |
 | `TeamRole` | `COACH`(3), `STAFF`(2) | `age_group_staff.role` |
 | `SeasonType` | `CALENDAR_YEAR`, `EUROPEAN_YEAR` | `seasons.type` (default `EUROPEAN_YEAR`) |

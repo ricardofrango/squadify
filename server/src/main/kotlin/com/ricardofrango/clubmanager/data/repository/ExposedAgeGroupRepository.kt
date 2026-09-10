@@ -35,6 +35,7 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
             it[seasonId] = Uuid.parse(ageGroup.seasonId)
             it[name] = ageGroup.name
             it[birthYear] = ageGroup.birthYear
+            it[teamSize] = ageGroup.teamSize
         }.resultedValues?.singleOrNull()?.let(::toAgeGroup)
             ?: throw DatabaseException("Failed to create age group")
     }
@@ -46,6 +47,7 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
             this[AgeGroups.seasonId] = Uuid.parse(ageGroup.seasonId)
             this[AgeGroups.name] = ageGroup.name
             this[AgeGroups.birthYear] = ageGroup.birthYear
+            this[AgeGroups.teamSize] = ageGroup.teamSize
         }.map(::toAgeGroup)
     }
 
@@ -124,6 +126,7 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
         clubId = row[AgeGroups.clubId].toString(),
         seasonId = row[AgeGroups.seasonId].toString(),
         name = row[AgeGroups.name],
-        birthYear = row[AgeGroups.birthYear]
+        birthYear = row[AgeGroups.birthYear],
+        teamSize = row[AgeGroups.teamSize]
     )
 }

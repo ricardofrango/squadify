@@ -1,6 +1,7 @@
 package com.ricardofrango.clubmanager.domain.usecase
 
 import com.ricardofrango.clubmanager.domain.repository.AgeGroupRepository
+import com.ricardofrango.clubmanager.domain.repository.ClubRepository
 import com.ricardofrango.clubmanager.domain.service.TransactionManager
 import com.ricardofrango.clubmanager.exception.ConflictException
 import com.ricardofrango.clubmanager.exception.ValidationException
@@ -11,6 +12,7 @@ import kotlin.uuid.Uuid
 
 class CreateAgeGroupsUseCase(
     private val ageGroupRepository: AgeGroupRepository,
+    private val clubRepository: ClubRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager
 ) {
@@ -26,6 +28,9 @@ class CreateAgeGroupsUseCase(
             throw ValidationException("At least one age group must be provided")
         }
 
+        val club = clubRepository.getClubById(request.clubId)
+            ?: throw ValidationException("Club not found")
+
         // Get existing age groups for this club and season to check for duplicates
         val existingAgeGroups = ageGroupRepository.findByClubAndSeason(request.clubId, request.seasonId)
         val existingYears = existingAgeGroups.map { it.birthYear }.toSet()
@@ -37,13 +42,17 @@ class CreateAgeGroupsUseCase(
             if (existingYears.contains(item.birthYear)) {
                 throw ConflictException("An age group for birth year ${item.birthYear} already exists in this season")
             }
-            
+            if (item.teamSize != null && item.teamSize !in club.sport.teamSizes) {
+                throw ValidationException("Team size ${item.teamSize} is not valid for ${club.sport}")
+            }
+
             AgeGroup(
                 id = Uuid.random().toString(),
                 clubId = request.clubId,
                 name = item.name,
                 seasonId = request.seasonId,
-                birthYear = item.birthYear
+                birthYear = item.birthYear,
+                teamSize = item.teamSize
             )
         }
 

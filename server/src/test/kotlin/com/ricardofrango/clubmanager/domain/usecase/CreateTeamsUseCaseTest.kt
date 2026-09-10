@@ -8,7 +8,10 @@ import com.ricardofrango.clubmanager.domain.service.TransactionManager
 import com.ricardofrango.clubmanager.exception.ForbiddenException
 import com.ricardofrango.clubmanager.exception.ValidationException
 import com.ricardofrango.clubmanager.model.AgeGroup
+import com.ricardofrango.clubmanager.model.Club
 import com.ricardofrango.clubmanager.model.ClubRole
+import com.ricardofrango.clubmanager.model.ClubStatus
+import com.ricardofrango.clubmanager.model.SportType
 import com.ricardofrango.clubmanager.model.CreateTeamsRequest
 import com.ricardofrango.clubmanager.model.Team
 import com.ricardofrango.clubmanager.model.TeamItemRequest
@@ -34,13 +37,21 @@ class CreateTeamsUseCaseTest {
     private val playerRepository = mockk<PlayerRepository>()
     private val userRepository = mockk<UserRepository>()
     private val ageGroupRepository = mockk<AgeGroupRepository>()
+    private val clubRepository = mockk<com.ricardofrango.clubmanager.domain.repository.ClubRepository>()
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager)
-    private val useCase = CreateTeamsUseCase(teamRepository, ageGroupRepository, checkUserPermissionUseCase, transactionManager)
+    private val useCase = CreateTeamsUseCase(teamRepository, ageGroupRepository, clubRepository, checkUserPermissionUseCase, transactionManager)
 
     private val clubIdA = "club-a"
+
+    init {
+        coEvery { clubRepository.getClubById(clubIdA) } returns Club(
+            id = clubIdA, name = "C", status = ClubStatus.ACTIVE,
+            createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL
+        )
+    }
 
     private val consistentAgeGroup = AgeGroup(
         id = "age-group-1",
