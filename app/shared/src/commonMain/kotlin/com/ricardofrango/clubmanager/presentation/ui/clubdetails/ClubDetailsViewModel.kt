@@ -189,8 +189,14 @@ class ClubDetailsViewModel(
             val matchesAgeGroup = state.selectedPlayerAgeGroupId == null ||
                 playerAgeGroupIds.contains(state.selectedPlayerAgeGroupId)
 
-            val matchesSeason = if (state.selectedPlayerSeasonId == null) true else {
-                details.ageGroups.any {
+            val matchesSeason = when {
+                state.selectedPlayerSeasonId == null -> true
+                // A player who isn't in any age-group pool yet has no season context -- surface them
+                // (e.g. just registered to the club) instead of hiding them behind the season filter
+                // until someone assigns them, which otherwise makes registration look like it did
+                // nothing. A specific age-group filter still excludes them.
+                playerAgeGroupIds.isEmpty() -> true
+                else -> details.ageGroups.any {
                     it.id in playerAgeGroupIds && it.seasonId == state.selectedPlayerSeasonId
                 }
             }
