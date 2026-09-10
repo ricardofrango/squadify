@@ -37,11 +37,16 @@ enum class ClubStatus {
     PENDING
 }
 
-/** The sport a club runs. Everything else (age groups, teams, matches, call-ups) is sport-agnostic. */
+/**
+ * The sport a club runs. [teamSizes] is the a-side counts that sport is played with -- a code
+ * constant (the rules of the sport, identical for every club, not per-deployment config). An age
+ * group picks its default from this list; a team can then override it. Everything else (age groups,
+ * teams, matches, call-ups) is sport-agnostic.
+ */
 @Serializable
-enum class SportType {
-    FOOTBALL,
-    FUTSAL
+enum class SportType(val teamSizes: List<Int>) {
+    FOOTBALL(listOf(4, 5, 7, 9, 11)),
+    FUTSAL(listOf(4, 5))
 }
 
 @Serializable
@@ -137,7 +142,9 @@ data class Club(
     val address: String? = null,
     val status: ClubStatus,
     val createdAt: Instant,
-    val sport: SportType
+    // Defaulted so the many `Club(...)` test/preview constructions stay valid; the choice is forced
+    // where a human actually makes it (`ProvisionClubRequest.sport`).
+    val sport: SportType = SportType.FOOTBALL
 )
 
 /**
