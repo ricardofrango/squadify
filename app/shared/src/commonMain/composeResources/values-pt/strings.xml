@@ -131,7 +131,6 @@
     <string name="title_add_players_to_age_group">Adicionar jogadores</string>
     <string name="label_add_players_to_age_group">Adicionar jogadores ao escalão</string>
     <string name="label_search_players">Procurar jogadores</string>
-    <string name="btn_add_new_player">Novo jogador</string>
     <string name="label_players_selected">%1$d selecionados</string>
     <string name="label_plays_up">joga acima</string>
     <string name="btn_add_player_one">Adicionar jogador</string>
