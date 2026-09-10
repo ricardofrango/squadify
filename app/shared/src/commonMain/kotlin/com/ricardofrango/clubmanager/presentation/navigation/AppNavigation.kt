@@ -3,6 +3,8 @@ package com.ricardofrango.clubmanager.presentation.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -25,10 +27,24 @@ import com.ricardofrango.clubmanager.presentation.ui.matchdetails.MatchDetailsSc
 import com.ricardofrango.clubmanager.presentation.ui.livematch.LiveMatchScreen
 import com.ricardofrango.clubmanager.presentation.ui.playerdetails.PlayerDetailsScreen
 
-// Key used on the ClubDetails back-stack entry's SavedStateHandle to signal "a season, age group, or
-// team was just created, force a reload" -- the standard Compose Navigation pattern for a screen to
-// return a result to the screen that pushed it. See ClubDetailsScreen's `refreshClubDetails` doc.
+// Key used on a back-stack entry's SavedStateHandle to signal "a season, age group, team, player, or
+// match was just created/changed, force a reload" -- the standard Compose Navigation pattern for a
+// screen to return a result to the screen that pushed it. See ClubDetailsScreen's `refreshClubDetails`
+// doc.
 private const val KEY_CLUB_STRUCTURE_CHANGED = "clubStructureChanged"
+
+/**
+ * Consume the "structure changed" result on [entry] and cascade it one level further down the back
+ * stack. A Create* screen only ever sets the flag on its immediate `previousBackStackEntry`, so when
+ * the create action is taken two or more screens deep (e.g. creating a team from AgeGroupDetails,
+ * which itself sits on top of ClubDetails) the screens underneath the launcher would otherwise never
+ * learn they're stale. Each intermediate detail screen forwards the signal on as it consumes it, so
+ * the reload reaches every screen below when the user pops back.
+ */
+private fun NavController.consumeAndCascadeStructureChanged(entry: NavBackStackEntry) {
+    entry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false
+    previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+}
 
 @Composable
 fun AppNavigation() {
@@ -113,13 +129,13 @@ fun AppNavigation() {
                 onNavigateToCreateSeason = { clubName ->
                     navController.navigate(Screen.CreateSeason(screen.clubId, clubName))
                 },
-                onNavigateToCreateAgeGroups = { clubName, initialSeasonId ->
+                onNavigateToCreateAgeGroups = { clubName, sport, initialSeasonId ->
                     navController.navigate(
-                        Screen.CreateAgeGroups(screen.clubId, clubName, initialSeasonId)
+                        Screen.CreateAgeGroups(screen.clubId, clubName, sport, initialSeasonId)
                     )
                 },
-                onNavigateToCreateTeams = { clubName ->
-                    navController.navigate(Screen.CreateTeams(screen.clubId, clubName))
+                onNavigateToCreateTeams = { clubName, sport ->
+                    navController.navigate(Screen.CreateTeams(screen.clubId, clubName, sport))
                 },
                 onNavigateToAddPlayersToAgeGroup = {
                     navController.navigate(Screen.AddPlayersToAgeGroup(screen.clubId))
@@ -159,6 +175,7 @@ fun AppNavigation() {
             CreateAgeGroupsScreen(
                 clubId = screen.clubId,
                 clubName = screen.clubName,
+                sport = screen.sport,
                 initialSeasonId = screen.initialSeasonId,
                 onNavigateBack = {
                     navController.popBackStack()
@@ -177,6 +194,7 @@ fun AppNavigation() {
             CreateTeamsScreen(
                 clubId = screen.clubId,
                 clubName = screen.clubName,
+                sport = screen.sport,
                 onNavigateBack = {
                     navController.popBackStack()
                 },
@@ -212,7 +230,7 @@ fun AppNavigation() {
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
                 .collectAsState()
             if (structureChanged) {
-                backStackEntry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false
+                navController.consumeAndCascadeStructureChanged(backStackEntry)
             }
             AgeGroupDetailsScreen(
                 ageGroupId = screen.ageGroupId,
@@ -222,8 +240,8 @@ fun AppNavigation() {
                 onNavigateToAddPlayers = { clubId, ageGroupId ->
                     navController.navigate(Screen.AddPlayersToAgeGroup(clubId, ageGroupId))
                 },
-                onNavigateToCreateTeams = { clubId, clubName ->
-                    navController.navigate(Screen.CreateTeams(clubId, clubName))
+                onNavigateToCreateTeams = { clubId, clubName, sport ->
+                    navController.navigate(Screen.CreateTeams(clubId, clubName, sport))
                 },
                 onNavigateToCreateMatch = { ageGroupId ->
                     navController.navigate(Screen.CreateMatch(ageGroupId = ageGroupId))
@@ -255,7 +273,7 @@ fun AppNavigation() {
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
                 .collectAsState()
             if (structureChanged) {
-                backStackEntry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false
+                navController.consumeAndCascadeStructureChanged(backStackEntry)
             }
             TeamDetailsScreen(
                 teamId = screen.teamId,
@@ -298,7 +316,7 @@ fun AppNavigation() {
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
                 .collectAsState()
             if (structureChanged) {
-                backStackEntry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false
+                navController.consumeAndCascadeStructureChanged(backStackEntry)
             }
             MatchDetailsScreen(
                 matchId = screen.matchId,

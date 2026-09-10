@@ -144,7 +144,7 @@ data class Club(
     val createdAt: Instant,
     // Defaulted so the many `Club(...)` test/preview constructions stay valid; the choice is forced
     // where a human actually makes it (`ProvisionClubRequest.sport`).
-    val sport: SportType = SportType.FOOTBALL
+    val sport: SportType
 )
 
 /**
@@ -175,7 +175,10 @@ data class AgeGroup(
     val clubId: String,
     val name: String,
     val seasonId: String,
-    val birthYear: Int
+    val birthYear: Int,
+    // The a-side count this age group's teams play by default (one of `club.sport.teamSizes`).
+    // Nullable so age groups created before this existed still load; a team can override it.
+    val teamSize: Int? = null
 )
 
 @Serializable
@@ -186,7 +189,10 @@ data class Team(
     val seasonId: String,
     val name: String,
     val code: String? = null,
-    val active: Boolean
+    val active: Boolean,
+    // The a-side count this team plays. Pre-filled from `ageGroup.teamSize` when the team is created,
+    // but can be set to any of `club.sport.teamSizes`. Null only for teams created before this field.
+    val teamSize: Int? = null
 )
 
 @Serializable
@@ -278,7 +284,8 @@ data class CreateAgeGroupsRequest(
 @Serializable
 data class AgeGroupItemRequest(
     val name: String,
-    val birthYear: Int
+    val birthYear: Int,
+    val teamSize: Int? = null
 )
 
 @Serializable
@@ -287,7 +294,8 @@ data class CreateTeamRequest(
     val ageGroupId: String,
     val seasonId: String,
     val name: String,
-    val code: String? = null
+    val code: String? = null,
+    val teamSize: Int? = null
 )
 
 /**
@@ -306,7 +314,8 @@ data class CreateTeamsRequest(
 @Serializable
 data class TeamItemRequest(
     val name: String,
-    val code: String? = null
+    val code: String? = null,
+    val teamSize: Int? = null
 )
 
 @Serializable

@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.ricardofrango.clubmanager.model.AgeGroup
 import com.ricardofrango.clubmanager.model.Season
 import com.ricardofrango.clubmanager.model.SeasonType
+import com.ricardofrango.clubmanager.model.SportType
 import com.ricardofrango.clubmanager.model.TeamItemRequest
 import com.ricardofrango.clubmanager.presentation.ui.components.FMTopBar
 import com.ricardofrango.clubmanager.presentation.ui.components.PrimaryLoadingButton
@@ -38,7 +39,11 @@ import org.koin.compose.viewmodel.koinViewModel
  * from the middle of the list (a plain index would shift and confuse item state). */
 private data class TeamRow(
     val key: Int,
-    val name: String = ""
+    val name: String = "",
+    // The a-side count this team plays. Pre-filled from the picked age group's default (or the sport's
+    // largest format when the age group predates team sizes) and overridable per row; sent as
+    // `TeamItemRequest.teamSize`.
+    val teamSize: Int? = null
 )
 
 private val FormRoundedShape = RoundedCornerShape(18.dp)
@@ -65,11 +70,19 @@ private val FormRoundedShape = RoundedCornerShape(18.dp)
 fun CreateTeamsScreen(
     clubId: String,
     clubName: String,
+    // The club's sport -- its `teamSizes` are the options for the per-row team-size picker.
+    sport: SportType,
     onNavigateBack: () -> Unit,
     onTeamsCreated: () -> Unit,
     viewModel: CreateTeamsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
+
+    // The team-size a new row starts on: the picked age group's default, or the sport's largest format
+    // when no age group is picked yet / that age group predates team sizes.
+    val defaultTeamSize = (uiState as? CreateTeamsUiState.Idle)?.let { idle ->
+        idle.ageGroupsForSeason.find { it.id == idle.selectedAgeGroupId }?.teamSize
+    } ?: sport.teamSizes.last()
 
     var nextRowKey by remember { mutableStateOf(1) }
     val rows = remember { mutableStateListOf(TeamRow(key = 0)) }
@@ -93,14 +106,23 @@ fun CreateTeamsScreen(
         uiState = uiState,
         clubName = clubName,
         rows = rows,
+        teamSizeOptions = sport.teamSizes,
         showValidationErrors = showValidationErrors,
         onNavigateBack = onNavigateBack,
         onSeasonSelected = { seasonId ->
             viewModel.onSeasonSelected(seasonId)
+            // Selecting a season clears the age group, so its team-size default is gone too -- reset
+            // the rows to the sport's largest format until an age group is picked again.
+            for (i in rows.indices) rows[i] = rows[i].copy(teamSize = sport.teamSizes.last())
             showValidationErrors = false
         },
         onAgeGroupSelected = { ageGroupId ->
             viewModel.onAgeGroupSelected(ageGroupId)
+            // Re-seed every row with the newly picked age group's default team size (overridable
+            // afterwards). Mirrors the birth-year reset on season change in CreateAgeGroupsScreen.
+            val ageGroup = (uiState as? CreateTeamsUiState.Idle)?.ageGroups?.find { it.id == ageGroupId }
+            val newDefault = ageGroup?.teamSize ?: sport.teamSizes.last()
+            for (i in rows.indices) rows[i] = rows[i].copy(teamSize = newDefault)
             showValidationErrors = false
         },
         onRowNameChanged = { rowKey, name ->
@@ -109,8 +131,13 @@ fun CreateTeamsScreen(
             showValidationErrors = false
             viewModel.clearSubmitError()
         },
+        onRowTeamSizeSelected = { rowKey, teamSize ->
+            val index = rows.indexOfFirst { it.key == rowKey }
+            if (index >= 0) rows[index] = rows[index].copy(teamSize = teamSize)
+            viewModel.clearSubmitError()
+        },
         onAddRow = {
-            rows.add(TeamRow(key = nextRowKey))
+            rows.add(TeamRow(key = nextRowKey, teamSize = defaultTeamSize))
             nextRowKey += 1
         },
         onRemoveRow = { rowKey ->
@@ -122,7 +149,10 @@ fun CreateTeamsScreen(
             val ageGroupPicked = idle?.selectedAgeGroupId != null
             val namesFilled = rows.isNotEmpty() && rows.all { it.name.isNotBlank() }
             if (ageGroupPicked && namesFilled) {
-                viewModel.onCreateClicked(clubId, rows.map { TeamItemRequest(name = it.name.trim()) })
+                viewModel.onCreateClicked(
+                    clubId,
+                    rows.map { TeamItemRequest(name = it.name.trim(), teamSize = it.teamSize) }
+                )
             }
         }
     )
@@ -134,11 +164,13 @@ private fun CreateTeamsContent(
     uiState: CreateTeamsUiState,
     clubName: String,
     rows: List<TeamRow>,
+    teamSizeOptions: List<Int>,
     showValidationErrors: Boolean,
     onNavigateBack: () -> Unit,
     onSeasonSelected: (seasonId: String) -> Unit,
     onAgeGroupSelected: (ageGroupId: String) -> Unit,
     onRowNameChanged: (rowKey: Int, name: String) -> Unit,
+    onRowTeamSizeSelected: (rowKey: Int, teamSize: Int) -> Unit,
     onAddRow: () -> Unit,
     onRemoveRow: (rowKey: Int) -> Unit,
     onCreateClick: () -> Unit
@@ -227,13 +259,21 @@ private fun CreateTeamsContent(
                         color = DeepCarbon.copy(alpha = 0.6f)
                     )
 
+                    Text(
+                        text = stringResource(Res.string.msg_team_size_age_group_default),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DeepCarbon.copy(alpha = 0.5f)
+                    )
+
                     rows.forEachIndexed { index, row ->
                         TeamRowCard(
                             index = index + 1,
                             row = row,
+                            teamSizeOptions = teamSizeOptions,
                             isError = showValidationErrors && row.name.isBlank(),
                             canRemove = rows.size > 1,
                             onNameChanged = { onRowNameChanged(row.key, it) },
+                            onTeamSizeSelected = { onRowTeamSizeSelected(row.key, it) },
                             onRemove = { onRemoveRow(row.key) }
                         )
                     }
@@ -349,9 +389,11 @@ private fun PickerField(
 private fun TeamRowCard(
     index: Int,
     row: TeamRow,
+    teamSizeOptions: List<Int>,
     isError: Boolean,
     canRemove: Boolean,
     onNameChanged: (String) -> Unit,
+    onTeamSizeSelected: (Int) -> Unit,
     onRemove: () -> Unit
 ) {
     Surface(
@@ -407,6 +449,17 @@ private fun TeamRowCard(
                     unfocusedLabelColor = CarbonGray
                 )
             )
+
+            PickerField(
+                label = stringResource(Res.string.label_team_size),
+                selectedText = row.teamSize?.let { stringResource(Res.string.label_team_size_value, it) },
+                placeholder = stringResource(Res.string.label_choose_team_size),
+                options = teamSizeOptions.map {
+                    it.toString() to stringResource(Res.string.label_team_size_value, it)
+                },
+                isError = false,
+                onOptionSelected = { onTeamSizeSelected(it.toInt()) }
+            )
         }
     }
 }
@@ -426,7 +479,8 @@ private fun previewAgeGroup(id: String, name: String, seasonId: String) = AgeGro
     clubId = "club-1",
     name = name,
     seasonId = seasonId,
-    birthYear = 2015
+    birthYear = 2015,
+    teamSize = 7
 )
 
 @Preview
@@ -441,12 +495,14 @@ private fun CreateTeamsContentPreview() {
                 selectedAgeGroupId = "a1"
             ),
             clubName = "CD Ribamar",
-            rows = listOf(TeamRow(key = 0, name = "Team A"), TeamRow(key = 1)),
+            rows = listOf(TeamRow(key = 0, name = "Team A", teamSize = 7), TeamRow(key = 1, teamSize = 7)),
+            teamSizeOptions = listOf(4, 5, 7, 9, 11),
             showValidationErrors = false,
             onNavigateBack = {},
             onSeasonSelected = {},
             onAgeGroupSelected = {},
             onRowNameChanged = { _, _ -> },
+            onRowTeamSizeSelected = { _, _ -> },
             onAddRow = {},
             onRemoveRow = {},
             onCreateClick = {}
@@ -467,11 +523,13 @@ private fun CreateTeamsContentValidationErrorsPreview() {
             ),
             clubName = "CD Ribamar",
             rows = listOf(TeamRow(key = 0, name = "")),
+            teamSizeOptions = listOf(4, 5, 7, 9, 11),
             showValidationErrors = true,
             onNavigateBack = {},
             onSeasonSelected = {},
             onAgeGroupSelected = {},
             onRowNameChanged = { _, _ -> },
+            onRowTeamSizeSelected = { _, _ -> },
             onAddRow = {},
             onRemoveRow = {},
             onCreateClick = {}
@@ -492,12 +550,14 @@ private fun CreateTeamsContentLandscapePreview() {
                 isSubmitting = true
             ),
             clubName = "CD Ribamar",
-            rows = listOf(TeamRow(key = 0, name = "Team A")),
+            rows = listOf(TeamRow(key = 0, name = "Team A", teamSize = 7)),
+            teamSizeOptions = listOf(4, 5, 7, 9, 11),
             showValidationErrors = false,
             onNavigateBack = {},
             onSeasonSelected = {},
             onAgeGroupSelected = {},
             onRowNameChanged = { _, _ -> },
+            onRowTeamSizeSelected = { _, _ -> },
             onAddRow = {},
             onRemoveRow = {},
             onCreateClick = {}

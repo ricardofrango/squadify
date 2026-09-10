@@ -7,9 +7,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -86,7 +87,13 @@ fun MatchesTab(
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(16.dp))
-            OutlinedButton(onClick = onGoToAgeGroups) {
+            // Same primary CTA styling as EmptyStateCallToAction -- a bare OutlinedButton here
+            // rendered in the muted default colour instead of the green it's meant to be.
+            Button(
+                onClick = onGoToAgeGroups,
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)
+            ) {
                 Text(stringResource(Res.string.btn_go_to_age_groups))
             }
         }

@@ -1,5 +1,6 @@
 package com.ricardofrango.clubmanager.presentation.navigation
 
+import com.ricardofrango.clubmanager.model.SportType
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -29,6 +30,8 @@ sealed class Screen {
     data class CreateAgeGroups(
         val clubId: String,
         val clubName: String,
+        // The club's sport -- feeds the team-size picker's options (`sport.teamSizes`).
+        val sport: SportType,
         // Optional pre-selection for the screen's own season picker: set when the caller already knows
         // which season is meant (a specific season's "no age groups" empty state), null from the
         // ambiguous overflow-menu entry so the user has to pick one explicitly. The screen loads the
@@ -38,7 +41,7 @@ sealed class Screen {
     ) : Screen()
 
     @Serializable
-    data class CreateTeams(val clubId: String, val clubName: String) : Screen()
+    data class CreateTeams(val clubId: String, val clubName: String, val sport: SportType) : Screen()
 
     // The screen has its own age-group picker; [initialAgeGroupId] just pre-selects it when the caller
     // already knows which one (e.g. from the age-group detail screen).

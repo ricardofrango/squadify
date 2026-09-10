@@ -59,7 +59,7 @@ fun AgeGroupDetailsScreen(
     onNavigateToTeam: (teamId: String) -> Unit,
     onNavigateToPlayer: (playerId: String) -> Unit,
     onNavigateToAddPlayers: (clubId: String, ageGroupId: String) -> Unit,
-    onNavigateToCreateTeams: (clubId: String, clubName: String) -> Unit,
+    onNavigateToCreateTeams: (clubId: String, clubName: String, sport: SportType) -> Unit,
     onNavigateToCreateMatch: (ageGroupId: String) -> Unit,
     refreshOnReturn: Boolean = false,
     viewModel: AgeGroupDetailsViewModel = koinViewModel()
@@ -82,7 +82,7 @@ fun AgeGroupDetailsScreen(
         onPlayerClick = onNavigateToPlayer,
         onTeamClick = onNavigateToTeam,
         onAddPlayers = { d -> onNavigateToAddPlayers(d.ageGroup.clubId, d.ageGroup.id) },
-        onCreateTeam = { d -> onNavigateToCreateTeams(d.ageGroup.clubId, d.club.name) },
+        onCreateTeam = { d -> onNavigateToCreateTeams(d.ageGroup.clubId, d.club.name, d.club.sport) },
         onCreateMatch = { d -> onNavigateToCreateMatch(d.ageGroup.id) }
     )
 }

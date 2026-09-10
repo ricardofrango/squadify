@@ -76,6 +76,7 @@ object AgeGroups : Table("age_groups") {
     val seasonId = uuid("season_id").references(Seasons.id)
     val name = varchar("name", 100)
     val birthYear = integer("birth_year").default(0)
+    val teamSize = integer("team_size").nullable()
 
     override val primaryKey = PrimaryKey(id)
 
@@ -92,6 +93,7 @@ object Teams : Table("teams") {
     val name = varchar("name", 100)
     val code = varchar("code", 50).nullable()
     val active = bool("active").default(true)
+    val teamSize = integer("team_size").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }
