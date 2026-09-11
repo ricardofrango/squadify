@@ -378,6 +378,13 @@ private fun timeOfDay(instant: Instant): String {
     return "${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}"
 }
 
+/** The running match clock, e.g. 1502 seconds -> "25:02". */
+private fun formatMatchClock(totalSeconds: Int): String {
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}"
+}
+
 // ---------------------------------------------------------------------------------------------
 // Live console (design 16A "is live")
 // ---------------------------------------------------------------------------------------------
@@ -393,9 +400,12 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
     val details = state.details
     val status = details.match.status
 
-    // Local-only display state -- see the screen doc's disclosed simplifications.
+    // Local-only display state -- see the screen doc's disclosed simplifications. Ticks by the
+    // second (displayed as MM:SS) but events are still logged against the whole minute
+    // (displayMinute), matching MatchEvent.minute's granularity.
     var isSecondHalf by remember(details.match.id) { mutableStateOf(false) }
-    var displayMinute by remember(details.match.id) { mutableStateOf(state.events.maxOfOrNull { it.minute } ?: 0) }
+    var displaySeconds by remember(details.match.id) { mutableStateOf((state.events.maxOfOrNull { it.minute } ?: 0) * 60) }
+    val displayMinute = displaySeconds / 60
     var showSetMinute by remember { mutableStateOf(false) }
     var showHalfTimeConfirm by remember { mutableStateOf(false) }
     var showFullTimeConfirm by remember { mutableStateOf(false) }
@@ -405,8 +415,8 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
     LaunchedEffect(status) {
         if (status == MatchStatus.LIVE) {
             while (true) {
-                delay(60_000)
-                displayMinute++
+                delay(1_000)
+                displaySeconds++
             }
         }
     }
@@ -458,7 +468,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
                         )
                     } else {
                         Text(
-                            "$displayMinute'",
+                            formatMatchClock(displaySeconds),
                             color = PitchGreen,
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                         )
@@ -565,7 +575,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
     if (showSetMinute) {
         SetMinuteDialog(
             initial = displayMinute,
-            onConfirm = { displayMinute = it; showSetMinute = false },
+            onConfirm = { displaySeconds = it * 60; showSetMinute = false },
             onDismiss = { showSetMinute = false }
         )
     }
@@ -650,7 +660,11 @@ private fun SetMinuteDialog(initial: Int, onConfirm: (Int) -> Unit, onDismiss: (
         text = {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { if (value > 0) value-- }) { Text("−", style = MaterialTheme.typography.headlineSmall) }
-                Text("$value'", modifier = Modifier.padding(horizontal = 20.dp), style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
+                Text(
+                    formatMatchClock(value * 60),
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+                )
                 IconButton(onClick = { value++ }) { Text("+", style = MaterialTheme.typography.headlineSmall) }
             }
         },
