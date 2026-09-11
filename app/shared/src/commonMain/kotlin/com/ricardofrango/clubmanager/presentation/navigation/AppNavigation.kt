@@ -256,6 +256,7 @@ fun AppNavigation() {
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToTeam = { teamId -> navController.navigate(Screen.TeamDetails(teamId)) },
                 onNavigateToPlayer = { playerId -> navController.navigate(Screen.PlayerDetails(playerId)) },
+                onNavigateToMatch = { matchId -> navController.navigate(Screen.MatchDetails(matchId)) },
                 onNavigateToAddPlayers = { clubId, clubName, ageGroupId ->
                     navController.navigate(Screen.AddPlayersToAgeGroup(clubId, clubName, ageGroupId))
                 },
