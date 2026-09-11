@@ -58,6 +58,7 @@ fun AgeGroupDetailsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToTeam: (teamId: String) -> Unit,
     onNavigateToPlayer: (playerId: String) -> Unit,
+    onNavigateToMatch: (matchId: String) -> Unit,
     onNavigateToAddPlayers: (clubId: String, clubName: String, ageGroupId: String) -> Unit,
     onNavigateToAddStaff: (clubId: String, clubName: String, ageGroupId: String) -> Unit,
     onNavigateToCreateTeams: (clubId: String, clubName: String, sport: SportType) -> Unit,
@@ -82,6 +83,7 @@ fun AgeGroupDetailsScreen(
         onSearchChange = { searchQuery = it },
         onPlayerClick = onNavigateToPlayer,
         onTeamClick = onNavigateToTeam,
+        onMatchClick = onNavigateToMatch,
         onAddPlayers = { d -> onNavigateToAddPlayers(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
         onAddStaff = { d -> onNavigateToAddStaff(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
         onCreateTeam = { d -> onNavigateToCreateTeams(d.ageGroup.clubId, d.club.name, d.club.sport) },
@@ -101,6 +103,7 @@ private fun AgeGroupDetailsContent(
     onSearchChange: (String) -> Unit,
     onPlayerClick: (String) -> Unit,
     onTeamClick: (String) -> Unit,
+    onMatchClick: (String) -> Unit,
     onAddPlayers: (AgeGroupDetails) -> Unit,
     onAddStaff: (AgeGroupDetails) -> Unit,
     onCreateTeam: (AgeGroupDetails) -> Unit,
@@ -184,6 +187,7 @@ private fun AgeGroupDetailsContent(
                     onSearchChange = onSearchChange,
                     onPlayerClick = onPlayerClick,
                     onTeamClick = onTeamClick,
+                    onMatchClick = onMatchClick,
                     onAddPlayers = { onAddPlayers(uiState.details) },
                     onAddStaff = { onAddStaff(uiState.details) },
                     onCreateTeam = { onCreateTeam(uiState.details) },
@@ -204,6 +208,7 @@ private fun AgeGroupBody(
     onSearchChange: (String) -> Unit,
     onPlayerClick: (String) -> Unit,
     onTeamClick: (String) -> Unit,
+    onMatchClick: (String) -> Unit,
     onAddPlayers: () -> Unit,
     onAddStaff: () -> Unit,
     onCreateTeam: () -> Unit,
@@ -298,7 +303,8 @@ private fun AgeGroupBody(
                 MatchRow(
                     opponentName = opponentsById[match.opponentId]?.let { it.shortName ?: it.name } ?: "—",
                     teamName = teamsById[match.teamId]?.name ?: "",
-                    dateLabel = matchDateLabel(match.dateTime)
+                    dateLabel = matchDateLabel(match.dateTime),
+                    onClick = { onMatchClick(match.id) }
                 )
             }
         }
@@ -548,8 +554,9 @@ private fun TeamRow(team: Team, onClick: () -> Unit) {
 }
 
 @Composable
-private fun MatchRow(opponentName: String, teamName: String, dateLabel: String) {
+private fun MatchRow(opponentName: String, teamName: String, dateLabel: String, onClick: () -> Unit) {
     Surface(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = CardShape,
         color = Color.White,
@@ -652,7 +659,7 @@ private fun AgeGroupDetailsPopulatedPreview() {
             uiState = AgeGroupDetailsUiState.Idle(sampleDetails(populated = true, canManage = true)),
             playerSort = PlayerSort.NAME, searchQuery = "",
             onNavigateBack = {}, onRetry = {}, onPlayerSortChange = {}, onSearchChange = {},
-            onPlayerClick = {}, onTeamClick = {}, onAddPlayers = {}, onAddStaff = {}, onCreateTeam = {}, onCreateMatch = {}
+            onPlayerClick = {}, onTeamClick = {}, onMatchClick = {}, onAddPlayers = {}, onAddStaff = {}, onCreateTeam = {}, onCreateMatch = {}
         )
     }
 }
@@ -665,7 +672,7 @@ private fun AgeGroupDetailsEmptyReadOnlyPreview() {
             uiState = AgeGroupDetailsUiState.Idle(sampleDetails(populated = false, canManage = false)),
             playerSort = PlayerSort.NAME, searchQuery = "",
             onNavigateBack = {}, onRetry = {}, onPlayerSortChange = {}, onSearchChange = {},
-            onPlayerClick = {}, onTeamClick = {}, onAddPlayers = {}, onAddStaff = {}, onCreateTeam = {}, onCreateMatch = {}
+            onPlayerClick = {}, onTeamClick = {}, onMatchClick = {}, onAddPlayers = {}, onAddStaff = {}, onCreateTeam = {}, onCreateMatch = {}
         )
     }
 }
@@ -678,7 +685,7 @@ private fun AgeGroupDetailsLandscapePreview() {
             uiState = AgeGroupDetailsUiState.Idle(sampleDetails(populated = true, canManage = true)),
             playerSort = PlayerSort.BIRTH_YEAR, searchQuery = "",
             onNavigateBack = {}, onRetry = {}, onPlayerSortChange = {}, onSearchChange = {},
-            onPlayerClick = {}, onTeamClick = {}, onAddPlayers = {}, onAddStaff = {}, onCreateTeam = {}, onCreateMatch = {}
+            onPlayerClick = {}, onTeamClick = {}, onMatchClick = {}, onAddPlayers = {}, onAddStaff = {}, onCreateTeam = {}, onCreateMatch = {}
         )
     }
 }
