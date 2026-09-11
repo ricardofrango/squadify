@@ -357,6 +357,9 @@ fun AppNavigation() {
                 onNavigateToPlayer = { playerId ->
                     navController.navigate(Screen.PlayerDetails(playerId))
                 },
+                onNavigateToMatch = { matchId ->
+                    navController.navigate(Screen.MatchDetails(matchId))
+                },
                 onScheduleMatch = {
                     navController.navigate(Screen.CreateMatch(teamId = screen.teamId))
                 },

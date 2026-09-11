@@ -62,6 +62,7 @@ fun TeamDetailsScreen(
     onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
     // Players are reached through the age group now, not from here -- kept for nav-graph compatibility.
     @Suppress("UNUSED_PARAMETER") onNavigateToPlayer: (String) -> Unit,
+    onNavigateToMatch: (String) -> Unit,
     onScheduleMatch: () -> Unit,
     onEditTeam: () -> Unit,
     refreshOnReturn: Boolean = false,
@@ -78,7 +79,8 @@ fun TeamDetailsScreen(
         onRetry = { viewModel.load(teamId, forceReload = true) },
         onNavigateToAgeGroup = onNavigateToAgeGroup,
         onScheduleMatch = onScheduleMatch,
-        onEditTeam = onEditTeam
+        onEditTeam = onEditTeam,
+        onMatchClick = onNavigateToMatch
     )
 }
 
@@ -90,7 +92,8 @@ private fun TeamDetailsContent(
     onRetry: () -> Unit,
     onNavigateToAgeGroup: (String) -> Unit,
     onScheduleMatch: () -> Unit,
-    onEditTeam: () -> Unit
+    onEditTeam: () -> Unit,
+    onMatchClick: (String) -> Unit
 ) {
     val details = (uiState as? TeamDetailsUiState.Idle)?.details
     Scaffold(
@@ -156,7 +159,8 @@ private fun TeamDetailsContent(
                     opponentsById = opponentsById,
                     modifier = Modifier.fillMaxWidth().weight(1f).background(Color.White),
                     onNavigateToAgeGroup = onNavigateToAgeGroup,
-                    onScheduleMatch = onScheduleMatch
+                    onScheduleMatch = onScheduleMatch,
+                    onMatchClick = onMatchClick
                 )
             }
         }
@@ -169,7 +173,8 @@ private fun TeamBody(
     opponentsById: Map<String, Opponent>,
     modifier: Modifier,
     onNavigateToAgeGroup: (String) -> Unit,
-    onScheduleMatch: () -> Unit
+    onScheduleMatch: () -> Unit,
+    onMatchClick: (String) -> Unit
 ) {
     LazyColumn(
         modifier = modifier,
@@ -197,7 +202,8 @@ private fun TeamBody(
                 UpcomingMatchRow(
                     opponentName = opponentName(opponentsById, match.opponentId),
                     dateTime = match.dateTime,
-                    location = match.location
+                    location = match.location,
+                    onClick = { onMatchClick(match.id) }
                 )
             }
         }
@@ -220,7 +226,8 @@ private fun TeamBody(
                     dateTime = result.match.dateTime,
                     ourScore = result.ourScore,
                     opponentScore = result.opponentScore,
-                    outcome = result.outcome
+                    outcome = result.outcome,
+                    onClick = { onMatchClick(result.match.id) }
                 )
             }
         }
@@ -365,8 +372,9 @@ private fun DateBlock(dateTime: Instant, onDark: Boolean) {
 }
 
 @Composable
-private fun UpcomingMatchRow(opponentName: String, dateTime: Instant, location: String?) {
+private fun UpcomingMatchRow(opponentName: String, dateTime: Instant, location: String?, onClick: () -> Unit) {
     Surface(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = CardShape,
         color = Color.White,
@@ -397,10 +405,12 @@ private fun ResultRow(
     dateTime: Instant,
     ourScore: Int,
     opponentScore: Int,
-    outcome: MatchOutcome
+    outcome: MatchOutcome,
+    onClick: () -> Unit
 ) {
     val accent = outcomeColor(outcome)
     Surface(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = CardShape,
         color = Color.White,
@@ -706,7 +716,7 @@ private fun TeamDetailsPopulatedPreview() {
     ClubManagerTheme {
         TeamDetailsContent(
             uiState = TeamDetailsUiState.Idle(sampleDetails(populated = true, canManage = true)),
-            onNavigateBack = {}, onRetry = {}, onNavigateToAgeGroup = {}, onScheduleMatch = {}, onEditTeam = {}
+            onNavigateBack = {}, onRetry = {}, onNavigateToAgeGroup = {}, onScheduleMatch = {}, onEditTeam = {}, onMatchClick = {}
         )
     }
 }
@@ -717,7 +727,7 @@ private fun TeamDetailsEmptyPreview() {
     ClubManagerTheme(darkTheme = true) {
         TeamDetailsContent(
             uiState = TeamDetailsUiState.Idle(sampleDetails(populated = false, canManage = true)),
-            onNavigateBack = {}, onRetry = {}, onNavigateToAgeGroup = {}, onScheduleMatch = {}, onEditTeam = {}
+            onNavigateBack = {}, onRetry = {}, onNavigateToAgeGroup = {}, onScheduleMatch = {}, onEditTeam = {}, onMatchClick = {}
         )
     }
 }
