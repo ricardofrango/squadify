@@ -22,9 +22,11 @@ fun Route.matchRoutes() {
     val manageCallUpsUseCase by inject<ManageCallUpsUseCase>()
     val updateCallUpStatusUseCase by inject<UpdateCallUpStatusUseCase>()
     val addMatchEventUseCase by inject<AddMatchEventUseCase>()
+    val deleteMatchEventUseCase by inject<DeleteMatchEventUseCase>()
     val getMatchEventsUseCase by inject<GetMatchEventsUseCase>()
     val getMatchScoreUseCase by inject<GetMatchScoreUseCase>()
     val getLiveMatchUpdatesUseCase by inject<GetLiveMatchUpdatesUseCase>()
+    val startMatchUseCase by inject<StartMatchUseCase>()
 
     authenticate("auth-jwt") {
         route("/matches") {
@@ -80,6 +82,19 @@ fun Route.matchRoutes() {
                     }
                 }
 
+                post("/start") {
+                    val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                    val matchId = call.parameters["matchId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+                    val request = call.receive<StartMatchRequest>()
+
+                    val success = startMatchUseCase(currentUserId, matchId, request)
+                    if (success) {
+                        call.respond(HttpStatusCode.NoContent)
+                    } else {
+                        call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to start match"))
+                    }
+                }
+
                 route("/events") {
                     get {
                         val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
@@ -102,6 +117,19 @@ fun Route.matchRoutes() {
 
                         val event = addMatchEventUseCase(currentUserId, matchId, request)
                         call.respond(HttpStatusCode.Created, event)
+                    }
+
+                    delete("/{eventId}") {
+                        val currentUserId = call.userId ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                        val matchId = call.parameters["matchId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                        val eventId = call.parameters["eventId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+
+                        val success = deleteMatchEventUseCase(currentUserId, matchId, eventId)
+                        if (success) {
+                            call.respond(HttpStatusCode.NoContent)
+                        } else {
+                            call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to delete match event"))
+                        }
                     }
                 }
 

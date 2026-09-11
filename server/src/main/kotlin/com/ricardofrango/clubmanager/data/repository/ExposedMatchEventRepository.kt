@@ -11,6 +11,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.Uuid
@@ -31,6 +32,14 @@ class ExposedMatchEventRepository : MatchEventRepository {
             ?.singleOrNull()
             ?.let(::toMatchEvent)
             ?: throw DatabaseException("Failed to add match event")
+
+    override suspend fun getEventById(id: String): MatchEvent? =
+        MatchEvents.selectAll().where { MatchEvents.id eq Uuid.parse(id) }
+            .map(::toMatchEvent)
+            .singleOrNull()
+
+    override suspend fun deleteEvent(id: String): Boolean =
+        MatchEvents.deleteWhere { MatchEvents.id eq Uuid.parse(id) } > 0
 
     override suspend fun getEventsByMatch(matchId: String): List<MatchEvent> =
         MatchEvents.selectAll().where { MatchEvents.matchId eq Uuid.parse(matchId) }

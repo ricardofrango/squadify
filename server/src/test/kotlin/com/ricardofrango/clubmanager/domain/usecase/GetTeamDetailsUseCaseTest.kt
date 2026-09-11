@@ -13,6 +13,7 @@ import com.ricardofrango.clubmanager.domain.service.TransactionManager
 import com.ricardofrango.clubmanager.exception.ForbiddenException
 import com.ricardofrango.clubmanager.model.AgeGroup
 import com.ricardofrango.clubmanager.model.Club
+import com.ricardofrango.clubmanager.model.SportType
 import com.ricardofrango.clubmanager.model.ClubRole
 import com.ricardofrango.clubmanager.model.ClubStatus
 import com.ricardofrango.clubmanager.model.MatchOutcome
@@ -77,7 +78,7 @@ class GetTeamDetailsUseCaseTest {
     )
     private val club = Club(
         id = clubIdA, name = "CD Ribamar", status = ClubStatus.ACTIVE,
-        createdAt = Instant.fromEpochMilliseconds(0)
+        createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL
     )
     private val ageGroup = AgeGroup(
         id = ag1, clubId = clubIdA, name = "Sub-15", seasonId = "season-1", birthYear = 2011

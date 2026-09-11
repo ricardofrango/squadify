@@ -9,6 +9,7 @@ import com.ricardofrango.clubmanager.domain.service.TransactionManager
 import com.ricardofrango.clubmanager.exception.ForbiddenException
 import com.ricardofrango.clubmanager.exception.NotFoundException
 import com.ricardofrango.clubmanager.model.Club
+import com.ricardofrango.clubmanager.model.SportType
 import com.ricardofrango.clubmanager.model.ClubRole
 import com.ricardofrango.clubmanager.model.ClubStatus
 import com.ricardofrango.clubmanager.model.User
@@ -48,7 +49,8 @@ class GetClubDetailsUseCaseTest {
         id = clubIdA,
         name = "Club A",
         status = ClubStatus.ACTIVE,
-        createdAt = Instant.fromEpochMilliseconds(0)
+        createdAt = Instant.fromEpochMilliseconds(0),
+        sport = SportType.FOOTBALL
     )
 
     private fun user(id: String, isPlatformAdmin: Boolean = false) = User(

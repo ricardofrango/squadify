@@ -80,6 +80,7 @@ val appModule = module {
     factory { GetMatchDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { UpdateMatchUseCase(get(), get(), get(), get()) }
     factory { UpdateMatchStatusUseCase(get(), get(), get(), get(), get()) }
+    factory { StartMatchUseCase(get(), get(), get(), get(), get(), get()) }
     factory { ManageCallUpsUseCase(get(), get(), get()) }
     factory { UpdateCallUpStatusUseCase(get(), get(), get()) }
     factory { CreateOpponentUseCase(get(), get(), get()) }
@@ -87,6 +88,7 @@ val appModule = module {
     factory { UpdateOpponentUseCase(get(), get(), get()) }
 
     factory { AddMatchEventUseCase(get(), get(), get(), get(), get()) }
+    factory { DeleteMatchEventUseCase(get(), get(), get(), get(), get()) }
     factory { GetMatchEventsUseCase(get(), get(), get(), get()) }
     factory { GetMatchScoreUseCase(get(), get(), get(), get()) }
     factory { GetLiveMatchUpdatesUseCase(get(), get(), get(), get()) }

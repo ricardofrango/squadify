@@ -9,7 +9,10 @@ interface MatchRepository {
     suspend fun createMatch(match: Match): Match
     suspend fun updateMatch(match: Match): Boolean
     suspend fun updateMatchStatus(matchId: String, status: MatchStatus): Boolean
-    
+    // Kicks off: sets isStarting=true on [startingPlayerIds]' call-ups (false on every other call-up
+    // of this match), and sets the match's status to LIVE and its half length -- all in one write.
+    suspend fun startMatch(matchId: String, startingPlayerIds: List<String>, halfLengthMinutes: Int): Boolean
+
     suspend fun getCallUpsForMatch(matchId: String): List<MatchCallUpWithPlayer>
     suspend fun manageCallUps(matchId: String, playerIds: List<String>): Boolean
     suspend fun updateCallUp(callUpId: String, status: CallUpStatus, notes: String?): Boolean

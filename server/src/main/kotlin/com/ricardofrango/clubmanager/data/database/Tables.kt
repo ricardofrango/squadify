@@ -175,6 +175,8 @@ object Matches : Table("matches") {
     val dateTime = timestamp("date_time")
     val status = enumerationByName("status", 50, MatchStatus::class).default(MatchStatus.SCHEDULED)
     val notes = text("notes").nullable()
+    // Set at kickoff by StartMatchUseCase alongside MatchCallUps.isStarting. Null before kickoff.
+    val halfLengthMinutes = integer("half_length_minutes").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -185,6 +187,9 @@ object MatchCallUps : Table("match_call_ups") {
     val playerId = uuid("player_id").references(Players.id)
     val status = enumerationByName("status", 50, CallUpStatus::class).default(CallUpStatus.CALLED_UP)
     val notes = text("notes").nullable()
+    // True for the Starting XI at kickoff (StartMatchUseCase), false for the bench. Meaningless
+    // before kickoff.
+    val isStarting = bool("is_starting").default(false)
 
     override val primaryKey = PrimaryKey(id)
 

@@ -16,6 +16,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greaterEq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.notInList
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -55,6 +56,7 @@ class ExposedMatchRepository : MatchRepository {
             it[dateTime] = match.dateTime
             it[status] = match.status
             it[notes] = match.notes
+            it[halfLengthMinutes] = match.halfLengthMinutes
         }.resultedValues
             ?.singleOrNull()
             ?.let(::toMatch)
@@ -72,6 +74,27 @@ class ExposedMatchRepository : MatchRepository {
         MatchesTable.update({ MatchesTable.id eq Uuid.parse(matchId) }) {
             it[MatchesTable.status] = status
         } > 0
+
+    override suspend fun startMatch(
+        matchId: String,
+        startingPlayerIds: List<String>,
+        halfLengthMinutes: Int
+    ): Boolean {
+        val matchUuid = Uuid.parse(matchId)
+        val startingUuids = startingPlayerIds.map(Uuid::parse)
+
+        CallUpsTable.update({ (CallUpsTable.matchId eq matchUuid) and (CallUpsTable.playerId inList startingUuids) }) {
+            it[isStarting] = true
+        }
+        CallUpsTable.update({ (CallUpsTable.matchId eq matchUuid) and (CallUpsTable.playerId notInList startingUuids) }) {
+            it[isStarting] = false
+        }
+
+        return MatchesTable.update({ MatchesTable.id eq matchUuid }) {
+            it[status] = MatchStatus.LIVE
+            it[MatchesTable.halfLengthMinutes] = halfLengthMinutes
+        } > 0
+    }
 
     override suspend fun getCallUpsForMatch(matchId: String): List<MatchCallUpWithPlayer> =
         (CallUpsTable innerJoin PlayersTable).selectAll()
@@ -168,7 +191,8 @@ class ExposedMatchRepository : MatchRepository {
         location = row[MatchesTable.location],
         dateTime = row[MatchesTable.dateTime],
         status = row[MatchesTable.status],
-        notes = row[MatchesTable.notes]
+        notes = row[MatchesTable.notes],
+        halfLengthMinutes = row[MatchesTable.halfLengthMinutes]
     )
 
     private fun toOpponent(row: ResultRow): Opponent = Opponent(
@@ -184,7 +208,8 @@ class ExposedMatchRepository : MatchRepository {
         matchId = row[CallUpsTable.matchId].toString(),
         playerId = row[CallUpsTable.playerId].toString(),
         status = row[CallUpsTable.status],
-        notes = row[CallUpsTable.notes]
+        notes = row[CallUpsTable.notes],
+        isStarting = row[CallUpsTable.isStarting]
     )
 
     private fun toPlayer(row: ResultRow): Player = Player(
