@@ -136,72 +136,90 @@ private fun CreateStaffContent(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(Color.White)
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = stringResource(Res.string.msg_staff_intro),
-                style = MaterialTheme.typography.bodySmall,
-                color = DeepCarbon.copy(alpha = 0.6f)
-            )
-
-            rows.forEachIndexed { index, row ->
-                StaffRowCard(
-                    index = index + 1,
-                    row = row,
-                    emailError = showValidationErrors && !isValidEmail(row.email),
-                    canRemove = rows.size > 1,
-                    onEmailChange = { onEmailChange(row.key, it) },
-                    onRemove = { onRemoveRow(row.key) }
-                )
-            }
-
-            if (anyEmailInvalid) {
-                Text(
-                    text = stringResource(Res.string.msg_email_required),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-
-            OutlinedButton(
-                onClick = onAddRow,
-                modifier = Modifier.fillMaxWidth(),
-                shape = FormRoundedShape,
-                border = BorderStroke(1.dp, PitchGreen.copy(alpha = 0.4f)),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = PitchGreen)
+            // Fixed header: intro + "add row" -- stays put as the list below grows, instead of
+            // scrolling out of reach.
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("+ ${stringResource(Res.string.label_add_another_staff_member)}")
+                Text(
+                    text = stringResource(Res.string.msg_staff_intro),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DeepCarbon.copy(alpha = 0.6f)
+                )
+                OutlinedButton(
+                    onClick = onAddRow,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = FormRoundedShape,
+                    border = BorderStroke(1.dp, PitchGreen.copy(alpha = 0.4f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PitchGreen)
+                ) {
+                    Text("+ ${stringResource(Res.string.label_add_another_staff_member)}")
+                }
             }
 
-            if (uiState.error != null) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                rows.forEachIndexed { index, row ->
+                    StaffRowCard(
+                        index = index + 1,
+                        row = row,
+                        emailError = showValidationErrors && !isValidEmail(row.email),
+                        canRemove = rows.size > 1,
+                        onEmailChange = { onEmailChange(row.key, it) },
+                        onRemove = { onRemoveRow(row.key) }
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+
+            // Fixed footer: validation summary + submit -- always reachable without scrolling.
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (anyEmailInvalid) {
+                    Text(
+                        text = stringResource(Res.string.msg_email_required),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                if (uiState.error != null) {
+                    Text(
+                        text = uiState.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                val label = if (selectedCount == 1) {
+                    stringResource(Res.string.btn_create_staff_one)
+                } else {
+                    stringResource(Res.string.btn_create_staff_other, selectedCount)
+                }
+                PrimaryLoadingButton(
+                    text = label,
+                    submittingText = stringResource(Res.string.btn_creating_staff),
+                    isLoading = uiState.isSubmitting,
+                    onClick = onCreateClick
+                )
+
                 Text(
-                    text = uiState.error,
+                    text = stringResource(Res.string.msg_staff_footer_helper),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
+                    color = DeepCarbon.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
                 )
             }
-
-            val label = if (selectedCount == 1) {
-                stringResource(Res.string.btn_create_staff_one)
-            } else {
-                stringResource(Res.string.btn_create_staff_other, selectedCount)
-            }
-            PrimaryLoadingButton(
-                text = label,
-                submittingText = stringResource(Res.string.btn_creating_staff),
-                isLoading = uiState.isSubmitting,
-                onClick = onCreateClick
-            )
-
-            Text(
-                text = stringResource(Res.string.msg_staff_footer_helper),
-                style = MaterialTheme.typography.bodySmall,
-                color = DeepCarbon.copy(alpha = 0.5f),
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
         }
     }
 }
