@@ -58,7 +58,7 @@ fun AgeGroupDetailsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToTeam: (teamId: String) -> Unit,
     onNavigateToPlayer: (playerId: String) -> Unit,
-    onNavigateToAddPlayers: (clubId: String, ageGroupId: String) -> Unit,
+    onNavigateToAddPlayers: (clubId: String, clubName: String, ageGroupId: String) -> Unit,
     onNavigateToCreateTeams: (clubId: String, clubName: String, sport: SportType) -> Unit,
     onNavigateToCreateMatch: (ageGroupId: String) -> Unit,
     refreshOnReturn: Boolean = false,
@@ -81,7 +81,7 @@ fun AgeGroupDetailsScreen(
         onSearchChange = { searchQuery = it },
         onPlayerClick = onNavigateToPlayer,
         onTeamClick = onNavigateToTeam,
-        onAddPlayers = { d -> onNavigateToAddPlayers(d.ageGroup.clubId, d.ageGroup.id) },
+        onAddPlayers = { d -> onNavigateToAddPlayers(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
         onCreateTeam = { d -> onNavigateToCreateTeams(d.ageGroup.clubId, d.club.name, d.club.sport) },
         onCreateMatch = { d -> onNavigateToCreateMatch(d.ageGroup.id) }
     )

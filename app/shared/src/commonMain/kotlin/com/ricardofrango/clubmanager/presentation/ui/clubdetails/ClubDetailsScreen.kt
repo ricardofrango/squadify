@@ -116,7 +116,7 @@ fun ClubDetailsScreen(
     // The Create Teams screen has its own season + age-group pickers, so this only needs the club name + sport.
     onNavigateToCreateTeams: (clubName: String, sport: SportType) -> Unit,
     // The Add Players screen picks the age group itself.
-    onNavigateToAddPlayersToAgeGroup: () -> Unit,
+    onNavigateToAddPlayersToAgeGroup: (clubName: String) -> Unit,
     onNavigateToCreatePlayers: (clubName: String) -> Unit,
     onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
     onNavigateToMatch: (matchId: String) -> Unit,
@@ -195,7 +195,7 @@ fun ClubDetailsScreen(
                                 },
                                 onClick = {
                                     showAddMenu = false
-                                    onNavigateToAddPlayersToAgeGroup()
+                                    onNavigateToAddPlayersToAgeGroup(clubName)
                                 }
                             )
                             DropdownMenuItem(
@@ -349,7 +349,7 @@ private fun ClubDetailsTabContent(
     onNavigateToCreateTeams: (clubName: String, sport: SportType) -> Unit,
     sport: SportType,
     onNavigateToCreatePlayers: (clubName: String) -> Unit,
-    onNavigateToAddPlayersToAgeGroup: () -> Unit,
+    onNavigateToAddPlayersToAgeGroup: (clubName: String) -> Unit,
     onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
     onNavigateToMatch: (matchId: String) -> Unit,
     clubName: String
@@ -411,7 +411,7 @@ private fun ClubDetailsTabContent(
                             canEditClub = state.canEditClub,
                             hasClubPlayers = state.details?.players?.isNotEmpty() == true,
                             onAddPlayersToClub = { onNavigateToCreatePlayers(clubName) },
-                            onAddPlayersToAgeGroup = onNavigateToAddPlayersToAgeGroup
+                            onAddPlayersToAgeGroup = { onNavigateToAddPlayersToAgeGroup(clubName) }
                         )
 
                     else -> PlayerList(state.filteredPlayers, onNavigateToPlayer)

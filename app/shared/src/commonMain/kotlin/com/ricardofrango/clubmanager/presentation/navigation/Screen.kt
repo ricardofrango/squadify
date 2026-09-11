@@ -44,9 +44,14 @@ sealed class Screen {
     data class CreateTeams(val clubId: String, val clubName: String, val sport: SportType) : Screen()
 
     // The screen has its own age-group picker; [initialAgeGroupId] just pre-selects it when the caller
-    // already knows which one (e.g. from the age-group detail screen).
+    // already knows which one (e.g. from the age-group detail screen). [clubName] is carried only so
+    // the "New player" shortcut can push CreatePlayers, which shows it in its header.
     @Serializable
-    data class AddPlayersToAgeGroup(val clubId: String, val initialAgeGroupId: String? = null) : Screen()
+    data class AddPlayersToAgeGroup(
+        val clubId: String,
+        val clubName: String,
+        val initialAgeGroupId: String? = null
+    ) : Screen()
 
     @Serializable
     data class CreatePlayers(val clubId: String, val clubName: String) : Screen()

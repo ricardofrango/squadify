@@ -48,9 +48,14 @@ private val FormRoundedShape = RoundedCornerShape(18.dp)
 @Composable
 fun AddPlayersToAgeGroupScreen(
     clubId: String,
+    clubName: String,
     initialAgeGroupId: String? = null,
     onNavigateBack: () -> Unit,
+    onNavigateToCreatePlayers: () -> Unit,
     onPlayersAdded: () -> Unit,
+    // True once, on return from the create-players screen -- reload the eligible list so the
+    // just-registered players are pickable straight away.
+    refreshOnReturn: Boolean = false,
     viewModel: AddPlayersToAgeGroupViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
@@ -58,6 +63,10 @@ fun AddPlayersToAgeGroupScreen(
 
     LaunchedEffect(clubId) {
         viewModel.load(clubId, initialAgeGroupId)
+    }
+
+    LaunchedEffect(refreshOnReturn) {
+        if (refreshOnReturn) viewModel.refreshEligiblePlayers()
     }
 
     LaunchedEffect(viewModel.navigationEvent) {
@@ -78,6 +87,7 @@ fun AddPlayersToAgeGroupScreen(
             viewModel.onAgeGroupSelected(it)
         },
         onPlayerToggled = viewModel::onPlayerToggled,
+        onAddNewPlayer = onNavigateToCreatePlayers,
         onAddClick = viewModel::onAddClicked
     )
 }
@@ -91,6 +101,7 @@ private fun AddPlayersToAgeGroupContent(
     onSearchChange: (String) -> Unit,
     onAgeGroupSelected: (String) -> Unit,
     onPlayerToggled: (String) -> Unit,
+    onAddNewPlayer: () -> Unit,
     onAddClick: () -> Unit
 ) {
     val idle = uiState as? AddPlayersToAgeGroupUiState.Idle
@@ -178,6 +189,16 @@ private fun AddPlayersToAgeGroupContent(
                             unfocusedLabelColor = CarbonGray
                         )
                     )
+
+                    OutlinedButton(
+                        onClick = onAddNewPlayer,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = FormRoundedShape,
+                        border = BorderStroke(1.dp, PitchGreen.copy(alpha = 0.4f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PitchGreen)
+                    ) {
+                        Text("+ ${stringResource(Res.string.btn_add_new_player)}")
+                    }
 
                     if (selectedCount > 0) {
                         Text(
@@ -449,6 +470,7 @@ private fun AddPlayersToAgeGroupContentPreview() {
             onSearchChange = {},
             onAgeGroupSelected = {},
             onPlayerToggled = {},
+            onAddNewPlayer = {},
             onAddClick = {}
         )
     }
@@ -470,6 +492,7 @@ private fun AddPlayersToAgeGroupEmptyPreview() {
             onSearchChange = {},
             onAgeGroupSelected = {},
             onPlayerToggled = {},
+            onAddNewPlayer = {},
             onAddClick = {}
         )
     }
@@ -493,6 +516,7 @@ private fun AddPlayersToAgeGroupLandscapePreview() {
             onSearchChange = {},
             onAgeGroupSelected = {},
             onPlayerToggled = {},
+            onAddNewPlayer = {},
             onAddClick = {}
         )
     }
