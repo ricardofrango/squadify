@@ -3,17 +3,26 @@ package com.ricardofrango.clubmanager.data.remote
 import com.ricardofrango.clubmanager.domain.config.AppConfig
 import com.ricardofrango.clubmanager.domain.repository.MatchRepository
 import com.ricardofrango.clubmanager.domain.repository.SessionRepository
+import com.ricardofrango.clubmanager.model.CreateMatchEventRequest
 import com.ricardofrango.clubmanager.model.CreateMatchRequest
+import com.ricardofrango.clubmanager.model.LiveMatchUpdate
 import com.ricardofrango.clubmanager.model.ManageCallUpRequest
 import com.ricardofrango.clubmanager.model.Match
 import com.ricardofrango.clubmanager.model.MatchDetails
+import com.ricardofrango.clubmanager.model.MatchEvent
+import com.ricardofrango.clubmanager.model.MatchScore
 import com.ricardofrango.clubmanager.model.MatchStatus
+import com.ricardofrango.clubmanager.model.StartMatchRequest
 import com.ricardofrango.clubmanager.model.UpdateCallUpRequest
 import com.ricardofrango.clubmanager.model.UpdateMatchRequest
 import com.ricardofrango.clubmanager.model.UpdateMatchStatusRequest
 import io.ktor.client.*
+import io.ktor.client.plugins.websocket.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.isActive
 
 class MatchRepositoryImpl(
     private val httpClient: HttpClient,
@@ -60,5 +69,39 @@ class MatchRepositoryImpl(
         httpClient.patch("${appConfig.baseUrl}/matches/call-ups/$callUpId/status") {
             contentType(ContentType.Application.Json); setBody(request); auth()
         }.handleResponse<Unit>()
+    }
+
+    override suspend fun startMatch(matchId: String, request: StartMatchRequest) {
+        httpClient.post("${appConfig.baseUrl}/matches/$matchId/start") {
+            contentType(ContentType.Application.Json); setBody(request); auth()
+        }.handleResponse<Unit>()
+    }
+
+    override suspend fun getMatchEvents(matchId: String): List<MatchEvent> =
+        httpClient.get("${appConfig.baseUrl}/matches/$matchId/events") { auth() }.handleResponse()
+
+    override suspend fun getMatchScore(matchId: String): MatchScore =
+        httpClient.get("${appConfig.baseUrl}/matches/$matchId/events/score") { auth() }.handleResponse()
+
+    override suspend fun addMatchEvent(matchId: String, request: CreateMatchEventRequest): MatchEvent =
+        httpClient.post("${appConfig.baseUrl}/matches/$matchId/events") {
+            contentType(ContentType.Application.Json); setBody(request); auth()
+        }.handleResponse()
+
+    override suspend fun deleteMatchEvent(matchId: String, eventId: String) {
+        httpClient.delete("${appConfig.baseUrl}/matches/$matchId/events/$eventId") { auth() }.handleResponse<Unit>()
+    }
+
+    override fun observeLiveMatch(matchId: String): Flow<LiveMatchUpdate> = channelFlow {
+        // Browser WebSockets can't send an Authorization header, so the token travels as a query
+        // param instead -- mirrors the server's `/matches/{matchId}/live` route.
+        val token = sessionRepository.getToken()
+        val wsUrl = appConfig.baseUrl.replaceFirst("http", "ws")
+        httpClient.webSocket("$wsUrl/matches/$matchId/live?token=$token") {
+            while (isActive) {
+                val update = receiveDeserialized<LiveMatchUpdate>()
+                this@channelFlow.send(update)
+            }
+        }
     }
 }

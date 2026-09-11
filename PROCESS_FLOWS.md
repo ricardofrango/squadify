@@ -676,6 +676,27 @@ Only Coach-level staff (or club Admin/Coordinator) can change a call-up's status
 
 ## 8. Live Match Engine
 
+### 8.0 Start Match (`StartMatchUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, matchId, startingPlayerIds, halfLengthMinutes] --> B[Fetch Match by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=COACH, teamId=match.teamId]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D{"status == SCHEDULED? halfLengthMinutes > 0? startingPlayerIds non-empty, no duplicates?"}
+    D -- No --> V1(["Throw ValidationException"])
+    D -- Yes --> E[Fetch Team — required count = team.teamSize ?: 11]
+    E -- count mismatch --> V2(["Throw ValidationException"])
+    E -- ok --> G[Fetch this match's call-ups]
+    G -- a starter isn't CALLED_UP/CONFIRMED --> V3(["Throw ValidationException"])
+    G -- ok --> H["Set isStarting=true on the starters' call-ups (false on the rest), set Match.status=LIVE + halfLengthMinutes"]
+    H --> I["Publish LiveMatchUpdate(score, status=LIVE) via LiveMatchBus"]
+    I --> Z(["Return success"])
+```
+
+This is the "KICK OFF" action on the live match console's pre-kickoff screen (client, see below): it locks in the Starting XI (everyone else called up becomes the bench) and the half length in one write, then flips the match live. The a-side count comes from `Team.teamSize` (falling back to 11 for teams recorded before that field existed — see the team-size flows in §4.3/§4.5).
+
 ### 8.1 Add Match Event (`AddMatchEventUseCase`)
 
 ```mermaid
@@ -690,6 +711,25 @@ graph TD
     G --> H["Publish LiveMatchUpdate(event, score) via LiveMatchBus for matchId"]
     H --> Z(["Return created event"])
 ```
+
+### 8.1b Delete Match Event (`DeleteMatchEventUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, matchId, eventId] --> B[Fetch Match by id]
+    B -- not found --> N1(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=COACH, teamId=match.teamId]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D[Fetch Event by id]
+    D -- not found --> N2(["Throw NotFoundException"])
+    D -- event.matchId != matchId --> V(["Throw ValidationException"])
+    D -- ok --> E[Delete event]
+    E --> G[Recalculate score]
+    G --> H["Publish LiveMatchUpdate(score, deletedEventId) via LiveMatchBus"]
+    H --> Z(["Return success"])
+```
+
+Removes a mis-logged goal, card, or substitution row. The client always confirms with the user first (see below — "Confirms only on Full time and event deletion").
 
 ### 8.2 Update Match Status (`UpdateMatchStatusUseCase`)
 
@@ -721,7 +761,17 @@ graph TD
     D --> Z(["Return reactive Flow of LiveMatchUpdate — bridged to a WebSocket session"])
 ```
 
-Together, §8.1/§8.2 (the writers) and §8.3 (the reader) implement the hybrid "REST write, WebSocket broadcast" pattern documented in `TECHNICAL_DECISIONS.md` §6 — a REST POST persists the fact, then the same use case pushes it to every subscriber of that `matchId` on the shared `LiveMatchBus`.
+Together, §8.0–§8.2 (the writers) and §8.3 (the reader) implement the hybrid "REST write, WebSocket broadcast" pattern documented in `TECHNICAL_DECISIONS.md` §6 — a REST POST persists the fact, then the same use case pushes it to every subscriber of that `matchId` on the shared `LiveMatchBus`.
+
+### 8.4 Client: the Live Match Console
+
+`LiveMatchScreen` (design canvas artboard "16") is one screen whose layout is entirely driven by `Match.status`:
+
+- **SCHEDULED** — pre-kickoff: a half-length picker and a Starting XI/Bench picker built from the match's called-up/confirmed players, gated on picking exactly `Team.teamSize` (fallback 11) starters. "KICK OFF" calls §8.0.
+- **LIVE / HALF_TIME** — the console: a scoreline (tapping a score logs an unattributed/opponent goal via §8.1), Squad and Events tabs, and a HALF TIME / FULL TIME action bar (§8.2, confirmed with a dialog first). The Squad tab's On pitch / Bench / Sent off split is *derived client-side* from the Starting XI (`MatchCallUp.isStarting`) replayed against the event log (substitutions move a player between On pitch/Bench, a red card moves them to Sent off) — nothing extra is persisted for this. Tapping a player opens a sheet to log a goal/assist/card, or substitute (a two-step tap: pick the player, then who they swap with) — bench players can't be tapped for goals/cards, only brought on. Deleting a logged event (§8.1b) asks for confirmation first, matching "Confirms only on Full time and event deletion."
+- **FINISHED / CANCELLED** — a read-only full-time summary: final score, a WIN/LOSS/DRAW/CANCELLED badge, and the same event timeline reused from the Events tab (delete disabled here).
+
+Every mutating action applies its own REST response to local state immediately, so the coach driving the match never waits on the socket; `GetLiveMatchUpdatesUseCase`'s WebSocket (§8.3) is a second, best-effort listener that folds in changes from other devices watching the same match and is not retried if it drops. The running clock and which half is "current" are local-only display state (seeded from the latest logged event's minute, manually correctable via "Set minute") — not part of `LiveMatchUpdate` and not persisted, so they reset to a best-effort guess if the screen is reopened mid-match. Everything that matters for the record — score, events, status, the Starting XI — is server-authoritative.
 
 ---
 
@@ -967,6 +1017,7 @@ erDiagram
         timestamp date_time
         enum status "MatchStatus, default SCHEDULED"
         text notes "nullable"
+        integer half_length_minutes "nullable -- set at kickoff by StartMatchUseCase"
     }
     MATCH_CALL_UPS {
         uuid id PK
@@ -974,6 +1025,7 @@ erDiagram
         uuid player_id FK
         enum status "CallUpStatus, default CALLED_UP"
         text notes "nullable"
+        boolean is_starting "default false -- Starting XI at kickoff, set by StartMatchUseCase"
     }
     MATCH_EVENTS {
         uuid id PK

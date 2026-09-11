@@ -17,6 +17,7 @@ import com.ricardofrango.clubmanager.presentation.ui.agegroupdetails.AgeGroupDet
 import com.ricardofrango.clubmanager.presentation.ui.teamdetails.TeamDetailsViewModel
 import com.ricardofrango.clubmanager.presentation.ui.creatematch.CreateMatchViewModel
 import com.ricardofrango.clubmanager.presentation.ui.matchdetails.MatchDetailsViewModel
+import com.ricardofrango.clubmanager.presentation.ui.livematch.LiveMatchViewModel
 import com.ricardofrango.clubmanager.presentation.ui.playerdetails.PlayerDetailsViewModel
 import com.ricardofrango.clubmanager.presentation.ui.dashboard.DashboardViewModel
 import com.ricardofrango.clubmanager.presentation.ui.login.LoginViewModel
@@ -30,6 +31,8 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.plugins.websocket.WebSockets
+import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
@@ -43,13 +46,14 @@ val dataModule = module {
     single<AppConfig> { DevAppConfig() }
 
     single {
+        val json = Json {
+            ignoreUnknownKeys = true
+            prettyPrint = true
+            isLenient = true
+        }
         HttpClient {
             install(ContentNegotiation) {
-                json(Json {
-                    ignoreUnknownKeys = true
-                    prettyPrint = true
-                    isLenient = true
-                })
+                json(json)
             }
             install(Logging) {
                 logger = object : Logger {
@@ -63,6 +67,10 @@ val dataModule = module {
                 requestTimeoutMillis = 15000
                 connectTimeoutMillis = 15000
                 socketTimeoutMillis = 15000
+            }
+            // Live match updates (LiveMatchUpdate) -- see MatchRepositoryImpl.observeLiveMatch.
+            install(WebSockets) {
+                contentConverter = KotlinxWebsocketSerializationConverter(json)
             }
             defaultRequest {
                 contentType(ContentType.Application.Json)
@@ -109,8 +117,14 @@ val domainModule = module {
     factory { GetMatchDetailsUseCase(get()) }
     factory { UpdateMatchUseCase(get()) }
     factory { UpdateMatchStatusUseCase(get()) }
+    factory { StartMatchUseCase(get()) }
     factory { ManageCallUpsUseCase(get()) }
     factory { UpdateCallUpStatusUseCase(get()) }
+    factory { GetMatchEventsUseCase(get()) }
+    factory { GetMatchScoreUseCase(get()) }
+    factory { AddMatchEventUseCase(get()) }
+    factory { DeleteMatchEventUseCase(get()) }
+    factory { ObserveLiveMatchUseCase(get()) }
 }
 
 val presentationModule = module {
@@ -129,6 +143,7 @@ val presentationModule = module {
     viewModelOf(::TeamDetailsViewModel)
     viewModelOf(::CreateMatchViewModel)
     viewModelOf(::MatchDetailsViewModel)
+    viewModelOf(::LiveMatchViewModel)
     viewModelOf(::PlayerDetailsViewModel)
 }
 

@@ -106,7 +106,10 @@ data class MatchScore(
 data class LiveMatchUpdate(
     val event: MatchEvent? = null,
     val score: MatchScore,
-    val status: MatchStatus? = null
+    val status: MatchStatus? = null,
+    // Set instead of [event] when this update is announcing that an event was removed (see
+    // DeleteMatchEventUseCase) -- listeners drop it from their local event list.
+    val deletedEventId: String? = null
 )
 
 @Serializable
@@ -522,7 +525,10 @@ data class Match(
     val location: String? = null,
     val dateTime: Instant,
     val status: MatchStatus = MatchStatus.SCHEDULED,
-    val notes: String? = null
+    val notes: String? = null,
+    // Set by StartMatchUseCase at kickoff, alongside the starting XI (MatchCallUp.isStarting). Null
+    // before kickoff and for matches recorded before this existed.
+    val halfLengthMinutes: Int? = null
 )
 
 @Serializable
@@ -531,7 +537,11 @@ data class MatchCallUp(
     val matchId: String,
     val playerId: String,
     val status: CallUpStatus,
-    val notes: String? = null
+    val notes: String? = null,
+    // True for the players picked into the Starting XI at kickoff (StartMatchUseCase); false for
+    // everyone else called up (the bench). Meaningless before kickoff -- the live match console's
+    // pre-kickoff screen builds the XI/bench split itself from `status` alone, not this flag.
+    val isStarting: Boolean = false
 )
 
 @Serializable
@@ -592,6 +602,18 @@ data class UpdateCallUpRequest(
 @Serializable
 data class UpdateMatchStatusRequest(
     val status: MatchStatus
+)
+
+/**
+ * Body of `POST /matches/{matchId}/start` -- kicks a SCHEDULED match off: [startingPlayerIds] must be
+ * exactly the team's a-side count (`Team.teamSize`, falling back to 11 when the team predates that
+ * field) and each must already be called up (CALLED_UP or CONFIRMED). Every other called-up player
+ * becomes the bench. See StartMatchUseCase.
+ */
+@Serializable
+data class StartMatchRequest(
+    val startingPlayerIds: List<String>,
+    val halfLengthMinutes: Int
 )
 
 @Serializable

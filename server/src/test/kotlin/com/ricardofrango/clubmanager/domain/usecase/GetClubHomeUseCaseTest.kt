@@ -12,6 +12,7 @@ import com.ricardofrango.clubmanager.domain.service.TransactionManager
 import com.ricardofrango.clubmanager.model.AgeGroup
 import com.ricardofrango.clubmanager.model.AgeGroupStaffMember
 import com.ricardofrango.clubmanager.model.Club
+import com.ricardofrango.clubmanager.model.SportType
 import com.ricardofrango.clubmanager.model.ClubHomeAlertType
 import com.ricardofrango.clubmanager.model.ClubRole
 import com.ricardofrango.clubmanager.model.ClubStatus
@@ -61,7 +62,7 @@ class GetClubHomeUseCaseTest {
     private val ag1 = "ag-1"
     private val ag2 = "ag-2"
 
-    private val club = Club(clubId, "CD Ribamar", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0))
+    private val club = Club(clubId, "CD Ribamar", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL)
     private val season = Season(seasonId, clubId, "26/27", SeasonType.EUROPEAN_YEAR, LocalDate(2026, 7, 1), LocalDate(2027, 6, 30), active = true)
     private val teamA = Team("t-a", clubId, ag1, seasonId, "Sub-15 A", "A", true)
     private val teamB = Team("t-b", clubId, ag2, seasonId, "Sub-17 A", "A", true)

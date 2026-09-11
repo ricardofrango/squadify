@@ -78,7 +78,8 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Real-time broadcasting via **WebSockets**.
     - [x] Live Event logging (Goals, Assists, Cards, Subs).
     - [x] Live Score calculation.
-    - [ ] Historical match statistics (Post-match analysis).
+    - [x] Live match console (client): kickoff line-up picker, live squad/events tabs, event logging & deletion, full-time summary.
+    - [ ] Historical match statistics (Post-match analysis) — the summary screen's "Minutes played" row is a placeholder, no per-player breakdown yet.
 - [ ] **Phase 6: Dashboards & Aggregated Summaries**: Role-specific overview endpoints.
     - [/] **Super Admin Summary**: Global platform health (Total clubs, active users, system logs).
     - [/] **Club Admin Summary**: Club overview (Total players/teams, financial status placeholder, upcoming matches).
