@@ -294,7 +294,11 @@ private fun CreateMatchForm(
             shadowElevation = 8.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Box(Modifier.navigationBarsPadding().padding(24.dp)) {
+            // No navigationBarsPadding() here: this Surface sits inside the Column that's already
+            // padded by Scaffold's own paddingValues, which (with no bottomBar slot in use) already
+            // reserves the bottom system-bar inset -- adding it again pushed the button up an extra
+            // inset's worth, leaving a large empty gap below it.
+            Box(Modifier.padding(24.dp)) {
                 PrimaryLoadingButton(
                     text = Res.string.btn_schedule_match,
                     submittingText = Res.string.btn_scheduling_match,
