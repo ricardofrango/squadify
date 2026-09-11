@@ -694,12 +694,12 @@ graph TD
     E -- count mismatch --> V2(["Throw ValidationException"])
     E -- ok --> G[Fetch this match's call-ups]
     G -- a starter isn't CALLED_UP/CONFIRMED --> V3(["Throw ValidationException"])
-    G -- ok --> H["Set isStarting=true on the starters' call-ups (false on the rest), set Match.status=LIVE + halfLengthMinutes"]
+    G -- ok --> H["Set isStarting=true on the starters' call-ups (false on the rest), set Match.status=LIVE + halfLengthMinutes + kickoffAt=now"]
     H --> I["Publish LiveMatchUpdate(score, status=LIVE) via LiveMatchBus"]
     I --> Z(["Return success"])
 ```
 
-This is the "KICK OFF" action on the live match console's pre-kickoff screen (client, see below): it locks in the Starting XI (everyone else called up becomes the bench) and the half length in one write, then flips the match live. The a-side count comes from `Team.teamSize` (falling back to 11 for teams recorded before that field existed — see the team-size flows in §4.3/§4.5).
+This is the "KICK OFF" action on the live match console's pre-kickoff screen (client, see below): it locks in the Starting XI (everyone else called up becomes the bench) and the half length in one write, then flips the match live. The a-side count comes from `Team.teamSize` (falling back to 11 for teams recorded before that field existed — see the team-size flows in §4.3/§4.5). It also stamps `Match.kickoffAt` with the wall-clock instant of kickoff — the client derives the live running clock from this timestamp rather than any locally-ticking counter (see §8.4).
 
 ### 8.1 Add Match Event (`AddMatchEventUseCase`)
 
@@ -746,12 +746,17 @@ graph TD
     C -- allowed --> D[Update Match.status in DB]
     D --> E{Update succeeded?}
     E -- No --> R1(["Return false — no broadcast"])
-    E -- Yes --> G[Recalculate current score]
+    E -- Yes --> F{"newStatus == LIVE and previous status == HALF_TIME?"}
+    F -- Yes --> F2["Set Match.secondHalfStartedAt = now"]
+    F -- No --> G
+    F2 --> G[Recalculate current score]
     G --> H["Publish LiveMatchUpdate(score, status) via LiveMatchBus"]
     H --> R2(["Return true"])
 ```
 
 Status values flow `SCHEDULED → LIVE → HALF_TIME → FINISHED` (or `CANCELLED`), but the use case does not itself validate that the requested transition is legal — any status can currently be set from any other (see §11).
+
+On the specific `HALF_TIME → LIVE` transition (resuming for the second half), this use case also stamps `Match.secondHalfStartedAt` with the wall-clock instant — so the client's running clock can pick up from the first half's nominal length instead of restarting at 0 (see §8.4).
 
 ### 8.3 Subscribe to Live Match Updates (`GetLiveMatchUpdatesUseCase`)
 
@@ -775,7 +780,7 @@ Together, §8.0–§8.2 (the writers) and §8.3 (the reader) implement the hybri
 - **LIVE / HALF_TIME** — the console: a scoreline (tapping a score logs an unattributed/opponent goal via §8.1), Squad and Events tabs, and a HALF TIME / FULL TIME action bar (§8.2, confirmed with a dialog first). The Squad tab's On pitch / Bench / Sent off split is *derived client-side* from the Starting XI (`MatchCallUp.isStarting`) replayed against the event log (substitutions move a player between On pitch/Bench, a red card moves them to Sent off) — nothing extra is persisted for this. Tapping a player opens a sheet to log a goal/assist/card, or substitute (a two-step tap: pick the player, then who they swap with) — bench players can't be tapped for goals/cards, only brought on. Deleting a logged event (§8.1b) asks for confirmation first, matching "Confirms only on Full time and event deletion."
 - **FINISHED / CANCELLED** — a read-only full-time summary: final score, a WIN/LOSS/DRAW/CANCELLED badge, and the same event timeline reused from the Events tab (delete disabled here).
 
-Every mutating action applies its own REST response to local state immediately, so the coach driving the match never waits on the socket; `GetLiveMatchUpdatesUseCase`'s WebSocket (§8.3) is a second, best-effort listener that folds in changes from other devices watching the same match and is not retried if it drops. The running clock and which half is "current" are local-only display state (seeded from the latest logged event's minute, manually correctable via "Set minute") — not part of `LiveMatchUpdate` and not persisted, so they reset to a best-effort guess if the screen is reopened mid-match. Everything that matters for the record — score, events, status, the Starting XI — is server-authoritative.
+Every mutating action applies its own REST response to local state immediately, so the coach driving the match never waits on the socket; `GetLiveMatchUpdatesUseCase`'s WebSocket (§8.3) is a second, best-effort listener that folds in changes from other devices watching the same match and is not retried if it drops. The running clock (shown as `MM:SS`) is derived, not locally ticked: it's computed client-side as `now - Match.kickoffAt`, or once the second half has started, `halfLengthMinutes + (now - Match.secondHalfStartedAt)` — recomputed every second and on every recomposition, so it's correct across navigation/app restarts and unaffected by the device's timezone (`Instant` subtraction is timezone-agnostic). "Set minute" applies a local-only offset on top of this derived value rather than overwriting it, so the offset itself resets (recomputing fresh from the persisted timestamps) if the screen is reopened. Everything that matters for the record — score, events, status, the Starting XI, and now the kickoff/second-half timestamps — is server-authoritative. The club-details match list's live badge (`MatchesTab`) shows a coarser whole-minutes count (e.g. "12'", no seconds) derived from the same `kickoffAt`.
 
 ---
 
@@ -1022,6 +1027,8 @@ erDiagram
         enum status "MatchStatus, default SCHEDULED"
         text notes "nullable"
         integer half_length_minutes "nullable -- set at kickoff by StartMatchUseCase"
+        timestamp kickoff_at "nullable -- wall-clock instant of kickoff, set by StartMatchUseCase"
+        timestamp second_half_started_at "nullable -- wall-clock instant the 2nd half resumed, set by UpdateMatchStatusUseCase on HALF_TIME -> LIVE"
     }
     MATCH_CALL_UPS {
         uuid id PK

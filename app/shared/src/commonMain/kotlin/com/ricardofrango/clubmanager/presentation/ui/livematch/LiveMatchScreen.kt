@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.clubmanager.model.CallUpStatus
 import com.ricardofrango.clubmanager.model.EventType
+import com.ricardofrango.clubmanager.model.Match
 import com.ricardofrango.clubmanager.model.MatchCallUpWithPlayer
 import com.ricardofrango.clubmanager.model.MatchDetails
 import com.ricardofrango.clubmanager.model.MatchEvent
@@ -36,6 +37,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 private val CardShape = RoundedCornerShape(16.dp)
@@ -48,12 +50,12 @@ private val HALF_LENGTH_OPTIONS = listOf(20, 25, 30, 40)
  * summary, all in one dark screen (design canvas artboard "16", see AI_GUIDELINES.md "UI Design
  * Reference"). Which layout renders is driven entirely by `details.match.status`.
  *
- * Two disclosed simplifications versus the mock: substitutions are tap-to-pick rather than
+ * One disclosed simplification versus the mock: substitutions are tap-to-pick rather than
  * drag-to-swap (the hint text and the action sheets reflect this -- "tap a player to log" is still
- * accurate), and the running clock / which half is "current" are local-only display state seeded from
- * the latest logged event's minute, not server-synced -- reopening the screen mid-match shows a
- * reasonable clock but not the literal live value another device might display. Everything that
- * matters for the record (score, events, status) is server-authoritative.
+ * accurate). The running clock and which half is "current" are derived from the match's persisted
+ * kickoffAt/secondHalfStartedAt timestamps (see elapsedMatchSeconds below), so they're correct even
+ * after leaving and reopening the screen mid-match. Everything that matters for the record (score,
+ * events, status, kickoff/second-half timestamps) is server-authoritative.
  */
 @Composable
 fun LiveMatchScreen(
@@ -378,6 +380,24 @@ private fun timeOfDay(instant: Instant): String {
     return "${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}"
 }
 
+/**
+ * Elapsed match time in seconds, derived from the match's persisted kickoff/second-half timestamps --
+ * plain Instant subtraction, so it's correct regardless of the device's timezone (there's no local
+ * wall-clock math involved at all). Continues from the first half's nominal length once the second
+ * half has started, rather than restarting at 0. Returns 0 before kickoff.
+ */
+private fun elapsedMatchSeconds(match: Match): Int {
+    val now = Clock.System.now()
+    val secondHalfStart = match.secondHalfStartedAt
+    return if (secondHalfStart != null) {
+        val halfLengthSeconds = (match.halfLengthMinutes ?: 0) * 60
+        halfLengthSeconds + (now - secondHalfStart).inWholeSeconds.toInt()
+    } else {
+        val kickoff = match.kickoffAt ?: return 0
+        (now - kickoff).inWholeSeconds.toInt()
+    }
+}
+
 /** The running match clock, e.g. 1502 seconds -> "25:02". */
 private fun formatMatchClock(totalSeconds: Int): String {
     val minutes = totalSeconds / 60
@@ -400,26 +420,35 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
     val details = state.details
     val status = details.match.status
 
-    // Local-only display state -- see the screen doc's disclosed simplifications. Ticks by the
-    // second (displayed as MM:SS) but events are still logged against the whole minute
-    // (displayMinute), matching MatchEvent.minute's granularity.
-    var isSecondHalf by remember(details.match.id) { mutableStateOf(false) }
-    var displaySeconds by remember(details.match.id) { mutableStateOf((state.events.maxOfOrNull { it.minute } ?: 0) * 60) }
-    val displayMinute = displaySeconds / 60
+    // The clock is derived from the match's persisted kickoffAt/secondHalfStartedAt timestamps (see
+    // elapsedMatchSeconds), not a local counter -- so it survives leaving and returning to this screen
+    // and is correct regardless of the device's timezone (Instant arithmetic is absolute). `tick`
+    // exists only to force a recomposition every second; it isn't itself the clock.
+    val isSecondHalf = details.match.secondHalfStartedAt != null
     var showSetMinute by remember { mutableStateOf(false) }
     var showHalfTimeConfirm by remember { mutableStateOf(false) }
     var showFullTimeConfirm by remember { mutableStateOf(false) }
     var actionSheet by remember { mutableStateOf<ActionSheet?>(null) }
     var deletingEvent by remember { mutableStateOf<DisplayEvent?>(null) }
+    // A one-off "Set minute" nudge on top of the wall-clock elapsed time -- resets when the screen is
+    // reopened (recomputes fresh from the persisted timestamps instead), which is the intended
+    // behaviour: the clock is server-derived truth, not a locally remembered correction.
+    var manualOffsetSeconds by remember(details.match.id) { mutableStateOf(0) }
+    var tick by remember { mutableStateOf(0) }
 
     LaunchedEffect(status) {
         if (status == MatchStatus.LIVE) {
             while (true) {
                 delay(1_000)
-                displaySeconds++
+                tick++
             }
         }
     }
+
+    val displaySeconds = remember(tick, details.match, manualOffsetSeconds) {
+        elapsedMatchSeconds(details.match) + manualOffsetSeconds
+    }
+    val displayMinute = displaySeconds / 60
 
     val squad = remember(details, state.events) { deriveSquad(details, state.events) }
     val displayEvents = remember(state.events) { buildDisplayEvents(state.events) }
@@ -538,7 +567,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (status == MatchStatus.HALF_TIME) {
                     Button(
-                        onClick = { isSecondHalf = true; viewModel.onResumeSecondHalf() },
+                        onClick = { viewModel.onResumeSecondHalf() },
                         enabled = !state.isSubmitting,
                         modifier = Modifier.weight(1f).height(52.dp),
                         shape = RoundedCornerShape(14.dp),
@@ -575,7 +604,10 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
     if (showSetMinute) {
         SetMinuteDialog(
             initial = displayMinute,
-            onConfirm = { displaySeconds = it * 60; showSetMinute = false },
+            onConfirm = {
+                manualOffsetSeconds = it * 60 - elapsedMatchSeconds(details.match)
+                showSetMinute = false
+            },
             onDismiss = { showSetMinute = false }
         )
     }

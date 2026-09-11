@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
+import kotlin.time.Clock
 
 /**
  * Backs the whole live match console (LiveMatchScreen): pre-kickoff line-up picker, the live
@@ -129,8 +130,13 @@ class LiveMatchViewModel(
 
     fun onResumeSecondHalf() = runSubmitting { current ->
         updateMatchStatusUseCase(matchId, MatchStatus.LIVE)
+        // Mirrors what the server just persisted (UpdateMatchStatusUseCase sets this on the same
+        // HALF_TIME -> LIVE transition) so the running clock picks it up immediately rather than
+        // waiting on a refetch or the WebSocket echo.
         current.copy(
-            details = current.details.copy(match = current.details.match.copy(status = MatchStatus.LIVE)),
+            details = current.details.copy(
+                match = current.details.match.copy(status = MatchStatus.LIVE, secondHalfStartedAt = Clock.System.now())
+            ),
             isSubmitting = false
         )
     }

@@ -539,7 +539,17 @@ data class Match(
     val notes: String? = null,
     // Set by StartMatchUseCase at kickoff, alongside the starting XI (MatchCallUp.isStarting). Null
     // before kickoff and for matches recorded before this existed.
-    val halfLengthMinutes: Int? = null
+    val halfLengthMinutes: Int? = null,
+    // Wall-clock instant the match actually kicked off (StartMatchUseCase) -- the client derives the
+    // live running clock from `now - kickoffAt` rather than any local ticking counter, so it's
+    // correct across app restarts/navigation and unaffected by timezone (Instant math is absolute).
+    // Null before kickoff.
+    val kickoffAt: Instant? = null,
+    // Wall-clock instant the second half resumed (set by UpdateMatchStatusUseCase when the status
+    // transitions HALF_TIME -> LIVE). The running clock is `halfLengthMinutes + (now -
+    // secondHalfStartedAt)` once this is set, so it continues from the first half's length instead of
+    // restarting at 0. Null until the second half starts.
+    val secondHalfStartedAt: Instant? = null
 )
 
 @Serializable

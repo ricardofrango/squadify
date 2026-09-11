@@ -6,6 +6,7 @@ import com.ricardofrango.clubmanager.domain.service.LiveMatchBus
 import com.ricardofrango.clubmanager.domain.service.TransactionManager
 import com.ricardofrango.clubmanager.exception.NotFoundException
 import com.ricardofrango.clubmanager.model.*
+import kotlin.time.Instant
 
 class UpdateMatchStatusUseCase(
     private val matchRepository: MatchRepository,
@@ -34,6 +35,11 @@ class UpdateMatchStatusUseCase(
 
         val success = matchRepository.updateMatchStatus(matchId, status)
         if (success) {
+            // Resuming for the second half -- record when, so the client's running clock can pick up
+            // from the first half's length instead of restarting at 0 (see Match.secondHalfStartedAt).
+            if (status == MatchStatus.LIVE && match.status == MatchStatus.HALF_TIME) {
+                matchRepository.markSecondHalfStarted(matchId, Instant.fromEpochMilliseconds(System.currentTimeMillis()))
+            }
             val score = matchEventRepository.getScoreByMatch(matchId)
             liveMatchBus.publish(
                 matchId = matchId,

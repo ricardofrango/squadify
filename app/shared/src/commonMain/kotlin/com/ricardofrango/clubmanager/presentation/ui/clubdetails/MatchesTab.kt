@@ -294,7 +294,7 @@ private fun LiveBlock(match: Match) {
         Spacer(Modifier.height(2.dp))
         Text(
             if (match.status == MatchStatus.HALF_TIME) stringResource(Res.string.matches_half_time)
-            else stringResource(Res.string.matches_minute, liveMinute(match.dateTime)),
+            else stringResource(Res.string.matches_minute, liveMinute(match.kickoffAt ?: match.dateTime)),
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
             color = PitchGreen
         )
