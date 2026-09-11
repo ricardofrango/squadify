@@ -56,6 +56,13 @@ sealed class Screen {
     @Serializable
     data class CreatePlayers(val clubId: String, val clubName: String) : Screen()
 
+    // Registers a brand-new person to the club (by email -- see AddClubMembersRequest): an existing
+    // account is added as a member immediately, an unknown email gets an invite. This is how a
+    // not-yet-a-member coach/staff gets into the club in the first place; AddStaffToAgeGroup then
+    // assigns an existing member to a specific age group.
+    @Serializable
+    data class CreateStaff(val clubId: String, val clubName: String) : Screen()
+
     // Assigns an existing club member as an age group's coach/staff. The screen has its own
     // age-group picker; [initialAgeGroupId] just pre-selects it, same as AddPlayersToAgeGroup.
     @Serializable

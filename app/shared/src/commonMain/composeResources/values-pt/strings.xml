@@ -145,10 +145,11 @@
     <string name="msg_no_players_match_search">Nenhum jogador corresponde à procura</string>
     <string name="label_age_group_summary">%1$d equipas · %2$d jogadores</string>
 
-    <!-- Create Staff -->
-    <string name="title_create_staff">Criar equipa técnica</string>
-    <string name="label_create_staff">Criar equipa técnica</string>
+    <!-- Add Staff to Age Group -->
+    <string name="title_add_staff_to_age_group">Adicionar equipa técnica</string>
+    <string name="label_create_staff">Criar staff</string>
     <string name="label_search_members">Procurar membros</string>
+    <string name="btn_add_new_staff">Novo membro da equipa técnica</string>
     <string name="btn_add_staff_one">Adicionar</string>
     <string name="btn_add_staff_other">Adicionar %1$d</string>
     <string name="btn_adding_staff">A adicionar...</string>
@@ -156,6 +157,19 @@
     <string name="msg_no_age_groups_for_add_staff">Crie um escalão antes de adicionar equipa técnica.</string>
     <string name="msg_no_eligible_members_title">Todos os membros do clube já fazem parte da equipa técnica deste escalão</string>
     <string name="msg_no_eligible_members_hint">Adicione membros ao clube primeiro se a lista estiver vazia.</string>
+
+    <!-- Create Staff (regista uma nova pessoa no clube por email) -->
+    <string name="title_create_staff">Criar staff</string>
+    <string name="msg_staff_intro">Adicione o email de cada membro da equipa técnica. São adicionados ao clube de imediato se já tiverem conta, ou convidados a juntar-se caso contrário.</string>
+    <string name="label_staff_member_section">Novo membro do clube</string>
+    <string name="label_email_field">Email *</string>
+    <string name="msg_email_required">Indique um email válido em cada linha.</string>
+    <string name="label_add_another_staff_member">Adicionar outro membro</string>
+    <string name="btn_create_staff_one">Adicionar membro</string>
+    <string name="btn_create_staff_other">Adicionar %1$d membros</string>
+    <string name="btn_creating_staff">A adicionar...</string>
+    <string name="msg_create_staff_failed">Ocorreu um erro ao adicionar a equipa técnica. Por favor, tente novamente.</string>
+    <string name="msg_staff_footer_helper">Todos são adicionados em conjunto — se um falhar, nenhum é guardado.</string>
 
     <!-- Add Players to the Club -->
     <string name="title_create_players">Adicionar jogadores</string>

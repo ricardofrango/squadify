@@ -49,7 +49,11 @@ fun AddStaffToAgeGroupScreen(
     clubName: String,
     initialAgeGroupId: String? = null,
     onNavigateBack: () -> Unit,
+    onNavigateToCreateStaff: () -> Unit,
     onStaffAdded: () -> Unit,
+    // True once, on return from the create-staff screen -- reload the eligible list so the
+    // just-registered members are pickable straight away.
+    refreshOnReturn: Boolean = false,
     viewModel: AddStaffToAgeGroupViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
@@ -57,6 +61,10 @@ fun AddStaffToAgeGroupScreen(
 
     LaunchedEffect(clubId) {
         viewModel.load(clubId, initialAgeGroupId)
+    }
+
+    LaunchedEffect(refreshOnReturn) {
+        if (refreshOnReturn) viewModel.refreshEligibleMembers()
     }
 
     LaunchedEffect(viewModel.navigationEvent) {
@@ -77,6 +85,7 @@ fun AddStaffToAgeGroupScreen(
             viewModel.onAgeGroupSelected(clubId, it)
         },
         onRoleTapped = viewModel::onRoleTapped,
+        onAddNewStaff = onNavigateToCreateStaff,
         onAddClick = viewModel::onAddClicked
     )
 }
@@ -90,6 +99,7 @@ private fun AddStaffToAgeGroupContent(
     onSearchChange: (String) -> Unit,
     onAgeGroupSelected: (String) -> Unit,
     onRoleTapped: (userId: String, role: TeamRole) -> Unit,
+    onAddNewStaff: () -> Unit,
     onAddClick: () -> Unit
 ) {
     val idle = uiState as? AddStaffToAgeGroupUiState.Idle
@@ -103,7 +113,7 @@ private fun AddStaffToAgeGroupContent(
         containerColor = Color.White,
         topBar = {
             FMTopBar(
-                title = stringResource(Res.string.title_create_staff),
+                title = stringResource(Res.string.title_add_staff_to_age_group),
                 subtitle = subtitle,
                 onNavigateBack = onNavigateBack
             )
@@ -177,6 +187,16 @@ private fun AddStaffToAgeGroupContent(
                             unfocusedLabelColor = CarbonGray
                         )
                     )
+
+                    OutlinedButton(
+                        onClick = onAddNewStaff,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = FormRoundedShape,
+                        border = BorderStroke(1.dp, PitchGreen.copy(alpha = 0.4f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PitchGreen)
+                    ) {
+                        Text("+ ${stringResource(Res.string.btn_add_new_staff)}")
+                    }
 
                     if (selectedCount > 0) {
                         Text(
@@ -431,6 +451,7 @@ private fun AddStaffToAgeGroupContentPreview() {
             onSearchChange = {},
             onAgeGroupSelected = {},
             onRoleTapped = { _, _ -> },
+            onAddNewStaff = {},
             onAddClick = {}
         )
     }
@@ -452,6 +473,7 @@ private fun AddStaffToAgeGroupContentEmptyPreview() {
             onSearchChange = {},
             onAgeGroupSelected = {},
             onRoleTapped = { _, _ -> },
+            onAddNewStaff = {},
             onAddClick = {}
         )
     }

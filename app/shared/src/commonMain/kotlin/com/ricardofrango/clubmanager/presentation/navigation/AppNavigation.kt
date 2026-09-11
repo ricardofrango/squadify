@@ -20,6 +20,7 @@ import com.ricardofrango.clubmanager.presentation.ui.createteams.CreateTeamsScre
 import com.ricardofrango.clubmanager.presentation.ui.addplayerstoagegroup.AddPlayersToAgeGroupScreen
 import com.ricardofrango.clubmanager.presentation.ui.createplayers.CreatePlayersScreen
 import com.ricardofrango.clubmanager.presentation.ui.addstafftoagegroup.AddStaffToAgeGroupScreen
+import com.ricardofrango.clubmanager.presentation.ui.createstaff.CreateStaffScreen
 import com.ricardofrango.clubmanager.presentation.ui.agegroupdetails.AgeGroupDetailsScreen
 import com.ricardofrango.clubmanager.presentation.ui.createagegroups.CreateAgeGroupsScreen
 import com.ricardofrango.clubmanager.presentation.ui.teamdetails.TeamDetailsScreen
@@ -144,8 +145,8 @@ fun AppNavigation() {
                 onNavigateToCreatePlayers = { clubName ->
                     navController.navigate(Screen.CreatePlayers(screen.clubId, clubName))
                 },
-                onNavigateToAddStaffToAgeGroup = { clubName ->
-                    navController.navigate(Screen.AddStaffToAgeGroup(screen.clubId, clubName))
+                onNavigateToCreateStaff = { clubName ->
+                    navController.navigate(Screen.CreateStaff(screen.clubId, clubName))
                 },
                 onNavigateToAgeGroup = { ageGroupId ->
                     navController.navigate(Screen.AgeGroupDetails(ageGroupId))
@@ -288,8 +289,34 @@ fun AppNavigation() {
             )
         }
 
+        composable<Screen.CreateStaff> { backStackEntry ->
+            val screen: Screen.CreateStaff = backStackEntry.toRoute()
+            CreateStaffScreen(
+                clubId = screen.clubId,
+                clubName = screen.clubName,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onStaffCreated = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
+            )
+        }
+
         composable<Screen.AddStaffToAgeGroup> { backStackEntry ->
             val screen: Screen.AddStaffToAgeGroup = backStackEntry.toRoute()
+            // Set by CreateStaff when the "New staff member" shortcut is used -- reload the eligible
+            // list so the just-registered members show up, and pass the signal on down (ClubDetails /
+            // AgeGroupDetails) so their state refreshes too. Mirrors AddPlayersToAgeGroup.
+            val structureChanged by backStackEntry.savedStateHandle
+                .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
+                .collectAsState()
+            if (structureChanged) {
+                navController.consumeAndCascadeStructureChanged(backStackEntry)
+            }
             AddStaffToAgeGroupScreen(
                 clubId = screen.clubId,
                 clubName = screen.clubName,
@@ -297,12 +324,16 @@ fun AppNavigation() {
                 onNavigateBack = {
                     navController.popBackStack()
                 },
+                onNavigateToCreateStaff = {
+                    navController.navigate(Screen.CreateStaff(screen.clubId, screen.clubName))
+                },
                 onStaffAdded = {
                     navController.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
                     navController.popBackStack()
-                }
+                },
+                refreshOnReturn = structureChanged
             )
         }
 

@@ -37,7 +37,10 @@ class AddStaffToAgeGroupViewModel(
     private val _navigationEvent = MutableSharedFlow<AddStaffToAgeGroupNavigationEvent>()
     val navigationEvent: SharedFlow<AddStaffToAgeGroupNavigationEvent> = _navigationEvent.asSharedFlow()
 
+    private var clubId: String = ""
+
     fun load(clubId: String, initialAgeGroupId: String? = null) {
+        this.clubId = clubId
         if (_state.value is AddStaffToAgeGroupUiState.Idle) return
 
         viewModelScope.launch {
@@ -110,6 +113,16 @@ class AddStaffToAgeGroupViewModel(
                 }
             }
         }
+    }
+
+    /** Re-fetch the eligible list for the currently selected age group, keeping the current
+     * selection -- called when the user comes back from registering new staff via the "New staff
+     * member" shortcut, so those members appear without leaving the screen. */
+    fun refreshEligibleMembers() {
+        val current = _state.value as? AddStaffToAgeGroupUiState.Idle ?: return
+        val ageGroupId = current.selectedAgeGroupId ?: return
+        _state.update { current.copy(loadingEligible = true, error = null) }
+        loadEligible(clubId, ageGroupId)
     }
 
     /** Tapping a role pill selects the member with that role; tapping the already-selected role

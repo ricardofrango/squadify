@@ -1,5 +1,6 @@
 package com.ricardofrango.clubmanager.domain.repository
 
+import com.ricardofrango.clubmanager.model.AddClubMembersRequest
 import com.ricardofrango.clubmanager.model.Club
 import com.ricardofrango.clubmanager.model.ClubDetailsResponse
 import com.ricardofrango.clubmanager.model.ClubHome
@@ -10,4 +11,5 @@ interface ClubRepository {
     suspend fun getClubById(clubId: String): ClubDetailsResponse
     suspend fun getClubHome(clubId: String): ClubHome
     suspend fun getClubMembers(clubId: String): List<ClubMemberSummary>
+    suspend fun addClubMembers(clubId: String, request: AddClubMembersRequest)
 }

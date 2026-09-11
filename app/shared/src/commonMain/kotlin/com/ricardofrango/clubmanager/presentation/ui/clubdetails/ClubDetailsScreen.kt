@@ -119,8 +119,9 @@ fun ClubDetailsScreen(
     // The Add Players screen picks the age group itself.
     onNavigateToAddPlayersToAgeGroup: (clubName: String) -> Unit,
     onNavigateToCreatePlayers: (clubName: String) -> Unit,
-    // Staff are assigned per age group, but the screen picks the age group itself, same as Add Players.
-    onNavigateToAddStaffToAgeGroup: (clubName: String) -> Unit,
+    // Registers a brand-new person to the club (by email); assigning them a role in a specific age
+    // group happens separately, from that age group's own screen.
+    onNavigateToCreateStaff: (clubName: String) -> Unit,
     onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
     onNavigateToMatch: (matchId: String) -> Unit,
     // True exactly once, right after returning from a Create* screen having created something --
@@ -218,7 +219,7 @@ fun ClubDetailsScreen(
                                 },
                                 onClick = {
                                     showAddMenu = false
-                                    onNavigateToAddStaffToAgeGroup(clubName)
+                                    onNavigateToCreateStaff(clubName)
                                 }
                             )
                             DropdownMenuItem(

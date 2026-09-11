@@ -145,10 +145,11 @@
     <string name="msg_no_players_match_search">No players match your search</string>
     <string name="label_age_group_summary">%1$d teams · %2$d players</string>
 
-    <!-- Create Staff -->
-    <string name="title_create_staff">Create staff</string>
+    <!-- Add Staff to Age Group -->
+    <string name="title_add_staff_to_age_group">Add staff</string>
     <string name="label_create_staff">Create staff</string>
     <string name="label_search_members">Search members</string>
+    <string name="btn_add_new_staff">New staff member</string>
     <string name="btn_add_staff_one">Add staff</string>
     <string name="btn_add_staff_other">Add %1$d staff</string>
     <string name="btn_adding_staff">Adding...</string>
@@ -156,6 +157,19 @@
     <string name="msg_no_age_groups_for_add_staff">Create an age group before adding staff.</string>
     <string name="msg_no_eligible_members_title">Every club member is already staff of this age group</string>
     <string name="msg_no_eligible_members_hint">Add members to the club first if the list is empty.</string>
+
+    <!-- Create Staff (registers a new person to the club by email) -->
+    <string name="title_create_staff">Create staff</string>
+    <string name="msg_staff_intro">Add each staff member\'s email. They\'re added to the club right away if they already have an account, or invited to join if not.</string>
+    <string name="label_staff_member_section">New club staff member</string>
+    <string name="label_email_field">Email *</string>
+    <string name="msg_email_required">Give every row a valid email.</string>
+    <string name="label_add_another_staff_member">Add another staff member</string>
+    <string name="btn_create_staff_one">Add staff member</string>
+    <string name="btn_create_staff_other">Add %1$d staff members</string>
+    <string name="btn_creating_staff">Adding...</string>
+    <string name="msg_create_staff_failed">Something went wrong adding staff. Please try again.</string>
+    <string name="msg_staff_footer_helper">Everyone is added together — if one fails, none are saved.</string>
 
     <!-- Add Players to the Club -->
     <string name="title_create_players">Add players</string>
