@@ -65,7 +65,11 @@ fun LiveMatchScreen(
 
     LaunchedEffect(matchId) { viewModel.load(matchId) }
 
-    Scaffold(containerColor = DeepCarbon) { paddingValues ->
+    // Insets are handled by hand below (ConsoleHeader's statusBarsPadding, the bottom action bars'
+    // navigationBarsPadding) since the header/bottom bar are plain content, not Scaffold's topBar/
+    // bottomBar slots. Scaffold's own default contentWindowInsets would apply the same system-bar
+    // insets a second time on top of those -- pushing the header down and the bottom button up.
+    Scaffold(containerColor = DeepCarbon, contentWindowInsets = WindowInsets(0)) { paddingValues ->
         Box(Modifier.fillMaxSize().padding(paddingValues).background(DeepCarbon)) {
             when (val state = uiState) {
                 is LiveMatchUiState.Loading -> LoadingBody(onNavigateBack)
