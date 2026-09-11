@@ -129,7 +129,8 @@
 
     <!-- Add Players to Age Group -->
     <string name="title_add_players_to_age_group">Add players</string>
-    <string name="label_add_players_to_age_group">Add players to age group</string>
+    <string name="label_add_players_to_age_group">Add players</string>
+    <string name="label_add_staff_to_age_group">Add staff</string>
     <string name="label_search_players">Search players</string>
     <string name="btn_add_new_player">New player</string>
     <string name="label_players_selected">%1$d selected</string>
@@ -185,6 +186,7 @@
     <string name="label_sort_birth_year">Birth year</string>
     <string name="label_add">Add</string>
     <string name="btn_add_players">Add players</string>
+    <string name="btn_add_staff">Add staff</string>
     <string name="msg_no_players_in_age_group_title">No players in this age group yet</string>
     <string name="msg_no_players_in_age_group_hint">Players are registered on the club first, then added here.</string>
     <string name="msg_no_teams_in_age_group">No teams yet</string>

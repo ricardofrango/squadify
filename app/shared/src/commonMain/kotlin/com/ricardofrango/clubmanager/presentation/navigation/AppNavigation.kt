@@ -258,6 +258,9 @@ fun AppNavigation() {
                 onNavigateToAddPlayers = { clubId, clubName, ageGroupId ->
                     navController.navigate(Screen.AddPlayersToAgeGroup(clubId, clubName, ageGroupId))
                 },
+                onNavigateToAddStaff = { clubId, clubName, ageGroupId ->
+                    navController.navigate(Screen.AddStaffToAgeGroup(clubId, clubName, ageGroupId))
+                },
                 onNavigateToCreateTeams = { clubId, clubName, sport ->
                     navController.navigate(Screen.CreateTeams(clubId, clubName, sport))
                 },
