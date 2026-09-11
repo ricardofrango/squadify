@@ -3,6 +3,7 @@ package com.ricardofrango.clubmanager.presentation.routes
 import com.ricardofrango.clubmanager.domain.usecase.AddClubMembersUseCase
 import com.ricardofrango.clubmanager.domain.usecase.GetClubDetailsUseCase
 import com.ricardofrango.clubmanager.domain.usecase.GetClubHomeUseCase
+import com.ricardofrango.clubmanager.domain.usecase.GetClubMembersUseCase
 import com.ricardofrango.clubmanager.domain.usecase.GetClubsUseCase
 import com.ricardofrango.clubmanager.domain.usecase.ProvisionClubUseCase
 import com.ricardofrango.clubmanager.domain.usecase.UpdateClubUseCase
@@ -28,6 +29,7 @@ fun Route.clubRoutes() {
     val getClubHomeUseCase by inject<GetClubHomeUseCase>()
     val provisionClubUseCase by inject<ProvisionClubUseCase>()
     val addClubMembersUseCase by inject<AddClubMembersUseCase>()
+    val getClubMembersUseCase by inject<GetClubMembersUseCase>()
     val updateClubUseCase by inject<UpdateClubUseCase>()
 
     authenticate("auth-jwt") {
@@ -106,6 +108,15 @@ fun Route.clubRoutes() {
                             ErrorResponse("Failed to add club members")
                         )
                     }
+                }
+
+                get("/members") {
+                    val clubId =
+                        call.parameters["clubId"]
+                            ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId =
+                        call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                    call.respond(getClubMembersUseCase(currentUserId, clubId))
                 }
             }
         }

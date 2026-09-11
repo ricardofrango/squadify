@@ -18,6 +18,8 @@ import com.ricardofrango.clubmanager.presentation.ui.teamdetails.TeamDetailsView
 import com.ricardofrango.clubmanager.presentation.ui.creatematch.CreateMatchViewModel
 import com.ricardofrango.clubmanager.presentation.ui.matchdetails.MatchDetailsViewModel
 import com.ricardofrango.clubmanager.presentation.ui.livematch.LiveMatchViewModel
+import com.ricardofrango.clubmanager.presentation.ui.addstafftoagegroup.AddStaffToAgeGroupViewModel
+import com.ricardofrango.clubmanager.presentation.ui.createstaff.CreateStaffViewModel
 import com.ricardofrango.clubmanager.presentation.ui.playerdetails.PlayerDetailsViewModel
 import com.ricardofrango.clubmanager.presentation.ui.dashboard.DashboardViewModel
 import com.ricardofrango.clubmanager.presentation.ui.login.LoginViewModel
@@ -125,6 +127,10 @@ val domainModule = module {
     factory { AddMatchEventUseCase(get()) }
     factory { DeleteMatchEventUseCase(get()) }
     factory { ObserveLiveMatchUseCase(get()) }
+    factory { GetClubMembersUseCase(get()) }
+    factory { GetAgeGroupStaffUseCase(get()) }
+    factory { AddStaffToAgeGroupUseCase(get()) }
+    factory { AddClubMembersUseCase(get()) }
 }
 
 val presentationModule = module {
@@ -144,6 +150,8 @@ val presentationModule = module {
     viewModelOf(::CreateMatchViewModel)
     viewModelOf(::MatchDetailsViewModel)
     viewModelOf(::LiveMatchViewModel)
+    viewModelOf(::AddStaffToAgeGroupViewModel)
+    viewModelOf(::CreateStaffViewModel)
     viewModelOf(::PlayerDetailsViewModel)
 }
 

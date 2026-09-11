@@ -72,6 +72,7 @@ import clubmanager.app.shared.generated.resources.label_add_season
 import clubmanager.app.shared.generated.resources.label_all_ages
 import clubmanager.app.shared.generated.resources.label_all_seasons
 import clubmanager.app.shared.generated.resources.label_create_age_group
+import clubmanager.app.shared.generated.resources.label_create_staff
 import clubmanager.app.shared.generated.resources.label_create_team
 import clubmanager.app.shared.generated.resources.label_more_options
 import clubmanager.app.shared.generated.resources.label_number_prefix
@@ -118,6 +119,9 @@ fun ClubDetailsScreen(
     // The Add Players screen picks the age group itself.
     onNavigateToAddPlayersToAgeGroup: (clubName: String) -> Unit,
     onNavigateToCreatePlayers: (clubName: String) -> Unit,
+    // Registers a brand-new person to the club (by email); assigning them a role in a specific age
+    // group happens separately, from that age group's own screen.
+    onNavigateToCreateStaff: (clubName: String) -> Unit,
     onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
     onNavigateToMatch: (matchId: String) -> Unit,
     // True exactly once, right after returning from a Create* screen having created something --
@@ -162,40 +166,19 @@ fun ClubDetailsScreen(
                             onDismissRequest = { showAddMenu = false },
                             modifier = Modifier.background(Color.White)
                         ) {
+                            // Ordered to match how a club is actually built up: a season before
+                            // anything can attach to it, then age groups, then teams within them,
+                            // then players. See AI_GUIDELINES.md / user direction on menu ordering.
                             DropdownMenuItem(
                                 text = {
                                     Text(
-                                        stringResource(Res.string.label_create_team),
+                                        stringResource(Res.string.label_add_season),
                                         color = DeepCarbon
                                     )
                                 },
                                 onClick = {
                                     showAddMenu = false
-                                    onNavigateToCreateTeams(clubName, sport)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        stringResource(Res.string.label_add_players_to_club),
-                                        color = DeepCarbon
-                                    )
-                                },
-                                onClick = {
-                                    showAddMenu = false
-                                    onNavigateToCreatePlayers(clubName)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        stringResource(Res.string.label_add_players_to_age_group),
-                                        color = DeepCarbon
-                                    )
-                                },
-                                onClick = {
-                                    showAddMenu = false
-                                    onNavigateToAddPlayersToAgeGroup(clubName)
+                                    onNavigateToCreateSeason(clubName)
                                 }
                             )
                             DropdownMenuItem(
@@ -218,13 +201,37 @@ fun ClubDetailsScreen(
                             DropdownMenuItem(
                                 text = {
                                     Text(
-                                        stringResource(Res.string.label_add_season),
+                                        stringResource(Res.string.label_create_team),
                                         color = DeepCarbon
                                     )
                                 },
                                 onClick = {
                                     showAddMenu = false
-                                    onNavigateToCreateSeason(clubName)
+                                    onNavigateToCreateTeams(clubName, sport)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(Res.string.label_create_staff),
+                                        color = DeepCarbon
+                                    )
+                                },
+                                onClick = {
+                                    showAddMenu = false
+                                    onNavigateToCreateStaff(clubName)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(Res.string.label_add_players_to_club),
+                                        color = DeepCarbon
+                                    )
+                                },
+                                onClick = {
+                                    showAddMenu = false
+                                    onNavigateToCreatePlayers(clubName)
                                 }
                             )
                         }

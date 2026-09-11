@@ -46,6 +46,7 @@ val appModule = module {
     factory { CheckUserPermissionUseCase(get(), get(), get(), get(), get()) }
     factory { CheckUserIsAdminUseCase(get(), get()) }
     factory { AddClubMembersUseCase(get(), get(), get(), get(), get()) }
+    factory { GetClubMembersUseCase(get(), get(), get()) }
     factory { UpdateClubMemberRoleUseCase(get(), get(), get()) }
     factory { UpdateClubUseCase(get(), get(), get()) }
 

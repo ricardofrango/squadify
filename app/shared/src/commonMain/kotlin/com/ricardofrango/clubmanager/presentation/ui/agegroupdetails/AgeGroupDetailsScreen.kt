@@ -59,6 +59,7 @@ fun AgeGroupDetailsScreen(
     onNavigateToTeam: (teamId: String) -> Unit,
     onNavigateToPlayer: (playerId: String) -> Unit,
     onNavigateToAddPlayers: (clubId: String, clubName: String, ageGroupId: String) -> Unit,
+    onNavigateToAddStaff: (clubId: String, clubName: String, ageGroupId: String) -> Unit,
     onNavigateToCreateTeams: (clubId: String, clubName: String, sport: SportType) -> Unit,
     onNavigateToCreateMatch: (ageGroupId: String) -> Unit,
     refreshOnReturn: Boolean = false,
@@ -82,6 +83,7 @@ fun AgeGroupDetailsScreen(
         onPlayerClick = onNavigateToPlayer,
         onTeamClick = onNavigateToTeam,
         onAddPlayers = { d -> onNavigateToAddPlayers(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
+        onAddStaff = { d -> onNavigateToAddStaff(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
         onCreateTeam = { d -> onNavigateToCreateTeams(d.ageGroup.clubId, d.club.name, d.club.sport) },
         onCreateMatch = { d -> onNavigateToCreateMatch(d.ageGroup.id) }
     )
@@ -100,6 +102,7 @@ private fun AgeGroupDetailsContent(
     onPlayerClick: (String) -> Unit,
     onTeamClick: (String) -> Unit,
     onAddPlayers: (AgeGroupDetails) -> Unit,
+    onAddStaff: (AgeGroupDetails) -> Unit,
     onCreateTeam: (AgeGroupDetails) -> Unit,
     onCreateMatch: (AgeGroupDetails) -> Unit
 ) {
@@ -128,6 +131,10 @@ private fun AgeGroupDetailsContent(
                                 DropdownMenuItem(
                                     text = { Text(stringResource(Res.string.label_add_players_to_age_group), color = DeepCarbon) },
                                     onClick = { open = false; onAddPlayers(details) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(Res.string.label_add_staff_to_age_group), color = DeepCarbon) },
+                                    onClick = { open = false; onAddStaff(details) }
                                 )
                                 DropdownMenuItem(
                                     text = { Text(stringResource(Res.string.label_create_team), color = DeepCarbon) },
@@ -178,6 +185,7 @@ private fun AgeGroupDetailsContent(
                     onPlayerClick = onPlayerClick,
                     onTeamClick = onTeamClick,
                     onAddPlayers = { onAddPlayers(uiState.details) },
+                    onAddStaff = { onAddStaff(uiState.details) },
                     onCreateTeam = { onCreateTeam(uiState.details) },
                     onCreateMatch = { onCreateMatch(uiState.details) }
                 )
@@ -197,6 +205,7 @@ private fun AgeGroupBody(
     onPlayerClick: (String) -> Unit,
     onTeamClick: (String) -> Unit,
     onAddPlayers: () -> Unit,
+    onAddStaff: () -> Unit,
     onCreateTeam: () -> Unit,
     onCreateMatch: () -> Unit
 ) {
@@ -276,13 +285,19 @@ private fun AgeGroupBody(
         }
 
         // ---- Staff ----
-        item { SectionHeader(title = stringResource(Res.string.label_age_group_staff), count = details.staff.size, onAdd = null) }
+        item {
+            SectionHeader(
+                title = stringResource(Res.string.label_age_group_staff),
+                count = details.staff.size,
+                onAdd = if (details.canManage) onAddStaff else null
+            )
+        }
         if (details.staff.isEmpty()) {
             item {
                 EmptySectionCard(
                     title = stringResource(Res.string.msg_no_staff_age_group),
                     hint = null,
-                    action = null
+                    action = if (details.canManage) stringResource(Res.string.btn_add_staff) to onAddStaff else null
                 )
             }
         } else {
@@ -637,7 +652,7 @@ private fun AgeGroupDetailsPopulatedPreview() {
             uiState = AgeGroupDetailsUiState.Idle(sampleDetails(populated = true, canManage = true)),
             playerSort = PlayerSort.NAME, searchQuery = "",
             onNavigateBack = {}, onRetry = {}, onPlayerSortChange = {}, onSearchChange = {},
-            onPlayerClick = {}, onTeamClick = {}, onAddPlayers = {}, onCreateTeam = {}, onCreateMatch = {}
+            onPlayerClick = {}, onTeamClick = {}, onAddPlayers = {}, onAddStaff = {}, onCreateTeam = {}, onCreateMatch = {}
         )
     }
 }
@@ -650,7 +665,7 @@ private fun AgeGroupDetailsEmptyReadOnlyPreview() {
             uiState = AgeGroupDetailsUiState.Idle(sampleDetails(populated = false, canManage = false)),
             playerSort = PlayerSort.NAME, searchQuery = "",
             onNavigateBack = {}, onRetry = {}, onPlayerSortChange = {}, onSearchChange = {},
-            onPlayerClick = {}, onTeamClick = {}, onAddPlayers = {}, onCreateTeam = {}, onCreateMatch = {}
+            onPlayerClick = {}, onTeamClick = {}, onAddPlayers = {}, onAddStaff = {}, onCreateTeam = {}, onCreateMatch = {}
         )
     }
 }
@@ -663,7 +678,7 @@ private fun AgeGroupDetailsLandscapePreview() {
             uiState = AgeGroupDetailsUiState.Idle(sampleDetails(populated = true, canManage = true)),
             playerSort = PlayerSort.BIRTH_YEAR, searchQuery = "",
             onNavigateBack = {}, onRetry = {}, onPlayerSortChange = {}, onSearchChange = {},
-            onPlayerClick = {}, onTeamClick = {}, onAddPlayers = {}, onCreateTeam = {}, onCreateMatch = {}
+            onPlayerClick = {}, onTeamClick = {}, onAddPlayers = {}, onAddStaff = {}, onCreateTeam = {}, onCreateMatch = {}
         )
     }
 }

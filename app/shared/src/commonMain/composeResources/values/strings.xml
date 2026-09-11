@@ -40,7 +40,7 @@
     <string name="label_number_prefix">Number: %1$s</string>
     <string name="label_create_team">Create Team</string>
     <string name="label_create_age_group">Create Age Group</string>
-    <string name="label_add_season">Add Season</string>
+    <string name="label_add_season">Create season</string>
     <string name="label_more_options">More options</string>
     <string name="label_back">Back</string>
     <string name="title_club_details">Club Details</string>
@@ -129,7 +129,8 @@
 
     <!-- Add Players to Age Group -->
     <string name="title_add_players_to_age_group">Add players</string>
-    <string name="label_add_players_to_age_group">Add players to age group</string>
+    <string name="label_add_players_to_age_group">Add players</string>
+    <string name="label_add_staff_to_age_group">Add staff</string>
     <string name="label_search_players">Search players</string>
     <string name="btn_add_new_player">New player</string>
     <string name="label_players_selected">%1$d selected</string>
@@ -144,9 +145,35 @@
     <string name="msg_no_players_match_search">No players match your search</string>
     <string name="label_age_group_summary">%1$d teams · %2$d players</string>
 
+    <!-- Add Staff to Age Group -->
+    <string name="title_add_staff_to_age_group">Add staff</string>
+    <string name="label_create_staff">Create staff</string>
+    <string name="label_search_members">Search members</string>
+    <string name="btn_add_new_staff">New staff member</string>
+    <string name="btn_add_staff_one">Add staff</string>
+    <string name="btn_add_staff_other">Add %1$d staff</string>
+    <string name="btn_adding_staff">Adding...</string>
+    <string name="msg_add_staff_failed">Something went wrong adding staff. Please try again.</string>
+    <string name="msg_no_age_groups_for_add_staff">Create an age group before adding staff.</string>
+    <string name="msg_no_eligible_members_title">Every club member is already staff of this age group</string>
+    <string name="msg_no_eligible_members_hint">Add members to the club first if the list is empty.</string>
+
+    <!-- Create Staff (registers a new person to the club by email) -->
+    <string name="title_create_staff">Create staff</string>
+    <string name="msg_staff_intro">Add each staff member\'s email. They\'re added to the club right away if they already have an account, or invited to join if not.</string>
+    <string name="label_staff_member_section">New club staff member</string>
+    <string name="label_email_field">Email *</string>
+    <string name="msg_email_required">Give every row a valid email.</string>
+    <string name="label_add_another_staff_member">Add another staff member</string>
+    <string name="btn_create_staff_one">Add staff member</string>
+    <string name="btn_create_staff_other">Add %1$d staff members</string>
+    <string name="btn_creating_staff">Adding...</string>
+    <string name="msg_create_staff_failed">Something went wrong adding staff. Please try again.</string>
+    <string name="msg_staff_footer_helper">Everyone is added together — if one fails, none are saved.</string>
+
     <!-- Add Players to the Club -->
     <string name="title_create_players">Add players</string>
-    <string name="label_add_players_to_club">Add players to the club</string>
+    <string name="label_add_players_to_club">Create player</string>
     <string name="msg_players_intro">Add each player\'s name and date of birth. You can put them in age groups afterwards.</string>
     <string name="label_player_section">Player</string>
     <string name="label_first_name_field">First name *</string>
@@ -173,6 +200,7 @@
     <string name="label_sort_birth_year">Birth year</string>
     <string name="label_add">Add</string>
     <string name="btn_add_players">Add players</string>
+    <string name="btn_add_staff">Add staff</string>
     <string name="msg_no_players_in_age_group_title">No players in this age group yet</string>
     <string name="msg_no_players_in_age_group_hint">Players are registered on the club first, then added here.</string>
     <string name="msg_no_teams_in_age_group">No teams yet</string>

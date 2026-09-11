@@ -3,8 +3,10 @@ package com.ricardofrango.clubmanager.data.remote
 import com.ricardofrango.clubmanager.domain.config.AppConfig
 import com.ricardofrango.clubmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.clubmanager.domain.repository.SessionRepository
+import com.ricardofrango.clubmanager.model.AddStaffToAgeGroupRequest
 import com.ricardofrango.clubmanager.model.AgeGroup
 import com.ricardofrango.clubmanager.model.AgeGroupDetails
+import com.ricardofrango.clubmanager.model.AgeGroupStaffMember
 import com.ricardofrango.clubmanager.model.CreateAgeGroupsRequest
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -44,5 +46,25 @@ class AgeGroupRepositoryImpl(
                 header(HttpHeaders.Authorization, "Bearer $it")
             }
         }.handleResponse()
+    }
+
+    override suspend fun getAgeGroupStaff(ageGroupId: String): List<AgeGroupStaffMember> {
+        val token = sessionRepository.getToken()
+        return httpClient.get("${appConfig.baseUrl}/age-groups/$ageGroupId/staff") {
+            token?.let {
+                header(HttpHeaders.Authorization, "Bearer $it")
+            }
+        }.handleResponse()
+    }
+
+    override suspend fun addStaffToAgeGroup(ageGroupId: String, request: AddStaffToAgeGroupRequest) {
+        val token = sessionRepository.getToken()
+        httpClient.post("${appConfig.baseUrl}/age-groups/$ageGroupId/staff") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+            token?.let {
+                header(HttpHeaders.Authorization, "Bearer $it")
+            }
+        }.handleResponse<Unit>()
     }
 }
