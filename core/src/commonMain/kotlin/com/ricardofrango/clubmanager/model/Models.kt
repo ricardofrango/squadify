@@ -438,6 +438,17 @@ data class AgeGroupStaffMember(
     val avatarUrl: String? = null
 )
 
+/** One row of `GET /clubs/{clubId}/members` -- who to pick from when assigning an age group's
+ * coaches/staff (AddStaffToAgeGroupRequest only accepts userIds already in the club). */
+@Serializable
+data class ClubMemberSummary(
+    val userId: String,
+    val firstName: String,
+    val lastName: String,
+    val email: String,
+    val role: ClubRole
+)
+
 @Serializable
 enum class MatchOutcome { WIN, DRAW, LOSS }
 

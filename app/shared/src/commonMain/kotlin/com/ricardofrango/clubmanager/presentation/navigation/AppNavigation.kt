@@ -19,6 +19,7 @@ import com.ricardofrango.clubmanager.presentation.ui.createseason.CreateSeasonSc
 import com.ricardofrango.clubmanager.presentation.ui.createteams.CreateTeamsScreen
 import com.ricardofrango.clubmanager.presentation.ui.addplayerstoagegroup.AddPlayersToAgeGroupScreen
 import com.ricardofrango.clubmanager.presentation.ui.createplayers.CreatePlayersScreen
+import com.ricardofrango.clubmanager.presentation.ui.addstafftoagegroup.AddStaffToAgeGroupScreen
 import com.ricardofrango.clubmanager.presentation.ui.agegroupdetails.AgeGroupDetailsScreen
 import com.ricardofrango.clubmanager.presentation.ui.createagegroups.CreateAgeGroupsScreen
 import com.ricardofrango.clubmanager.presentation.ui.teamdetails.TeamDetailsScreen
@@ -142,6 +143,9 @@ fun AppNavigation() {
                 },
                 onNavigateToCreatePlayers = { clubName ->
                     navController.navigate(Screen.CreatePlayers(screen.clubId, clubName))
+                },
+                onNavigateToAddStaffToAgeGroup = { clubName ->
+                    navController.navigate(Screen.AddStaffToAgeGroup(screen.clubId, clubName))
                 },
                 onNavigateToAgeGroup = { ageGroupId ->
                     navController.navigate(Screen.AgeGroupDetails(ageGroupId))
@@ -273,6 +277,24 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
                 onPlayersCreated = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable<Screen.AddStaffToAgeGroup> { backStackEntry ->
+            val screen: Screen.AddStaffToAgeGroup = backStackEntry.toRoute()
+            AddStaffToAgeGroupScreen(
+                clubId = screen.clubId,
+                clubName = screen.clubName,
+                initialAgeGroupId = screen.initialAgeGroupId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onStaffAdded = {
                     navController.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)

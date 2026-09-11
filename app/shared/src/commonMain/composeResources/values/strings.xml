@@ -40,7 +40,7 @@
     <string name="label_number_prefix">Number: %1$s</string>
     <string name="label_create_team">Create Team</string>
     <string name="label_create_age_group">Create Age Group</string>
-    <string name="label_add_season">Add Season</string>
+    <string name="label_add_season">Create season</string>
     <string name="label_more_options">More options</string>
     <string name="label_back">Back</string>
     <string name="title_club_details">Club Details</string>
@@ -144,9 +144,21 @@
     <string name="msg_no_players_match_search">No players match your search</string>
     <string name="label_age_group_summary">%1$d teams · %2$d players</string>
 
+    <!-- Create Staff -->
+    <string name="title_create_staff">Create staff</string>
+    <string name="label_create_staff">Create staff</string>
+    <string name="label_search_members">Search members</string>
+    <string name="btn_add_staff_one">Add staff</string>
+    <string name="btn_add_staff_other">Add %1$d staff</string>
+    <string name="btn_adding_staff">Adding...</string>
+    <string name="msg_add_staff_failed">Something went wrong adding staff. Please try again.</string>
+    <string name="msg_no_age_groups_for_add_staff">Create an age group before adding staff.</string>
+    <string name="msg_no_eligible_members_title">Every club member is already staff of this age group</string>
+    <string name="msg_no_eligible_members_hint">Add members to the club first if the list is empty.</string>
+
     <!-- Add Players to the Club -->
     <string name="title_create_players">Add players</string>
-    <string name="label_add_players_to_club">Add players to the club</string>
+    <string name="label_add_players_to_club">Create player</string>
     <string name="msg_players_intro">Add each player\'s name and date of birth. You can put them in age groups afterwards.</string>
     <string name="label_player_section">Player</string>
     <string name="label_first_name_field">First name *</string>

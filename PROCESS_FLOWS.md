@@ -565,6 +565,8 @@ graph TD
     H --> Z(["Return success"])
 ```
 
+Since staff must already be a club member, the client's **Create Staff** screen (reached from the Club Details overflow menu) needs a way to list them: `GetClubMembersUseCase` (`GET /clubs/{clubId}/members`, same `minClubRole=COORDINATOR` gate) returns every active `ClubMemberSummary` (name, email, club role) for the picker. The screen then works like Add Players to Age Group — pick an age group, search the list, pick who to add — except each row picks a `TeamRole` (Coach/Staff) rather than being a plain toggle, and the eligible list excludes members already staffing that age group (fetched via `GetAgeGroupStaffUseCase`, `GET /age-groups/{ageGroupId}/staff`, client-side only, no new endpoint).
+
 ---
 
 ## 6. Opponents

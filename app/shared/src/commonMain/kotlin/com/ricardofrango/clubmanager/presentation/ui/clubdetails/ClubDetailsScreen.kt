@@ -72,6 +72,7 @@ import clubmanager.app.shared.generated.resources.label_add_season
 import clubmanager.app.shared.generated.resources.label_all_ages
 import clubmanager.app.shared.generated.resources.label_all_seasons
 import clubmanager.app.shared.generated.resources.label_create_age_group
+import clubmanager.app.shared.generated.resources.label_create_staff
 import clubmanager.app.shared.generated.resources.label_create_team
 import clubmanager.app.shared.generated.resources.label_more_options
 import clubmanager.app.shared.generated.resources.label_number_prefix
@@ -118,6 +119,8 @@ fun ClubDetailsScreen(
     // The Add Players screen picks the age group itself.
     onNavigateToAddPlayersToAgeGroup: (clubName: String) -> Unit,
     onNavigateToCreatePlayers: (clubName: String) -> Unit,
+    // Staff are assigned per age group, but the screen picks the age group itself, same as Add Players.
+    onNavigateToAddStaffToAgeGroup: (clubName: String) -> Unit,
     onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
     onNavigateToMatch: (matchId: String) -> Unit,
     // True exactly once, right after returning from a Create* screen having created something --
@@ -204,6 +207,18 @@ fun ClubDetailsScreen(
                                 onClick = {
                                     showAddMenu = false
                                     onNavigateToCreateTeams(clubName, sport)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(Res.string.label_create_staff),
+                                        color = DeepCarbon
+                                    )
+                                },
+                                onClick = {
+                                    showAddMenu = false
+                                    onNavigateToAddStaffToAgeGroup(clubName)
                                 }
                             )
                             DropdownMenuItem(

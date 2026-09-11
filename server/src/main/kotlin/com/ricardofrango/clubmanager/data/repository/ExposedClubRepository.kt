@@ -4,9 +4,11 @@ import com.ricardofrango.clubmanager.data.database.ClubMembers
 import com.ricardofrango.clubmanager.data.database.Clubs
 import com.ricardofrango.clubmanager.data.database.Players
 import com.ricardofrango.clubmanager.data.database.UserPlayers
+import com.ricardofrango.clubmanager.data.database.Users
 import com.ricardofrango.clubmanager.domain.repository.ClubRepository
 import com.ricardofrango.clubmanager.exception.DatabaseException
 import com.ricardofrango.clubmanager.model.Club
+import com.ricardofrango.clubmanager.model.ClubMemberSummary
 import com.ricardofrango.clubmanager.model.ClubRole
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
@@ -93,6 +95,20 @@ class ExposedClubRepository : ClubRepository {
             this[ClubMembers.role] = role
             this[ClubMembers.active] = true
         }.size == userIds.size
+
+    override suspend fun getClubMembers(clubId: String): List<ClubMemberSummary> =
+        (ClubMembers innerJoin Users).selectAll()
+            .where { (ClubMembers.clubId eq Uuid.parse(clubId)) and (ClubMembers.active eq true) }
+            .orderBy(Users.firstName)
+            .map {
+                ClubMemberSummary(
+                    userId = it[Users.id].toString(),
+                    firstName = it[Users.firstName],
+                    lastName = it[Users.lastName],
+                    email = it[Users.email],
+                    role = it[ClubMembers.role]
+                )
+            }
 
     override suspend fun updateMemberRole(clubId: String, userId: String, role: ClubRole): Boolean =
         ClubMembers.update({ (ClubMembers.clubId eq Uuid.parse(clubId)) and (ClubMembers.userId eq Uuid.parse(userId)) }) {
