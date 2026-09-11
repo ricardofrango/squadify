@@ -184,7 +184,14 @@ class LiveMatchViewModel(
         _state.update { current.copy(isSubmitting = true, error = null) }
         viewModelScope.launch {
             try {
-                _state.update { block(current) }
+                // block() makes real network calls (POST/DELETE) -- it must run exactly once. Calling
+                // it directly inside _state.update {} is wrong: update() is a compare-and-swap retry
+                // loop, and any concurrent write to _state (e.g. subscribeToLiveUpdates' WebSocket
+                // handler firing for this same call's own broadcast) makes it retry the lambda, which
+                // would re-run block() and re-send the request -- this is what caused one tap to fire a
+                // burst of duplicate POSTs. Compute the result once, then apply it as a plain value.
+                val result = block(current)
+                _state.update { result }
             } catch (e: ApiException) {
                 _state.update { current.copy(isSubmitting = false, error = getString(Res.string.msg_live_match_action_failed)) }
             } catch (e: Exception) {

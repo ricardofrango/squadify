@@ -480,11 +480,11 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                ScoreBox(state.score.ourScore, PitchGreen, enabled = status == MatchStatus.LIVE) {
+                ScoreBox(state.score.ourScore, PitchGreen, enabled = status == MatchStatus.LIVE && !state.isSubmitting) {
                     viewModel.onLogGoal(displayMinute, isOpponent = false)
                 }
                 Spacer(Modifier.width(8.dp))
-                ScoreBox(state.score.opponentScore, CarbonGray, enabled = status == MatchStatus.LIVE) {
+                ScoreBox(state.score.opponentScore, CarbonGray, enabled = status == MatchStatus.LIVE && !state.isSubmitting) {
                     viewModel.onLogGoal(displayMinute, isOpponent = true)
                 }
                 Spacer(Modifier.width(16.dp))
@@ -647,6 +647,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
             squad = squad,
             minute = displayMinute,
             viewModel = viewModel,
+            enabled = !state.isSubmitting,
             onDismiss = { actionSheet = null },
             onChangeSheet = { actionSheet = it }
         )
@@ -890,6 +891,7 @@ private fun PlayerActionSheet(
     squad: DerivedSquad,
     minute: Int,
     viewModel: LiveMatchViewModel,
+    enabled: Boolean,
     onDismiss: () -> Unit,
     onChangeSheet: (ActionSheet?) -> Unit
 ) {
@@ -906,28 +908,28 @@ private fun PlayerActionSheet(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     if (sheet.onPitch) {
-                        SheetAction(stringResource(Res.string.action_log_goal)) {
+                        SheetAction(stringResource(Res.string.action_log_goal), enabled = enabled) {
                             viewModel.onLogEvent(EventType.GOAL, sheet.row.player.id, minute); onDismiss()
                         }
-                        SheetAction(stringResource(Res.string.action_log_assist)) {
+                        SheetAction(stringResource(Res.string.action_log_assist), enabled = enabled) {
                             viewModel.onLogEvent(EventType.ASSIST, sheet.row.player.id, minute); onDismiss()
                         }
-                        SheetAction(stringResource(Res.string.action_log_yellow_card)) {
+                        SheetAction(stringResource(Res.string.action_log_yellow_card), enabled = enabled) {
                             viewModel.onLogEvent(EventType.YELLOW_CARD, sheet.row.player.id, minute); onDismiss()
                         }
-                        SheetAction(stringResource(Res.string.action_log_red_card)) {
+                        SheetAction(stringResource(Res.string.action_log_red_card), enabled = enabled) {
                             viewModel.onLogEvent(EventType.RED_CARD, sheet.row.player.id, minute); onDismiss()
                         }
-                        SheetAction(stringResource(Res.string.action_log_own_goal)) {
+                        SheetAction(stringResource(Res.string.action_log_own_goal), enabled = enabled) {
                             viewModel.onLogEvent(EventType.OWN_GOAL, sheet.row.player.id, minute); onDismiss()
                         }
                         if (squad.bench.isNotEmpty()) {
-                            SheetAction(stringResource(Res.string.action_substitute_off)) {
+                            SheetAction(stringResource(Res.string.action_substitute_off), enabled = enabled) {
                                 onChangeSheet(ActionSheet.PickComingOn(sheet.row.player.id, name))
                             }
                         }
                     } else if (squad.onPitch.isNotEmpty()) {
-                        SheetAction(stringResource(Res.string.action_substitute_on)) {
+                        SheetAction(stringResource(Res.string.action_substitute_on), enabled = enabled) {
                             onChangeSheet(ActionSheet.PickGoingOff(sheet.row.player.id, name))
                         }
                     }
@@ -941,7 +943,7 @@ private fun PlayerActionSheet(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     squad.bench.forEach { row ->
-                        SheetAction("${row.player.shirtNumber ?: "-"} · ${row.player.firstName} ${row.player.lastName}") {
+                        SheetAction("${row.player.shirtNumber ?: "-"} · ${row.player.firstName} ${row.player.lastName}", enabled = enabled) {
                             viewModel.onSubstitute(sheet.outgoingId, row.player.id, minute); onDismiss()
                         }
                     }
@@ -955,7 +957,7 @@ private fun PlayerActionSheet(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     squad.onPitch.forEach { row ->
-                        SheetAction("${row.player.shirtNumber ?: "-"} · ${row.player.firstName} ${row.player.lastName}") {
+                        SheetAction("${row.player.shirtNumber ?: "-"} · ${row.player.firstName} ${row.player.lastName}", enabled = enabled) {
                             viewModel.onSubstitute(row.player.id, sheet.incomingId, minute); onDismiss()
                         }
                     }
@@ -966,12 +968,12 @@ private fun PlayerActionSheet(
 }
 
 @Composable
-private fun SheetAction(label: String, onClick: () -> Unit) {
-    Surface(onClick = onClick, modifier = Modifier.fillMaxWidth(), color = Color.Transparent) {
+private fun SheetAction(label: String, enabled: Boolean = true, onClick: () -> Unit) {
+    Surface(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth(), color = Color.Transparent) {
         Text(
             label,
             modifier = Modifier.padding(vertical = 14.dp),
-            color = Color.White,
+            color = Color.White.copy(alpha = if (enabled) 1f else 0.4f),
             style = MaterialTheme.typography.bodyLarge
         )
     }
