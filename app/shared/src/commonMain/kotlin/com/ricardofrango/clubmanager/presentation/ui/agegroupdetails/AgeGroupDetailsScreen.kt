@@ -233,57 +233,6 @@ private fun AgeGroupBody(
         contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // ---- Players ----
-        item {
-            SectionHeader(
-                title = stringResource(Res.string.tab_players),
-                count = details.players.size,
-                onAdd = if (details.canManage) onAddPlayers else null
-            )
-        }
-        if (details.players.isEmpty()) {
-            item {
-                EmptySectionCard(
-                    title = stringResource(Res.string.msg_no_players_in_age_group_title),
-                    hint = stringResource(Res.string.msg_no_players_in_age_group_hint),
-                    action = if (details.canManage) stringResource(Res.string.btn_add_players) to onAddPlayers else null
-                )
-            }
-        } else {
-            item {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
-                    SortChip(stringResource(Res.string.label_sort_name), playerSort == PlayerSort.NAME) { onPlayerSortChange(PlayerSort.NAME) }
-                    SortChip(stringResource(Res.string.label_sort_birth_year), playerSort == PlayerSort.BIRTH_YEAR) { onPlayerSortChange(PlayerSort.BIRTH_YEAR) }
-                }
-            }
-            item {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = onSearchChange,
-                    label = { Text(stringResource(Res.string.label_search_players)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = DeepCarbon,
-                        unfocusedTextColor = DeepCarbon,
-                        focusedBorderColor = PitchGreen,
-                        unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
-                        focusedLabelColor = PitchGreen,
-                        unfocusedLabelColor = CarbonGray
-                    )
-                )
-            }
-            items(visiblePlayers, key = { it.id }) { player ->
-                PlayerRow(
-                    player = player,
-                    playsUp = player.birthDate.year > ag.birthYear,
-                    onClick = { onPlayerClick(player.id) }
-                )
-            }
-        }
-
         // ---- Staff ----
         item {
             SectionHeader(
@@ -350,6 +299,57 @@ private fun AgeGroupBody(
                     opponentName = opponentsById[match.opponentId]?.let { it.shortName ?: it.name } ?: "—",
                     teamName = teamsById[match.teamId]?.name ?: "",
                     dateLabel = matchDateLabel(match.dateTime)
+                )
+            }
+        }
+
+        // ---- Players ----
+        item {
+            SectionHeader(
+                title = stringResource(Res.string.tab_players),
+                count = details.players.size,
+                onAdd = if (details.canManage) onAddPlayers else null
+            )
+        }
+        if (details.players.isEmpty()) {
+            item {
+                EmptySectionCard(
+                    title = stringResource(Res.string.msg_no_players_in_age_group_title),
+                    hint = stringResource(Res.string.msg_no_players_in_age_group_hint),
+                    action = if (details.canManage) stringResource(Res.string.btn_add_players) to onAddPlayers else null
+                )
+            }
+        } else {
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
+                    SortChip(stringResource(Res.string.label_sort_name), playerSort == PlayerSort.NAME) { onPlayerSortChange(PlayerSort.NAME) }
+                    SortChip(stringResource(Res.string.label_sort_birth_year), playerSort == PlayerSort.BIRTH_YEAR) { onPlayerSortChange(PlayerSort.BIRTH_YEAR) }
+                }
+            }
+            item {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchChange,
+                    label = { Text(stringResource(Res.string.label_search_players)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = DeepCarbon,
+                        unfocusedTextColor = DeepCarbon,
+                        focusedBorderColor = PitchGreen,
+                        unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
+                        focusedLabelColor = PitchGreen,
+                        unfocusedLabelColor = CarbonGray
+                    )
+                )
+            }
+            items(visiblePlayers, key = { it.id }) { player ->
+                PlayerRow(
+                    player = player,
+                    playsUp = player.birthDate.year > ag.birthYear,
+                    onClick = { onPlayerClick(player.id) }
                 )
             }
         }
