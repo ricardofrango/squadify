@@ -79,6 +79,12 @@ class ExposedMatchEventRepository : MatchEventRepository {
             .limit(limit)
             .map(::toMatchEvent)
 
+    override suspend fun getAllEventsByPlayer(playerId: String): List<MatchEvent> =
+        MatchEvents.selectAll()
+            .where { MatchEvents.playerId eq Uuid.parse(playerId) }
+            .orderBy(MatchEvents.createdAt, SortOrder.DESC)
+            .map(::toMatchEvent)
+
     private fun toMatchEvent(row: ResultRow): MatchEvent = MatchEvent(
         id = row[MatchEvents.id].toString(),
         matchId = row[MatchEvents.matchId].toString(),

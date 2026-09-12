@@ -57,6 +57,21 @@
     <string name="label_active">Ativo</string>
     <string name="label_inactive">Inativo</string>
     <string name="msg_precision_management">Gestão de precisão para o seu clube</string>
+    <string name="msg_failed_to_load_player">Não foi possível carregar este jogador. Por favor, tente novamente.</string>
+    <string name="label_stat_goals">Golos</string>
+    <string name="label_stat_assists">Assistências</string>
+    <string name="label_stat_called_up">Convocado</string>
+    <string name="label_guardians">Encarregados</string>
+    <string name="label_guardians_linked">%1$d ligados</string>
+    <string name="label_recent_events">Eventos recentes</string>
+    <string name="msg_no_recent_events">Ainda não há eventos registados.</string>
+    <string name="label_event_type_goal">Golo</string>
+    <string name="label_event_type_own_goal">Autogolo</string>
+    <string name="label_event_type_assist">Assistência</string>
+    <string name="label_event_type_yellow_card">Cartão amarelo</string>
+    <string name="label_event_type_red_card">Cartão vermelho</string>
+    <string name="label_event_type_substitution_in">Entrou</string>
+    <string name="label_event_type_substitution_out">Saiu</string>
 
     <!-- Create Season -->
     <string name="title_create_season">Nova época</string>

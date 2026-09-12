@@ -57,6 +57,21 @@
     <string name="label_active">Active</string>
     <string name="label_inactive">Inactive</string>
     <string name="msg_precision_management">Precision management for your club</string>
+    <string name="msg_failed_to_load_player">Couldn\'t load this player. Please try again.</string>
+    <string name="label_stat_goals">Goals</string>
+    <string name="label_stat_assists">Assists</string>
+    <string name="label_stat_called_up">Called up</string>
+    <string name="label_guardians">Guardians</string>
+    <string name="label_guardians_linked">%1$d linked</string>
+    <string name="label_recent_events">Recent events</string>
+    <string name="msg_no_recent_events">No events logged yet.</string>
+    <string name="label_event_type_goal">Goal</string>
+    <string name="label_event_type_own_goal">Own goal</string>
+    <string name="label_event_type_assist">Assist</string>
+    <string name="label_event_type_yellow_card">Yellow card</string>
+    <string name="label_event_type_red_card">Red card</string>
+    <string name="label_event_type_substitution_in">Substituted on</string>
+    <string name="label_event_type_substitution_out">Substituted off</string>
 
     <!-- Create Season -->
     <string name="title_create_season">New season</string>

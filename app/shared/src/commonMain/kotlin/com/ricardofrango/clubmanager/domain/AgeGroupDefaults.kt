@@ -24,4 +24,12 @@ object AgeGroupDefaults {
         val age = seasonEndYear - birthYear
         return "Sub $age"
     }
+
+    /**
+     * The end year of the season currently under way, as of [today] -- youth football seasons run
+     * autumn-to-spring, so from July onward "this season" is the one ending *next* calendar year.
+     * Used to derive a player's "Sub N" label from their birth year alone (no season/age-group lookup
+     * needed) wherever a screen shows it purely as a read-only label -- see the player profile screen.
+     */
+    fun currentSeasonEndYear(today: LocalDate): Int = if (today.monthNumber >= 7) today.year + 1 else today.year
 }

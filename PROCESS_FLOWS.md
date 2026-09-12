@@ -95,7 +95,7 @@ graph TD
     D -- allowed --> R[Fetch and return data from repository]
 ```
 
-Use cases that follow this pattern exactly (fetch-context → require at least `MEMBER` → return): `GetClubDetailsUseCase`, `GetAgeGroupsUseCase`, `GetSeasonsUseCase`, `GetTeamsUseCase`, `GetTeamDetailsUseCase` (adds aggregation + a `canManage` probe — see §4.6b), `GetTeamPlayersUseCase`, `GetAgeGroupPlayersByClubUseCase`, `GetAgeGroupStaffUseCase`, `GetPlayersUseCase`, `GetPlayerUseCase`, `GetMatchesUseCase`, `GetMatchDetailsUseCase` (adds aggregation + a `canManage` probe — see §7.1b), `GetMatchEventsUseCase`, `GetMatchScoreUseCase`, `GetOpponentsUseCase`, and `GetLiveMatchUpdatesUseCase` (terminal step is "subscribe to the live bus" instead of "return data" — see §8.3).
+Use cases that follow this pattern exactly (fetch-context → require at least `MEMBER` → return): `GetClubDetailsUseCase`, `GetAgeGroupsUseCase`, `GetSeasonsUseCase`, `GetTeamsUseCase`, `GetTeamDetailsUseCase` (adds aggregation + a `canManage` probe — see §4.6b), `GetTeamPlayersUseCase`, `GetAgeGroupPlayersByClubUseCase`, `GetAgeGroupStaffUseCase`, `GetPlayersUseCase`, `GetPlayerUseCase` (adds aggregation, no `canManage` probe — see §5.1b), `GetMatchesUseCase`, `GetMatchDetailsUseCase` (adds aggregation + a `canManage` probe — see §7.1b), `GetMatchEventsUseCase`, `GetMatchScoreUseCase`, `GetOpponentsUseCase`, and `GetLiveMatchUpdatesUseCase` (terminal step is "subscribe to the live bus" instead of "return data" — see §8.3).
 
 Their individual diagrams are omitted below to avoid 15 near-identical copies; only the use cases with distinct branching logic get a dedicated diagram.
 
@@ -488,6 +488,33 @@ graph TD
     Q --> Z
     P --> Z
 ```
+
+### 5.1b Get Player Profile (`GetPlayerUseCase`)
+
+The aggregate behind the player profile screen. No longer a plain fetch-and-return: it now assembles
+all-time stats and a resolved recent-events list alongside the player record.
+
+```mermaid
+graph TD
+    A[Start: userId, playerId] --> B[Fetch Player by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D["ageGroupLabel = first AgeGroup this player's pool membership resolves to (name only)"]
+    D --> E["events = getAllEventsByPlayer, newest first"]
+    E --> G["goals/assists = count of GOAL/ASSIST in events"]
+    G --> H["recentEvents = first 5 of events, each resolved to its Match + Opponent name"]
+    H --> I["timesCalledUp = countCallUpsByPlayer; guardiansLinked = countGuardiansByPlayer"]
+    I --> Z(["Return PlayerProfile: player, ageGroupLabel, goals, assists, timesCalledUp, guardiansLinked, recentEvents"])
+```
+
+Stats are all-time -- there's no season/last-5/career split yet (the client's player profile screen
+only shows one fixed set of numbers). `ageGroupLabel` is the player's actual pool membership (real
+`AgeGroupPlayers` data); this is distinct from the "Sub N" text the client also shows next to the
+player's name/position, which it derives purely from `Player.birthDate` and today's date
+(`AgeGroupDefaults.currentSeasonEndYear`/`inferredName`) with no server round-trip. `Player.position`
+is a nullable field with no create/edit affordance yet — always null until that's built, and the
+screen just omits it when absent.
 
 ### 5.2 Update Player (`UpdatePlayerUseCase`)
 
@@ -984,6 +1011,7 @@ erDiagram
         integer shirt_number "nullable"
         varchar photo_url "500 chars, nullable"
         boolean active "default true"
+        varchar position "50 chars, nullable -- no create/edit UI sets this yet"
     }
     AGE_GROUP_PLAYERS {
         uuid id PK
