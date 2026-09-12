@@ -3,24 +3,27 @@ package com.ricardofrango.clubmanager.presentation.ui.playerdetails
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.clubmanager.domain.usecase.GetPlayerDetailsUseCase
+import clubmanager.app.shared.generated.resources.Res
+import clubmanager.app.shared.generated.resources.msg_failed_to_load_player
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 
 class PlayerDetailsViewModel(
     private val getPlayerDetailsUseCase: GetPlayerDetailsUseCase
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow<PlayerDetailsUiState>(PlayerDetailsUiState.Idle())
+    private val _state = MutableStateFlow<PlayerDetailsUiState>(PlayerDetailsUiState.Loading)
     val state: StateFlow<PlayerDetailsUiState> = _state.asStateFlow()
 
     fun loadPlayerDetails(playerId: String) {
         viewModelScope.launch {
             _state.update { PlayerDetailsUiState.Loading }
             try {
-                val player = getPlayerDetailsUseCase(playerId)
-                _state.update { PlayerDetailsUiState.Idle(player = player) }
+                val profile = getPlayerDetailsUseCase(playerId)
+                _state.update { PlayerDetailsUiState.Idle(profile = profile) }
             } catch (e: Exception) {
-                _state.update { PlayerDetailsUiState.Idle(error = e.message ?: "Failed to load player details") }
+                _state.update { PlayerDetailsUiState.Error(getString(Res.string.msg_failed_to_load_player)) }
             }
         }
     }

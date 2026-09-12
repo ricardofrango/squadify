@@ -5,6 +5,7 @@ import com.ricardofrango.clubmanager.domain.repository.PlayerRepository
 import com.ricardofrango.clubmanager.domain.repository.SessionRepository
 import com.ricardofrango.clubmanager.model.CreatePlayersRequest
 import com.ricardofrango.clubmanager.model.Player
+import com.ricardofrango.clubmanager.model.PlayerProfile
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.http.*
@@ -25,7 +26,7 @@ class PlayerRepositoryImpl(
         }.handleResponse()
     }
 
-    override suspend fun getPlayerById(playerId: String): Player {
+    override suspend fun getPlayerById(playerId: String): PlayerProfile {
         val token = sessionRepository.getToken()
         return httpClient.get("${appConfig.baseUrl}/players/$playerId") {
             token?.let {

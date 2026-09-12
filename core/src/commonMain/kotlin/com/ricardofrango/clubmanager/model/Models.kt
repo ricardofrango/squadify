@@ -207,7 +207,35 @@ data class Player(
     val birthDate: LocalDate,
     val shirtNumber: Int? = null,
     val photoUrl: String? = null,
-    val active: Boolean
+    val active: Boolean,
+    // Playing position (e.g. "Midfielder"). Nullable -- there's no way to set this yet (planned for a
+    // future Create/Edit Player update); the player profile screen just hides the field until then.
+    val position: String? = null
+)
+
+/**
+ * Everything shown on the player profile screen: the player record plus derived stats (goals,
+ * assists, times called up -- all-time, no season/career split yet) and the player's most recent
+ * logged match events. [guardiansLinked] is a plain count -- who they are isn't shown on this screen.
+ */
+@Serializable
+data class PlayerProfile(
+    val player: Player,
+    val ageGroupLabel: String?,
+    val goals: Int,
+    val assists: Int,
+    val timesCalledUp: Int,
+    val guardiansLinked: Int,
+    val recentEvents: List<PlayerProfileEvent>
+)
+
+/** One logged event for [PlayerProfile.recentEvents], enriched with the match it happened in. */
+@Serializable
+data class PlayerProfileEvent(
+    val type: EventType,
+    val minute: Int,
+    val opponentName: String,
+    val matchDate: Instant
 )
 
 /**

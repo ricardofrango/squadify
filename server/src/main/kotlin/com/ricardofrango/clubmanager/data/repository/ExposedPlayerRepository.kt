@@ -34,6 +34,7 @@ class ExposedPlayerRepository : PlayerRepository {
             it[shirtNumber] = player.shirtNumber
             it[photoUrl] = player.photoUrl
             it[active] = player.active
+            it[position] = player.position
         }.resultedValues?.singleOrNull()?.let(::toPlayer)
             ?: throw DatabaseException("Failed to create player")
 
@@ -47,6 +48,7 @@ class ExposedPlayerRepository : PlayerRepository {
             this[Players.shirtNumber] = it.shirtNumber
             this[Players.photoUrl] = it.photoUrl
             this[Players.active] = it.active
+            this[Players.position] = it.position
         }.map(::toPlayer)
 
     override suspend fun getPlayerById(id: String): Player? =
@@ -62,6 +64,7 @@ class ExposedPlayerRepository : PlayerRepository {
             it[shirtNumber] = player.shirtNumber
             it[photoUrl] = player.photoUrl
             it[active] = player.active
+            it[position] = player.position
         } > 0
 
     override suspend fun getPlayersData(playerIds: List<String>): List<Player> =
@@ -125,6 +128,13 @@ class ExposedPlayerRepository : PlayerRepository {
             .where { Players.clubId eq Uuid.parse(clubId) }
             .map(::toAgeGroupPlayer)
 
+    override suspend fun countGuardiansByPlayer(playerId: String): Long =
+        UserPlayers.selectAll().where { UserPlayers.playerId eq Uuid.parse(playerId) }.count()
+
+    override suspend fun getAgeGroupIdsByPlayer(playerId: String): List<String> =
+        AgeGroupPlayers.selectAll().where { AgeGroupPlayers.playerId eq Uuid.parse(playerId) }
+            .map { it[AgeGroupPlayers.ageGroupId].toString() }
+
     private fun toAgeGroupPlayer(row: ResultRow): AgeGroupPlayer = AgeGroupPlayer(
         id = row[AgeGroupPlayers.id].toString(),
         ageGroupId = row[AgeGroupPlayers.ageGroupId].toString(),
@@ -139,6 +149,7 @@ class ExposedPlayerRepository : PlayerRepository {
         birthDate = row[Players.birthDate],
         shirtNumber = row[Players.shirtNumber],
         photoUrl = row[Players.photoUrl],
-        active = row[Players.active]
+        active = row[Players.active],
+        position = row[Players.position]
     )
 }

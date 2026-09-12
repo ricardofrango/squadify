@@ -17,6 +17,7 @@ interface MatchRepository {
     suspend fun markSecondHalfStarted(matchId: String, at: kotlin.time.Instant): Boolean
 
     suspend fun getCallUpsForMatch(matchId: String): List<MatchCallUpWithPlayer>
+    suspend fun countCallUpsByPlayer(playerId: String): Long
     suspend fun manageCallUps(matchId: String, playerIds: List<String>): Boolean
     suspend fun updateCallUp(callUpId: String, status: CallUpStatus, notes: String?): Boolean
     suspend fun getCallUpByMatchAndPlayer(matchId: String, playerId: String): MatchCallUp?
