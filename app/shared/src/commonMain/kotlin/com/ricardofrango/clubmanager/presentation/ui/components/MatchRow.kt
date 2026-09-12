@@ -1,6 +1,7 @@
 package com.ricardofrango.clubmanager.presentation.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,11 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.clubmanager.model.Match
 import com.ricardofrango.clubmanager.model.MatchScore
 import com.ricardofrango.clubmanager.model.MatchStatus
 import com.ricardofrango.clubmanager.presentation.ui.theme.CarbonGray
+import com.ricardofrango.clubmanager.presentation.ui.theme.ClubManagerTheme
 import com.ricardofrango.clubmanager.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.clubmanager.presentation.ui.theme.PitchGreen
 import clubmanager.app.shared.generated.resources.Res
@@ -39,6 +42,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
 import kotlin.time.Instant
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * The one match-row look used everywhere a match can appear in a list: the club Matches tab, Age
@@ -222,3 +226,121 @@ private fun timeLabel(instant: Instant): String {
 
 private val MONTH_ABBR = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 private fun dayMonthLabel(date: kotlinx.datetime.LocalDate): String = "${date.day} ${MONTH_ABBR[date.month.ordinal]}"
+
+private fun previewMatch(
+    status: MatchStatus,
+    kickoffAt: Instant? = null,
+    secondHalfStartedAt: Instant? = null,
+    location: String? = "Municipal Stadium"
+) = Match(
+    id = "m1",
+    clubId = "c1",
+    teamId = "t1",
+    opponentId = "o1",
+    location = location,
+    dateTime = Instant.fromEpochMilliseconds(0),
+    status = status,
+    halfLengthMinutes = if (secondHalfStartedAt != null) 45 else null,
+    kickoffAt = kickoffAt,
+    secondHalfStartedAt = secondHalfStartedAt
+)
+
+@Preview
+@Composable
+private fun MatchRowScheduledPreview() {
+    ClubManagerTheme {
+        MatchRow(
+            match = previewMatch(MatchStatus.SCHEDULED),
+            opponentName = "Sporting Youth",
+            teamName = "Sub 2015 A",
+            onClick = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun MatchRowLivePreview() {
+    ClubManagerTheme {
+        MatchRow(
+            match = previewMatch(MatchStatus.LIVE, kickoffAt = Clock.System.now() - 23.minutes),
+            opponentName = "Sporting Youth",
+            teamName = "Sub 2015 A",
+            score = MatchScore("m1", 2, 1),
+            onClick = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun MatchRowHalfTimePreview() {
+    ClubManagerTheme {
+        MatchRow(
+            match = previewMatch(MatchStatus.HALF_TIME, kickoffAt = Clock.System.now() - 45.minutes),
+            opponentName = "Sporting Youth",
+            teamName = "Sub 2015 A",
+            score = MatchScore("m1", 0, 0),
+            onClick = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun MatchRowFinishedResultsPreview() {
+    ClubManagerTheme {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            MatchRow(
+                match = previewMatch(MatchStatus.FINISHED),
+                opponentName = "Sporting Youth (win)",
+                score = MatchScore("m1", 3, 1),
+                onClick = {}
+            )
+            MatchRow(
+                match = previewMatch(MatchStatus.FINISHED),
+                opponentName = "Benfica Youth (loss)",
+                score = MatchScore("m1", 0, 2),
+                onClick = {}
+            )
+            MatchRow(
+                match = previewMatch(MatchStatus.FINISHED),
+                opponentName = "Porto Youth (draw)",
+                score = MatchScore("m1", 1, 1),
+                onClick = {}
+            )
+            // Score fetch failed / not available -- falls back to a plain "FULL TIME" chip.
+            MatchRow(
+                match = previewMatch(MatchStatus.FINISHED),
+                opponentName = "Braga Youth (no score)",
+                onClick = {}
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun MatchRowCancelledPreview() {
+    ClubManagerTheme {
+        MatchRow(
+            match = previewMatch(MatchStatus.CANCELLED, location = null),
+            opponentName = "Sporting Youth",
+            teamName = "Sub 2015 A",
+            onClick = {}
+        )
+    }
+}
+
+/** Team Details' rows are already scoped to one team, so [teamName] is omitted. */
+@Preview
+@Composable
+private fun MatchRowNoTeamNamePreview() {
+    ClubManagerTheme {
+        MatchRow(
+            match = previewMatch(MatchStatus.SCHEDULED),
+            opponentName = "Sporting Youth",
+            onClick = {}
+        )
+    }
+}
