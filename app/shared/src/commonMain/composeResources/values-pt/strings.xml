@@ -272,7 +272,7 @@
     <string name="matches_live">AO VIVO</string>
     <string name="matches_half_time">INT</string>
     <string name="matches_full_time">FIM</string>
-    <string name="matches_minute">%1$d\'</string>
+    <string name="matches_minute">%1$d</string>
     <string name="msg_no_matches_title">Ainda não há jogos agendados</string>
     <string name="msg_no_matches_subtitle">Os jogos são agendados a partir de uma equipa, para se saber quem joga.</string>
     <string name="btn_go_to_age_groups">Ir para escalões</string>

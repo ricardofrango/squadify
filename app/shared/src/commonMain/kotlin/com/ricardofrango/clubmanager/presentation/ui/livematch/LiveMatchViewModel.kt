@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
+import kotlin.time.Clock
 
 /**
  * Backs the whole live match console (LiveMatchScreen): pre-kickoff line-up picker, the live
@@ -129,8 +130,13 @@ class LiveMatchViewModel(
 
     fun onResumeSecondHalf() = runSubmitting { current ->
         updateMatchStatusUseCase(matchId, MatchStatus.LIVE)
+        // Mirrors what the server just persisted (UpdateMatchStatusUseCase sets this on the same
+        // HALF_TIME -> LIVE transition) so the running clock picks it up immediately rather than
+        // waiting on a refetch or the WebSocket echo.
         current.copy(
-            details = current.details.copy(match = current.details.match.copy(status = MatchStatus.LIVE)),
+            details = current.details.copy(
+                match = current.details.match.copy(status = MatchStatus.LIVE, secondHalfStartedAt = Clock.System.now())
+            ),
             isSubmitting = false
         )
     }
@@ -178,7 +184,14 @@ class LiveMatchViewModel(
         _state.update { current.copy(isSubmitting = true, error = null) }
         viewModelScope.launch {
             try {
-                _state.update { block(current) }
+                // block() makes real network calls (POST/DELETE) -- it must run exactly once. Calling
+                // it directly inside _state.update {} is wrong: update() is a compare-and-swap retry
+                // loop, and any concurrent write to _state (e.g. subscribeToLiveUpdates' WebSocket
+                // handler firing for this same call's own broadcast) makes it retry the lambda, which
+                // would re-run block() and re-send the request -- this is what caused one tap to fire a
+                // burst of duplicate POSTs. Compute the result once, then apply it as a plain value.
+                val result = block(current)
+                _state.update { result }
             } catch (e: ApiException) {
                 _state.update { current.copy(isSubmitting = false, error = getString(Res.string.msg_live_match_action_failed)) }
             } catch (e: Exception) {

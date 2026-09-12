@@ -2,6 +2,7 @@ package com.ricardofrango.clubmanager.domain.usecase
 
 import com.ricardofrango.clubmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.clubmanager.domain.repository.ClubRepository
+import com.ricardofrango.clubmanager.domain.repository.MatchEventRepository
 import com.ricardofrango.clubmanager.domain.repository.MatchRepository
 import com.ricardofrango.clubmanager.domain.repository.OpponentRepository
 import com.ricardofrango.clubmanager.domain.repository.PlayerRepository
@@ -28,6 +29,7 @@ class GetAgeGroupDetailsUseCase(
     private val playerRepository: PlayerRepository,
     private val teamRepository: TeamRepository,
     private val matchRepository: MatchRepository,
+    private val matchEventRepository: MatchEventRepository,
     private val opponentRepository: OpponentRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager
@@ -56,8 +58,14 @@ class GetAgeGroupDetailsUseCase(
         val now = Clock.System.now()
         val upcomingMatches = teams
             .flatMap { matchRepository.getMatchesByTeam(it.id) }
-            .filter { it.dateTime >= now && it.status == MatchStatus.SCHEDULED }
+            .filter {
+                (it.status == MatchStatus.SCHEDULED && it.dateTime >= now) ||
+                    it.status == MatchStatus.LIVE || it.status == MatchStatus.HALF_TIME
+            }
             .sortedBy { it.dateTime }
+        val upcomingMatchScores = upcomingMatches
+            .filter { it.status == MatchStatus.LIVE || it.status == MatchStatus.HALF_TIME }
+            .associate { it.id to matchEventRepository.getScoreByMatch(it.id) }
 
         val canManage = try {
             checkUserPermissionUseCase(
@@ -80,6 +88,7 @@ class GetAgeGroupDetailsUseCase(
             staff = ageGroupRepository.getAgeGroupStaff(ageGroupId),
             teams = teams,
             upcomingMatches = upcomingMatches,
+            upcomingMatchScores = upcomingMatchScores,
             opponents = opponentRepository.getOpponentsByClub(ageGroup.clubId),
             canManage = canManage
         )

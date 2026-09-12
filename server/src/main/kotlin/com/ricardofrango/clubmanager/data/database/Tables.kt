@@ -177,6 +177,11 @@ object Matches : Table("matches") {
     val notes = text("notes").nullable()
     // Set at kickoff by StartMatchUseCase alongside MatchCallUps.isStarting. Null before kickoff.
     val halfLengthMinutes = integer("half_length_minutes").nullable()
+    // Wall-clock instant of kickoff / second-half restart -- the client's live running clock is
+    // derived from these, not any locally-ticking counter. Both null before kickoff;
+    // secondHalfStartedAt stays null until the HALF_TIME -> LIVE transition.
+    val kickoffAt = timestamp("kickoff_at").nullable()
+    val secondHalfStartedAt = timestamp("second_half_started_at").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

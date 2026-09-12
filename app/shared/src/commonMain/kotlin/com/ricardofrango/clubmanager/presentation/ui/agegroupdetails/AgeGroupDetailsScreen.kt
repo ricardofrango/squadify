@@ -21,6 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.clubmanager.model.*
 import com.ricardofrango.clubmanager.presentation.ui.components.FMTopBar
+import com.ricardofrango.clubmanager.presentation.ui.components.MatchRow
 import com.ricardofrango.clubmanager.presentation.ui.theme.CarbonGray
 import com.ricardofrango.clubmanager.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.clubmanager.presentation.ui.theme.ClubManagerTheme
@@ -41,9 +42,6 @@ private val CardShape = RoundedCornerShape(16.dp)
 
 private val MonthYear = LocalDate.Format {
     monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); year()
-}
-private val DayMonth = LocalDate.Format {
-    day(); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED)
 }
 
 /**
@@ -301,9 +299,10 @@ private fun AgeGroupBody(
         } else {
             items(details.upcomingMatches, key = { it.id }) { match ->
                 MatchRow(
+                    match = match,
                     opponentName = opponentsById[match.opponentId]?.let { it.shortName ?: it.name } ?: "—",
-                    teamName = teamsById[match.teamId]?.name ?: "",
-                    dateLabel = matchDateLabel(match.dateTime),
+                    teamName = teamsById[match.teamId]?.name,
+                    score = details.upcomingMatchScores[match.id],
                     onClick = { onMatchClick(match.id) }
                 )
             }
@@ -360,12 +359,6 @@ private fun AgeGroupBody(
             }
         }
     }
-}
-
-private fun matchDateLabel(instant: Instant): String {
-    val dt = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    val time = "${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}"
-    return "${dt.date.format(DayMonth)} · $time"
 }
 
 /** The dark block directly under the top bar (same CarbonGray): eligibility rule + edge-to-edge counts. */
@@ -549,27 +542,6 @@ private fun TeamRow(team: Team, onClick: () -> Unit) {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
             }
             Text(" ›", color = DeepCarbon.copy(alpha = 0.4f), fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-@Composable
-private fun MatchRow(opponentName: String, teamName: String, dateLabel: String, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = CardShape,
-        color = Color.White,
-        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
-    ) {
-        Row(modifier = Modifier.padding(14.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("vs $opponentName", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (teamName.isNotEmpty()) {
-                    Text(teamName, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.55f))
-                }
-            }
-            Text(dateLabel, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.6f))
         }
     }
 }

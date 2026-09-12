@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.ricardofrango.clubmanager.model.Match
 import com.ricardofrango.clubmanager.model.MatchStatus
 import com.ricardofrango.clubmanager.model.Team
+import com.ricardofrango.clubmanager.presentation.ui.components.MatchRow
 import com.ricardofrango.clubmanager.presentation.ui.theme.CarbonGray
 import com.ricardofrango.clubmanager.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.clubmanager.presentation.ui.theme.PitchGreen
@@ -40,10 +41,6 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
-import kotlin.time.Instant
-
-private val CardShape = RoundedCornerShape(16.dp)
-private val LiveRed = Color(0xFFC0392B)
 
 /**
  * The club Matches tab (design 14A / 14B): the club-wide fixture list, so each row names its team.
@@ -195,6 +192,7 @@ fun MatchesTab(
                             match = match,
                             teamName = teamsById[match.teamId]?.name ?: "—",
                             opponentName = opponentsById[match.opponentId]?.let { it.shortName ?: it.name } ?: "—",
+                            score = state.matchScores[match.id],
                             onClick = { onNavigateToMatch(match.id) }
                         )
                     }
@@ -217,104 +215,6 @@ private fun StatusChip(label: StringResource, selected: Boolean, onClick: () -> 
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
             color = if (selected) Color.White else DeepCarbon
-        )
-    }
-}
-
-@Composable
-private fun MatchRow(match: Match, teamName: String, opponentName: String, onClick: () -> Unit) {
-    val live = match.status == MatchStatus.LIVE || match.status == MatchStatus.HALF_TIME
-    val finished = match.status == MatchStatus.FINISHED
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = CardShape,
-        color = Color.White,
-        border = BorderStroke(if (live) 2.dp else 1.dp, if (live) PitchGreen else CarbonGray.copy(alpha = 0.15f))
-    ) {
-        Row(modifier = Modifier.padding(14.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            if (live) {
-                LiveBlock(match)
-            } else {
-                DateBlock(match.dateTime, muted = finished)
-            }
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    teamName,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                    color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    "vs $opponentName",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = DeepCarbon.copy(alpha = 0.8f), maxLines = 1, overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    subtitleFor(match, live, finished),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DeepCarbon.copy(alpha = 0.55f), maxLines = 1, overflow = TextOverflow.Ellipsis
-                )
-            }
-            if (finished) {
-                Spacer(Modifier.width(8.dp))
-                Surface(shape = RoundedCornerShape(6.dp), color = CarbonGray.copy(alpha = 0.12f)) {
-                    Text(
-                        stringResource(Res.string.matches_full_time),
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = DeepCarbon.copy(alpha = 0.5f)
-                    )
-                }
-            }
-        }
-    }
-}
-
-private fun subtitleFor(match: Match, live: Boolean, finished: Boolean): String {
-    val loc = match.location?.takeIf { it.isNotBlank() }
-    return when {
-        live -> loc ?: ""
-        finished -> match.dateTime.toLocalDateTime(TimeZone.currentSystemDefault()).date.let(::dayMonthLabel)
-        else -> listOfNotNull(timeLabel(match.dateTime), loc).joinToString(" · ")
-    }
-}
-
-@Composable
-private fun LiveBlock(match: Match) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(40.dp)) {
-        Surface(shape = RoundedCornerShape(4.dp), color = LiveRed) {
-            Text(
-                stringResource(Res.string.matches_live),
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = Color.White
-            )
-        }
-        Spacer(Modifier.height(2.dp))
-        Text(
-            if (match.status == MatchStatus.HALF_TIME) stringResource(Res.string.matches_half_time)
-            else stringResource(Res.string.matches_minute, liveMinute(match.dateTime)),
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-            color = PitchGreen
-        )
-    }
-}
-
-@Composable
-private fun DateBlock(instant: Instant, muted: Boolean) {
-    val dt = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    val alpha = if (muted) 0.5f else 1f
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(40.dp)) {
-        Text(
-            dt.dayOfWeek.name.take(3),
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-            color = PitchGreen.copy(alpha = alpha)
-        )
-        Text(
-            dt.day.toString(),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            color = DeepCarbon.copy(alpha = alpha)
         )
     }
 }
@@ -384,16 +284,3 @@ private fun weekendAhead(today: LocalDate): Set<LocalDate> {
     val sat = today.plus(toSat, DateTimeUnit.DAY)
     return setOf(sat, sat.plus(1, DateTimeUnit.DAY))
 }
-
-private fun liveMinute(kickoff: Instant): Int {
-    val mins = (Clock.System.now() - kickoff).inWholeMinutes
-    return mins.coerceIn(1, 130).toInt()
-}
-
-private fun timeLabel(instant: Instant): String {
-    val dt = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    return "${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}"
-}
-
-private val MONTH_ABBR = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-private fun dayMonthLabel(date: LocalDate): String = "${date.day} ${MONTH_ABBR[date.month.ordinal]}"

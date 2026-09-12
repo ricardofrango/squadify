@@ -6,6 +6,7 @@ import com.ricardofrango.clubmanager.model.Player
 import com.ricardofrango.clubmanager.model.AgeGroup
 import com.ricardofrango.clubmanager.model.ClubHome
 import com.ricardofrango.clubmanager.model.Match
+import com.ricardofrango.clubmanager.model.MatchScore
 import com.ricardofrango.clubmanager.model.Opponent
 
 /** Which slice of the club's fixtures the Matches tab shows. */
@@ -43,6 +44,10 @@ sealed class ClubDetailsUiState {
         // Matches tab -- the club's fixtures + opponent list (best-effort, see ClubDetailsViewModel),
         // plus its own filter set (season defaults to the most recent, status to UPCOMING).
         val matches: List<Match> = emptyList(),
+        // Final scores for `matches` entries with status FINISHED, keyed by Match.id -- best-effort,
+        // fetched after `matches` loads (see ClubDetailsViewModel), so a finished fixture can show its
+        // result instead of just a "FULL TIME" badge with no score.
+        val matchScores: Map<String, MatchScore> = emptyMap(),
         val opponents: List<Opponent> = emptyList(),
         val selectedMatchesSeasonId: String? = null,
         val selectedMatchesAgeGroupId: String? = null,
