@@ -107,9 +107,10 @@ object Players : Table("players") {
     val shirtNumber = integer("shirt_number").nullable()
     val photoUrl = varchar("photo_url", 500).nullable()
     val active = bool("active").default(true)
-    // No create/edit UI sets this yet -- always null until that's built. Nullable so the player
-    // profile screen can just hide the field rather than showing a placeholder.
-    val position = varchar("position", 50).nullable()
+    val position = enumerationByName("position", 20, PlayerPosition::class).nullable()
+    val heightCm = integer("height_cm").nullable()
+    val weightKg = integer("weight_kg").nullable()
+    val emergencyContact = varchar("emergency_contact", 255).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

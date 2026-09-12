@@ -72,6 +72,16 @@
     <string name="label_event_type_red_card">Cartão vermelho</string>
     <string name="label_event_type_substitution_in">Entrou</string>
     <string name="label_event_type_substitution_out">Saiu</string>
+    <string name="label_position_goalkeeper">Guarda-redes</string>
+    <string name="label_position_defender">Defesa</string>
+    <string name="label_position_midfield">Médio</string>
+    <string name="label_position_winger">Extremo</string>
+    <string name="label_position_striker">Avançado</string>
+    <string name="label_height">Altura</string>
+    <string name="label_height_value">%1$d cm</string>
+    <string name="label_weight">Peso</string>
+    <string name="label_weight_value">%1$d kg</string>
+    <string name="label_emergency_contact">Contacto de emergência</string>
 
     <!-- Create Season -->
     <string name="title_create_season">Nova época</string>
@@ -197,6 +207,8 @@
     <string name="msg_date_of_birth_helper">Usada para verificar em que escalões o jogador é elegível.</string>
     <string name="label_pick_a_date">Escolher uma data</string>
     <string name="label_shirt_number">Número</string>
+    <string name="label_position">Posição</string>
+    <string name="label_position_none">Não definida</string>
     <string name="label_add_another_player">Adicionar outro jogador</string>
     <string name="msg_player_name_required">Dê um primeiro e último nome a todos os jogadores.</string>
     <string name="msg_player_dob_required">Escolha uma data de nascimento para todos os jogadores.</string>

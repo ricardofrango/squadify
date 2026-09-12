@@ -38,7 +38,11 @@ class UpdatePlayerUseCase(
             lastName = request.lastName ?: existingPlayer.lastName,
             birthDate = request.birthDate ?: existingPlayer.birthDate,
             shirtNumber = request.shirtNumber ?: existingPlayer.shirtNumber,
-            photoUrl = request.photoUrl ?: existingPlayer.photoUrl
+            photoUrl = request.photoUrl ?: existingPlayer.photoUrl,
+            position = request.position ?: existingPlayer.position,
+            heightCm = request.heightCm ?: existingPlayer.heightCm,
+            weightKg = request.weightKg ?: existingPlayer.weightKg,
+            emergencyContact = request.emergencyContact ?: existingPlayer.emergencyContact
         )
 
         val success = playerRepository.updatePlayer(updatedPlayer)

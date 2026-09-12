@@ -199,6 +199,9 @@ data class Team(
 )
 
 @Serializable
+enum class PlayerPosition { GOALKEEPER, DEFENDER, MIDFIELD, WINGER, STRIKER }
+
+@Serializable
 data class Player(
     val id: String,
     val clubId: String,
@@ -208,9 +211,11 @@ data class Player(
     val shirtNumber: Int? = null,
     val photoUrl: String? = null,
     val active: Boolean,
-    // Playing position (e.g. "Midfielder"). Nullable -- there's no way to set this yet (planned for a
-    // future Create/Edit Player update); the player profile screen just hides the field until then.
-    val position: String? = null
+    val position: PlayerPosition? = null,
+    val heightCm: Int? = null,
+    val weightKg: Int? = null,
+    // Free text (name + phone, or however the club records it) -- no structured contact model yet.
+    val emergencyContact: String? = null
 )
 
 /**
@@ -369,7 +374,11 @@ data class CreatePlayer(
     val shirtNumber: Int? = null,
     val photoUrl: String? = null,
     val email: String? = null,
-    val parents: List<PlayerParentRequest> = emptyList()
+    val parents: List<PlayerParentRequest> = emptyList(),
+    val position: PlayerPosition? = null,
+    val heightCm: Int? = null,
+    val weightKg: Int? = null,
+    val emergencyContact: String? = null
 )
 
 @Serializable
@@ -390,7 +399,11 @@ data class UpdatePlayerRequest(
     val shirtNumber: Int? = null,
     val photoUrl: String? = null,
     val email: String? = null,
-    val parents: List<PlayerParentRequest>? = null
+    val parents: List<PlayerParentRequest>? = null,
+    val position: PlayerPosition? = null,
+    val heightCm: Int? = null,
+    val weightKg: Int? = null,
+    val emergencyContact: String? = null
 )
 
 @Serializable

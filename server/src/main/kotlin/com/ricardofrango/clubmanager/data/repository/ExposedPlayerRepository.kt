@@ -35,6 +35,9 @@ class ExposedPlayerRepository : PlayerRepository {
             it[photoUrl] = player.photoUrl
             it[active] = player.active
             it[position] = player.position
+            it[heightCm] = player.heightCm
+            it[weightKg] = player.weightKg
+            it[emergencyContact] = player.emergencyContact
         }.resultedValues?.singleOrNull()?.let(::toPlayer)
             ?: throw DatabaseException("Failed to create player")
 
@@ -49,6 +52,9 @@ class ExposedPlayerRepository : PlayerRepository {
             this[Players.photoUrl] = it.photoUrl
             this[Players.active] = it.active
             this[Players.position] = it.position
+            this[Players.heightCm] = it.heightCm
+            this[Players.weightKg] = it.weightKg
+            this[Players.emergencyContact] = it.emergencyContact
         }.map(::toPlayer)
 
     override suspend fun getPlayerById(id: String): Player? =
@@ -65,6 +71,9 @@ class ExposedPlayerRepository : PlayerRepository {
             it[photoUrl] = player.photoUrl
             it[active] = player.active
             it[position] = player.position
+            it[heightCm] = player.heightCm
+            it[weightKg] = player.weightKg
+            it[emergencyContact] = player.emergencyContact
         } > 0
 
     override suspend fun getPlayersData(playerIds: List<String>): List<Player> =
@@ -150,6 +159,9 @@ class ExposedPlayerRepository : PlayerRepository {
         shirtNumber = row[Players.shirtNumber],
         photoUrl = row[Players.photoUrl],
         active = row[Players.active],
-        position = row[Players.position]
+        position = row[Players.position],
+        heightCm = row[Players.heightCm],
+        weightKg = row[Players.weightKg],
+        emergencyContact = row[Players.emergencyContact]
     )
 }

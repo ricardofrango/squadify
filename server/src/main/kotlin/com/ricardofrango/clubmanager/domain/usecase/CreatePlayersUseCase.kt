@@ -39,7 +39,11 @@ class CreatePlayersUseCase(
                 birthDate = it.birthDate,
                 shirtNumber = it.shirtNumber,
                 photoUrl = it.photoUrl,
-                active = true
+                active = true,
+                position = it.position,
+                heightCm = it.heightCm,
+                weightKg = it.weightKg,
+                emergencyContact = it.emergencyContact
             )
         }
 
