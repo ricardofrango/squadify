@@ -404,7 +404,16 @@ fun AppNavigation() {
             val screen: Screen.LiveMatch = backStackEntry.toRoute()
             LiveMatchScreen(
                 matchId = screen.matchId,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = {
+                    // Every action here (kick off, half/full time, events) mutates the match, and
+                    // there's no separate "nothing changed" exit -- always flag it so MatchDetails
+                    // (and, cascading further, the screen that opened it) reload instead of showing a
+                    // stale status/score, e.g. the "enter live match" button after full time.
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
             )
         }
 
