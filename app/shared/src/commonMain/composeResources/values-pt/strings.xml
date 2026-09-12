@@ -207,8 +207,6 @@
     <string name="msg_date_of_birth_helper">Usada para verificar em que escalões o jogador é elegível.</string>
     <string name="label_pick_a_date">Escolher uma data</string>
     <string name="label_shirt_number">Número</string>
-    <string name="label_position">Posição</string>
-    <string name="label_position_none">Não definida</string>
     <string name="label_add_another_player">Adicionar outro jogador</string>
     <string name="msg_player_name_required">Dê um primeiro e último nome a todos os jogadores.</string>
     <string name="msg_player_dob_required">Escolha uma data de nascimento para todos os jogadores.</string>

@@ -207,8 +207,6 @@
     <string name="msg_date_of_birth_helper">Used to check which age groups this player is eligible for.</string>
     <string name="label_pick_a_date">Pick a date</string>
     <string name="label_shirt_number">Number</string>
-    <string name="label_position">Position</string>
-    <string name="label_position_none">Not set</string>
     <string name="label_add_another_player">Add another player</string>
     <string name="msg_player_name_required">Give every player a first and last name.</string>
     <string name="msg_player_dob_required">Pick a date of birth for every player.</string>

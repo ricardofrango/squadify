@@ -16,12 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.clubmanager.model.CreatePlayer
-import com.ricardofrango.clubmanager.model.PlayerPosition
 import com.ricardofrango.clubmanager.presentation.ui.components.DatePickerSheet
 import com.ricardofrango.clubmanager.presentation.ui.components.FMTopBar
 import com.ricardofrango.clubmanager.presentation.ui.components.PrimaryLoadingButton
@@ -46,12 +44,7 @@ private data class PlayerRow(
     val key: Int,
     val firstName: String = "",
     val lastName: String = "",
-    val birthDateIso: String? = null,
-    val shirtNumber: String = "",
-    val position: PlayerPosition? = null,
-    val heightCm: String = "",
-    val weightKg: String = "",
-    val emergencyContact: String = ""
+    val birthDateIso: String? = null
 )
 
 private val FormRoundedShape = RoundedCornerShape(18.dp)
@@ -67,14 +60,18 @@ private val DateDisplayFormat = LocalDate.Format {
 /**
  * Batch player creation, matching `CreatePlayersRequest`. Built to the "Add players to the club"
  * artboard of the design canvas linked in AI_GUIDELINES.md ("UI Design Reference"), consistent with
- * the Create Age Groups / Create Teams screens: one card per player with first name, last name, and
- * date of birth required (plus an optional shirt number), "+ Add another player", and one CREATE
- * that submits the whole batch -- `CreatePlayersUseCase` writes it in one transaction, so either
- * every player is saved or none are.
+ * the Create Age Groups / Create Teams screens: one card per player with just the fields
+ * `CreatePlayer` actually requires -- first name, last name, date of birth -- "+ Add another player",
+ * and one CREATE that submits the whole batch -- `CreatePlayersUseCase` writes it in one transaction,
+ * so either every player is saved or none are.
+ *
+ * Deliberately minimal: shirt number, position, height/weight, and emergency contact are all optional
+ * on `CreatePlayer`/`Player` but not collected here -- they're meant to be filled in afterwards via a
+ * Player Edit screen (not built yet), keeping this quick-add flow to just what's required. Email /
+ * parent invites the request also supports aren't exposed here either.
  *
  * Validation is pre-submit and client-side: the CREATE button stays enabled and pressing it surfaces
- * missing names / dates. Any edit clears the shown errors. Email / parent invites the request also
- * supports are not exposed here yet.
+ * missing names / dates. Any edit clears the shown errors.
  *
  * Rows aren't `rememberSaveable` (same known limitation noted on the other batch screens): a rare
  * mid-edit process kill loses the in-progress batch.
@@ -119,23 +116,6 @@ fun CreatePlayersScreen(
             showValidationErrors = false
             viewModel.clearSubmitError()
         },
-        onShirtNumberChange = { key, value ->
-            if (value.all { it.isDigit() } && value.length <= 3) {
-                updateRow(rows, key) { it.copy(shirtNumber = value) }
-            }
-        },
-        onPositionChange = { key, value -> updateRow(rows, key) { it.copy(position = value) } },
-        onHeightChange = { key, value ->
-            if (value.all { it.isDigit() } && value.length <= 3) {
-                updateRow(rows, key) { it.copy(heightCm = value) }
-            }
-        },
-        onWeightChange = { key, value ->
-            if (value.all { it.isDigit() } && value.length <= 3) {
-                updateRow(rows, key) { it.copy(weightKg = value) }
-            }
-        },
-        onEmergencyContactChange = { key, value -> updateRow(rows, key) { it.copy(emergencyContact = value) } },
         onDateClick = { key -> datePickerForKey = key },
         onAddRow = {
             rows.add(PlayerRow(key = nextRowKey))
@@ -152,12 +132,7 @@ fun CreatePlayersScreen(
                     CreatePlayer(
                         firstName = r.firstName.trim(),
                         lastName = r.lastName.trim(),
-                        birthDate = LocalDate.parse(r.birthDateIso!!),
-                        shirtNumber = r.shirtNumber.trim().toIntOrNull(),
-                        position = r.position,
-                        heightCm = r.heightCm.trim().toIntOrNull(),
-                        weightKg = r.weightKg.trim().toIntOrNull(),
-                        emergencyContact = r.emergencyContact.trim().ifBlank { null }
+                        birthDate = LocalDate.parse(r.birthDateIso!!)
                     )
                 }
                 viewModel.onCreateClicked(clubId, players)
@@ -197,11 +172,6 @@ private fun CreatePlayersContent(
     onNavigateBack: () -> Unit,
     onFirstNameChange: (key: Int, value: String) -> Unit,
     onLastNameChange: (key: Int, value: String) -> Unit,
-    onShirtNumberChange: (key: Int, value: String) -> Unit,
-    onPositionChange: (key: Int, value: PlayerPosition?) -> Unit,
-    onHeightChange: (key: Int, value: String) -> Unit,
-    onWeightChange: (key: Int, value: String) -> Unit,
-    onEmergencyContactChange: (key: Int, value: String) -> Unit,
     onDateClick: (key: Int) -> Unit,
     onAddRow: () -> Unit,
     onRemoveRow: (key: Int) -> Unit,
@@ -267,11 +237,6 @@ private fun CreatePlayersContent(
                         canRemove = rows.size > 1,
                         onFirstNameChange = { onFirstNameChange(row.key, it) },
                         onLastNameChange = { onLastNameChange(row.key, it) },
-                        onShirtNumberChange = { onShirtNumberChange(row.key, it) },
-                        onPositionChange = { onPositionChange(row.key, it) },
-                        onHeightChange = { onHeightChange(row.key, it) },
-                        onWeightChange = { onWeightChange(row.key, it) },
-                        onEmergencyContactChange = { onEmergencyContactChange(row.key, it) },
                         onDateClick = { onDateClick(row.key) },
                         onRemove = { onRemoveRow(row.key) }
                     )
@@ -340,11 +305,6 @@ private fun PlayerRowCard(
     canRemove: Boolean,
     onFirstNameChange: (String) -> Unit,
     onLastNameChange: (String) -> Unit,
-    onShirtNumberChange: (String) -> Unit,
-    onPositionChange: (PlayerPosition?) -> Unit,
-    onHeightChange: (String) -> Unit,
-    onWeightChange: (String) -> Unit,
-    onEmergencyContactChange: (String) -> Unit,
     onDateClick: () -> Unit,
     onRemove: () -> Unit
 ) {
@@ -433,120 +393,8 @@ private fun PlayerRowCard(
                     color = DeepCarbon.copy(alpha = 0.55f)
                 )
             }
-
-            OutlinedTextField(
-                value = row.shirtNumber,
-                onValueChange = onShirtNumberChange,
-                label = { Text(stringResource(Res.string.label_shirt_number)) },
-                placeholder = { Text(stringResource(Res.string.label_optional)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                modifier = Modifier.fillMaxWidth(0.5f),
-                shape = FormRoundedShape,
-                colors = fieldColors()
-            )
-
-            PositionPickerField(selected = row.position, onSelected = onPositionChange)
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = row.heightCm,
-                    onValueChange = onHeightChange,
-                    label = { Text(stringResource(Res.string.label_height)) },
-                    placeholder = { Text(stringResource(Res.string.label_optional)) },
-                    suffix = { Text("cm") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
-                    modifier = Modifier.weight(1f),
-                    shape = FormRoundedShape,
-                    colors = fieldColors()
-                )
-                OutlinedTextField(
-                    value = row.weightKg,
-                    onValueChange = onWeightChange,
-                    label = { Text(stringResource(Res.string.label_weight)) },
-                    placeholder = { Text(stringResource(Res.string.label_optional)) },
-                    suffix = { Text("kg") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                    modifier = Modifier.weight(1f),
-                    shape = FormRoundedShape,
-                    colors = fieldColors()
-                )
-            }
-
-            OutlinedTextField(
-                value = row.emergencyContact,
-                onValueChange = onEmergencyContactChange,
-                label = { Text(stringResource(Res.string.label_emergency_contact)) },
-                placeholder = { Text(stringResource(Res.string.label_optional)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                modifier = Modifier.fillMaxWidth(),
-                shape = FormRoundedShape,
-                colors = fieldColors()
-            )
         }
     }
-}
-
-@Composable
-private fun PositionPickerField(selected: PlayerPosition?, onSelected: (PlayerPosition?) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    Column {
-        Text(
-            text = stringResource(Res.string.label_position),
-            style = MaterialTheme.typography.labelSmall,
-            color = DeepCarbon.copy(alpha = 0.5f)
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Box {
-            Surface(
-                onClick = { expanded = true },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = FormRoundedShape,
-                color = Color.White,
-                border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.3f))
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp).fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = selected?.let { stringResource(positionLabel(it)) } ?: stringResource(Res.string.label_optional),
-                        color = if (selected != null) DeepCarbon else DeepCarbon.copy(alpha = 0.4f),
-                        fontWeight = if (selected != null) FontWeight.Bold else FontWeight.Normal
-                    )
-                    Text("▾", color = DeepCarbon.copy(alpha = 0.4f), fontWeight = FontWeight.Bold)
-                }
-            }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.background(Color.White)
-            ) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(Res.string.label_position_none), color = DeepCarbon) },
-                    onClick = { onSelected(null); expanded = false }
-                )
-                PlayerPosition.entries.forEach { position ->
-                    DropdownMenuItem(
-                        text = { Text(stringResource(positionLabel(position)), color = DeepCarbon) },
-                        onClick = { onSelected(position); expanded = false }
-                    )
-                }
-            }
-        }
-    }
-}
-
-private fun positionLabel(position: PlayerPosition) = when (position) {
-    PlayerPosition.GOALKEEPER -> Res.string.label_position_goalkeeper
-    PlayerPosition.DEFENDER -> Res.string.label_position_defender
-    PlayerPosition.MIDFIELD -> Res.string.label_position_midfield
-    PlayerPosition.WINGER -> Res.string.label_position_winger
-    PlayerPosition.STRIKER -> Res.string.label_position_striker
 }
 
 @Composable
@@ -584,18 +432,13 @@ private fun CreatePlayersContentPreview() {
             uiState = CreatePlayersUiState(),
             clubName = "CD Ribamar",
             rows = listOf(
-                PlayerRow(key = 0, firstName = "Afonso", lastName = "Rebelo", birthDateIso = "2015-03-14", shirtNumber = "7"),
+                PlayerRow(key = 0, firstName = "Afonso", lastName = "Rebelo", birthDateIso = "2015-03-14"),
                 PlayerRow(key = 1)
             ),
             showValidationErrors = false,
             onNavigateBack = {},
             onFirstNameChange = { _, _ -> },
             onLastNameChange = { _, _ -> },
-            onShirtNumberChange = { _, _ -> },
-            onPositionChange = { _, _ -> },
-            onHeightChange = { _, _ -> },
-            onWeightChange = { _, _ -> },
-            onEmergencyContactChange = { _, _ -> },
             onDateClick = {},
             onAddRow = {},
             onRemoveRow = {},
@@ -616,11 +459,6 @@ private fun CreatePlayersContentErrorsPreview() {
             onNavigateBack = {},
             onFirstNameChange = { _, _ -> },
             onLastNameChange = { _, _ -> },
-            onShirtNumberChange = { _, _ -> },
-            onPositionChange = { _, _ -> },
-            onHeightChange = { _, _ -> },
-            onWeightChange = { _, _ -> },
-            onEmergencyContactChange = { _, _ -> },
             onDateClick = {},
             onAddRow = {},
             onRemoveRow = {},
@@ -641,11 +479,6 @@ private fun CreatePlayersContentLandscapePreview() {
             onNavigateBack = {},
             onFirstNameChange = { _, _ -> },
             onLastNameChange = { _, _ -> },
-            onShirtNumberChange = { _, _ -> },
-            onPositionChange = { _, _ -> },
-            onHeightChange = { _, _ -> },
-            onWeightChange = { _, _ -> },
-            onEmergencyContactChange = { _, _ -> },
             onDateClick = {},
             onAddRow = {},
             onRemoveRow = {},
