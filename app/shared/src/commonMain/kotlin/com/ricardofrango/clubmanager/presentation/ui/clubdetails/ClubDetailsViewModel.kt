@@ -4,12 +4,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.clubmanager.domain.usecase.GetClubDetailsUseCase
 import com.ricardofrango.clubmanager.domain.usecase.GetClubHomeUseCase
+import com.ricardofrango.clubmanager.domain.usecase.GetMatchScoreUseCase
 import com.ricardofrango.clubmanager.domain.usecase.GetMatchesUseCase
 import com.ricardofrango.clubmanager.domain.usecase.GetOpponentsUseCase
 import com.ricardofrango.clubmanager.model.AgeGroup
+import com.ricardofrango.clubmanager.model.MatchStatus
 import com.ricardofrango.clubmanager.model.Team
 import clubmanager.app.shared.generated.resources.Res
 import clubmanager.app.shared.generated.resources.msg_failed_to_load_club_details
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
@@ -18,6 +23,7 @@ class ClubDetailsViewModel(
     private val getClubDetailsUseCase: GetClubDetailsUseCase,
     private val getClubHomeUseCase: GetClubHomeUseCase,
     private val getMatchesUseCase: GetMatchesUseCase,
+    private val getMatchScoreUseCase: GetMatchScoreUseCase,
     private val getOpponentsUseCase: GetOpponentsUseCase
 ) : ViewModel() {
 
@@ -59,6 +65,20 @@ class ClubDetailsViewModel(
                 } catch (e: Exception) {
                     emptyList()
                 }
+                // Finished matches don't carry a score on Match itself (it's derived from events) --
+                // fetch it per match so the Matches tab can show a result instead of just "FULL TIME".
+                // Best-effort and per-match so one bad fetch doesn't blank every result.
+                val matchScores = try {
+                    coroutineScope {
+                        matches.filter { it.status == MatchStatus.FINISHED }
+                            .map { match -> async { match.id to runCatching { getMatchScoreUseCase(match.id) }.getOrNull() } }
+                            .awaitAll()
+                            .mapNotNull { (id, score) -> score?.let { id to it } }
+                            .toMap()
+                    }
+                } catch (e: Exception) {
+                    emptyMap()
+                }
                 val opponents = try {
                     getOpponentsUseCase(clubId)
                 } catch (e: Exception) {
@@ -73,6 +93,7 @@ class ClubDetailsViewModel(
                             details = details,
                             home = home,
                             matches = matches,
+                            matchScores = matchScores,
                             opponents = opponents,
                             selectedTab = currentTab, // Restore the captured tab
                             selectedSeasonId = mostRecentSeasonId,

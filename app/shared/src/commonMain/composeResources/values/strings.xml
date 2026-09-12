@@ -272,7 +272,7 @@
     <string name="matches_live">LIVE</string>
     <string name="matches_half_time">HT</string>
     <string name="matches_full_time">FT</string>
-    <string name="matches_minute">%1$d\'</string>
+    <string name="matches_minute">%1$d</string>
     <string name="msg_no_matches_title">No matches scheduled yet</string>
     <string name="msg_no_matches_subtitle">Fixtures are scheduled from a team, so we know who\'s playing.</string>
     <string name="btn_go_to_age_groups">Go to age groups</string>

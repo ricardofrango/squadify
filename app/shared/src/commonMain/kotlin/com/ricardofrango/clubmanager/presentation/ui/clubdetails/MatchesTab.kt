@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.clubmanager.model.Match
+import com.ricardofrango.clubmanager.model.MatchScore
 import com.ricardofrango.clubmanager.model.MatchStatus
 import com.ricardofrango.clubmanager.model.Team
 import com.ricardofrango.clubmanager.presentation.ui.theme.CarbonGray
@@ -195,6 +196,7 @@ fun MatchesTab(
                             match = match,
                             teamName = teamsById[match.teamId]?.name ?: "—",
                             opponentName = opponentsById[match.opponentId]?.let { it.shortName ?: it.name } ?: "—",
+                            score = state.matchScores[match.id],
                             onClick = { onNavigateToMatch(match.id) }
                         )
                     }
@@ -222,7 +224,7 @@ private fun StatusChip(label: StringResource, selected: Boolean, onClick: () -> 
 }
 
 @Composable
-private fun MatchRow(match: Match, teamName: String, opponentName: String, onClick: () -> Unit) {
+private fun MatchRow(match: Match, teamName: String, opponentName: String, score: MatchScore?, onClick: () -> Unit) {
     val live = match.status == MatchStatus.LIVE || match.status == MatchStatus.HALF_TIME
     val finished = match.status == MatchStatus.FINISHED
     Surface(
@@ -258,17 +260,45 @@ private fun MatchRow(match: Match, teamName: String, opponentName: String, onCli
             }
             if (finished) {
                 Spacer(Modifier.width(8.dp))
-                Surface(shape = RoundedCornerShape(6.dp), color = CarbonGray.copy(alpha = 0.12f)) {
-                    Text(
-                        stringResource(Res.string.matches_full_time),
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = DeepCarbon.copy(alpha = 0.5f)
-                    )
+                if (score != null) {
+                    val accent = resultColor(score)
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            "${score.ourScore}–${score.opponentScore}",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = accent
+                        )
+                        Text(
+                            stringResource(resultLabel(score)),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = accent.copy(alpha = 0.8f)
+                        )
+                    }
+                } else {
+                    Surface(shape = RoundedCornerShape(6.dp), color = CarbonGray.copy(alpha = 0.12f)) {
+                        Text(
+                            stringResource(Res.string.matches_full_time),
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = DeepCarbon.copy(alpha = 0.5f)
+                        )
+                    }
                 }
             }
         }
     }
+}
+
+private fun resultColor(score: MatchScore): Color = when {
+    score.ourScore > score.opponentScore -> PitchGreen
+    score.ourScore < score.opponentScore -> LiveRed
+    else -> CarbonGray.copy(alpha = 0.6f)
+}
+
+private fun resultLabel(score: MatchScore): StringResource = when {
+    score.ourScore > score.opponentScore -> Res.string.label_result_win
+    score.ourScore < score.opponentScore -> Res.string.label_result_loss
+    else -> Res.string.label_result_draw
 }
 
 private fun subtitleFor(match: Match, live: Boolean, finished: Boolean): String {
@@ -293,8 +323,11 @@ private fun LiveBlock(match: Match) {
         }
         Spacer(Modifier.height(2.dp))
         Text(
+            // The trailing apostrophe is appended here, not baked into the string resource -- the
+            // Compose Multiplatform resource generator doesn't reliably unescape a trailing \' in a
+            // formatted string, which rendered as a literal "3\'" instead of "3'".
             if (match.status == MatchStatus.HALF_TIME) stringResource(Res.string.matches_half_time)
-            else stringResource(Res.string.matches_minute, liveMinute(match.kickoffAt ?: match.dateTime)),
+            else "${stringResource(Res.string.matches_minute, liveMinute(match.kickoffAt ?: match.dateTime))}'",
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
             color = PitchGreen
         )
