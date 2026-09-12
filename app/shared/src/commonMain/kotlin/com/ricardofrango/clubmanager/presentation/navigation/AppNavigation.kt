@@ -1,6 +1,7 @@
 package com.ricardofrango.clubmanager.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.navigation.NavBackStackEntry
@@ -402,18 +403,23 @@ fun AppNavigation() {
 
         composable<Screen.LiveMatch> { backStackEntry ->
             val screen: Screen.LiveMatch = backStackEntry.toRoute()
-            LiveMatchScreen(
-                matchId = screen.matchId,
-                onNavigateBack = {
+            // Captured once, while this entry is on top -- previousBackStackEntry at this point is
+            // MatchDetails' entry. Flagging it in onDispose (rather than only from onNavigateBack)
+            // covers every way this screen can be left, including the system/gesture back button,
+            // which pops the stack directly without ever calling onNavigateBack.
+            val matchDetailsEntry = navController.previousBackStackEntry
+            DisposableEffect(Unit) {
+                onDispose {
                     // Every action here (kick off, half/full time, events) mutates the match, and
                     // there's no separate "nothing changed" exit -- always flag it so MatchDetails
                     // (and, cascading further, the screen that opened it) reload instead of showing a
                     // stale status/score, e.g. the "enter live match" button after full time.
-                    navController.previousBackStackEntry
-                        ?.savedStateHandle
-                        ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    matchDetailsEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
                 }
+            }
+            LiveMatchScreen(
+                matchId = screen.matchId,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
