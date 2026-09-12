@@ -372,12 +372,13 @@ graph TD
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D[Fetch club + season]
     D --> E[teams = club teams filtered to this age group]
-    E --> G[upcomingMatches = each team's SCHEDULED matches with dateTime >= now, sorted]
-    G --> H["canManage = non-throwing probe: minClubRole=COORDINATOR OR minTeamRole=COACH on ageGroupId"]
-    H --> Z(["Return AgeGroupDetails: ageGroup, club, season, players (pool), staff, teams, upcomingMatches, opponents, canManage"])
+    E --> G["upcomingMatches = each team's matches that are either SCHEDULED with dateTime >= now, or currently LIVE/HALF_TIME, sorted by dateTime"]
+    G --> G2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
+    G2 --> H["canManage = non-throwing probe: minClubRole=COORDINATOR OR minTeamRole=COACH on ageGroupId"]
+    H --> Z(["Return AgeGroupDetails: ageGroup, club, season, players (pool), staff, teams, upcomingMatches, upcomingMatchScores, opponents, canManage"])
 ```
 
-`opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canManage` gates the add/edit actions on the detail screen, the same way `ClubDetailsResponse.canEditClub` does.
+`opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canManage` gates the add/edit actions on the detail screen, the same way `ClubDetailsResponse.canEditClub` does. A match in progress stays in `upcomingMatches` rather than disappearing between "scheduled" and "finished" -- `upcomingMatchScores` lets the client show its running score (see `MatchRow` in `TECHNICAL_DECISIONS.md`/the client's `presentation/ui/components` package).
 
 ### 4.5 Create Team (`CreateTeamUseCase`)
 
@@ -447,14 +448,15 @@ graph TD
     C -- allowed --> D[Fetch club + age group + season]
     D --> G["canManage = non-throwing probe: minClubRole=COORDINATOR OR minTeamRole=COACH on teamId"]
     G --> H[matches = matchRepository.getMatchesByTeam]
-    H --> I["upcomingMatches = SCHEDULED with dateTime >= now, sorted ascending"]
+    H --> I["upcomingMatches = SCHEDULED with dateTime >= now, OR currently LIVE/HALF_TIME, sorted ascending"]
+    I --> I2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
     H --> J["recentResults = FINISHED, newest first, each paired with its scoreline from matchEventRepository.getScoreByMatch → WIN/DRAW/LOSS"]
-    I --> K[siblingTeamNames = other teams in the same age group]
+    I2 --> K[siblingTeamNames = other teams in the same age group]
     J --> K
-    K --> Z(["Return TeamDetails: team, club, ageGroup, season, poolSize, siblingTeamNames, staff, upcomingMatches, recentResults, opponents, canManage"])
+    K --> Z(["Return TeamDetails: team, club, ageGroup, season, poolSize, siblingTeamNames, staff, upcomingMatches, upcomingMatchScores, recentResults, opponents, canManage"])
 ```
 
-`poolSize` / `staff` come from the age group (players and staff belong to it, not the team); the screen links back to the age-group detail for both. `club` is carried so a screen opened from here (e.g. Schedule Match) has the club name without another call. `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canManage` gates the schedule-match / edit-team actions.
+`poolSize` / `staff` come from the age group (players and staff belong to it, not the team); the screen links back to the age-group detail for both. `club` is carried so a screen opened from here (e.g. Schedule Match) has the club name without another call. `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canManage` gates the schedule-match / edit-team actions. As with the age-group screen, a live match stays in `upcomingMatches` (it hasn't reached `recentResults` yet) and `upcomingMatchScores` carries its running score.
 
 ---
 

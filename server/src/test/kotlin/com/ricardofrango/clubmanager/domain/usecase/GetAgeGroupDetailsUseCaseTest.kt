@@ -2,6 +2,7 @@ package com.ricardofrango.clubmanager.domain.usecase
 
 import com.ricardofrango.clubmanager.domain.repository.AgeGroupRepository
 import com.ricardofrango.clubmanager.domain.repository.ClubRepository
+import com.ricardofrango.clubmanager.domain.repository.MatchEventRepository
 import com.ricardofrango.clubmanager.domain.repository.MatchRepository
 import com.ricardofrango.clubmanager.domain.repository.OpponentRepository
 import com.ricardofrango.clubmanager.domain.repository.PlayerRepository
@@ -37,6 +38,7 @@ class GetAgeGroupDetailsUseCaseTest {
     private val playerRepository = mockk<PlayerRepository>()
     private val teamRepository = mockk<TeamRepository>()
     private val matchRepository = mockk<MatchRepository>()
+    private val matchEventRepository = mockk<MatchEventRepository>()
     private val opponentRepository = mockk<OpponentRepository>()
     private val userRepository = mockk<UserRepository>()
     private val transactionManager = object : TransactionManager {
@@ -47,7 +49,7 @@ class GetAgeGroupDetailsUseCaseTest {
     )
     private val useCase = GetAgeGroupDetailsUseCase(
         ageGroupRepository, clubRepository, seasonRepository, playerRepository, teamRepository,
-        matchRepository, opponentRepository, checkUserPermissionUseCase, transactionManager
+        matchRepository, matchEventRepository, opponentRepository, checkUserPermissionUseCase, transactionManager
     )
 
     private val clubIdA = "club-a"

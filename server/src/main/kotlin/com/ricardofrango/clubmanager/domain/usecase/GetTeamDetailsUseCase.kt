@@ -75,8 +75,14 @@ class GetTeamDetailsUseCase(
         val allMatches = matchRepository.getMatchesByTeam(teamId)
 
         val upcomingMatches = allMatches
-            .filter { it.status == MatchStatus.SCHEDULED && it.dateTime >= now }
+            .filter {
+                (it.status == MatchStatus.SCHEDULED && it.dateTime >= now) ||
+                    it.status == MatchStatus.LIVE || it.status == MatchStatus.HALF_TIME
+            }
             .sortedBy { it.dateTime }
+        val upcomingMatchScores = upcomingMatches
+            .filter { it.status == MatchStatus.LIVE || it.status == MatchStatus.HALF_TIME }
+            .associate { it.id to matchEventRepository.getScoreByMatch(it.id) }
 
         // Finished matches, newest first, each paired with its scoreline (rebuilt from match events).
         val recentResults = allMatches
@@ -109,6 +115,7 @@ class GetTeamDetailsUseCase(
             siblingTeamNames = siblingTeamNames,
             staff = ageGroupRepository.getAgeGroupStaff(team.ageGroupId),
             upcomingMatches = upcomingMatches,
+            upcomingMatchScores = upcomingMatchScores,
             recentResults = recentResults,
             opponents = opponentRepository.getOpponentsByClub(team.clubId),
             canManage = canManage

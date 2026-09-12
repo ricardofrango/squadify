@@ -483,6 +483,10 @@ data class TeamDetails(
     val siblingTeamNames: List<String>,
     val staff: List<AgeGroupStaffMember>,
     val upcomingMatches: List<Match>,
+    // Scores for any LIVE/HALF_TIME entry in [upcomingMatches], keyed by Match.id -- SCHEDULED entries
+    // have none. [recentResults] already carries its own score via TeamMatchResult, so this only
+    // exists to let a live match in the "upcoming" list show its running score too.
+    val upcomingMatchScores: Map<String, MatchScore> = emptyMap(),
     val recentResults: List<TeamMatchResult>,
     val opponents: List<Opponent>,
     val canManage: Boolean
@@ -505,6 +509,9 @@ data class AgeGroupDetails(
     val staff: List<AgeGroupStaffMember>,
     val teams: List<Team>,
     val upcomingMatches: List<Match>,
+    // Scores for any LIVE/HALF_TIME entry in [upcomingMatches], keyed by Match.id -- SCHEDULED
+    // entries have none. Lets a live match in this list show its running score.
+    val upcomingMatchScores: Map<String, MatchScore> = emptyMap(),
     val opponents: List<Opponent>,
     val canManage: Boolean
 )

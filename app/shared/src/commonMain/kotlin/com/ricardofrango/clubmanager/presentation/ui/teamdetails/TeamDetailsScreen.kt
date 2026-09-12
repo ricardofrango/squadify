@@ -25,6 +25,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.clubmanager.model.*
 import com.ricardofrango.clubmanager.presentation.ui.components.FMTopBar
+import com.ricardofrango.clubmanager.presentation.ui.components.MatchRow
 import com.ricardofrango.clubmanager.presentation.ui.theme.CarbonGray
 import com.ricardofrango.clubmanager.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.clubmanager.presentation.ui.theme.ClubManagerTheme
@@ -199,10 +200,10 @@ private fun TeamBody(
             }
         } else {
             items(details.upcomingMatches, key = { it.id }) { match ->
-                UpcomingMatchRow(
+                MatchRow(
+                    match = match,
                     opponentName = opponentName(opponentsById, match.opponentId),
-                    dateTime = match.dateTime,
-                    location = match.location,
+                    score = details.upcomingMatchScores[match.id],
                     onClick = { onMatchClick(match.id) }
                 )
             }
@@ -221,12 +222,10 @@ private fun TeamBody(
         } else {
             item { FormRow(details.recentResults.take(5)) }
             items(details.recentResults.take(5), key = { it.match.id }) { result ->
-                ResultRow(
+                MatchRow(
+                    match = result.match,
                     opponentName = opponentName(opponentsById, result.match.opponentId),
-                    dateTime = result.match.dateTime,
-                    ourScore = result.ourScore,
-                    opponentScore = result.opponentScore,
-                    outcome = result.outcome,
+                    score = MatchScore(result.match.id, result.ourScore, result.opponentScore),
                     onClick = { onMatchClick(result.match.id) }
                 )
             }
@@ -368,76 +367,6 @@ private fun DateBlock(dateTime: Instant, onDark: Boolean) {
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             color = primary
         )
-    }
-}
-
-@Composable
-private fun UpcomingMatchRow(opponentName: String, dateTime: Instant, location: String?, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = CardShape,
-        color = Color.White,
-        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
-    ) {
-        Row(modifier = Modifier.padding(14.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            DateBlock(dateTime, onDark = false)
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    "vs $opponentName",
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                    color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    listOfNotNull(timeLabel(dateTime), location?.takeIf { it.isNotBlank() }).joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DeepCarbon.copy(alpha = 0.55f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ResultRow(
-    opponentName: String,
-    dateTime: Instant,
-    ourScore: Int,
-    opponentScore: Int,
-    outcome: MatchOutcome,
-    onClick: () -> Unit
-) {
-    val accent = outcomeColor(outcome)
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = CardShape,
-        color = Color.White,
-        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
-    ) {
-        Row(modifier = Modifier.height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.width(4.dp).fillMaxHeight().background(accent))
-            Row(modifier = Modifier.padding(14.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        "vs $opponentName",
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                        color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        dateTime.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(DayMonth),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = DeepCarbon.copy(alpha = 0.55f)
-                    )
-                }
-                Text(
-                    "$ourScore–$opponentScore",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = accent
-                )
-            }
-        }
     }
 }
 
