@@ -65,12 +65,15 @@ class ClubDetailsViewModel(
                 } catch (e: Exception) {
                     emptyList()
                 }
-                // Finished matches don't carry a score on Match itself (it's derived from events) --
-                // fetch it per match so the Matches tab can show a result instead of just "FULL TIME".
+                // Matches don't carry a score on Match itself (it's derived from events) -- fetch it
+                // per match, for anything with a score worth showing (finished results, and live/
+                // half-time matches so the Matches tab shows the current score, not just the minute).
                 // Best-effort and per-match so one bad fetch doesn't blank every result.
                 val matchScores = try {
                     coroutineScope {
-                        matches.filter { it.status == MatchStatus.FINISHED }
+                        matches.filter {
+                            it.status == MatchStatus.FINISHED || it.status == MatchStatus.LIVE || it.status == MatchStatus.HALF_TIME
+                        }
                             .map { match -> async { match.id to runCatching { getMatchScoreUseCase(match.id) }.getOrNull() } }
                             .awaitAll()
                             .mapNotNull { (id, score) -> score?.let { id to it } }

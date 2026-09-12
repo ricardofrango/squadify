@@ -284,6 +284,14 @@ private fun MatchRow(match: Match, teamName: String, opponentName: String, score
                         )
                     }
                 }
+            } else if (live && score != null) {
+                // Not decided yet -- show the running score itself, but no WIN/LOSS/DRAW label.
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "${score.ourScore}–${score.opponentScore}",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = resultColor(score)
+                )
             }
         }
     }
