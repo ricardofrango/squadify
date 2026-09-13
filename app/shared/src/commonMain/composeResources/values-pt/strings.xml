@@ -2,6 +2,8 @@
     <string name="app_name">Squadify</string>
     <string name="label_email">Email</string>
     <string name="label_password">Senha</string>
+    <string name="label_show_password">Mostrar senha</string>
+    <string name="label_hide_password">Ocultar senha</string>
     <string name="btn_login">Entrar</string>
     <string name="btn_loging_in">A entrar...</string>
     <string name="msg_forgot_password">Esqueceu a senha?</string>

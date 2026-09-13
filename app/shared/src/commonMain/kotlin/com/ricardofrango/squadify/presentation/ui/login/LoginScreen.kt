@@ -19,8 +19,10 @@ import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ricardofrango.squadify.presentation.ui.components.PasswordVisibilityToggle
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyMark
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
@@ -45,6 +47,7 @@ fun LoginScreen(
     // Local UI State for input fields
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
     val errorMessage = (uiState as? LoginUiState.Idle)?.error
 
@@ -180,7 +183,13 @@ fun LoginScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .semantics { contentType = ContentType.Password },
-                        visualTransformation = PasswordVisualTransformation(),
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            PasswordVisibilityToggle(
+                                visible = passwordVisible,
+                                onToggle = { passwordVisible = !passwordVisible }
+                            )
+                        },
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp),
                         isError = errorMessage != null,
