@@ -12,7 +12,6 @@
     <string name="btn_register">Register</string>
     <string name="btn_registering">Registering...</string>
     <string name="title_register">Create your account</string>
-    <string name="label_register_step">Step 1 of 2 · then you\'ll join or create a club</string>
     <string name="label_section_your_name">Your name</string>
     <string name="label_section_how_we_reach_you">How we reach you</string>
     <string name="label_section_password">Password</string>

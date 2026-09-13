@@ -12,7 +12,6 @@
     <string name="btn_register">Registar</string>
     <string name="btn_registering">A registar...</string>
     <string name="title_register">Criar a sua conta</string>
-    <string name="label_register_step">Passo 1 de 2 · depois vai juntar-se a um clube ou criar um</string>
     <string name="label_section_your_name">O seu nome</string>
     <string name="label_section_how_we_reach_you">Como o contactamos</string>
     <string name="label_section_password">Senha</string>

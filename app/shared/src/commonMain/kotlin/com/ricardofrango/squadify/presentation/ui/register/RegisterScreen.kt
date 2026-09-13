@@ -65,7 +65,6 @@ fun RegisterScreen(
         topBar = {
             FMTopBar(
                 title = stringResource(Res.string.title_register),
-                subtitle = stringResource(Res.string.label_register_step),
                 onNavigateBack = onNavigateBack
             )
         }
@@ -83,6 +82,14 @@ fun RegisterScreen(
                     .padding(horizontal = 20.dp, vertical = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                Text(
+                    text = stringResource(Res.string.btn_register),
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = CarbonGray
+                    )
+                )
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -99,24 +106,20 @@ fun RegisterScreen(
                 }
 
                 FormSection(title = stringResource(Res.string.label_section_your_name)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        FormField(
-                            value = firstName,
-                            onValueChange = { firstName = it },
-                            label = stringResource(Res.string.label_first_name),
-                            isError = errorMessage != null,
-                            enabled = enabled,
-                            modifier = Modifier.weight(1f)
-                        )
-                        FormField(
-                            value = lastName,
-                            onValueChange = { lastName = it },
-                            label = stringResource(Res.string.label_last_name),
-                            isError = errorMessage != null,
-                            enabled = enabled,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                    FormField(
+                        value = firstName,
+                        onValueChange = { firstName = it },
+                        label = stringResource(Res.string.label_first_name),
+                        isError = errorMessage != null,
+                        enabled = enabled
+                    )
+                    FormField(
+                        value = lastName,
+                        onValueChange = { lastName = it },
+                        label = stringResource(Res.string.label_last_name),
+                        isError = errorMessage != null,
+                        enabled = enabled
+                    )
                 }
 
                 FormSection(title = stringResource(Res.string.label_section_how_we_reach_you)) {
