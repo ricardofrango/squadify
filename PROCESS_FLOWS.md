@@ -924,7 +924,7 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
 
 ## 12. Database Schema: Current State of the Art
 
-Source of truth: `server/src/main/kotlin/.../data/database/Tables.kt` (16 Exposed `Table` objects) and `DatabaseFactory.kt`. This *is* the live schema — `DatabaseFactory.init()` calls `SchemaUtils.createMissingTablesAndColumns(...)` against exactly these 16 objects on every boot, so the Kotlin below and the actual H2/Postgres tables are guaranteed to match.
+Source of truth: `server/src/main/kotlin/.../data/database/Tables.kt` (16 Exposed `Table` objects) and `DatabaseFactory.kt`. This *is* the live schema — `DatabaseFactory.init()` calls `SchemaUtils.createMissingTablesAndColumns(...)` against exactly these 16 objects on every boot, so the Kotlin below and the actual Postgres tables are guaranteed to match.
 
 ### 12.1 Entity-Relationship Diagram
 
@@ -1130,14 +1130,13 @@ erDiagram
 
 ### 12.4 Current persistence setup
 
-- **Engine**: H2, file-based, at a path hardcoded in `DatabaseFactory.kt` (`jdbc:h2:file:./server/build/db;AUTO_SERVER=TRUE`). PostgreSQL for production is still pending, per `TECHNICAL_DECISIONS.md` §3.
+- **Engine**: PostgreSQL, both dev and production. H2 has been removed entirely. The connection is built from `ServerConfig.kt`'s `DATABASE_HOST`/`DATABASE_PORT`/`DATABASE_USER`/`DATABASE_PASSWORD`/`DATABASE_NAME` env vars — host and password are required explicitly when `APP_ENV=production` (no silent fallback), while the database name defaults per environment (`squadify_dev` / `squadify_production`), so dev and production stay isolated even against the same Postgres server. `docker-compose.yml` at the repo root provides a local Postgres matching the dev defaults.
 - **Schema creation**: `SchemaUtils.createMissingTablesAndColumns(...)` runs on every boot, listing all tables explicitly. It's additive-only — it can add a missing table or column, but never drops or alters an existing one.
-- **Flyway vs. reality**: Flyway is a declared build dependency and is named as the migrations tool in `REQUIREMENTS.md` §7 and `TECHNICAL_DECISIONS.md` §3, but no Flyway migration scripts exist anywhere in the repo, and `DatabaseFactory.kt` never invokes Flyway at all. The actual mechanism today is `createMissingTablesAndColumns` plus a hardcoded block of idempotent `UPDATE ... SET status = UPPER(...)`-style statements in `DatabaseFactory.init()` that normalize legacy lowercase enum values on every startup — a hand-rolled, one-off substitute for a real migration history.
-- **Connection pool**: HikariCP, `maximumPoolSize = 3`, `autoCommit = false`, isolation level `TRANSACTION_REPEATABLE_READ`.
+- **Flyway vs. reality**: Flyway is still a declared build dependency, but no Flyway migration scripts exist anywhere in the repo, and `DatabaseFactory.kt` never invokes Flyway at all. The actual mechanism today is `createMissingTablesAndColumns` only (the one-off block that normalized legacy lowercase enum values was H2-specific data cleanup and was removed along with H2 — a fresh Postgres database has no such legacy rows to migrate).
+- **Connection pool**: HikariCP, `maximumPoolSize = 3` in dev / `10` in production, `autoCommit = false`, isolation level `TRANSACTION_REPEATABLE_READ`.
 
 ### 12.5 Schema-level gaps observed
 
 - [ ] No `onDelete` cascade/set-null strategy anywhere — every FK relies on the DB's default no-action behavior (see §12.2).
-- [ ] The Flyway/`SchemaUtils` mismatch above: the documented migration strategy (`TECHNICAL_DECISIONS.md` §3) and the implemented one (`DatabaseFactory.kt`) have diverged.
+- [ ] The Flyway/`SchemaUtils` mismatch above: Flyway is still an unused dependency; `createMissingTablesAndColumns` remains the only real migration mechanism, with no schema history/rollback story.
 - [ ] `AgeGroups.birth_year` has a `.default(0)` that has no real-world meaning and is never actually relied upon (`CreateAgeGroupsUseCase` always supplies an explicit value).
-- [ ] The H2 JDBC URL is a hardcoded absolute path specific to one machine — it won't resolve in any other environment (a CI runner, another developer's machine, or a container) without a code change.

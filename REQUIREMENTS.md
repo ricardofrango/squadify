@@ -58,7 +58,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 
 ## 7. Technical Stack
 - **Architecture**: Clean Architecture (Domain, Data, Presentation).
-- **Backend**: Kotlin, Ktor, Exposed (ORM), PostgreSQL (Production), H2 (Local Dev), Flyway (Migrations), Koin (DI).
+- **Backend**: Kotlin, Ktor, Exposed (ORM), PostgreSQL (dev and production, different database names per environment), Koin (DI).
 - **Frontend**: KMP (Android, iOS, Web), Compose Multiplatform.
 - **Shared**: `:core` module for models and shared logic.
 
@@ -86,7 +86,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [/] **Parent/Player Summary**: Personalized view (My next matches, my recent performance/events).
     - [ ] **API Scalability**: Implement pagination for all list-based endpoints.
     - [ ] **Email Service**: Integration with an external provider for real-time invitation delivery.
-    - [ ] **Production Database**: Migrate from H2 to a persistent PostgreSQL environment.
+    - [x] **Production Database**: Migrated from H2 to PostgreSQL for both dev and production, distinguished by database name (`DATABASE_NAME`, defaulting to `squadify_dev`/`squadify_production`) — see `TECHNICAL_DECISIONS.md` §3.
 - [/] **Phase 7: Client Applications (KMP)**: Multiplatform UI development.
     - [x] Initial Project Setup (Shared, Android, iOS).
     - [x] Multi-language support (EN, PT) implementation.

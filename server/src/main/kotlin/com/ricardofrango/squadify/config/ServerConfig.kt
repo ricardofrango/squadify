@@ -4,10 +4,10 @@ package com.ricardofrango.squadify.config
  * The two environments the server can run in. Defaults to DEV so a plain local `./gradlew run` keeps
  * working exactly as before -- set `APP_ENV=production` (or `prod`) to opt into production behavior.
  *
- * NOTE: "production" here only gates the things covered by "issues to fix.md" -- Critical: security
- * (the JWT secret and the H2 web console). It does NOT yet switch the database itself to PostgreSQL;
- * that is a separate, larger tracked item (see REQUIREMENTS.md's "Production Database" checkbox and
- * TECHNICAL_DECISIONS.md §3) and is intentionally out of scope here.
+ * "Production" gates the things covered by "issues to fix.md" -- Critical: security (the JWT secret)
+ * -- and, per §3 of TECHNICAL_DECISIONS.md, requires explicit PostgreSQL connection details (host +
+ * password; see [ServerConfig.databaseHost]/[ServerConfig.databasePassword]) rather than falling back
+ * to local dev defaults.
  */
 enum class AppEnvironment {
     DEV,
@@ -23,6 +23,43 @@ object ServerConfig {
         "production", "prod" -> AppEnvironment.PRODUCTION
         else -> AppEnvironment.DEV
     }
+
+    /**
+     * PostgreSQL connection details -- the only database engine now (H2 is gone). `databaseHost` and
+     * `databasePassword` follow the same require-in-production pattern as [jwtSecret]: a sensible
+     * "localhost" / dev credential default keeps `./gradlew run` working locally (against the Postgres
+     * instance from `docker-compose.yml`), but the server refuses to start in production without both
+     * set explicitly -- a silent "localhost" fallback in production would be a bug, not a convenience.
+     * `databaseName` is the one field that *is* allowed a per-environment default rather than requiring
+     * an explicit value, since dev and production pointing at different database names on the same or
+     * different Postgres servers is the whole point (`squadify_dev` vs `squadify_production`).
+     */
+    val databaseHost: String = System.getenv("DATABASE_HOST")?.takeIf { it.isNotBlank() }
+        ?: if (environment == AppEnvironment.PRODUCTION) {
+            throw IllegalStateException(
+                "DATABASE_HOST environment variable must be set when APP_ENV=production. Refusing to start " +
+                    "against an implicit localhost database."
+            )
+        } else {
+            "localhost"
+        }
+
+    val databasePort: Int = System.getenv("DATABASE_PORT")?.trim()?.toIntOrNull() ?: 5432
+
+    val databaseUser: String = System.getenv("DATABASE_USER")?.takeIf { it.isNotBlank() } ?: "postgres"
+
+    val databasePassword: String = System.getenv("DATABASE_PASSWORD")?.takeIf { it.isNotBlank() }
+        ?: if (environment == AppEnvironment.PRODUCTION) {
+            throw IllegalStateException(
+                "DATABASE_PASSWORD environment variable must be set when APP_ENV=production. Refusing to " +
+                    "start with an insecure default database password."
+            )
+        } else {
+            "postgres"
+        }
+
+    val databaseName: String = System.getenv("DATABASE_NAME")?.takeIf { it.isNotBlank() }
+        ?: if (environment == AppEnvironment.PRODUCTION) "squadify_production" else "squadify_dev"
 
     /**
      * The JWT signing secret. Must be set via the `JWT_SECRET` environment variable in production --

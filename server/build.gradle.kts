@@ -27,9 +27,6 @@ dependencies {
     implementation(libs.exposed.dao)
     implementation(libs.exposed.jdbc)
 
-    // H2 database
-    implementation(libs.h2)
-
     // postgresql database
     implementation(libs.postgresql)
 
