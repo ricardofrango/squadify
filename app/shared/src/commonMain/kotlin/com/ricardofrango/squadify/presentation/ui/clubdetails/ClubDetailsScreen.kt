@@ -34,6 +34,8 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -76,6 +78,7 @@ import squadify.app.shared.generated.resources.label_create_staff
 import squadify.app.shared.generated.resources.label_create_team
 import squadify.app.shared.generated.resources.label_more_options
 import squadify.app.shared.generated.resources.label_number_prefix
+import squadify.app.shared.generated.resources.label_search_players
 import squadify.app.shared.generated.resources.msg_no_players_admin_subtitle
 import squadify.app.shared.generated.resources.msg_no_players_admin_subtitle_no_club_players
 import squadify.app.shared.generated.resources.msg_no_players_filter
@@ -626,29 +629,47 @@ private fun PlayerFilterSection(
     state: ClubDetailsUiState.Idle,
     viewModel: ClubDetailsViewModel
 ) {
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        item {
-            FilterSelector(
-                selectedOption = state.details?.seasons?.find { it.id == state.selectedPlayerSeasonId }?.name
-                    ?: stringResource(Res.string.label_all_seasons),
-                options = listOf(null to stringResource(Res.string.label_all_seasons)) +
-                        (state.details?.seasons?.map { it.id to it.name } ?: emptyList()),
-                onOptionSelected = viewModel::onPlayerSeasonSelected
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
+        OutlinedTextField(
+            value = state.playerSearchQuery,
+            onValueChange = viewModel::onPlayerSearchChanged,
+            label = { Text(stringResource(Res.string.label_search_players)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = DeepCarbon,
+                unfocusedTextColor = DeepCarbon,
+                focusedBorderColor = PitchGreen,
+                unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
+                focusedLabelColor = PitchGreen,
+                unfocusedLabelColor = CarbonGray
             )
-        }
-        item {
-            FilterSelector(
-                selectedOption = state.details?.ageGroups?.find { it.id == state.selectedPlayerAgeGroupId }?.name
-                    ?: stringResource(Res.string.label_all_ages),
-                options = listOf(null to stringResource(Res.string.label_all_ages)) +
-                        viewModel.getAvailableAgeGroupsForPlayers(state).map { it.id to it.name },
-                onOptionSelected = viewModel::onPlayerAgeGroupSelected
-            )
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            item {
+                FilterSelector(
+                    selectedOption = state.details?.seasons?.find { it.id == state.selectedPlayerSeasonId }?.name
+                        ?: stringResource(Res.string.label_all_seasons),
+                    options = listOf(null to stringResource(Res.string.label_all_seasons)) +
+                            (state.details?.seasons?.map { it.id to it.name } ?: emptyList()),
+                    onOptionSelected = viewModel::onPlayerSeasonSelected
+                )
+            }
+            item {
+                FilterSelector(
+                    selectedOption = state.details?.ageGroups?.find { it.id == state.selectedPlayerAgeGroupId }?.name
+                        ?: stringResource(Res.string.label_all_ages),
+                    options = listOf(null to stringResource(Res.string.label_all_ages)) +
+                            viewModel.getAvailableAgeGroupsForPlayers(state).map { it.id to it.name },
+                    onOptionSelected = viewModel::onPlayerAgeGroupSelected
+                )
+            }
         }
     }
 }

@@ -157,6 +157,15 @@ class ClubDetailsViewModel(
         }
     }
 
+    fun onPlayerSearchChanged(query: String) {
+        _state.update { state ->
+            if (state is ClubDetailsUiState.Idle) {
+                val newState = state.copy(playerSearchQuery = query)
+                applyFilters(newState)
+            } else state
+        }
+    }
+
     fun onAgeGroupsSeasonSelected(seasonId: String) {
         _state.update { state ->
             if (state is ClubDetailsUiState.Idle) state.copy(selectedAgeGroupsSeasonId = seasonId) else state
@@ -225,7 +234,11 @@ class ClubDetailsViewModel(
                 }
             }
 
-            matchesSeason && matchesAgeGroup
+            val query = state.playerSearchQuery.trim().lowercase()
+            val matchesSearch = query.isEmpty() ||
+                "${player.firstName} ${player.lastName}".lowercase().contains(query)
+
+            matchesSeason && matchesAgeGroup && matchesSearch
         }
         
         return state.copy(

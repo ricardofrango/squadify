@@ -37,6 +37,7 @@ sealed class ClubDetailsUiState {
         // Player Filters
         val selectedPlayerSeasonId: String? = null,
         val selectedPlayerAgeGroupId: String? = null,
+        val playerSearchQuery: String = "",
         // Age Groups tab filter -- season only, and unlike the other tabs there's no "All seasons":
         // an age group only means something within one season. Defaults to the most recent season
         // (by end date) when details load.
