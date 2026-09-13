@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The stock Theme.Material.Light window is what the OS paints for the very first frame of a
+         cold start, before Compose has drawn anything: with no override here it's an unstyled
+         white flash ahead of the dark SplashScreen. Matching the window background to the splash's
+         carbon ground (see SplashScreen.kt) makes the cold start and the Compose splash read as one
+         continuous dark surface. -->
+    <style name="Theme.Squadify" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/ic_launcher_background</item>
+        <item name="android:statusBarColor">@color/ic_launcher_background</item>
+        <item name="android:navigationBarColor">@color/ic_launcher_background</item>
+    </style>
+</resources>
