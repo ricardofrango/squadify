@@ -61,7 +61,7 @@ class AddStaffToAgeGroupViewModel(
                     .sortedWith(
                         compareByDescending<com.ricardofrango.squadify.model.AgeGroup> {
                             seasons.find { s -> s.id == it.seasonId }?.endDate
-                        }.thenBy { it.birthYear }
+                        }.thenBy { it.endYear }
                     )
                     .firstOrNull()
                     ?.id

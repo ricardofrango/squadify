@@ -43,7 +43,7 @@ class GetAgeGroupsUseCaseTest {
     private val clubIdA = "club-a"
 
     private fun ageGroup(id: String) = AgeGroup(
-        id = id, clubId = clubIdA, name = id, seasonId = "season-1", birthYear = 2016
+        id = id, clubId = clubIdA, name = id, seasonId = "season-1", startYear = 2016, endYear = 2016
     )
 
     private val agU10 = ageGroup("age-group-u10")

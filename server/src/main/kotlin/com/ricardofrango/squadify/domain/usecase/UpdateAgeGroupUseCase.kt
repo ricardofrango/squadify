@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.domain.usecase
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.UpdateAgeGroupRequest
 
@@ -28,8 +29,13 @@ class UpdateAgeGroupUseCase(
 
         val updatedAgeGroup = existingAgeGroup.copy(
             name = request.name ?: existingAgeGroup.name,
-            birthYear = request.birthYear ?: existingAgeGroup.birthYear
+            startYear = request.startYear ?: existingAgeGroup.startYear,
+            endYear = request.endYear ?: existingAgeGroup.endYear
         )
+
+        if (updatedAgeGroup.startYear < updatedAgeGroup.endYear) {
+            throw ValidationException("Start year cannot be before end year")
+        }
 
         ageGroupRepository.updateAgeGroup(updatedAgeGroup)
     }

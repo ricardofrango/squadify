@@ -53,7 +53,7 @@ class GetMatchesUseCaseTest {
     private val ag1 = "age-group-1"
     private val ag2 = "age-group-2"
 
-    private fun ageGroup(id: String) = AgeGroup(id = id, clubId = clubIdA, name = id, seasonId = "s1", birthYear = 2014)
+    private fun ageGroup(id: String) = AgeGroup(id = id, clubId = clubIdA, name = id, seasonId = "s1", startYear = 2014, endYear = 2014)
     private fun team(id: String, ageGroupId: String) = Team(
         id = id, clubId = clubIdA, ageGroupId = ageGroupId, seasonId = "s1", name = id, code = null, active = true
     )

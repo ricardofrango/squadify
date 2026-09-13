@@ -601,7 +601,7 @@ private fun relativeLabel(instant: Instant): String {
 // ---- Previews ----
 
 private fun sampleDetails(populated: Boolean, canManage: Boolean): TeamDetails {
-    val ag = AgeGroup(id = "ag1", clubId = "c1", name = "Sub-15", seasonId = "s1", birthYear = 2011)
+    val ag = AgeGroup(id = "ag1", clubId = "c1", name = "Sub-15", seasonId = "s1", startYear = 2011, endYear = 2011)
     val season = Season(id = "s1", clubId = "c1", name = "26/27", type = SeasonType.EUROPEAN_YEAR, startDate = LocalDate(2026, 7, 1), endDate = LocalDate(2027, 6, 30), active = true)
     val team = Team(id = "t1", clubId = "c1", ageGroupId = "ag1", seasonId = "s1", name = "Sub-15 A", code = "S15A", active = true)
     val club = Club(id = "c1", name = "CD Ribamar", status = ClubStatus.ACTIVE, sport = SportType.FOOTBALL, createdAt = Instant.fromEpochMilliseconds(0))

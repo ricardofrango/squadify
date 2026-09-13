@@ -17,7 +17,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 `Club -> Age Group -> (Players / Coaches / Staff)`, with `Team` a scheduling handle **under** an Age Group.
 - An **Age Group** (e.g., Sub-18) owns its **players** (a pool), its **coaches/staff**, and one or more **Teams** (e.g., Sub-18 A, Sub-18 B).
 - Players and coaches are attached to the **Age Group**, not to a Team. Every Team in an age group draws from the same player pool; who plays a given match is decided per-match via call-ups. This supports clubs that don't run fixed squads — a player can play for Team A one month and Team B the next without being duplicated.
-- A player can belong to **several** age groups at once: their own birth-year group plus any **older** group they're eligible to play up into (`birthDate.year >= ageGroup.birthYear`); never a younger group.
+- A player can belong to **several** age groups at once: their own birth-year group plus any **older** group they're eligible to play up into (`birthDate.year >= ageGroup.endYear`); never a younger group.
 - A **Team** exists mainly to schedule matches. **Team** and **Age Group** are tied to a **Season** to maintain historical data.
 
 ## 3. Core Entities
@@ -26,7 +26,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 - **Season**: Time-bound periods. Supports two types:
     - **Calendar Year**: January 1st to December 31st (e.g., Brazil).
     - **European Year**: July 1st to June 30th (e.g., Europe).
-- **Age Group**: Categorization of players by birth year; owns the player pool and the coaching staff. Carries an optional **team size** — the a-side count its teams play by default (one of the club sport's allowed sizes).
+- **Age Group**: Categorization of players by a birth-year span (`startYear`/`endYear`) — a single year for most (football) groups, or two consecutive birth years for groups (typically futsal) that need both cohorts to field a squad; owns the player pool and the coaching staff. Carries an optional **team size** — the a-side count its teams play by default (one of the club sport's allowed sizes).
 - **Team**: A named group under an age group, used to schedule matches. Has its own **team size**, pre-filled from the age group's default but overridable (e.g. a 7-a-side age group with one team that plays 9-a-side).
 - **Player**: Personal data and stats.
 - **Opponent**: Management of external clubs/teams for matches (name, short name, logo).
@@ -67,7 +67,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 - [x] **Phase 2: Authentication**: Register, Login, JWT, and initial Access Rights logic.
 - [x] **Phase 3: Seasons, Teams & Players**: Full management of the club hierarchy.
     - [x] Season types (Calendar vs European) and automatic naming.
-    - [x] Age Group management by birth year.
+    - [x] Age Group management by birth-year span (single year, or two years for futsal-style groups).
     - [x] Player management (individual/batch) with eligibility checks.
     - [x] Team Staff management (Coaches/Staff assignment).
 - [x] **Phase 4: Match & Call-ups**: Calendar and attendance management.

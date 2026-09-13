@@ -178,7 +178,13 @@ data class AgeGroup(
     val clubId: String,
     val name: String,
     val seasonId: String,
-    val birthYear: Int,
+    // The age group's birth-year span. Most age groups (football) cover a single birth year, where
+    // startYear == endYear. Some (typically futsal) span two consecutive birth years to have enough
+    // players -- e.g. Benjamins covering 2016 and 2017 is startYear = 2017, endYear = 2016.
+    // Eligibility is always checked against `endYear` (the oldest birth year allowed): a player can
+    // play if `player.birthDate.year >= ageGroup.endYear`, same rule as the old single-year field.
+    val startYear: Int,
+    val endYear: Int,
     // The a-side count this age group's teams play by default (one of `club.sport.teamSizes`).
     // Nullable so age groups created before this existed still load; a team can override it.
     val teamSize: Int? = null
@@ -323,7 +329,9 @@ data class CreateAgeGroupsRequest(
 @Serializable
 data class AgeGroupItemRequest(
     val name: String,
-    val birthYear: Int,
+    // Single-year age groups send startYear == endYear; see AgeGroup for the span semantics.
+    val startYear: Int,
+    val endYear: Int,
     val teamSize: Int? = null
 )
 
@@ -432,7 +440,8 @@ data class UpdateSeasonRequest(
 @Serializable
 data class UpdateAgeGroupRequest(
     val name: String? = null,
-    val birthYear: Int? = null
+    val startYear: Int? = null,
+    val endYear: Int? = null
 )
 
 @Serializable
@@ -450,7 +459,7 @@ data class UpdateOpponentRequest(
 )
 
 /** Body of `POST /age-groups/{ageGroupId}/players`. Every player must already belong to the club and
- * be age-eligible for the group (`player.birthDate.year >= ageGroup.birthYear`). Players already in
+ * be age-eligible for the group (`player.birthDate.year >= ageGroup.endYear`). Players already in
  * the group are ignored, so the call is idempotent. */
 @Serializable
 data class AddPlayersToAgeGroupRequest(

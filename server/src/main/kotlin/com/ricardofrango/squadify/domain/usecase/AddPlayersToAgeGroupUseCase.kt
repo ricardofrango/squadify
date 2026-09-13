@@ -14,9 +14,9 @@ import kotlin.uuid.Uuid
 /**
  * Adds club players to an age-group pool. A club admin/coordinator, or a coach of this age group,
  * may do it. Every player must belong to the club and be **age-eligible** -- `birthDate.year >=
- * ageGroup.birthYear`, i.e. the player is old enough for this group or is playing up from a younger
- * one; a player younger than the group's birth year is rejected. Players already in the group are
- * silently skipped, so the call is idempotent.
+ * ageGroup.endYear` (the oldest birth year the group allows), i.e. the player is old enough for this
+ * group or is playing up from a younger one; a player older than the group's range is rejected.
+ * Players already in the group are silently skipped, so the call is idempotent.
  */
 class AddPlayersToAgeGroupUseCase(
     private val playerRepository: PlayerRepository,
@@ -56,7 +56,7 @@ class AddPlayersToAgeGroupUseCase(
             if (player.clubId != ageGroup.clubId) {
                 throw ForbiddenException("Player $playerId does not belong to this club")
             }
-            if (player.birthDate.year < ageGroup.birthYear) {
+            if (player.birthDate.year < ageGroup.endYear) {
                 throw ValidationException(
                     "Player ${player.firstName} ${player.lastName} is too old for this age group"
                 )

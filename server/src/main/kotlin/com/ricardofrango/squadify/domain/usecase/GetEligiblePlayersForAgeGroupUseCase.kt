@@ -10,7 +10,7 @@ import com.ricardofrango.squadify.model.TeamRole
 
 /**
  * The players a coordinator or an age-group coach may pick from when adding to this age group: every
- * club player old enough for it (`birthDate.year >= ageGroup.birthYear`) who isn't already in it.
+ * club player old enough for it (`birthDate.year >= ageGroup.endYear`) who isn't already in it.
  */
 class GetEligiblePlayersForAgeGroupUseCase(
     private val playerRepository: PlayerRepository,
@@ -32,6 +32,6 @@ class GetEligiblePlayersForAgeGroupUseCase(
 
         val alreadyIn = playerRepository.getPlayersByAgeGroup(ageGroupId).map { it.id }.toSet()
         playerRepository.getPlayersByClub(ageGroup.clubId)
-            .filter { it.birthDate.year >= ageGroup.birthYear && it.id !in alreadyIn }
+            .filter { it.birthDate.year >= ageGroup.endYear && it.id !in alreadyIn }
     }
 }

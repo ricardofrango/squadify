@@ -36,11 +36,22 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Clock
 
+/** Whether a row covers a single birth year (most football age groups) or a two-year span (typical
+ * for futsal, which needs two birth years' worth of kids to field a squad). */
+private enum class AgeGroupSpanType { SINGLE_YEAR, TWO_YEAR }
+
 /** One row of the batch. [key] is a stable identity for Compose iteration since rows can be removed
- * from the middle of the list (a plain index would shift and confuse item state). */
+ * from the middle of the list (a plain index would shift and confuse item state).
+ *
+ * [startYear]/[endYear] mirror `AgeGroupItemRequest`: for [AgeGroupSpanType.SINGLE_YEAR] both are set
+ * to the one picked year; for [AgeGroupSpanType.TWO_YEAR] they're picked independently, startYear being
+ * the younger (more recent) birth year and endYear the older one -- eligibility and the inferred "Sub
+ * N" name are always derived from endYear, same as the old single-birth-year field. */
 private data class AgeGroupRow(
     val key: Int,
-    val birthYear: Int? = null,
+    val spanType: AgeGroupSpanType = AgeGroupSpanType.SINGLE_YEAR,
+    val startYear: Int? = null,
+    val endYear: Int? = null,
     val name: String = "",
     // The a-side count this age group's teams play by default. Seeded from the club sport's largest
     // format and overridable per row; sent as `AgeGroupItemRequest.teamSize`.
@@ -50,22 +61,24 @@ private data class AgeGroupRow(
 private val FormRoundedShape = RoundedCornerShape(18.dp)
 
 /**
- * Batch age-group creation, matching `CreateAgeGroupsRequest` (a list of name+birthYear items under one
- * clubId/seasonId). Built to the "Create age groups" artboard of the design canvas linked in
- * AI_GUIDELINES.md ("UI Design Reference"): one card per row, a birth-year picker whose choice fills
- * the name field's placeholder (overridable), "+ Add another age group", and one CREATE that submits
- * every row in a single request -- CreateAgeGroupsUseCase already writes the whole batch inside one
- * `runInTransaction`, so either all rows are saved or none are.
+ * Batch age-group creation, matching `CreateAgeGroupsRequest` (a list of name+startYear+endYear items
+ * under one clubId/seasonId). Built to the "Create age groups" artboard of the design canvas linked in
+ * AI_GUIDELINES.md ("UI Design Reference"): one card per row, a span-type radio (single birth year, the
+ * football norm, vs. a two-year span for e.g. futsal groups that need two cohorts to field a squad), a
+ * year picker (or two) whose choice fills the name field's placeholder (overridable), "+ Add another age
+ * group", and one CREATE that submits every row in a single request -- CreateAgeGroupsUseCase already
+ * writes the whole batch inside one `runInTransaction`, so either all rows are saved or none are.
  *
  * Age groups belong to exactly one season, so the screen opens with a season picker rather than
  * guessing: [initialSeasonId] pre-selects it when the caller already knows which season is meant (a
  * specific season's "no age groups" empty state), and is null from the overflow menu so the user
  * confirms the choice. Switching the picker re-scopes the birth-year exclusions and the inferred name.
  *
- * The birth-year picker excludes years already used by an existing age group in the selected season,
- * and years already picked by a sibling row in this same batch -- so neither duplicate class is
- * selectable in the first place (mirroring CreateSeasonScreen's date-range-constrained pickers),
- * rather than only being caught after a failed submit.
+ * For single-year rows, the year picker excludes years already used by an existing age group in the
+ * selected season, and years already picked by a sibling row in this same batch -- so neither duplicate
+ * class is selectable in the first place (mirroring CreateSeasonScreen's date-range-constrained
+ * pickers). Two-year rows are free-form (each of the two pickers offers the full year range); an
+ * inverted or duplicate range is still caught before submit / by the server.
  *
  * Rows aren't `rememberSaveable`: preserving a list of a custom row type across process death needs a
  * custom Saver this project doesn't have yet, so a rare mid-edit process kill loses the in-progress
@@ -120,23 +133,41 @@ fun CreateAgeGroupsScreen(
             // A birth year valid in the old season may already be taken in the new one -- drop the
             // now-possibly-conflicting picks rather than carrying them silently into a failed submit.
             for (i in rows.indices) {
-                rows[i] = rows[i].copy(birthYear = null, name = "")
+                rows[i] = rows[i].copy(startYear = null, endYear = null, name = "")
             }
         },
-        onRowBirthYearSelected = { rowKey, birthYear ->
+        onRowSpanTypeSelected = { rowKey, spanType ->
+            val index = rows.indexOfFirst { it.key == rowKey }
+            if (index >= 0) {
+                val row = rows[index]
+                rows[index] = when (spanType) {
+                    // Collapsing to a single year: keep the older/end year as the one picked year.
+                    AgeGroupSpanType.SINGLE_YEAR -> row.copy(spanType = spanType, startYear = row.endYear)
+                    AgeGroupSpanType.TWO_YEAR -> row.copy(spanType = spanType)
+                }
+            }
+            viewModel.clearSubmitError()
+        },
+        onRowStartYearSelected = { rowKey, startYear ->
+            val index = rows.indexOfFirst { it.key == rowKey }
+            if (index >= 0) rows[index] = rows[index].copy(startYear = startYear)
+            viewModel.clearSubmitError()
+        },
+        onRowEndYearSelected = { rowKey, endYear ->
             val index = rows.indexOfFirst { it.key == rowKey }
             if (index >= 0) {
                 val row = rows[index]
                 // Fill the name with the inferred "Sub N" as real, editable text. A name the user
                 // typed themselves is kept; one that's still the previous year's inferred value (or
-                // blank) is replaced with the new year's.
-                val previousInferred = row.birthYear?.let { year ->
+                // blank) is replaced with the new year's. Single-year rows also pin startYear == endYear.
+                val previousInferred = row.endYear?.let { year ->
                     seasonEndYear?.let { AgeGroupDefaults.inferredName(year, it) }
                 }
-                val newInferred = seasonEndYear?.let { AgeGroupDefaults.inferredName(birthYear, it) }.orEmpty()
+                val newInferred = seasonEndYear?.let { AgeGroupDefaults.inferredName(endYear, it) }.orEmpty()
                 val keepName = row.name.isNotBlank() && row.name != previousInferred
                 rows[index] = row.copy(
-                    birthYear = birthYear,
+                    endYear = endYear,
+                    startYear = if (row.spanType == AgeGroupSpanType.SINGLE_YEAR) endYear else row.startYear,
                     name = if (keepName) row.name else newInferred
                 )
             }
@@ -160,12 +191,14 @@ fun CreateAgeGroupsScreen(
             rows.removeAll { it.key == rowKey }
         },
         onCreateClick = onCreateClick@{
-            val endYear = seasonEndYear ?: return@onCreateClick
+            val seasonEnd = seasonEndYear ?: return@onCreateClick
             val items = rows.mapNotNull { row ->
-                val birthYear = row.birthYear ?: return@mapNotNull null
+                val endYear = row.endYear ?: return@mapNotNull null
+                val startYear = row.startYear ?: return@mapNotNull null
                 AgeGroupItemRequest(
-                    name = row.name.ifBlank { AgeGroupDefaults.inferredName(birthYear, endYear) },
-                    birthYear = birthYear,
+                    name = row.name.ifBlank { AgeGroupDefaults.inferredName(endYear, seasonEnd) },
+                    startYear = startYear,
+                    endYear = endYear,
                     teamSize = row.teamSize
                 )
             }
@@ -184,7 +217,9 @@ private fun CreateAgeGroupsContent(
     teamSizeOptions: List<Int>,
     onNavigateBack: () -> Unit,
     onSeasonSelected: (seasonId: String) -> Unit,
-    onRowBirthYearSelected: (rowKey: Int, birthYear: Int) -> Unit,
+    onRowSpanTypeSelected: (rowKey: Int, spanType: AgeGroupSpanType) -> Unit,
+    onRowStartYearSelected: (rowKey: Int, startYear: Int) -> Unit,
+    onRowEndYearSelected: (rowKey: Int, endYear: Int) -> Unit,
     onRowNameChanged: (rowKey: Int, name: String) -> Unit,
     onRowTeamSizeSelected: (rowKey: Int, teamSize: Int) -> Unit,
     onAddRow: () -> Unit,
@@ -256,18 +291,27 @@ private fun CreateAgeGroupsContent(
                     )
 
                     rows.forEachIndexed { index, row ->
-                        val pickedBySiblingRows = rows.filter { it.key != row.key }.mapNotNull { it.birthYear }.toSet()
+                        // Single-year rows still exclude years already used/picked elsewhere; a
+                        // two-year row's two pickers stay unrestricted (each is a distinct field, and
+                        // overlap across rows is a coordinator judgment call, not something worth
+                        // second-guessing with a picker exclusion here).
+                        val pickedBySiblingRows = rows.filter { it.key != row.key }
+                            .filter { it.spanType == AgeGroupSpanType.SINGLE_YEAR }
+                            .mapNotNull { it.endYear }.toSet()
                         val availableYears = allYearOptions - uiState.usedBirthYears - pickedBySiblingRows
                         AgeGroupRowCard(
                             index = index + 1,
                             row = row,
                             availableYears = availableYears,
+                            allYearOptions = allYearOptions,
                             teamSizeOptions = teamSizeOptions,
-                            inferredName = row.birthYear?.let { year ->
+                            inferredName = row.endYear?.let { year ->
                                 seasonEndYear?.let { AgeGroupDefaults.inferredName(year, it) }
                             },
                             canRemove = rows.size > 1,
-                            onBirthYearSelected = { onRowBirthYearSelected(row.key, it) },
+                            onSpanTypeSelected = { onRowSpanTypeSelected(row.key, it) },
+                            onStartYearSelected = { onRowStartYearSelected(row.key, it) },
+                            onEndYearSelected = { onRowEndYearSelected(row.key, it) },
                             onNameChanged = { onRowNameChanged(row.key, it) },
                             onTeamSizeSelected = { onRowTeamSizeSelected(row.key, it) },
                             onRemove = { onRemoveRow(row.key) }
@@ -297,7 +341,8 @@ private fun CreateAgeGroupsContent(
                         submittingText = Res.string.btn_creating_age_groups,
                         isLoading = uiState.isSubmitting,
                         enabled = uiState.selectedSeasonId != null &&
-                                rows.isNotEmpty() && rows.all { it.birthYear != null },
+                                rows.isNotEmpty() &&
+                                rows.all { it.startYear != null && it.endYear != null && it.startYear >= it.endYear },
                         onClick = onCreateClick
                     )
 
@@ -375,10 +420,13 @@ private fun AgeGroupRowCard(
     index: Int,
     row: AgeGroupRow,
     availableYears: List<Int>,
+    allYearOptions: List<Int>,
     teamSizeOptions: List<Int>,
     inferredName: String?,
     canRemove: Boolean,
-    onBirthYearSelected: (Int) -> Unit,
+    onSpanTypeSelected: (AgeGroupSpanType) -> Unit,
+    onStartYearSelected: (Int) -> Unit,
+    onEndYearSelected: (Int) -> Unit,
     onNameChanged: (String) -> Unit,
     onTeamSizeSelected: (Int) -> Unit,
     onRemove: () -> Unit
@@ -417,12 +465,46 @@ private fun AgeGroupRowCard(
                 }
             }
 
-            YearOfBirthField(
-                label = stringResource(Res.string.label_year_of_birth),
-                selectedYear = row.birthYear,
-                availableYears = availableYears,
-                onYearSelected = onBirthYearSelected
+            AgeGroupSpanTypeField(
+                label = stringResource(Res.string.label_age_group_span_type),
+                selectedType = row.spanType,
+                onTypeSelected = onSpanTypeSelected
             )
+
+            if (row.spanType == AgeGroupSpanType.SINGLE_YEAR) {
+                YearOfBirthField(
+                    label = stringResource(Res.string.label_year_of_birth),
+                    selectedYear = row.endYear,
+                    availableYears = availableYears,
+                    onYearSelected = onEndYearSelected
+                )
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        YearOfBirthField(
+                            label = stringResource(Res.string.label_year_of_birth_start),
+                            selectedYear = row.startYear,
+                            availableYears = allYearOptions,
+                            onYearSelected = onStartYearSelected
+                        )
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        YearOfBirthField(
+                            label = stringResource(Res.string.label_year_of_birth_end),
+                            selectedYear = row.endYear,
+                            availableYears = allYearOptions,
+                            onYearSelected = onEndYearSelected
+                        )
+                    }
+                }
+                if (row.startYear != null && row.endYear != null && row.startYear < row.endYear) {
+                    Text(
+                        text = stringResource(Res.string.msg_age_group_range_inverted),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
 
             OutlinedTextField(
                 value = row.name,
@@ -430,14 +512,14 @@ private fun AgeGroupRowCard(
                 label = { Text(stringResource(Res.string.label_age_group_name_field)) },
                 placeholder = {
                     Text(
-                        if (row.birthYear != null) {
+                        if (row.endYear != null) {
                             inferredName.orEmpty()
                         } else {
                             stringResource(Res.string.label_name_placeholder_pick_year_first)
                         }
                     )
                 },
-                enabled = row.birthYear != null,
+                enabled = row.endYear != null,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = FormRoundedShape,
@@ -521,6 +603,47 @@ private fun TeamSizeField(
 }
 
 @Composable
+private fun AgeGroupSpanTypeField(
+    label: String,
+    selectedType: AgeGroupSpanType,
+    onTypeSelected: (AgeGroupSpanType) -> Unit
+) {
+    Column {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = DeepCarbon.copy(alpha = 0.5f)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AgeGroupSpanType.entries.forEachIndexed { index, type ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { onTypeSelected(type) }
+                ) {
+                    RadioButton(
+                        selected = selectedType == type,
+                        onClick = { onTypeSelected(type) },
+                        colors = RadioButtonDefaults.colors(selectedColor = PitchGreen)
+                    )
+                    Text(
+                        text = stringResource(
+                            if (type == AgeGroupSpanType.SINGLE_YEAR) {
+                                Res.string.label_age_group_span_single
+                            } else {
+                                Res.string.label_age_group_span_range
+                            }
+                        ),
+                        color = DeepCarbon
+                    )
+                }
+                if (index == 0) Spacer(modifier = Modifier.width(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
 private fun YearOfBirthField(
     label: String,
     selectedYear: Int?,
@@ -598,13 +721,18 @@ private fun CreateAgeGroupsContentPreview() {
             clubName = "CD Ribamar",
             today = today,
             rows = listOf(
-                AgeGroupRow(key = 0, birthYear = 2015, teamSize = 11),
-                AgeGroupRow(key = 1, teamSize = 11)
+                AgeGroupRow(key = 0, startYear = 2015, endYear = 2015, teamSize = 11),
+                AgeGroupRow(
+                    key = 1, spanType = AgeGroupSpanType.TWO_YEAR,
+                    startYear = 2017, endYear = 2016, teamSize = 5
+                )
             ),
             teamSizeOptions = listOf(4, 5, 7, 9, 11),
             onNavigateBack = {},
             onSeasonSelected = {},
-            onRowBirthYearSelected = { _, _ -> },
+            onRowSpanTypeSelected = { _, _ -> },
+            onRowStartYearSelected = { _, _ -> },
+            onRowEndYearSelected = { _, _ -> },
             onRowNameChanged = { _, _ -> },
             onRowTeamSizeSelected = { _, _ -> },
             onAddRow = {},
@@ -627,11 +755,13 @@ private fun CreateAgeGroupsContentSubmittingPreview() {
             ),
             clubName = "CD Ribamar",
             today = today,
-            rows = listOf(AgeGroupRow(key = 0, birthYear = 2015, teamSize = 11)),
+            rows = listOf(AgeGroupRow(key = 0, startYear = 2015, endYear = 2015, teamSize = 11)),
             teamSizeOptions = listOf(4, 5, 7, 9, 11),
             onNavigateBack = {},
             onSeasonSelected = {},
-            onRowBirthYearSelected = { _, _ -> },
+            onRowSpanTypeSelected = { _, _ -> },
+            onRowStartYearSelected = { _, _ -> },
+            onRowEndYearSelected = { _, _ -> },
             onRowNameChanged = { _, _ -> },
             onRowTeamSizeSelected = { _, _ -> },
             onAddRow = {},

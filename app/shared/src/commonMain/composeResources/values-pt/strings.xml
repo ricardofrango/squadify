@@ -125,7 +125,13 @@
     <string name="msg_no_seasons_for_age_groups">Crie uma época antes de adicionar escalões.</string>
     <string name="msg_age_groups_intro">Uma linha por escalão. Escolha o ano de nascimento e o nome preenche-se sozinho — substitua-o se a sua liga usar outros nomes.</string>
     <string name="label_age_group_section">Escalão</string>
+    <string name="label_age_group_span_type">Anos de nascimento abrangidos</string>
+    <string name="label_age_group_span_single">Um ano</string>
+    <string name="label_age_group_span_range">Dois anos</string>
     <string name="label_year_of_birth">Ano de nascimento *</string>
+    <string name="label_year_of_birth_start">Ano de nascimento mais novo *</string>
+    <string name="label_year_of_birth_end">Ano de nascimento mais velho *</string>
+    <string name="msg_age_group_range_inverted">O ano de nascimento mais novo não pode ser anterior ao mais velho.</string>
     <string name="label_choose_year">Escolher</string>
     <string name="label_age_group_name_field">Nome *</string>
     <string name="label_name_placeholder_pick_year_first">Escolha primeiro um ano de nascimento</string>

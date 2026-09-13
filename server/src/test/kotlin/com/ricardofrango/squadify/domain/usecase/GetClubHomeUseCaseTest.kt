@@ -89,8 +89,8 @@ class GetClubHomeUseCaseTest {
         coEvery { playerRepository.countPlayersByClub(clubId) } returns 118
         coEvery { ageGroupRepository.countCoachesByClub(clubId) } returns 9
         coEvery { ageGroupRepository.getAgeGroupsByClub(clubId) } returns listOf(
-            AgeGroup(ag1, clubId, "Sub-15", seasonId, 2011),
-            AgeGroup(ag2, clubId, "Sub-17", seasonId, 2009)
+            AgeGroup(ag1, clubId, "Sub-15", seasonId, 2011, 2011),
+            AgeGroup(ag2, clubId, "Sub-17", seasonId, 2009, 2009)
         )
         // permission fall-throughs for non-admin, non-coordinator paths
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(userId, any()) } returns null

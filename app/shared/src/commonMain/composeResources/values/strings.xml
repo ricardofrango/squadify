@@ -125,7 +125,13 @@
     <string name="msg_no_seasons_for_age_groups">Create a season before adding age groups.</string>
     <string name="msg_age_groups_intro">One row per age group. Pick the birth year and the name fills itself — override it if your league uses different labels.</string>
     <string name="label_age_group_section">Age group</string>
+    <string name="label_age_group_span_type">Birth years covered</string>
+    <string name="label_age_group_span_single">Single year</string>
+    <string name="label_age_group_span_range">Two years</string>
     <string name="label_year_of_birth">Year of birth *</string>
+    <string name="label_year_of_birth_start">Younger birth year *</string>
+    <string name="label_year_of_birth_end">Older birth year *</string>
+    <string name="msg_age_group_range_inverted">The younger birth year must not be before the older one.</string>
     <string name="label_choose_year">Choose</string>
     <string name="label_age_group_name_field">Name *</string>
     <string name="label_name_placeholder_pick_year_first">Tap a birth year first</string>

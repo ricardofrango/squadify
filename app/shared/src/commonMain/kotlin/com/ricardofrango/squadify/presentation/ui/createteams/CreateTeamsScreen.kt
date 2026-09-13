@@ -479,7 +479,8 @@ private fun previewAgeGroup(id: String, name: String, seasonId: String) = AgeGro
     clubId = "club-1",
     name = name,
     seasonId = seasonId,
-    birthYear = 2015,
+    startYear = 2015,
+    endYear = 2015,
     teamSize = 7
 )
 

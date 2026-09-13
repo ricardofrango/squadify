@@ -667,7 +667,7 @@ private fun sampleDetails(status: MatchStatus, canManage: Boolean, score: MatchS
     ),
     opponent = Opponent(id = "o1", clubId = "c1", name = "Sporting Youth", shortName = "Sporting"),
     team = Team(id = "t1", clubId = "c1", ageGroupId = "ag1", seasonId = "s1", name = "Sub-15 A", active = true),
-    ageGroup = AgeGroup(id = "ag1", clubId = "c1", name = "Sub-15", seasonId = "s1", birthYear = 2011),
+    ageGroup = AgeGroup(id = "ag1", clubId = "c1", name = "Sub-15", seasonId = "s1", startYear = 2011, endYear = 2011),
     season = Season(
         id = "s1", clubId = "c1", name = "26/27", type = SeasonType.EUROPEAN_YEAR,
         startDate = LocalDate(2026, 7, 1), endDate = LocalDate(2027, 6, 30), active = true

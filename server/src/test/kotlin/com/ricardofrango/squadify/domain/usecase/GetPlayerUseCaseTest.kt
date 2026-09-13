@@ -71,7 +71,7 @@ class GetPlayerUseCaseTest {
         coEvery { playerRepository.getPlayerById(playerId) } returns player
         coEvery { playerRepository.getAgeGroupIdsByPlayer(playerId) } returns listOf(ag1)
         coEvery { ageGroupRepository.getAgeGroupById(ag1) } returns AgeGroup(
-            id = ag1, clubId = clubId, name = "Sub 15", seasonId = "s1", birthYear = 2011
+            id = ag1, clubId = clubId, name = "Sub 15", seasonId = "s1", startYear = 2011, endYear = 2011
         )
         coEvery { seasonRepository.getSeasonById("s1") } returns Season(
             id = "s1", clubId = clubId, name = "25/26", type = SeasonType.EUROPEAN_YEAR,

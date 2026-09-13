@@ -54,7 +54,7 @@ class GetAgeGroupDetailsUseCaseTest {
 
     private val clubIdA = "club-a"
     private val ageGroupId = "ag-1"
-    private val ageGroup = AgeGroup(id = ageGroupId, clubId = clubIdA, name = "Sub 2015", seasonId = "s1", birthYear = 2015)
+    private val ageGroup = AgeGroup(id = ageGroupId, clubId = clubIdA, name = "Sub 2015", seasonId = "s1", startYear = 2015, endYear = 2015)
     private val season = Season(
         id = "s1", clubId = clubIdA, name = "26/27", type = SeasonType.EUROPEAN_YEAR,
         startDate = LocalDate(2026, 7, 1), endDate = LocalDate(2027, 6, 30), active = true

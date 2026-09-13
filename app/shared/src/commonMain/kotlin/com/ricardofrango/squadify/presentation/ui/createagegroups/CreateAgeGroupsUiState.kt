@@ -24,12 +24,15 @@ sealed class CreateAgeGroupsUiState {
 
         val selectedSeason: Season? get() = seasons.find { it.id == selectedSeasonId }
 
-        // Birth years already used by an existing age group in the selected season -- excluded from
-        // every row's picker so a duplicate can't be selected in the first place (same idea as
-        // DatePickerSheet's minDate/maxDate on the season screen). In-batch duplicates across this
-        // screen's own rows are prevented the same way, by excluding sibling rows' picks too.
+        // Birth years already covered by an existing age group in the selected season (its full
+        // endYear..startYear span, inclusive) -- excluded from every single-year row's picker so a
+        // duplicate/overlap can't be selected in the first place (same idea as DatePickerSheet's
+        // minDate/maxDate on the season screen). In-batch duplicates across this screen's own rows are
+        // prevented the same way, by excluding sibling rows' picks too.
         val usedBirthYears: Set<Int>
-            get() = ageGroups.filter { it.seasonId == selectedSeasonId }.map { it.birthYear }.toSet()
+            get() = ageGroups.filter { it.seasonId == selectedSeasonId }
+                .flatMap { it.endYear..it.startYear }
+                .toSet()
     }
 }
 
