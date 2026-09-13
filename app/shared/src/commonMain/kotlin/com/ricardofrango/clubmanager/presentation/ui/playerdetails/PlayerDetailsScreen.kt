@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.ricardofrango.clubmanager.domain.AgeGroupDefaults
 import com.ricardofrango.clubmanager.model.EventType
 import com.ricardofrango.clubmanager.model.Player
+import com.ricardofrango.clubmanager.model.PlayerPosition
 import com.ricardofrango.clubmanager.model.PlayerProfile
 import com.ricardofrango.clubmanager.model.PlayerProfileEvent
 import com.ricardofrango.clubmanager.presentation.ui.components.FMTopBar
@@ -165,14 +166,24 @@ private fun PlayerHeaderBand(profile: PlayerProfile) {
     }
 }
 
-/** "Midfielder · Sub 11" (position omitted if not set -- there's no way to set one yet). */
+/** "Midfielder · Sub 11" (position omitted if not set). */
+@Composable
 private fun subtitleLine(profile: PlayerProfile): String {
     val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
     val subLabel = AgeGroupDefaults.inferredName(
         birthYear = profile.player.birthDate.year,
         seasonEndYear = AgeGroupDefaults.currentSeasonEndYear(today)
     )
-    return listOfNotNull(profile.player.position?.takeIf { it.isNotBlank() }, subLabel).joinToString(" · ")
+    val positionText = profile.player.position?.let { stringResource(positionLabel(it)) }
+    return listOfNotNull(positionText, subLabel).joinToString(" · ")
+}
+
+private fun positionLabel(position: PlayerPosition) = when (position) {
+    PlayerPosition.GOALKEEPER -> Res.string.label_position_goalkeeper
+    PlayerPosition.DEFENDER -> Res.string.label_position_defender
+    PlayerPosition.MIDFIELD -> Res.string.label_position_midfield
+    PlayerPosition.WINGER -> Res.string.label_position_winger
+    PlayerPosition.STRIKER -> Res.string.label_position_striker
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -214,7 +225,12 @@ private fun PlayerBody(profile: PlayerProfile, modifier: Modifier = Modifier) {
                     )
                     InfoRow(stringResource(Res.string.label_birth_date), player.birthDate.format(DayMonthYear))
                     InfoRow(stringResource(Res.string.label_age_group_field), profile.ageGroupLabel ?: "—")
+                    player.heightCm?.let { InfoRow(stringResource(Res.string.label_height), stringResource(Res.string.label_height_value, it)) }
+                    player.weightKg?.let { InfoRow(stringResource(Res.string.label_weight), stringResource(Res.string.label_weight_value, it)) }
                     InfoRow(stringResource(Res.string.label_guardians), stringResource(Res.string.label_guardians_linked, profile.guardiansLinked))
+                    player.emergencyContact?.takeIf { it.isNotBlank() }?.let {
+                        InfoRow(stringResource(Res.string.label_emergency_contact), it)
+                    }
                 }
             }
         }
@@ -325,7 +341,10 @@ private fun sampleProfile(withPosition: Boolean, withEvents: Boolean): PlayerPro
     player = Player(
         id = "p1", clubId = "c1", firstName = "Tomás", lastName = "Bragança",
         birthDate = LocalDate(2011, 3, 12), shirtNumber = 10, active = true,
-        position = if (withPosition) "Midfielder" else null
+        position = if (withPosition) PlayerPosition.MIDFIELD else null,
+        heightCm = if (withPosition) 158 else null,
+        weightKg = if (withPosition) 47 else null,
+        emergencyContact = if (withPosition) "Ana Bragança · +351 912 345 678" else null
     ),
     ageGroupLabel = "Sub-15 A",
     goals = 9,

@@ -16,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -45,8 +44,7 @@ private data class PlayerRow(
     val key: Int,
     val firstName: String = "",
     val lastName: String = "",
-    val birthDateIso: String? = null,
-    val shirtNumber: String = ""
+    val birthDateIso: String? = null
 )
 
 private val FormRoundedShape = RoundedCornerShape(18.dp)
@@ -62,14 +60,18 @@ private val DateDisplayFormat = LocalDate.Format {
 /**
  * Batch player creation, matching `CreatePlayersRequest`. Built to the "Add players to the club"
  * artboard of the design canvas linked in AI_GUIDELINES.md ("UI Design Reference"), consistent with
- * the Create Age Groups / Create Teams screens: one card per player with first name, last name, and
- * date of birth required (plus an optional shirt number), "+ Add another player", and one CREATE
- * that submits the whole batch -- `CreatePlayersUseCase` writes it in one transaction, so either
- * every player is saved or none are.
+ * the Create Age Groups / Create Teams screens: one card per player with just the fields
+ * `CreatePlayer` actually requires -- first name, last name, date of birth -- "+ Add another player",
+ * and one CREATE that submits the whole batch -- `CreatePlayersUseCase` writes it in one transaction,
+ * so either every player is saved or none are.
+ *
+ * Deliberately minimal: shirt number, position, height/weight, and emergency contact are all optional
+ * on `CreatePlayer`/`Player` but not collected here -- they're meant to be filled in afterwards via a
+ * Player Edit screen (not built yet), keeping this quick-add flow to just what's required. Email /
+ * parent invites the request also supports aren't exposed here either.
  *
  * Validation is pre-submit and client-side: the CREATE button stays enabled and pressing it surfaces
- * missing names / dates. Any edit clears the shown errors. Email / parent invites the request also
- * supports are not exposed here yet.
+ * missing names / dates. Any edit clears the shown errors.
  *
  * Rows aren't `rememberSaveable` (same known limitation noted on the other batch screens): a rare
  * mid-edit process kill loses the in-progress batch.
@@ -114,11 +116,6 @@ fun CreatePlayersScreen(
             showValidationErrors = false
             viewModel.clearSubmitError()
         },
-        onShirtNumberChange = { key, value ->
-            if (value.all { it.isDigit() } && value.length <= 3) {
-                updateRow(rows, key) { it.copy(shirtNumber = value) }
-            }
-        },
         onDateClick = { key -> datePickerForKey = key },
         onAddRow = {
             rows.add(PlayerRow(key = nextRowKey))
@@ -135,8 +132,7 @@ fun CreatePlayersScreen(
                     CreatePlayer(
                         firstName = r.firstName.trim(),
                         lastName = r.lastName.trim(),
-                        birthDate = LocalDate.parse(r.birthDateIso!!),
-                        shirtNumber = r.shirtNumber.trim().toIntOrNull()
+                        birthDate = LocalDate.parse(r.birthDateIso!!)
                     )
                 }
                 viewModel.onCreateClicked(clubId, players)
@@ -176,7 +172,6 @@ private fun CreatePlayersContent(
     onNavigateBack: () -> Unit,
     onFirstNameChange: (key: Int, value: String) -> Unit,
     onLastNameChange: (key: Int, value: String) -> Unit,
-    onShirtNumberChange: (key: Int, value: String) -> Unit,
     onDateClick: (key: Int) -> Unit,
     onAddRow: () -> Unit,
     onRemoveRow: (key: Int) -> Unit,
@@ -242,7 +237,6 @@ private fun CreatePlayersContent(
                         canRemove = rows.size > 1,
                         onFirstNameChange = { onFirstNameChange(row.key, it) },
                         onLastNameChange = { onLastNameChange(row.key, it) },
-                        onShirtNumberChange = { onShirtNumberChange(row.key, it) },
                         onDateClick = { onDateClick(row.key) },
                         onRemove = { onRemoveRow(row.key) }
                     )
@@ -311,7 +305,6 @@ private fun PlayerRowCard(
     canRemove: Boolean,
     onFirstNameChange: (String) -> Unit,
     onLastNameChange: (String) -> Unit,
-    onShirtNumberChange: (String) -> Unit,
     onDateClick: () -> Unit,
     onRemove: () -> Unit
 ) {
@@ -400,18 +393,6 @@ private fun PlayerRowCard(
                     color = DeepCarbon.copy(alpha = 0.55f)
                 )
             }
-
-            OutlinedTextField(
-                value = row.shirtNumber,
-                onValueChange = onShirtNumberChange,
-                label = { Text(stringResource(Res.string.label_shirt_number)) },
-                placeholder = { Text(stringResource(Res.string.label_optional)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                modifier = Modifier.fillMaxWidth(0.5f),
-                shape = FormRoundedShape,
-                colors = fieldColors()
-            )
         }
     }
 }
@@ -451,14 +432,13 @@ private fun CreatePlayersContentPreview() {
             uiState = CreatePlayersUiState(),
             clubName = "CD Ribamar",
             rows = listOf(
-                PlayerRow(key = 0, firstName = "Afonso", lastName = "Rebelo", birthDateIso = "2015-03-14", shirtNumber = "7"),
+                PlayerRow(key = 0, firstName = "Afonso", lastName = "Rebelo", birthDateIso = "2015-03-14"),
                 PlayerRow(key = 1)
             ),
             showValidationErrors = false,
             onNavigateBack = {},
             onFirstNameChange = { _, _ -> },
             onLastNameChange = { _, _ -> },
-            onShirtNumberChange = { _, _ -> },
             onDateClick = {},
             onAddRow = {},
             onRemoveRow = {},
@@ -479,7 +459,6 @@ private fun CreatePlayersContentErrorsPreview() {
             onNavigateBack = {},
             onFirstNameChange = { _, _ -> },
             onLastNameChange = { _, _ -> },
-            onShirtNumberChange = { _, _ -> },
             onDateClick = {},
             onAddRow = {},
             onRemoveRow = {},
@@ -500,7 +479,6 @@ private fun CreatePlayersContentLandscapePreview() {
             onNavigateBack = {},
             onFirstNameChange = { _, _ -> },
             onLastNameChange = { _, _ -> },
-            onShirtNumberChange = { _, _ -> },
             onDateClick = {},
             onAddRow = {},
             onRemoveRow = {},

@@ -470,7 +470,7 @@ graph TD
     B -- denied --> F(["Throw ForbiddenException"])
     B -- allowed --> C{Any player first/last name blank?}
     C -- Yes --> V(["Throw ValidationException"])
-    C -- No --> D[Batch create Player records — active=true]
+    C -- No --> D["Batch create Player records — active=true (position/heightCm/weightKg/emergencyContact carried through if given, all optional)"]
     D --> E["Collect all unique emails (players' own + all parents')"]
     E --> G[Batch find existing Users by email]
     G --> H{For each created player}
@@ -512,9 +512,12 @@ Stats are all-time -- there's no season/last-5/career split yet (the client's pl
 only shows one fixed set of numbers). `ageGroupLabel` is the player's actual pool membership (real
 `AgeGroupPlayers` data); this is distinct from the "Sub N" text the client also shows next to the
 player's name/position, which it derives purely from `Player.birthDate` and today's date
-(`AgeGroupDefaults.currentSeasonEndYear`/`inferredName`) with no server round-trip. `Player.position`
-is a nullable field with no create/edit affordance yet — always null until that's built, and the
-screen just omits it when absent.
+(`AgeGroupDefaults.currentSeasonEndYear`/`inferredName`) with no server round-trip.
+
+`Player.position` is a `PlayerPosition` enum (`GOALKEEPER`/`DEFENDER`/`MIDFIELD`/`WINGER`/`STRIKER`),
+and `Player` also carries `heightCm`, `weightKg`, and a free-text `emergencyContact` -- all four are
+nullable and settable from Create Players (§5.1) and Update Player (§5.2); the profile screen omits
+any that are absent rather than showing a placeholder.
 
 ### 5.2 Update Player (`UpdatePlayerUseCase`)
 
@@ -524,7 +527,7 @@ graph TD
     B -- not found --> N(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D["Merge patch fields (name, birthDate, shirtNumber, photoUrl)"]
+    C -- allowed --> D["Merge patch fields (name, birthDate, shirtNumber, photoUrl, position, heightCm, weightKg, emergencyContact)"]
     D --> E[Persist updated Player]
     E --> G{email provided in request?}
     G -- yes, user exists --> H[Add as ClubMember, role MEMBER]
@@ -1011,7 +1014,10 @@ erDiagram
         integer shirt_number "nullable"
         varchar photo_url "500 chars, nullable"
         boolean active "default true"
-        varchar position "50 chars, nullable -- no create/edit UI sets this yet"
+        enum position "PlayerPosition, nullable"
+        integer height_cm "nullable"
+        integer weight_kg "nullable"
+        varchar emergency_contact "255 chars, nullable -- free text, no structured contact model yet"
     }
     AGE_GROUP_PLAYERS {
         uuid id PK
@@ -1102,6 +1108,7 @@ erDiagram
 | `MatchStatus` | `SCHEDULED`, `LIVE`, `HALF_TIME`, `FINISHED`, `CANCELLED` | `matches.status` (default `SCHEDULED`) |
 | `CallUpStatus` | `CALLED_UP`, `CONFIRMED`, `DECLINED`, `NOT_AVAILABLE`, `STANDBY` | `match_call_ups.status` (default `CALLED_UP`) |
 | `EventType` | `GOAL`, `OWN_GOAL`, `ASSIST`, `SUBSTITUTION_IN`, `SUBSTITUTION_OUT`, `YELLOW_CARD`, `RED_CARD` | `match_events.type` |
+| `PlayerPosition` | `GOALKEEPER`, `DEFENDER`, `MIDFIELD`, `WINGER`, `STRIKER` | `players.position` (nullable) |
 
 `TeamRole` is now `COACH`/`STAFF` only — the unused `PARENT`/`PLAYER` values were removed when coaches/staff moved from teams to age groups (`age_group_staff`). Players and family members are modelled entirely through `age_group_players` / `user_players` and never appear in a staff table. The enum keeps the name `TeamRole` for now; `CheckUserPermissionUseCase`'s `minTeamRole` parameter is interpreted as the minimum age-group staff role.
 

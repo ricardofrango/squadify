@@ -72,6 +72,16 @@
     <string name="label_event_type_red_card">Cartão vermelho</string>
     <string name="label_event_type_substitution_in">Entrou</string>
     <string name="label_event_type_substitution_out">Saiu</string>
+    <string name="label_position_goalkeeper">Guarda-redes</string>
+    <string name="label_position_defender">Defesa</string>
+    <string name="label_position_midfield">Médio</string>
+    <string name="label_position_winger">Extremo</string>
+    <string name="label_position_striker">Avançado</string>
+    <string name="label_height">Altura</string>
+    <string name="label_height_value">%1$d cm</string>
+    <string name="label_weight">Peso</string>
+    <string name="label_weight_value">%1$d kg</string>
+    <string name="label_emergency_contact">Contacto de emergência</string>
 
     <!-- Create Season -->
     <string name="title_create_season">Nova época</string>
