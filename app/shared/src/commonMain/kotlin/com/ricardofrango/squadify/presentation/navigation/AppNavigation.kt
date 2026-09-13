@@ -398,6 +398,13 @@ fun AppNavigation() {
                 matchId = screen.matchId,
                 onNavigateBack = { navController.popBackStack() },
                 onEnterLiveMatch = { matchId -> navController.navigate(Screen.LiveMatch(matchId)) },
+                onRedirectToLiveMatch = { matchId ->
+                    // Replace this entry rather than push on top of it -- otherwise back from
+                    // LiveMatch lands back on this screen, which immediately redirects again.
+                    navController.navigate(Screen.LiveMatch(matchId)) {
+                        popUpTo(screen) { inclusive = true }
+                    }
+                },
                 refreshOnReturn = structureChanged
             )
         }

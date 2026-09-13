@@ -233,6 +233,10 @@ class ExposedMatchRepository : MatchRepository {
         birthDate = row[PlayersTable.birthDate],
         shirtNumber = row[PlayersTable.shirtNumber],
         photoUrl = row[PlayersTable.photoUrl],
-        active = row[PlayersTable.active]
+        active = row[PlayersTable.active],
+        position = row[PlayersTable.position],
+        heightCm = row[PlayersTable.heightCm],
+        weightKg = row[PlayersTable.weightKg],
+        emergencyContact = row[PlayersTable.emergencyContact]
     )
 }
