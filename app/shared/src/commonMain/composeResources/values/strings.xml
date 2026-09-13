@@ -5,7 +5,8 @@
     <string name="btn_login">Login</string>
     <string name="btn_loging_in">Signing in...</string>
     <string name="msg_forgot_password">Forgot Password?</string>
-    <string name="msg_no_account_register">Don\'t have an account? Register here</string>
+    <string name="label_or_divider">OR</string>
+    <string name="btn_create_account">Create account</string>
     <string name="btn_register">Register</string>
     <string name="btn_registering">Registering...</string>
     <string name="label_first_name">First Name</string>

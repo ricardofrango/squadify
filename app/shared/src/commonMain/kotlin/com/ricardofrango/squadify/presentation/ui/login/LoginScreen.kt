@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.login
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -76,12 +77,14 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header Section -- the same "18a" mark as the splash/app icon, so the hand-off from
-            // launch to login reads as one continuous carbon surface (design canvas "19B").
-            Spacer(modifier = Modifier.height(40.dp))
+            // launch to login reads as one continuous carbon surface (design canvas "19B"). Sized
+            // to its own content (no weighted spacer above the card) so it can't blow past the
+            // fixed budget a fixed-fraction card would otherwise reserve for it.
+            Spacer(modifier = Modifier.height(20.dp))
 
-            SquadifyMark(size = 80.dp)
+            SquadifyMark(size = 64.dp)
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
                 text = stringResource(Res.string.app_name),
@@ -91,9 +94,9 @@ fun LoginScreen(
                     letterSpacing = 1.sp
                 )
             )
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
+
+            Spacer(modifier = Modifier.height(6.dp))
+
             Text(
                 text = stringResource(Res.string.msg_precision_management),
                 style = MaterialTheme.typography.bodyLarge.copy(
@@ -101,13 +104,14 @@ fun LoginScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Login Card
+            // Login Card -- takes all remaining height, so it isn't pinned to a fixed fraction of
+            // the screen that the header above could overflow.
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.82f),
+                    .weight(1f),
                 color = Color.White,
                 shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)
             ) {
@@ -115,7 +119,7 @@ fun LoginScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 32.dp, vertical = 40.dp),
+                        .padding(horizontal = 32.dp, vertical = 32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -127,7 +131,24 @@ fun LoginScreen(
                         modifier = Modifier.align(Alignment.Start)
                     )
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Error Message, reserved space between the title and the email field so a
+                    // failed login doesn't shift the fields down underneath the user's fingers.
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(20.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        if (errorMessage != null) {
+                            Text(
+                                text = errorMessage,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
 
                     OutlinedTextField(
                         value = email,
@@ -150,7 +171,7 @@ fun LoginScreen(
                         )
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     OutlinedTextField(
                         value = password,
@@ -174,26 +195,10 @@ fun LoginScreen(
                         )
                     )
 
-                    // Error Message Handling with Reserved Space
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(32.dp) // Reserved space for error message
-                            .padding(top = 4.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        if (errorMessage != null) {
-                            Text(
-                                text = errorMessage,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-
                     TextButton(
                         onClick = { /* Forgot Password */ },
                         modifier = Modifier.align(Alignment.End),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                         enabled = uiState !is LoginUiState.Loading
                     ) {
                         Text(
@@ -205,7 +210,7 @@ fun LoginScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     PrimaryLoadingButton(
                         text = Res.string.btn_login,
@@ -216,16 +221,32 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    TextButton(
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color.Gray.copy(alpha = 0.25f))
+                        Text(
+                            text = stringResource(Res.string.label_or_divider),
+                            modifier = Modifier.padding(horizontal = 12.dp),
+                            style = MaterialTheme.typography.labelSmall.copy(color = Color.Gray)
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = Color.Gray.copy(alpha = 0.25f))
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    OutlinedButton(
                         onClick = onNavigateToRegister,
-                        enabled = uiState !is LoginUiState.Loading
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        enabled = uiState !is LoginUiState.Loading,
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, Color.Gray.copy(alpha = 0.3f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = CarbonGray)
                     ) {
                         Text(
-                            text = stringResource(Res.string.msg_no_account_register),
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = CarbonGray,
-                                fontWeight = FontWeight.Bold
-                            )
+                            text = stringResource(Res.string.btn_create_account),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                         )
                     }
                 }

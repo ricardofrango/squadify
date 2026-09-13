@@ -5,7 +5,8 @@
     <string name="btn_login">Entrar</string>
     <string name="btn_loging_in">A entrar...</string>
     <string name="msg_forgot_password">Esqueceu a senha?</string>
-    <string name="msg_no_account_register">Não tem uma conta? Registe-se aqui</string>
+    <string name="label_or_divider">OU</string>
+    <string name="btn_create_account">Criar conta</string>
     <string name="btn_register">Registar</string>
     <string name="btn_registering">A registar...</string>
     <string name="label_first_name">Primeiro Nome</string>
