@@ -214,6 +214,22 @@
     <string name="msg_create_players_failed">Ocorreu um erro ao adicionar os jogadores. Por favor, tente novamente.</string>
     <string name="label_select_birth_date">Selecione a data de nascimento</string>
 
+    <!-- Edit Player -->
+    <string name="title_edit_player">Editar jogador</string>
+    <string name="label_edit_player">Editar jogador</string>
+    <string name="label_shirt_number_field">Número da camisola</string>
+    <string name="label_optional_field_placeholder">Opcional</string>
+    <string name="label_position_field">Posição</string>
+    <string name="label_position_not_set">Não definida</string>
+    <string name="label_emergency_contact_field">Contacto de emergência</string>
+    <string name="label_emergency_contact_placeholder">Nome e número de telefone</string>
+    <string name="msg_emergency_contact_helper">Usado no dia do jogo se não for possível contactar um encarregado de educação.</string>
+    <string name="msg_edit_player_optional_banner">Só o nome e a data de nascimento são obrigatórios. O resto pode esperar.</string>
+    <string name="btn_save_changes">Guardar alterações</string>
+    <string name="btn_saving_changes">A guardar...</string>
+    <string name="msg_nothing_changed_yet">Nada foi alterado ainda.</string>
+    <string name="msg_edit_player_failed">Ocorreu um erro ao guardar estas alterações. Por favor, tente novamente.</string>
+
     <!-- Age Group Details -->
     <string name="msg_failed_to_load_age_group">Não foi possível carregar este escalão. Por favor, tente novamente.</string>
     <string name="label_eligibility_rule">Jogadores nascidos em %1$d ou depois</string>

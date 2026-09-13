@@ -6,6 +6,7 @@ import com.ricardofrango.clubmanager.domain.repository.SessionRepository
 import com.ricardofrango.clubmanager.model.CreatePlayersRequest
 import com.ricardofrango.clubmanager.model.Player
 import com.ricardofrango.clubmanager.model.PlayerProfile
+import com.ricardofrango.clubmanager.model.UpdatePlayerRequest
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.http.*
@@ -44,5 +45,16 @@ class PlayerRepositoryImpl(
                 header(HttpHeaders.Authorization, "Bearer $it")
             }
         }.handleResponse()
+    }
+
+    override suspend fun updatePlayer(playerId: String, request: UpdatePlayerRequest) {
+        val token = sessionRepository.getToken()
+        httpClient.patch("${appConfig.baseUrl}/players/$playerId") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+            token?.let {
+                header(HttpHeaders.Authorization, "Bearer $it")
+            }
+        }.handleResponse<Unit>()
     }
 }

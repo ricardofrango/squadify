@@ -500,19 +500,22 @@ graph TD
     B -- not found --> N(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D["ageGroupLabel = first AgeGroup this player's pool membership resolves to (name only)"]
+    C -- allowed --> D["ageGroupLabel/seasonLabel = first AgeGroup this player's pool membership resolves to (name), plus its Season's name"]
     D --> E["events = getAllEventsByPlayer, newest first"]
     E --> G["goals/assists = count of GOAL/ASSIST in events"]
     G --> H["recentEvents = first 5 of events, each resolved to its Match + Opponent name"]
     H --> I["timesCalledUp = countCallUpsByPlayer; guardiansLinked = countGuardiansByPlayer"]
-    I --> Z(["Return PlayerProfile: player, ageGroupLabel, goals, assists, timesCalledUp, guardiansLinked, recentEvents"])
+    I --> J["canManage = non-throwing probe of CheckUserPermissionUseCase — minClubRole=COORDINATOR"]
+    J --> Z(["Return PlayerProfile: player, ageGroupLabel, seasonLabel, goals, assists, timesCalledUp, guardiansLinked, recentEvents, canManage"])
 ```
 
 Stats are all-time -- there's no season/last-5/career split yet (the client's player profile screen
-only shows one fixed set of numbers). `ageGroupLabel` is the player's actual pool membership (real
-`AgeGroupPlayers` data); this is distinct from the "Sub N" text the client also shows next to the
-player's name/position, which it derives purely from `Player.birthDate` and today's date
-(`AgeGroupDefaults.currentSeasonEndYear`/`inferredName`) with no server round-trip.
+only shows one fixed set of numbers). `ageGroupLabel`/`seasonLabel` are the player's actual pool
+membership (real `AgeGroupPlayers` data) and that age group's season; this is distinct from the
+"Sub N" text the client also shows next to the player's name/position, which it derives purely from
+`Player.birthDate` and today's date (`AgeGroupDefaults.currentSeasonEndYear`/`inferredName`) with no
+server round-trip. `canManage` gates the player profile screen's "Edit player" overflow action, same
+pattern as `TeamDetails.canManage` / `AgeGroupDetails.canManage`.
 
 `Player.position` is a `PlayerPosition` enum (`GOALKEEPER`/`DEFENDER`/`MIDFIELD`/`WINGER`/`STRIKER`),
 and `Player` also carries `heightCm`, `weightKg`, and a free-text `emergencyContact` -- all four are
@@ -550,6 +553,16 @@ graph TD
 ```
 
 The `parents` list is a **total replacement**, not a merge: every existing parent link and pending parent-invite is deleted before the new list is applied.
+
+**Client screen:** `EditPlayerScreen` (design canvas "17A"/"17B") is the first client consumer of this
+use case. Reached from the player profile's overflow menu (gated on `canManage`, §5.1b), it edits every
+field `UpdatePlayerRequest` supports except `photoUrl`/`email`/`parents` -- name, date of birth, shirt
+number, position, height/weight, and emergency contact -- reusing Create Players' field styling. A
+green banner ("Only the name and date of birth are required. The rest can wait.") shows when the
+player's optional fields were never set; the pinned Save button (and a matching header checkmark) stay
+disabled until the form is both valid (name + DOB present) and different from what was loaded. Saving
+flags `KEY_CLUB_STRUCTURE_CHANGED` so the profile screen reloads on return, same cascade pattern as the
+other create/edit screens (`AppNavigation.kt`).
 
 ### 5.3 Add Players to Age Group (`AddPlayersToAgeGroupUseCase`) — with age eligibility
 

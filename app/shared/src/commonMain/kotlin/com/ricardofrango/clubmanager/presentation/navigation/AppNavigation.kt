@@ -29,6 +29,7 @@ import com.ricardofrango.clubmanager.presentation.ui.creatematch.CreateMatchScre
 import com.ricardofrango.clubmanager.presentation.ui.matchdetails.MatchDetailsScreen
 import com.ricardofrango.clubmanager.presentation.ui.livematch.LiveMatchScreen
 import com.ricardofrango.clubmanager.presentation.ui.playerdetails.PlayerDetailsScreen
+import com.ricardofrango.clubmanager.presentation.ui.editplayer.EditPlayerScreen
 
 // Key used on a back-stack entry's SavedStateHandle to signal "a season, age group, team, player, or
 // match was just created/changed, force a reload" -- the standard Compose Navigation pattern for a
@@ -425,9 +426,33 @@ fun AppNavigation() {
 
         composable<Screen.PlayerDetails> { backStackEntry ->
             val screen: Screen.PlayerDetails = backStackEntry.toRoute()
+            val structureChanged by backStackEntry.savedStateHandle
+                .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
+                .collectAsState()
+            if (structureChanged) {
+                navController.consumeAndCascadeStructureChanged(backStackEntry)
+            }
             PlayerDetailsScreen(
                 playerId = screen.playerId,
                 onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onEditPlayer = { playerId ->
+                    navController.navigate(Screen.EditPlayer(playerId))
+                },
+                refreshOnReturn = structureChanged
+            )
+        }
+
+        composable<Screen.EditPlayer> { backStackEntry ->
+            val screen: Screen.EditPlayer = backStackEntry.toRoute()
+            EditPlayerScreen(
+                playerId = screen.playerId,
+                onNavigateBack = { navController.popBackStack() },
+                onPlayerUpdated = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
                     navController.popBackStack()
                 }
             )

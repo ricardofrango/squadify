@@ -21,6 +21,7 @@ import com.ricardofrango.clubmanager.presentation.ui.livematch.LiveMatchViewMode
 import com.ricardofrango.clubmanager.presentation.ui.addstafftoagegroup.AddStaffToAgeGroupViewModel
 import com.ricardofrango.clubmanager.presentation.ui.createstaff.CreateStaffViewModel
 import com.ricardofrango.clubmanager.presentation.ui.playerdetails.PlayerDetailsViewModel
+import com.ricardofrango.clubmanager.presentation.ui.editplayer.EditPlayerViewModel
 import com.ricardofrango.clubmanager.presentation.ui.dashboard.DashboardViewModel
 import com.ricardofrango.clubmanager.presentation.ui.login.LoginViewModel
 import com.ricardofrango.clubmanager.presentation.ui.register.RegisterViewModel
@@ -112,6 +113,7 @@ val domainModule = module {
     factory { GetEligiblePlayersForAgeGroupUseCase(get()) }
     factory { AddPlayersToAgeGroupUseCase(get()) }
     factory { CreatePlayersUseCase(get()) }
+    factory { UpdatePlayerUseCase(get()) }
     factory { GetOpponentsUseCase(get()) }
     factory { CreateOpponentUseCase(get()) }
     factory { CreateMatchUseCase(get()) }
@@ -153,6 +155,7 @@ val presentationModule = module {
     viewModelOf(::AddStaffToAgeGroupViewModel)
     viewModelOf(::CreateStaffViewModel)
     viewModelOf(::PlayerDetailsViewModel)
+    viewModelOf(::EditPlayerViewModel)
 }
 
 fun initKoin(appDeclaration: KoinAppDeclaration = {}) =

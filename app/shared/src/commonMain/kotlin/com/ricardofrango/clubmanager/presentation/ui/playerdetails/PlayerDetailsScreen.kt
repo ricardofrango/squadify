@@ -36,6 +36,7 @@ import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Clock
@@ -52,14 +53,16 @@ private val DayMonth = LocalDate.Format { day(); char(' '); monthName(MonthNames
  * The player profile screen (design canvas artboard "2C", see AI_GUIDELINES.md "UI Design
  * Reference"). One dark header (avatar, name, shirt number/position/age-group line) over a white
  * body: a fixed stat row (goals/assists/times called up -- all-time, no season/last-5/career split
- * yet), a Player Information card, and a Recent Events list. Read-only; there's no edit affordance on
- * this screen yet.
+ * yet), a Player Information card, and a Recent Events list. The overflow menu's "Edit player" (design
+ * "17") is gated on [PlayerProfile.canManage].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerDetailsScreen(
     playerId: String,
     onNavigateBack: () -> Unit,
+    onEditPlayer: (String) -> Unit,
+    refreshOnReturn: Boolean = false,
     viewModel: PlayerDetailsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
@@ -67,11 +70,15 @@ fun PlayerDetailsScreen(
     LaunchedEffect(playerId) {
         viewModel.loadPlayerDetails(playerId)
     }
+    LaunchedEffect(refreshOnReturn) {
+        if (refreshOnReturn) viewModel.loadPlayerDetails(playerId)
+    }
 
     PlayerDetailsContent(
         uiState = uiState,
         onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.loadPlayerDetails(playerId) }
+        onRetry = { viewModel.loadPlayerDetails(playerId) },
+        onEditPlayer = { onEditPlayer(playerId) }
     )
 }
 
@@ -80,7 +87,8 @@ fun PlayerDetailsScreen(
 private fun PlayerDetailsContent(
     uiState: PlayerDetailsUiState,
     onNavigateBack: () -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onEditPlayer: () -> Unit
 ) {
     val profile = (uiState as? PlayerDetailsUiState.Idle)?.profile
 
@@ -90,7 +98,27 @@ private fun PlayerDetailsContent(
             Column(Modifier.background(CarbonGray)) {
                 FMTopBar(
                     title = stringResource(Res.string.title_player_profile),
-                    onNavigateBack = onNavigateBack
+                    onNavigateBack = onNavigateBack,
+                    actions = {
+                        if (profile != null && profile.canManage) {
+                            var open by remember { mutableStateOf(false) }
+                            Box {
+                                IconButton(onClick = { open = true }) {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.ic_more),
+                                        contentDescription = stringResource(Res.string.label_more_options),
+                                        tint = Color.White
+                                    )
+                                }
+                                DropdownMenu(open, onDismissRequest = { open = false }, modifier = Modifier.background(Color.White)) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(Res.string.label_edit_player), color = DeepCarbon) },
+                                        onClick = { open = false; onEditPlayer() }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 )
                 if (profile != null) PlayerHeaderBand(profile)
             }
@@ -337,7 +365,7 @@ private fun matchDateLabel(instant: Instant): String =
 // Previews
 // ---------------------------------------------------------------------------------------------
 
-private fun sampleProfile(withPosition: Boolean, withEvents: Boolean): PlayerProfile = PlayerProfile(
+private fun sampleProfile(withPosition: Boolean, withEvents: Boolean, canManage: Boolean = true): PlayerProfile = PlayerProfile(
     player = Player(
         id = "p1", clubId = "c1", firstName = "Tomás", lastName = "Bragança",
         birthDate = LocalDate(2011, 3, 12), shirtNumber = 10, active = true,
@@ -347,10 +375,12 @@ private fun sampleProfile(withPosition: Boolean, withEvents: Boolean): PlayerPro
         emergencyContact = if (withPosition) "Ana Bragança · +351 912 345 678" else null
     ),
     ageGroupLabel = "Sub-15 A",
+    seasonLabel = "26/27",
     goals = 9,
     assists = 6,
     timesCalledUp = 14,
     guardiansLinked = 2,
+    canManage = canManage,
     recentEvents = if (withEvents) {
         listOf(
             PlayerProfileEvent(EventType.GOAL, 63, "AD Fontelas", Instant.fromEpochMilliseconds(0)),
@@ -369,7 +399,8 @@ private fun PlayerDetailsPopulatedPreview() {
         PlayerDetailsContent(
             uiState = PlayerDetailsUiState.Idle(sampleProfile(withPosition = true, withEvents = true)),
             onNavigateBack = {},
-            onRetry = {}
+            onRetry = {},
+            onEditPlayer = {}
         )
     }
 }
@@ -381,7 +412,21 @@ private fun PlayerDetailsNoPositionNoEventsPreview() {
         PlayerDetailsContent(
             uiState = PlayerDetailsUiState.Idle(sampleProfile(withPosition = false, withEvents = false)),
             onNavigateBack = {},
-            onRetry = {}
+            onRetry = {},
+            onEditPlayer = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PlayerDetailsCannotManagePreview() {
+    ClubManagerTheme {
+        PlayerDetailsContent(
+            uiState = PlayerDetailsUiState.Idle(sampleProfile(withPosition = true, withEvents = true, canManage = false)),
+            onNavigateBack = {},
+            onRetry = {},
+            onEditPlayer = {}
         )
     }
 }
@@ -390,7 +435,7 @@ private fun PlayerDetailsNoPositionNoEventsPreview() {
 @Composable
 private fun PlayerDetailsLoadingPreview() {
     ClubManagerTheme {
-        PlayerDetailsContent(uiState = PlayerDetailsUiState.Loading, onNavigateBack = {}, onRetry = {})
+        PlayerDetailsContent(uiState = PlayerDetailsUiState.Loading, onNavigateBack = {}, onRetry = {}, onEditPlayer = {})
     }
 }
 
@@ -401,7 +446,8 @@ private fun PlayerDetailsErrorPreview() {
         PlayerDetailsContent(
             uiState = PlayerDetailsUiState.Error("Couldn't load this player. Please try again."),
             onNavigateBack = {},
-            onRetry = {}
+            onRetry = {},
+            onEditPlayer = {}
         )
     }
 }

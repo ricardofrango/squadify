@@ -5,6 +5,7 @@ import com.ricardofrango.clubmanager.domain.repository.MatchEventRepository
 import com.ricardofrango.clubmanager.domain.repository.MatchRepository
 import com.ricardofrango.clubmanager.domain.repository.OpponentRepository
 import com.ricardofrango.clubmanager.domain.repository.PlayerRepository
+import com.ricardofrango.clubmanager.domain.repository.SeasonRepository
 import com.ricardofrango.clubmanager.domain.repository.TeamRepository
 import com.ricardofrango.clubmanager.domain.repository.UserRepository
 import com.ricardofrango.clubmanager.domain.service.TransactionManager
@@ -18,6 +19,8 @@ import com.ricardofrango.clubmanager.model.MatchEvent
 import com.ricardofrango.clubmanager.model.MatchStatus
 import com.ricardofrango.clubmanager.model.Opponent
 import com.ricardofrango.clubmanager.model.Player
+import com.ricardofrango.clubmanager.model.Season
+import com.ricardofrango.clubmanager.model.SeasonType
 import com.ricardofrango.clubmanager.model.User
 import com.ricardofrango.clubmanager.model.UserStatus
 import io.mockk.coEvery
@@ -36,6 +39,7 @@ class GetPlayerUseCaseTest {
     private val matchRepository = mockk<MatchRepository>()
     private val opponentRepository = mockk<OpponentRepository>()
     private val ageGroupRepository = mockk<AgeGroupRepository>()
+    private val seasonRepository = mockk<SeasonRepository>()
     private val teamRepository = mockk<TeamRepository>()
     private val userRepository = mockk<UserRepository>()
     private val transactionManager = object : TransactionManager {
@@ -46,7 +50,7 @@ class GetPlayerUseCaseTest {
     )
     private val useCase = GetPlayerUseCase(
         playerRepository, matchEventRepository, matchRepository, opponentRepository, ageGroupRepository,
-        checkUserPermissionUseCase, transactionManager
+        seasonRepository, checkUserPermissionUseCase, transactionManager
     )
 
     private val clubId = "club-1"
@@ -68,6 +72,10 @@ class GetPlayerUseCaseTest {
         coEvery { playerRepository.getAgeGroupIdsByPlayer(playerId) } returns listOf(ag1)
         coEvery { ageGroupRepository.getAgeGroupById(ag1) } returns AgeGroup(
             id = ag1, clubId = clubId, name = "Sub 15", seasonId = "s1", birthYear = 2011
+        )
+        coEvery { seasonRepository.getSeasonById("s1") } returns Season(
+            id = "s1", clubId = clubId, name = "25/26", type = SeasonType.EUROPEAN_YEAR,
+            startDate = LocalDate(2025, 7, 1), endDate = LocalDate(2026, 6, 30), active = true
         )
         coEvery { matchRepository.countCallUpsByPlayer(playerId) } returns 14L
         coEvery { playerRepository.countGuardiansByPlayer(playerId) } returns 2L
@@ -99,8 +107,24 @@ class GetPlayerUseCaseTest {
         assertEquals(14, result.timesCalledUp)
         assertEquals(2, result.guardiansLinked)
         assertEquals("Sub 15", result.ageGroupLabel)
+        assertEquals("25/26", result.seasonLabel)
         assertEquals(3, result.recentEvents.size)
         assertEquals("AD Fontelas", result.recentEvents.first().opponentName)
+        assertEquals(false, result.canManage)
+        Unit
+    }
+
+    @Test
+    fun aCoordinatorCanManageThePlayer() = runBlocking {
+        val coordinator = member()
+        coEvery { userRepository.findById(coordinator.id) } returns coordinator
+        coEvery { userRepository.getUserRoleInClub(coordinator.id, clubId) } returns ClubRole.COORDINATOR
+        stubBaseReads()
+        coEvery { matchEventRepository.getAllEventsByPlayer(playerId) } returns emptyList()
+
+        val result = useCase(coordinator.id, playerId)
+
+        assertEquals(true, result.canManage)
         Unit
     }
 
