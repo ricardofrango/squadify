@@ -5,7 +5,9 @@ import com.ricardofrango.clubmanager.domain.repository.MatchEventRepository
 import com.ricardofrango.clubmanager.domain.repository.MatchRepository
 import com.ricardofrango.clubmanager.domain.repository.OpponentRepository
 import com.ricardofrango.clubmanager.domain.repository.PlayerRepository
+import com.ricardofrango.clubmanager.domain.repository.SeasonRepository
 import com.ricardofrango.clubmanager.domain.service.TransactionManager
+import com.ricardofrango.clubmanager.exception.ForbiddenException
 import com.ricardofrango.clubmanager.exception.NotFoundException
 import com.ricardofrango.clubmanager.model.ClubRole
 import com.ricardofrango.clubmanager.model.EventType
@@ -26,6 +28,7 @@ class GetPlayerUseCase(
     private val matchRepository: MatchRepository,
     private val opponentRepository: OpponentRepository,
     private val ageGroupRepository: AgeGroupRepository,
+    private val seasonRepository: SeasonRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager
 ) {
@@ -34,9 +37,17 @@ class GetPlayerUseCase(
 
         checkUserPermissionUseCase(userId, player.clubId, minClubRole = ClubRole.MEMBER)
 
-        val ageGroupLabel = playerRepository.getAgeGroupIdsByPlayer(playerId)
+        val ageGroup = playerRepository.getAgeGroupIdsByPlayer(playerId)
             .firstNotNullOfOrNull { ageGroupRepository.getAgeGroupById(it) }
-            ?.name
+        val ageGroupLabel = ageGroup?.name
+        val seasonLabel = ageGroup?.let { seasonRepository.getSeasonById(it.seasonId) }?.name
+
+        val canManage = try {
+            checkUserPermissionUseCase(userId, player.clubId, minClubRole = ClubRole.COORDINATOR)
+            true
+        } catch (e: ForbiddenException) {
+            false
+        }
 
         // Newest first (see getAllEventsByPlayer) -- counted for the stat totals, and its head doubles
         // as the "recent events" list once each is resolved to its match/opponent.
@@ -58,11 +69,13 @@ class GetPlayerUseCase(
         PlayerProfile(
             player = player,
             ageGroupLabel = ageGroupLabel,
+            seasonLabel = seasonLabel,
             goals = goals,
             assists = assists,
             timesCalledUp = matchRepository.countCallUpsByPlayer(playerId).toInt(),
             guardiansLinked = playerRepository.countGuardiansByPlayer(playerId).toInt(),
-            recentEvents = recentEvents
+            recentEvents = recentEvents,
+            canManage = canManage
         )
     }
 }

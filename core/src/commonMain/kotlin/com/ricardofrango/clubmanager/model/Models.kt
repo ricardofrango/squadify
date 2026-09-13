@@ -222,16 +222,19 @@ data class Player(
  * Everything shown on the player profile screen: the player record plus derived stats (goals,
  * assists, times called up -- all-time, no season/career split yet) and the player's most recent
  * logged match events. [guardiansLinked] is a plain count -- who they are isn't shown on this screen.
+ * [canManage] is a non-throwing probe for the COORDINATOR gate that guards the edit action.
  */
 @Serializable
 data class PlayerProfile(
     val player: Player,
     val ageGroupLabel: String?,
+    val seasonLabel: String?,
     val goals: Int,
     val assists: Int,
     val timesCalledUp: Int,
     val guardiansLinked: Int,
-    val recentEvents: List<PlayerProfileEvent>
+    val recentEvents: List<PlayerProfileEvent>,
+    val canManage: Boolean
 )
 
 /** One logged event for [PlayerProfile.recentEvents], enriched with the match it happened in. */

@@ -214,6 +214,22 @@
     <string name="msg_create_players_failed">Something went wrong adding the players. Please try again.</string>
     <string name="label_select_birth_date">Select date of birth</string>
 
+    <!-- Edit Player -->
+    <string name="title_edit_player">Edit player</string>
+    <string name="label_edit_player">Edit player</string>
+    <string name="label_shirt_number_field">Shirt number</string>
+    <string name="label_optional_field_placeholder">Optional</string>
+    <string name="label_position_field">Position</string>
+    <string name="label_position_not_set">Not set</string>
+    <string name="label_emergency_contact_field">Emergency contact</string>
+    <string name="label_emergency_contact_placeholder">Name and phone number</string>
+    <string name="msg_emergency_contact_helper">Used on match day if a guardian can\'t be reached.</string>
+    <string name="msg_edit_player_optional_banner">Only the name and date of birth are required. The rest can wait.</string>
+    <string name="btn_save_changes">Save changes</string>
+    <string name="btn_saving_changes">Saving...</string>
+    <string name="msg_nothing_changed_yet">Nothing changed yet.</string>
+    <string name="msg_edit_player_failed">Something went wrong saving these changes. Please try again.</string>
+
     <!-- Age Group Details -->
     <string name="msg_failed_to_load_age_group">Couldn\'t load this age group. Please try again.</string>
     <string name="label_eligibility_rule">Players born in %1$d or later</string>

@@ -96,4 +96,7 @@ sealed class Screen {
 
     @Serializable
     data class PlayerDetails(val playerId: String) : Screen()
+
+    @Serializable
+    data class EditPlayer(val playerId: String) : Screen()
 }
