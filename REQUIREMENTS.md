@@ -1,6 +1,6 @@
-# Club Manager Platform - Requirements
+# Squadify Platform - Requirements
 
-This document outlines the core requirements and architectural decisions for the Club Manager platform.
+This document outlines the core requirements and architectural decisions for the Squadify platform.
 
 ## 1. User Profiles & Roles
 The application supports five primary user types:
@@ -43,7 +43,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - **Super Admin**: Global "God Mode" access to all clubs and platform data.
     - **Admins/Coordinators**: Full access within their specific club context.
     - **Coaches**: Can only manage teams where they are assigned as staff.
-- **Error Handling**: Standardized `ErrorResponse` JSON for all failures, using a custom `ClubManagerException` hierarchy.
+- **Error Handling**: Standardized `ErrorResponse` JSON for all failures, using a custom `SquadifyException` hierarchy.
 
 ## 5. Match Management
 - **Match**: Details about opponent (linked to Opponent entity), location, date, and status.

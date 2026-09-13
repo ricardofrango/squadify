@@ -1,0 +1,34 @@
+package com.ricardofrango.squadify.domain.usecase
+
+import com.ricardofrango.squadify.domain.repository.PlayerRepository
+import com.ricardofrango.squadify.domain.repository.TeamRepository
+import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.exception.ValidationException
+import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.Player
+
+/**
+ * "The players available to a team" is now the pool of its **age group** -- teams don't own players.
+ */
+class GetTeamPlayersUseCase(
+    private val playerRepository: PlayerRepository,
+    private val teamRepository: TeamRepository,
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val transactionManager: TransactionManager
+) {
+    suspend operator fun invoke(userId: String, teamId: String): List<Player> = transactionManager.runInTransaction {
+        val team = teamRepository.getTeamById(teamId) ?: throw ValidationException("Team not found")
+
+        checkUserPermissionUseCase(
+            userId = userId,
+            clubId = team.clubId,
+            minClubRole = ClubRole.MEMBER,
+            minTeamRole = TeamRole.STAFF,
+            teamId = teamId,
+            allowPlayerOrParentAccess = true
+        )
+
+        playerRepository.getPlayersByAgeGroup(team.ageGroupId)
+    }
+}

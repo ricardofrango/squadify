@@ -17,11 +17,11 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "com.ricardofrango.clubmanager.MainKt"
+        mainClass = "com.ricardofrango.squadify.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.ricardofrango.clubmanager"
+            packageName = "com.ricardofrango.squadify"
             packageVersion = "1.0.0"
         }
     }

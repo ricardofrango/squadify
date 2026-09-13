@@ -5,10 +5,10 @@ plugins {
     application
 }
 
-group = "com.ricardofrango.clubmanager"
+group = "com.ricardofrango.squadify"
 version = "1.0.0"
 application {
-    mainClass = "com.ricardofrango.clubmanager.ApplicationKt"
+    mainClass = "com.ricardofrango.squadify.ApplicationKt"
 }
 
 dependencies {

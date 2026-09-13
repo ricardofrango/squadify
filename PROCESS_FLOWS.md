@@ -1,4 +1,4 @@
-# Process Flows - Club Manager Platform
+# Process Flows - Squadify Platform
 
 This document maps every use case under `server/src/main/kotlin/.../domain/usecase` to a flowchart of its current, as-implemented logic. It complements [REQUIREMENTS.md](./REQUIREMENTS.md) (what the system should do) and [TECHNICAL_DECISIONS.md](./TECHNICAL_DECISIONS.md) (why it's built this way) with a process-level view: what each use case actually does today, branch by branch.
 
@@ -1127,7 +1127,7 @@ erDiagram
 
 ### 12.4 Current persistence setup
 
-- **Engine**: H2, file-based, at a path hardcoded in `DatabaseFactory.kt` (`jdbc:h2:file:/Users/ricardofrango/Dev/KMM/ClubManager/server/build/db;AUTO_SERVER=TRUE`). PostgreSQL for production is still pending, per `TECHNICAL_DECISIONS.md` §3.
+- **Engine**: H2, file-based, at a path hardcoded in `DatabaseFactory.kt` (`jdbc:h2:file:./server/build/db;AUTO_SERVER=TRUE`). PostgreSQL for production is still pending, per `TECHNICAL_DECISIONS.md` §3.
 - **Schema creation**: `SchemaUtils.createMissingTablesAndColumns(...)` runs on every boot, listing all tables explicitly. It's additive-only — it can add a missing table or column, but never drops or alters an existing one.
 - **Flyway vs. reality**: Flyway is a declared build dependency and is named as the migrations tool in `REQUIREMENTS.md` §7 and `TECHNICAL_DECISIONS.md` §3, but no Flyway migration scripts exist anywhere in the repo, and `DatabaseFactory.kt` never invokes Flyway at all. The actual mechanism today is `createMissingTablesAndColumns` plus a hardcoded block of idempotent `UPDATE ... SET status = UPPER(...)`-style statements in `DatabaseFactory.init()` that normalize legacy lowercase enum values on every startup — a hand-rolled, one-off substitute for a real migration history.
 - **Connection pool**: HikariCP, `maximumPoolSize = 3`, `autoCommit = false`, isolation level `TRANSACTION_REPEATABLE_READ`.

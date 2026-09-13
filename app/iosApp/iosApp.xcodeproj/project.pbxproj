@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		EF3E5B8B1314E6660D750D62 /* ClubManager.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClubManager.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EF3E5B8B1314E6660D750D62 /* Squadify.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Squadify.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -50,7 +50,7 @@
 		2F03D53BF1AD71BB1EB16DB6 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				EF3E5B8B1314E6660D750D62 /* ClubManager.app */,
+				EF3E5B8B1314E6660D750D62 /* Squadify.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -87,7 +87,7 @@
 			packageProductDependencies = (
 			);
 			productName = iosApp;
-			productReference = EF3E5B8B1314E6660D750D62 /* ClubManager.app */;
+			productReference = EF3E5B8B1314E6660D750D62 /* Squadify.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
