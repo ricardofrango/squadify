@@ -2,7 +2,9 @@ package com.ricardofrango.squadify.presentation.ui.login
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -19,6 +21,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyMark
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
@@ -66,14 +69,20 @@ fun LoginScreen(
                 )
             )
             .statusBarsPadding()
+            .imePadding()
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header Section
-            Spacer(modifier = Modifier.height(60.dp))
-            
+            // Header Section -- the same "18a" mark as the splash/app icon, so the hand-off from
+            // launch to login reads as one continuous carbon surface (design canvas "19B").
+            Spacer(modifier = Modifier.height(40.dp))
+
+            SquadifyMark(size = 80.dp)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text(
                 text = stringResource(Res.string.app_name),
                 style = MaterialTheme.typography.displaySmall.copy(
@@ -105,6 +114,7 @@ fun LoginScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
                         .padding(horizontal = 32.dp, vertical = 40.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -204,7 +214,7 @@ fun LoginScreen(
                         onClick = { viewModel.onLoginClicked(email, password) }
                     )
 
-                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     TextButton(
                         onClick = onNavigateToRegister,
