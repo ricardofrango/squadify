@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
+import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
@@ -15,6 +16,7 @@ import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchCallUp
 import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
+import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Season
@@ -42,6 +44,7 @@ class GetMatchDetailsUseCaseTest {
     private val ageGroupRepository = mockk<AgeGroupRepository>()
     private val seasonRepository = mockk<SeasonRepository>()
     private val playerRepository = mockk<PlayerRepository>()
+    private val matchEventRepository = mockk<MatchEventRepository>()
     private val userRepository = mockk<UserRepository>()
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
@@ -51,7 +54,7 @@ class GetMatchDetailsUseCaseTest {
     )
     private val useCase = GetMatchDetailsUseCase(
         matchRepository, opponentRepository, teamRepository, ageGroupRepository, seasonRepository,
-        playerRepository, checkUserPermissionUseCase, transactionManager
+        playerRepository, matchEventRepository, checkUserPermissionUseCase, transactionManager
     )
 
     private val clubId = "club-1"
@@ -78,6 +81,7 @@ class GetMatchDetailsUseCaseTest {
             MatchCallUpWithPlayer(MatchCallUp("cu-1", matchId, "p-called", CallUpStatus.CONFIRMED), player("p-called"))
         )
         coEvery { playerRepository.getPlayersByAgeGroup(ag1) } returns listOf(player("p-called"), player("p-free"))
+        coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 2, 1)
     }
 
     @Test
@@ -96,6 +100,7 @@ class GetMatchDetailsUseCaseTest {
         // Pool is the age group minus whoever is already called up.
         assertEquals(listOf("p-free"), d.poolPlayers.map { it.id })
         assertTrue(d.canManage)
+        assertEquals(MatchScore(matchId, 2, 1), d.score)
     }
 
     @Test

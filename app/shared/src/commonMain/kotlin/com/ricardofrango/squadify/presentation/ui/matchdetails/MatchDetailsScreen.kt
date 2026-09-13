@@ -27,6 +27,8 @@ import com.ricardofrango.squadify.presentation.ui.components.TimePickerSheet
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import androidx.compose.ui.tooling.preview.Preview
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -62,6 +64,7 @@ fun MatchDetailsScreen(
     matchId: String,
     onNavigateBack: () -> Unit,
     onEnterLiveMatch: (matchId: String) -> Unit,
+    onRedirectToLiveMatch: (matchId: String) -> Unit,
     refreshOnReturn: Boolean = false,
     viewModel: MatchDetailsViewModel = koinViewModel()
 ) {
@@ -73,6 +76,7 @@ fun MatchDetailsScreen(
         viewModel.navEvent.collect { event ->
             when (event) {
                 is MatchDetailsNavEvent.EnterLiveMatch -> onEnterLiveMatch(event.matchId)
+                is MatchDetailsNavEvent.RedirectToLiveMatch -> onRedirectToLiveMatch(event.matchId)
             }
         }
     }
@@ -167,7 +171,17 @@ private fun StatusBand(details: MatchDetails) {
                 Pill(stringResource(Res.string.matches_live), LossRed, Color.White)
             } else if (match.status == MatchStatus.SCHEDULED) {
                 Pill(relativeLabel(match.dateTime), PitchGreen.copy(alpha = 0.25f), PitchGreen)
+            } else if (match.status == MatchStatus.FINISHED) {
+                val (bg, fg) = resultPillColors(details.score)
+                Pill(stringResource(resultLabel(details.score)), bg, fg)
             }
+        }
+        if (match.status == MatchStatus.FINISHED) {
+            Text(
+                "${details.score.ourScore} – ${details.score.opponentScore}",
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                color = resultAccent(details.score)
+            )
         }
         match.location?.takeIf { it.isNotBlank() }?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
@@ -211,6 +225,9 @@ private fun MatchBody(
 ) {
     val details = state.details
     val counts = callUpCounts(details)
+    // A finished match is a record, not something to keep editing -- call-ups, kickoff, location
+    // etc. all freeze once the game is over, regardless of the viewer's role.
+    val canManage = details.canManage && details.match.status != MatchStatus.FINISHED
     var showEdit by remember { mutableStateOf(false) }
 
     val standby = details.callUps.filter { it.callUp.status == CallUpStatus.STANDBY }
@@ -237,7 +254,7 @@ private fun MatchBody(
         item {
             SectionHeader(
                 title = stringResource(Res.string.label_details_section),
-                trailing = if (details.canManage) stringResource(Res.string.label_edit) to { showEdit = true } else null
+                trailing = if (canManage) stringResource(Res.string.label_edit) to { showEdit = true } else null
             )
         }
         item { DetailsCard(details) }
@@ -254,14 +271,14 @@ private fun MatchBody(
                 Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
                 SortChip(stringResource(Res.string.label_sort_status), state.sort == CallUpSort.STATUS) { onSortSelected(CallUpSort.STATUS) }
                 SortChip(stringResource(Res.string.label_sort_name), state.sort == CallUpSort.NAME) { onSortSelected(CallUpSort.NAME) }
-                if (details.canManage) {
+                if (canManage) {
                     Spacer(Modifier.weight(1f))
                     // TODO: reminders aren't wired yet -- kept inert per the design.
                     Text(stringResource(Res.string.label_remind), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = PitchGreen.copy(alpha = 0.5f))
                 }
             }
         }
-        if (details.canManage && counts.confirmed < RECOMMENDED_SQUAD) {
+        if (canManage && counts.confirmed < RECOMMENDED_SQUAD) {
             item {
                 Text(
                     stringResource(Res.string.msg_squad_hint, counts.confirmed, RECOMMENDED_SQUAD),
@@ -273,8 +290,8 @@ private fun MatchBody(
         if (details.callUps.isEmpty()) {
             item { Text(stringResource(Res.string.msg_no_callups), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
         } else {
-            items(sortedActive, key = { it.callUp.id }) { cu -> CallUpRow(cu, details.canManage, onCycleStatus) }
-            if (details.canManage) {
+            items(sortedActive, key = { it.callUp.id }) { cu -> CallUpRow(cu, canManage, onCycleStatus) }
+            if (canManage) {
                 item {
                     Text(stringResource(Res.string.msg_tap_status_hint), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.45f))
                 }
@@ -283,11 +300,11 @@ private fun MatchBody(
 
         if (standby.isNotEmpty()) {
             item { GroupLabel(stringResource(Res.string.label_standby)) }
-            items(standby, key = { it.callUp.id }) { cu -> CallUpRow(cu, details.canManage, onCycleStatus) }
+            items(standby, key = { it.callUp.id }) { cu -> CallUpRow(cu, canManage, onCycleStatus) }
         }
 
         // ---- Available ----
-        if (details.canManage && details.poolPlayers.isNotEmpty()) {
+        if (canManage && details.poolPlayers.isNotEmpty()) {
             item {
                 Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 12.dp)) {
                     Text(stringResource(Res.string.label_available), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
@@ -599,6 +616,24 @@ private fun statusColors(s: CallUpStatus): Pair<Color, Color> = when (s) {
     CallUpStatus.CALLED_UP, CallUpStatus.STANDBY -> CarbonGray.copy(alpha = 0.14f) to DeepCarbon.copy(alpha = 0.6f)
 }
 
+private fun resultAccent(score: MatchScore): Color = when {
+    score.ourScore > score.opponentScore -> PitchGreen
+    score.ourScore < score.opponentScore -> LossRed
+    else -> Color.White.copy(alpha = 0.75f)
+}
+
+private fun resultPillColors(score: MatchScore): Pair<Color, Color> = when {
+    score.ourScore > score.opponentScore -> PitchGreen.copy(alpha = 0.25f) to PitchGreen
+    score.ourScore < score.opponentScore -> LossRed.copy(alpha = 0.25f) to LossRed
+    else -> Color.White.copy(alpha = 0.15f) to Color.White.copy(alpha = 0.75f)
+}
+
+private fun resultLabel(score: MatchScore): StringResource = when {
+    score.ourScore > score.opponentScore -> Res.string.label_result_win
+    score.ourScore < score.opponentScore -> Res.string.label_result_loss
+    else -> Res.string.label_result_draw
+}
+
 private fun timeLabel(instant: Instant): String {
     val dt = instant.toLocalDateTime(TimeZone.currentSystemDefault())
     return "${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}"
@@ -617,5 +652,65 @@ private fun relativeLabel(instant: Instant): String {
         days == 1 -> stringResource(Res.string.label_relative_tomorrow)
         days < 7 -> stringResource(Res.string.label_relative_in_days, days)
         else -> stringResource(Res.string.label_relative_in_weeks, days / 7)
+    }
+}
+
+// ---- Previews ----
+
+private fun sampleDetails(status: MatchStatus, canManage: Boolean, score: MatchScore = MatchScore("m1", 0, 0)) = MatchDetails(
+    match = Match(
+        id = "m1", clubId = "c1", teamId = "t1", opponentId = "o1",
+        location = "Municipal Stadium", dateTime = Instant.fromEpochMilliseconds(0), status = status
+    ),
+    opponent = Opponent(id = "o1", clubId = "c1", name = "Sporting Youth", shortName = "Sporting"),
+    team = Team(id = "t1", clubId = "c1", ageGroupId = "ag1", seasonId = "s1", name = "Sub-15 A", active = true),
+    ageGroup = AgeGroup(id = "ag1", clubId = "c1", name = "Sub-15", seasonId = "s1", birthYear = 2011),
+    season = Season(
+        id = "s1", clubId = "c1", name = "26/27", type = SeasonType.EUROPEAN_YEAR,
+        startDate = LocalDate(2026, 7, 1), endDate = LocalDate(2027, 6, 30), active = true
+    ),
+    callUps = listOf(
+        MatchCallUpWithPlayer(
+            callUp = MatchCallUp(id = "cu1", matchId = "m1", playerId = "p1", status = CallUpStatus.CONFIRMED),
+            player = Player(id = "p1", clubId = "c1", firstName = "Tomás", lastName = "Bragança", birthDate = LocalDate(2011, 3, 12), shirtNumber = 10, active = true)
+        )
+    ),
+    poolPlayers = listOf(
+        Player(id = "p2", clubId = "c1", firstName = "Xavier", lastName = "Boaventura", birthDate = LocalDate(2011, 8, 4), shirtNumber = 7, active = true)
+    ),
+    canManage = canManage,
+    score = score
+)
+
+@Preview
+@Composable
+private fun MatchDetailsFinishedWinPreview() {
+    SquadifyTheme {
+        MatchDetailsContent(
+            uiState = MatchDetailsUiState.Idle(sampleDetails(MatchStatus.FINISHED, canManage = true, score = MatchScore("m1", 3, 1))),
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onCycleStatus = {}, onAddToCallUp = {}, onEditMatch = {}, onEnterLiveMatch = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun MatchDetailsScheduledCanManagePreview() {
+    SquadifyTheme {
+        MatchDetailsContent(
+            uiState = MatchDetailsUiState.Idle(sampleDetails(MatchStatus.SCHEDULED, canManage = true)),
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onCycleStatus = {}, onAddToCallUp = {}, onEditMatch = {}, onEnterLiveMatch = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun MatchDetailsLoadingPreview() {
+    SquadifyTheme {
+        MatchDetailsContent(
+            uiState = MatchDetailsUiState.Loading,
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onCycleStatus = {}, onAddToCallUp = {}, onEditMatch = {}, onEnterLiveMatch = {}
+        )
     }
 }

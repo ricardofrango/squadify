@@ -21,6 +21,12 @@ sealed class MatchDetailsUiState {
 enum class CallUpSort { STATUS, NAME }
 
 sealed class MatchDetailsNavEvent {
-    /** The match has been started (status is LIVE) -- open the live match screen. */
+    /** The user tapped the bottom bar's start/enter button -- open the live match screen, keeping
+     * this screen on the back stack so returning from it still shows the match details. */
     data class EnterLiveMatch(val matchId: String) : MatchDetailsNavEvent()
+
+    /** Arrived here (or reloaded) to find the match is already LIVE/HALF_TIME -- this screen isn't
+     * where a live match should be viewed, so hand off to the live match screen immediately,
+     * replacing this entry on the back stack rather than stacking under it (see AppNavigation.kt). */
+    data class RedirectToLiveMatch(val matchId: String) : MatchDetailsNavEvent()
 }

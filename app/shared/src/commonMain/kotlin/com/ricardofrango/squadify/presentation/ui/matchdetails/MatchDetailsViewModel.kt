@@ -9,6 +9,7 @@ import com.ricardofrango.squadify.domain.usecase.UpdateMatchUseCase
 import com.ricardofrango.squadify.model.CallUpStatus
 import com.ricardofrango.squadify.model.MatchCallUp
 import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
+import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.UpdateCallUpRequest
 import com.ricardofrango.squadify.model.UpdateMatchRequest
@@ -48,6 +49,12 @@ class MatchDetailsViewModel(
             if (_state.value !is MatchDetailsUiState.Idle) _state.update { MatchDetailsUiState.Loading }
             try {
                 val details = getMatchDetailsUseCase(matchId)
+                if (details.match.status == MatchStatus.LIVE || details.match.status == MatchStatus.HALF_TIME) {
+                    // This screen isn't where a live match should be viewed -- hand off immediately
+                    // instead of rendering the (now stale-looking) details view.
+                    _navEvent.emit(MatchDetailsNavEvent.RedirectToLiveMatch(matchId))
+                    return@launch
+                }
                 _state.update { current ->
                     MatchDetailsUiState.Idle(
                         details = details,

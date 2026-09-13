@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
+import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
@@ -20,6 +21,7 @@ class GetMatchDetailsUseCase(
     private val ageGroupRepository: AgeGroupRepository,
     private val seasonRepository: SeasonRepository,
     private val playerRepository: PlayerRepository,
+    private val matchEventRepository: MatchEventRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager
 ) {
@@ -71,7 +73,8 @@ class GetMatchDetailsUseCase(
             season = season,
             callUps = callUps,
             poolPlayers = poolPlayers,
-            canManage = canManage
+            canManage = canManage,
+            score = matchEventRepository.getScoreByMatch(matchId)
         )
     }
 }

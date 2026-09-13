@@ -637,7 +637,9 @@ data class MatchDetails(
     val season: Season,
     val callUps: List<MatchCallUpWithPlayer>,
     val poolPlayers: List<Player>,
-    val canManage: Boolean
+    val canManage: Boolean,
+    // The running/final scoreline, rebuilt from match events -- 0-0 before any goals are logged.
+    val score: MatchScore
 )
 
 /** Body of `PATCH /matches/{matchId}`. Every field is optional; nulls are left untouched. */

@@ -673,10 +673,13 @@ graph TD
     C -- allowed --> D[Fetch opponent + team + age group + season]
     D --> E["callUps = call-ups for the match; poolPlayers = age group's players MINUS whoever is already called up"]
     E --> G["canManage = non-throwing probe: minClubRole=COORDINATOR OR minTeamRole=COACH on the team"]
-    G --> Z(["Return MatchDetails: match, opponent, team, ageGroup, season, callUps, poolPlayers, canManage"])
+    G --> H["score = matchEventRepository.getScoreByMatch(matchId) — 0-0 before any goals are logged"]
+    H --> Z(["Return MatchDetails: match, opponent, team, ageGroup, season, callUps, poolPlayers, canManage, score"])
 ```
 
-The use case composes `MatchDetails` itself now — the old `MatchRepository.getMatchDetails` (opponent + call-ups only) was removed. `poolPlayers` is the "Available" list on the call-up screen; `canManage` gates the edit sheet and call-up management. The bottom button just opens the live match screen (a placeholder for now); starting the game and recording events will live there.
+The use case composes `MatchDetails` itself now — the old `MatchRepository.getMatchDetails` (opponent + call-ups only) was removed. `poolPlayers` is the "Available" list on the call-up screen; `canManage` gates the edit sheet and call-up management, but only while the match is still open to changes -- the client additionally forces the screen read-only once `match.status == FINISHED` regardless of `canManage`, so a finished match becomes a plain record (no editing call-ups, kickoff, location, etc.). `score` feeds the FINISHED-state result banner (colored WIN/LOSS/DRAW + scoreline) on the details screen, the same rebuilt-from-events value `MatchRow` already showed in match lists.
+
+The bottom button just opens the live match screen; starting the game and recording events all live there. If the match is already LIVE/HALF_TIME when this screen loads (tapped in from a list, or discovered on a reload), the client redirects straight to the live match screen instead of rendering the details view -- see `MatchDetailsViewModel.load()` / `AppNavigation.kt`'s `Screen.MatchDetails` route, which pops this screen off the back stack when redirecting (rather than stacking under it) so back-navigation from the live screen doesn't bounce straight back into another redirect.
 
 ### 7.1c Update Match (`UpdateMatchUseCase`)
 
