@@ -354,7 +354,6 @@
     <string name="btn_save">Save</string>
     <string name="label_match_directions">Directions</string>
     <string name="label_call_up">Call-up</string>
-    <string name="label_sort_status">Status</string>
     <string name="label_remind">Remind</string>
     <string name="label_standby">Standby</string>
     <string name="label_available">Available</string>

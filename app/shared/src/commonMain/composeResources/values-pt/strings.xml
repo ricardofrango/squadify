@@ -354,7 +354,6 @@
     <string name="btn_save">Guardar</string>
     <string name="label_match_directions">Direções</string>
     <string name="label_call_up">Convocatória</string>
-    <string name="label_sort_status">Estado</string>
     <string name="label_remind">Lembrar</string>
     <string name="label_standby">Suplência</string>
     <string name="label_available">Disponíveis</string>

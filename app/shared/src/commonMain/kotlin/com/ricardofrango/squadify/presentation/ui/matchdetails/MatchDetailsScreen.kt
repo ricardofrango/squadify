@@ -232,14 +232,9 @@ private fun MatchBody(
 
     val standby = details.callUps.filter { it.callUp.status == CallUpStatus.STANDBY }
     val active = details.callUps.filter { it.callUp.status != CallUpStatus.STANDBY }
-    val sortedActive = remember(active, state.sort) {
-        when (state.sort) {
-            CallUpSort.STATUS -> active.sortedWith(
-                compareBy({ statusOrder(it.callUp.status) }, { it.player.lastName.lowercase() }, { it.player.firstName.lowercase() })
-            )
-            CallUpSort.NAME -> active.sortedWith(compareBy({ it.player.lastName.lowercase() }, { it.player.firstName.lowercase() }))
-        }
-    }
+    val comparator = callUpComparator(state.sort)
+    val sortedActive = active.sortedWith(comparator)
+    val sortedStandby = standby.sortedWith(comparator)
 
     LazyColumn(
         modifier = modifier,
@@ -269,8 +264,8 @@ private fun MatchBody(
         item {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
-                SortChip(stringResource(Res.string.label_sort_status), state.sort == CallUpSort.STATUS) { onSortSelected(CallUpSort.STATUS) }
                 SortChip(stringResource(Res.string.label_sort_name), state.sort == CallUpSort.NAME) { onSortSelected(CallUpSort.NAME) }
+                SortChip(stringResource(Res.string.label_position_field), state.sort == CallUpSort.POSITION) { onSortSelected(CallUpSort.POSITION) }
                 if (canManage) {
                     Spacer(Modifier.weight(1f))
                     // TODO: reminders aren't wired yet -- kept inert per the design.
@@ -300,7 +295,7 @@ private fun MatchBody(
 
         if (standby.isNotEmpty()) {
             item { GroupLabel(stringResource(Res.string.label_standby)) }
-            items(standby, key = { it.callUp.id }) { cu -> CallUpRow(cu, canManage, onCycleStatus) }
+            items(sortedStandby, key = { it.callUp.id }) { cu -> CallUpRow(cu, canManage, onCycleStatus) }
         }
 
         // ---- Available ----
@@ -594,12 +589,16 @@ private fun callUpCounts(details: MatchDetails): CallUpCounts {
     )
 }
 
-private fun statusOrder(s: CallUpStatus): Int = when (s) {
-    CallUpStatus.CONFIRMED -> 0
-    CallUpStatus.CALLED_UP -> 1
-    CallUpStatus.DECLINED -> 2
-    CallUpStatus.NOT_AVAILABLE -> 3
-    CallUpStatus.STANDBY -> 4
+/** [PlayerPosition]'s declared order is already Goalkeeper → Defender → Midfield → Winger →
+ * Striker, so its ordinal doubles as the sort rank; a player with no position sorts last. Either
+ * sort falls back to last/first name as a tiebreaker (and as the sole key for [CallUpSort.NAME]). */
+private fun callUpComparator(sort: CallUpSort): Comparator<MatchCallUpWithPlayer> = when (sort) {
+    CallUpSort.NAME -> compareBy({ it.player.lastName.lowercase() }, { it.player.firstName.lowercase() })
+    CallUpSort.POSITION -> compareBy(
+        { it.player.position?.ordinal ?: Int.MAX_VALUE },
+        { it.player.lastName.lowercase() },
+        { it.player.firstName.lowercase() }
+    )
 }
 
 private fun statusLabel(s: CallUpStatus): StringResource = when (s) {
@@ -672,7 +671,15 @@ private fun sampleDetails(status: MatchStatus, canManage: Boolean, score: MatchS
     callUps = listOf(
         MatchCallUpWithPlayer(
             callUp = MatchCallUp(id = "cu1", matchId = "m1", playerId = "p1", status = CallUpStatus.CONFIRMED),
-            player = Player(id = "p1", clubId = "c1", firstName = "Tomás", lastName = "Bragança", birthDate = LocalDate(2011, 3, 12), shirtNumber = 10, active = true)
+            player = Player(id = "p1", clubId = "c1", firstName = "Tomás", lastName = "Bragança", birthDate = LocalDate(2011, 3, 12), shirtNumber = 10, active = true, position = PlayerPosition.MIDFIELD)
+        ),
+        MatchCallUpWithPlayer(
+            callUp = MatchCallUp(id = "cu2", matchId = "m1", playerId = "p3", status = CallUpStatus.CONFIRMED),
+            player = Player(id = "p3", clubId = "c1", firstName = "Ana", lastName = "Costa", birthDate = LocalDate(2011, 5, 2), shirtNumber = 1, active = true, position = PlayerPosition.GOALKEEPER)
+        ),
+        MatchCallUpWithPlayer(
+            callUp = MatchCallUp(id = "cu3", matchId = "m1", playerId = "p4", status = CallUpStatus.CALLED_UP),
+            player = Player(id = "p4", clubId = "c1", firstName = "Beatriz", lastName = "Almeida", birthDate = LocalDate(2011, 9, 18), shirtNumber = 9, active = true, position = PlayerPosition.STRIKER)
         )
     ),
     poolPlayers = listOf(
@@ -699,6 +706,20 @@ private fun MatchDetailsScheduledCanManagePreview() {
     SquadifyTheme {
         MatchDetailsContent(
             uiState = MatchDetailsUiState.Idle(sampleDetails(MatchStatus.SCHEDULED, canManage = true)),
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onCycleStatus = {}, onAddToCallUp = {}, onEditMatch = {}, onEnterLiveMatch = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun MatchDetailsSortedByPositionPreview() {
+    SquadifyTheme {
+        MatchDetailsContent(
+            uiState = MatchDetailsUiState.Idle(
+                details = sampleDetails(MatchStatus.SCHEDULED, canManage = true),
+                sort = CallUpSort.POSITION
+            ),
             onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onCycleStatus = {}, onAddToCallUp = {}, onEditMatch = {}, onEnterLiveMatch = {}
         )
     }

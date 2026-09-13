@@ -9,7 +9,7 @@ sealed class MatchDetailsUiState {
 
     data class Idle(
         val details: MatchDetails,
-        val sort: CallUpSort = CallUpSort.STATUS,
+        val sort: CallUpSort = CallUpSort.NAME,
         // A call-up / status / manage write is in flight (edits are applied optimistically first).
         val isSubmitting: Boolean = false,
         // An optimistic write was rolled back -- shown as a transient message, not a full error state.
@@ -18,7 +18,7 @@ sealed class MatchDetailsUiState {
 }
 
 /** Ordering of the called-up list. Local screen state, not persisted. */
-enum class CallUpSort { STATUS, NAME }
+enum class CallUpSort { NAME, POSITION }
 
 sealed class MatchDetailsNavEvent {
     /** The user tapped the bottom bar's start/enter button -- open the live match screen, keeping
