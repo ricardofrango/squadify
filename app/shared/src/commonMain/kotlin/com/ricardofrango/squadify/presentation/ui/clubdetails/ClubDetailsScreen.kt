@@ -630,23 +630,6 @@ private fun PlayerFilterSection(
     viewModel: ClubDetailsViewModel
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
-        OutlinedTextField(
-            value = state.playerSearchQuery,
-            onValueChange = viewModel::onPlayerSearchChanged,
-            label = { Text(stringResource(Res.string.label_search_players)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = DeepCarbon,
-                unfocusedTextColor = DeepCarbon,
-                focusedBorderColor = PitchGreen,
-                unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
-                focusedLabelColor = PitchGreen,
-                unfocusedLabelColor = CarbonGray
-            )
-        )
-        Spacer(modifier = Modifier.height(12.dp))
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -671,6 +654,23 @@ private fun PlayerFilterSection(
                 )
             }
         }
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedTextField(
+            value = state.playerSearchQuery,
+            onValueChange = viewModel::onPlayerSearchChanged,
+            label = { Text(stringResource(Res.string.label_search_players)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = DeepCarbon,
+                unfocusedTextColor = DeepCarbon,
+                focusedBorderColor = PitchGreen,
+                unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
+                focusedLabelColor = PitchGreen,
+                unfocusedLabelColor = CarbonGray
+            )
+        )
     }
 }
 
