@@ -243,41 +243,45 @@ fun ClubDetailsScreen(
             )
         },
         bottomBar = {
-            NavigationBar(
-                containerColor = CarbonGray,
-                tonalElevation = 0.dp,
-                windowInsets = NavigationBarDefaults.windowInsets
-            ) {
-                ClubTabItem(
-                    selected = selectedTab == 0,
-                    onClick = { viewModel.onTabSelected(0) },
-                    icon = Res.drawable.ic_age_group,
-                    label = stringResource(Res.string.tab_age_groups)
-                )
-                ClubTabItem(
-                    selected = selectedTab == 1,
-                    onClick = { viewModel.onTabSelected(1) },
-                    icon = Res.drawable.ic_teams,
-                    label = stringResource(Res.string.tab_teams)
-                )
-                ClubTabItem(
-                    selected = selectedTab == 2,
-                    onClick = { viewModel.onTabSelected(2) },
-                    icon = Res.drawable.ic_home,
-                    label = stringResource(Res.string.tab_home)
-                )
-                ClubTabItem(
-                    selected = selectedTab == 3,
-                    onClick = { viewModel.onTabSelected(3) },
-                    icon = Res.drawable.ic_player,
-                    label = stringResource(Res.string.tab_players)
-                )
-                ClubTabItem(
-                    selected = selectedTab == 4,
-                    onClick = { viewModel.onTabSelected(4) },
-                    icon = Res.drawable.ic_calendar,
-                    label = stringResource(Res.string.tab_matches)
-                )
+            // Only meaningful once the club details actually loaded -- while loading, or if the
+            // fetch failed (Idle.details stays null), there's nothing for the tabs to show.
+            if ((uiState as? ClubDetailsUiState.Idle)?.details != null) {
+                NavigationBar(
+                    containerColor = CarbonGray,
+                    tonalElevation = 0.dp,
+                    windowInsets = NavigationBarDefaults.windowInsets
+                ) {
+                    ClubTabItem(
+                        selected = selectedTab == 0,
+                        onClick = { viewModel.onTabSelected(0) },
+                        icon = Res.drawable.ic_age_group,
+                        label = stringResource(Res.string.tab_age_groups)
+                    )
+                    ClubTabItem(
+                        selected = selectedTab == 1,
+                        onClick = { viewModel.onTabSelected(1) },
+                        icon = Res.drawable.ic_teams,
+                        label = stringResource(Res.string.tab_teams)
+                    )
+                    ClubTabItem(
+                        selected = selectedTab == 2,
+                        onClick = { viewModel.onTabSelected(2) },
+                        icon = Res.drawable.ic_home,
+                        label = stringResource(Res.string.tab_home)
+                    )
+                    ClubTabItem(
+                        selected = selectedTab == 3,
+                        onClick = { viewModel.onTabSelected(3) },
+                        icon = Res.drawable.ic_player,
+                        label = stringResource(Res.string.tab_players)
+                    )
+                    ClubTabItem(
+                        selected = selectedTab == 4,
+                        onClick = { viewModel.onTabSelected(4) },
+                        icon = Res.drawable.ic_calendar,
+                        label = stringResource(Res.string.tab_matches)
+                    )
+                }
             }
         }
     ) { paddingValues ->
