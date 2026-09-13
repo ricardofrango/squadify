@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.register
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,15 +14,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
 import squadify.app.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+
+private val SectionShape = RoundedCornerShape(20.dp)
+private val FieldShape = RoundedCornerShape(16.dp)
+private const val PASSWORD_STRENGTH_SEGMENTS = 4
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,12 +58,14 @@ fun RegisterScreen(
     var confirmPassword by rememberSaveable { mutableStateOf("") }
 
     val errorMessage = (uiState as? RegisterUiState.Idle)?.error
+    val enabled = uiState !is RegisterUiState.Loading
 
     Scaffold(
         topBar = {
             FMTopBar(
-                title = stringResource(Res.string.app_name),
-                onNavigateBack = onNavigateBack,
+                title = stringResource(Res.string.title_register),
+                subtitle = stringResource(Res.string.label_register_step),
+                onNavigateBack = onNavigateBack
             )
         }
     ) { paddingValues ->
@@ -64,34 +73,19 @@ fun RegisterScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color.White)
+                .background(WhiteSmoke)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 32.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Spacer(modifier = Modifier.height(40.dp))
-                
-                Text(
-                    text = stringResource(Res.string.btn_register),
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = CarbonGray
-                    ),
-                    modifier = Modifier.align(Alignment.Start)
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Error Message Handling with Reserved Space
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(32.dp)
-                        .padding(bottom = 8.dp),
+                        .height(20.dp),
                     contentAlignment = Alignment.CenterStart
                 ) {
                     if (errorMessage != null) {
@@ -103,133 +97,65 @@ fun RegisterScreen(
                     }
                 }
 
-                OutlinedTextField(
-                    value = firstName,
-                    onValueChange = { firstName = it },
-                    label = { Text(stringResource(Res.string.label_first_name)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                    isError = errorMessage != null,
-                    enabled = uiState !is RegisterUiState.Loading,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = DeepCarbon,
-                        unfocusedTextColor = DeepCarbon,
-                        focusedBorderColor = PitchGreen,
-                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
-                        focusedLabelColor = PitchGreen,
-                        unfocusedLabelColor = Color.Gray
+                FormSection(title = stringResource(Res.string.label_section_your_name)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        FormField(
+                            value = firstName,
+                            onValueChange = { firstName = it },
+                            label = stringResource(Res.string.label_first_name),
+                            isError = errorMessage != null,
+                            enabled = enabled,
+                            modifier = Modifier.weight(1f)
+                        )
+                        FormField(
+                            value = lastName,
+                            onValueChange = { lastName = it },
+                            label = stringResource(Res.string.label_last_name),
+                            isError = errorMessage != null,
+                            enabled = enabled,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                FormSection(title = stringResource(Res.string.label_section_how_we_reach_you)) {
+                    FormField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = stringResource(Res.string.label_email),
+                        isError = errorMessage != null,
+                        enabled = enabled
                     )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = lastName,
-                    onValueChange = { lastName = it },
-                    label = { Text(stringResource(Res.string.label_last_name)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                    isError = errorMessage != null,
-                    enabled = uiState !is RegisterUiState.Loading,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = DeepCarbon,
-                        unfocusedTextColor = DeepCarbon,
-                        focusedBorderColor = PitchGreen,
-                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
-                        focusedLabelColor = PitchGreen,
-                        unfocusedLabelColor = Color.Gray
+                    FormField(
+                        value = phone,
+                        onValueChange = { phone = it },
+                        label = stringResource(Res.string.label_phone),
+                        isError = errorMessage != null,
+                        enabled = enabled
                     )
-                )
+                }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text(stringResource(Res.string.label_email)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                    isError = errorMessage != null,
-                    enabled = uiState !is RegisterUiState.Loading,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = DeepCarbon,
-                        unfocusedTextColor = DeepCarbon,
-                        focusedBorderColor = PitchGreen,
-                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
-                        focusedLabelColor = PitchGreen,
-                        unfocusedLabelColor = Color.Gray
+                FormSection(title = stringResource(Res.string.label_section_password)) {
+                    FormField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = stringResource(Res.string.label_password),
+                        isError = errorMessage != null,
+                        enabled = enabled,
+                        isPassword = true
                     )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = phone,
-                    onValueChange = { phone = it },
-                    label = { Text(stringResource(Res.string.label_phone)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                    isError = errorMessage != null,
-                    enabled = uiState !is RegisterUiState.Loading,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = DeepCarbon,
-                        unfocusedTextColor = DeepCarbon,
-                        focusedBorderColor = PitchGreen,
-                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
-                        focusedLabelColor = PitchGreen,
-                        unfocusedLabelColor = Color.Gray
+                    PasswordStrengthBar(password)
+                    FormField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it },
+                        label = stringResource(Res.string.label_confirm_password),
+                        isError = errorMessage != null,
+                        enabled = enabled,
+                        isPassword = true
                     )
-                )
+                }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text(stringResource(Res.string.label_password)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    visualTransformation = PasswordVisualTransformation(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                    isError = errorMessage != null,
-                    enabled = uiState !is RegisterUiState.Loading,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = DeepCarbon,
-                        unfocusedTextColor = DeepCarbon,
-                        focusedBorderColor = PitchGreen,
-                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
-                        focusedLabelColor = PitchGreen,
-                        unfocusedLabelColor = Color.Gray
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = confirmPassword,
-                    onValueChange = { confirmPassword = it },
-                    label = { Text(stringResource(Res.string.label_confirm_password)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    visualTransformation = PasswordVisualTransformation(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
-                    isError = errorMessage != null,
-                    enabled = uiState !is RegisterUiState.Loading,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = DeepCarbon,
-                        unfocusedTextColor = DeepCarbon,
-                        focusedBorderColor = PitchGreen,
-                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
-                        focusedLabelColor = PitchGreen,
-                        unfocusedLabelColor = Color.Gray
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 PrimaryLoadingButton(
                     text = Res.string.btn_register,
@@ -242,11 +168,10 @@ fun RegisterScreen(
                     }
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
-
                 TextButton(
                     onClick = onNavigateBack,
-                    enabled = uiState !is RegisterUiState.Loading
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = enabled
                 ) {
                     Text(
                         text = stringResource(Res.string.msg_already_have_account),
@@ -256,9 +181,94 @@ fun RegisterScreen(
                         )
                     )
                 }
-                
-                Spacer(modifier = Modifier.height(40.dp))
             }
         }
     }
+}
+
+/** One white, rounded card grouping related fields under a small caps section label. */
+@Composable
+private fun FormSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = SectionShape,
+        color = Color.White,
+        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.1f))
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = title.uppercase(),
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = CarbonGray.copy(alpha = 0.5f)
+            )
+            content()
+        }
+    }
+}
+
+@Composable
+private fun FormField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    isError: Boolean,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    isPassword: Boolean = false
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        modifier = modifier.fillMaxWidth(),
+        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+        singleLine = true,
+        shape = FieldShape,
+        isError = isError,
+        enabled = enabled,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = DeepCarbon,
+            unfocusedTextColor = DeepCarbon,
+            focusedBorderColor = PitchGreen,
+            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
+            focusedLabelColor = PitchGreen,
+            unfocusedLabelColor = Color.Gray
+        )
+    )
+}
+
+/** A 4-segment strength meter, filled left-to-right by how many of a handful of simple
+ * complexity checks the password passes. Purely a visual nudge -- the server is the source of
+ * truth for whether a password is actually acceptable. */
+@Composable
+private fun PasswordStrengthBar(password: String) {
+    val filledSegments = remember(password) { passwordStrengthSegments(password) }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        repeat(PASSWORD_STRENGTH_SEGMENTS) { index ->
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(4.dp)
+                    .background(
+                        color = if (index < filledSegments) PitchGreen else Color.Gray.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(2.dp)
+                    )
+            )
+        }
+    }
+}
+
+private fun passwordStrengthSegments(password: String): Int {
+    if (password.isEmpty()) return 0
+    var score = 1
+    if (password.length >= 8) score++
+    if (password.any { it.isDigit() }) score++
+    if (password.length >= 12 || password.any { !it.isLetterOrDigit() }) score++
+    return score.coerceIn(1, PASSWORD_STRENGTH_SEGMENTS)
 }
