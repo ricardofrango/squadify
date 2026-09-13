@@ -23,7 +23,7 @@ kotlin {
     }
     
     android {
-       namespace = "com.ricardofrango.clubmanager.core"
+       namespace = "com.ricardofrango.squadify.core"
        compileSdk = libs.versions.android.compileSdk.get().toInt()
        minSdk = libs.versions.android.minSdk.get().toInt()
     

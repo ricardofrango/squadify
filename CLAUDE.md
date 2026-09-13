@@ -1,4 +1,4 @@
-# Club Manager — Project Instructions
+# Squadify — Project Instructions
 
 Before making any change in this repository, read the following documents in full. They are the source of truth for how this project works and how to work on it — do not duplicate or restate their content here, just read them:
 

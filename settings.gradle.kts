@@ -1,4 +1,4 @@
-rootProject.name = "ClubManager"
+rootProject.name = "Squadify"
 
 pluginManagement {
     repositories {
