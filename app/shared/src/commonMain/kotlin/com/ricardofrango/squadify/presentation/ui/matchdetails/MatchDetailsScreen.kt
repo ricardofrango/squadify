@@ -592,12 +592,16 @@ private fun callUpCounts(details: MatchDetails): CallUpCounts {
 /** [PlayerPosition]'s declared order is already Goalkeeper → Defender → Midfield → Winger →
  * Striker, so its ordinal doubles as the sort rank; a player with no position sorts last. Either
  * sort falls back to last/first name as a tiebreaker (and as the sole key for [CallUpSort.NAME]). */
+// Sorted first name, then last name -- matching the order the row actually displays ("Tomás
+// Bragança"), so the sort reads as working rather than seemingly-random. Sorting by last name
+// first would be the more familiar convention on a roster, but not when the row itself leads with
+// the first name.
 private fun callUpComparator(sort: CallUpSort): Comparator<MatchCallUpWithPlayer> = when (sort) {
-    CallUpSort.NAME -> compareBy({ it.player.lastName.lowercase() }, { it.player.firstName.lowercase() })
+    CallUpSort.NAME -> compareBy({ it.player.firstName.lowercase() }, { it.player.lastName.lowercase() })
     CallUpSort.POSITION -> compareBy(
         { it.player.position?.ordinal ?: Int.MAX_VALUE },
-        { it.player.lastName.lowercase() },
-        { it.player.firstName.lowercase() }
+        { it.player.firstName.lowercase() },
+        { it.player.lastName.lowercase() }
     )
 }
 
