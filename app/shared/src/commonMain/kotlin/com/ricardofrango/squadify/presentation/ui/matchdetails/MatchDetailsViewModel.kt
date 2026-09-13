@@ -58,7 +58,7 @@ class MatchDetailsViewModel(
                 _state.update { current ->
                     MatchDetailsUiState.Idle(
                         details = details,
-                        sort = (current as? MatchDetailsUiState.Idle)?.sort ?: CallUpSort.NAME
+                        sort = (current as? MatchDetailsUiState.Idle)?.sort ?: CallUpSort.POSITION
                     )
                 }
             } catch (e: Exception) {

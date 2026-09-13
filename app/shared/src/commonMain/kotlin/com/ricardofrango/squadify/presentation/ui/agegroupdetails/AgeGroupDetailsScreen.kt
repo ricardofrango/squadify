@@ -65,7 +65,7 @@ fun AgeGroupDetailsScreen(
     viewModel: AgeGroupDetailsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
-    var playerSort by remember { mutableStateOf(PlayerSort.NAME) }
+    var playerSort by remember { mutableStateOf(PlayerSort.POSITION) }
     var searchQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
@@ -223,9 +223,18 @@ private fun AgeGroupBody(
             .filter { q.isEmpty() || "${it.firstName} ${it.lastName}".lowercase().contains(q) }
             .sortedWith(
                 when (playerSort) {
-                    PlayerSort.NAME -> compareBy({ it.lastName.lowercase() }, { it.firstName.lowercase() })
+                    // Position order (Goalkeeper -> Striker) matches PlayerPosition's declared enum
+                    // order, so its ordinal doubles as the rank; no position set sorts last. Name
+                    // sorts first name then last name, matching PlayerRow's "First Last" display --
+                    // sorting last-name-first there would silently disagree with what's on screen.
+                    PlayerSort.POSITION -> compareBy(
+                        { it.position?.ordinal ?: Int.MAX_VALUE },
+                        { it.firstName.lowercase() },
+                        { it.lastName.lowercase() }
+                    )
+                    PlayerSort.NAME -> compareBy({ it.firstName.lowercase() }, { it.lastName.lowercase() })
                     PlayerSort.BIRTH_YEAR -> compareByDescending<Player> { it.birthDate.year }
-                        .thenBy { it.lastName.lowercase() }
+                        .thenBy { it.firstName.lowercase() }
                 }
             )
             .toList()
@@ -328,6 +337,7 @@ private fun AgeGroupBody(
             item {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
+                    SortChip(stringResource(Res.string.label_position_field), playerSort == PlayerSort.POSITION) { onPlayerSortChange(PlayerSort.POSITION) }
                     SortChip(stringResource(Res.string.label_sort_name), playerSort == PlayerSort.NAME) { onPlayerSortChange(PlayerSort.NAME) }
                     SortChip(stringResource(Res.string.label_sort_birth_year), playerSort == PlayerSort.BIRTH_YEAR) { onPlayerSortChange(PlayerSort.BIRTH_YEAR) }
                 }

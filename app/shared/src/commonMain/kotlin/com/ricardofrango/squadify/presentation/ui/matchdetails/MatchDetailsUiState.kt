@@ -9,7 +9,7 @@ sealed class MatchDetailsUiState {
 
     data class Idle(
         val details: MatchDetails,
-        val sort: CallUpSort = CallUpSort.NAME,
+        val sort: CallUpSort = CallUpSort.POSITION,
         // A call-up / status / manage write is in flight (edits are applied optimistically first).
         val isSubmitting: Boolean = false,
         // An optimistic write was rolled back -- shown as a transient message, not a full error state.
