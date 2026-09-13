@@ -245,7 +245,6 @@
     <string name="msg_no_upcoming_matches">Nenhum jogo agendado</string>
     <string name="label_sort">Ordenar</string>
     <string name="label_sort_name">Nome</string>
-    <string name="label_sort_birth_year">Ano de nascimento</string>
     <string name="label_add">Adicionar</string>
     <string name="btn_add_players">Adicionar jogadores</string>
     <string name="btn_add_staff">Adicionar equipa técnica</string>

@@ -245,7 +245,6 @@
     <string name="msg_no_upcoming_matches">No matches scheduled</string>
     <string name="label_sort">Sort</string>
     <string name="label_sort_name">Name</string>
-    <string name="label_sort_birth_year">Birth year</string>
     <string name="label_add">Add</string>
     <string name="btn_add_players">Add players</string>
     <string name="btn_add_staff">Add staff</string>

@@ -233,8 +233,6 @@ private fun AgeGroupBody(
                         { it.lastName.lowercase() }
                     )
                     PlayerSort.NAME -> compareBy({ it.firstName.lowercase() }, { it.lastName.lowercase() })
-                    PlayerSort.BIRTH_YEAR -> compareByDescending<Player> { it.birthDate.year }
-                        .thenBy { it.firstName.lowercase() }
                 }
             )
             .toList()
@@ -339,7 +337,6 @@ private fun AgeGroupBody(
                     Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
                     SortChip(stringResource(Res.string.label_position_field), playerSort == PlayerSort.POSITION) { onPlayerSortChange(PlayerSort.POSITION) }
                     SortChip(stringResource(Res.string.label_sort_name), playerSort == PlayerSort.NAME) { onPlayerSortChange(PlayerSort.NAME) }
-                    SortChip(stringResource(Res.string.label_sort_birth_year), playerSort == PlayerSort.BIRTH_YEAR) { onPlayerSortChange(PlayerSort.BIRTH_YEAR) }
                 }
             }
             item {
@@ -488,12 +485,9 @@ private fun PlayerRow(player: Player, playsUp: Boolean, onClick: () -> Unit) {
                     color = if (player.active) DeepCarbon else DeepCarbon.copy(alpha = 0.4f),
                     maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(player.birthDate.year.toString(), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.55f))
-                    if (playsUp) {
-                        Spacer(Modifier.width(8.dp))
-                        MiniChip(stringResource(Res.string.label_plays_up))
-                    }
+                if (playsUp) {
+                    Spacer(Modifier.height(2.dp))
+                    MiniChip(stringResource(Res.string.label_plays_up))
                 }
             }
             player.shirtNumber?.let {
@@ -665,7 +659,7 @@ private fun AgeGroupDetailsLandscapePreview() {
     SquadifyTheme {
         AgeGroupDetailsContent(
             uiState = AgeGroupDetailsUiState.Idle(sampleDetails(populated = true, canManage = true)),
-            playerSort = PlayerSort.BIRTH_YEAR, searchQuery = "",
+            playerSort = PlayerSort.NAME, searchQuery = "",
             onNavigateBack = {}, onRetry = {}, onPlayerSortChange = {}, onSearchChange = {},
             onPlayerClick = {}, onTeamClick = {}, onMatchClick = {}, onAddPlayers = {}, onAddStaff = {}, onCreateTeam = {}, onCreateMatch = {}
         )

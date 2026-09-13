@@ -9,4 +9,4 @@ sealed class AgeGroupDetailsUiState {
 }
 
 /** Player-list ordering on the detail screen. Local screen state, not persisted. */
-enum class PlayerSort { POSITION, NAME, BIRTH_YEAR }
+enum class PlayerSort { POSITION, NAME }
