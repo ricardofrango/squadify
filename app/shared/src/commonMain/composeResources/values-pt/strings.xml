@@ -6,6 +6,7 @@
     <string name="label_hide_password">Ocultar senha</string>
     <string name="btn_login">Entrar</string>
     <string name="btn_loging_in">A entrar...</string>
+    <string name="msg_login_failed">Não foi possível entrar. Verifique o seu email e senha e tente novamente.</string>
     <string name="msg_forgot_password">Esqueceu a senha?</string>
     <string name="label_or_divider">OU</string>
     <string name="btn_create_account">Criar conta</string>
@@ -19,6 +20,9 @@
     <string name="label_last_name">Último nome</string>
     <string name="label_phone">Telemóvel · opcional</string>
     <string name="label_confirm_password">Confirmar senha</string>
+    <string name="msg_passwords_do_not_match">As senhas não coincidem</string>
+    <string name="msg_email_already_registered">Já existe uma conta com este email. Experimente entrar em vez disso.</string>
+    <string name="msg_registration_failed">Não foi possível criar a sua conta. Por favor, tente novamente.</string>
     <string name="msg_already_have_account">Já tem uma conta? Entrar</string>
     <string name="title_my_clubs">Meus Clubes</string>
     <string name="title_account">Conta</string>
