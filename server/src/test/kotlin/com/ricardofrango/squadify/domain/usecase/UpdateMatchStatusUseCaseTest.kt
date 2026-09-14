@@ -12,6 +12,7 @@ import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
+import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.User
@@ -21,6 +22,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
+import kotlin.test.assertFailsWith
 import kotlin.time.Instant
 
 class UpdateMatchStatusUseCaseTest {
@@ -73,16 +75,60 @@ class UpdateMatchStatusUseCaseTest {
     }
 
     @Test
-    fun kickingOffDoesNotRecordASecondHalfStart() = runBlocking {
+    fun kickoffThroughThisUseCaseIsRejected() = runBlocking {
+        // SCHEDULED -> LIVE must go through StartMatchUseCase, which also locks in the starting
+        // line-up and half length -- allowing it here too would let a caller skip that entirely.
         val coach = coach()
         val scheduledMatch = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.SCHEDULED)
         coEvery { matchRepository.getMatchById(matchId) } returns scheduledMatch
         stubCoachPermission(coach)
-        coEvery { matchRepository.updateMatchStatus(matchId, MatchStatus.LIVE) } returns true
+
+        assertFailsWith<ValidationException> {
+            useCase(coach.id, matchId, MatchStatus.LIVE)
+        }
+        coVerify(exactly = 0) { matchRepository.updateMatchStatus(any(), any()) }
+        coVerify(exactly = 0) { matchRepository.markSecondHalfStarted(any(), any()) }
+    }
+
+    @Test
+    fun scheduledToFinishedIsRejected() = runBlocking {
+        // The gap this whole transition table closes: nothing previously stopped jumping straight
+        // from SCHEDULED to FINISHED, skipping the match entirely.
+        val coach = coach()
+        val scheduledMatch = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.SCHEDULED)
+        coEvery { matchRepository.getMatchById(matchId) } returns scheduledMatch
+        stubCoachPermission(coach)
+
+        assertFailsWith<ValidationException> {
+            useCase(coach.id, matchId, MatchStatus.FINISHED)
+        }
+        Unit
+    }
+
+    @Test
+    fun aTerminalStatusNeverTransitionsAgain() = runBlocking {
+        val coach = coach()
+        val finishedMatch = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.FINISHED)
+        coEvery { matchRepository.getMatchById(matchId) } returns finishedMatch
+        stubCoachPermission(coach)
+
+        assertFailsWith<ValidationException> {
+            useCase(coach.id, matchId, MatchStatus.LIVE)
+        }
+        Unit
+    }
+
+    @Test
+    fun goingLiveToFinishedIsAllowed() = runBlocking {
+        val coach = coach()
+        val liveMatch = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.LIVE)
+        coEvery { matchRepository.getMatchById(matchId) } returns liveMatch
+        stubCoachPermission(coach)
+        coEvery { matchRepository.updateMatchStatus(matchId, MatchStatus.FINISHED) } returns true
         coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 0, 0)
 
-        useCase(coach.id, matchId, MatchStatus.LIVE)
+        val result = useCase(coach.id, matchId, MatchStatus.FINISHED)
 
-        coVerify(exactly = 0) { matchRepository.markSecondHalfStarted(any(), any()) }
+        assert(result)
     }
 }
