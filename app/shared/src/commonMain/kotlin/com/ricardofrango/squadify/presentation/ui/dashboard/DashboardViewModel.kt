@@ -3,11 +3,14 @@ package com.ricardofrango.squadify.presentation.ui.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
+import squadify.app.shared.generated.resources.Res
+import squadify.app.shared.generated.resources.msg_failed_to_load_clubs
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 
 class DashboardViewModel(
     private val getClubsUseCase: GetClubsUseCase
@@ -23,8 +26,8 @@ class DashboardViewModel(
             }
         }
 
-    /** Cold start / retry-after-error: no clubs on screen yet, so the full-screen Loading state is
-     * appropriate -- there's nothing underneath it to preserve. */
+    /** Cold start / retry-after-error: no clubs on screen yet, so a failure is its own blocking
+     * Error state -- there's no idle content underneath it to preserve. */
     fun loadClubs() {
         viewModelScope.launch {
             _state.value = DashboardUiState.Loading
@@ -32,13 +35,14 @@ class DashboardViewModel(
                 val clubs = getClubsUseCase()
                 _state.value = DashboardUiState.Idle(clubs = clubs)
             } catch (e: Exception) {
-                _state.value = DashboardUiState.Idle(error = e.message ?: "Failed to load clubs")
+                _state.value = DashboardUiState.Error(getString(Res.string.msg_failed_to_load_clubs))
             }
         }
     }
 
     /** Pull-to-refresh: the club list already on screen stays visible under the small refresh
-     * indicator instead of being replaced by the full-screen Loading state. */
+     * indicator instead of being replaced by the full-screen Loading/Error state; a failure here
+     * surfaces inline (Idle.error) alongside the still-visible list, same idea as Login's inline error. */
     fun refresh() {
         val current = _state.value as? DashboardUiState.Idle ?: return
         viewModelScope.launch {
@@ -47,7 +51,7 @@ class DashboardViewModel(
                 val clubs = getClubsUseCase()
                 _state.value = DashboardUiState.Idle(clubs = clubs)
             } catch (e: Exception) {
-                _state.value = current.copy(isRefreshing = false, error = e.message ?: "Failed to load clubs")
+                _state.value = current.copy(isRefreshing = false, error = getString(Res.string.msg_failed_to_load_clubs))
             }
         }
     }

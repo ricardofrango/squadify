@@ -80,13 +80,31 @@ fun DashboardScreen(
                             CircularProgressIndicator(color = PitchGreen)
                         }
                     }
+                    is DashboardUiState.Error -> {
+                        // No club list to show underneath a cold-start failure -- a blocking,
+                        // full-screen retry state, not an error squeezed into Idle.
+                        ErrorState(state.message, onRetry = { viewModel.loadClubs() })
+                    }
                     is DashboardUiState.Idle -> {
-                        if (state.error != null) {
-                            ErrorState(state.error, onRetry = { viewModel.loadClubs() })
-                        } else if (state.clubs.isEmpty()) {
-                            EmptyState()
-                        } else {
-                            ClubList(state.clubs, onNavigateToClub)
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            // A failed pull-to-refresh: the existing list is real idle content, so
+                            // the error shows inline alongside it (same idea as Login's inline error)
+                            // instead of replacing the screen.
+                            if (state.error != null) {
+                                Text(
+                                    text = state.error,
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)
+                                )
+                            }
+                            Box(modifier = Modifier.weight(1f)) {
+                                if (state.clubs.isEmpty()) {
+                                    EmptyState()
+                                } else {
+                                    ClubList(state.clubs, onNavigateToClub)
+                                }
+                            }
                         }
                     }
                 }
