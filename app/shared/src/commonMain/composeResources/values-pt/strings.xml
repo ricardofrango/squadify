@@ -25,6 +25,7 @@
     <string name="btn_logout">Sair</string>
     <string name="btn_retry">Tentar novamente</string>
     <string name="msg_no_clubs">Nenhum clube encontrado</string>
+    <string name="msg_failed_to_load_clubs">Não foi possível carregar os seus clubes. Tente novamente.</string>
     <string name="label_active_member">Membro Ativo</string>
     <string name="tab_teams">Equipas</string>
     <string name="tab_players">Jogadores</string>

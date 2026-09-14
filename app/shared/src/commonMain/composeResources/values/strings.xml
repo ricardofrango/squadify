@@ -25,6 +25,7 @@
     <string name="btn_logout">Logout</string>
     <string name="btn_retry">Retry</string>
     <string name="msg_no_clubs">No clubs found</string>
+    <string name="msg_failed_to_load_clubs">Couldn\'t load your clubs. Please try again.</string>
     <string name="label_active_member">Active Member</string>
     <string name="tab_teams">Teams</string>
     <string name="tab_players">Players</string>

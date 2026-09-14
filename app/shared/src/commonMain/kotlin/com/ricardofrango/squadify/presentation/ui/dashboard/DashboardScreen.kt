@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import squadify.app.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -31,7 +32,7 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
-    val isRefreshing = uiState is DashboardUiState.Loading
+    val isRefreshing = (uiState as? DashboardUiState.Idle)?.isRefreshing == true
 
     Scaffold(
         topBar = {
@@ -68,20 +69,42 @@ fun DashboardScreen(
         ) {
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
-                onRefresh = { viewModel.loadClubs() },
+                onRefresh = { viewModel.refresh() },
                 modifier = Modifier.fillMaxSize()
             ) {
                 when (val state = uiState) {
                     is DashboardUiState.Loading -> {
-                        // Indicator handled by PullToRefreshBox
+                        // Cold start / retry-after-error only -- a real full-screen spinner, not the
+                        // small pull-to-refresh indicator (that's reserved for an explicit pull).
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = PitchGreen)
+                        }
+                    }
+                    is DashboardUiState.Error -> {
+                        // No club list to show underneath a cold-start failure -- a blocking,
+                        // full-screen retry state, not an error squeezed into Idle.
+                        ErrorState(state.message, onRetry = { viewModel.loadClubs() })
                     }
                     is DashboardUiState.Idle -> {
-                        if (state.error != null) {
-                            ErrorState(state.error, onRetry = { viewModel.loadClubs() })
-                        } else if (state.clubs.isEmpty()) {
-                            EmptyState()
-                        } else {
-                            ClubList(state.clubs, onNavigateToClub)
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            // A failed pull-to-refresh: the existing list is real idle content, so
+                            // the error shows inline alongside it (same idea as Login's inline error)
+                            // instead of replacing the screen.
+                            if (state.error != null) {
+                                Text(
+                                    text = state.error,
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)
+                                )
+                            }
+                            Box(modifier = Modifier.weight(1f)) {
+                                if (state.clubs.isEmpty()) {
+                                    EmptyState()
+                                } else {
+                                    ClubList(state.clubs, onNavigateToClub)
+                                }
+                            }
                         }
                     }
                 }
