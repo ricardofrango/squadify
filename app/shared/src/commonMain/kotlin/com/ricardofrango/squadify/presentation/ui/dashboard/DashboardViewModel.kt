@@ -5,8 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_failed_to_load_clubs
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.launch
@@ -26,6 +29,9 @@ class DashboardViewModel(
             }
         }
 
+    private val _navigationEvent = MutableSharedFlow<DashboardNavigationEvent>()
+    val navigationEvent: SharedFlow<DashboardNavigationEvent> = _navigationEvent.asSharedFlow()
+
     /** Cold start / retry-after-error: no clubs on screen yet, so a failure is its own blocking
      * Error state -- there's no idle content underneath it to preserve. */
     fun loadClubs() {
@@ -34,6 +40,10 @@ class DashboardViewModel(
             try {
                 val clubs = getClubsUseCase()
                 _state.value = DashboardUiState.Idle(clubs = clubs)
+                val onlyClub = clubs.singleOrNull()
+                if (onlyClub != null) {
+                    _navigationEvent.emit(DashboardNavigationEvent.NavigateToOnlyClub(onlyClub.id))
+                }
             } catch (e: Exception) {
                 _state.value = DashboardUiState.Error(getString(Res.string.msg_failed_to_load_clubs))
             }

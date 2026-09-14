@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -29,11 +30,23 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun DashboardScreen(
     onNavigateToClub: (String) -> Unit,
+    // A user with exactly one club has nothing to choose from, so DashboardViewModel bounces them
+    // straight to it -- separate from onNavigateToClub because this one also needs to pop Dashboard
+    // off the back stack (see AppNavigation).
+    onNavigateToOnlyClub: (String) -> Unit,
     onNavigateToAccount: () -> Unit,
     viewModel: DashboardViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
     val isRefreshing = (uiState as? DashboardUiState.Idle)?.isRefreshing == true
+
+    LaunchedEffect(viewModel.navigationEvent) {
+        viewModel.navigationEvent.collect { event ->
+            when (event) {
+                is DashboardNavigationEvent.NavigateToOnlyClub -> onNavigateToOnlyClub(event.clubId)
+            }
+        }
+    }
 
     Scaffold(
         topBar = {

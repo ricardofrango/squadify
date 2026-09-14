@@ -22,3 +22,9 @@ sealed class DashboardUiState {
         val error: String? = null
     ) : DashboardUiState()
 }
+
+sealed class DashboardNavigationEvent {
+    // Emitted once, right after a successful load that finds exactly one club: the club list has
+    // nothing to offer a single-club user, so the screen bounces straight to that club's details.
+    data class NavigateToOnlyClub(val clubId: String) : DashboardNavigationEvent()
+}

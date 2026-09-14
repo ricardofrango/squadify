@@ -107,6 +107,9 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun ClubDetailsScreen(
     clubId: String,
+    // False for the single-club user's root screen (see AppNavigation / Screen.ClubDetails.isRootClub)
+    // -- Dashboard was popped off the back stack in that case, so there's nowhere to go back to.
+    showBackButton: Boolean = true,
     onNavigateBack: () -> Unit,
     onNavigateToTeam: (String) -> Unit,
     onNavigateToPlayer: (String) -> Unit,
@@ -153,6 +156,7 @@ fun ClubDetailsScreen(
             FMTopBar(
                 title = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name
                     ?: stringResource(Res.string.title_club_details),
+                showBackButton = showBackButton,
                 onNavigateBack = onNavigateBack,
                 actions = {
                     var showAddMenu by remember { mutableStateOf(false) }
