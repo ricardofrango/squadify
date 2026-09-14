@@ -13,17 +13,18 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import kotlin.uuid.Uuid
+import com.ricardofrango.squadify.util.toUuid
 
 class ExposedSeasonRepository : SeasonRepository {
 
     override suspend fun getSeasonsByClub(clubId: String): List<Season> =
-        Seasons.selectAll().where { Seasons.clubId eq Uuid.parse(clubId) }
+        Seasons.selectAll().where { Seasons.clubId eq clubId.toUuid() }
             .map(::toSeason)
 
     override suspend fun createSeason(season: Season): Season =
         Seasons.insert {
-            it[id] = Uuid.parse(season.id)
-            it[clubId] = Uuid.parse(season.clubId)
+            it[id] = season.id.toUuid()
+            it[clubId] = season.clubId.toUuid()
             it[name] = season.name
             it[type] = season.type
             it[startDate] = season.startDate
@@ -33,12 +34,12 @@ class ExposedSeasonRepository : SeasonRepository {
             ?: throw DatabaseException("Failed to create season")
 
     override suspend fun getSeasonById(id: String): Season? =
-        Seasons.selectAll().where { Seasons.id eq Uuid.parse(id) }
+        Seasons.selectAll().where { Seasons.id eq id.toUuid() }
             .map(::toSeason)
             .singleOrNull()
 
     override suspend fun updateSeason(season: Season): Boolean =
-        Seasons.update({ Seasons.id eq Uuid.parse(season.id) }) {
+        Seasons.update({ Seasons.id eq season.id.toUuid() }) {
             it[name] = season.name
             it[type] = season.type
             it[startDate] = season.startDate
@@ -53,20 +54,20 @@ class ExposedSeasonRepository : SeasonRepository {
         endDate: LocalDate
     ): Season? =
         Seasons.selectAll().where {
-            (Seasons.clubId eq Uuid.parse(clubId)) and
+            (Seasons.clubId eq clubId.toUuid()) and
                     (Seasons.type eq type) and
                     (Seasons.startDate eq startDate) and
                     (Seasons.endDate eq endDate)
         }.map(::toSeason).singleOrNull()
 
     override suspend fun updateActiveStatus(seasonId: String, active: Boolean): Boolean =
-        Seasons.update({ Seasons.id eq Uuid.parse(seasonId) }) {
+        Seasons.update({ Seasons.id eq seasonId.toUuid() }) {
             it[Seasons.active] = active
         } > 0
 
     override suspend fun getActiveSeasonsByClub(clubId: String): List<Season> =
         Seasons.selectAll()
-            .where { (Seasons.clubId eq Uuid.parse(clubId)) and (Seasons.active eq true) }
+            .where { (Seasons.clubId eq clubId.toUuid()) and (Seasons.active eq true) }
             .map(::toSeason)
 
     private fun toSeason(row: ResultRow): Season = Season(

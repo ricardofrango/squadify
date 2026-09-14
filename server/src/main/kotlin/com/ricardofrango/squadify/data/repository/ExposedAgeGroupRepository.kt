@@ -18,21 +18,22 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import kotlin.uuid.Uuid
+import com.ricardofrango.squadify.util.toUuid
 
 class ExposedAgeGroupRepository : AgeGroupRepository {
 
     override suspend fun getAgeGroupsByClub(clubId: String): List<AgeGroup> {
         return AgeGroups.selectAll()
-            .where { AgeGroups.clubId eq Uuid.parse(clubId) }
+            .where { AgeGroups.clubId eq clubId.toUuid() }
             .orderBy(AgeGroups.endYear, SortOrder.DESC)
             .map(::toAgeGroup)
     }
 
     override suspend fun createAgeGroup(ageGroup: AgeGroup): AgeGroup {
         return AgeGroups.insert {
-            it[id] = Uuid.parse(ageGroup.id)
-            it[clubId] = Uuid.parse(ageGroup.clubId)
-            it[seasonId] = Uuid.parse(ageGroup.seasonId)
+            it[id] = ageGroup.id.toUuid()
+            it[clubId] = ageGroup.clubId.toUuid()
+            it[seasonId] = ageGroup.seasonId.toUuid()
             it[name] = ageGroup.name
             it[startYear] = ageGroup.startYear
             it[endYear] = ageGroup.endYear
@@ -43,9 +44,9 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
 
     override suspend fun createAgeGroups(ageGroups: List<AgeGroup>): List<AgeGroup> {
         return AgeGroups.batchInsert(ageGroups) { ageGroup ->
-            this[AgeGroups.id] = Uuid.parse(ageGroup.id)
-            this[AgeGroups.clubId] = Uuid.parse(ageGroup.clubId)
-            this[AgeGroups.seasonId] = Uuid.parse(ageGroup.seasonId)
+            this[AgeGroups.id] = ageGroup.id.toUuid()
+            this[AgeGroups.clubId] = ageGroup.clubId.toUuid()
+            this[AgeGroups.seasonId] = ageGroup.seasonId.toUuid()
             this[AgeGroups.name] = ageGroup.name
             this[AgeGroups.startYear] = ageGroup.startYear
             this[AgeGroups.endYear] = ageGroup.endYear
@@ -54,13 +55,13 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
     }
 
     override suspend fun getAgeGroupById(id: String): AgeGroup? {
-        return AgeGroups.selectAll().where { AgeGroups.id eq Uuid.parse(id) }
+        return AgeGroups.selectAll().where { AgeGroups.id eq id.toUuid() }
             .map(::toAgeGroup)
             .singleOrNull()
     }
 
     override suspend fun updateAgeGroup(ageGroup: AgeGroup): Boolean {
-        return AgeGroups.update({ AgeGroups.id eq Uuid.parse(ageGroup.id) }) {
+        return AgeGroups.update({ AgeGroups.id eq ageGroup.id.toUuid() }) {
             it[name] = ageGroup.name
             it[startYear] = ageGroup.startYear
             it[endYear] = ageGroup.endYear
@@ -70,8 +71,8 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
     override suspend fun findByDetails(clubId: String, seasonId: String, startYear: Int, endYear: Int): AgeGroup? {
         return AgeGroups.selectAll()
             .where {
-                (AgeGroups.clubId eq Uuid.parse(clubId)) and
-                (AgeGroups.seasonId eq Uuid.parse(seasonId)) and
+                (AgeGroups.clubId eq clubId.toUuid()) and
+                (AgeGroups.seasonId eq seasonId.toUuid()) and
                 (AgeGroups.startYear eq startYear) and
                 (AgeGroups.endYear eq endYear)
             }
@@ -82,8 +83,8 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
     override suspend fun findByClubAndSeason(clubId: String, seasonId: String): List<AgeGroup> {
         return AgeGroups.selectAll()
             .where {
-                (AgeGroups.clubId eq Uuid.parse(clubId)) and
-                (AgeGroups.seasonId eq Uuid.parse(seasonId))
+                (AgeGroups.clubId eq clubId.toUuid()) and
+                (AgeGroups.seasonId eq seasonId.toUuid())
             }
             .map(::toAgeGroup)
     }
@@ -91,23 +92,23 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
     override suspend fun getUserRoleInAgeGroup(userId: String, ageGroupId: String): TeamRole? =
         AgeGroupStaff.selectAll()
             .where {
-                (AgeGroupStaff.userId eq Uuid.parse(userId)) and
-                (AgeGroupStaff.ageGroupId eq Uuid.parse(ageGroupId))
+                (AgeGroupStaff.userId eq userId.toUuid()) and
+                (AgeGroupStaff.ageGroupId eq ageGroupId.toUuid())
             }
             .map { it[AgeGroupStaff.role] }
             .maxByOrNull { it.level }
 
     override suspend fun addStaffToAgeGroup(staff: List<AgeGroupStaffModel>): Boolean =
         AgeGroupStaff.batchInsert(staff) { s ->
-            this[AgeGroupStaff.id] = Uuid.parse(s.id)
-            this[AgeGroupStaff.ageGroupId] = Uuid.parse(s.ageGroupId)
-            this[AgeGroupStaff.userId] = Uuid.parse(s.userId)
+            this[AgeGroupStaff.id] = s.id.toUuid()
+            this[AgeGroupStaff.ageGroupId] = s.ageGroupId.toUuid()
+            this[AgeGroupStaff.userId] = s.userId.toUuid()
             this[AgeGroupStaff.role] = s.role
         }.size == staff.size
 
     override suspend fun getAgeGroupStaff(ageGroupId: String): List<AgeGroupStaffMember> =
         (AgeGroupStaff innerJoin Users).selectAll()
-            .where { AgeGroupStaff.ageGroupId eq Uuid.parse(ageGroupId) }
+            .where { AgeGroupStaff.ageGroupId eq ageGroupId.toUuid() }
             .map {
                 AgeGroupStaffMember(
                     userId = it[Users.id].toString(),
@@ -120,7 +121,7 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
 
     override suspend fun countCoachesByClub(clubId: String): Long =
         (AgeGroupStaff innerJoin AgeGroups).selectAll()
-            .where { (AgeGroups.clubId eq Uuid.parse(clubId)) and (AgeGroupStaff.role eq TeamRole.COACH) }
+            .where { (AgeGroups.clubId eq clubId.toUuid()) and (AgeGroupStaff.role eq TeamRole.COACH) }
             .map { it[AgeGroupStaff.userId] }
             .distinct()
             .size.toLong()

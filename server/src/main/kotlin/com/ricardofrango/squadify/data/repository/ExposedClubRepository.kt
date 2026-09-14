@@ -21,6 +21,7 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import kotlin.uuid.Uuid
+import com.ricardofrango.squadify.util.toUuid
 
 class ExposedClubRepository : ClubRepository {
 
@@ -28,7 +29,7 @@ class ExposedClubRepository : ClubRepository {
         Clubs.selectAll().map(::toClub)
 
     override suspend fun getClubsByUser(userId: String): List<Club> {
-        val userUuid = Uuid.parse(userId)
+        val userUuid = userId.toUuid()
 
         // One row per club, via two correlated EXISTS conditions (member OR parent of a player in
         // the club). A LEFT JOIN + withDistinct() version was tried but fans out: when the same user
@@ -49,7 +50,7 @@ class ExposedClubRepository : ClubRepository {
 
     override suspend fun createClub(club: Club): Club =
         Clubs.insert {
-            it[id] = Uuid.parse(club.id)
+            it[id] = club.id.toUuid()
             it[name] = club.name
             it[shortName] = club.shortName
             it[logoUrl] = club.logoUrl
@@ -63,12 +64,12 @@ class ExposedClubRepository : ClubRepository {
             ?: throw DatabaseException("Failed to create club")
 
     override suspend fun getClubById(id: String): Club? =
-        Clubs.selectAll().where { Clubs.id eq Uuid.parse(id) }
+        Clubs.selectAll().where { Clubs.id eq id.toUuid() }
             .map(::toClub)
             .singleOrNull()
 
     override suspend fun updateClub(club: Club): Boolean =
-        Clubs.update({ Clubs.id eq Uuid.parse(club.id) }) {
+        Clubs.update({ Clubs.id eq club.id.toUuid() }) {
             it[name] = club.name
             it[shortName] = club.shortName
             it[logoUrl] = club.logoUrl
@@ -81,8 +82,8 @@ class ExposedClubRepository : ClubRepository {
     override suspend fun addMember(clubId: String, userId: String, role: ClubRole): Boolean =
         ClubMembers.insert {
             it[id] = Uuid.random()
-            it[this.clubId] = Uuid.parse(clubId)
-            it[this.userId] = Uuid.parse(userId)
+            it[this.clubId] = clubId.toUuid()
+            it[this.userId] = userId.toUuid()
             it[this.role] = role
             it[active] = true
         }.insertedCount > 0
@@ -90,15 +91,15 @@ class ExposedClubRepository : ClubRepository {
     override suspend fun addMembers(clubId: String, userIds: List<Pair<String, ClubRole>>): Boolean =
         ClubMembers.batchInsert(userIds) { (uId, role) ->
             this[ClubMembers.id] = Uuid.random()
-            this[ClubMembers.clubId] = Uuid.parse(clubId)
-            this[ClubMembers.userId] = Uuid.parse(uId)
+            this[ClubMembers.clubId] = clubId.toUuid()
+            this[ClubMembers.userId] = uId.toUuid()
             this[ClubMembers.role] = role
             this[ClubMembers.active] = true
         }.size == userIds.size
 
     override suspend fun getClubMembers(clubId: String): List<ClubMemberSummary> =
         (ClubMembers innerJoin Users).selectAll()
-            .where { (ClubMembers.clubId eq Uuid.parse(clubId)) and (ClubMembers.active eq true) }
+            .where { (ClubMembers.clubId eq clubId.toUuid()) and (ClubMembers.active eq true) }
             .orderBy(Users.firstName)
             .map {
                 ClubMemberSummary(
@@ -111,7 +112,7 @@ class ExposedClubRepository : ClubRepository {
             }
 
     override suspend fun updateMemberRole(clubId: String, userId: String, role: ClubRole): Boolean =
-        ClubMembers.update({ (ClubMembers.clubId eq Uuid.parse(clubId)) and (ClubMembers.userId eq Uuid.parse(userId)) }) {
+        ClubMembers.update({ (ClubMembers.clubId eq clubId.toUuid()) and (ClubMembers.userId eq userId.toUuid()) }) {
             it[this.role] = role
         } > 0
 
