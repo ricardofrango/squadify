@@ -27,7 +27,7 @@ import kotlin.time.Instant
 
 /**
  * Adding players to an age-group pool: a coordinator or an age-group coach may do it; a player must
- * belong to the club and be old enough (`birthDate.year >= ageGroup.birthYear`, playing up is fine,
+ * belong to the club and be old enough (`birthDate.year >= ageGroup.endYear`, playing up is fine,
  * playing down is not); players already in the group are skipped so the call is idempotent.
  */
 class AddPlayersToAgeGroupUseCaseTest {
@@ -49,8 +49,8 @@ class AddPlayersToAgeGroupUseCaseTest {
     private val clubIdA = "club-a"
     private val ageGroupId = "age-group-2015"
 
-    // birthYear 2015 => players born 2015 or later (younger) are eligible; born 2014 or earlier is not.
-    private val ageGroup = AgeGroup(id = ageGroupId, clubId = clubIdA, name = "Sub 2015", seasonId = "s1", birthYear = 2015)
+    // endYear 2015 => players born 2015 or later (younger) are eligible; born 2014 or earlier is not.
+    private val ageGroup = AgeGroup(id = ageGroupId, clubId = clubIdA, name = "Sub 2015", seasonId = "s1", startYear = 2015, endYear = 2015)
 
     private fun user(id: String) = User(
         id = id, email = "$id@test.com", firstName = "Test", lastName = "User",
@@ -139,6 +139,35 @@ class AddPlayersToAgeGroupUseCaseTest {
         useCase(coord.id, ageGroupId, request("a", "b"))
 
         assertEquals(listOf("b"), captured.captured.map { it.playerId })
+        Unit
+    }
+
+    @Test
+    fun aTwoYearRangeAgeGroupAcceptsBothBirthYearsAndRejectsOlderPlayers() = runBlocking {
+        // Futsal-style range: startYear 2017, endYear 2016 -- players born 2016, 2017, or even later
+        // (playing up) are eligible; a player born 2015 (older than the range) is not.
+        val rangeAgeGroupId = "age-group-2016-2017"
+        val rangeAgeGroup = AgeGroup(
+            id = rangeAgeGroupId, clubId = clubIdA, name = "Benjamins", seasonId = "s1",
+            startYear = 2017, endYear = 2016
+        )
+        val coord = user("p3-coordinator")
+        coEvery { userRepository.findById(coord.id) } returns coord
+        coEvery { userRepository.getUserRoleInClub(coord.id, clubIdA) } returns ClubRole.COORDINATOR
+        coEvery { ageGroupRepository.getAgeGroupById(rangeAgeGroupId) } returns rangeAgeGroup
+        coEvery { playerRepository.getPlayersData(any()) } returns listOf(
+            player("y2016", 2016), player("y2017", 2017), player("y2018", 2018), player("tooOld", 2015)
+        )
+        coEvery { playerRepository.getPlayersByAgeGroup(rangeAgeGroupId) } returns emptyList()
+        val captured = slot<List<AgeGroupPlayer>>()
+        coEvery { playerRepository.addPlayersToAgeGroup(capture(captured)) } answers { captured.captured }
+
+        val result = useCase(coord.id, rangeAgeGroupId, request("y2016", "y2017", "y2018"))
+        assertEquals(setOf("y2016", "y2017", "y2018"), result.map { it.playerId }.toSet())
+
+        assertFailsWith<ValidationException> {
+            useCase(coord.id, rangeAgeGroupId, request("tooOld"))
+        }
         Unit
     }
 

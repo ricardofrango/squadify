@@ -170,7 +170,7 @@ private fun AgeGroupDetailsContent(
                 // The counts + eligibility rule sit in a dark block flush with the top bar (same
                 // CarbonGray), edge to edge; the white scrolling content starts below it.
                 AgeGroupHeader(
-                    birthYear = uiState.details.ageGroup.birthYear,
+                    endYear = uiState.details.ageGroup.endYear,
                     players = uiState.details.players.size,
                     staff = uiState.details.staff.size,
                     teams = uiState.details.teams.size,
@@ -360,7 +360,7 @@ private fun AgeGroupBody(
             items(visiblePlayers, key = { it.id }) { player ->
                 PlayerRow(
                     player = player,
-                    playsUp = player.birthDate.year > ag.birthYear,
+                    playsUp = player.birthDate.year > ag.endYear,
                     onClick = { onPlayerClick(player.id) }
                 )
             }
@@ -370,10 +370,10 @@ private fun AgeGroupBody(
 
 /** The dark block directly under the top bar (same CarbonGray): eligibility rule + edge-to-edge counts. */
 @Composable
-private fun AgeGroupHeader(birthYear: Int, players: Int, staff: Int, teams: Int, upcoming: Int) {
+private fun AgeGroupHeader(endYear: Int, players: Int, staff: Int, teams: Int, upcoming: Int) {
     Column(modifier = Modifier.fillMaxWidth().background(CarbonGray)) {
         EligibilityPill(
-            text = stringResource(Res.string.label_eligibility_rule, birthYear),
+            text = stringResource(Res.string.label_eligibility_rule, endYear),
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)
         )
         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.10f)))
@@ -602,7 +602,7 @@ private fun EmptySectionCard(title: String, hint: String?, action: Pair<String, 
 // ---- Previews ----
 
 private fun sampleDetails(populated: Boolean, canManage: Boolean): AgeGroupDetails {
-    val ag = AgeGroup(id = "ag1", clubId = "c1", name = "Sub 2015", seasonId = "s1", birthYear = 2015)
+    val ag = AgeGroup(id = "ag1", clubId = "c1", name = "Sub 2015", seasonId = "s1", startYear = 2015, endYear = 2015)
     val club = Club(id = "c1", name = "CD Ribamar", status = ClubStatus.ACTIVE, sport = SportType.FOOTBALL, createdAt = Instant.fromEpochMilliseconds(0))
     val season = Season(id = "s1", clubId = "c1", name = "26/27", type = SeasonType.EUROPEAN_YEAR, startDate = LocalDate(2026, 7, 1), endDate = LocalDate(2027, 6, 30), active = true)
     fun p(id: String, f: String, l: String, y: Int, n: Int?) = Player(id, "c1", f, l, LocalDate(y, 3, 1), n, null, true)

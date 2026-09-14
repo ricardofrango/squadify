@@ -49,7 +49,7 @@ class GetSeasonsUseCaseTest {
     private val season2728 = "season-27-28"
 
     private fun ageGroup(id: String, seasonId: String) = AgeGroup(
-        id = id, clubId = clubIdA, name = id, seasonId = seasonId, birthYear = 2014
+        id = id, clubId = clubIdA, name = id, seasonId = seasonId, startYear = 2014, endYear = 2014
     )
 
     private val ag1 = ageGroup("ag-1", season2627)

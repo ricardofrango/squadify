@@ -336,17 +336,18 @@ graph TD
     C -- No --> D[Load existing age groups for this club + season]
     D --> D2[Load club — for its sport's allowed team sizes]
     D2 -- not found --> V2b(["Throw ValidationException"])
-    D2 --> E[Collect existing birth years as a Set]
+    D2 --> E[Collect existing startYear/endYear pairs as a Set]
     E --> G{For each item}
     G -- name blank --> V2(["Throw ValidationException"])
+    G -- startYear < endYear --> V2c(["Throw ValidationException: inverted range"])
     G -- teamSize set AND not in club.sport.teamSizes --> V2(["Throw ValidationException"])
-    G -- birthYear already in set --> CN(["Throw ConflictException: duplicate birth year"])
+    G -- startYear/endYear pair already in set --> CN(["Throw ConflictException: duplicate range"])
     G -- valid --> H[Build AgeGroup entity — teamSize nullable]
     H --> I[Batch insert all AgeGroups]
     I --> Z(["Return created AgeGroups"])
 ```
 
-Each item carries an optional `teamSize` (an a-side count like 7 or 11). It's the default the age group's teams play; a team can override it (§4.5 / §4.5b). When set it must be one of the values the club's `sport` allows (`SportType.teamSizes` — a code-level constant, not a DB config). The client's Create Age Groups screen shows a per-row team-size picker seeded from the sport's largest format.
+Each item carries a `startYear`/`endYear` birth-year span rather than a single birth year: most age groups (football) are single-year, sent as `startYear == endYear`; some (typically futsal) span two consecutive birth years to have enough players for a squad -- e.g. a Benjamins group covering 2016 and 2017 is `startYear = 2017, endYear = 2016`. Eligibility and the inferred "Sub N" name are always derived from `endYear` (the oldest birth year the group allows), exactly mirroring the old single `birthYear` field's role -- see §5.3. Each item also carries an optional `teamSize` (an a-side count like 7 or 11). It's the default the age group's teams play; a team can override it (§4.5 / §4.5b). When set it must be one of the values the club's `sport` allows (`SportType.teamSizes` — a code-level constant, not a DB config). The client's Create Age Groups screen shows a per-row span-type radio (single year vs. two years) and a per-row team-size picker seeded from the sport's largest format.
 
 ### 4.4 Update Age Group (`UpdateAgeGroupUseCase`)
 
@@ -356,8 +357,10 @@ graph TD
     B -- not found --> N(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D["Merge patch fields (name, birthYear)"]
-    D --> Z(["Persist updated AgeGroup"])
+    C -- allowed --> D["Merge patch fields (name, startYear, endYear)"]
+    D --> E{Merged startYear < endYear?}
+    E -- Yes --> V(["Throw ValidationException: inverted range"])
+    E -- No --> Z(["Persist updated AgeGroup"])
 ```
 
 ### 4.4b Get Age Group Details (`GetAgeGroupDetailsUseCase`)
@@ -581,14 +584,16 @@ graph TD
     G -- already in this age group --> SK[skip — idempotent]
     G -- player not found --> V2(["Throw ValidationException"])
     G -- player.clubId != ageGroup.clubId --> FB(["Throw ForbiddenException: wrong club"])
-    G -- "player.birthDate.year < ageGroup.birthYear" --> V3(["Throw ValidationException: too old for age group"])
+    G -- "player.birthDate.year < ageGroup.endYear" --> V3(["Throw ValidationException: too old for age group"])
     G -- eligible --> H[Build AgeGroupPlayer link]
     SK --> I
     H --> I[Batch insert AgeGroupPlayer links]
     I --> Z(["Return created AgeGroupPlayer links"])
 ```
 
-`GetEligiblePlayersForAgeGroupUseCase` is the read counterpart: every club player with `birthDate.year >= ageGroup.birthYear` who isn't already in the group; visible to a coordinator or any age-group staff. Playing up is unbounded — a young player is eligible for any older age group, never a younger one.
+`GetEligiblePlayersForAgeGroupUseCase` is the read counterpart: every club player with `birthDate.year >= ageGroup.endYear` who isn't already in the group; visible to a coordinator or any age-group staff. Playing up is unbounded — a young player is eligible for any older age group, never a younger one.
+
+Age groups carry a `startYear`/`endYear` birth-year **span**, not a single birth year (see §4.3): most (football) are single-year, with `startYear == endYear`; some (typically futsal) span two consecutive birth years to have enough players for a squad -- e.g. a Benjamins group covering 2016 and 2017 is `startYear = 2017, endYear = 2016`. Eligibility above and the inferred "Sub N" name (client-side `AgeGroupDefaults.inferredName`) are both always keyed off `endYear` -- the oldest birth year the group allows -- so a two-year group behaves exactly like the old single-birth-year field with the threshold lowered by one year; `startYear` is otherwise informational (shown in the UI, not compared against).
 
 The client's Add Players screen has a "New player" shortcut that pushes the Create Players (register-to-club) screen; on return it reloads the eligible list so the just-registered players are pickable without leaving, and propagates the reload down to Club Details / Age Group Details.
 
@@ -1008,7 +1013,8 @@ erDiagram
         uuid club_id FK
         uuid season_id FK
         varchar name "100 chars"
-        integer birth_year "default 0"
+        integer start_year "default 0 — younger/more recent birth year; == end_year for single-year groups"
+        integer end_year "default 0 — older birth year; eligibility is always checked against this"
         integer team_size "nullable — default a-side count for this age group's teams"
     }
     TEAMS {
@@ -1104,7 +1110,7 @@ erDiagram
 
 ### 12.2 Constraints & defaults worth knowing
 
-- **Unique indexes**: `users.email`; `refresh_tokens.token`; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, birth_year)` — one age group per birth year per club per season; `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list.
+- **Unique indexes**: `users.email`; `refresh_tokens.token`; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list.
 - **Nullable foreign keys**: `invites.player_id` (only set for `PARENT_PLAYER` invites) and `match_events.player_id` (null when `is_opponent = true`, since the event belongs to a player on the opposing team who isn't in the `players` table).
 - **No `onDelete` behavior is configured on any foreign key** — every `.references(...)` call in `Tables.kt` uses the Exposed default (`NO ACTION`). Deleting a row that still has children (e.g. a `Club` with existing `Teams`) will fail at the database level rather than cascading, nulling out, or being blocked at the application layer with a friendlier error.
 - Several `enum` columns are nullable independently of their parent row's lifecycle: `club_members.role`/`age_group_staff.role`/`user_players.relationship` are all non-null (required at creation), while `invites.role` and `invites.relationship` are nullable because a single `Invite` row is reused for both invite shapes (see §10) and only one of the two is populated depending on `type`.
@@ -1131,12 +1137,12 @@ erDiagram
 ### 12.4 Current persistence setup
 
 - **Engine**: PostgreSQL, both dev and production. H2 has been removed entirely. The connection is built from `ServerConfig.kt`'s `DATABASE_HOST`/`DATABASE_PORT`/`DATABASE_USER`/`DATABASE_PASSWORD`/`DATABASE_NAME` env vars — host and password are required explicitly when `APP_ENV=production` (no silent fallback), while the database name defaults per environment (`squadify_dev` / `squadify_production`), so dev and production stay isolated even against the same Postgres server. `docker-compose.yml` at the repo root provides a local Postgres matching the dev defaults.
-- **Schema creation**: `SchemaUtils.createMissingTablesAndColumns(...)` runs on every boot, listing all tables explicitly. It's additive-only — it can add a missing table or column, but never drops or alters an existing one.
-- **Flyway vs. reality**: Flyway is still a declared build dependency, but no Flyway migration scripts exist anywhere in the repo, and `DatabaseFactory.kt` never invokes Flyway at all. The actual mechanism today is `createMissingTablesAndColumns` only (the one-off block that normalized legacy lowercase enum values was H2-specific data cleanup and was removed along with H2 — a fresh Postgres database has no such legacy rows to migrate).
+- **Schema creation**: `SchemaUtils.createMissingTablesAndColumns(...)` runs on every boot, listing all tables explicitly. It's additive-only — it can add a missing table or column, but never drops or alters an existing one. One hand-written exception: `DatabaseFactory.init()` runs a raw, idempotent SQL block right after schema creation that backfills `age_groups.start_year`/`end_year` from the old single `birth_year` column (if it still exists) and then drops that column — the one-off migration for the birth-year-range change (§4.3/§5.3). It's a no-op once `birth_year` is gone, so it's safe to leave running on every boot rather than being a real migration-history mechanism.
+- **Flyway vs. reality**: Flyway is still a declared build dependency, but no Flyway migration scripts exist anywhere in the repo, and `DatabaseFactory.kt` never invokes Flyway at all. The actual mechanism today is `createMissingTablesAndColumns` plus the one hand-written backfill above — there's still no real schema history/rollback story, just ad hoc raw SQL when a change needs more than "add a column."
 - **Connection pool**: HikariCP, `maximumPoolSize = 3` in dev / `10` in production, `autoCommit = false`, isolation level `TRANSACTION_REPEATABLE_READ`.
 
 ### 12.5 Schema-level gaps observed
 
 - [ ] No `onDelete` cascade/set-null strategy anywhere — every FK relies on the DB's default no-action behavior (see §12.2).
 - [ ] The Flyway/`SchemaUtils` mismatch above: Flyway is still an unused dependency; `createMissingTablesAndColumns` remains the only real migration mechanism, with no schema history/rollback story.
-- [ ] `AgeGroups.birth_year` has a `.default(0)` that has no real-world meaning and is never actually relied upon (`CreateAgeGroupsUseCase` always supplies an explicit value).
+- [ ] `AgeGroups.start_year`/`end_year` each have a `.default(0)` that has no real-world meaning and is never actually relied upon for a normal insert (`CreateAgeGroupsUseCase` always supplies explicit values) — the default exists only as the "not yet migrated" sentinel the one-off `birth_year` backfill above checks for.

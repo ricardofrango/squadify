@@ -47,7 +47,8 @@ class CreateTeamUseCaseTest {
         clubId = clubIdA,
         name = "U12",
         seasonId = "season-1",
-        birthYear = 2014
+        startYear = 2014,
+        endYear = 2014
     )
 
     private val dummyTeam = Team(
@@ -108,7 +109,8 @@ class CreateTeamUseCaseTest {
             clubId = clubIdA,
             name = "U14",
             seasonId = "season-X-actual", // deliberately inconsistent with the request's seasonId below
-            birthYear = 2012
+            startYear = 2012,
+            endYear = 2012
         )
         val request = CreateTeamRequest(
             clubId = clubIdA,

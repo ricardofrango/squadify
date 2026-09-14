@@ -573,7 +573,13 @@ private fun AgeGroupCard(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = ageGroup.birthYear.toString().takeLast(2),
+                    // Single-year groups show just their year (e.g. "15"); a two-year span shows
+                    // both, older first, matching the season-name convention (e.g. "16/17").
+                    text = if (ageGroup.startYear == ageGroup.endYear) {
+                        ageGroup.endYear.toString().takeLast(2)
+                    } else {
+                        "${ageGroup.endYear.toString().takeLast(2)}/${ageGroup.startYear.toString().takeLast(2)}"
+                    },
                     color = Color.White,
                     fontWeight = FontWeight.Bold
                 )

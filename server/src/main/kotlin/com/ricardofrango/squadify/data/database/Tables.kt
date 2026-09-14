@@ -75,13 +75,16 @@ object AgeGroups : Table("age_groups") {
     val clubId = uuid("club_id").references(Clubs.id)
     val seasonId = uuid("season_id").references(Seasons.id)
     val name = varchar("name", 100)
-    val birthYear = integer("birth_year").default(0)
+    // See AgeGroup (core Models.kt) for the span semantics -- single-year groups have
+    // startYear == endYear; eligibility is always checked against endYear.
+    val startYear = integer("start_year").default(0)
+    val endYear = integer("end_year").default(0)
     val teamSize = integer("team_size").nullable()
 
     override val primaryKey = PrimaryKey(id)
 
     init {
-        uniqueIndex("unique_club_season_birthyear", clubId, seasonId, birthYear)
+        uniqueIndex("unique_club_season_years", clubId, seasonId, startYear, endYear)
     }
 }
 

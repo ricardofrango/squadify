@@ -229,7 +229,7 @@ private fun AddPlayersToAgeGroupContent(
                                         player = player,
                                         selected = player.id in uiState.selectedPlayerIds,
                                         playsUp = selectedAgeGroup != null &&
-                                            player.birthDate.year > selectedAgeGroup.birthYear,
+                                            player.birthDate.year > selectedAgeGroup.endYear,
                                         onClick = { onPlayerToggled(player.id) }
                                     )
                                 }
@@ -441,7 +441,7 @@ private fun previewSeason(id: String, name: String) = Season(
 )
 
 private fun previewAgeGroup(id: String, name: String, seasonId: String, birthYear: Int) = AgeGroup(
-    id = id, clubId = "c1", name = name, seasonId = seasonId, birthYear = birthYear
+    id = id, clubId = "c1", name = name, seasonId = seasonId, startYear = birthYear, endYear = birthYear
 )
 
 private fun previewPlayer(id: String, first: String, last: String, birthYear: Int) = Player(

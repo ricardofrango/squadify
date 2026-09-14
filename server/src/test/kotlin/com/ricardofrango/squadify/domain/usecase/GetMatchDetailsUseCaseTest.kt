@@ -64,7 +64,7 @@ class GetMatchDetailsUseCaseTest {
 
     private val match = Match(matchId, clubId, teamId, "opp-1", "Field", Instant.fromEpochMilliseconds(1), notes = "n")
     private val team = Team(teamId, clubId, ag1, "s-1", "Sub-15 A", "A", true)
-    private val ageGroup = AgeGroup(ag1, clubId, "Sub-15", "s-1", 2011)
+    private val ageGroup = AgeGroup(ag1, clubId, "Sub-15", "s-1", 2011, 2011)
     private val season = Season("s-1", clubId, "26/27", SeasonType.EUROPEAN_YEAR, LocalDate(2026, 7, 1), LocalDate(2027, 6, 30), true)
     private val opponent = Opponent("opp-1", clubId, "AD Fontelas", "AD Fontelas", null)
 

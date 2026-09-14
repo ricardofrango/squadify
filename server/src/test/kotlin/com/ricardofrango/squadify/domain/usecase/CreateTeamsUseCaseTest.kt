@@ -58,7 +58,8 @@ class CreateTeamsUseCaseTest {
         clubId = clubIdA,
         name = "U12",
         seasonId = "season-1",
-        birthYear = 2014
+        startYear = 2014,
+        endYear = 2014
     )
 
     private fun user(id: String) = User(

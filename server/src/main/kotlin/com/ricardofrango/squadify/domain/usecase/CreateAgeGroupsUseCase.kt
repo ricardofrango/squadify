@@ -33,14 +33,17 @@ class CreateAgeGroupsUseCase(
 
         // Get existing age groups for this club and season to check for duplicates
         val existingAgeGroups = ageGroupRepository.findByClubAndSeason(request.clubId, request.seasonId)
-        val existingYears = existingAgeGroups.map { it.birthYear }.toSet()
+        val existingRanges = existingAgeGroups.map { it.startYear to it.endYear }.toSet()
 
         val newAgeGroups = request.items.map { item ->
             if (item.name.isBlank()) {
                 throw ValidationException("Age group name cannot be empty")
             }
-            if (existingYears.contains(item.birthYear)) {
-                throw ConflictException("An age group for birth year ${item.birthYear} already exists in this season")
+            if (item.startYear < item.endYear) {
+                throw ValidationException("Start year cannot be before end year")
+            }
+            if (existingRanges.contains(item.startYear to item.endYear)) {
+                throw ConflictException("An age group for ${item.startYear}-${item.endYear} already exists in this season")
             }
             if (item.teamSize != null && item.teamSize !in club.sport.teamSizes) {
                 throw ValidationException("Team size ${item.teamSize} is not valid for ${club.sport}")
@@ -51,7 +54,8 @@ class CreateAgeGroupsUseCase(
                 clubId = request.clubId,
                 name = item.name,
                 seasonId = request.seasonId,
-                birthYear = item.birthYear,
+                startYear = item.startYear,
+                endYear = item.endYear,
                 teamSize = item.teamSize
             )
         }

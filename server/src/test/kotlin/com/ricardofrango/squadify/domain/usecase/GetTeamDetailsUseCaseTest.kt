@@ -81,7 +81,7 @@ class GetTeamDetailsUseCaseTest {
         createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL
     )
     private val ageGroup = AgeGroup(
-        id = ag1, clubId = clubIdA, name = "Sub-15", seasonId = "season-1", birthYear = 2011
+        id = ag1, clubId = clubIdA, name = "Sub-15", seasonId = "season-1", startYear = 2011, endYear = 2011
     )
     private val season = Season(
         id = "season-1", clubId = clubIdA, name = "26/27", type = SeasonType.EUROPEAN_YEAR,

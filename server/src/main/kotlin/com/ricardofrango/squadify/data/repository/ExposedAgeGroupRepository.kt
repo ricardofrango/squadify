@@ -24,7 +24,7 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
     override suspend fun getAgeGroupsByClub(clubId: String): List<AgeGroup> {
         return AgeGroups.selectAll()
             .where { AgeGroups.clubId eq Uuid.parse(clubId) }
-            .orderBy(AgeGroups.birthYear, SortOrder.DESC)
+            .orderBy(AgeGroups.endYear, SortOrder.DESC)
             .map(::toAgeGroup)
     }
 
@@ -34,7 +34,8 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
             it[clubId] = Uuid.parse(ageGroup.clubId)
             it[seasonId] = Uuid.parse(ageGroup.seasonId)
             it[name] = ageGroup.name
-            it[birthYear] = ageGroup.birthYear
+            it[startYear] = ageGroup.startYear
+            it[endYear] = ageGroup.endYear
             it[teamSize] = ageGroup.teamSize
         }.resultedValues?.singleOrNull()?.let(::toAgeGroup)
             ?: throw DatabaseException("Failed to create age group")
@@ -46,7 +47,8 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
             this[AgeGroups.clubId] = Uuid.parse(ageGroup.clubId)
             this[AgeGroups.seasonId] = Uuid.parse(ageGroup.seasonId)
             this[AgeGroups.name] = ageGroup.name
-            this[AgeGroups.birthYear] = ageGroup.birthYear
+            this[AgeGroups.startYear] = ageGroup.startYear
+            this[AgeGroups.endYear] = ageGroup.endYear
             this[AgeGroups.teamSize] = ageGroup.teamSize
         }.map(::toAgeGroup)
     }
@@ -60,16 +62,18 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
     override suspend fun updateAgeGroup(ageGroup: AgeGroup): Boolean {
         return AgeGroups.update({ AgeGroups.id eq Uuid.parse(ageGroup.id) }) {
             it[name] = ageGroup.name
-            it[birthYear] = ageGroup.birthYear
+            it[startYear] = ageGroup.startYear
+            it[endYear] = ageGroup.endYear
         } > 0
     }
 
-    override suspend fun findByDetails(clubId: String, seasonId: String, birthYear: Int): AgeGroup? {
+    override suspend fun findByDetails(clubId: String, seasonId: String, startYear: Int, endYear: Int): AgeGroup? {
         return AgeGroups.selectAll()
-            .where { 
-                (AgeGroups.clubId eq Uuid.parse(clubId)) and 
-                (AgeGroups.seasonId eq Uuid.parse(seasonId)) and 
-                (AgeGroups.birthYear eq birthYear) 
+            .where {
+                (AgeGroups.clubId eq Uuid.parse(clubId)) and
+                (AgeGroups.seasonId eq Uuid.parse(seasonId)) and
+                (AgeGroups.startYear eq startYear) and
+                (AgeGroups.endYear eq endYear)
             }
             .map(::toAgeGroup)
             .singleOrNull()
@@ -126,7 +130,8 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
         clubId = row[AgeGroups.clubId].toString(),
         seasonId = row[AgeGroups.seasonId].toString(),
         name = row[AgeGroups.name],
-        birthYear = row[AgeGroups.birthYear],
+        startYear = row[AgeGroups.startYear],
+        endYear = row[AgeGroups.endYear],
         teamSize = row[AgeGroups.teamSize]
     )
 }

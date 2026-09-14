@@ -272,7 +272,7 @@ class ClubDetailsViewModel(
         val seasonId = state.selectedAgeGroupsSeasonId ?: state.details?.seasons?.firstOrNull()?.id
         return state.details?.ageGroups
             ?.filter { it.seasonId == seasonId }
-            ?.sortedByDescending { it.birthYear }
+            ?.sortedByDescending { it.endYear }
             ?: emptyList()
     }
 }

@@ -424,7 +424,7 @@ private fun previewSeason(id: String, name: String) = Season(
 )
 
 private fun previewAgeGroup(id: String, name: String, seasonId: String, birthYear: Int) = AgeGroup(
-    id = id, clubId = "c1", name = name, seasonId = seasonId, birthYear = birthYear
+    id = id, clubId = "c1", name = name, seasonId = seasonId, startYear = birthYear, endYear = birthYear
 )
 
 private fun previewMember(id: String, first: String, last: String) = ClubMemberSummary(
