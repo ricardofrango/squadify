@@ -69,6 +69,11 @@ fun AppNavigation() {
                     navController.navigate(Screen.Dashboard) {
                         popUpTo(Screen.Splash) { inclusive = true }
                     }
+                },
+                onNavigateToOnlyClub = { clubId ->
+                    navController.navigate(Screen.ClubDetails(clubId, isRootClub = true)) {
+                        popUpTo(Screen.Splash) { inclusive = true }
+                    }
                 }
             )
         }
@@ -80,6 +85,11 @@ fun AppNavigation() {
                 },
                 onNavigateToDashboard = {
                     navController.navigate(Screen.Dashboard) {
+                        popUpTo(Screen.Login) { inclusive = true }
+                    }
+                },
+                onNavigateToOnlyClub = { clubId ->
+                    navController.navigate(Screen.ClubDetails(clubId, isRootClub = true)) {
                         popUpTo(Screen.Login) { inclusive = true }
                     }
                 }
