@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.UpdateClubMemberRoleRequest
 
@@ -24,7 +25,14 @@ class UpdateClubMemberRoleUseCase(
             errorMessage = "Only club admins or coordinators can manage user roles at the club level"
         )
 
-        // 2. Update role in the club_members table
-        clubRepository.updateMemberRole(clubId, targetUserId, request.role)
+        // 2. Update role in the club_members table -- updateMemberRole reports whether it actually
+        // matched a row (targetUserId must already be a member of clubId), so a caller targeting a
+        // non-member (stale UI, typo'd id, someone just removed) gets a clear 404 instead of a silent
+        // no-op success.
+        val updated = clubRepository.updateMemberRole(clubId, targetUserId, request.role)
+        if (!updated) {
+            throw NotFoundException("User is not a member of this club")
+        }
+        true
     }
 }

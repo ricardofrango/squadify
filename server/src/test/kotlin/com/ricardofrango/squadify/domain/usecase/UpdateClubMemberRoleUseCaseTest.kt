@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.UpdateClubMemberRoleRequest
 import com.ricardofrango.squadify.model.User
@@ -82,6 +83,21 @@ class UpdateClubMemberRoleUseCaseTest {
         coEvery { clubRepository.updateMemberRole(clubIdA, targetUserId, ClubRole.COORDINATOR) } returns true
 
         useCase(coordinator.id, clubIdA, targetUserId, UpdateClubMemberRoleRequest(role = ClubRole.COORDINATOR))
+        Unit
+    }
+
+    @Test
+    fun targetingSomeoneWhoIsNotAClubMemberIsNotFound() = runBlocking {
+        // updateMemberRole returns false when no row matched (clubId, targetUserId) -- e.g. a stale
+        // UI, a typo'd id, or someone who was just removed from the club.
+        val admin = user("p2-club-admin")
+        coEvery { userRepository.findById(admin.id) } returns admin
+        coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
+        coEvery { clubRepository.updateMemberRole(clubIdA, "not-a-member", ClubRole.COORDINATOR) } returns false
+
+        assertFailsWith<NotFoundException> {
+            useCase(admin.id, clubIdA, "not-a-member", UpdateClubMemberRoleRequest(role = ClubRole.COORDINATOR))
+        }
         Unit
     }
 }
