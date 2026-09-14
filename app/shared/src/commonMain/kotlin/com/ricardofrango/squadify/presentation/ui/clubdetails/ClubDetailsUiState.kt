@@ -12,12 +12,14 @@ import com.ricardofrango.squadify.model.Opponent
 /** Which slice of the club's fixtures the Matches tab shows. */
 enum class MatchesStatusFilter { UPCOMING, FINISHED, ALL }
 
-/** Club-screen tab indices. Order: Age groups, Teams, Home, Players, Matches -- Home is the default. */
-const val CLUB_TAB_AGE_GROUPS = 0
-const val CLUB_TAB_TEAMS = 1
-const val CLUB_TAB_HOME = 2
-const val CLUB_TAB_PLAYERS = 3
-const val CLUB_TAB_MATCHES = 4
+/** Club-screen tab indices. Bottom bar shows Home (default), Age groups, Teams, Matches, then a
+ * "More" item; Players has no bottom-bar icon of its own -- it's reached from the More menu instead
+ * (see ClubDetailsScreen), but still just sets `selectedTab` to this value like any other tab. */
+const val CLUB_TAB_HOME = 0
+const val CLUB_TAB_AGE_GROUPS = 1
+const val CLUB_TAB_TEAMS = 2
+const val CLUB_TAB_MATCHES = 3
+const val CLUB_TAB_PLAYERS = 4
 
 sealed class ClubDetailsUiState {
     data class Idle(

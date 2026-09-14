@@ -164,6 +164,9 @@ fun AppNavigation() {
                 onNavigateToMatch = { matchId ->
                     navController.navigate(Screen.MatchDetails(matchId))
                 },
+                onNavigateToAccount = {
+                    navController.navigate(Screen.Account)
+                },
                 refreshClubDetails = structureChanged
             )
         }
