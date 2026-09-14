@@ -5,8 +5,20 @@ import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.*
 import kotlin.time.Instant
+
+// Kickoff (SCHEDULED -> LIVE) only ever happens through StartMatchUseCase, which also locks in the
+// starting line-up -- allowing it here too would let a caller skip that requirement entirely, so it's
+// deliberately absent below. FINISHED and CANCELLED are terminal: nothing transitions out of either.
+private val VALID_MATCH_STATUS_TRANSITIONS: Map<MatchStatus, Set<MatchStatus>> = mapOf(
+    MatchStatus.SCHEDULED to setOf(MatchStatus.CANCELLED),
+    MatchStatus.LIVE to setOf(MatchStatus.HALF_TIME, MatchStatus.FINISHED, MatchStatus.CANCELLED),
+    MatchStatus.HALF_TIME to setOf(MatchStatus.LIVE, MatchStatus.FINISHED, MatchStatus.CANCELLED),
+    MatchStatus.FINISHED to emptySet(),
+    MatchStatus.CANCELLED to emptySet()
+)
 
 class UpdateMatchStatusUseCase(
     private val matchRepository: MatchRepository,
@@ -32,6 +44,10 @@ class UpdateMatchStatusUseCase(
             teamId = match.teamId,
             errorMessage = "Only admins, coordinators, or team coaches can update match status"
         )
+
+        if (status !in (VALID_MATCH_STATUS_TRANSITIONS[match.status] ?: emptySet())) {
+            throw ValidationException("Cannot change match status from ${match.status} to $status")
+        }
 
         val success = matchRepository.updateMatchStatus(matchId, status)
         if (success) {

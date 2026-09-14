@@ -796,7 +796,9 @@ graph TD
     B -- not found --> N(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minTeamRole=COACH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D[Update Match.status in DB]
+    C -- allowed --> T{"newStatus in VALID_MATCH_STATUS_TRANSITIONS[match.status]?"}
+    T -- No --> V(["Throw ValidationException"])
+    T -- Yes --> D[Update Match.status in DB]
     D --> E{Update succeeded?}
     E -- No --> R1(["Return false — no broadcast"])
     E -- Yes --> F{"newStatus == LIVE and previous status == HALF_TIME?"}
@@ -807,7 +809,7 @@ graph TD
     H --> R2(["Return true"])
 ```
 
-Status values flow `SCHEDULED → LIVE → HALF_TIME → FINISHED` (or `CANCELLED`), but the use case does not itself validate that the requested transition is legal — any status can currently be set from any other (see §11).
+Status values flow `SCHEDULED → LIVE → HALF_TIME → FINISHED` (or `CANCELLED`). The use case now validates the transition against `VALID_MATCH_STATUS_TRANSITIONS`: `SCHEDULED → CANCELLED` only (kickoff, i.e. `SCHEDULED → LIVE`, stays exclusive to `StartMatchUseCase`, §8.0 — this is a real HTTP route in its own right, `MatchRoutes.kt`, so without this guard a caller could set a match LIVE here directly and skip `StartMatchUseCase`'s starting-line-up/half-length validation entirely); `LIVE → {HALF_TIME, FINISHED, CANCELLED}`; `HALF_TIME → {LIVE, FINISHED, CANCELLED}`; `FINISHED`/`CANCELLED` are terminal. An invalid transition throws `ValidationException`. (Previously this list closed with "but the use case does not itself validate that the requested transition is legal — any status can currently be set from any other," per §11 — now fixed there too.)
 
 On the specific `HALF_TIME → LIVE` transition (resuming for the second half), this use case also stamps `Match.secondHalfStartedAt` with the wall-clock instant — so the client's running clock can pick up from the first half's nominal length instead of restarting at 0 (see §8.4).
 
@@ -921,7 +923,8 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
   **Fixed:** `updateMemberRole` already reported whether it matched a row (`> 0`); the use case now checks that result and throws `NotFoundException` instead of silently returning `false` for a non-member. See `UpdateClubMemberRoleUseCaseTest`.
 - [x] **`CreateTeamUseCase` foreign-key validation.** It now loads the age group and rejects the request (`ValidationException`) if it doesn't exist, or its `clubId`/`seasonId` don't match the request — see §4.5. `CreateTeamsUseCase` (batch, §4.5b) applies the same check once for the whole batch.
 - [ ] **No self-service call-up confirmation.** `UpdateCallUpStatusUseCase` requires `COACH`+ team role — there is no path for a Parent/Player to set their own call-up to "Confirmed", even though `REQUIREMENTS.md` §5 lists "Confirmed" as a call-up status a family member would set. This lines up with the still-open "Account Management" and parent-facing client roadmap items.
-- [ ] **No match-status transition validation.** `UpdateMatchStatusUseCase` accepts any `MatchStatus` value from any current status — nothing stops jumping straight from `SCHEDULED` to `FINISHED`, for instance.
+- [x] **No match-status transition validation.** `UpdateMatchStatusUseCase` accepted any `MatchStatus` value from any current status — nothing stopped jumping straight from `SCHEDULED` to `FINISHED`, and (a sharper version of the same gap) a coach could set `SCHEDULED -> LIVE` through this use case directly, completely bypassing `StartMatchUseCase`'s starting-line-up/half-length validation, since it's a separately exposed route (`MatchRoutes.kt`), not something `StartMatchUseCase` delegates to.
+  **Fixed:** added an explicit transition table (`VALID_MATCH_STATUS_TRANSITIONS`) -- `SCHEDULED -> CANCELLED` only (kickoff stays exclusive to `StartMatchUseCase`); `LIVE -> {HALF_TIME, FINISHED, CANCELLED}`; `HALF_TIME -> {LIVE, FINISHED, CANCELLED}`; `FINISHED`/`CANCELLED` are terminal. An invalid transition now throws `ValidationException`. See `UpdateMatchStatusUseCaseTest`.
 - [ ] **No historical/aggregated match statistics use case exists yet.** `GetMatchScoreUseCase`/`GetMatchEventsUseCase` only expose live/raw data — this matches the open `REQUIREMENTS.md` Phase 5 item "Historical match statistics (Post-match analysis)".
 - [ ] **Invite emails are not sent.** Confirmed at the use-case level: every invite-creation path only writes to the `Invites` table (§10) — no email/SMTP call exists, matching the documented "Email System (Pending)" decision.
 
