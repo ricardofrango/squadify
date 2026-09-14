@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.exception.UnauthorizedException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.LoginRequest
 import com.ricardofrango.squadify.model.LoginResponse
+import com.ricardofrango.squadify.model.UserStatus
 import com.ricardofrango.squadify.security.JwtConfig
 import kotlin.time.Instant
 import org.mindrot.jbcrypt.BCrypt
@@ -27,6 +28,13 @@ class LoginUseCase(
 
         if (!BCrypt.checkpw(request.password, passwordHash)) {
             throw UnauthorizedException("Invalid email or password")
+        }
+
+        // Checked only after the password verifies, so a caller who doesn't already know the
+        // credentials can't use this to probe whether an account exists/is suspended -- same
+        // status gate CheckUserPermissionUseCase applies to every already-authenticated action.
+        if (user.status != UserStatus.ACTIVE) {
+            throw UnauthorizedException("Your account is not active")
         }
 
         val accessToken = JwtConfig.generateAccessToken(user.id)
