@@ -69,6 +69,11 @@ fun AppNavigation() {
                     navController.navigate(Screen.Dashboard) {
                         popUpTo(Screen.Splash) { inclusive = true }
                     }
+                },
+                onNavigateToOnlyClub = { clubId ->
+                    navController.navigate(Screen.ClubDetails(clubId, isRootClub = true)) {
+                        popUpTo(Screen.Splash) { inclusive = true }
+                    }
                 }
             )
         }
@@ -80,6 +85,11 @@ fun AppNavigation() {
                 },
                 onNavigateToDashboard = {
                     navController.navigate(Screen.Dashboard) {
+                        popUpTo(Screen.Login) { inclusive = true }
+                    }
+                },
+                onNavigateToOnlyClub = { clubId ->
+                    navController.navigate(Screen.ClubDetails(clubId, isRootClub = true)) {
                         popUpTo(Screen.Login) { inclusive = true }
                     }
                 }
@@ -104,6 +114,13 @@ fun AppNavigation() {
                 onNavigateToClub = { clubId ->
                     navController.navigate(Screen.ClubDetails(clubId))
                 },
+                onNavigateToOnlyClub = { clubId ->
+                    // The clubs list has nothing to offer a single-club user, so pop it off the back
+                    // stack entirely -- ClubDetailsScreen(isRootClub = true) then has no back button.
+                    navController.navigate(Screen.ClubDetails(clubId, isRootClub = true)) {
+                        popUpTo(Screen.Dashboard) { inclusive = true }
+                    }
+                },
                 onNavigateToAccount = {
                     navController.navigate(Screen.Account)
                 }
@@ -121,6 +138,7 @@ fun AppNavigation() {
             }
             ClubDetailsScreen(
                 clubId = screen.clubId,
+                showBackButton = !screen.isRootClub,
                 onNavigateBack = {
                     navController.popBackStack()
                 },
@@ -155,6 +173,9 @@ fun AppNavigation() {
                 },
                 onNavigateToMatch = { matchId ->
                     navController.navigate(Screen.MatchDetails(matchId))
+                },
+                onNavigateToAccount = {
+                    navController.navigate(Screen.Account)
                 },
                 refreshClubDetails = structureChanged
             )

@@ -62,6 +62,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.btn_retry
+import squadify.app.shared.generated.resources.ic_account
 import squadify.app.shared.generated.resources.ic_age_group
 import squadify.app.shared.generated.resources.ic_calendar
 import squadify.app.shared.generated.resources.ic_home
@@ -76,7 +77,6 @@ import squadify.app.shared.generated.resources.label_all_seasons
 import squadify.app.shared.generated.resources.label_create_age_group
 import squadify.app.shared.generated.resources.label_create_staff
 import squadify.app.shared.generated.resources.label_create_team
-import squadify.app.shared.generated.resources.label_more_options
 import squadify.app.shared.generated.resources.label_number_prefix
 import squadify.app.shared.generated.resources.label_search_players
 import squadify.app.shared.generated.resources.msg_no_players_admin_subtitle
@@ -95,8 +95,10 @@ import squadify.app.shared.generated.resources.label_age_group_summary
 import squadify.app.shared.generated.resources.tab_age_groups
 import squadify.app.shared.generated.resources.tab_home
 import squadify.app.shared.generated.resources.tab_matches
+import squadify.app.shared.generated.resources.tab_more
 import squadify.app.shared.generated.resources.tab_players
 import squadify.app.shared.generated.resources.tab_teams
+import squadify.app.shared.generated.resources.title_account
 import squadify.app.shared.generated.resources.title_club_details
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -107,6 +109,9 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun ClubDetailsScreen(
     clubId: String,
+    // False for the single-club user's root screen (see AppNavigation / Screen.ClubDetails.isRootClub)
+    // -- Dashboard was popped off the back stack in that case, so there's nowhere to go back to.
+    showBackButton: Boolean = true,
     onNavigateBack: () -> Unit,
     onNavigateToTeam: (String) -> Unit,
     onNavigateToPlayer: (String) -> Unit,
@@ -127,6 +132,10 @@ fun ClubDetailsScreen(
     onNavigateToCreateStaff: (clubName: String) -> Unit,
     onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
     onNavigateToMatch: (matchId: String) -> Unit,
+    // Club Details is now the primary hub for every user (single-club users never see Dashboard, see
+    // Screen.ClubDetails.isRootClub), so it carries its own direct route to Account/logout instead of
+    // only being reachable from Dashboard's top bar.
+    onNavigateToAccount: () -> Unit,
     // True exactly once, right after returning from a Create* screen having created something --
     // forces a reload past loadClubDetails' "already have this club" guard, since Koin scopes this
     // ViewModel to the nav back-stack entry (so popping back here reuses stale state).
@@ -153,22 +162,94 @@ fun ClubDetailsScreen(
             FMTopBar(
                 title = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name
                     ?: stringResource(Res.string.title_club_details),
+                showBackButton = showBackButton,
                 onNavigateBack = onNavigateBack,
                 actions = {
-                    var showAddMenu by remember { mutableStateOf(false) }
-                    Box {
-                        IconButton(onClick = { showAddMenu = true }) {
-                            Icon(
-                                painter = painterResource(Res.drawable.ic_more),
-                                contentDescription = stringResource(Res.string.label_more_options),
-                                tint = Color.White
+                    // Club Details is the primary hub screen for every user now (see the doc comment
+                    // on onNavigateToAccount above), so Account lives here directly rather than behind
+                    // Dashboard -- the create-actions that used to sit here moved into the bottom
+                    // "More" tab instead (see below).
+                    IconButton(onClick = onNavigateToAccount) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_account),
+                            contentDescription = stringResource(Res.string.title_account),
+                            tint = Color.White
+                        )
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            // Only meaningful once the club details actually loaded -- while loading, or if the
+            // fetch failed (Idle.details stays null), there's nothing for the tabs to show.
+            if ((uiState as? ClubDetailsUiState.Idle)?.details != null) {
+                NavigationBar(
+                    containerColor = CarbonGray,
+                    tonalElevation = 0.dp,
+                    windowInsets = NavigationBarDefaults.windowInsets
+                ) {
+                    ClubTabItem(
+                        selected = selectedTab == CLUB_TAB_HOME,
+                        onClick = { viewModel.onTabSelected(CLUB_TAB_HOME) },
+                        icon = Res.drawable.ic_home,
+                        label = stringResource(Res.string.tab_home)
+                    )
+                    ClubTabItem(
+                        selected = selectedTab == CLUB_TAB_AGE_GROUPS,
+                        onClick = { viewModel.onTabSelected(CLUB_TAB_AGE_GROUPS) },
+                        icon = Res.drawable.ic_age_group,
+                        label = stringResource(Res.string.tab_age_groups)
+                    )
+                    ClubTabItem(
+                        selected = selectedTab == CLUB_TAB_TEAMS,
+                        onClick = { viewModel.onTabSelected(CLUB_TAB_TEAMS) },
+                        icon = Res.drawable.ic_teams,
+                        label = stringResource(Res.string.tab_teams)
+                    )
+                    ClubTabItem(
+                        selected = selectedTab == CLUB_TAB_MATCHES,
+                        onClick = { viewModel.onTabSelected(CLUB_TAB_MATCHES) },
+                        icon = Res.drawable.ic_calendar,
+                        label = stringResource(Res.string.tab_matches)
+                    )
+
+                    // "More": Players (no bottom-bar icon of its own) plus every create-action that
+                    // used to live in the top bar's overflow menu, now that the top-right slot is
+                    // Account's. Highlighted when Players is the active tab, even though the tap
+                    // target always opens the menu rather than directly selecting anything.
+                    //
+                    // NavigationBarItem applies its own weight(1f) internally, which only reaches
+                    // Row's layout when the item is a *direct* Row child. Nested one level inside Box
+                    // (needed here to anchor the dropdown) that weight is silently dropped -- Box's own
+                    // BoxScope blocks the outer RowScope receiver from reaching further-nested calls
+                    // (Compose's @LayoutScopeMarker), so RowScope must be re-imported at each level:
+                    // once on the Modifier.weight(1f) argument (Box's call site is still directly in
+                    // NavigationBar's scope) and again via `with(this@NavigationBar)` around ClubTabItem
+                    // inside Box's own content lambda. Without the Box's own weight, it gets measured
+                    // unweighted, claims the Row's full width in the first layout pass, and squeezes
+                    // the other four tabs to nothing -- see the original bug this fixes.
+                    var showMoreMenu by remember { mutableStateOf(false) }
+                    Box(modifier = Modifier.weight(1f)) {
+                        with(this@NavigationBar) {
+                            ClubTabItem(
+                                selected = selectedTab == CLUB_TAB_PLAYERS,
+                                onClick = { showMoreMenu = true },
+                                icon = Res.drawable.ic_more,
+                                label = stringResource(Res.string.tab_more)
                             )
                         }
                         DropdownMenu(
-                            expanded = showAddMenu,
-                            onDismissRequest = { showAddMenu = false },
+                            expanded = showMoreMenu,
+                            onDismissRequest = { showMoreMenu = false },
                             modifier = Modifier.background(Color.White)
                         ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.tab_players), color = DeepCarbon) },
+                                onClick = {
+                                    showMoreMenu = false
+                                    viewModel.onTabSelected(CLUB_TAB_PLAYERS)
+                                }
+                            )
                             // Ordered to match how a club is actually built up: a season before
                             // anything can attach to it, then age groups, then teams within them,
                             // then players. See AI_GUIDELINES.md / user direction on menu ordering.
@@ -180,7 +261,7 @@ fun ClubDetailsScreen(
                                     )
                                 },
                                 onClick = {
-                                    showAddMenu = false
+                                    showMoreMenu = false
                                     onNavigateToCreateSeason(clubName)
                                 }
                             )
@@ -192,7 +273,7 @@ fun ClubDetailsScreen(
                                     )
                                 },
                                 onClick = {
-                                    showAddMenu = false
+                                    showMoreMenu = false
                                     // The Create Age Groups screen picks the season itself; from here
                                     // the user hasn't indicated one, so pass no pre-selection. Still
                                     // no-ops if the club has no seasons at all yet -- create one first.
@@ -209,7 +290,7 @@ fun ClubDetailsScreen(
                                     )
                                 },
                                 onClick = {
-                                    showAddMenu = false
+                                    showMoreMenu = false
                                     onNavigateToCreateTeams(clubName, sport)
                                 }
                             )
@@ -221,7 +302,7 @@ fun ClubDetailsScreen(
                                     )
                                 },
                                 onClick = {
-                                    showAddMenu = false
+                                    showMoreMenu = false
                                     onNavigateToCreateStaff(clubName)
                                 }
                             )
@@ -233,54 +314,12 @@ fun ClubDetailsScreen(
                                     )
                                 },
                                 onClick = {
-                                    showAddMenu = false
+                                    showMoreMenu = false
                                     onNavigateToCreatePlayers(clubName)
                                 }
                             )
                         }
                     }
-                }
-            )
-        },
-        bottomBar = {
-            // Only meaningful once the club details actually loaded -- while loading, or if the
-            // fetch failed (Idle.details stays null), there's nothing for the tabs to show.
-            if ((uiState as? ClubDetailsUiState.Idle)?.details != null) {
-                NavigationBar(
-                    containerColor = CarbonGray,
-                    tonalElevation = 0.dp,
-                    windowInsets = NavigationBarDefaults.windowInsets
-                ) {
-                    ClubTabItem(
-                        selected = selectedTab == 0,
-                        onClick = { viewModel.onTabSelected(0) },
-                        icon = Res.drawable.ic_age_group,
-                        label = stringResource(Res.string.tab_age_groups)
-                    )
-                    ClubTabItem(
-                        selected = selectedTab == 1,
-                        onClick = { viewModel.onTabSelected(1) },
-                        icon = Res.drawable.ic_teams,
-                        label = stringResource(Res.string.tab_teams)
-                    )
-                    ClubTabItem(
-                        selected = selectedTab == 2,
-                        onClick = { viewModel.onTabSelected(2) },
-                        icon = Res.drawable.ic_home,
-                        label = stringResource(Res.string.tab_home)
-                    )
-                    ClubTabItem(
-                        selected = selectedTab == 3,
-                        onClick = { viewModel.onTabSelected(3) },
-                        icon = Res.drawable.ic_player,
-                        label = stringResource(Res.string.tab_players)
-                    )
-                    ClubTabItem(
-                        selected = selectedTab == 4,
-                        onClick = { viewModel.onTabSelected(4) },
-                        icon = Res.drawable.ic_calendar,
-                        label = stringResource(Res.string.tab_matches)
-                    )
                 }
             }
         }
@@ -369,16 +408,15 @@ private fun ClubDetailsTabContent(
     clubName: String
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        // Tab order: 0 Age groups, 1 Teams, 2 Home (default), 3 Players, 4 Matches.
         when (selectedTab) {
-            2 -> HomeTab(
+            CLUB_TAB_HOME -> HomeTab(
                 home = state.home,
                 onRetry = { viewModel.loadClubDetails(clubId, forceReload = true) },
                 onNavigateToAgeGroup = onNavigateToAgeGroup,
                 onNavigateToMatch = onNavigateToMatch
             )
 
-            1 -> {
+            CLUB_TAB_TEAMS -> {
                 TeamFilterSection(state = state, viewModel = viewModel)
                 // The club-wide "no age groups" state above only fires when *no* season has any; once
                 // some do, narrowing the season filter to one that still has none would otherwise just
@@ -405,7 +443,7 @@ private fun ClubDetailsTabContent(
                 }
             }
 
-            3 -> {
+            CLUB_TAB_PLAYERS -> {
                 PlayerFilterSection(state = state, viewModel = viewModel)
                 when {
                     state.selectedPlayerSeasonId != null &&
@@ -432,7 +470,7 @@ private fun ClubDetailsTabContent(
                 }
             }
 
-            0 -> {
+            CLUB_TAB_AGE_GROUPS -> {
                 AgeGroupsFilterSection(state = state, viewModel = viewModel)
                 val ageGroups = viewModel.getAgeGroupsForAgeGroupsTab(state)
                 if (ageGroups.isEmpty()) {

@@ -314,6 +314,7 @@
     <!-- Club Home tab -->
     <string name="tab_home">Início</string>
     <string name="tab_matches">Jogos</string>
+    <string name="tab_more">Mais</string>
 
     <!-- Club Matches tab -->
     <string name="matches_status_upcoming">Por jogar</string>

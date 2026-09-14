@@ -314,6 +314,7 @@
     <!-- Club Home tab -->
     <string name="tab_home">Home</string>
     <string name="tab_matches">Matches</string>
+    <string name="tab_more">More</string>
 
     <!-- Club Matches tab -->
     <string name="matches_status_upcoming">Upcoming</string>

@@ -29,6 +29,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun SplashScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToDashboard: () -> Unit,
+    onNavigateToOnlyClub: (String) -> Unit,
     viewModel: SplashViewModel = koinViewModel()
 ) {
     LaunchedEffect(Unit) {
@@ -36,6 +37,7 @@ fun SplashScreen(
             when (event) {
                 SplashNavigationEvent.NavigateToLogin -> onNavigateToLogin()
                 SplashNavigationEvent.NavigateToDashboard -> onNavigateToDashboard()
+                is SplashNavigationEvent.NavigateToOnlyClub -> onNavigateToOnlyClub(event.clubId)
             }
         }
     }

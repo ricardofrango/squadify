@@ -20,8 +20,12 @@ sealed class Screen {
     @Serializable
     data object Account : Screen()
 
+    // isRootClub is true only when this is the single club a user with just one club is bounced to
+    // straight from Dashboard (see DashboardViewModel.NavigateToOnlyClub) -- Dashboard is popped off
+    // the back stack in that case, so ClubDetailsScreen hides its back button and centers the title
+    // instead of pointing at a clubs list the user can no longer reach.
     @Serializable
-    data class ClubDetails(val clubId: String) : Screen()
+    data class ClubDetails(val clubId: String, val isRootClub: Boolean = false) : Screen()
 
     @Serializable
     data class CreateSeason(val clubId: String, val clubName: String) : Screen()

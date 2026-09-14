@@ -36,6 +36,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     onNavigateToDashboard: () -> Unit,
+    onNavigateToOnlyClub: (String) -> Unit,
     viewModel: LoginViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
@@ -59,6 +60,10 @@ fun LoginScreen(
                     // Commit the autofill session so the OS shows its "save password?" prompt.
                     autofillManager?.commit()
                     onNavigateToDashboard()
+                }
+                is LoginNavigationEvent.NavigateToOnlyClub -> {
+                    autofillManager?.commit()
+                    onNavigateToOnlyClub(event.clubId)
                 }
             }
         }
