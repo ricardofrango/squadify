@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Club
@@ -128,6 +129,33 @@ class CreateTeamsUseCaseTest {
 
         assertFailsWith<ValidationException> {
             useCase(admin.id, request())
+        }
+        Unit
+    }
+
+    @Test
+    fun aNonexistentAgeGroupIsNotFound() = runBlocking {
+        val admin = user("p2-club-admin")
+        coEvery { userRepository.findById(admin.id) } returns admin
+        coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
+        coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns null
+
+        assertFailsWith<NotFoundException> {
+            useCase(admin.id, request("Team A"))
+        }
+        Unit
+    }
+
+    @Test
+    fun aNonexistentClubIsNotFound() = runBlocking {
+        val admin = user("p2-club-admin")
+        coEvery { userRepository.findById(admin.id) } returns admin
+        coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
+        coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns consistentAgeGroup
+        coEvery { clubRepository.getClubById(clubIdA) } returns null
+
+        assertFailsWith<NotFoundException> {
+            useCase(admin.id, request("Team A"))
         }
         Unit
     }

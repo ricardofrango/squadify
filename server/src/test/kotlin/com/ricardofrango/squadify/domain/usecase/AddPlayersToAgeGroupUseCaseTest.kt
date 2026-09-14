@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AddPlayersToAgeGroupRequest
 import com.ricardofrango.squadify.model.AgeGroup
@@ -182,6 +183,33 @@ class AddPlayersToAgeGroupUseCaseTest {
 
         assertFailsWith<ForbiddenException> {
             useCase(coord.id, ageGroupId, request("x"))
+        }
+        Unit
+    }
+
+    @Test
+    fun aNonexistentAgeGroupIsNotFound() = runBlocking {
+        // The age group lookup happens before the permission check, so no user/permission stubs
+        // are needed here.
+        coEvery { ageGroupRepository.getAgeGroupById(ageGroupId) } returns null
+
+        assertFailsWith<NotFoundException> {
+            useCase("anyone", ageGroupId, request("x"))
+        }
+        Unit
+    }
+
+    @Test
+    fun aNonexistentPlayerIsNotFound() = runBlocking {
+        val coord = user("p3-coordinator")
+        coEvery { userRepository.findById(coord.id) } returns coord
+        coEvery { userRepository.getUserRoleInClub(coord.id, clubIdA) } returns ClubRole.COORDINATOR
+        coEvery { ageGroupRepository.getAgeGroupById(ageGroupId) } returns ageGroup
+        coEvery { playerRepository.getPlayersData(any()) } returns emptyList()
+        coEvery { playerRepository.getPlayersByAgeGroup(ageGroupId) } returns emptyList()
+
+        assertFailsWith<NotFoundException> {
+            useCase(coord.id, ageGroupId, request("does-not-exist"))
         }
         Unit
     }

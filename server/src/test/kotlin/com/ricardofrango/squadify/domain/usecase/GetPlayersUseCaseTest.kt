@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.AgeGroupPlayer
 import com.ricardofrango.squadify.model.ClubRole
@@ -150,6 +151,21 @@ class GetPlayersUseCaseTest {
 
         assertFailsWith<ForbiddenException> {
             useCase(outsider.id, clubIdA, team1.id)
+        }
+        Unit
+    }
+
+    @Test
+    fun aNonexistentTeamIsNotFoundWhenFilteredByTeamId() = runBlocking {
+        // A club admin passes the permission check on club role alone, regardless of whether the
+        // team resolves -- so this reaches GetPlayersUseCase's own team lookup.
+        val admin = user("p2-club-admin")
+        coEvery { userRepository.findById(admin.id) } returns admin
+        coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
+        coEvery { teamRepository.getTeamById("no-such-team") } returns null
+
+        assertFailsWith<NotFoundException> {
+            useCase(admin.id, clubIdA, "no-such-team")
         }
         Unit
     }

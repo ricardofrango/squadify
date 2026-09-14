@@ -10,7 +10,7 @@ import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
-import com.ricardofrango.squadify.exception.ValidationException
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.MatchOutcome
 import com.ricardofrango.squadify.model.MatchStatus
@@ -40,7 +40,7 @@ class GetTeamDetailsUseCase(
 ) {
     suspend operator fun invoke(userId: String, teamId: String): TeamDetails = transactionManager.runInTransaction {
         val team = teamRepository.getTeamById(teamId)
-            ?: throw ValidationException("Team not found")
+            ?: throw NotFoundException("Team not found")
 
         checkUserPermissionUseCase(
             userId = userId,
@@ -52,11 +52,11 @@ class GetTeamDetailsUseCase(
         )
 
         val club = clubRepository.getClubById(team.clubId)
-            ?: throw ValidationException("Club not found")
+            ?: throw NotFoundException("Club not found")
         val ageGroup = ageGroupRepository.getAgeGroupById(team.ageGroupId)
-            ?: throw ValidationException("Age group not found")
+            ?: throw NotFoundException("Age group not found")
         val season = seasonRepository.getSeasonById(team.seasonId)
-            ?: throw ValidationException("Season not found")
+            ?: throw NotFoundException("Season not found")
 
         val canManage = try {
             checkUserPermissionUseCase(
