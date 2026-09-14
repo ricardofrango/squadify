@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.Club
+import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
@@ -156,8 +157,8 @@ private fun ClubCard(club: Club, onClick: () -> Unit) {
             }
             
             Spacer(modifier = Modifier.width(16.dp))
-            
-            Column {
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = club.name,
                     style = MaterialTheme.typography.titleMedium.copy(
@@ -170,7 +171,31 @@ private fun ClubCard(club: Club, onClick: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
                 )
             }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            SportBadge(club.sport)
         }
+    }
+}
+
+@Composable
+private fun SportBadge(sport: SportType) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = PitchGreen.copy(alpha = 0.12f)
+    ) {
+        Text(
+            text = stringResource(
+                when (sport) {
+                    SportType.FOOTBALL -> Res.string.sport_football
+                    SportType.FUTSAL -> Res.string.sport_futsal
+                }
+            ),
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+            color = PitchGreen,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+        )
     }
 }
 
