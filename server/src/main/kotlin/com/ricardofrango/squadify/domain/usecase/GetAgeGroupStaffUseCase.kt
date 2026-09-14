@@ -2,7 +2,7 @@ package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
-import com.ricardofrango.squadify.exception.ValidationException
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.AgeGroupStaffMember
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.TeamRole
@@ -14,7 +14,7 @@ class GetAgeGroupStaffUseCase(
 ) {
     suspend operator fun invoke(userId: String, ageGroupId: String): List<AgeGroupStaffMember> = transactionManager.runInTransaction {
         val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId)
-            ?: throw ValidationException("Age group not found")
+            ?: throw NotFoundException("Age group not found")
 
         checkUserPermissionUseCase(
             userId = userId,

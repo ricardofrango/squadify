@@ -4,6 +4,7 @@ import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.CreateTeamsRequest
@@ -38,7 +39,7 @@ class CreateTeamsUseCase(
         // The age group must actually belong to the club and season the teams are being created
         // under -- otherwise a team could reference an age group from a different season/club.
         val ageGroup = ageGroupRepository.getAgeGroupById(request.ageGroupId)
-            ?: throw ValidationException("Age group not found")
+            ?: throw NotFoundException("Age group not found")
         if (ageGroup.clubId != request.clubId) {
             throw ValidationException("Age group does not belong to this club")
         }
@@ -47,7 +48,7 @@ class CreateTeamsUseCase(
         }
 
         val club = clubRepository.getClubById(request.clubId)
-            ?: throw ValidationException("Club not found")
+            ?: throw NotFoundException("Club not found")
 
         val newTeams = request.items.map { item ->
             if (item.name.isBlank()) {

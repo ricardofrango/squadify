@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ConflictException
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.AgeGroupItemRequest
@@ -84,6 +85,24 @@ class CreateAgeGroupsUseCaseTest {
 
         assertEquals(2017, result.single().startYear)
         assertEquals(2016, result.single().endYear)
+    }
+
+    @Test
+    fun aNonexistentClubIsNotFound() = runBlocking {
+        val coord = coordinator()
+        coEvery { clubRepository.getClubById(clubId) } returns null
+
+        assertFailsWith<NotFoundException> {
+            useCase(
+                coord.id,
+                CreateAgeGroupsRequest(
+                    clubId = clubId,
+                    seasonId = seasonId,
+                    items = listOf(AgeGroupItemRequest(name = "Benjamins", startYear = 2017, endYear = 2016))
+                )
+            )
+        }
+        Unit
     }
 
     @Test

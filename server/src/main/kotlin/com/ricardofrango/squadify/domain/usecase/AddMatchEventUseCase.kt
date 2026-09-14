@@ -4,7 +4,7 @@ import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
-import com.ricardofrango.squadify.exception.ValidationException
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.*
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
@@ -23,7 +23,7 @@ class AddMatchEventUseCase(
     ): MatchEvent = transactionManager.runInTransaction {
         // 1. Verify match exists first to get context
         val match = matchRepository.getMatchById(matchId)
-            ?: throw ValidationException("Match not found")
+            ?: throw NotFoundException("Match not found")
 
         // 2. Single granular permission check using metadata from match
         checkUserPermissionUseCase(

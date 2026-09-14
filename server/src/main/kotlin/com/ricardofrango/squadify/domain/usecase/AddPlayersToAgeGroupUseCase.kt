@@ -4,6 +4,7 @@ import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AddPlayersToAgeGroupRequest
 import com.ricardofrango.squadify.model.AgeGroupPlayer
@@ -30,7 +31,7 @@ class AddPlayersToAgeGroupUseCase(
         request: AddPlayersToAgeGroupRequest
     ): List<AgeGroupPlayer> = transactionManager.runInTransaction {
         val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId)
-            ?: throw ValidationException("Age group not found")
+            ?: throw NotFoundException("Age group not found")
 
         checkUserPermissionUseCase(
             userId = userId,
@@ -52,7 +53,7 @@ class AddPlayersToAgeGroupUseCase(
             if (playerId in alreadyIn) return@mapNotNull null
 
             val player = playersById[playerId]
-                ?: throw ValidationException("Player $playerId not found")
+                ?: throw NotFoundException("Player $playerId not found")
             if (player.clubId != ageGroup.clubId) {
                 throw ForbiddenException("Player $playerId does not belong to this club")
             }

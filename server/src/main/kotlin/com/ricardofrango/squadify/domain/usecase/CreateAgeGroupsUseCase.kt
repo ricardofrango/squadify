@@ -4,6 +4,7 @@ import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ConflictException
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.ClubRole
@@ -29,7 +30,7 @@ class CreateAgeGroupsUseCase(
         }
 
         val club = clubRepository.getClubById(request.clubId)
-            ?: throw ValidationException("Club not found")
+            ?: throw NotFoundException("Club not found")
 
         // Get existing age groups for this club and season to check for duplicates
         val existingAgeGroups = ageGroupRepository.findByClubAndSeason(request.clubId, request.seasonId)

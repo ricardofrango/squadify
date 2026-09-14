@@ -4,7 +4,7 @@ import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
-import com.ricardofrango.squadify.exception.ValidationException
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.*
 import kotlin.uuid.Uuid
 
@@ -20,7 +20,7 @@ class AddStaffToAgeGroupUseCase(
         request: AddStaffToAgeGroupRequest
     ): Boolean = transactionManager.runInTransaction {
         val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId)
-            ?: throw ValidationException("Age group not found")
+            ?: throw NotFoundException("Age group not found")
 
         checkUserPermissionUseCase(
             userId = userId,

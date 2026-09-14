@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.ClubRole
@@ -93,6 +94,39 @@ class CreateTeamUseCaseTest {
 
         assertFailsWith<ForbiddenException> {
             useCase(member.id, request)
+        }
+        Unit
+    }
+
+    @Test
+    fun aNonexistentAgeGroupIsNotFound() = runBlocking {
+        val admin = user("p2-club-admin")
+        coEvery { userRepository.findById(admin.id) } returns admin
+        coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
+        coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns null
+        val request = CreateTeamRequest(clubId = clubIdA, ageGroupId = "age-group-1", seasonId = "season-1", name = "Team 1")
+
+        assertFailsWith<NotFoundException> {
+            useCase(admin.id, request)
+        }
+        Unit
+    }
+
+    @Test
+    fun aNonexistentClubIsNotFoundWhenTeamSizeIsSet() = runBlocking {
+        // The club lookup only happens when a teamSize is given (to validate it against the club's
+        // sport), so the request must include one to reach this branch.
+        val admin = user("p2-club-admin")
+        coEvery { userRepository.findById(admin.id) } returns admin
+        coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
+        coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns consistentAgeGroup
+        coEvery { clubRepository.getClubById(clubIdA) } returns null
+        val request = CreateTeamRequest(
+            clubId = clubIdA, ageGroupId = "age-group-1", seasonId = "season-1", name = "Team 1", teamSize = 11
+        )
+
+        assertFailsWith<NotFoundException> {
+            useCase(admin.id, request)
         }
         Unit
     }

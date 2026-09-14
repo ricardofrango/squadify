@@ -37,6 +37,10 @@ We use **Exposed** as our SQL ORM.
         - `ValidationException` (VAL_001 -> 400): Business rule or request format violations.
         - `ConflictException` (DATA_001 -> 409): Duplicate resources or state conflicts.
         - `DatabaseException` (DATA_002 -> 500): Persistence layer failures.
+        - `NotFoundException` (DATA_003 -> 404): An entity looked up by ID doesn't exist -- the
+          primary resource in the request, or one it references (e.g. a `clubId`/`ageGroupId` on a
+          create payload). See `PROCESS_FLOWS.md` §11 for the standardization pass that made this
+          consistent across every use case.
     - **Mapping**: Ktor's `StatusPages` plugin converts these to a consistent `ErrorResponse` JSON body.
     - **Security**: Unhandled exceptions (`Throwable`) are masked as "An internal server error occurred" to avoid leaking system internals.
 

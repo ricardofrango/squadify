@@ -11,6 +11,7 @@ import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.SportType
@@ -172,6 +173,51 @@ class GetTeamDetailsUseCaseTest {
         coEvery { playerRepository.getPlayersByUser(outsider.id) } returns emptyList()
 
         assertFailsWith<ForbiddenException> { useCase(outsider.id, teamId) }
+        Unit
+    }
+
+    @Test
+    fun aNonexistentTeamIsNotFound() = runBlocking {
+        // The team lookup happens before the permission check, so no user stubs are needed here.
+        coEvery { teamRepository.getTeamById(teamId) } returns null
+
+        assertFailsWith<NotFoundException> { useCase("anyone", teamId) }
+        Unit
+    }
+
+    @Test
+    fun aTeamWhoseClubIsMissingIsNotFound() = runBlocking {
+        val admin = user("p2-club-admin")
+        stubResolvedTeamWithNoData()
+        coEvery { clubRepository.getClubById(clubIdA) } returns null
+        coEvery { userRepository.findById(admin.id) } returns admin
+        coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
+
+        assertFailsWith<NotFoundException> { useCase(admin.id, teamId) }
+        Unit
+    }
+
+    @Test
+    fun aTeamWhoseAgeGroupIsMissingIsNotFound() = runBlocking {
+        val admin = user("p2-club-admin")
+        stubResolvedTeamWithNoData()
+        coEvery { ageGroupRepository.getAgeGroupById(ag1) } returns null
+        coEvery { userRepository.findById(admin.id) } returns admin
+        coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
+
+        assertFailsWith<NotFoundException> { useCase(admin.id, teamId) }
+        Unit
+    }
+
+    @Test
+    fun aTeamWhoseSeasonIsMissingIsNotFound() = runBlocking {
+        val admin = user("p2-club-admin")
+        stubResolvedTeamWithNoData()
+        coEvery { seasonRepository.getSeasonById("season-1") } returns null
+        coEvery { userRepository.findById(admin.id) } returns admin
+        coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
+
+        assertFailsWith<NotFoundException> { useCase(admin.id, teamId) }
         Unit
     }
 

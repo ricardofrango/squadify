@@ -5,7 +5,7 @@ import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
-import com.ricardofrango.squadify.exception.ValidationException
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.TeamRole
@@ -35,7 +35,7 @@ class GetPlayersUseCase(
                 allowPlayerOrParentAccess = true
             )
 
-            val team = teamRepository.getTeamById(teamId) ?: throw ValidationException("Team not found")
+            val team = teamRepository.getTeamById(teamId) ?: throw NotFoundException("Team not found")
             playerRepository.getPlayersByAgeGroup(team.ageGroupId)
         } else {
             // No team filter: club admins/coordinators see every player in the club. Everyone else
