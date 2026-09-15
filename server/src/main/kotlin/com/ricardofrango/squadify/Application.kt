@@ -90,7 +90,12 @@ fun Application.module() {
     install(WebSockets) {
         pingPeriod = 15.seconds
         timeout = 15.seconds
-        maxFrameSize = Long.MAX_VALUE
+        // The live-match socket (MatchRoutes.kt) is server-to-client broadcast only -- it never reads
+        // `incoming` frames -- so there's no legitimate reason for a large inbound frame. Capped well
+        // above any real LiveMatchUpdate payload (small JSON) but far below Long.MAX_VALUE, which let
+        // a single oversized frame exhaust memory (see "issues to fix.md", "Unbounded WebSocket frame
+        // size").
+        maxFrameSize = 64 * 1024L
         masking = false
         contentConverter = KotlinxWebsocketSerializationConverter(Json)
     }

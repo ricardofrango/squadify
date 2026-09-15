@@ -59,7 +59,8 @@ Confirmed against the actual intended domain model (as described by the develope
 - [ ] **`getClubsByUser`'s join can fan out badly.** `ExposedClubRepository.getClubsByUser` chains `Clubs leftJoin ClubMembers leftJoin Players leftJoin UserPlayers` and dedupes with `.withDistinct()`. For a club with many players and guardians, this can multiply out to members × players × user-player-link intermediate rows before the final distinct — worth revisiting per the `AI_GUIDELINES.md` "Database Efficiency" rule.
   - This also no longer matches `TECHNICAL_DECISIONS.md` §3, which still claims "we use the `exists` operator with subqueries" — the code was refactored to LEFT JOIN + OR at some point and the doc was never updated.
 - [ ] **No CORS configuration.** `Application.kt` never installs a CORS plugin. This is a KMP project with a separate `webApp` (JS/Wasm) target — once that client is served from a different origin than the API, browser calls will fail.
-- [ ] **Unbounded WebSocket frame size.** `install(WebSockets) { maxFrameSize = Long.MAX_VALUE }` removes any cap on a single incoming frame — an easy DoS lever to close off.
+- [x] **Unbounded WebSocket frame size.** `install(WebSockets) { maxFrameSize = Long.MAX_VALUE }` removed any cap on a single incoming frame — an easy DoS lever.
+  **Fixed:** capped at 64 KB. The live-match socket (`MatchRoutes.kt`) is server-to-client broadcast only -- it never reads `incoming` frames -- so there's no legitimate reason for a large inbound frame; 64 KB is far above any real `LiveMatchUpdate` payload (small JSON) and far below the old unbounded limit.
 
 ## Low — style / consistency
 
