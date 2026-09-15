@@ -1,3 +1,4 @@
+import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -53,6 +54,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            firebaseAppDistribution {
+                // Local-only file, gitignored -- never committed. Lets `appDistributionUploadRelease`
+                // authenticate non-interactively via a service account instead of `firebase login`.
+                serviceCredentialsFile = "$projectDir/firebase-service-account.json"
+            }
         }
     }
     compileOptions {

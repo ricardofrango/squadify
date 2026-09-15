@@ -311,7 +311,10 @@ no iOS app module yet:
 - **Crashlytics**: `firebase-bom` + `firebase-crashlytics` dependency, plus the `google-services` and
   `firebase.crashlytics` Gradle plugins. Fully automatic once the app initializes -- no code changes needed
   for basic crash reporting.
-- **App Distribution**: the `firebase.appdistribution` Gradle plugin is applied (`./gradlew
-  app:androidApp:appDistributionUploadRelease` is available), but upload authentication isn't configured yet
-  -- still an open decision between the Firebase CLI (`firebase login`, manual/local) and a service-account
-  key (non-interactive/CI). A service-account key must never be committed to the repo if that path is chosen.
+- **App Distribution**: authenticates non-interactively via a service-account key (Firebase App Distribution
+  Admin role), so `./gradlew app:androidApp:appDistributionUploadRelease` builds and uploads a release with
+  no login step. The `release` build type's `firebaseAppDistribution { serviceCredentialsFile = ... }` block
+  points at `app/androidApp/firebase-service-account.json` -- a local-only file, gitignored, never committed.
+  No tester group/emails are configured yet, so an upload succeeds but reaches nobody until one is added
+  (either via the same block's `groups`/`testers` property, or directly in the Firebase console under
+  App Distribution -> Testers & Groups).
