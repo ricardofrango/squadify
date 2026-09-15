@@ -8,7 +8,6 @@ class DevAppConfig : AppConfig {
 }
 
 class ProdAppConfig : AppConfig {
-    // For now the same address as requested
-    override val baseUrl: String = "http://192.168.1.84:8080"
+    override val baseUrl: String = "https://football-manager-production-e1ce.up.railway.app"
     override val isDebug: Boolean = false
 }
