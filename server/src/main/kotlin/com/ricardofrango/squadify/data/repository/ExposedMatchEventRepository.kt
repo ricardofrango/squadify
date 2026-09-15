@@ -15,16 +15,17 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.uuid.Uuid
+import com.ricardofrango.squadify.util.toUuid
 
 class ExposedMatchEventRepository : MatchEventRepository {
 
     override suspend fun addEvent(event: MatchEvent): MatchEvent =
         MatchEvents.insert {
-            it[id] = Uuid.parse(event.id)
-            it[matchId] = Uuid.parse(event.matchId)
+            it[id] = event.id.toUuid()
+            it[matchId] = event.matchId.toUuid()
             it[type] = event.type
             it[minute] = event.minute
-            it[playerId] = event.playerId?.let(Uuid::parse)
+            it[playerId] = event.playerId?.let(String::toUuid)
             it[opponentPlayerName] = event.opponentPlayerName
             it[isOpponent] = event.isOpponent
             it[createdAt] = event.createdAt
@@ -34,21 +35,21 @@ class ExposedMatchEventRepository : MatchEventRepository {
             ?: throw DatabaseException("Failed to add match event")
 
     override suspend fun getEventById(id: String): MatchEvent? =
-        MatchEvents.selectAll().where { MatchEvents.id eq Uuid.parse(id) }
+        MatchEvents.selectAll().where { MatchEvents.id eq id.toUuid() }
             .map(::toMatchEvent)
             .singleOrNull()
 
     override suspend fun deleteEvent(id: String): Boolean =
-        MatchEvents.deleteWhere { MatchEvents.id eq Uuid.parse(id) } > 0
+        MatchEvents.deleteWhere { MatchEvents.id eq id.toUuid() } > 0
 
     override suspend fun getEventsByMatch(matchId: String): List<MatchEvent> =
-        MatchEvents.selectAll().where { MatchEvents.matchId eq Uuid.parse(matchId) }
+        MatchEvents.selectAll().where { MatchEvents.matchId eq matchId.toUuid() }
             .orderBy(MatchEvents.minute to SortOrder.ASC)
             .map(::toMatchEvent)
 
     override suspend fun getScoreByMatch(matchId: String): MatchScore {
         val events = MatchEvents.selectAll().where {
-            (MatchEvents.matchId eq Uuid.parse(matchId)) and
+            (MatchEvents.matchId eq matchId.toUuid()) and
                     ((MatchEvents.type eq EventType.GOAL) or (MatchEvents.type eq EventType.OWN_GOAL))
         }.map(::toMatchEvent)
 
@@ -74,14 +75,14 @@ class ExposedMatchEventRepository : MatchEventRepository {
 
     override suspend fun getRecentEventsByPlayer(playerId: String, limit: Int): List<MatchEvent> =
         MatchEvents.selectAll()
-            .where { MatchEvents.playerId eq Uuid.parse(playerId) }
+            .where { MatchEvents.playerId eq playerId.toUuid() }
             .orderBy(MatchEvents.createdAt, SortOrder.DESC)
             .limit(limit)
             .map(::toMatchEvent)
 
     override suspend fun getAllEventsByPlayer(playerId: String): List<MatchEvent> =
         MatchEvents.selectAll()
-            .where { MatchEvents.playerId eq Uuid.parse(playerId) }
+            .where { MatchEvents.playerId eq playerId.toUuid() }
             .orderBy(MatchEvents.createdAt, SortOrder.DESC)
             .map(::toMatchEvent)
 

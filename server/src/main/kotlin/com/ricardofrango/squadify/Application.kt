@@ -104,6 +104,7 @@ fun Application.module() {
                 is NotFoundException -> HttpStatusCode.NotFound
                 is ConflictException -> HttpStatusCode.Conflict
                 is ValidationException -> HttpStatusCode.BadRequest
+                is IllegalIdFormatException -> HttpStatusCode.BadRequest
                 is DatabaseException -> HttpStatusCode.InternalServerError
                 else -> HttpStatusCode.BadRequest
             }

@@ -17,17 +17,18 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import kotlin.uuid.Uuid
+import com.ricardofrango.squadify.util.toUuid
 
 class ExposedPlayerRepository : PlayerRepository {
 
     override suspend fun getPlayersByClub(clubId: String): List<Player> =
-        Players.selectAll().where { Players.clubId eq Uuid.parse(clubId) }
+        Players.selectAll().where { Players.clubId eq clubId.toUuid() }
             .map(::toPlayer)
 
     override suspend fun createPlayer(player: Player): Player =
         Players.insert {
-            it[id] = Uuid.parse(player.id)
-            it[clubId] = Uuid.parse(player.clubId)
+            it[id] = player.id.toUuid()
+            it[clubId] = player.clubId.toUuid()
             it[firstName] = player.firstName
             it[lastName] = player.lastName
             it[birthDate] = player.birthDate
@@ -43,8 +44,8 @@ class ExposedPlayerRepository : PlayerRepository {
 
     override suspend fun createPlayers(players: List<Player>): List<Player> =
         Players.batchInsert(players) {
-            this[Players.id] = Uuid.parse(it.id)
-            this[Players.clubId] = Uuid.parse(it.clubId)
+            this[Players.id] = it.id.toUuid()
+            this[Players.clubId] = it.clubId.toUuid()
             this[Players.firstName] = it.firstName
             this[Players.lastName] = it.lastName
             this[Players.birthDate] = it.birthDate
@@ -58,12 +59,12 @@ class ExposedPlayerRepository : PlayerRepository {
         }.map(::toPlayer)
 
     override suspend fun getPlayerById(id: String): Player? =
-        Players.selectAll().where { Players.id eq Uuid.parse(id) }
+        Players.selectAll().where { Players.id eq id.toUuid() }
             .map(::toPlayer)
             .singleOrNull()
 
     override suspend fun updatePlayer(player: Player): Boolean =
-        Players.update({ Players.id eq Uuid.parse(player.id) }) {
+        Players.update({ Players.id eq player.id.toUuid() }) {
             it[firstName] = player.firstName
             it[lastName] = player.lastName
             it[birthDate] = player.birthDate
@@ -78,23 +79,23 @@ class ExposedPlayerRepository : PlayerRepository {
 
     override suspend fun getPlayersData(playerIds: List<String>): List<Player> =
         Players.selectAll()
-            .where { Players.id inList playerIds.map(Uuid::parse) }
+            .where { Players.id inList playerIds.map(String::toUuid) }
             .map(::toPlayer)
 
     override suspend fun addPlayersToAgeGroup(links: List<AgeGroupPlayer>): List<AgeGroupPlayer> =
         AgeGroupPlayers.batchInsert(links) {
-            this[AgeGroupPlayers.id] = Uuid.parse(it.id)
-            this[AgeGroupPlayers.ageGroupId] = Uuid.parse(it.ageGroupId)
-            this[AgeGroupPlayers.playerId] = Uuid.parse(it.playerId)
+            this[AgeGroupPlayers.id] = it.id.toUuid()
+            this[AgeGroupPlayers.ageGroupId] = it.ageGroupId.toUuid()
+            this[AgeGroupPlayers.playerId] = it.playerId.toUuid()
         }.map(::toAgeGroupPlayer)
 
     override suspend fun getPlayersByAgeGroup(ageGroupId: String): List<Player> =
         (Players innerJoin AgeGroupPlayers).selectAll()
-            .where { AgeGroupPlayers.ageGroupId eq Uuid.parse(ageGroupId) }
+            .where { AgeGroupPlayers.ageGroupId eq ageGroupId.toUuid() }
             .map(::toPlayer)
 
     override suspend fun updateActiveStatus(playerId: String, active: Boolean): Boolean =
-        Players.update({ Players.id eq Uuid.parse(playerId) }) {
+        Players.update({ Players.id eq playerId.toUuid() }) {
             it[Players.active] = active
         } > 0
 
@@ -105,8 +106,8 @@ class ExposedPlayerRepository : PlayerRepository {
     ) {
         UserPlayers.insert {
             it[id] = Uuid.random()
-            it[UserPlayers.userId] = Uuid.parse(userId)
-            it[UserPlayers.playerId] = Uuid.parse(playerId)
+            it[UserPlayers.userId] = userId.toUuid()
+            it[UserPlayers.playerId] = playerId.toUuid()
             it[UserPlayers.relationship] = relationship
         }
     }
@@ -114,34 +115,34 @@ class ExposedPlayerRepository : PlayerRepository {
     override suspend fun createUserPlayers(userPlayers: List<Triple<String, String, UserPlayerRelationship>>) {
         UserPlayers.batchInsert(userPlayers) { (userId, playerId, rel) ->
             this[UserPlayers.id] = Uuid.random()
-            this[UserPlayers.userId] = Uuid.parse(userId)
-            this[UserPlayers.playerId] = Uuid.parse(playerId)
+            this[UserPlayers.userId] = userId.toUuid()
+            this[UserPlayers.playerId] = playerId.toUuid()
             this[UserPlayers.relationship] = rel
         }
     }
 
     override suspend fun deleteUserPlayersByPlayer(playerId: String) {
-        UserPlayers.deleteWhere { UserPlayers.playerId eq Uuid.parse(playerId) }
+        UserPlayers.deleteWhere { UserPlayers.playerId eq playerId.toUuid() }
     }
 
     override suspend fun countPlayersByClub(clubId: String): Long =
-        Players.selectAll().where { Players.clubId eq Uuid.parse(clubId) }.count()
+        Players.selectAll().where { Players.clubId eq clubId.toUuid() }.count()
 
     override suspend fun getPlayersByUser(userId: String): List<Player> =
         (Players innerJoin UserPlayers).selectAll()
-            .where { UserPlayers.userId eq Uuid.parse(userId) }
+            .where { UserPlayers.userId eq userId.toUuid() }
             .map(::toPlayer)
 
     override suspend fun getAgeGroupPlayersByClub(clubId: String): List<AgeGroupPlayer> =
         (AgeGroupPlayers innerJoin Players).selectAll()
-            .where { Players.clubId eq Uuid.parse(clubId) }
+            .where { Players.clubId eq clubId.toUuid() }
             .map(::toAgeGroupPlayer)
 
     override suspend fun countGuardiansByPlayer(playerId: String): Long =
-        UserPlayers.selectAll().where { UserPlayers.playerId eq Uuid.parse(playerId) }.count()
+        UserPlayers.selectAll().where { UserPlayers.playerId eq playerId.toUuid() }.count()
 
     override suspend fun getAgeGroupIdsByPlayer(playerId: String): List<String> =
-        AgeGroupPlayers.selectAll().where { AgeGroupPlayers.playerId eq Uuid.parse(playerId) }
+        AgeGroupPlayers.selectAll().where { AgeGroupPlayers.playerId eq playerId.toUuid() }
             .map { it[AgeGroupPlayers.ageGroupId].toString() }
 
     private fun toAgeGroupPlayer(row: ResultRow): AgeGroupPlayer = AgeGroupPlayer(

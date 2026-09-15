@@ -12,17 +12,18 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.core.inList
 import kotlin.uuid.Uuid
+import com.ricardofrango.squadify.util.toUuid
 
 class ExposedInviteRepository : InviteRepository {
 
     override suspend fun createInvite(invite: Invite): Invite =
         Invites.insert {
-            it[id] = Uuid.parse(invite.id)
+            it[id] = invite.id.toUuid()
             it[email] = invite.email
-            it[clubId] = Uuid.parse(invite.clubId)
+            it[clubId] = invite.clubId.toUuid()
             it[type] = invite.type
             it[role] = invite.role
-            it[playerId] = invite.playerId?.let(Uuid::parse)
+            it[playerId] = invite.playerId?.let(String::toUuid)
             it[relationship] = invite.relationship
             it[createdAt] = invite.createdAt
         }.resultedValues
@@ -32,22 +33,22 @@ class ExposedInviteRepository : InviteRepository {
 
     override suspend fun createInvites(invites: List<Invite>): List<Invite> =
         Invites.batchInsert(invites) { invite ->
-            this[Invites.id] = Uuid.parse(invite.id)
+            this[Invites.id] = invite.id.toUuid()
             this[Invites.email] = invite.email
-            this[Invites.clubId] = Uuid.parse(invite.clubId)
+            this[Invites.clubId] = invite.clubId.toUuid()
             this[Invites.type] = invite.type
             this[Invites.role] = invite.role
-            this[Invites.playerId] = invite.playerId?.let(Uuid::parse)
+            this[Invites.playerId] = invite.playerId?.let(String::toUuid)
             this[Invites.relationship] = invite.relationship
             this[Invites.createdAt] = invite.createdAt
         }.map(::toInvite)
 
     override suspend fun deleteInvite(inviteId: String) {
-        Invites.deleteWhere { Invites.id eq Uuid.parse(inviteId) }
+        Invites.deleteWhere { Invites.id eq inviteId.toUuid() }
     }
 
     override suspend fun deleteInvites(inviteIds: List<String>) {
-        Invites.deleteWhere { Invites.id inList inviteIds.map(Uuid::parse) }
+        Invites.deleteWhere { Invites.id inList inviteIds.map(String::toUuid) }
     }
 
     override suspend fun findByEmail(email: String): List<Invite> =
@@ -55,7 +56,7 @@ class ExposedInviteRepository : InviteRepository {
             .map(::toInvite)
 
     override suspend fun deleteByPlayer(playerId: String) {
-        Invites.deleteWhere { Invites.playerId eq Uuid.parse(playerId) }
+        Invites.deleteWhere { Invites.playerId eq playerId.toUuid() }
     }
 
     private fun toInvite(row: ResultRow): Invite = Invite(

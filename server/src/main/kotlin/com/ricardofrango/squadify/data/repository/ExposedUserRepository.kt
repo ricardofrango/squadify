@@ -17,12 +17,13 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
+import com.ricardofrango.squadify.util.toUuid
 
 class ExposedUserRepository : UserRepository {
 
     override suspend fun findById(id: String): User? =
         Users.selectAll()
-            .where { Users.id eq Uuid.parse(id) }
+            .where { Users.id eq id.toUuid() }
             .map(::toUser)
             .singleOrNull()
 
@@ -45,7 +46,7 @@ class ExposedUserRepository : UserRepository {
 
     override suspend fun createUser(user: User, passwordHash: String): User =
         Users.insert {
-            it[id] = Uuid.parse(user.id)
+            it[id] = user.id.toUuid()
             it[email] = user.email
             it[Users.passwordHash] = passwordHash
             it[phone] = user.phone
@@ -62,7 +63,7 @@ class ExposedUserRepository : UserRepository {
 
     override suspend fun getUserRoleInClub(userId: String, clubId: String): ClubRole? =
         ClubMembers.selectAll().where {
-            (ClubMembers.userId eq Uuid.parse(userId)) and (ClubMembers.clubId eq Uuid.parse(clubId))
+            (ClubMembers.userId eq userId.toUuid()) and (ClubMembers.clubId eq clubId.toUuid())
         }
             .map { it[ClubMembers.role] }
             .singleOrNull()
@@ -73,14 +74,14 @@ class ExposedUserRepository : UserRepository {
     ): Map<String, ClubRole> =
         ClubMembers.selectAll()
             .where {
-                (ClubMembers.userId inList userIds.map(Uuid::parse)) and (ClubMembers.clubId eq Uuid.parse(clubId))
+                (ClubMembers.userId inList userIds.map(String::toUuid)) and (ClubMembers.clubId eq clubId.toUuid())
             }
             .associate { it[ClubMembers.userId].toString() to it[ClubMembers.role] }
 
     override suspend fun saveRefreshToken(userId: String, token: String, expiresAt: Instant) {
         RefreshTokens.insert {
             it[id] = Uuid.random()
-            it[RefreshTokens.userId] = Uuid.parse(userId)
+            it[RefreshTokens.userId] = userId.toUuid()
             it[RefreshTokens.token] = token
             it[RefreshTokens.expiresAt] = expiresAt
         }
