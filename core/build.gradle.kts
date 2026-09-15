@@ -39,10 +39,10 @@ kotlin {
     }
     
     sourceSets {
-        // The actual model/exception sources live in :common (a plain-JVM module :server depends on
-        // directly, so building the server never needs to configure this module's Android/iOS/JS/Wasm
-        // targets -- see server/Dockerfile). Sourced here, not duplicated, so client apps consuming
-        // :core still get the exact same types.
+        // The actual model sources live in :common (a plain-JVM module :server depends on directly, so
+        // building the server never needs to configure this module's Android/iOS/JS/Wasm targets --
+        // see server/Dockerfile). Sourced here, not duplicated, so client apps consuming :core still
+        // get the exact same types.
         commonMain {
             kotlin.srcDir("../common/src/main/kotlin")
             dependencies {
