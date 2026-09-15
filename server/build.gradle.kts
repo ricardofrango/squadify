@@ -12,7 +12,7 @@ application {
 }
 
 dependencies {
-    api(project(":core"))
+    api(project(":common"))
     implementation(libs.logback)
 
     // koin

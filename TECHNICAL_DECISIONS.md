@@ -10,7 +10,7 @@ We follow a layered architecture to ensure separation of concerns, testability, 
     - *Use Cases*: Represent a single business action. Each Use Case class MUST have only one public operation, typically using the `operator fun invoke`.
 - **Data**: Responsible for data persistence and external API communication. Contains **Repository Implementations**, **Exposed Tables**, and **Database Configuration**.
 - **Presentation**: The entry point for users. In the `:server`, this means **Ktor Routes**. In the `:app`, it will be **Compose UI** and **ViewModels**.
-- **Core**: A shared module (`:core`) containing models, exceptions, and utilities used by both the Backend and Frontend.
+- **Core**: A shared module (`:core`) containing models and utilities used by both the Backend and Frontend. Exceptions (`SquadifyException` and subtypes) are server-only and live in `:server`, not here -- the client never catches them, it uses `ApiException` (keyed off the HTTP status code) instead. The actual shared model source files live in `:common`, a plain-JVM module with no Kotlin Multiplatform targets (see section 9) -- `:core` sources those same files into its `commonMain` rather than duplicating them, so client apps still see identical types.
 
 ## 2. Dependency Injection: Koin
 We use **Koin** for dependency injection because it is lightweight, KMP-friendly, and uses a DSL-based configuration that fits perfectly with Kotlin.
@@ -204,8 +204,17 @@ sequenceDiagram
 ```
 
 ## 9. Project Structure (KMP)
-- `:server`: Ktor backend.
-- `:core`: Shared logic, models, and exceptions.
+- `:server`: Ktor backend. Depends on `:common` directly, not `:core`. Owns `SquadifyException` and its
+  subtypes directly (`server/.../exception/SquadifyException.kt`) -- these are never used client-side.
+- `:common`: Plain-JVM module (no KMP targets) holding the model source files shared with the client
+  apps (request/response DTOs, etc). Exists so building `:server` never needs to configure a Kotlin
+  Multiplatform target (Android, iOS, JS, Wasm) -- Gradle fully configures a project's build script for
+  any dependent to build it, so depending on the multiplatform `:core` directly would force every
+  server build to configure Android tooling just to resolve dependencies, even though the server never
+  touches it.
+- `:core`: Shared logic and models, exposed to the client apps across all KMP targets. Its `commonMain`
+  sources the same files from `:common` (via `srcDir`, not a project dependency -- `commonMain` can't
+  depend on a plain-JVM module) so there is no duplication.
 - `:app:shared`: Shared UI components and logic (Compose Multiplatform).
 - `:app:androidApp`, `:app:iosApp`, `:app:webApp`: Platform-specific entry points.
 
