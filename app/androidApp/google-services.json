@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "435522049821",
+    "project_id": "squadify-958d3",
+    "storage_bucket": "squadify-958d3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:435522049821:android:e8ee71f3f4e691fed6b3f4",
+        "android_client_info": {
+          "package_name": "com.ricardofrango.squadify"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCV47oB07nSpLqoVT3IqUfKC2qbbXCnZOw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

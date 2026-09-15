@@ -300,3 +300,20 @@ Android 15 (API 35) enforces edge-to-edge by default but still allowed an app-le
 - [ ] Evaluate the Compose Styles API for the shared design system once `presentation/ui` grows past its current size (§11.2) — not urgent today.
 
 **Sources**: [Compose Multiplatform 1.10.0 release notes](https://blog.jetbrains.com/kotlin/2026/01/compose-multiplatform-1-10-0/) · [Navigation 3 in Compose Multiplatform](https://kotlinlang.org/docs/multiplatform/compose-navigation-3.html) · [Navigation 3 — Android Developers](https://developer.android.com/guide/navigation/navigation-3) · [Updating multiplatform projects to AGP 9](https://kotlinlang.org/docs/multiplatform/multiplatform-project-agp-9-migration.html) · [Material Design 3 in Compose — Android Developers](https://developer.android.com/develop/ui/compose/designsystems/material3) · [Jetpack Compose Styles API](https://developer.android.com/agents/skills/jetpack-compose/theming/styles/skill) · [Behavior changes: apps targeting Android 16](https://developer.android.com/about/versions/16/behavior-changes-16) · [Now in Android sample](https://github.com/android/nowinandroid)
+
+## 12. Crash Reporting & Distribution: Firebase (Android-only for now)
+
+`app/androidApp` is registered with Firebase project `squadify-958d3` (`google-services.json` checked in --
+it's not a secret, it only carries public app identifiers). Two products are wired up so far, both
+Android-only since neither Crashlytics nor App Distribution supports the desktop/web targets, and there's
+no iOS app module yet:
+
+- **Crashlytics**: `firebase-bom` + `firebase-crashlytics` dependency, plus the `google-services` and
+  `firebase.crashlytics` Gradle plugins. Fully automatic once the app initializes -- no code changes needed
+  for basic crash reporting.
+- **App Distribution**: authenticates non-interactively via a service-account key (Firebase App Distribution
+  Admin role), so `./gradlew app:androidApp:appDistributionUploadRelease` builds and uploads a release with
+  no login step. The `release` build type's `firebaseAppDistribution { serviceCredentialsFile = ... }` block
+  points at `app/androidApp/firebase-service-account.json` -- a local-only file, gitignored, never committed.
+  Releases go to the `squadify-testers` group (`groups = "squadify-testers"` in the same block) -- manage
+  membership in the Firebase console under App Distribution -> Testers & Groups.
