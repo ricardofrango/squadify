@@ -58,6 +58,7 @@ android {
                 // Local-only file, gitignored -- never committed. Lets `appDistributionUploadRelease`
                 // authenticate non-interactively via a service account instead of `firebase login`.
                 serviceCredentialsFile = "$projectDir/firebase-service-account.json"
+                groups = "squadify-testers"
             }
         }
     }

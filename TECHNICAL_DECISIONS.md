@@ -315,6 +315,5 @@ no iOS app module yet:
   Admin role), so `./gradlew app:androidApp:appDistributionUploadRelease` builds and uploads a release with
   no login step. The `release` build type's `firebaseAppDistribution { serviceCredentialsFile = ... }` block
   points at `app/androidApp/firebase-service-account.json` -- a local-only file, gitignored, never committed.
-  No tester group/emails are configured yet, so an upload succeeds but reaches nobody until one is added
-  (either via the same block's `groups`/`testers` property, or directly in the Firebase console under
-  App Distribution -> Testers & Groups).
+  Releases go to the `squadify-testers` group (`groups = "squadify-testers"` in the same block) -- manage
+  membership in the Firebase console under App Distribution -> Testers & Groups.
