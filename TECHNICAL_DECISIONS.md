@@ -305,8 +305,10 @@ Android 15 (API 35) enforces edge-to-edge by default but still allowed an app-le
 
 `app/androidApp` is registered with Firebase project `squadify-958d3` (`google-services.json` checked in --
 it's not a secret, it only carries public app identifiers). Two products are wired up so far, both
-Android-only since neither Crashlytics nor App Distribution supports the desktop/web targets, and there's
-no iOS app module yet:
+Android-only since neither Crashlytics nor App Distribution supports the desktop/web targets, and iOS
+(`app/iosApp` -- a real Xcode project, see the "Environment-Based App Config" section) hasn't been
+registered with Firebase yet either -- that's a real, separate gap, not something blocked on the app
+existing:
 
 - **Crashlytics**: `firebase-bom` + `firebase-crashlytics` dependency, plus the `google-services` and
   `firebase.crashlytics` Gradle plugins. Fully automatic once the app initializes -- no code changes needed
@@ -431,11 +433,26 @@ build-variant system offers:
   go stale if the dev machine's LAN IP changes. `app/webApp/Dockerfile` passes `-PsquadifyEnv=production`
   by default (`ARG SQUADIFY_ENV`, overridable with `--build-arg SQUADIFY_ENV=staging` for a staging
   deploy).
-- **iOS**: no `app:iosApp` module exists in this repo yet (only `:core`/`:app:shared` declare
-  `iosArm64`/`iosSimulatorArm64` targets) -- nothing to wire up until one exists. When it does, its entry
-  point should follow the same pattern: construct a `DefaultAppConfig` and call `initKoin` before the UI
-  starts, most naturally reading from Xcode Build Configurations/schemes (Debug/Staging/Release) the same
-  way Android reads flavors.
+- **iOS** (`app/iosApp`): a real, existing Xcode project (not a Gradle module, so it doesn't show up in
+  `settings.gradle.kts` -- easy to miss for exactly that reason). `iOSApp.swift`'s `init()` picks
+  `baseUrl`/`isDebug` via `#if DEBUG`/`#else` (Xcode's own default Debug/Release build configurations,
+  present in every Xcode project) and calls `Shared`'s `KoinHelperKt.startKoinIOS(baseUrl:isDebug:)`
+  (`app/shared/src/iosMain/.../KoinHelper.kt`), which constructs a `DefaultAppConfig` and calls
+  `initKoin`. Only two tiers for now (dev/production, not a third "staging"), since adding a real
+  Staging Xcode Build Configuration + scheme is safest done interactively in Xcode rather than by
+  hand-editing `project.pbxproj` blind.
+  - **A real Kotlin/Native naming gotcha hit while wiring this up**: the bridge function was originally
+    named `initKoinIOS`, but Kotlin/Native's Objective-C interop generator silently prefixes any exported
+    function starting with `init` with `do` (to avoid colliding with Objective-C's special initializer
+    semantics) -- so the Swift-visible name became `doInitKoinIOS(...)`, not `initKoinIOS(...)`, and
+    calling the expected name failed to compile with "has no member". Renamed to `startKoinIOS` to avoid
+    the prefix collision entirely rather than calling the "do"-prefixed name from Swift.
+  - **Verified with real Xcode builds, not just Kotlin compilation**: `xcodebuild -scheme iosApp -sdk
+    iphonesimulator build` succeeded for both Debug and Release configurations (confirmed **BUILD
+    SUCCEEDED** for both). Also hit and worked around a Gradle/Xcode integration staleness issue along
+    the way: `linkDebugFrameworkIosSimulatorArm64` reported `UP-TO-DATE` and Xcode kept linking against a
+    stale `Shared.framework` even after the Kotlin source changed, until the link task was force-rerun
+    directly (`--rerun-tasks`).
 
 `staging-api.squadify.pt`/`api.squadify.pt` are **placeholders** in every one of the above -- swapped in
 once the corresponding Railway environments/custom domains actually exist (see `ISSUES TO FIX.md`).
