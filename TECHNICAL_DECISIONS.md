@@ -317,3 +317,30 @@ no iOS app module yet:
   points at `app/androidApp/firebase-service-account.json` -- a local-only file, gitignored, never committed.
   Releases go to the `squadify-testers` group (`groups = "squadify-testers"` in the same block) -- manage
   membership in the Firebase console under App Distribution -> Testers & Groups.
+
+## 13. Web Client Deployment: Docker + nginx
+
+`app/webApp/Dockerfile` builds and serves the web client, deployed as its own Railway service alongside
+`:server` (see `server/Dockerfile`). Build context is the repo root, same reasoning as `:server`'s
+Dockerfile: `settings.gradle.kts`'s `include(...)` requires every listed project directory to physically
+exist in the build context (verified -- omitting one fails with "Configuring project ':x' without an
+existing directory is not allowed"), regardless of `--configure-on-demand`.
+
+- **Build target**: `composeCompatibilityBrowserDistribution` -- a Wasm build with an automatic Kotlin/JS
+  fallback bundled into one static output, so the app runs in any modern browser regardless of Wasm GC
+  support. The build stage still needs the Android SDK (same as the pre-`:common`-split `:server`
+  Dockerfile) purely to let Gradle configure `:app:shared` -> `:core`'s Android target, even though
+  nothing Android-specific is compiled -- `:app:webApp` doesn't get the same clean-dependency split
+  `:server` has, since it genuinely needs `:app:shared`'s KMP-compiled output.
+- **`--configure-on-demand` is deliberately NOT used** for this build -- Gradle warns the js/wasmJs
+  targets don't support it.
+- **Runtime**: a plain `nginx:alpine` image serving the static bundle (`app/webApp/nginx.conf`), with a
+  `try_files ... /index.html` SPA fallback and gzip enabled for the large `.js`/`.wasm` assets. No JDK,
+  Gradle, Android SDK, or Node in the final image.
+- **Real memory requirement discovered building this**: `kotlin.daemon.jvmargs` needed raising from
+  3072M to 4096M in the root `gradle.properties` -- the Compose-for-Web compile (pulls in Skiko) hits
+  "Not enough memory to run compilation" below that, independent of Docker/CI specifics. Also fixed a
+  latent bug in both Dockerfiles: neither copied `gradle.properties` into the build context, so this
+  setting (and any other project-level Gradle property) was silently never applied inside the container
+  -- `:server`'s build happened to still succeed on Gradle/Kotlin's smaller defaults given its lighter
+  compile, but this was luck, not correctness.
