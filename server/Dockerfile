@@ -16,7 +16,7 @@ WORKDIR /app
 # dependencies when these actually change, not on every source edit).
 COPY gradlew ./
 COPY gradle ./gradle
-COPY settings.gradle.kts build.gradle.kts ./
+COPY settings.gradle.kts build.gradle.kts gradle.properties ./
 RUN chmod +x gradlew
 
 # The whole repo -- settings.gradle.kts references every module's directory, but --configure-on-demand
