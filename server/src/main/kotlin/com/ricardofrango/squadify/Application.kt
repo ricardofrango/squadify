@@ -35,6 +35,7 @@ import kotlin.time.Duration.Companion.seconds
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
+import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -139,17 +140,20 @@ fun Application.module() {
     }
 
     routing {
+        // Unversioned -- infra/uptime checks hit this directly, no reason to make them know the API version.
         get("/") {
             call.respondText("Squadify API is running")
         }
-        authRoutes()
-        clubRoutes()
-        dashboardRoutes()
-        teamRoutes()
-        seasonRoutes()
-        ageGroupRoutes()
-        playerRoutes()
-        matchRoutes()
-        opponentRoutes()
+        route("/v1") {
+            authRoutes()
+            clubRoutes()
+            dashboardRoutes()
+            teamRoutes()
+            seasonRoutes()
+            ageGroupRoutes()
+            playerRoutes()
+            matchRoutes()
+            opponentRoutes()
+        }
     }
 }

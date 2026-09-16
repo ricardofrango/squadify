@@ -379,3 +379,21 @@ log a warning and skip the send rather than block the request or crash startup, 
 notification, not a security-critical value. Without a verified sending domain, Resend only delivers
 from `onboarding@resend.dev` to the Resend account's own email -- real delivery to arbitrary invitees
 needs a verified domain (`RESEND_FROM_ADDRESS` env var overrides the default once one exists).
+
+## 15. API Versioning: `/v1` Prefix
+
+Every route is now nested under `/v1` (`Application.kt`'s `routing { route("/v1") { authRoutes(); ... } }`)
+-- a single wrapper around the existing route-function calls, no changes needed in any of the 9
+`*Routes.kt` files, since each is an extension function on `Route` and Ktor composes the path prefix
+from whatever context they're nested in. The root health check (`GET /`) stays unversioned deliberately
+-- infra/uptime monitors hit it directly and shouldn't need to know the API version.
+
+Client-side, every repository builds its URLs as `"${appConfig.baseUrl}/..."`, so the fix is entirely in
+`AppConfigs.kt`: both `DevAppConfig.baseUrl` and `ProdAppConfig.baseUrl` now end in `/v1`, and every call
+site (including the live-match WebSocket URL, derived from the same `baseUrl` via a scheme swap) picks
+it up automatically -- no changes needed in any of the ~10 `*RepositoryImpl.kt` files either.
+
+Verified against a real running server, not just compilation: the old unversioned paths now 404
+(`GET /clubs` -> 404), the new `/v1` paths work end-to-end including a real WebSocket upgrade
+(`GET /v1/matches/{id}/live` -> `101 Switching Protocols`, then closes with "Unauthorized" as expected
+with no token), and the unversioned root health check still responds normally.
