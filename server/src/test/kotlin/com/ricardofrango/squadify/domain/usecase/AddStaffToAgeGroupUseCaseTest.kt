@@ -1,9 +1,11 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
+import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
+import com.ricardofrango.squadify.domain.service.EmailService
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.AddStaffToAgeGroupRequest
@@ -22,8 +24,10 @@ class AddStaffToAgeGroupUseCaseTest {
 
     private val ageGroupRepository = mockk<AgeGroupRepository>()
     private val userRepository = mockk<UserRepository>()
+    private val clubRepository = mockk<ClubRepository>()
     private val teamRepository = mockk<TeamRepository>()
     private val playerRepository = mockk<PlayerRepository>()
+    private val emailService = mockk<EmailService>(relaxed = true)
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
@@ -31,7 +35,7 @@ class AddStaffToAgeGroupUseCaseTest {
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager
     )
     private val useCase = AddStaffToAgeGroupUseCase(
-        ageGroupRepository, userRepository, transactionManager, checkUserPermissionUseCase
+        ageGroupRepository, userRepository, clubRepository, transactionManager, checkUserPermissionUseCase, emailService
     )
 
     @Test

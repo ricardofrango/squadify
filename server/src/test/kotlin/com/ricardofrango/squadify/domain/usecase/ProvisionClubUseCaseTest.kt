@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.domain.usecase
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.InviteRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
+import com.ricardofrango.squadify.domain.service.EmailService
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.model.ClubRole
@@ -24,12 +25,13 @@ class ProvisionClubUseCaseTest {
     private val clubRepository = mockk<ClubRepository>()
     private val userRepository = mockk<UserRepository>()
     private val inviteRepository = mockk<InviteRepository>(relaxed = true)
+    private val emailService = mockk<EmailService>(relaxed = true)
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
     private val useCase = ProvisionClubUseCase(
         clubRepository, userRepository, inviteRepository,
-        CheckUserIsAdminUseCase(userRepository, transactionManager), transactionManager
+        CheckUserIsAdminUseCase(userRepository, transactionManager), transactionManager, emailService
     )
 
     private fun user(id: String, admin: Boolean) = User(

@@ -196,9 +196,13 @@ graph TD
     C --> D[Find user by directorEmail]
     D -- exists --> E[Add existing user as ClubMember, role CLUB_ADMIN]
     D -- not exists --> G[Create Invite — type CLUB_MEMBER, role CLUB_ADMIN]
-    E --> Z(["Return created Club"])
-    G --> Z
+    E --> H["After commit: EmailService.sendClubMembershipAdded"]
+    G --> I["After commit: EmailService.sendClubInvite"]
+    H --> Z(["Return created Club"])
+    I --> Z
 ```
+
+Email is sent after the transaction commits, not inside it (see TECHNICAL_DECISIONS.md §14) — a failed/slow send never rolls back the club or the membership/invite.
 
 ### 3.2 Get Clubs (`GetClubsUseCase`)
 
@@ -282,9 +286,13 @@ graph TD
     G -- user does not exist --> I[Queue CLUB_MEMBER Invite, role MEMBER]
     H --> J[Batch insert new members]
     I --> K[Batch insert invites]
-    J --> Z(["Return true"])
-    K --> Z
+    J --> L["After commit: EmailService.sendClubMembershipAdded per new member"]
+    K --> M["After commit: EmailService.sendClubInvite per invited email"]
+    L --> Z(["Return true"])
+    M --> Z
 ```
+
+Same after-commit timing as 3.1 above — see TECHNICAL_DECISIONS.md §14.
 
 ---
 
@@ -604,7 +612,7 @@ Coaches/support staff attach to an **age group**, not a team (`age_group_staff`)
 ```mermaid
 graph TD
     A[Start: userId, ageGroupId, staff list] --> B[Fetch AgeGroup by id]
-    B -- not found --> V(["Throw ValidationException: Age group not found"])
+    B -- not found --> V(["Throw NotFoundException: Age group not found"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D[Batch fetch club roles for all staff userIds]
@@ -612,8 +620,11 @@ graph TD
     E -- user has no club role --> FB(["Throw ForbiddenException: must join club first"])
     E -- user is already a club member --> G[Build AgeGroupStaff record]
     G --> H[Batch insert AgeGroupStaff records]
-    H --> Z(["Return success"])
+    H --> I["After commit: EmailService.sendAgeGroupStaffAdded per staff added"]
+    I --> Z(["Return success"])
 ```
+
+Every staff member added here already has an account (club membership is a precondition — see the ForbiddenException branch above), so this is always the "existing user" email, never an invite. Sent after commit, same timing as §3.1/§3.6 — see TECHNICAL_DECISIONS.md §14.
 
 Since staff must already be a club member, the client's **Add Staff to Age Group** screen (reached from an age group's own "Add staff" button/menu entry) needs a way to list them: `GetClubMembersUseCase` (`GET /clubs/{clubId}/members`, same `minClubRole=COORDINATOR` gate) returns every active `ClubMemberSummary` (name, email, club role) for the picker. The screen then works like Add Players to Age Group — pick an age group, search the list, pick who to add — except each row picks a `TeamRole` (Coach/Staff) rather than being a plain toggle, and the eligible list excludes members already staffing that age group (fetched via `GetAgeGroupStaffUseCase`, `GET /age-groups/{ageGroupId}/staff`, client-side only, no new endpoint).
 
@@ -908,7 +919,7 @@ graph TD
     W --> Z(["User is fully onboarded into every club / player they were invited to"])
 ```
 
-The physical sending of the invite email is still a placeholder everywhere (`TECHNICAL_DECISIONS.md` §5) — every creation point above only ever writes a row to the `Invites` table; no outbound email/SMTP call exists yet in any use case.
+The physical sending of the invite email is wired up for **P1/P2 only** (`ProvisionClubUseCase`, `AddClubMembersUseCase`) via `EmailService`/Resend, sent after the transaction commits — see `TECHNICAL_DECISIONS.md` §14. **P3/P4** (`CreatePlayersUseCase`, `UpdatePlayerUseCase` — the `PARENT_PLAYER` invite path) still only ever write a row to the `Invites` table with no email, since players/parents are explicitly out of scope for now (per the developer, v1.0.0 testing covers admin/coordinator/coach/staff only). `AddStaffToAgeGroupUseCase` (§5.4) also sends email but never creates an `Invite` — every age-group staff addition requires an existing club member, so that path is always the "already has an account" notification, never the registration-invite one.
 
 ---
 
