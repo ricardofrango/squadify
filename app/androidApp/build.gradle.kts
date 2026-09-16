@@ -47,6 +47,29 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    // Environment (not applicationId-suffixed -- google-services.json is registered for the bare
+    // com.ricardofrango.squadify package only; a suffix would break Crashlytics/App Distribution for
+    // every flavor but "dev"). See TECHNICAL_DECISIONS.md's "Environment-Based App Config" section.
+    // dev = LAN address for physical-device testing against a local server. staging = what Firebase App
+    // Distribution builds should target (appDistributionUploadStagingRelease). prod = the store release.
+    flavorDimensions += "environment"
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            buildConfigField("String", "BASE_URL", "\"http://192.168.1.84:8080/v1\"")
+        }
+        create("staging") {
+            dimension = "environment"
+            // TODO placeholder -- swap once the Railway staging environment exists (see ISSUES TO FIX.md).
+            buildConfigField("String", "BASE_URL", "\"https://staging-api.squadify.pt/v1\"")
+        }
+        create("prod") {
+            dimension = "environment"
+            // TODO placeholder -- swap once Railway production is rebuilt (see ISSUES TO FIX.md).
+            buildConfigField("String", "BASE_URL", "\"https://api.squadify.pt/v1\"")
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -68,5 +91,6 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }

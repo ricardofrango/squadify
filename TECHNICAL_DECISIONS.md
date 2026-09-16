@@ -305,8 +305,10 @@ Android 15 (API 35) enforces edge-to-edge by default but still allowed an app-le
 
 `app/androidApp` is registered with Firebase project `squadify-958d3` (`google-services.json` checked in --
 it's not a secret, it only carries public app identifiers). Two products are wired up so far, both
-Android-only since neither Crashlytics nor App Distribution supports the desktop/web targets, and there's
-no iOS app module yet:
+Android-only since neither Crashlytics nor App Distribution supports the desktop/web targets, and iOS
+(`app/iosApp` -- a real Xcode project, see the "Environment-Based App Config" section) hasn't been
+registered with Firebase yet either -- that's a real, separate gap, not something blocked on the app
+existing:
 
 - **Crashlytics**: `firebase-bom` + `firebase-crashlytics` dependency, plus the `google-services` and
   `firebase.crashlytics` Gradle plugins. Fully automatic once the app initializes -- no code changes needed
@@ -388,12 +390,85 @@ Every route is now nested under `/v1` (`Application.kt`'s `routing { route("/v1"
 from whatever context they're nested in. The root health check (`GET /`) stays unversioned deliberately
 -- infra/uptime monitors hit it directly and shouldn't need to know the API version.
 
-Client-side, every repository builds its URLs as `"${appConfig.baseUrl}/..."`, so the fix is entirely in
-`AppConfigs.kt`: both `DevAppConfig.baseUrl` and `ProdAppConfig.baseUrl` now end in `/v1`, and every call
-site (including the live-match WebSocket URL, derived from the same `baseUrl` via a scheme swap) picks
-it up automatically -- no changes needed in any of the ~10 `*RepositoryImpl.kt` files either.
+Client-side, every repository builds its URLs as `"${appConfig.baseUrl}/..."`, so the fix is entirely at
+the `AppConfig` construction site -- every environment's `baseUrl` now ends in `/v1` (see §16, "
+Environment-Based App Config", for how each platform constructs its `AppConfig` today -- the
+`DevAppConfig`/`ProdAppConfig` classes referenced when this section was first written no longer exist).
+Every call site (including the live-match WebSocket URL, derived from the same `baseUrl` via a scheme
+swap) picks up `/v1` automatically -- no changes needed in any of the ~10 `*RepositoryImpl.kt` files.
 
 Verified against a real running server, not just compilation: the old unversioned paths now 404
 (`GET /clubs` -> 404), the new `/v1` paths work end-to-end including a real WebSocket upgrade
 (`GET /v1/matches/{id}/live` -> `101 Switching Protocols`, then closes with "Unauthorized" as expected
 with no token), and the unversioned root health check still responds normally.
+
+## 16. Environment-Based App Config
+
+Three environments across every client: **dev** (a local/LAN server, for active development), **staging**
+(what Firebase App Distribution builds should point at -- deploy and verify there before production),
+**production** (the store release / deployed web client). `AppConfig` (`domain/config/AppConfig.kt`,
+`baseUrl` + `isDebug`) is unchanged, but there is no longer a per-environment class in `app:shared`
+(`DevAppConfig`/`ProdAppConfig` are gone) and no hardcoded Koin binding. `initKoin(appConfig: AppConfig, ...)`
+now takes the config as a parameter, constructed via the single `data class DefaultAppConfig` -- **each
+platform's own entry point builds it and passes it in**, using whatever mechanism that platform's real
+build-variant system offers:
+
+- **Android** (`app/androidApp`): three product flavors (`dev`/`staging`/`prod`), each setting a
+  `BASE_URL` via `buildConfigField`. `SquadifyApplication.onCreate()` reads `BuildConfig.BASE_URL`/
+  `BuildConfig.DEBUG` and passes them to `initKoin`. Deliberately **not** `applicationId`-suffixed per
+  flavor -- `google-services.json` is registered for the bare `com.ricardofrango.squadify` package only,
+  and a suffix would break Crashlytics/App Distribution for every flavor but the one matching it. One
+  consequence: Firebase App Distribution's task is no longer the flat `appDistributionUploadRelease` --
+  flavors split it into `appDistributionUploadDevRelease`/`...StagingRelease`/`...ProdRelease` (verified:
+  ran `./gradlew :app:androidApp:tasks --all`, confirmed all three exist). Use
+  `appDistributionUploadStagingRelease` for tester builds, per the "staging first" rule above.
+- **Desktop & Web** (`app/desktopApp`, `app/webApp`): no OS/toolchain-level build-variant system, so both
+  use the same pattern instead -- a `generateSquadifyConfig` Gradle task writes a small
+  `internal object SquadifyBuildConfig { const val BASE_URL = ...; const val IS_DEBUG = ... }` file based
+  on a `-PsquadifyEnv=dev|staging|production` Gradle property (default `dev`), wired into the module's
+  main source set via `srcDir(generateSquadifyConfig)`. Each `main()` reads `SquadifyBuildConfig` and
+  calls `initKoin` before starting the UI. `dev` defaults to `http://localhost:8080/v1` here (not the
+  Android flavor's LAN IP) -- Desktop and a local Kotlin/JS dev server both run on the same machine as
+  the backend, unlike a physical Android device on WiFi, so `localhost` is actually correct and doesn't
+  go stale if the dev machine's LAN IP changes. `app/webApp/Dockerfile` passes `-PsquadifyEnv=production`
+  by default (`ARG SQUADIFY_ENV`, overridable with `--build-arg SQUADIFY_ENV=staging` for a staging
+  deploy).
+- **iOS** (`app/iosApp`): a real, existing Xcode project (not a Gradle module, so it doesn't show up in
+  `settings.gradle.kts` -- easy to miss for exactly that reason). `iOSApp.swift`'s `init()` picks
+  `baseUrl`/`isDebug` via `#if DEBUG`/`#else` (Xcode's own default Debug/Release build configurations,
+  present in every Xcode project) and calls `Shared`'s `KoinHelperKt.startKoinIOS(baseUrl:isDebug:)`
+  (`app/shared/src/iosMain/.../KoinHelper.kt`), which constructs a `DefaultAppConfig` and calls
+  `initKoin`. Only two tiers for now (dev/production, not a third "staging"), since adding a real
+  Staging Xcode Build Configuration + scheme is safest done interactively in Xcode rather than by
+  hand-editing `project.pbxproj` blind.
+  - **A real Kotlin/Native naming gotcha hit while wiring this up**: the bridge function was originally
+    named `initKoinIOS`, but Kotlin/Native's Objective-C interop generator silently prefixes any exported
+    function starting with `init` with `do` (to avoid colliding with Objective-C's special initializer
+    semantics) -- so the Swift-visible name became `doInitKoinIOS(...)`, not `initKoinIOS(...)`, and
+    calling the expected name failed to compile with "has no member". Renamed to `startKoinIOS` to avoid
+    the prefix collision entirely rather than calling the "do"-prefixed name from Swift.
+  - **Verified with real Xcode builds, not just Kotlin compilation**: `xcodebuild -scheme iosApp -sdk
+    iphonesimulator build` succeeded for both Debug and Release configurations (confirmed **BUILD
+    SUCCEEDED** for both). Also hit and worked around a Gradle/Xcode integration staleness issue along
+    the way: `linkDebugFrameworkIosSimulatorArm64` reported `UP-TO-DATE` and Xcode kept linking against a
+    stale `Shared.framework` even after the Kotlin source changed, until the link task was force-rerun
+    directly (`--rerun-tasks`).
+
+`staging-api.squadify.pt`/`api.squadify.pt` are **placeholders** in every one of the above -- swapped in
+once the corresponding Railway environments/custom domains actually exist (see `ISSUES TO FIX.md`).
+
+**A real, pre-existing bug this surfaced**: Desktop and Web never called `initKoin()` at all before this
+change -- any DI-injected ViewModel would have crashed at runtime on either platform. Fixed as a natural
+side effect of wiring in per-platform `AppConfig` construction (every platform's `main()`/entry point now
+has to call `initKoin` to get an `AppConfig` in). Also had to change `app:shared`'s `koin-core` dependency
+from `implementation` to `api` -- `initKoin()`'s return type (`KoinApplication`) is part of this module's
+public surface, so consumers need the class on their own compile classpath; this was only ever masked
+before because nothing outside Android actually called `initKoin()`.
+
+**A second, separate pre-existing bug found while verifying this (out of scope, not fixed here)**: running
+the Desktop app for the first time (via `./gradlew :app:desktopApp:run`) crashes with
+`IllegalArgumentException: Route ... CreateAgeGroups could not find any NavType for argument sport of
+type SportType` -- a missing `NavType` registration for `SportType` in Navigation 3's type-safe routes,
+unrelated to Koin/AppConfig (confirmed: no Koin-related errors precede it; the crash happens well into
+Compose Navigation setup). Never surfaced before because Desktop never got far enough to reach navigation
+at all.
