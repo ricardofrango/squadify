@@ -1,6 +1,5 @@
 package com.ricardofrango.squadify.di
 
-import com.ricardofrango.squadify.data.config.DevAppConfig
 import com.ricardofrango.squadify.data.local.SessionRepositoryImpl
 import com.ricardofrango.squadify.data.remote.*
 import com.ricardofrango.squadify.domain.config.AppConfig
@@ -46,8 +45,6 @@ import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
 
 val dataModule = module {
-    single<AppConfig> { DevAppConfig() }
-
     single {
         val json = Json {
             ignoreUnknownKeys = true
@@ -158,8 +155,14 @@ val presentationModule = module {
     viewModelOf(::EditPlayerViewModel)
 }
 
-fun initKoin(appDeclaration: KoinAppDeclaration = {}) =
+/**
+ * [appConfig] is provided by each platform's own entry point (Android's SquadifyApplication, Desktop's
+ * main(), the web client's main()), constructed from whatever mechanism that platform uses to select an
+ * environment (Android product flavors, a Gradle property for Desktop/Web) -- see
+ * TECHNICAL_DECISIONS.md's "Environment-Based App Config" section.
+ */
+fun initKoin(appConfig: AppConfig, appDeclaration: KoinAppDeclaration = {}) =
     startKoin {
         appDeclaration()
-        modules(dataModule, domainModule, presentationModule)
+        modules(module { single<AppConfig> { appConfig } }, dataModule, domainModule, presentationModule)
     }

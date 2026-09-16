@@ -73,8 +73,10 @@ kotlin {
             // Navigation
             implementation(libs.navigation)
 
-            // Koin
-            implementation(libs.koin.core)
+            // Koin -- koin-core is `api`, not `implementation`: initKoin()'s return type (KoinApplication)
+            // is part of this module's public surface, so consumers need it on their own compile
+            // classpath. Only ever surfaced when Desktop/Web actually started calling initKoin().
+            api(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
 
