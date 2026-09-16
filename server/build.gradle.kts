@@ -53,9 +53,6 @@ dependencies {
     implementation(libs.kotlinx.datetime)
     implementation(libs.identity.jvm)
 
-    // konf
-    implementation(libs.konf)
-
     testImplementation(libs.mockk)
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.kotlin.testJunit)
