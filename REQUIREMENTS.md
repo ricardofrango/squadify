@@ -85,7 +85,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [/] **Club Admin Summary**: Club overview (Total players/teams, financial status placeholder, upcoming matches).
     - [/] **Parent/Player Summary**: Personalized view (My next matches, my recent performance/events).
     - [ ] **API Scalability**: Implement pagination for all list-based endpoints.
-    - [ ] **Email Service**: Integration with an external provider for real-time invitation delivery.
+    - [x] **Email Service**: Integrated with Resend for club/age-group association notifications -- see `TECHNICAL_DECISIONS.md`'s EmailService section. Real delivery to arbitrary recipients still needs a verified sending domain (currently limited to Resend's default `onboarding@resend.dev`, which only delivers to the account's own email).
     - [x] **Production Database**: Migrated from H2 to PostgreSQL for both dev and production, distinguished by database name (`DATABASE_NAME`, defaulting to `squadify_dev`/`squadify_production`) — see `TECHNICAL_DECISIONS.md` §3.
 - [/] **Phase 7: Client Applications (KMP)**: Multiplatform UI development.
     - [x] Initial Project Setup (Shared, Android, iOS).

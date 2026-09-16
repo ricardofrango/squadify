@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.domain.usecase
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.InviteRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
+import com.ricardofrango.squadify.domain.service.EmailService
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.model.*
 import kotlin.time.Instant
@@ -13,60 +14,85 @@ class AddClubMembersUseCase(
     private val userRepository: UserRepository,
     private val inviteRepository: InviteRepository,
     private val transactionManager: TransactionManager,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val emailService: EmailService
 ) {
     suspend operator fun invoke(
         userId: String,
         clubId: String,
         request: AddClubMembersRequest
-    ): Boolean = transactionManager.runInTransaction {
-        // 1. Check permissions (Admin/Coordinator required to invite members)
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = clubId,
-            minClubRole = ClubRole.COORDINATOR,
-            errorMessage = "Only admins or coordinators can add members to the club"
-        )
+    ): Boolean {
+        val membersAdded = mutableListOf<User>()
+        val emailsInvited = mutableListOf<String>()
+        var clubName = "your club"
 
-        val uniqueEmails = request.emails.distinct()
-        val existingUsers = userRepository.findByEmails(uniqueEmails).associateBy { it.email }
-        val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+        transactionManager.runInTransaction {
+            // 1. Check permissions (Admin/Coordinator required to invite members)
+            checkUserPermissionUseCase(
+                userId = userId,
+                clubId = clubId,
+                minClubRole = ClubRole.COORDINATOR,
+                errorMessage = "Only admins or coordinators can add members to the club"
+            )
 
-        val userIdsToCheck = existingUsers.values.map { it.id }
-        val userRolesMap = userRepository.getUserRolesInClub(userIdsToCheck, clubId)
+            // clubRepository has no ambient transaction of its own outside this block -- fetched here,
+            // not after the transaction closes, even though it's only used for the emails sent below.
+            clubRepository.getClubById(clubId)?.let { clubName = it.name }
 
-        val invitesToCreate = mutableListOf<Invite>()
-        val membersToCreate = mutableListOf<Pair<String, ClubRole>>()
+            val uniqueEmails = request.emails.distinct()
+            val existingUsers = userRepository.findByEmails(uniqueEmails).associateBy { it.email }
+            val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
 
-        uniqueEmails.forEach { email ->
-            val user = existingUsers[email]
-            if (user != null) {
-                // Check if already a member
-                if (userRolesMap[user.id] == null) {
-                    membersToCreate.add(user.id to ClubRole.MEMBER)
-                }
-            } else {
-                invitesToCreate.add(
-                    Invite(
-                        id = Uuid.random().toString(),
-                        email = email,
-                        clubId = clubId,
-                        type = InviteType.CLUB_MEMBER,
-                        role = ClubRole.MEMBER,
-                        createdAt = now
+            val userIdsToCheck = existingUsers.values.map { it.id }
+            val userRolesMap = userRepository.getUserRolesInClub(userIdsToCheck, clubId)
+
+            val invitesToCreate = mutableListOf<Invite>()
+            val membersToCreate = mutableListOf<Pair<String, ClubRole>>()
+
+            uniqueEmails.forEach { email ->
+                val user = existingUsers[email]
+                if (user != null) {
+                    // Check if already a member
+                    if (userRolesMap[user.id] == null) {
+                        membersToCreate.add(user.id to ClubRole.MEMBER)
+                        membersAdded.add(user)
+                    }
+                } else {
+                    invitesToCreate.add(
+                        Invite(
+                            id = Uuid.random().toString(),
+                            email = email,
+                            clubId = clubId,
+                            type = InviteType.CLUB_MEMBER,
+                            role = ClubRole.MEMBER,
+                            createdAt = now
+                        )
                     )
-                )
+                    emailsInvited.add(email)
+                }
+            }
+
+            if (membersToCreate.isNotEmpty()) {
+                clubRepository.addMembers(clubId, membersToCreate)
+            }
+
+            if (invitesToCreate.isNotEmpty()) {
+                inviteRepository.createInvites(invitesToCreate)
+            }
+
+            true
+        }
+
+        // Sent after the transaction commits -- a failed/slow email must never roll back membership.
+        if (membersAdded.isNotEmpty() || emailsInvited.isNotEmpty()) {
+            membersAdded.forEach {
+                emailService.sendClubMembershipAdded(to = it.email, firstName = it.firstName, clubName = clubName)
+            }
+            emailsInvited.forEach {
+                emailService.sendClubInvite(to = it, clubName = clubName)
             }
         }
 
-        if (membersToCreate.isNotEmpty()) {
-            clubRepository.addMembers(clubId, membersToCreate)
-        }
-
-        if (invitesToCreate.isNotEmpty()) {
-            inviteRepository.createInvites(invitesToCreate)
-        }
-
-        true
+        return true
     }
 }

@@ -344,3 +344,38 @@ existing directory is not allowed"), regardless of `--configure-on-demand`.
   setting (and any other project-level Gradle property) was silently never applied inside the container
   -- `:server`'s build happened to still succeed on Gradle/Kotlin's smaller defaults given its lighter
   compile, but this was luck, not correctness.
+
+## 14. Association Notification Email: EmailService + Resend
+
+`domain/service/EmailService.kt` is a best-effort, must-never-throw interface (`ResendEmailService` is
+the only implementation, `data/service/`) sending three notifications, all triggered from the same
+places the underlying association already happens -- `ProvisionClubUseCase`, `AddClubMembersUseCase`,
+`AddStaffToAgeGroupUseCase`:
+
+- **Existing user directly added** to a club or age-group staff -> a "you've been added" email.
+- **No account yet** (club/director invite path -- an `Invite` row is created, same as always) -> a
+  "register to join" email linking to `ServerConfig.webAppBaseUrl` (a placeholder until the web client
+  is deployed -- see `ISSUES TO FIX.md`). `RegisterUseCase` already resolves pending invites by email at
+  registration time, so registering with the invited address is all that's needed to complete the join
+  -- no new resolution logic was added for this.
+- Push/in-app notifications are explicitly out of scope here (not built yet) -- email is the only
+  channel implemented.
+
+**Send timing**: every call site fetches whatever it needs (club/age-group name) *inside*
+`transactionManager.runInTransaction { }` and only calls `emailService.send...()` after that block
+returns. Two things forced this shape, both hit as real bugs while building this, not just design
+foresight:
+- A slow/failed Resend call must never roll back a club/age-group association that already succeeded --
+  so the send has to happen after commit, never inside the transaction.
+- Repository methods here (e.g. `ClubRepository.getClubById`) have no transaction of their own --
+  they rely on an ambient one from `runInTransaction`. Calling one *after* the transaction closes throws
+  (verified: this exact mistake produced a real 500 on `POST /clubs/{id}/members` during manual testing).
+  The fix is fetching the name *inside* the transaction and carrying the plain value out, not the repo
+  call itself.
+
+**Resend + no domain yet**: `RESEND_API_KEY` (`ServerConfig.resendApiKey`) is optional, not
+required-in-production like `jwtSecret`/`databasePassword` -- a missing key makes `ResendEmailService`
+log a warning and skip the send rather than block the request or crash startup, since email here is a
+notification, not a security-critical value. Without a verified sending domain, Resend only delivers
+from `onboarding@resend.dev` to the Resend account's own email -- real delivery to arbitrary invitees
+needs a verified domain (`RESEND_FROM_ADDRESS` env var overrides the default once one exists).

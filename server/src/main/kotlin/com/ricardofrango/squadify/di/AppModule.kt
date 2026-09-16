@@ -4,7 +4,9 @@ import com.ricardofrango.squadify.config.ServerConfig
 import com.ricardofrango.squadify.data.database.DatabaseFactory
 import com.ricardofrango.squadify.data.repository.*
 import com.ricardofrango.squadify.data.service.KotlinFlowMatchBus
+import com.ricardofrango.squadify.data.service.ResendEmailService
 import com.ricardofrango.squadify.domain.repository.*
+import com.ricardofrango.squadify.domain.service.EmailService
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.domain.usecase.*
@@ -25,12 +27,13 @@ val appModule = module {
     // Services
     single<LiveMatchBus> { KotlinFlowMatchBus() }
     single<TransactionManager> { DatabaseFactory }
+    single<EmailService> { ResendEmailService() }
 
     // Use Cases
     factory { GetClubsUseCase(get(), get(), get()) }
     factory { GetClubDetailsUseCase(get(), get(), get()) }
     factory { GetClubHomeUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
-    factory { ProvisionClubUseCase(get(), get(), get(), get(), get()) }
+    factory { ProvisionClubUseCase(get(), get(), get(), get(), get(), get()) }
     factory { RegisterUseCase(get(), get(), get(), get(), get()) }
     factory {
         SeedPlatformAdminUseCase(
@@ -45,14 +48,14 @@ val appModule = module {
     factory { RefreshTokenUseCase(get(), get()) }
     factory { CheckUserPermissionUseCase(get(), get(), get(), get(), get()) }
     factory { CheckUserIsAdminUseCase(get(), get()) }
-    factory { AddClubMembersUseCase(get(), get(), get(), get(), get()) }
+    factory { AddClubMembersUseCase(get(), get(), get(), get(), get(), get()) }
     factory { GetClubMembersUseCase(get(), get(), get()) }
     factory { UpdateClubMemberRoleUseCase(get(), get(), get()) }
     factory { UpdateClubUseCase(get(), get(), get()) }
 
     factory { CreateTeamUseCase(get(), get(), get(), get(), get()) }
     factory { CreateTeamsUseCase(get(), get(), get(), get(), get()) }
-    factory { AddStaffToAgeGroupUseCase(get(), get(), get(), get()) }
+    factory { AddStaffToAgeGroupUseCase(get(), get(), get(), get(), get(), get()) }
     factory { GetAgeGroupStaffUseCase(get(), get(), get()) }
     factory { GetTeamPlayersUseCase(get(), get(), get(), get()) }
     factory { GetTeamDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }

@@ -119,4 +119,28 @@ object ServerConfig {
         } else {
             "123456789"
         }
+
+    /**
+     * Resend API key for transactional email (club/age-group association notifications -- see
+     * EmailService). Deliberately NOT required-in-production like [jwtSecret]/[databasePassword]:
+     * email is a best-effort notification, not a security-critical value, so a missing key degrades
+     * to EmailService logging and skipping the send rather than refusing to start the whole server.
+     */
+    val resendApiKey: String = System.getenv("RESEND_API_KEY")?.takeIf { it.isNotBlank() } ?: ""
+
+    /**
+     * The "from" address used for all outgoing email. Resend only allows sending from
+     * `onboarding@resend.dev` (and only to the Resend account's own verified email) until a real
+     * sending domain is verified -- see TECHNICAL_DECISIONS.md's EmailService section.
+     */
+    val emailFromAddress: String = System.getenv("RESEND_FROM_ADDRESS")?.takeIf { it.isNotBlank() }
+        ?: "Squadify <onboarding@resend.dev>"
+
+    /**
+     * Base URL of the deployed web client, linked from invite/registration emails. Placeholder until
+     * the web client is actually deployed -- see ISSUES TO FIX.md's "Client config points nowhere
+     * real" item for the same pattern on the client side.
+     */
+    val webAppBaseUrl: String = System.getenv("WEBAPP_BASE_URL")?.takeIf { it.isNotBlank() }
+        ?: "http://localhost:8081"
 }
