@@ -472,3 +472,33 @@ type SportType` -- a missing `NavType` registration for `SportType` in Navigatio
 unrelated to Koin/AppConfig (confirmed: no Koin-related errors precede it; the crash happens well into
 Compose Navigation setup). Never surfaced before because Desktop never got far enough to reach navigation
 at all.
+
+## 17. CI/CD: Staging Auto-Deploy, Manual Production Deploy
+
+Split across two mechanisms, deliberately not funneled entirely through GitHub Actions:
+
+- **Railway (server + web client), staging**: Railway's own native GitHub integration (Railway dashboard
+  -> each service -> Settings -> Source), not a GitHub Actions workflow. Connect each staging-environment
+  service to this repo's `main` branch with auto-deploy on, and Railway rebuilds/redeploys on every push
+  using the same Dockerfiles already in the repo. Simpler and more reliable than reimplementing what
+  Railway already does natively.
+- **Android -> Firebase App Distribution, staging**: `.github/workflows/deploy-staging.yml`, triggered on
+  push to `main`. Railway has nothing to do with Android builds, so this genuinely needs a real CI job --
+  runs `:server:test` as a gate, then `android-actions/setup-android` (GitHub's own runners don't
+  necessarily have the exact `compileSdk`/`build-tools` versions this project pins) and
+  `./gradlew :app:androidApp:appDistributionUploadStagingRelease`. The Firebase service account
+  (`app/androidApp/firebase-service-account.json`, gitignored locally -- see §12) is written from the
+  `FIREBASE_SERVICE_ACCOUNT_JSON` repo secret at the exact path the Gradle config already expects.
+- **Railway (server + web client), production**: `.github/workflows/deploy-production.yml`,
+  `workflow_dispatch` only (the "Run workflow" button in the Actions tab) -- deliberately not on push,
+  per the developer. Same test gate, then the Railway CLI (`ghcr.io/railwayapp/cli` container,
+  `railway up --service <name> --ci`) via a `RAILWAY_TOKEN` project token scoped to the production
+  environment, following Railway's own documented CI pattern
+  (https://docs.railway.com/cli/deploying). Android/iOS store publishing is deliberately out of scope
+  here -- no signing/Play Console/App Store Connect pipeline exists yet (see `ISSUES TO FIX.md`).
+
+**Required repo secrets** (Settings -> Secrets and variables -> Actions), neither of which exists yet:
+`FIREBASE_SERVICE_ACCOUNT_JSON` (same service account used locally) and `RAILWAY_TOKEN` (a project token
+from Railway's dashboard, scoped to the production environment). Both workflows are unverified beyond
+`actionlint` (syntax/schema validation) and confirming the referenced actions exist -- neither Railway
+staging/production nor the Firebase secret exist yet to actually trigger a real run against.

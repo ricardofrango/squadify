@@ -1,0 +1,39 @@
+name: Deploy production
+
+# Manual only (workflow_dispatch) -- deliberately not on push, per the developer. Deploys the server and
+# web client services to Railway's production environment via the Railway CLI, using the current state
+# of whichever branch is selected when the workflow is run (defaults to main). Android/iOS store
+# publishing is out of scope here -- see ISSUES TO FIX.md.
+#
+# Requires a Railway PROJECT TOKEN (Railway dashboard -> Project Settings -> Tokens), scoped to the
+# production environment, stored as the RAILWAY_TOKEN repo secret. See
+# https://docs.railway.com/cli/deploying for the officially recommended pattern this follows
+# (ghcr.io/railwayapp/cli container + `railway up --ci`).
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew :server:test --no-daemon
+
+  deploy-railway-production:
+    needs: test
+    runs-on: ubuntu-latest
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy server
+        run: railway up --service server --ci
+      - name: Deploy web client
+        run: railway up --service webApp --ci
