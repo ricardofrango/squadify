@@ -16,7 +16,6 @@ hikaricp = "7.1.0"
 jbcrypt = "0.4"
 junit = "4.13.2"
 koinKtor = "4.2.2"
-konf = "1.1.2"
 kotlin = "2.4.10"
 kotlinxSerializationCore = "1.11.0"
 ktor = "3.5.2"
@@ -58,7 +57,6 @@ hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
 jbcrypt = { module = "org.mindrot:jbcrypt", version.ref = "jbcrypt" }
 koin-ktor = { module = "io.insert-koin:koin-ktor", version.ref = "koinKtor" }
 koin-logger-slf4j = { module = "io.insert-koin:koin-logger-slf4j", version.ref = "koinKtor" }
-konf = { module = "com.uchuhimo:konf", version.ref = "konf" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }
