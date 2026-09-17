@@ -55,9 +55,10 @@ private val WeekdayDayMonth = LocalDate.Format {
 }
 
 /**
- * The hub for one match (design 15A). Manager view: manage the call-up (tap a chip to cycle a
- * player's status, ＋ a pool player), edit the match's own data, and start it. Non-managers see the
- * same content read-only. The live match screen is separate -- this screen only hands off to it.
+ * The hub for one match (design 15A). Manager view: manage the call-up (＋ a pool player -- being
+ * called up is binary, no per-player status; see CallUpStatus), edit the match's own data, and start
+ * it. Non-managers see the same content read-only. The live match screen is separate -- this screen
+ * only hands off to it.
  */
 @Composable
 fun MatchDetailsScreen(
@@ -86,7 +87,6 @@ fun MatchDetailsScreen(
         onNavigateBack = onNavigateBack,
         onRetry = { viewModel.load(matchId, forceReload = true) },
         onSortSelected = viewModel::onSortSelected,
-        onCycleStatus = viewModel::onCycleCallUpStatus,
         onAddToCallUp = viewModel::onAddToCallUp,
         onEditMatch = viewModel::onEditMatch,
         onEnterLiveMatch = viewModel::onEnterLiveMatch
@@ -100,7 +100,6 @@ private fun MatchDetailsContent(
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
     onSortSelected: (CallUpSort) -> Unit,
-    onCycleStatus: (MatchCallUpWithPlayer) -> Unit,
     onAddToCallUp: (Player) -> Unit,
     onEditMatch: (UpdateMatchRequest) -> Unit,
     onEnterLiveMatch: () -> Unit
@@ -144,7 +143,6 @@ private fun MatchDetailsContent(
                 state = uiState,
                 modifier = boxModifier,
                 onSortSelected = onSortSelected,
-                onCycleStatus = onCycleStatus,
                 onAddToCallUp = onAddToCallUp,
                 onEditMatch = onEditMatch
             )
@@ -190,10 +188,7 @@ private fun StatusBand(details: MatchDetails) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.10f)))
         Spacer(Modifier.height(8.dp))
         Text(
-            stringResource(
-                Res.string.label_callup_summary,
-                counts.calledUp, counts.total, counts.confirmed, counts.out, counts.pending
-            ),
+            stringResource(Res.string.label_callup_summary, counts.calledUp, counts.total),
             style = MaterialTheme.typography.bodySmall,
             color = Color.White.copy(alpha = 0.6f)
         )
@@ -219,7 +214,6 @@ private fun MatchBody(
     state: MatchDetailsUiState.Idle,
     modifier: Modifier,
     onSortSelected: (CallUpSort) -> Unit,
-    onCycleStatus: (MatchCallUpWithPlayer) -> Unit,
     onAddToCallUp: (Player) -> Unit,
     onEditMatch: (UpdateMatchRequest) -> Unit
 ) {
@@ -230,11 +224,7 @@ private fun MatchBody(
     val canManage = details.canManage && details.match.status != MatchStatus.FINISHED
     var showEdit by remember { mutableStateOf(false) }
 
-    val standby = details.callUps.filter { it.callUp.status == CallUpStatus.STANDBY }
-    val active = details.callUps.filter { it.callUp.status != CallUpStatus.STANDBY }
-    val comparator = callUpComparator(state.sort)
-    val sortedActive = active.sortedWith(comparator)
-    val sortedStandby = standby.sortedWith(comparator)
+    val sortedCallUps = details.callUps.sortedWith(callUpComparator(state.sort))
 
     LazyColumn(
         modifier = modifier,
@@ -273,10 +263,10 @@ private fun MatchBody(
                 }
             }
         }
-        if (canManage && counts.confirmed < RECOMMENDED_SQUAD) {
+        if (canManage && counts.calledUp < RECOMMENDED_SQUAD) {
             item {
                 Text(
-                    stringResource(Res.string.msg_squad_hint, counts.confirmed, RECOMMENDED_SQUAD),
+                    stringResource(Res.string.msg_squad_hint, counts.calledUp, RECOMMENDED_SQUAD),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -285,17 +275,7 @@ private fun MatchBody(
         if (details.callUps.isEmpty()) {
             item { Text(stringResource(Res.string.msg_no_callups), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
         } else {
-            items(sortedActive, key = { it.callUp.id }) { cu -> CallUpRow(cu, canManage, onCycleStatus) }
-            if (canManage) {
-                item {
-                    Text(stringResource(Res.string.msg_tap_status_hint), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.45f))
-                }
-            }
-        }
-
-        if (standby.isNotEmpty()) {
-            item { GroupLabel(stringResource(Res.string.label_standby)) }
-            items(sortedStandby, key = { it.callUp.id }) { cu -> CallUpRow(cu, canManage, onCycleStatus) }
+            items(sortedCallUps, key = { it.callUp.id }) { cu -> CallUpRow(cu) }
         }
 
         // ---- Available ----
@@ -356,7 +336,7 @@ private fun DetailRow(label: String, value: String, trailing: Pair<String, () ->
 }
 
 @Composable
-private fun CallUpRow(cu: MatchCallUpWithPlayer, canManage: Boolean, onCycle: (MatchCallUpWithPlayer) -> Unit) {
+private fun CallUpRow(cu: MatchCallUpWithPlayer) {
     Surface(modifier = Modifier.fillMaxWidth(), shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f))) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -371,7 +351,6 @@ private fun CallUpRow(cu: MatchCallUpWithPlayer, canManage: Boolean, onCycle: (M
                     Text(it, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            StatusPill(cu.callUp.status, onClick = if (canManage) ({ onCycle(cu) }) else null)
         }
     }
 }
@@ -392,22 +371,6 @@ private fun PoolRow(player: Player, onAdd: () -> Unit) {
 }
 
 @Composable
-private fun StatusPill(status: CallUpStatus, onClick: (() -> Unit)?) {
-    val (bg, fg) = statusColors(status)
-    val mod = if (onClick != null) {
-        Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
-    } else Modifier
-    Surface(shape = RoundedCornerShape(8.dp), color = bg, modifier = mod) {
-        Text(
-            stringResource(statusLabel(status)),
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-            color = fg
-        )
-    }
-}
-
-@Composable
 private fun SectionHeader(title: String, pill: String? = null, trailing: Pair<String, () -> Unit>? = null) {
     Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
@@ -420,11 +383,6 @@ private fun SectionHeader(title: String, pill: String? = null, trailing: Pair<St
         Spacer(Modifier.weight(1f))
         if (trailing != null) LinkText(trailing.first, trailing.second)
     }
-}
-
-@Composable
-private fun GroupLabel(text: String) {
-    Text(text.uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon.copy(alpha = 0.5f), modifier = Modifier.padding(top = 12.dp, bottom = 2.dp))
 }
 
 @Composable
@@ -576,18 +534,12 @@ private fun editFieldColors() = OutlinedTextFieldDefaults.colors(
 
 private const val RECOMMENDED_SQUAD = 11
 
-private data class CallUpCounts(val calledUp: Int, val total: Int, val confirmed: Int, val out: Int, val pending: Int)
+private data class CallUpCounts(val calledUp: Int, val total: Int)
 
-private fun callUpCounts(details: MatchDetails): CallUpCounts {
-    val active = details.callUps.filter { it.callUp.status != CallUpStatus.STANDBY }
-    return CallUpCounts(
-        calledUp = active.size,
-        total = details.callUps.size + details.poolPlayers.size,
-        confirmed = active.count { it.callUp.status == CallUpStatus.CONFIRMED },
-        out = active.count { it.callUp.status == CallUpStatus.DECLINED || it.callUp.status == CallUpStatus.NOT_AVAILABLE },
-        pending = active.count { it.callUp.status == CallUpStatus.CALLED_UP }
-    )
-}
+private fun callUpCounts(details: MatchDetails): CallUpCounts = CallUpCounts(
+    calledUp = details.callUps.size,
+    total = details.callUps.size + details.poolPlayers.size
+)
 
 /** [PlayerPosition]'s declared order is already Goalkeeper → Defender → Midfield → Winger →
  * Striker, so its ordinal doubles as the sort rank; a player with no position sorts last. Either
@@ -603,20 +555,6 @@ private fun callUpComparator(sort: CallUpSort): Comparator<MatchCallUpWithPlayer
         { it.player.firstName.lowercase() },
         { it.player.lastName.lowercase() }
     )
-}
-
-private fun statusLabel(s: CallUpStatus): StringResource = when (s) {
-    CallUpStatus.CALLED_UP -> Res.string.label_callup_status_called_up
-    CallUpStatus.CONFIRMED -> Res.string.label_callup_status_confirmed
-    CallUpStatus.DECLINED -> Res.string.label_callup_status_declined
-    CallUpStatus.NOT_AVAILABLE -> Res.string.label_callup_status_not_available
-    CallUpStatus.STANDBY -> Res.string.label_callup_status_standby
-}
-
-private fun statusColors(s: CallUpStatus): Pair<Color, Color> = when (s) {
-    CallUpStatus.CONFIRMED -> PitchGreen.copy(alpha = 0.15f) to PitchGreen
-    CallUpStatus.DECLINED, CallUpStatus.NOT_AVAILABLE -> LossRed.copy(alpha = 0.12f) to LossRed
-    CallUpStatus.CALLED_UP, CallUpStatus.STANDBY -> CarbonGray.copy(alpha = 0.14f) to DeepCarbon.copy(alpha = 0.6f)
 }
 
 private fun resultAccent(score: MatchScore): Color = when {
@@ -674,11 +612,11 @@ private fun sampleDetails(status: MatchStatus, canManage: Boolean, score: MatchS
     ),
     callUps = listOf(
         MatchCallUpWithPlayer(
-            callUp = MatchCallUp(id = "cu1", matchId = "m1", playerId = "p1", status = CallUpStatus.CONFIRMED),
+            callUp = MatchCallUp(id = "cu1", matchId = "m1", playerId = "p1", status = CallUpStatus.CALLED_UP),
             player = Player(id = "p1", clubId = "c1", firstName = "Tomás", lastName = "Bragança", birthDate = LocalDate(2011, 3, 12), shirtNumber = 10, active = true, position = PlayerPosition.MIDFIELD)
         ),
         MatchCallUpWithPlayer(
-            callUp = MatchCallUp(id = "cu2", matchId = "m1", playerId = "p3", status = CallUpStatus.CONFIRMED),
+            callUp = MatchCallUp(id = "cu2", matchId = "m1", playerId = "p3", status = CallUpStatus.CALLED_UP),
             player = Player(id = "p3", clubId = "c1", firstName = "Ana", lastName = "Costa", birthDate = LocalDate(2011, 5, 2), shirtNumber = 1, active = true, position = PlayerPosition.GOALKEEPER)
         ),
         MatchCallUpWithPlayer(
@@ -699,7 +637,7 @@ private fun MatchDetailsFinishedWinPreview() {
     SquadifyTheme {
         MatchDetailsContent(
             uiState = MatchDetailsUiState.Idle(sampleDetails(MatchStatus.FINISHED, canManage = true, score = MatchScore("m1", 3, 1))),
-            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onCycleStatus = {}, onAddToCallUp = {}, onEditMatch = {}, onEnterLiveMatch = {}
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onEditMatch = {}, onEnterLiveMatch = {}
         )
     }
 }
@@ -710,7 +648,7 @@ private fun MatchDetailsScheduledCanManagePreview() {
     SquadifyTheme {
         MatchDetailsContent(
             uiState = MatchDetailsUiState.Idle(sampleDetails(MatchStatus.SCHEDULED, canManage = true)),
-            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onCycleStatus = {}, onAddToCallUp = {}, onEditMatch = {}, onEnterLiveMatch = {}
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onEditMatch = {}, onEnterLiveMatch = {}
         )
     }
 }
@@ -724,7 +662,7 @@ private fun MatchDetailsSortedByPositionPreview() {
                 details = sampleDetails(MatchStatus.SCHEDULED, canManage = true),
                 sort = CallUpSort.POSITION
             ),
-            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onCycleStatus = {}, onAddToCallUp = {}, onEditMatch = {}, onEnterLiveMatch = {}
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onEditMatch = {}, onEnterLiveMatch = {}
         )
     }
 }
@@ -735,7 +673,7 @@ private fun MatchDetailsLoadingPreview() {
     SquadifyTheme {
         MatchDetailsContent(
             uiState = MatchDetailsUiState.Loading,
-            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onCycleStatus = {}, onAddToCallUp = {}, onEditMatch = {}, onEnterLiveMatch = {}
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onEditMatch = {}, onEnterLiveMatch = {}
         )
     }
 }

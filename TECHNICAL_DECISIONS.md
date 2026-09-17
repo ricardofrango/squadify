@@ -502,3 +502,25 @@ Split across two mechanisms, deliberately not funneled entirely through GitHub A
 from Railway's dashboard, scoped to the production environment). Both workflows are unverified beyond
 `actionlint` (syntax/schema validation) and confirming the referenced actions exist -- neither Railway
 staging/production nor the Firebase secret exist yet to actually trigger a real run against.
+
+## 18. Call-up Status Simplified to Binary
+
+`CallUpStatus` used to be a 5-value enum (`CALLED_UP`/`CONFIRMED`/`DECLINED`/`NOT_AVAILABLE`/`STANDBY`)
+with a dedicated `UpdateCallUpStatusUseCase` (Coach-level staff only -- there was never a path for a
+Parent/Player to self-confirm). Per the developer, removed outright rather than kept: since parents/
+players are out of scope for v1.0.0, nothing had ever actually set a call-up to anything other than
+`CALLED_UP` by anyone. Being called up is now binary -- `CallUpStatus` is a single-value enum (kept as
+an enum, not dropped from `MatchCallUp` entirely, so a real attendance-status model is additive later
+rather than a schema change).
+
+Removed: `UpdateCallUpStatusUseCase` (server + client) and its route
+(`PATCH /v1/matches/call-ups/{callUpId}/status`); `UpdateCallUpRequest`; the tap-to-cycle status chip,
+confirmed/out/pending counts, and the active/standby list split on `MatchDetailsScreen`; the
+`callUpsConfirmed` half of the Club Home "Next up" pill (`ClubHomeNextUp`, now just `callUpsTotal`).
+`StartMatchUseCase`'s and `LiveMatchScreen`'s eligibility filters (`status == CALLED_UP ||
+status == CONFIRMED`) simplified to "in the call-up list at all", since there's no other status left to
+filter on.
+
+Verified against a real running server, not just compilation: built a fresh club/season/age-group/team/
+match, added two players via `ManageCallUpsUseCase`, confirmed both come back `CALLED_UP` in the match
+details response, and confirmed the removed status route now 404s.

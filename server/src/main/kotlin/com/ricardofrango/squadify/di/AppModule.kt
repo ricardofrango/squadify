@@ -86,7 +86,6 @@ val appModule = module {
     factory { UpdateMatchStatusUseCase(get(), get(), get(), get(), get()) }
     factory { StartMatchUseCase(get(), get(), get(), get(), get(), get()) }
     factory { ManageCallUpsUseCase(get(), get(), get()) }
-    factory { UpdateCallUpStatusUseCase(get(), get(), get()) }
     factory { CreateOpponentUseCase(get(), get(), get()) }
     factory { GetOpponentsUseCase(get(), get(), get()) }
     factory { UpdateOpponentUseCase(get(), get(), get()) }

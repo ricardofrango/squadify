@@ -20,7 +20,6 @@ fun Route.matchRoutes() {
     val updateMatchUseCase by inject<UpdateMatchUseCase>()
     val updateMatchStatusUseCase by inject<UpdateMatchStatusUseCase>()
     val manageCallUpsUseCase by inject<ManageCallUpsUseCase>()
-    val updateCallUpStatusUseCase by inject<UpdateCallUpStatusUseCase>()
     val addMatchEventUseCase by inject<AddMatchEventUseCase>()
     val deleteMatchEventUseCase by inject<DeleteMatchEventUseCase>()
     val getMatchEventsUseCase by inject<GetMatchEventsUseCase>()
@@ -145,21 +144,6 @@ fun Route.matchRoutes() {
                         } else {
                             call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to manage call-ups"))
                         }
-                    }
-                }
-            }
-
-            route("/call-ups/{callUpId}") {
-                patch("/status") {
-                    val currentUserId = call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
-                    val callUpId = call.parameters["callUpId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
-                    val request = call.receive<UpdateCallUpRequest>()
-
-                    val success = updateCallUpStatusUseCase(currentUserId, callUpId, request)
-                    if (success) {
-                        call.respond(HttpStatusCode.NoContent)
-                    } else {
-                        call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to update call-up status"))
                     }
                 }
             }

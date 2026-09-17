@@ -78,7 +78,7 @@ class GetMatchDetailsUseCaseTest {
         coEvery { ageGroupRepository.getAgeGroupById(ag1) } returns ageGroup
         coEvery { seasonRepository.getSeasonById("s-1") } returns season
         coEvery { matchRepository.getCallUpsForMatch(matchId) } returns listOf(
-            MatchCallUpWithPlayer(MatchCallUp("cu-1", matchId, "p-called", CallUpStatus.CONFIRMED), player("p-called"))
+            MatchCallUpWithPlayer(MatchCallUp("cu-1", matchId, "p-called", CallUpStatus.CALLED_UP), player("p-called"))
         )
         coEvery { playerRepository.getPlayersByAgeGroup(ag1) } returns listOf(player("p-called"), player("p-free"))
         coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 2, 1)

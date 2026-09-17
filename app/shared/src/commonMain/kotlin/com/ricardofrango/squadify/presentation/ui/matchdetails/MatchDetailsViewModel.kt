@@ -4,14 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.GetMatchDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.ManageCallUpsUseCase
-import com.ricardofrango.squadify.domain.usecase.UpdateCallUpStatusUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateMatchUseCase
 import com.ricardofrango.squadify.model.CallUpStatus
 import com.ricardofrango.squadify.model.MatchCallUp
 import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Player
-import com.ricardofrango.squadify.model.UpdateCallUpRequest
 import com.ricardofrango.squadify.model.UpdateMatchRequest
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_failed_to_load_match
@@ -29,8 +27,7 @@ import org.jetbrains.compose.resources.getString
 class MatchDetailsViewModel(
     private val getMatchDetailsUseCase: GetMatchDetailsUseCase,
     private val updateMatchUseCase: UpdateMatchUseCase,
-    private val manageCallUpsUseCase: ManageCallUpsUseCase,
-    private val updateCallUpStatusUseCase: UpdateCallUpStatusUseCase
+    private val manageCallUpsUseCase: ManageCallUpsUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<MatchDetailsUiState>(MatchDetailsUiState.Loading)
@@ -70,37 +67,6 @@ class MatchDetailsViewModel(
     fun onSortSelected(sort: CallUpSort) = updateIdle { it.copy(sort = sort) }
 
     fun clearTransientError() = updateIdle { it.copy(transientError = null) }
-
-    /** Coach taps a called-up player's status chip to cycle it -- applied optimistically. */
-    fun onCycleCallUpStatus(callUp: MatchCallUpWithPlayer) {
-        val current = idle() ?: return
-        if (!current.details.canManage) return
-        val next = callUp.callUp.status.next()
-
-        _state.update {
-            current.copy(details = current.details.copy(
-                callUps = current.details.callUps.map {
-                    if (it.callUp.id == callUp.callUp.id) it.copy(callUp = it.callUp.copy(status = next)) else it
-                }
-            ))
-        }
-        viewModelScope.launch {
-            try {
-                updateCallUpStatusUseCase(callUp.callUp.id, UpdateCallUpRequest(status = next))
-            } catch (e: Exception) {
-                _state.update {
-                    (it as? MatchDetailsUiState.Idle)?.copy(
-                        details = it.details.copy(
-                            callUps = it.details.callUps.map { cu ->
-                                if (cu.callUp.id == callUp.callUp.id) callUp else cu
-                            }
-                        ),
-                        transientError = getString(Res.string.msg_match_change_failed)
-                    ) ?: it
-                }
-            }
-        }
-    }
 
     /** Coach adds a pool player to the call-up (batch replace under the hood). */
     fun onAddToCallUp(player: Player) {
@@ -167,13 +133,5 @@ class MatchDetailsViewModel(
 
     private inline fun updateIdle(block: (MatchDetailsUiState.Idle) -> MatchDetailsUiState.Idle) {
         _state.update { if (it is MatchDetailsUiState.Idle) block(it) else it }
-    }
-
-    private fun CallUpStatus.next(): CallUpStatus = when (this) {
-        CallUpStatus.CALLED_UP -> CallUpStatus.CONFIRMED
-        CallUpStatus.CONFIRMED -> CallUpStatus.DECLINED
-        CallUpStatus.DECLINED -> CallUpStatus.NOT_AVAILABLE
-        CallUpStatus.NOT_AVAILABLE -> CallUpStatus.STANDBY
-        CallUpStatus.STANDBY -> CallUpStatus.CALLED_UP
     }
 }

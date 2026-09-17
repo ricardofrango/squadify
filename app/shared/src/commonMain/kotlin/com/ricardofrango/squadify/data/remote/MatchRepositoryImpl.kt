@@ -13,7 +13,6 @@ import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.StartMatchRequest
-import com.ricardofrango.squadify.model.UpdateCallUpRequest
 import com.ricardofrango.squadify.model.UpdateMatchRequest
 import com.ricardofrango.squadify.model.UpdateMatchStatusRequest
 import io.ktor.client.*
@@ -62,12 +61,6 @@ class MatchRepositoryImpl(
     override suspend fun manageCallUps(matchId: String, playerIds: List<String>) {
         httpClient.post("${appConfig.baseUrl}/matches/$matchId/call-up") {
             contentType(ContentType.Application.Json); setBody(ManageCallUpRequest(playerIds)); auth()
-        }.handleResponse<Unit>()
-    }
-
-    override suspend fun updateCallUpStatus(callUpId: String, request: UpdateCallUpRequest) {
-        httpClient.patch("${appConfig.baseUrl}/matches/call-ups/$callUpId/status") {
-            contentType(ContentType.Application.Json); setBody(request); auth()
         }.handleResponse<Unit>()
     }
 

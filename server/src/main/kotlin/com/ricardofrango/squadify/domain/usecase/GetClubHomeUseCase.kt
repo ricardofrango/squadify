@@ -10,7 +10,6 @@ import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
-import com.ricardofrango.squadify.model.CallUpStatus
 import com.ricardofrango.squadify.model.ClubHome
 import com.ricardofrango.squadify.model.ClubHomeAlert
 import com.ricardofrango.squadify.model.ClubHomeAlertType
@@ -92,7 +91,6 @@ class GetClubHomeUseCase(
                 opponentName = opponentsById[next.opponentId]?.let { it.shortName ?: it.name } ?: "—",
                 location = next.location,
                 dateTime = next.dateTime,
-                callUpsConfirmed = callUps.count { it.callUp.status == CallUpStatus.CONFIRMED },
                 callUpsTotal = callUps.size
             )
         }.sortedBy { it.dateTime }

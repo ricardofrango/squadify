@@ -120,7 +120,6 @@ val domainModule = module {
     factory { UpdateMatchStatusUseCase(get()) }
     factory { StartMatchUseCase(get()) }
     factory { ManageCallUpsUseCase(get()) }
-    factory { UpdateCallUpStatusUseCase(get()) }
     factory { GetMatchEventsUseCase(get()) }
     factory { GetMatchScoreUseCase(get()) }
     factory { AddMatchEventUseCase(get()) }
