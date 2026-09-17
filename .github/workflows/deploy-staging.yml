@@ -54,9 +54,18 @@ jobs:
 
       # firebase-service-account.json is gitignored (never committed -- see TECHNICAL_DECISIONS.md's
       # EmailService/Firebase sections for why secrets never go in the repo); written from a GitHub
-      # secret to the exact path app/androidApp/build.gradle.kts already expects.
+      # secret to the exact path app/androidApp/build.gradle.kts already expects. Passed through an env
+      # var and written with printf (not interpolated straight into the run script) so the multi-line
+      # JSON survives intact regardless of quoting/special characters in the key.
       - name: Write Firebase service account
-        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > app/androidApp/firebase-service-account.json
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > app/androidApp/firebase-service-account.json
+          if [ ! -s app/androidApp/firebase-service-account.json ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is empty or not set"
+            exit 1
+          fi
 
       # The Firebase App Distribution plugin's upload task only uploads -- it doesn't build the APK
       # itself, per Firebase's own docs ("./gradlew assembleRelease appDistributionUploadRelease").
