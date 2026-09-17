@@ -62,3 +62,19 @@ kotlin {
         }
     }
 }
+
+// composeCompatibilityBrowserDistribution's webpack step publishes the main wasm binary under a
+// content-hashed filename, but originWasmWebApp.js's own fetch call still requests it by its Kotlin
+// module name ("<rootProject>-<module path>.wasm") -- verified by diffing SHA256 of both files, byte
+// identical. nginx's SPA fallback (try_files ... /index.html) turns that 404 into a silent 200 HTML
+// response, so the browser fails to instantiate WebAssembly and the app never renders (blank page).
+// Duplicate the binary under the name the loader actually requests so it's actually there to serve.
+val wasmMainModuleName = "${rootProject.name}-${project.path.removePrefix(":").replace(":", "-")}"
+val fixWasmLoaderAsset = tasks.register<Copy>("fixWasmLoaderAsset") {
+    from(layout.buildDirectory.file("compileSync/wasmJs/main/productionExecutable/optimized/$wasmMainModuleName.wasm"))
+    into(layout.buildDirectory.dir("dist/composeWebCompatibility/productionExecutable"))
+}
+
+tasks.named("composeCompatibilityBrowserDistribution") {
+    finalizedBy(fixWasmLoaderAsset)
+}
