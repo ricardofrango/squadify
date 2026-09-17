@@ -1,5 +1,6 @@
 import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.androidApplication)
@@ -7,6 +8,16 @@ plugins {
     alias(libs.plugins.googleServices)
     alias(libs.plugins.firebaseCrashlytics)
     alias(libs.plugins.firebaseAppDistribution)
+}
+
+// Local-only, gitignored -- never committed (same pattern as firebase-service-account.json). Falls back
+// to the debug keystore (see buildTypes.release below) when absent, so a fresh clone/CI run without
+// these secrets still produces an installable (if not properly release-signed) APK.
+val keystorePropertiesFile = rootProject.file("keystore/keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
 }
 
 kotlin {
@@ -71,8 +82,27 @@ android {
             buildConfigField("String", "BASE_URL", "\"https://api.squadify.pt/v1\"")
         }
     }
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file("keystore/squadify-keystore.jks")
+                storePassword = keystoreProperties.getProperty("password")
+                keyAlias = keystoreProperties.getProperty("alias")
+                keyPassword = keystoreProperties.getProperty("alias-password")
+            }
+        }
+    }
     buildTypes {
         release {
+            // Without an explicit signingConfig, AGP leaves release APKs unsigned (it only auto-signs
+            // "debug"), and Android refuses to install an unsigned APK at all -- that's why App Tester
+            // installs were failing before keystore/ existed. Falls back to the debug keystore when the
+            // real one isn't present locally/in CI (see keystorePropertiesFile above).
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
