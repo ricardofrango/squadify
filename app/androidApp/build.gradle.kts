@@ -61,8 +61,9 @@ android {
         }
         create("staging") {
             dimension = "environment"
-            // TODO placeholder -- swap once the Railway staging environment exists (see ISSUES TO FIX.md).
-            buildConfigField("String", "BASE_URL", "\"https://staging-api.squadify.pt/v1\"")
+            // Railway-generated domain for the staging server -- swap for stg-api.squadify.pt once that
+            // custom domain is set up (see ISSUES TO FIX.md).
+            buildConfigField("String", "BASE_URL", "\"https://squadify-staging.up.railway.app/v1\"")
         }
         create("prod") {
             dimension = "environment"

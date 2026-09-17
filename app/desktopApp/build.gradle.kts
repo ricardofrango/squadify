@@ -34,7 +34,7 @@ compose.desktop {
 // "Environment-Based App Config" section.
 val squadifyEnv = (findProperty("squadifyEnv") as String?) ?: "dev"
 val squadifyBaseUrl = when (squadifyEnv) {
-    "staging" -> "https://staging-api.squadify.pt/v1" // TODO placeholder -- see ISSUES TO FIX.md
+    "staging" -> "https://squadify-staging.up.railway.app/v1" // Railway-generated domain -- swap for stg-api.squadify.pt once that custom domain is set up
     "production" -> "https://api.squadify.pt/v1" // TODO placeholder -- see ISSUES TO FIX.md
     else -> "http://localhost:8080/v1"
 }
