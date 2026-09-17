@@ -58,4 +58,8 @@ jobs:
       - name: Write Firebase service account
         run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > app/androidApp/firebase-service-account.json
 
-      - run: ./gradlew :app:androidApp:appDistributionUploadStagingRelease --no-daemon
+      # The Firebase App Distribution plugin's upload task only uploads -- it doesn't build the APK
+      # itself, per Firebase's own docs ("./gradlew assembleRelease appDistributionUploadRelease").
+      # Both tasks must run in the same invocation or the upload task fails with "Could not find an
+      # APK file for this variant".
+      - run: ./gradlew :app:androidApp:assembleStagingRelease :app:androidApp:appDistributionUploadStagingRelease --no-daemon
