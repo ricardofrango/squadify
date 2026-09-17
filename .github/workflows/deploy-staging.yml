@@ -1,0 +1,44 @@
+name: Deploy staging
+
+# Railway's server and web client services deploy on their own -- each is connected directly to this
+# repo/branch in the Railway dashboard (Settings -> Source), with auto-deploy on. That's simpler and
+# more reliable than reimplementing it here via the Railway CLI. This workflow only covers the piece
+# Railway has nothing to do with: building the Android app's `staging` flavor and pushing it to Firebase
+# App Distribution. See TECHNICAL_DECISIONS.md's "Environment-Based App Config" section for what
+# "staging" means for each client.
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew :server:test --no-daemon
+
+  firebase-distribute-android-staging:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
+      - uses: android-actions/setup-android@v4
+
+      # firebase-service-account.json is gitignored (never committed -- see TECHNICAL_DECISIONS.md's
+      # EmailService/Firebase sections for why secrets never go in the repo); written from a GitHub
+      # secret to the exact path app/androidApp/build.gradle.kts already expects.
+      - name: Write Firebase service account
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > app/androidApp/firebase-service-account.json
+
+      - run: ./gradlew :app:androidApp:appDistributionUploadStagingRelease --no-daemon
