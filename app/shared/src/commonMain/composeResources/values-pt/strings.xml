@@ -368,21 +368,14 @@
     <string name="label_match_directions">Direções</string>
     <string name="label_call_up">Convocatória</string>
     <string name="label_remind">Lembrar</string>
-    <string name="label_standby">Suplência</string>
     <string name="label_available">Disponíveis</string>
     <string name="label_available_from_pool">do plantel %1$s</string>
-    <string name="label_callup_summary">%1$d/%2$d convocados · %3$d confirmados · %4$d fora · %5$d pendentes</string>
-    <string name="msg_squad_hint">%1$d confirmados — costuma alinhar %2$d.</string>
-    <string name="msg_tap_status_hint">Toque num estado para o alternar — guarda automaticamente.</string>
+    <string name="label_callup_summary">%1$d/%2$d convocados</string>
+    <string name="msg_squad_hint">%1$d convocados — costuma alinhar %2$d.</string>
     <string name="msg_no_callups">Ainda ninguém foi convocado.</string>
     <string name="btn_start_match">Iniciar jogo</string>
     <string name="btn_enter_live_match">Entrar no jogo ao vivo</string>
-    <string name="msg_kickoff_countdown">O pontapé de saída é %1$s — vamos pedir-lhe para confirmar.</string>
-    <string name="label_callup_status_called_up">Convocado</string>
-    <string name="label_callup_status_confirmed">Confirmado</string>
-    <string name="label_callup_status_declined">Recusou</string>
-    <string name="label_callup_status_not_available">Indisponível</string>
-    <string name="label_callup_status_standby">Suplente</string>
+    <string name="msg_kickoff_countdown">O pontapé de saída é %1$s.</string>
     <string name="title_live_match">Jogo ao vivo</string>
 
     <!-- Live Match Console -->

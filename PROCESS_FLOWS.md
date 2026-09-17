@@ -237,7 +237,7 @@ graph TD
     B -- denied --> F(["Throw ForbiddenException"])
     B -- allowed --> C[Fetch club; resolve role + season (active, else latest-ending)]
     C --> D["Counts: teams, players, coaches; matchesThisWeek = club matches whose date is in the Mon–Sun week containing today"]
-    D --> E["Next up: per team, soonest SCHEDULED future match → opponent name + call-up counts (total, CONFIRMED)"]
+    D --> E["Next up: per team, soonest SCHEDULED future match → opponent name + call-up count"]
     E --> G{role >= COORDINATOR or platform admin?}
     G -- Yes --> H["alert per season age group with no COACH in age_group_staff (AGE_GROUP_NEEDS_COACH)"]
     G -- No --> I
@@ -724,21 +724,14 @@ graph TD
     D --> Z(["Return success"])
 ```
 
-### 7.3 Update Call-up Status (`UpdateCallUpStatusUseCase`)
-
-```mermaid
-graph TD
-    A[Start: userId, callUpId, status, notes?] --> B[Fetch CallUp by id]
-    B -- not found --> N1(["Throw NotFoundException: Call-up not found"])
-    B -- found --> C[Fetch Match by callUp.matchId]
-    C -- not found --> N2(["Throw NotFoundException: Match not found"])
-    C -- found --> D[CheckUserPermissionUseCase — minTeamRole=COACH, teamId=match.teamId]
-    D -- denied --> F(["Throw ForbiddenException"])
-    D -- allowed --> E[Update call-up status + notes]
-    E --> Z(["Return success"])
-```
-
-Only Coach-level staff (or club Admin/Coordinator) can change a call-up's status today — there is no path yet for the Parent/Player themselves to self-confirm attendance (see §11).
+**Removed: `UpdateCallUpStatusUseCase`.** A call-up used to carry a 5-value attendance status
+(`CALLED_UP`/`CONFIRMED`/`DECLINED`/`NOT_AVAILABLE`/`STANDBY`), settable only by Coach-level staff (or
+club Admin/Coordinator) -- there was never a path for the Parent/Player themselves to self-confirm
+attendance. Since parents/players are out of scope for v1.0.0 (per the developer), that status was
+never actually settable to anything other than `CALLED_UP` by anyone -- so it, its use case, and its
+route (`PATCH /matches/call-ups/{callUpId}/status`) were removed outright rather than kept as unreachable
+code. `CallUpStatus` is now a single-value enum (see §12's schema reference) -- being called up is
+binary, no per-player status shown anywhere in the client.
 
 ---
 
@@ -757,7 +750,7 @@ graph TD
     D -- Yes --> E[Fetch Team — required count = team.teamSize ?: 11]
     E -- count mismatch --> V2(["Throw ValidationException"])
     E -- ok --> G[Fetch this match's call-ups]
-    G -- a starter isn't CALLED_UP/CONFIRMED --> V3(["Throw ValidationException"])
+    G -- a starter isn't in the call-up list --> V3(["Throw ValidationException"])
     G -- ok --> H["Set isStarting=true on the starters' call-ups (false on the rest), set Match.status=LIVE + halfLengthMinutes + kickoffAt=now"]
     H --> I["Publish LiveMatchUpdate(score, status=LIVE) via LiveMatchBus"]
     I --> Z(["Return success"])
@@ -935,7 +928,8 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
 - [x] **`UpdateClubMemberRoleUseCase` has no existence guard.** Unlike almost every other `Update*UseCase`, it never verified `targetUserId` is a real user or an existing member of `clubId` before writing the new role.
   **Fixed:** `updateMemberRole` already reported whether it matched a row (`> 0`); the use case now checks that result and throws `NotFoundException` instead of silently returning `false` for a non-member. See `UpdateClubMemberRoleUseCaseTest`.
 - [x] **`CreateTeamUseCase` foreign-key validation.** It now loads the age group and rejects the request (`ValidationException`) if it doesn't exist, or its `clubId`/`seasonId` don't match the request — see §4.5. `CreateTeamsUseCase` (batch, §4.5b) applies the same check once for the whole batch.
-- [ ] **No self-service call-up confirmation.** `UpdateCallUpStatusUseCase` requires `COACH`+ team role — there is no path for a Parent/Player to set their own call-up to "Confirmed", even though `REQUIREMENTS.md` §5 lists "Confirmed" as a call-up status a family member would set. This lines up with the still-open "Account Management" and parent-facing client roadmap items.
+- [x] **No self-service call-up confirmation.** `UpdateCallUpStatusUseCase` required `COACH`+ team role — there was no path for a Parent/Player to set their own call-up to "Confirmed", even though `REQUIREMENTS.md` §5 used to list "Confirmed" as a call-up status a family member would set.
+  **Resolved by removing the feature, not building it:** since parents/players are out of scope for v1.0.0 and nothing had ever set a call-up to anything other than `CALLED_UP`, the whole attendance-status concept (`UpdateCallUpStatusUseCase`, its route, `CallUpStatus`'s other 4 values) was removed rather than kept as unreachable code waiting for a parent feature that doesn't exist yet. Being called up is now binary -- see §7.2, `TECHNICAL_DECISIONS.md`.
 - [x] **No match-status transition validation.** `UpdateMatchStatusUseCase` accepted any `MatchStatus` value from any current status — nothing stopped jumping straight from `SCHEDULED` to `FINISHED`, and (a sharper version of the same gap) a coach could set `SCHEDULED -> LIVE` through this use case directly, completely bypassing `StartMatchUseCase`'s starting-line-up/half-length validation, since it's a separately exposed route (`MatchRoutes.kt`), not something `StartMatchUseCase` delegates to.
   **Fixed:** added an explicit transition table (`VALID_MATCH_STATUS_TRANSITIONS`) -- `SCHEDULED -> CANCELLED` only (kickoff stays exclusive to `StartMatchUseCase`); `LIVE -> {HALF_TIME, FINISHED, CANCELLED}`; `HALF_TIME -> {LIVE, FINISHED, CANCELLED}`; `FINISHED`/`CANCELLED` are terminal. An invalid transition now throws `ValidationException`. See `UpdateMatchStatusUseCaseTest`.
 - [ ] **No historical/aggregated match statistics use case exists yet.** `GetMatchScoreUseCase`/`GetMatchEventsUseCase` only expose live/raw data — this matches the open `REQUIREMENTS.md` Phase 5 item "Historical match statistics (Post-match analysis)".
@@ -1109,7 +1103,7 @@ erDiagram
         uuid id PK
         uuid match_id FK
         uuid player_id FK
-        enum status "CallUpStatus, default CALLED_UP"
+        enum status "CallUpStatus -- single value (CALLED_UP), see enum reference table"
         text notes "nullable"
         boolean is_starting "default false -- Starting XI at kickoff, set by StartMatchUseCase"
     }
@@ -1145,7 +1139,7 @@ erDiagram
 | `UserPlayerRelationship` | `FATHER`, `MOTHER`, `GUARDIAN`, `OTHER` | `user_players.relationship`, `invites.relationship` |
 | `InviteType` | `CLUB_MEMBER`, `PARENT_PLAYER` | `invites.type` |
 | `MatchStatus` | `SCHEDULED`, `LIVE`, `HALF_TIME`, `FINISHED`, `CANCELLED` | `matches.status` (default `SCHEDULED`) |
-| `CallUpStatus` | `CALLED_UP`, `CONFIRMED`, `DECLINED`, `NOT_AVAILABLE`, `STANDBY` | `match_call_ups.status` (default `CALLED_UP`) |
+| `CallUpStatus` | `CALLED_UP` (single value -- see §7.2/§11) | `match_call_ups.status` (default and only `CALLED_UP`) |
 | `EventType` | `GOAL`, `OWN_GOAL`, `ASSIST`, `SUBSTITUTION_IN`, `SUBSTITUTION_OUT`, `YELLOW_CARD`, `RED_CARD` | `match_events.type` |
 | `PlayerPosition` | `GOALKEEPER`, `DEFENDER`, `MIDFIELD`, `WINGER`, `STRIKER` | `players.position` (nullable) |
 

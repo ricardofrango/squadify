@@ -146,16 +146,6 @@ class ExposedMatchRepository : MatchRepository {
         return true
     }
 
-    override suspend fun updateCallUp(
-        callUpId: String,
-        status: CallUpStatus,
-        notes: String?
-    ): Boolean =
-        CallUpsTable.update({ CallUpsTable.id eq callUpId.toUuid() }) {
-            it[CallUpsTable.status] = status
-            it[CallUpsTable.notes] = notes
-        } > 0
-
     override suspend fun getCallUpByMatchAndPlayer(
         matchId: String,
         playerId: String
@@ -164,11 +154,6 @@ class ExposedMatchRepository : MatchRepository {
             .where {
                 (CallUpsTable.matchId eq matchId.toUuid()) and (CallUpsTable.playerId eq playerId.toUuid())
             }
-            .map(::toMatchCallUp)
-            .singleOrNull()
-
-    override suspend fun getCallUpById(id: String): MatchCallUp? =
-        CallUpsTable.selectAll().where { CallUpsTable.id eq id.toUuid() }
             .map(::toMatchCallUp)
             .singleOrNull()
 

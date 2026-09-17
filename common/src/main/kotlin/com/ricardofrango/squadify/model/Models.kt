@@ -569,13 +569,16 @@ data class AgeGroupDetails(
     val canManage: Boolean
 )
 
+/**
+ * A single value for now -- attendance confirmation (CONFIRMED/DECLINED/NOT_AVAILABLE/STANDBY) was
+ * designed for parents to self-report, but parents aren't a v1.0.0 feature yet (see AI_GUIDELINES.md
+ * scope notes) and nothing else ever changed it away from CALLED_UP. Being called up now just means
+ * "in the squad or not" -- kept as an enum (not dropped from MatchCallUp entirely) so re-adding real
+ * attendance states later is additive, not a schema change.
+ */
 @Serializable
 enum class CallUpStatus {
-    CALLED_UP,
-    CONFIRMED,
-    DECLINED,
-    NOT_AVAILABLE,
-    STANDBY
+    CALLED_UP
 }
 
 @Serializable
@@ -677,12 +680,6 @@ data class CreateMatchRequest(
 )
 
 @Serializable
-data class UpdateCallUpRequest(
-    val status: CallUpStatus,
-    val notes: String? = null
-)
-
-@Serializable
 data class UpdateMatchStatusRequest(
     val status: MatchStatus
 )
@@ -740,8 +737,7 @@ data class ParentDashboard(
 // Club Home (the default tab of the club screen)
 
 /** One row of the Home "Next up" list: the soonest upcoming match for a team that has one. Teams
- * with no scheduled match don't produce a row. [callUpsConfirmed] / [callUpsTotal] back the `X/Y`
- * pill (Y = call-ups on the match, X = how many are CONFIRMED). */
+ * with no scheduled match don't produce a row. [callUpsTotal] backs the "N called up" pill. */
 @Serializable
 data class ClubHomeNextUp(
     val matchId: String,
@@ -750,7 +746,6 @@ data class ClubHomeNextUp(
     val opponentName: String,
     val location: String? = null,
     val dateTime: Instant,
-    val callUpsConfirmed: Int,
     val callUpsTotal: Int
 )
 

@@ -47,7 +47,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 
 ## 5. Match Management
 - **Match**: Details about opponent (linked to Opponent entity), location, date, and status.
-- **MatchCallUp**: List of players called for a match with attendance status (Called, Confirmed, Injured, etc.).
+- **MatchCallUp**: List of players called up for a match. Binary for now (called up or not) -- the richer attendance-status model (Confirmed/Declined/Not Available/Standby) was removed since it required a parent/player self-confirmation path that doesn't exist yet; see `PROCESS_FLOWS.md` §11.
 - **Live Match**: Real-time event logging by coaches (Goals, Assists, Substitutions, Cards).
 - **MatchStatus**: `SCHEDULED`, `LIVE`, `HALF_TIME`, `FINISHED`, `CANCELLED`.
 

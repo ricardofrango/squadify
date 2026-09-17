@@ -368,21 +368,14 @@
     <string name="label_match_directions">Directions</string>
     <string name="label_call_up">Call-up</string>
     <string name="label_remind">Remind</string>
-    <string name="label_standby">Standby</string>
     <string name="label_available">Available</string>
     <string name="label_available_from_pool">from the %1$s pool</string>
-    <string name="label_callup_summary">%1$d/%2$d called up · %3$d confirmed · %4$d out · %5$d pending</string>
-    <string name="msg_squad_hint">%1$d confirmed — you usually field %2$d.</string>
-    <string name="msg_tap_status_hint">Tap a status to cycle it — writes optimistically.</string>
+    <string name="label_callup_summary">%1$d/%2$d called up</string>
+    <string name="msg_squad_hint">%1$d called up — you usually field %2$d.</string>
     <string name="msg_no_callups">No one called up yet.</string>
     <string name="btn_start_match">Start match</string>
     <string name="btn_enter_live_match">Enter live match</string>
-    <string name="msg_kickoff_countdown">Kick-off is %1$s — we\'ll ask you to confirm.</string>
-    <string name="label_callup_status_called_up">Called up</string>
-    <string name="label_callup_status_confirmed">Confirmed</string>
-    <string name="label_callup_status_declined">Declined</string>
-    <string name="label_callup_status_not_available">Not available</string>
-    <string name="label_callup_status_standby">Standby</string>
+    <string name="msg_kickoff_countdown">Kick-off is %1$s.</string>
     <string name="title_live_match">Live match</string>
 
     <!-- Live Match Console -->

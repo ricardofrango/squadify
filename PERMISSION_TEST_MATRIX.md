@@ -150,7 +150,6 @@ otherwise. Audited on 2026-09-03:
 | `CreateMatchUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct |
 | `AddPlayersToTeamUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct |
 | `ManageCallUpsUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct |
-| `UpdateCallUpStatusUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct |
 | `UpdateMatchStatusUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct |
 | `AddMatchEventUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct |
 | `UpdateTeamUseCase` | was `minClubRole = COORDINATOR` only, no team-role path at all -- a coach could never edit their own team's name | ❌ was a bug; **fixed** -- added `minTeamRole = TeamRole.COACH` alongside the club-role check, see `UpdateTeamUseCaseTest` |

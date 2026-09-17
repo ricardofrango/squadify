@@ -195,23 +195,19 @@ private fun NextUpRow(item: ClubHomeNextUp, onClick: () -> Unit) {
                 )
             }
             Spacer(Modifier.width(8.dp))
-            CallUpPill(confirmed = item.callUpsConfirmed, total = item.callUpsTotal)
+            CallUpPill(calledUp = item.callUpsTotal)
         }
     }
 }
 
 @Composable
-private fun CallUpPill(confirmed: Int, total: Int) {
-    val complete = total > 0 && confirmed == total
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = if (complete) PitchGreen.copy(alpha = 0.15f) else CarbonGray.copy(alpha = 0.12f)
-    ) {
+private fun CallUpPill(calledUp: Int) {
+    Surface(shape = RoundedCornerShape(8.dp), color = CarbonGray.copy(alpha = 0.12f)) {
         Text(
-            "$confirmed/$total",
+            calledUp.toString(),
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-            color = if (complete) PitchGreen else DeepCarbon.copy(alpha = 0.55f)
+            color = DeepCarbon.copy(alpha = 0.55f)
         )
     }
 }
@@ -315,8 +311,8 @@ private fun HomeTabPreview() {
                 role = ClubRole.CLUB_ADMIN,
                 teamCount = 7, playerCount = 118, coachCount = 9, matchesThisWeek = 5,
                 nextUp = listOf(
-                    ClubHomeNextUp("m1", "t1", "Sub-15 A", "AD Fontelas", "Campo do Ribamar", base, 16, 18),
-                    ClubHomeNextUp("m2", "t2", "Sub-17 A", "GD Marinhas", "Away", base, 0, 20)
+                    ClubHomeNextUp("m1", "t1", "Sub-15 A", "AD Fontelas", "Campo do Ribamar", base, 18),
+                    ClubHomeNextUp("m2", "t2", "Sub-17 A", "GD Marinhas", "Away", base, 0)
                 ),
                 alerts = listOf(
                     ClubHomeAlert(ClubHomeAlertType.CALLUPS_UNSENT, count = 2, date = kotlinx.datetime.LocalDate(2026, 9, 12)),

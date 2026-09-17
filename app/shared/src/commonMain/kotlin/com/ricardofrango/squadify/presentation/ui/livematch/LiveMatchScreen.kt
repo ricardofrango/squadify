@@ -19,7 +19,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.ricardofrango.squadify.model.CallUpStatus
 import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
@@ -175,9 +174,8 @@ private fun LiveBadge() {
 private fun PreKickoffContent(state: LiveMatchUiState.Idle, viewModel: LiveMatchViewModel, onNavigateBack: () -> Unit) {
     val details = state.details
     val requiredCount = details.team.teamSize ?: 11
-    val eligible = remember(details) {
-        details.callUps.filter { it.callUp.status == CallUpStatus.CALLED_UP || it.callUp.status == CallUpStatus.CONFIRMED }
-    }
+    // Every call-up is CALLED_UP -- there's no other status to filter on (see CallUpStatus).
+    val eligible = remember(details) { details.callUps }
 
     var halfLength by remember { mutableStateOf(30) }
     var startingIds by remember { mutableStateOf(emptySet<String>()) }
@@ -731,10 +729,8 @@ private data class DerivedSquad(
 private fun deriveSquad(details: MatchDetails, events: List<MatchEvent>): DerivedSquad {
     val callUps = details.callUps
     val onPitchIds = callUps.filter { it.callUp.isStarting }.map { it.callUp.playerId }.toMutableList()
-    val benchIds = callUps
-        .filter { !it.callUp.isStarting && (it.callUp.status == CallUpStatus.CALLED_UP || it.callUp.status == CallUpStatus.CONFIRMED) }
-        .map { it.callUp.playerId }
-        .toMutableList()
+    // Every call-up is CALLED_UP -- there's no other status to filter on (see CallUpStatus).
+    val benchIds = callUps.filter { !it.callUp.isStarting }.map { it.callUp.playerId }.toMutableList()
     val sentOffIds = mutableListOf<String>()
 
     val ordered = events.sortedWith(compareBy({ it.minute }, { it.createdAt }))

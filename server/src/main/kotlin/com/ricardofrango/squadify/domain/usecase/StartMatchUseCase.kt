@@ -59,8 +59,8 @@ class StartMatchUseCase(
             throw ValidationException("The starting line-up needs exactly $requiredCount players")
         }
 
+        // Every call-up is CALLED_UP -- there's no other status to filter on (see CallUpStatus).
         val eligiblePlayerIds = matchRepository.getCallUpsForMatch(matchId)
-            .filter { it.callUp.status == CallUpStatus.CALLED_UP || it.callUp.status == CallUpStatus.CONFIRMED }
             .map { it.callUp.playerId }
             .toSet()
         if (!eligiblePlayerIds.containsAll(startingIds)) {
