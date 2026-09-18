@@ -48,6 +48,7 @@ dependencies {
     implementation(libs.ktor.server.auth)
     implementation(libs.ktor.server.auth.jwt)
     implementation(libs.ktor.server.websockets)
+    implementation(libs.ktor.server.cors)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.exposed.kotlin.datetime)
     implementation(libs.kotlinx.datetime)
