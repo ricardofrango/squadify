@@ -1,6 +1,5 @@
 package com.ricardofrango.squadify.presentation.navigation
 
-import com.ricardofrango.squadify.model.SportType
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -34,8 +33,11 @@ sealed class Screen {
     data class CreateAgeGroups(
         val clubId: String,
         val clubName: String,
-        // The club's sport -- feeds the team-size picker's options (`sport.teamSizes`).
-        val sport: SportType,
+        // SportType's .name -- Navigation-Compose's type-safe routes have no built-in NavType for enum
+        // arguments (this crashed the whole app graph at startup: "could not find any NavType for
+        // argument sport ... typeMap received was {}"), so it travels as a String and is converted back
+        // with SportType.valueOf() at the composable<Screen.CreateAgeGroups> destination.
+        val sport: String,
         // Optional pre-selection for the screen's own season picker: set when the caller already knows
         // which season is meant (a specific season's "no age groups" empty state), null from the
         // ambiguous overflow-menu entry so the user has to pick one explicitly. The screen loads the
@@ -44,8 +46,9 @@ sealed class Screen {
         val initialSeasonId: String? = null
     ) : Screen()
 
+    // sport is SportType's .name -- see CreateAgeGroups' doc above for why this isn't the enum itself.
     @Serializable
-    data class CreateTeams(val clubId: String, val clubName: String, val sport: SportType) : Screen()
+    data class CreateTeams(val clubId: String, val clubName: String, val sport: String) : Screen()
 
     // The screen has its own age-group picker; [initialAgeGroupId] just pre-selects it when the caller
     // already knows which one (e.g. from the age-group detail screen). [clubName] is carried only so
