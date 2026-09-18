@@ -15,6 +15,9 @@ import com.ricardofrango.squadify.domain.usecase.SeedPlatformAdminUseCase
 import com.ricardofrango.squadify.security.JwtConfig
 import com.ricardofrango.squadify.model.ErrorResponse
 import com.ricardofrango.squadify.exception.*
+import com.ricardofrango.squadify.config.ServerConfig
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -25,6 +28,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.ContentTransformationException
 import io.ktor.server.websocket.*
@@ -60,6 +64,24 @@ fun Application.module() {
     // immediately, with no manual bootstrapping. Idempotent -- a no-op when the admin already exists
     // or when seeding is disabled (see SeedPlatformAdminUseCase / ServerConfig).
     runBlocking { getKoin().get<SeedPlatformAdminUseCase>().invoke() }
+
+    // Only the web client is subject to CORS -- Android/iOS/Desktop don't send an Origin header, so
+    // this exists purely for the browser build. Reuses WEBAPP_BASE_URL (already set for email links --
+    // see ServerConfig.webAppBaseUrl) as the one allowed origin, since it's already exactly "this
+    // environment's web client URL". java.net.URI.authority preserves the string's own port (or lack of
+    // one) as written, unlike Ktor's Url.hostWithPort, which always forces one in -- allowHost needs to
+    // match the browser's actual Origin header ("https://host", no ":443") exactly.
+    install(CORS) {
+        val webAppUri = java.net.URI(ServerConfig.webAppBaseUrl)
+        allowHost(webAppUri.authority, schemes = listOf(webAppUri.scheme))
+        allowMethod(HttpMethod.Get)
+        allowMethod(HttpMethod.Post)
+        allowMethod(HttpMethod.Patch)
+        allowMethod(HttpMethod.Delete)
+        allowHeader(HttpHeaders.Authorization)
+        allowHeader(HttpHeaders.ContentType)
+        allowNonSimpleContentTypes = true
+    }
 
     install(Authentication) {
         jwt("auth-jwt") {
