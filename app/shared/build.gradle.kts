@@ -64,6 +64,14 @@ kotlin {
             // stack handles this correctly; this is Ktor's own documented workaround for Android.
             implementation(libs.ktor.client.okhttp)
         }
+        iosMain.dependencies {
+            // Ktor's HttpClient() picks its engine at runtime from whatever engine artifacts are
+            // actually on the classpath -- there's no link-time check, so the app links and even
+            // launches fine without this, then crashes the moment Koin first resolves an HttpClient
+            // (very early) with "No client engines found". Darwin (NSURLSession-backed) is Ktor's
+            // engine for iOS/macOS/watchOS/tvOS.
+            implementation(libs.ktor.client.darwin)
+        }
         commonMain.dependencies {
             api(project(":core"))
             implementation(libs.compose.runtime)
