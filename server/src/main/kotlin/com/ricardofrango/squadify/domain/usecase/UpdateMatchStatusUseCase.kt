@@ -40,9 +40,9 @@ class UpdateMatchStatusUseCase(
         checkUserPermissionUseCase(
             userId = userId,
             clubId = match.clubId,
-            minTeamRole = TeamRole.COACH,
+            minTeamRole = TeamRole.STAFF,
             teamId = match.teamId,
-            errorMessage = "Only admins, coordinators, or team coaches can update match status"
+            errorMessage = "Only admins, coordinators, coaches, or team staff can update match status"
         )
 
         if (status !in (VALID_MATCH_STATUS_TRANSITIONS[match.status] ?: emptySet())) {

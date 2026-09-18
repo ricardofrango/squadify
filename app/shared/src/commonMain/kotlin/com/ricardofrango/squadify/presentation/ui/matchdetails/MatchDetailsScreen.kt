@@ -119,7 +119,7 @@ private fun MatchDetailsContent(
             }
         },
         bottomBar = {
-            if (details != null && details.canManage) {
+            if (details != null && details.canManageMatchDay) {
                 BottomActionBar(
                     state = uiState as MatchDetailsUiState.Idle,
                     onEnterLiveMatch = onEnterLiveMatch
@@ -221,7 +221,9 @@ private fun MatchBody(
     val counts = callUpCounts(details)
     // A finished match is a record, not something to keep editing -- call-ups, kickoff, location
     // etc. all freeze once the game is over, regardless of the viewer's role.
-    val canManage = details.canManage && details.match.status != MatchStatus.FINISHED
+    val notFinished = details.match.status != MatchStatus.FINISHED
+    val canEditMatch = details.canManage && notFinished
+    val canManageMatchDay = details.canManageMatchDay && notFinished
     var showEdit by remember { mutableStateOf(false) }
 
     val sortedCallUps = details.callUps.sortedWith(callUpComparator(state.sort))
@@ -239,7 +241,7 @@ private fun MatchBody(
         item {
             SectionHeader(
                 title = stringResource(Res.string.label_details_section),
-                trailing = if (canManage) stringResource(Res.string.label_edit) to { showEdit = true } else null
+                trailing = if (canEditMatch) stringResource(Res.string.label_edit) to { showEdit = true } else null
             )
         }
         item { DetailsCard(details) }
@@ -256,14 +258,14 @@ private fun MatchBody(
                 Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
                 SortChip(stringResource(Res.string.label_position_field), state.sort == CallUpSort.POSITION) { onSortSelected(CallUpSort.POSITION) }
                 SortChip(stringResource(Res.string.label_sort_name), state.sort == CallUpSort.NAME) { onSortSelected(CallUpSort.NAME) }
-                if (canManage) {
+                if (canManageMatchDay) {
                     Spacer(Modifier.weight(1f))
                     // TODO: reminders aren't wired yet -- kept inert per the design.
                     Text(stringResource(Res.string.label_remind), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = PitchGreen.copy(alpha = 0.5f))
                 }
             }
         }
-        if (canManage && counts.calledUp < RECOMMENDED_SQUAD) {
+        if (canManageMatchDay && counts.calledUp < RECOMMENDED_SQUAD) {
             item {
                 Text(
                     stringResource(Res.string.msg_squad_hint, counts.calledUp, RECOMMENDED_SQUAD),
@@ -279,7 +281,7 @@ private fun MatchBody(
         }
 
         // ---- Available ----
-        if (canManage && details.poolPlayers.isNotEmpty()) {
+        if (canManageMatchDay && details.poolPlayers.isNotEmpty()) {
             item {
                 Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 12.dp)) {
                     Text(stringResource(Res.string.label_available), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
@@ -628,6 +630,7 @@ private fun sampleDetails(status: MatchStatus, canManage: Boolean, score: MatchS
         Player(id = "p2", clubId = "c1", firstName = "Xavier", lastName = "Boaventura", birthDate = LocalDate(2011, 8, 4), shirtNumber = 7, active = true)
     ),
     canManage = canManage,
+    canManageMatchDay = canManage,
     score = score
 )
 

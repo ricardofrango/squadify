@@ -65,6 +65,21 @@ class GetMatchDetailsUseCase(
             false
         }
 
+        // Match-day operations (call-ups, starting, status) are open to STAFF too -- unlike editing
+        // the match's own record, which stays coach-only (canManage above).
+        val canManageMatchDay = canManage || try {
+            checkUserPermissionUseCase(
+                userId = userId,
+                clubId = match.clubId,
+                minClubRole = ClubRole.COORDINATOR,
+                minTeamRole = TeamRole.STAFF,
+                teamId = match.teamId
+            )
+            true
+        } catch (e: ForbiddenException) {
+            false
+        }
+
         MatchDetails(
             match = match,
             opponent = opponent,
@@ -74,6 +89,7 @@ class GetMatchDetailsUseCase(
             callUps = callUps,
             poolPlayers = poolPlayers,
             canManage = canManage,
+            canManageMatchDay = canManageMatchDay,
             score = matchEventRepository.getScoreByMatch(matchId)
         )
     }

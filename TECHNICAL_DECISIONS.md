@@ -524,3 +524,32 @@ filter on.
 Verified against a real running server, not just compilation: built a fresh club/season/age-group/team/
 match, added two players via `ManageCallUpsUseCase`, confirmed both come back `CALLED_UP` in the match
 details response, and confirmed the removed status route now 404s.
+
+## 19. Match-Day Permissions Opened to Staff (not just Coach)
+
+Per the developer, 2026-09-18: age-group **staff** (`TeamRole.STAFF`, level 2) can now do match-day
+operations that were previously coach-only (`TeamRole.COACH`, level 3) -- managing call-ups, starting a
+match, and updating its status. Lowered `minTeamRole` from `COACH` to `STAFF` in `ManageCallUpsUseCase`,
+`StartMatchUseCase`, and `UpdateMatchStatusUseCase`. Deliberately **not** extended to everything
+match-related: scheduling/editing a match (`CreateMatchUseCase`, `UpdateMatchUseCase`) and logging/
+deleting match events (`AddMatchEventUseCase`, `DeleteMatchEventUseCase`) all stay coach-only -- the
+developer explicitly scoped this to match-day operations, not the full match lifecycle.
+
+**The `MatchDetails.canManage` flag had to split in two.** It previously gated three different things at
+once in the client (`MatchDetailsScreen`/`MatchDetailsViewModel`): editing the match's own record, call-up
+management, and entering the live match screen (the only path to starting a match). Since editing now
+needs to stay coach-only while the other two open to staff, a single boolean could no longer represent
+all three without either wrongly exposing "Edit" to staff or wrongly hiding call-ups/start-match from
+them. `GetMatchDetailsUseCase` now returns two non-throwing permission probes:
+- `canManage` (coach+ only, unchanged): gates the "Edit" action on the Details section only.
+- `canManageMatchDay` (coach **or** staff, new): gates call-up management (the "Available" pool section,
+  the squad-size hint, the inert "remind" text) and the bottom action bar that opens the live match
+  screen (`onEnterLiveMatch`).
+
+Both are still further gated by `match.status != FINISHED` client-side, same as before the split -- a
+finished match stays a read-only record for everyone regardless of role. See `PROCESS_FLOWS.md` §7.1b/
+§7.2/§8.0/§8.2 for the updated flowcharts and `PERMISSION_TEST_MATRIX.md`'s write-permission audit table.
+
+Covered by `ManageCallUpsUseCaseTest` (new file), and new staff-allowed cases added to
+`StartMatchUseCaseTest`, `UpdateMatchStatusUseCaseTest`, and `GetMatchDetailsUseCaseTest` (asserting
+`canManageMatchDay = true` / `canManage = false` for a staff-level caller).

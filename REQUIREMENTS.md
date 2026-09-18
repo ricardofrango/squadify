@@ -6,8 +6,8 @@ This document outlines the core requirements and architectural decisions for the
 The application supports five primary user types:
 - **Platform Owner (Super Admin)**: Global owner of the platform. Can create (provision) clubs and manage platform settings.
 - **Club Admin / Coordinator (Director)**: Global club management, assigned by the Platform Owner.
-- **Coach**: Management of assigned teams, matches, and call-ups.
-- **Staff**: Specific functional tasks (Physio, Team Manager).
+- **Coach**: Full management of assigned age groups -- scheduling/editing matches, plus everything Staff can do.
+- **Staff**: Match-day operations for their assigned age group (call-ups, starting a match, updating its status) and specific functional tasks (Physio, Team Manager). Cannot schedule/edit matches or log match events -- coach-only.
 - **Parent / User**: Consult child info, call-ups, and calendar.
 
 *Future roles: Platform Admin, Payment Management, Document Management.*

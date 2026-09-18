@@ -100,18 +100,24 @@ class GetMatchDetailsUseCaseTest {
         // Pool is the age group minus whoever is already called up.
         assertEquals(listOf("p-free"), d.poolPlayers.map { it.id })
         assertTrue(d.canManage)
+        assertTrue(d.canManageMatchDay)
         assertEquals(MatchScore(matchId, 2, 1), d.score)
     }
 
     @Test
-    fun ageGroupStaffCanReadButNotManage() = runBlocking {
+    fun ageGroupStaffCanManageMatchDayButNotEditTheMatch() = runBlocking {
         val staff = user("staff")
         baseStubs()
         coEvery { userRepository.findById(staff.id) } returns staff
         coEvery { userRepository.getUserRoleInClub(staff.id, clubId) } returns ClubRole.MEMBER
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, ag1) } returns TeamRole.STAFF
 
-        assertFalse(useCase(staff.id, matchId).canManage)
+        val d = useCase(staff.id, matchId)
+
+        // Staff can run match day (call-ups, start, status) but not edit the match's own record --
+        // that stays coach-only, same as before this change.
+        assertFalse(d.canManage)
+        assertTrue(d.canManageMatchDay)
     }
 
     @Test

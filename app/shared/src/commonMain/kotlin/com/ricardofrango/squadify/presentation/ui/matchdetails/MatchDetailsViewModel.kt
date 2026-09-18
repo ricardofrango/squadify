@@ -68,10 +68,10 @@ class MatchDetailsViewModel(
 
     fun clearTransientError() = updateIdle { it.copy(transientError = null) }
 
-    /** Coach adds a pool player to the call-up (batch replace under the hood). */
+    /** Coach or staff adds a pool player to the call-up (batch replace under the hood). */
     fun onAddToCallUp(player: Player) {
         val current = idle() ?: return
-        if (!current.details.canManage) return
+        if (!current.details.canManageMatchDay) return
 
         val optimistic = MatchCallUpWithPlayer(
             callUp = MatchCallUp(id = "pending-${player.id}", matchId = matchId, playerId = player.id, status = CallUpStatus.CALLED_UP),

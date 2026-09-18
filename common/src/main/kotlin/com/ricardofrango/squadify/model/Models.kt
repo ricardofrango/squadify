@@ -637,8 +637,12 @@ data class MatchCallUpWithPlayer(
 /**
  * The match plus everything its detail screen needs: the [opponent], the current [callUps], the
  * [team] / [ageGroup] / [season] it belongs to, and the age group's [poolPlayers] (who can be added
- * to the call-up). [canManage] is true for a club admin/coordinator or a coach of the age group --
- * it gates the edit / call-up / lifecycle actions.
+ * to the call-up). [canManage] is true for a club admin/coordinator or a **coach** of the age group --
+ * it gates editing the match itself (date/time/location/notes; see `UpdateMatchUseCase`).
+ * [canManageMatchDay] is true for a club admin/coordinator or a coach **or staff** of the age group --
+ * it gates match-day operations that don't change the match's own record: managing call-ups
+ * (`ManageCallUpsUseCase`), starting the match (`StartMatchUseCase`), and updating its status
+ * (`UpdateMatchStatusUseCase`). Logging/deleting match events stays coach-only, same as [canManage].
  */
 @Serializable
 data class MatchDetails(
@@ -650,6 +654,7 @@ data class MatchDetails(
     val callUps: List<MatchCallUpWithPlayer>,
     val poolPlayers: List<Player>,
     val canManage: Boolean,
+    val canManageMatchDay: Boolean,
     // The running/final scoreline, rebuilt from match events -- 0-0 before any goals are logged.
     val score: MatchScore
 )

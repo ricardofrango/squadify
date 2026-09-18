@@ -122,8 +122,10 @@ this club plays against). Any club member -- with or without a team assignment -
 | P5 | List Club A's matches (no team filter) | Allow, Team 1's only | Allow, Team 1's only | ✅ **fixed** -- `GetMatchesUseCase` now scopes to the caller's own team(s) instead of every match in the club |
 | P10 | View Team 1's match calendar | Allow | Allow | ✅ **fixed** -- `GetMatchesUseCase` now passes `allowPlayerOrParentAccess = true` |
 | P10 | View a specific match's details | Allow | Allow | ✅ **fixed** -- `GetMatchDetailsUseCase` now passes `minTeamRole = TeamRole.STAFF`, `teamId = match.teamId`, `allowPlayerOrParentAccess = true` |
-| P5 | Log a match event for Team 1 | Allow | Allow | ✅ (this one correctly sets `minTeamRole = COACH`) |
+| P5 | Log a match event for Team 1 | Allow | Allow | ✅ (this one correctly sets `minTeamRole = COACH` -- deliberately not lowered) |
 | P5 | Manage call-ups for Team 1 | Allow | Allow | ✅ |
+| P6 | Manage call-ups for Team 2 (their own team) | Allow | Allow | ✅ **2026-09-18**: `ManageCallUpsUseCase` lowered to `minTeamRole = STAFF` -- staff can now manage call-ups for their own age group, not just coaches |
+| P6 | Start a match / update match status for Team 2 (their own team) | Allow | Allow | ✅ **2026-09-18**: same change applied to `StartMatchUseCase` and `UpdateMatchStatusUseCase` |
 | P6 | Manage call-ups for Team 1 (not their team) | Deny | Deny | ✅ |
 
 ### Dashboards
@@ -149,9 +151,10 @@ otherwise. Audited on 2026-09-03:
 |---|---|---|
 | `CreateMatchUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct |
 | `AddPlayersToTeamUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct |
-| `ManageCallUpsUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct |
-| `UpdateMatchStatusUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct |
-| `AddMatchEventUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct |
+| `ManageCallUpsUseCase` | no `minClubRole`, `minTeamRole = STAFF` + `teamId` | ✅ correct -- lowered from `COACH` to `STAFF` per the developer, 2026-09-18 (match-day operations open to staff, not just coaches) |
+| `UpdateMatchStatusUseCase` | no `minClubRole`, `minTeamRole = STAFF` + `teamId` | ✅ correct -- lowered from `COACH` to `STAFF`, same 2026-09-18 change |
+| `StartMatchUseCase` | no `minClubRole`, `minTeamRole = STAFF` + `teamId` | ✅ correct -- lowered from `COACH` to `STAFF`, same 2026-09-18 change |
+| `AddMatchEventUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct -- deliberately NOT lowered; logging/deleting match events stays coach-only |
 | `UpdateTeamUseCase` | was `minClubRole = COORDINATOR` only, no team-role path at all -- a coach could never edit their own team's name | ❌ was a bug; **fixed** -- added `minTeamRole = TeamRole.COACH` alongside the club-role check, see `UpdateTeamUseCaseTest` |
 | `AddStaffToTeamsUseCase` | `minClubRole = COORDINATOR` only, no team-role path, no `teamId` | Intentional (decided with the developer): assigning staff grants someone else write access to the team, so it stays admin/coordinator-only |
 | `CreatePlayersUseCase`, `UpdatePlayerUseCase`, `CreateAgeGroupsUseCase`, `UpdateAgeGroupUseCase`, `CreateSeasonUseCase`, `UpdateSeasonUseCase`, `CreateOpponentUseCase`, `UpdateOpponentUseCase`, `AddClubMembersUseCase` | `minClubRole = COORDINATOR` only, club-wide, no team scoping | Intentional -- these are club-structural/administrative actions, not team-scoped |

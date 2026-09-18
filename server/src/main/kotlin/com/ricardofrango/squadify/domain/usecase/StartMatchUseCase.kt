@@ -32,9 +32,9 @@ class StartMatchUseCase(
         checkUserPermissionUseCase(
             userId = userId,
             clubId = match.clubId,
-            minTeamRole = TeamRole.COACH,
+            minTeamRole = TeamRole.STAFF,
             teamId = match.teamId,
-            errorMessage = "Only admins, coordinators, or team coaches can start a match"
+            errorMessage = "Only admins, coordinators, coaches, or team staff can start a match"
         )
 
         if (match.status != MatchStatus.SCHEDULED) {
