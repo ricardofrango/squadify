@@ -67,6 +67,24 @@ jobs:
             exit 1
           fi
 
+      # keystore/keystore.properties and keystore/squadify-keystore.jks are gitignored -- same pattern
+      # as the Firebase service account above. Without these, app/androidApp/build.gradle.kts falls back
+      # to debug-signing the release APK, which is installable but not what real release builds should
+      # ship with. ANDROID_KEYSTORE_BASE64 is the .jks file's contents run through `base64` (macOS:
+      # `base64 -i keystore/squadify-keystore.jks | pbcopy`; Linux: `base64 -w0 keystore/squadify-keystore.jks`).
+      - name: Write release keystore
+        env:
+          ANDROID_KEYSTORE_PROPERTIES: ${{ secrets.ANDROID_KEYSTORE_PROPERTIES }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p keystore
+          printf '%s' "$ANDROID_KEYSTORE_PROPERTIES" > keystore/keystore.properties
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > keystore/squadify-keystore.jks
+          if [ ! -s keystore/keystore.properties ] || [ ! -s keystore/squadify-keystore.jks ]; then
+            echo "::error::ANDROID_KEYSTORE_PROPERTIES or ANDROID_KEYSTORE_BASE64 secret is empty or not set"
+            exit 1
+          fi
+
       # The Firebase App Distribution plugin's upload task only uploads -- it doesn't build the APK
       # itself, per Firebase's own docs ("./gradlew assembleRelease appDistributionUploadRelease").
       # Both tasks must run in the same invocation or the upload task fails with "Could not find an
