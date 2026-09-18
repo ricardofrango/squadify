@@ -56,7 +56,13 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
-            implementation(libs.ktor.client.cio)
+            // OkHttp, not CIO: CIO does TLS via a raw SSLEngine, which doesn't propagate the hostname
+            // Android's per-domain NetworkSecurityTrustManager needs once network_security_config.xml has
+            // ANY <domain-config> entry (ours does, for the dev LAN IP) -- every HTTPS connection then
+            // fails with "Domain specific configurations require that hostname aware
+            // checkServerTrusted(X509Certificate[], String, String) is used". OkHttp's SSLSocket-based
+            // stack handles this correctly; this is Ktor's own documented workaround for Android.
+            implementation(libs.ktor.client.okhttp)
         }
         commonMain.dependencies {
             api(project(":core"))
