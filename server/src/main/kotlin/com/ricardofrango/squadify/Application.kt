@@ -73,7 +73,13 @@ fun Application.module() {
     // match the browser's actual Origin header ("https://host", no ":443") exactly.
     install(CORS) {
         val webAppUri = java.net.URI(ServerConfig.webAppBaseUrl)
-        allowHost(webAppUri.authority, schemes = listOf(webAppUri.scheme))
+        val webAppAuthority = webAppUri.authority
+            ?: throw IllegalStateException(
+                "WEBAPP_BASE_URL (\"${ServerConfig.webAppBaseUrl}\") must be a full URL including a " +
+                    "scheme, e.g. \"https://example.com\" -- CORS can't determine the allowed origin's " +
+                    "host from a value with no scheme."
+            )
+        allowHost(webAppAuthority, schemes = listOf(webAppUri.scheme))
         allowMethod(HttpMethod.Get)
         allowMethod(HttpMethod.Post)
         allowMethod(HttpMethod.Patch)
