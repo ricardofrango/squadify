@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.presentation.ui.login.LoginScreen
 import com.ricardofrango.squadify.presentation.ui.register.RegisterScreen
 import com.ricardofrango.squadify.presentation.ui.splash.SplashScreen
@@ -153,11 +154,11 @@ fun AppNavigation() {
                 },
                 onNavigateToCreateAgeGroups = { clubName, sport, initialSeasonId ->
                     navController.navigate(
-                        Screen.CreateAgeGroups(screen.clubId, clubName, sport, initialSeasonId)
+                        Screen.CreateAgeGroups(screen.clubId, clubName, sport.name, initialSeasonId)
                     )
                 },
                 onNavigateToCreateTeams = { clubName, sport ->
-                    navController.navigate(Screen.CreateTeams(screen.clubId, clubName, sport))
+                    navController.navigate(Screen.CreateTeams(screen.clubId, clubName, sport.name))
                 },
                 onNavigateToAddPlayersToAgeGroup = { clubName ->
                     navController.navigate(Screen.AddPlayersToAgeGroup(screen.clubId, clubName))
@@ -203,7 +204,7 @@ fun AppNavigation() {
             CreateAgeGroupsScreen(
                 clubId = screen.clubId,
                 clubName = screen.clubName,
-                sport = screen.sport,
+                sport = SportType.valueOf(screen.sport),
                 initialSeasonId = screen.initialSeasonId,
                 onNavigateBack = {
                     navController.popBackStack()
@@ -222,7 +223,7 @@ fun AppNavigation() {
             CreateTeamsScreen(
                 clubId = screen.clubId,
                 clubName = screen.clubName,
-                sport = screen.sport,
+                sport = SportType.valueOf(screen.sport),
                 onNavigateBack = {
                     navController.popBackStack()
                 },
@@ -287,7 +288,7 @@ fun AppNavigation() {
                     navController.navigate(Screen.AddStaffToAgeGroup(clubId, clubName, ageGroupId))
                 },
                 onNavigateToCreateTeams = { clubId, clubName, sport ->
-                    navController.navigate(Screen.CreateTeams(clubId, clubName, sport))
+                    navController.navigate(Screen.CreateTeams(clubId, clubName, sport.name))
                 },
                 onNavigateToCreateMatch = { ageGroupId ->
                     navController.navigate(Screen.CreateMatch(ageGroupId = ageGroupId))
