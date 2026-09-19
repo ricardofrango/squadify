@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.ui.matchdetails
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ricardofrango.squadify.domain.usecase.DeleteMatchUseCase
 import com.ricardofrango.squadify.domain.usecase.GetMatchDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.ManageCallUpsUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateMatchUseCase
@@ -27,6 +28,7 @@ import org.jetbrains.compose.resources.getString
 class MatchDetailsViewModel(
     private val getMatchDetailsUseCase: GetMatchDetailsUseCase,
     private val updateMatchUseCase: UpdateMatchUseCase,
+    private val deleteMatchUseCase: DeleteMatchUseCase,
     private val manageCallUpsUseCase: ManageCallUpsUseCase
 ) : ViewModel() {
 
@@ -68,10 +70,10 @@ class MatchDetailsViewModel(
 
     fun clearTransientError() = updateIdle { it.copy(transientError = null) }
 
-    /** Coach adds a pool player to the call-up (batch replace under the hood). */
+    /** Coach or staff adds a pool player to the call-up (batch replace under the hood). */
     fun onAddToCallUp(player: Player) {
         val current = idle() ?: return
-        if (!current.details.canManage) return
+        if (!current.details.canManageMatchDay) return
 
         val optimistic = MatchCallUpWithPlayer(
             callUp = MatchCallUp(id = "pending-${player.id}", matchId = matchId, playerId = player.id, status = CallUpStatus.CALLED_UP),
@@ -94,6 +96,37 @@ class MatchDetailsViewModel(
                         details = it.details.copy(
                             callUps = it.details.callUps.filterNot { cu -> cu.callUp.id == optimistic.callUp.id },
                             poolPlayers = (it.details.poolPlayers + player).distinctBy { p -> p.id }
+                        ),
+                        transientError = getString(Res.string.msg_match_change_failed)
+                    ) ?: it
+                }
+            }
+        }
+    }
+
+    /** Coach or staff removes an already-called-up player (batch replace under the hood, same as
+     * [onAddToCallUp] in reverse). */
+    fun onRemoveFromCallUp(callUp: MatchCallUpWithPlayer) {
+        val current = idle() ?: return
+        if (!current.details.canManageMatchDay) return
+
+        _state.update {
+            current.copy(details = current.details.copy(
+                callUps = current.details.callUps.filterNot { it.callUp.id == callUp.callUp.id },
+                poolPlayers = (current.details.poolPlayers + callUp.player).distinctBy { it.id }
+            ))
+        }
+        viewModelScope.launch {
+            try {
+                val playerIds = current.details.callUps.map { it.player.id }.filterNot { it == callUp.player.id }
+                manageCallUpsUseCase(matchId, playerIds)
+                load(matchId, forceReload = true) // pull back the real call-up ids
+            } catch (e: Exception) {
+                _state.update {
+                    (it as? MatchDetailsUiState.Idle)?.copy(
+                        details = it.details.copy(
+                            callUps = (it.details.callUps + callUp).distinctBy { cu -> cu.callUp.id },
+                            poolPlayers = it.details.poolPlayers.filterNot { p -> p.id == callUp.player.id }
                         ),
                         transientError = getString(Res.string.msg_match_change_failed)
                     ) ?: it
@@ -127,6 +160,28 @@ class MatchDetailsViewModel(
      */
     fun onEnterLiveMatch() {
         viewModelScope.launch { _navEvent.emit(MatchDetailsNavEvent.EnterLiveMatch(matchId)) }
+    }
+
+    /** Permanently removes the match -- coach-only, same gate as [onEditMatch]. Not optimistic
+     * (unlike the call-up/edit actions above): there's no sensible local state to show once the
+     * match itself is gone, so this waits for the server before navigating away. */
+    fun onDeleteMatch() {
+        val current = idle() ?: return
+        if (!current.details.canManage) return
+        viewModelScope.launch {
+            _state.update { current.copy(isSubmitting = true, transientError = null) }
+            try {
+                deleteMatchUseCase(matchId)
+                _navEvent.emit(MatchDetailsNavEvent.MatchDeleted)
+            } catch (e: Exception) {
+                _state.update {
+                    (it as? MatchDetailsUiState.Idle)?.copy(
+                        isSubmitting = false,
+                        transientError = getString(Res.string.msg_match_change_failed)
+                    ) ?: it
+                }
+            }
+        }
     }
 
     private fun idle() = _state.value as? MatchDetailsUiState.Idle

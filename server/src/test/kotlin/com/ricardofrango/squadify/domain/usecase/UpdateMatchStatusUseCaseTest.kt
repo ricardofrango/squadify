@@ -119,6 +119,23 @@ class UpdateMatchStatusUseCaseTest {
     }
 
     @Test
+    fun ageGroupStaffCanUpdateMatchStatus() = runBlocking {
+        val staff = coach()
+        val liveMatch = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.LIVE)
+        coEvery { matchRepository.getMatchById(matchId) } returns liveMatch
+        coEvery { userRepository.findById(staff.id) } returns staff
+        coEvery { userRepository.getUserRoleInClub(staff.id, clubId) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, ag1) } returns TeamRole.STAFF
+        coEvery { teamRepository.getTeamById(teamId) } returns Team(teamId, clubId, ag1, "s-1", "Sub-15 A", "A", active = true)
+        coEvery { matchRepository.updateMatchStatus(matchId, MatchStatus.FINISHED) } returns true
+        coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 0, 0)
+
+        val result = useCase(staff.id, matchId, MatchStatus.FINISHED)
+
+        assert(result)
+    }
+
+    @Test
     fun goingLiveToFinishedIsAllowed() = runBlocking {
         val coach = coach()
         val liveMatch = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.LIVE)

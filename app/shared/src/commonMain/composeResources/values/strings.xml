@@ -429,6 +429,9 @@
     <string name="label_event_substitution">%1$s → %2$s</string>
     <string name="msg_confirm_delete_event_title">Delete this event?</string>
     <string name="msg_confirm_delete_event_body">This can\'t be undone.</string>
+    <string name="label_delete_match">Delete match</string>
+    <string name="msg_confirm_delete_match_title">Delete this match?</string>
+    <string name="msg_confirm_delete_match_body">This removes the match, its call-ups, and any logged events. This can\'t be undone.</string>
     <string name="msg_no_events_yet">No events logged yet.</string>
     <string name="label_result_win">WIN</string>
     <string name="label_result_loss">LOSS</string>

@@ -6,8 +6,8 @@ This document outlines the core requirements and architectural decisions for the
 The application supports five primary user types:
 - **Platform Owner (Super Admin)**: Global owner of the platform. Can create (provision) clubs and manage platform settings.
 - **Club Admin / Coordinator (Director)**: Global club management, assigned by the Platform Owner.
-- **Coach**: Management of assigned teams, matches, and call-ups.
-- **Staff**: Specific functional tasks (Physio, Team Manager).
+- **Coach**: Full management of assigned age groups -- scheduling/editing matches, plus everything Staff can do.
+- **Staff**: Match-day operations for their assigned age group (call-ups, starting a match, updating its status) and specific functional tasks (Physio, Team Manager). Cannot schedule/edit matches or log match events -- coach-only.
 - **Parent / User**: Consult child info, call-ups, and calendar.
 
 *Future roles: Platform Admin, Payment Management, Document Management.*
@@ -85,7 +85,8 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [/] **Club Admin Summary**: Club overview (Total players/teams, financial status placeholder, upcoming matches).
     - [/] **Parent/Player Summary**: Personalized view (My next matches, my recent performance/events).
     - [ ] **API Scalability**: Implement pagination for all list-based endpoints.
-    - [x] **Email Service**: Integrated with Resend for club/age-group association notifications -- see `TECHNICAL_DECISIONS.md`'s EmailService section. Real delivery to arbitrary recipients still needs a verified sending domain (currently limited to Resend's default `onboarding@resend.dev`, which only delivers to the account's own email).
+    - [x] **Email Service**: Integrated with Resend for club/age-group association notifications -- see `TECHNICAL_DECISIONS.md`'s EmailService section. `squadify.pt` is now a verified Resend sending domain (`RESEND_FROM_ADDRESS` set accordingly); no longer limited to the sandboxed `onboarding@resend.dev` address.
+    - [ ] **Invite status visibility**: `AgeGroupDetailsScreen`'s Staff (and equivalent Players) list only shows users who have actually registered (`AgeGroupStaffMember`) -- someone invited by email (`Invite` model / `InviteRepository.findByEmail`, `UserStatus.PENDING`) but who hasn't created an account yet doesn't appear anywhere in the UI, so there's no way to tell an invite was ever sent or whether it's still outstanding. Needs: surface pending invites alongside registered members (e.g. an "Invited" row/badge distinct from active members), and a resend-invite action per pending row.
     - [ ] **Push / In-App Notifications**: Deliberately deferred, per the developer -- the same association events that now trigger an email (club membership added, age-group staff added) should eventually also fire a push/in-app notification. Not started; no provider chosen yet (candidates: Firebase Cloud Messaging, given Firebase is already integrated for Crashlytics/App Distribution -- see `TECHNICAL_DECISIONS.md` §12).
     - [x] **Production Database**: Migrated from H2 to PostgreSQL for both dev and production, distinguished by database name (`DATABASE_NAME`, defaulting to `squadify_dev`/`squadify_production`) — see `TECHNICAL_DECISIONS.md` §3.
 - [/] **Phase 7: Client Applications (KMP)**: Multiplatform UI development.

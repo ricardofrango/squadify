@@ -132,6 +132,24 @@ class StartMatchUseCaseTest {
     }
 
     @Test
+    fun ageGroupStaffCanStartAMatch() = runBlocking {
+        val staff = coach()
+        coEvery { matchRepository.getMatchById(matchId) } returns match
+        coEvery { userRepository.findById(staff.id) } returns staff
+        coEvery { userRepository.getUserRoleInClub(staff.id, clubId) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, ag1) } returns TeamRole.STAFF
+        coEvery { teamRepository.getTeamById(teamId) } returns team7aside
+        val calledUpIds = (1..7).map { "p$it" }
+        coEvery { matchRepository.getCallUpsForMatch(matchId) } returns calledUpIds.map { callUp(it) }
+        coEvery { matchRepository.startMatch(matchId, calledUpIds, 30) } returns true
+        coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 0, 0)
+
+        val result = useCase(staff.id, matchId, StartMatchRequest(calledUpIds, 30))
+
+        assertEquals(true, result)
+    }
+
+    @Test
     fun plainMemberIsDenied() = runBlocking {
         val member = User("member", "member@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
         coEvery { matchRepository.getMatchById(matchId) } returns match

@@ -95,7 +95,7 @@ graph TD
     D -- allowed --> R[Fetch and return data from repository]
 ```
 
-Use cases that follow this pattern exactly (fetch-context → require at least `MEMBER` → return): `GetClubDetailsUseCase`, `GetAgeGroupsUseCase`, `GetSeasonsUseCase`, `GetTeamsUseCase`, `GetTeamDetailsUseCase` (adds aggregation + a `canManage` probe — see §4.6b), `GetTeamPlayersUseCase`, `GetAgeGroupPlayersByClubUseCase`, `GetAgeGroupStaffUseCase`, `GetPlayersUseCase`, `GetPlayerUseCase` (adds aggregation, no `canManage` probe — see §5.1b), `GetMatchesUseCase`, `GetMatchDetailsUseCase` (adds aggregation + a `canManage` probe — see §7.1b), `GetMatchEventsUseCase`, `GetMatchScoreUseCase`, `GetOpponentsUseCase`, and `GetLiveMatchUpdatesUseCase` (terminal step is "subscribe to the live bus" instead of "return data" — see §8.3).
+Use cases that follow this pattern exactly (fetch-context → require at least `MEMBER` → return): `GetClubDetailsUseCase`, `GetAgeGroupsUseCase`, `GetSeasonsUseCase`, `GetTeamsUseCase`, `GetTeamDetailsUseCase` (adds aggregation + a `canManage` probe — see §4.6b), `GetTeamPlayersUseCase`, `GetAgeGroupPlayersByClubUseCase`, `GetAgeGroupStaffUseCase`, `GetPlayersUseCase`, `GetPlayerUseCase` (adds aggregation, no `canManage` probe — see §5.1b), `GetMatchesUseCase`, `GetMatchDetailsUseCase` (adds aggregation + `canManage`/`canManageMatchDay` probes — see §7.1b), `GetMatchEventsUseCase`, `GetMatchScoreUseCase`, `GetOpponentsUseCase`, and `GetLiveMatchUpdatesUseCase` (terminal step is "subscribe to the live bus" instead of "return data" — see §8.3).
 
 Their individual diagrams are omitted below to avoid 15 near-identical copies; only the use cases with distinct branching logic get a dedicated diagram.
 
@@ -678,7 +678,7 @@ graph TD
 
 ### 7.1b Get Match Details (`GetMatchDetailsUseCase`)
 
-The aggregate behind the match screen. Standard permission-gated read (§1.3, `MEMBER` + age-group `STAFF` + linked player/parent) plus an aggregation step and a `canManage` probe:
+The aggregate behind the match screen. Standard permission-gated read (§1.3, `MEMBER` + age-group `STAFF` + linked player/parent) plus an aggregation step and two non-throwing permission probes (`canManage`, `canManageMatchDay`):
 
 ```mermaid
 graph TD
@@ -689,11 +689,12 @@ graph TD
     C -- allowed --> D[Fetch opponent + team + age group + season]
     D --> E["callUps = call-ups for the match; poolPlayers = age group's players MINUS whoever is already called up"]
     E --> G["canManage = non-throwing probe: minClubRole=COORDINATOR OR minTeamRole=COACH on the team"]
-    G --> H["score = matchEventRepository.getScoreByMatch(matchId) — 0-0 before any goals are logged"]
-    H --> Z(["Return MatchDetails: match, opponent, team, ageGroup, season, callUps, poolPlayers, canManage, score"])
+    G --> G2["canManageMatchDay = canManage OR non-throwing probe: minClubRole=COORDINATOR OR minTeamRole=STAFF on the team"]
+    G2 --> H["score = matchEventRepository.getScoreByMatch(matchId) — 0-0 before any goals are logged"]
+    H --> Z(["Return MatchDetails: match, opponent, team, ageGroup, season, callUps, poolPlayers, canManage, canManageMatchDay, score"])
 ```
 
-The use case composes `MatchDetails` itself now — the old `MatchRepository.getMatchDetails` (opponent + call-ups only) was removed. `poolPlayers` is the "Available" list on the call-up screen; `canManage` gates the edit sheet and call-up management, but only while the match is still open to changes -- the client additionally forces the screen read-only once `match.status == FINISHED` regardless of `canManage`, so a finished match becomes a plain record (no editing call-ups, kickoff, location, etc.). `score` feeds the FINISHED-state result banner (colored WIN/LOSS/DRAW + scoreline) on the details screen, the same rebuilt-from-events value `MatchRow` already showed in match lists.
+The use case composes `MatchDetails` itself now — the old `MatchRepository.getMatchDetails` (opponent + call-ups only) was removed. `poolPlayers` is the "Available" list on the call-up screen. `canManage` (coach+ only) gates just the edit sheet -- changing the match's own date/time/location/notes. `canManageMatchDay` (coach **or staff**) gates call-up management and entering the live match screen (start/status/events) -- see §19 in `TECHNICAL_DECISIONS.md` for why these split. Both are further gated client-side: the client forces the screen read-only once `match.status == FINISHED` regardless of either flag, so a finished match becomes a plain record (no editing call-ups, kickoff, location, etc.). `score` feeds the FINISHED-state result banner (colored WIN/LOSS/DRAW + scoreline) on the details screen, the same rebuilt-from-events value `MatchRow` already showed in match lists.
 
 The bottom button just opens the live match screen; starting the game and recording events all live there. If the match is already LIVE/HALF_TIME when this screen loads (tapped in from a list, or discovered on a reload), the client redirects straight to the live match screen instead of rendering the details view -- see `MatchDetailsViewModel.load()` / `AppNavigation.kt`'s `Screen.MatchDetails` route, which pops this screen off the back stack when redirecting (rather than stacking under it) so back-navigation from the live screen doesn't bounce straight back into another redirect.
 
@@ -718,11 +719,34 @@ graph TD
 graph TD
     A[Start: userId, matchId, playerIds list] --> B[Fetch Match by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=COACH, teamId=match.teamId]
+    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=STAFF, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D["Set call-ups for the match to exactly this playerIds list (repository owns diff/replace)"]
     D --> Z(["Return success"])
 ```
+
+The same single write handles both adding and removing -- the client sends the full desired list (current call-ups minus/plus one player) and the repository diffs it against what's stored (§7.2's Exposed implementation). `MatchDetailsScreen`'s call-up rows each carry a remove ("−") button, the "Available" pool rows an add ("+") button, both wired to this one endpoint -- see `MatchDetailsViewModel.onAddToCallUp`/`onRemoveFromCallUp`.
+
+### 7.2b Delete Match (`DeleteMatchUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, matchId] --> B[Fetch Match by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=COACH, teamId=match.teamId]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D["Delete all MatchEvents for this match"]
+    D --> E["Clear all call-ups for this match (manageCallUps with an empty list)"]
+    E --> G["Delete the Match row"]
+    G --> Z(["Return success"])
+```
+
+Coach-only, same gate as editing a match -- deliberately **not** opened to staff along with the
+match-day operations in §7.2/§8.0/§8.2 (see TECHNICAL_DECISIONS.md §19). Events and call-ups are
+cleared first because neither's `matchId` foreign key has `ON DELETE CASCADE`; deleting the match row
+first would fail the constraint. Exposed via `DELETE /matches/{matchId}` (`MatchRoutes.kt`), reachable
+from `MatchDetailsScreen`'s top-right overflow menu (a `ConfirmDialog` -- see `presentation.ui.components`
+-- gates the actual call, since this is irreversible).
 
 **Removed: `UpdateCallUpStatusUseCase`.** A call-up used to carry a 5-value attendance status
 (`CALLED_UP`/`CONFIRMED`/`DECLINED`/`NOT_AVAILABLE`/`STANDBY`), settable only by Coach-level staff (or
@@ -743,7 +767,7 @@ binary, no per-player status shown anywhere in the client.
 graph TD
     A[Start: userId, matchId, startingPlayerIds, halfLengthMinutes] --> B[Fetch Match by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=COACH, teamId=match.teamId]
+    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=STAFF, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D{"status == SCHEDULED? halfLengthMinutes > 0? startingPlayerIds non-empty, no duplicates?"}
     D -- No --> V1(["Throw ValidationException"])
@@ -798,7 +822,7 @@ Removes a mis-logged goal, card, or substitution row. The client always confirms
 graph TD
     A[Start: userId, matchId, newStatus] --> B[Fetch Match by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=COACH, teamId=match.teamId]
+    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=STAFF, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> T{"newStatus in VALID_MATCH_STATUS_TRANSITIONS[match.status]?"}
     T -- No --> V(["Throw ValidationException"])
