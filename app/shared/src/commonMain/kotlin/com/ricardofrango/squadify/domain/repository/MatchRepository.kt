@@ -17,6 +17,7 @@ interface MatchRepository {
     suspend fun getMatches(clubId: String): List<Match>
     suspend fun getMatchDetails(matchId: String): MatchDetails
     suspend fun updateMatch(matchId: String, request: UpdateMatchRequest)
+    suspend fun deleteMatch(matchId: String)
     suspend fun updateMatchStatus(matchId: String, status: MatchStatus)
     suspend fun startMatch(matchId: String, request: StartMatchRequest)
     suspend fun manageCallUps(matchId: String, playerIds: List<String>)

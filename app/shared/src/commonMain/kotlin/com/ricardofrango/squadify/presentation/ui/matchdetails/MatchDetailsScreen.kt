@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.*
+import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.components.DatePickerSheet
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
@@ -41,6 +42,7 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Clock
@@ -78,6 +80,7 @@ fun MatchDetailsScreen(
             when (event) {
                 is MatchDetailsNavEvent.EnterLiveMatch -> onEnterLiveMatch(event.matchId)
                 is MatchDetailsNavEvent.RedirectToLiveMatch -> onRedirectToLiveMatch(event.matchId)
+                is MatchDetailsNavEvent.MatchDeleted -> onNavigateBack()
             }
         }
     }
@@ -88,7 +91,9 @@ fun MatchDetailsScreen(
         onRetry = { viewModel.load(matchId, forceReload = true) },
         onSortSelected = viewModel::onSortSelected,
         onAddToCallUp = viewModel::onAddToCallUp,
+        onRemoveFromCallUp = viewModel::onRemoveFromCallUp,
         onEditMatch = viewModel::onEditMatch,
+        onDeleteMatch = viewModel::onDeleteMatch,
         onEnterLiveMatch = viewModel::onEnterLiveMatch
     )
 }
@@ -101,10 +106,13 @@ private fun MatchDetailsContent(
     onRetry: () -> Unit,
     onSortSelected: (CallUpSort) -> Unit,
     onAddToCallUp: (Player) -> Unit,
+    onRemoveFromCallUp: (MatchCallUpWithPlayer) -> Unit,
     onEditMatch: (UpdateMatchRequest) -> Unit,
+    onDeleteMatch: () -> Unit,
     onEnterLiveMatch: () -> Unit
 ) {
     val details = (uiState as? MatchDetailsUiState.Idle)?.details
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     Scaffold(
         containerColor = Color.White,
         topBar = {
@@ -113,7 +121,27 @@ private fun MatchDetailsContent(
                     title = details?.let { "${it.team.name} vs ${it.opponent.shortName ?: it.opponent.name}" }
                         ?: stringResource(Res.string.title_match),
                     subtitle = details?.let { "${it.ageGroup.name} · ${it.season.name}" },
-                    onNavigateBack = onNavigateBack
+                    onNavigateBack = onNavigateBack,
+                    actions = {
+                        if (details != null && details.canManage) {
+                            var menuOpen by remember { mutableStateOf(false) }
+                            Box {
+                                IconButton(onClick = { menuOpen = true }) {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.ic_more),
+                                        contentDescription = stringResource(Res.string.label_more_options),
+                                        tint = Color.White
+                                    )
+                                }
+                                DropdownMenu(menuOpen, onDismissRequest = { menuOpen = false }, modifier = Modifier.background(Color.White)) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(Res.string.label_delete_match), color = LossRed) },
+                                        onClick = { menuOpen = false; showDeleteConfirm = true }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 )
                 if (details != null) StatusBand(details)
             }
@@ -144,9 +172,19 @@ private fun MatchDetailsContent(
                 modifier = boxModifier,
                 onSortSelected = onSortSelected,
                 onAddToCallUp = onAddToCallUp,
+                onRemoveFromCallUp = onRemoveFromCallUp,
                 onEditMatch = onEditMatch
             )
         }
+    }
+
+    if (showDeleteConfirm) {
+        ConfirmDialog(
+            title = stringResource(Res.string.msg_confirm_delete_match_title),
+            body = stringResource(Res.string.msg_confirm_delete_match_body),
+            onConfirm = { showDeleteConfirm = false; onDeleteMatch() },
+            onDismiss = { showDeleteConfirm = false }
+        )
     }
 }
 
@@ -215,6 +253,7 @@ private fun MatchBody(
     modifier: Modifier,
     onSortSelected: (CallUpSort) -> Unit,
     onAddToCallUp: (Player) -> Unit,
+    onRemoveFromCallUp: (MatchCallUpWithPlayer) -> Unit,
     onEditMatch: (UpdateMatchRequest) -> Unit
 ) {
     val details = state.details
@@ -277,7 +316,9 @@ private fun MatchBody(
         if (details.callUps.isEmpty()) {
             item { Text(stringResource(Res.string.msg_no_callups), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
         } else {
-            items(sortedCallUps, key = { it.callUp.id }) { cu -> CallUpRow(cu) }
+            items(sortedCallUps, key = { it.callUp.id }) { cu ->
+                CallUpRow(cu, onRemove = if (canManageMatchDay) { { onRemoveFromCallUp(cu) } } else null)
+            }
         }
 
         // ---- Available ----
@@ -338,7 +379,7 @@ private fun DetailRow(label: String, value: String, trailing: Pair<String, () ->
 }
 
 @Composable
-private fun CallUpRow(cu: MatchCallUpWithPlayer) {
+private fun CallUpRow(cu: MatchCallUpWithPlayer, onRemove: (() -> Unit)? = null) {
     Surface(modifier = Modifier.fillMaxWidth(), shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f))) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -352,6 +393,13 @@ private fun CallUpRow(cu: MatchCallUpWithPlayer) {
                 cu.callUp.notes?.takeIf { it.isNotBlank() }?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
+            }
+            if (onRemove != null) {
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier.size(28.dp).background(LossRed.copy(alpha = 0.12f), CircleShape).clickable(onClick = onRemove),
+                    contentAlignment = Alignment.Center
+                ) { Text("−", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = LossRed) }
             }
         }
     }
@@ -640,7 +688,7 @@ private fun MatchDetailsFinishedWinPreview() {
     SquadifyTheme {
         MatchDetailsContent(
             uiState = MatchDetailsUiState.Idle(sampleDetails(MatchStatus.FINISHED, canManage = true, score = MatchScore("m1", 3, 1))),
-            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onEditMatch = {}, onEnterLiveMatch = {}
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onRemoveFromCallUp = {}, onEditMatch = {}, onDeleteMatch = {}, onEnterLiveMatch = {}
         )
     }
 }
@@ -651,7 +699,7 @@ private fun MatchDetailsScheduledCanManagePreview() {
     SquadifyTheme {
         MatchDetailsContent(
             uiState = MatchDetailsUiState.Idle(sampleDetails(MatchStatus.SCHEDULED, canManage = true)),
-            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onEditMatch = {}, onEnterLiveMatch = {}
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onRemoveFromCallUp = {}, onEditMatch = {}, onDeleteMatch = {}, onEnterLiveMatch = {}
         )
     }
 }
@@ -665,7 +713,7 @@ private fun MatchDetailsSortedByPositionPreview() {
                 details = sampleDetails(MatchStatus.SCHEDULED, canManage = true),
                 sort = CallUpSort.POSITION
             ),
-            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onEditMatch = {}, onEnterLiveMatch = {}
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onRemoveFromCallUp = {}, onEditMatch = {}, onDeleteMatch = {}, onEnterLiveMatch = {}
         )
     }
 }
@@ -676,7 +724,7 @@ private fun MatchDetailsLoadingPreview() {
     SquadifyTheme {
         MatchDetailsContent(
             uiState = MatchDetailsUiState.Loading,
-            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onEditMatch = {}, onEnterLiveMatch = {}
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onRemoveFromCallUp = {}, onEditMatch = {}, onDeleteMatch = {}, onEnterLiveMatch = {}
         )
     }
 }

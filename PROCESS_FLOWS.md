@@ -725,6 +725,29 @@ graph TD
     D --> Z(["Return success"])
 ```
 
+The same single write handles both adding and removing -- the client sends the full desired list (current call-ups minus/plus one player) and the repository diffs it against what's stored (§7.2's Exposed implementation). `MatchDetailsScreen`'s call-up rows each carry a remove ("−") button, the "Available" pool rows an add ("+") button, both wired to this one endpoint -- see `MatchDetailsViewModel.onAddToCallUp`/`onRemoveFromCallUp`.
+
+### 7.2b Delete Match (`DeleteMatchUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, matchId] --> B[Fetch Match by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=COACH, teamId=match.teamId]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D["Delete all MatchEvents for this match"]
+    D --> E["Clear all call-ups for this match (manageCallUps with an empty list)"]
+    E --> G["Delete the Match row"]
+    G --> Z(["Return success"])
+```
+
+Coach-only, same gate as editing a match -- deliberately **not** opened to staff along with the
+match-day operations in §7.2/§8.0/§8.2 (see TECHNICAL_DECISIONS.md §19). Events and call-ups are
+cleared first because neither's `matchId` foreign key has `ON DELETE CASCADE`; deleting the match row
+first would fail the constraint. Exposed via `DELETE /matches/{matchId}` (`MatchRoutes.kt`), reachable
+from `MatchDetailsScreen`'s top-right overflow menu (a `ConfirmDialog` -- see `presentation.ui.components`
+-- gates the actual call, since this is irreversible).
+
 **Removed: `UpdateCallUpStatusUseCase`.** A call-up used to carry a 5-value attendance status
 (`CALLED_UP`/`CONFIRMED`/`DECLINED`/`NOT_AVAILABLE`/`STANDBY`), settable only by Coach-level staff (or
 club Admin/Coordinator) -- there was never a path for the Parent/Player themselves to self-confirm

@@ -429,6 +429,9 @@
     <string name="label_event_substitution">%1$s → %2$s</string>
     <string name="msg_confirm_delete_event_title">Eliminar este evento?</string>
     <string name="msg_confirm_delete_event_body">Esta ação não pode ser desfeita.</string>
+    <string name="label_delete_match">Eliminar jogo</string>
+    <string name="msg_confirm_delete_match_title">Eliminar este jogo?</string>
+    <string name="msg_confirm_delete_match_body">Isto remove o jogo, as suas convocatórias e quaisquer eventos registados. Esta ação não pode ser desfeita.</string>
     <string name="msg_no_events_yet">Ainda não há eventos registados.</string>
     <string name="label_result_win">VITÓRIA</string>
     <string name="label_result_loss">DERROTA</string>

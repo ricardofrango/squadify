@@ -29,4 +29,7 @@ sealed class MatchDetailsNavEvent {
      * where a live match should be viewed, so hand off to the live match screen immediately,
      * replacing this entry on the back stack rather than stacking under it (see AppNavigation.kt). */
     data class RedirectToLiveMatch(val matchId: String) : MatchDetailsNavEvent()
+
+    /** The match was just deleted -- nothing left to show here, so the screen navigates back. */
+    data object MatchDeleted : MatchDetailsNavEvent()
 }

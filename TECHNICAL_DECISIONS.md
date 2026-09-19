@@ -553,3 +553,35 @@ finished match stays a read-only record for everyone regardless of role. See `PR
 Covered by `ManageCallUpsUseCaseTest` (new file), and new staff-allowed cases added to
 `StartMatchUseCaseTest`, `UpdateMatchStatusUseCaseTest`, and `GetMatchDetailsUseCaseTest` (asserting
 `canManageMatchDay = true` / `canManage = false` for a staff-level caller).
+
+## 20. Delete Match, and Removing a Player from a Call-up
+
+Per the developer, 2026-09-19: two gaps on the match details screen.
+
+**Delete match.** No use case, repository method, or route for permanently removing a match existed
+before this -- `DeleteMatchUseCase` is new (coach-only, same `minTeamRole` gate as editing a match; see
+§19 for why deletion wasn't grouped with the match-day operations opened to staff). Neither
+`MatchCallUps.matchId` nor `MatchEvents.matchId` has `ON DELETE CASCADE`, so the use case explicitly
+clears both (`matchEventRepository.deleteEventsByMatch` -- new method -- then
+`matchRepository.manageCallUps(matchId, emptyList())`, reusing the existing diff/replace write rather
+than adding a bulk-clear method) before deleting the `Matches` row itself, all inside one transaction.
+Exposed as `DELETE /matches/{matchId}`. Client-side: a "⋮" overflow menu in `MatchDetailsScreen`'s top
+bar (visible only when `canManage`, mirroring `AgeGroupDetailsScreen`'s existing overflow-menu pattern)
+with a single "Delete match" item, gated behind a confirmation dialog since it's irreversible. See
+`PROCESS_FLOWS.md` §7.2b.
+
+**Removing a call-up.** `ManageCallUpsUseCase` already supported removal at the backend (it's a batch
+replace -- see §7.2's Exposed implementation, which diffs the given `playerIds` against what's stored
+and deletes whatever's missing). The bug was client-only: `CallUpRow` had no remove affordance at all
+(only `PoolRow`, for adding, had a button), and `MatchDetailsViewModel` had no `onRemoveFromCallUp`.
+Fixed by mirroring `onAddToCallUp`'s exact optimistic-update/rollback shape in reverse, and adding a
+"−" circle button to `CallUpRow` (same size/shape as `PoolRow`'s "+", red instead of green), shown only
+when `canManageMatchDay`.
+
+**Extracted a shared `ConfirmDialog`** (`presentation.ui.components`) for the delete-match confirmation,
+since `LiveMatchScreen` already had an identical private `AlertDialog`-wrapping composable for its own
+half-time/full-time/delete-event confirmations -- per `AI_GUIDELINES.md`'s shared-component rule, this
+is now the one copy both screens use, and `LiveMatchScreen`'s private version was removed.
+
+Covered by a new `DeleteMatchUseCaseTest` (coach succeeds and clears events/call-ups before the match
+row in the correct order via `coVerifyOrder`; staff denied; not-found).

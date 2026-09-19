@@ -52,6 +52,10 @@ class MatchRepositoryImpl(
         }.handleResponse<Unit>()
     }
 
+    override suspend fun deleteMatch(matchId: String) {
+        httpClient.delete("${appConfig.baseUrl}/matches/$matchId") { auth() }.handleResponse<Unit>()
+    }
+
     override suspend fun updateMatchStatus(matchId: String, status: MatchStatus) {
         httpClient.patch("${appConfig.baseUrl}/matches/$matchId/status") {
             contentType(ContentType.Application.Json); setBody(UpdateMatchStatusRequest(status)); auth()

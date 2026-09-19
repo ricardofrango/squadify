@@ -78,6 +78,9 @@ class ExposedMatchRepository : MatchRepository {
             it[MatchesTable.status] = status
         } > 0
 
+    override suspend fun deleteMatch(matchId: String): Boolean =
+        MatchesTable.deleteWhere { MatchesTable.id eq matchId.toUuid() } > 0
+
     override suspend fun startMatch(
         matchId: String,
         startingPlayerIds: List<String>,

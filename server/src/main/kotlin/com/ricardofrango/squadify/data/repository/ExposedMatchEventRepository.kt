@@ -42,6 +42,10 @@ class ExposedMatchEventRepository : MatchEventRepository {
     override suspend fun deleteEvent(id: String): Boolean =
         MatchEvents.deleteWhere { MatchEvents.id eq id.toUuid() } > 0
 
+    override suspend fun deleteEventsByMatch(matchId: String) {
+        MatchEvents.deleteWhere { MatchEvents.matchId eq matchId.toUuid() }
+    }
+
     override suspend fun getEventsByMatch(matchId: String): List<MatchEvent> =
         MatchEvents.selectAll().where { MatchEvents.matchId eq matchId.toUuid() }
             .orderBy(MatchEvents.minute to SortOrder.ASC)
