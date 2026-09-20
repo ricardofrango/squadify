@@ -964,13 +964,14 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
 
 ## 12. Database Schema: Current State of the Art
 
-Source of truth: `server/src/main/kotlin/.../data/database/Tables.kt` (16 Exposed `Table` objects) and `DatabaseFactory.kt`. This *is* the live schema — `DatabaseFactory.init()` calls `SchemaUtils.createMissingTablesAndColumns(...)` against exactly these 16 objects on every boot, so the Kotlin below and the actual Postgres tables are guaranteed to match.
+Source of truth: `server/src/main/kotlin/.../data/database/Tables.kt` (17 Exposed `Table` objects) and `DatabaseFactory.kt`. This *is* the live schema — `DatabaseFactory.init()` calls `SchemaUtils.createMissingTablesAndColumns(...)` against exactly these 17 objects on every boot, so the Kotlin below and the actual Postgres tables are guaranteed to match.
 
 ### 12.1 Entity-Relationship Diagram
 
 ```mermaid
 erDiagram
     USERS ||--o{ REFRESH_TOKENS : issues
+    USERS ||--o{ FCM_TOKENS : registers
     USERS ||--o{ CLUB_MEMBERS : holds
     CLUBS ||--o{ CLUB_MEMBERS : has
     CLUBS ||--o{ SEASONS : runs
@@ -1014,6 +1015,12 @@ erDiagram
         uuid user_id FK
         varchar token UK "500 chars"
         timestamp expires_at
+    }
+    FCM_TOKENS {
+        uuid id PK
+        uuid user_id FK
+        varchar token UK "4096 chars -- unique on the token alone, not (user_id, token); see Tables.kt"
+        timestamp created_at
     }
     CLUBS {
         uuid id PK
@@ -1145,7 +1152,7 @@ erDiagram
 
 ### 12.2 Constraints & defaults worth knowing
 
-- **Unique indexes**: `users.email`; `refresh_tokens.token`; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list.
+- **Unique indexes**: `users.email`; `refresh_tokens.token`; `fcm_tokens.token` — deliberately on the token alone rather than `(user_id, token)`, since a token identifies one app install, not one user; a registration endpoint that gets the same token again (shared device, or a re-login without reinstalling) should reassign the existing row's `user_id` rather than insert a duplicate; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list.
 - **Nullable foreign keys**: `invites.player_id` (only set for `PARENT_PLAYER` invites) and `match_events.player_id` (null when `is_opponent = true`, since the event belongs to a player on the opposing team who isn't in the `players` table).
 - **No `onDelete` behavior is configured on any foreign key** — every `.references(...)` call in `Tables.kt` uses the Exposed default (`NO ACTION`). Deleting a row that still has children (e.g. a `Club` with existing `Teams`) will fail at the database level rather than cascading, nulling out, or being blocked at the application layer with a friendlier error.
 - Several `enum` columns are nullable independently of their parent row's lifecycle: `club_members.role`/`age_group_staff.role`/`user_players.relationship` are all non-null (required at creation), while `invites.role` and `invites.relationship` are nullable because a single `Invite` row is reused for both invite shapes (see §10) and only one of the two is populated depending on `type`.

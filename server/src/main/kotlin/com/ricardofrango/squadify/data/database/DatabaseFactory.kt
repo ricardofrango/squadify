@@ -27,6 +27,7 @@ object DatabaseFactory : TransactionManager {
                     Users,
                     Clubs,
                     RefreshTokens,
+                    FcmTokens,
                     ClubMembers,
                     Seasons,
                     AgeGroups,
