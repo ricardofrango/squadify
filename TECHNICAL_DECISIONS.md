@@ -601,3 +601,47 @@ is now the one copy both screens use, and `LiveMatchScreen`'s private version wa
 
 Covered by a new `DeleteMatchUseCaseTest` (coach succeeds and clears events/call-ups before the match
 row in the correct order via `coVerifyOrder`; staff denied; not-found).
+
+## 21. Push Notifications (Android): Server-Side Token Registration
+
+First step, per the developer -- storage landed in an earlier commit on this branch (`fcm_tokens` table,
+one user to N tokens). This adds the actual endpoints: `POST /v1/fcm-tokens` (register) and
+`DELETE /v1/fcm-tokens` (remove, called by the client on logout). No client (Android) work yet -- that's
+a later commit on the same branch.
+
+**No `CheckUserPermissionUseCase` call.** Unlike every club/age-group-scoped use case, `RegisterFcmTokenUseCase`/
+`RemoveFcmTokenUseCase` don't need one: `userId` always comes from the caller's own JWT (`call.userId` in
+`FcmTokenRoutes.kt`), never a client-supplied parameter, so there's no cross-user resource to accidentally
+expose -- the route's `authenticate("auth-jwt")` block already is the entire authorization boundary. A
+user registering/removing "someone else's" token isn't a reachable code path in the first place.
+
+**Registration is an upsert, not a plain insert** -- `ExposedFcmTokenRepository.upsertToken` uses Exposed's
+`upsert(FcmTokens.token, onUpdate = { it[userId] = ... })`, conflicting on the token's own unique
+constraint (see the earlier `fcm_tokens` commit's reasoning: a token identifies one app install, not one
+user). The `onUpdate` lambda deliberately touches only `user_id` -- `created_at` is left alone on a
+reassignment, so it keeps meaning "when this token row was first created," not silently becoming a
+"last re-registered at" value under a name that says otherwise.
+
+**Removal is idempotent by design** -- `deleteToken(userId, token)` deletes `WHERE user_id = ? AND token = ?`
+in one statement (no separate existence/ownership check first) and the use case always reports success,
+whether or not a row actually matched. A token that's already gone, was never registered, or now belongs
+to a different user (e.g. reassigned by the upsert above) is not an error -- the client's logout flow
+should never have to branch on this call's result. This is also why the token travels in the `DELETE`
+request's body rather than a path segment: FCM tokens are opaque strings up to ~4096 chars, not the kind
+of thing you'd want URL-encoded into a path.
+
+**Why removal is its own endpoint, not part of a "logout" use case**: there isn't one server-side. The
+client's `LogoutUseCase` (`app/shared/.../domain/usecase/LogoutUseCase.kt`) only ever clears the local
+session (`SessionRepository.clearSession()`) -- no server call at all, and nothing revokes a refresh token
+early today either (see §5's refresh-token rotation, which only invalidates *on use*, not on demand). Given
+that, bolting FCM cleanup onto a use case that doesn't exist would mean inventing server-side logout
+semantics as a side effect of a push-notification feature. Kept as its own explicit, idempotent endpoint
+instead -- the client (a later commit) calls it itself as one step of its own logout sequence, before
+clearing the local session.
+
+Verified against a real running server, not just compilation (see `PROCESS_FLOWS.md` §2.5 for the full
+scenario list): registered a token as one user, re-registered the identical value as a second user and
+confirmed exactly one row reassigned (not duplicated), confirmed a non-owner's delete is a no-op, the real
+owner's delete actually removes it, a repeat delete stays a no-op success, an unauthenticated request is
+rejected, and a blank token is rejected. Covered by `RegisterFcmTokenUseCaseTest` and
+`RemoveFcmTokenUseCaseTest`.

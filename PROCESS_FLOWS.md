@@ -182,6 +182,44 @@ graph TD
 
 Config comes from `ServerConfig` and is injected into the use case: `DEV` enables it by default with labelled fallback credentials (`admin@local.dev` / `admin1234`); `PRODUCTION` keeps it off unless `SEED_ADMIN_ENABLED=true`, which then makes `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` mandatory (no password fallback in production). Covered by `SeedPlatformAdminUseCaseTest`. See `TECHNICAL_DECISIONS.md` §5.
 
+### 2.5 Push Notification Token Registration (`RegisterFcmTokenUseCase` / `RemoveFcmTokenUseCase`)
+
+First piece of push notifications (Android, per the developer -- see `TECHNICAL_DECISIONS.md` §21). No
+`CheckUserPermissionUseCase` call in either use case: `userId` always comes from the caller's own JWT
+(`call.userId`, never a client-supplied parameter), so there's no cross-user access to guard against --
+the route's `authenticate("auth-jwt")` block is the entire authorization boundary.
+
+```mermaid
+graph TD
+    A[Start: userId from JWT, token] --> B{token blank?}
+    B -- Yes --> V(["Throw ValidationException"])
+    B -- No --> C["Upsert fcm_tokens on the token's own uniqueness -- reassigns user_id if this token was already registered to someone else, otherwise inserts"]
+    C --> Z(["Return success"])
+```
+
+```mermaid
+graph TD
+    A2[Start: userId from JWT, token] --> B2["Delete fcm_tokens where user_id = userId AND token = token"]
+    B2 --> Z2(["Return success -- always, even if zero rows matched"])
+```
+
+`POST /v1/fcm-tokens` registers the caller's device; `DELETE /v1/fcm-tokens` (token in the body, not the
+path -- FCM tokens are opaque strings up to ~4096 chars, not idiomatic as a URL segment) removes it,
+called by the client as part of its own logout flow. There is no server-side "logout" concept otherwise
+-- the client's `LogoutUseCase` just clears its local session (see §2.2's login/refresh pair; nothing
+revokes a refresh token early today) -- so token removal is deliberately its own explicit, idempotent
+endpoint the client calls itself, rather than something bolted onto a logout use case that doesn't exist
+yet. Removing an unknown or already-removed token, or one that belongs to a different user (e.g. called
+after the upsert above already reassigned it elsewhere), is a no-op, not an error -- a client's logout
+flow never has to branch on this succeeding.
+
+Verified against a real running server, not just compilation: registered a token as one user, re-registered
+the identical token value as a second user (confirmed exactly one row, reassigned), confirmed the first
+user's delete attempt was a no-op (row untouched), confirmed the second (actual owner) user's delete
+removed it, confirmed a repeat delete stayed a no-op success, and confirmed an unauthenticated request is
+rejected (401) and a blank token is rejected (400). Covered by `RegisterFcmTokenUseCaseTest` and
+`RemoveFcmTokenUseCaseTest`.
+
 ---
 
 ## 3. Platform & Club Administration

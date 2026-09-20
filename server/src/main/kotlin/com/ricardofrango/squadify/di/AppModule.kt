@@ -23,6 +23,7 @@ val appModule = module {
     single<MatchRepository> { ExposedMatchRepository() }
     single<MatchEventRepository> { ExposedMatchEventRepository() }
     single<OpponentRepository> { ExposedOpponentRepository() }
+    single<FcmTokenRepository> { ExposedFcmTokenRepository() }
 
     // Services
     single<LiveMatchBus> { KotlinFlowMatchBus() }
@@ -90,6 +91,8 @@ val appModule = module {
     factory { CreateOpponentUseCase(get(), get(), get()) }
     factory { GetOpponentsUseCase(get(), get(), get()) }
     factory { UpdateOpponentUseCase(get(), get(), get()) }
+    factory { RegisterFcmTokenUseCase(get(), get()) }
+    factory { RemoveFcmTokenUseCase(get(), get()) }
 
     factory { AddMatchEventUseCase(get(), get(), get(), get(), get()) }
     factory { DeleteMatchEventUseCase(get(), get(), get(), get(), get()) }
