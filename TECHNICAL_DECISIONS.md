@@ -475,33 +475,49 @@ at all.
 
 ## 17. CI/CD: Staging Auto-Deploy, Manual Production Deploy
 
+**Branch strategy** (per the developer, 2026-09-20): `develop` is the integration branch -- every PR
+branches from and merges into `develop`, and that's what "staging" tracks. `main` is the release branch,
+updated only when the developer deliberately merges `develop` into it; nothing deploys automatically from
+`main` alone. This is what actually drives the two mechanisms below, not just a naming convention --
+staging's auto-deploy triggers (both Railway's and the Android workflow's) point at `develop`, and
+`deploy-production.yml` is dispatched by hand against whichever ref the developer chooses (in practice,
+`main`, once a release's `develop` state has been merged there).
+
 Split across two mechanisms, deliberately not funneled entirely through GitHub Actions:
 
 - **Railway (server + web client), staging**: Railway's own native GitHub integration (Railway dashboard
-  -> each service -> Settings -> Source), not a GitHub Actions workflow. Connect each staging-environment
-  service to this repo's `main` branch with auto-deploy on, and Railway rebuilds/redeploys on every push
-  using the same Dockerfiles already in the repo. Simpler and more reliable than reimplementing what
-  Railway already does natively.
+  -> each service -> Settings -> Source), not a GitHub Actions workflow. Each staging-environment service
+  is connected to this repo's `develop` branch with auto-deploy on, and Railway rebuilds/redeploys on
+  every push using the same Dockerfiles already in the repo. Simpler and more reliable than reimplementing
+  what Railway already does natively. Each service's **Watch Paths** setting (also Settings -> Source)
+  should be scoped to what it actually depends on (server: `server/**`, `common/**`, root build files;
+  web: `app/webApp/**`, `app/shared/**`, `core/**`, root build files) so a change to the *other* client
+  doesn't trigger an unnecessary redeploy of a service nothing in it actually changed.
 - **Android -> Firebase App Distribution, staging**: `.github/workflows/deploy-staging.yml`, triggered on
-  push to `main`. Railway has nothing to do with Android builds, so this genuinely needs a real CI job --
-  runs `:server:test` as a gate, then `android-actions/setup-android` (GitHub's own runners don't
-  necessarily have the exact `compileSdk`/`build-tools` versions this project pins) and
-  `./gradlew :app:androidApp:appDistributionUploadStagingRelease`. The Firebase service account
-  (`app/androidApp/firebase-service-account.json`, gitignored locally -- see §12) is written from the
-  `FIREBASE_SERVICE_ACCOUNT_JSON` repo secret at the exact path the Gradle config already expects.
+  push to `develop`, scoped with a `paths` filter to what `app/androidApp`'s build actually depends on
+  (itself, `app/shared`, `core`, the version catalog/wrapper/root build files) -- added after the
+  developer noticed the workflow was rebuilding and redistributing an unchanged APK on every push
+  regardless of whether anything Android-relevant had changed. Railway has nothing to do with Android
+  builds, so this genuinely needs a real CI job -- runs `:server:test` as a gate, then
+  `android-actions/setup-android` (GitHub's own runners don't necessarily have the exact
+  `compileSdk`/`build-tools` versions this project pins) and
+  `./gradlew :app:androidApp:assembleStagingRelease :app:androidApp:appDistributionUploadStagingRelease`.
+  The Firebase service account (`app/androidApp/firebase-service-account.json`, gitignored locally -- see
+  §12) and the release keystore (`keystore/keystore.properties` + `keystore/squadify-keystore.jks`,
+  gitignored -- see the Android release-signing section) are both written from repo secrets at the exact
+  paths the Gradle config already expects.
 - **Railway (server + web client), production**: `.github/workflows/deploy-production.yml`,
-  `workflow_dispatch` only (the "Run workflow" button in the Actions tab) -- deliberately not on push,
-  per the developer. Same test gate, then the Railway CLI (`ghcr.io/railwayapp/cli` container,
-  `railway up --service <name> --ci`) via a `RAILWAY_TOKEN` project token scoped to the production
-  environment, following Railway's own documented CI pattern
+  `workflow_dispatch` only (the "Run workflow" button in the Actions tab, dispatched against `main` for a
+  real release) -- deliberately not on push, per the developer. Same test gate, then the Railway CLI
+  (`ghcr.io/railwayapp/cli` container, `railway up --service <name> --ci`) via a `RAILWAY_TOKEN` project
+  token scoped to the production environment, following Railway's own documented CI pattern
   (https://docs.railway.com/cli/deploying). Android/iOS store publishing is deliberately out of scope
   here -- no signing/Play Console/App Store Connect pipeline exists yet (see `ISSUES TO FIX.md`).
 
-**Required repo secrets** (Settings -> Secrets and variables -> Actions), neither of which exists yet:
-`FIREBASE_SERVICE_ACCOUNT_JSON` (same service account used locally) and `RAILWAY_TOKEN` (a project token
-from Railway's dashboard, scoped to the production environment). Both workflows are unverified beyond
-`actionlint` (syntax/schema validation) and confirming the referenced actions exist -- neither Railway
-staging/production nor the Firebase secret exist yet to actually trigger a real run against.
+**Required repo secrets** (Settings -> Secrets and variables -> Actions) -- all set and verified working
+end-to-end against a real staging deploy: `FIREBASE_SERVICE_ACCOUNT_JSON`, `ANDROID_KEYSTORE_PROPERTIES`,
+`ANDROID_KEYSTORE_BASE64` (same service account/keystore used locally), and `RAILWAY_TOKEN` (a project
+token from Railway's dashboard, scoped to the production environment).
 
 ## 18. Call-up Status Simplified to Binary
 
