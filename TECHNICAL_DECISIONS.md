@@ -645,3 +645,84 @@ confirmed exactly one row reassigned (not duplicated), confirmed a non-owner's d
 owner's delete actually removes it, a repeat delete stays a no-op success, an unauthenticated request is
 rejected, and a blank token is rejected. Covered by `RegisterFcmTokenUseCaseTest` and
 `RemoveFcmTokenUseCaseTest`.
+
+## 22. Push Notifications (Android): Client-Side Registration + Receiving
+
+Third piece on the same branch -- §21 built the server endpoints; this wires the Android client to them
+and adds the receiving side (Firebase Cloud Messaging SDK, `google-services.json` already registered --
+see §12). Still Android-only: iOS/Desktop/Web get no real implementation yet.
+
+**`PushTokenProvider`, not `expect`/`actual`.** `app/shared` needs a way to ask "what's this device's
+current push token," but only Android has an answer -- the natural KMP tool for "one shared interface,
+different behavior per platform" is `expect`/`actual`, but that requires an `actual` on *every* compiled
+target (Android, iOS, JVM/Desktop, JS, wasmJs), meaning four throwaway `return null` files just to satisfy
+the compiler. Used the pattern already established for `AppConfig` instead (§16: "each platform's own
+entry point builds it and passes it in"): `PushTokenProvider` is a plain `commonMain` interface,
+`initKoin` takes one as a parameter defaulting to `NoOpPushTokenProvider` (returns null), and only
+`SquadifyApplication.onCreate` (Android) overrides it with a real, Firebase-backed one
+(`FirebasePushTokenProvider`, wrapping `FirebaseMessaging.getInstance().token`'s Play Services `Task` in
+a manual `suspendCancellableCoroutine` rather than pulling in the whole `kotlinx-coroutines-play-services`
+artifact for one call). Every other platform's entry point needs zero changes.
+
+**Where registration is triggered.** `RegisterCurrentFcmTokenUseCase` (fetch the current token via
+`PushTokenProvider`, register it, swallow any failure -- same best-effort reasoning as `EmailService`,
+§14) is called from two places doing the identical thing for different reasons: `LoginViewModel` right
+after a fresh login, and `SplashViewModel` right after confirming an existing session is still valid on
+app launch. Both already duplicate an analogous piece of logic (the single-club redirect check), so a
+third small duplication here -- calling one shared use case from both -- matches the codebase's existing
+tolerance for that specific kind of ViewModel-level duplication rather than introducing a new
+cross-cutting mechanism (a "session established" event bus, say) to avoid it. `SquadifyMessagingService.
+onNewToken` (fired by Firebase itself whenever a token is created or rotated, not just at login) also
+registers directly -- same best-effort swallowing, since a background system callback has nowhere useful
+to surface a failure to anyway.
+
+**Where removal is triggered.** `RemoveFcmTokenUseCase` takes `PushTokenProvider` + `FcmTokenRepository`,
+fetches the current token itself, and best-effort removes it server-side (same swallow-and-log shape as
+`RegisterCurrentFcmTokenUseCase`). `LogoutUseCase` just calls it before clearing the local session --
+removal has to happen first, since it's an authenticated call needing the soon-to-be-discarded access
+token, but the local session is *always* cleared regardless of whether removal succeeded.
+`LogoutUseCase.invoke()` is `suspend`; its one call site, `AccountViewModel.onLogoutClicked()`, was
+already inside a `viewModelScope.launch { }`, so this needed no further change there.
+
+**Notification channels (API 26+).** Four `NotificationChannelCompat`s are created up front in
+`SquadifyApplication.onCreate` (`createNotificationChannels()`, using `NotificationManagerCompat` --
+these handle the pre-O no-op internally, so unlike the raw platform `NotificationChannel`/
+`NotificationManager` APIs this needs no manual `Build.VERSION.SDK_INT` check): `live_matches`
+(`IMPORTANCE_HIGH` -- kickoff/goals/cards/full-time are time-sensitive enough to warrant a heads-up),
+`age_group` and `invites` (`IMPORTANCE_DEFAULT`), and a `default` fallback. Names/descriptions are
+plain string resources (`strings.xml`), shown to the user in Android's own per-app notification
+settings. Which channel a given notification lands in is decided entirely by the *sender*, not the
+client: FCM's own `notification.android_channel_id` payload field round-trips to the client SDK as
+`RemoteMessage.Notification.channelId`, so `SquadifyMessagingService.onMessageReceived` just reads that
+(`notification.channelId ?: NOTIFICATION_CHANNEL_DEFAULT`) rather than needing any client-side
+classification logic -- once the server actually sends pushes (§21 built registration only, not
+sending), it sets this field per notification type. A message with no channel id set at all (e.g. a
+manual test push from the Firebase console, which can't set this field) falls back to `default`.
+
+**`SquadifyMessagingService`** is instantiated by the Android OS, not Koin, so it can't take constructor-
+injected dependencies the normal way -- it implements `KoinComponent` and resolves
+`RegisterFcmTokenUseCase` via `by inject()` instead (Koin is already started in `SquadifyApplication.
+onCreate` by the time this could ever fire). `onMessageReceived` only handles FCM's standard "notification"
+payload (title/body) for now -- there's no "data" payload contract yet, since nothing server-side actually
+sends a push yet (that's a later commit); tapping a shown notification just opens `MainActivity`, no deep
+linking, for the same reason. The notification's small icon is a known placeholder (`R.mipmap.ic_launcher`,
+a full-color icon, not the monochrome asset Android's status bar actually wants) -- tracked in
+`ISSUES TO FIX.md`.
+
+**`POST_NOTIFICATIONS` runtime permission.** Declaring it in the manifest is necessary but not sufficient
+on API 33+ -- `MainActivity` requests it via `rememberLauncherForActivityResult` in a `LaunchedEffect` on
+first composition. Token registration and message delivery both work identically whether or not this is
+granted; only the *system tray display* is gated by it. `NotificationManagerCompat.notify()`'s own lint
+annotation (`@RequiresPermission(conditional = true)`) requires an explicit guard on API 33+ or `lintVital`
+fails the release build -- used `areNotificationsEnabled()` (covers both "permission never granted" and
+"user disabled notifications for this app" in one check) rather than a raw `checkSelfPermission` call,
+matching Google's own recommended idiom for this exact case.
+
+Verified: `:app:shared:compileAndroidMain` and `:app:androidApp:compileStagingDebugKotlin` both compile
+clean. `:app:androidApp:assembleStagingRelease` (the real release build, including `lintVital`) succeeds
+end to end, and `apksigner verify --print-certs` on the resulting APK confirms it's signed with the real
+release keystore (`CN=Squadify, O=Squadify`), not the debug one. **Not verified**: no actual device/
+emulator run was performed in this environment (no way to launch and interact with the app here) -- the
+permission dialog, notification display, and token registration/removal HTTP calls are all unexercised
+at runtime, only compiled and statically checked. Worth a real manual pass on a device before considering
+this done.

@@ -4,6 +4,8 @@ import com.ricardofrango.squadify.data.local.SessionRepositoryImpl
 import com.ricardofrango.squadify.data.remote.*
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.*
+import com.ricardofrango.squadify.domain.service.NoOpPushTokenProvider
+import com.ricardofrango.squadify.domain.service.PushTokenProvider
 import com.ricardofrango.squadify.domain.usecase.*
 import com.ricardofrango.squadify.presentation.ui.account.AccountViewModel
 import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubDetailsViewModel
@@ -89,6 +91,7 @@ val dataModule = module {
     single<MatchRepository> { MatchRepositoryImpl(get(), get(), get()) }
     single<OpponentRepository> { OpponentRepositoryImpl(get(), get(), get()) }
     single<SessionRepository> { SessionRepositoryImpl(get()) }
+    single<FcmTokenRepository> { FcmTokenRepositoryImpl(get(), get(), get()) }
 }
 
 val domainModule = module {
@@ -96,7 +99,10 @@ val domainModule = module {
     factory { RegisterUseCase(get()) }
     factory { CheckAndRefreshSessionUseCase(get(), get()) }
     factory { GetClubsUseCase(get()) }
-    factory { LogoutUseCase(get()) }
+    factory { LogoutUseCase(get(), get()) }
+    factory { RegisterFcmTokenUseCase(get()) }
+    factory { RemoveFcmTokenUseCase(get(), get()) }
+    factory { RegisterCurrentFcmTokenUseCase(get(), get()) }
     factory { GetClubDetailsUseCase(get(), get(), get(), get(), get(), get()) }
     factory { GetClubHomeUseCase(get()) }
     factory { GetTeamDetailsUseCase(get()) }
@@ -160,9 +166,23 @@ val presentationModule = module {
  * main(), the web client's main()), constructed from whatever mechanism that platform uses to select an
  * environment (Android product flavors, a Gradle property for Desktop/Web) -- see
  * TECHNICAL_DECISIONS.md's "Environment-Based App Config" section.
+ *
+ * [pushTokenProvider] defaults to [NoOpPushTokenProvider] -- only Android's entry point overrides it
+ * with a real, Firebase-backed implementation for now (see the push-notifications section of
+ * TECHNICAL_DECISIONS.md); every other platform needs no change at all to pick up the default.
  */
-fun initKoin(appConfig: AppConfig, appDeclaration: KoinAppDeclaration = {}) =
+fun initKoin(
+    appConfig: AppConfig,
+    pushTokenProvider: PushTokenProvider = NoOpPushTokenProvider,
+    appDeclaration: KoinAppDeclaration = {}
+) =
     startKoin {
         appDeclaration()
-        modules(module { single<AppConfig> { appConfig } }, dataModule, domainModule, presentationModule)
+        modules(
+            module {
+                single<AppConfig> { appConfig }
+                single<PushTokenProvider> { pushTokenProvider }
+            },
+            dataModule, domainModule, presentationModule
+        )
     }

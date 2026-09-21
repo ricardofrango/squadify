@@ -29,6 +29,7 @@ dependencies {
     implementation(project(":app:shared"))
 
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.ktx)
 
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
@@ -36,10 +37,12 @@ dependencies {
     // Koin
     implementation(libs.koin.android)
 
-    // Firebase -- Crashlytics only for now (see ISSUES TO FIX.md); the BoM pins compatible versions
-    // for every Firebase artifact so individual ones never need their own version.ref.
+    // Firebase -- Crashlytics + Cloud Messaging (push notifications, see TECHNICAL_DECISIONS.md);
+    // the BoM pins compatible versions for every Firebase artifact so individual ones never need
+    // their own version.ref.
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.messaging)
 }
 
 android {

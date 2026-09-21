@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Squadify</string>
+    <string name="notification_channel_default_name">General</string>
+    <string name="notification_channel_default_description">Anything that doesn\'t fit another category</string>
+    <string name="notification_channel_live_matches_name">Live Matches</string>
+    <string name="notification_channel_live_matches_description">Kickoff, goals, cards, and full-time results</string>
+    <string name="notification_channel_age_group_name">Age Group</string>
+    <string name="notification_channel_age_group_description">Roster, staff, and age-group updates</string>
+    <string name="notification_channel_invites_name">Invites</string>
+    <string name="notification_channel_invites_description">Club and team invitations</string>
 </resources>
