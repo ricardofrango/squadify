@@ -66,11 +66,8 @@ class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
             PendingIntent.FLAG_IMMUTABLE
         )
 
-        // TODO: R.mipmap.ic_launcher is a full-color launcher icon, not a proper monochrome status-bar
-        // icon -- Android will render it degraded (a white silhouette/blob) rather than the intended
-        // mark. Swap for a real single-color vector notification icon; tracked in ISSUES TO FIX.md.
         val notificationBuilder = NotificationCompat.Builder(this, notification.channelId ?: NOTIFICATION_CHANNEL_DEFAULT)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)

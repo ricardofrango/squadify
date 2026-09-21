@@ -705,9 +705,14 @@ injected dependencies the normal way -- it implements `KoinComponent` and resolv
 onCreate` by the time this could ever fire). `onMessageReceived` only handles FCM's standard "notification"
 payload (title/body) for now -- there's no "data" payload contract yet, since nothing server-side actually
 sends a push yet (that's a later commit); tapping a shown notification just opens `MainActivity`, no deep
-linking, for the same reason. The notification's small icon is a known placeholder (`R.mipmap.ic_launcher`,
-a full-color icon, not the monochrome asset Android's status bar actually wants) -- tracked in
-`ISSUES TO FIX.md`.
+linking, for the same reason.
+
+**Notification icon**: `R.drawable.ic_notification`, a hand-authored `VectorDrawable` (`res/drawable/
+ic_notification.xml`) rather than `R.mipmap.ic_launcher` -- Android renders a full-color launcher icon
+degraded (a white silhouette/blob) in the status bar, since it needs a proper monochrome/alpha-only
+asset there. Ten equal 3.0dp dots in a 4-3-3 formation (same layout the app's launcher mark uses),
+2.6dp gaps, inside the 24x24dp box's 2dp safe margin -- `fillColor` is a formality since the system
+re-tints the whole shape anyway.
 
 **`POST_NOTIFICATIONS` runtime permission.** Declaring it in the manifest is necessary but not sufficient
 on API 33+ -- `MainActivity` requests it via `rememberLauncherForActivityResult` in a `LaunchedEffect` on
