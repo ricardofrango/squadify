@@ -14,4 +14,11 @@ interface PushNotificationService {
      * actually have at least one registered device).
      */
     suspend fun sendClubMembershipAdded(tokens: List<String>, clubName: String)
+
+    /**
+     * Sent to every device in [tokens] when an existing user is added as staff/coach to an age group
+     * -- the push equivalent of [EmailService.sendAgeGroupStaffAdded]. Same non-empty-[tokens]
+     * contract as [sendClubMembershipAdded].
+     */
+    suspend fun sendAgeGroupStaffAdded(tokens: List<String>, ageGroupName: String, clubName: String)
 }

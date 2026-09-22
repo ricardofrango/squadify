@@ -2,8 +2,10 @@ package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
+import com.ricardofrango.squadify.domain.repository.FcmTokenRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.EmailService
+import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
@@ -14,9 +16,11 @@ class AddStaffToAgeGroupUseCase(
     private val ageGroupRepository: AgeGroupRepository,
     private val userRepository: UserRepository,
     private val clubRepository: ClubRepository,
+    private val fcmTokenRepository: FcmTokenRepository,
     private val transactionManager: TransactionManager,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
-    private val emailService: EmailService
+    private val emailService: EmailService,
+    private val pushNotificationService: PushNotificationService
 ) {
     suspend operator fun invoke(
         userId: String,
@@ -26,6 +30,7 @@ class AddStaffToAgeGroupUseCase(
         val staffAdded = mutableListOf<User>()
         var ageGroupName = ""
         var clubName = "your club"
+        var pushTokensByUser: Map<String, List<String>> = emptyMap()
 
         val result = transactionManager.runInTransaction {
             val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId)
@@ -59,13 +64,26 @@ class AddStaffToAgeGroupUseCase(
                 )
             }
 
-            ageGroupRepository.addStaffToAgeGroup(staffToCreate)
+            val added = ageGroupRepository.addStaffToAgeGroup(staffToCreate)
+
+            // fcmTokenRepository has no ambient transaction of its own outside this block either --
+            // fetched here for the same reason clubName is, even though it's only used for the push
+            // notifications sent below.
+            if (staffAdded.isNotEmpty()) {
+                pushTokensByUser = fcmTokenRepository.getTokensForUsers(staffAdded.map { it.id })
+            }
+
+            added
         }
 
-        // Sent after the transaction commits -- a failed/slow email must never roll back the assignment.
+        // Sent after the transaction commits -- a failed/slow email or push must never roll back the
+        // assignment.
         if (staffAdded.isNotEmpty()) {
             staffAdded.forEach {
                 emailService.sendAgeGroupStaffAdded(to = it.email, firstName = it.firstName, ageGroupName = ageGroupName, clubName = clubName)
+                pushTokensByUser[it.id]?.let { tokens ->
+                    pushNotificationService.sendAgeGroupStaffAdded(tokens = tokens, ageGroupName = ageGroupName, clubName = clubName)
+                }
             }
         }
 

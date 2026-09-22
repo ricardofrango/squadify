@@ -21,4 +21,18 @@ class FirebaseAdminPushNotificationServiceTest {
     fun sendClubMembershipAddedNeverThrowsWithEmptyTokenList() = runBlocking {
         pushNotificationService.sendClubMembershipAdded(tokens = emptyList(), clubName = "Test FC")
     }
+
+    @Test
+    fun sendAgeGroupStaffAddedNeverThrowsWithNoCredentialConfigured() = runBlocking {
+        pushNotificationService.sendAgeGroupStaffAdded(
+            tokens = listOf("some-device-token"),
+            ageGroupName = "U12",
+            clubName = "Test FC"
+        )
+    }
+
+    @Test
+    fun sendAgeGroupStaffAddedNeverThrowsWithEmptyTokenList() = runBlocking {
+        pushNotificationService.sendAgeGroupStaffAdded(tokens = emptyList(), ageGroupName = "U12", clubName = "Test FC")
+    }
 }

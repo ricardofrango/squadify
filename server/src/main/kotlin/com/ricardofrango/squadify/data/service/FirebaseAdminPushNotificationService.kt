@@ -49,6 +49,17 @@ class FirebaseAdminPushNotificationService : PushNotificationService {
         )
     }
 
+    override suspend fun sendAgeGroupStaffAdded(tokens: List<String>, ageGroupName: String, clubName: String) {
+        send(
+            tokens = tokens,
+            // Mirrors SquadifyMessagingService.NOTIFICATION_CHANNEL_AGE_GROUP on the Android client --
+            // see TECHNICAL_DECISIONS.md's push-notifications section.
+            channelId = "age_group",
+            title = "Squadify",
+            body = "You've been added as staff to $ageGroupName at $clubName"
+        )
+    }
+
     private suspend fun send(tokens: List<String>, channelId: String, title: String, body: String) {
         if (tokens.isEmpty()) return
         if (ServerConfig.firebaseServiceAccountJson.isBlank() || FirebaseApp.getApps().isEmpty()) {

@@ -732,12 +732,13 @@ permission dialog, notification display, and token registration/removal HTTP cal
 at runtime, only compiled and statically checked. Worth a real manual pass on a device before considering
 this done.
 
-## 23. Push Notifications: Server-Side Sending (First Event: Club Membership Added)
+## 23. Push Notifications: Server-Side Sending (Club Membership + Age-Group Staff Added)
 
 §21/§22 built storage and the Android client's receiving side but nothing server-side ever sent a
-push. This wires the first real send: the same "existing user added to a club directly" event that
-already triggers `EmailService.sendClubMembershipAdded` (§14) now also triggers a push, to every
-device the user has a registered token for, if any.
+push. This wires the first real sends: the two "existing user added directly" events that already
+trigger an email -- `EmailService.sendClubMembershipAdded` (club membership) and
+`sendAgeGroupStaffAdded` (age-group staff), both §14 -- now also trigger a push, to every device the
+user has a registered token for, if any.
 
 **Firebase Admin SDK, not a hand-rolled HTTP v1 client.** Sending a real FCM push needs an OAuth2
 access token obtained from a service-account key (JWT-signed, refreshed on expiry) -- rebuilding that
@@ -764,29 +765,36 @@ skipping push to N device(s)`.
 **`FcmTokenRepository.getTokensForUsers(userIds)`** returns a `Map<String, List<String>>`, mirroring
 `UserRepository.getUserRolesInClub`'s existing batch-lookup shape (one query for N users, not N
 queries -- see AI_GUIDELINES.md's database-efficiency rule) -- a user absent from the result has no
-registered device, which is the normal case, not an error. `AddClubMembersUseCase` fetches this map
-*inside* the transaction (same reasoning as `clubName`: the repository has no ambient transaction of
-its own once the block closes) for every newly-added existing member, then -- after the transaction
-commits, alongside the email sends -- calls `PushNotificationService.sendClubMembershipAdded` once per
-member who actually has at least one token. Members with no token are simply skipped; the use case
-never calls the push service for them at all.
+registered device, which is the normal case, not an error. Both use cases (`AddClubMembersUseCase`,
+`AddStaffToAgeGroupUseCase`) fetch this map *inside* the transaction (same reasoning as `clubName`: the
+repository has no ambient transaction of its own once the block closes) for every newly-added existing
+member/staff, then -- after the transaction commits, alongside the email sends -- call the matching
+`PushNotificationService` method once per person who actually has at least one token. Anyone with no
+token is simply skipped; the use case never calls the push service for them at all. `AddStaffToAgeGroupUseCase`'s
+transaction block needed a small reshuffle to add this: its last expression used to be the repository
+call whose `Boolean` result the whole use case returns, so the token fetch (also needing to sit inside
+the transaction) had to be captured into a local `val` first, with that `val` made the block's final
+expression instead.
 
-**Channel**: every push in this use case sets `notification.android_channel_id` to `"invites"` via
+**Channel**: `AddClubMembersUseCase`'s push sets `notification.android_channel_id` to `"invites"`;
+`AddStaffToAgeGroupUseCase`'s sets it to `"age_group"` -- both via
 `AndroidConfig.Builder().setNotification(AndroidNotification.builder().setChannelId(...))`, matching
-`SquadifyMessagingService.NOTIFICATION_CHANNEL_INVITES` on the Android client (§22) -- there's no
-shared code between server and Android for this id (it's an Android UI concept, not a KMP `common`
-model), so the string is duplicated with a comment pointing at the other side rather than introduced as
-a new shared constant for a single string used in exactly two places.
+`SquadifyMessagingService.NOTIFICATION_CHANNEL_INVITES`/`NOTIFICATION_CHANNEL_AGE_GROUP` on the Android
+client (§22). There's no shared code between server and Android for these ids (they're an Android UI
+concept, not a KMP `common` model), so each string is duplicated with a comment pointing at the other
+side rather than introduced as a new shared constant for a string used in exactly two places.
 
-Verified end to end against a real running server and Postgres (no Firebase credentials configured, so
-the send itself falls back to its "skipping" log path, but every step up to the actual FCM call is
-real): registered a member's FCM token, had an admin add that member to a club, and confirmed the log
-shows the token was found (`fcm_tokens` query) and the push was attempted (`skipping push to 1
-device(s)`); repeated with a member who has no registered token and confirmed no push log line appears
-at all for them (only the email skip). `:server:test` passes, including a
-`FirebaseAdminPushNotificationServiceTest` mirroring `ResendEmailServiceTest`'s "must never throw with
-no credential configured" contract test.
+Verified end to end against a real running server and Postgres, for both events (no Firebase
+credentials configured, so the send itself falls back to its "skipping" log path, but every step up to
+the actual FCM call is real): registered a token, had an admin add that user to a club (then, in a
+second pass, as staff to an age group), and confirmed the log shows the token was found (`fcm_tokens`
+query) and the push was attempted (`skipping push to 1 device(s)`); repeated both with a user who has
+no registered token and confirmed no push log line appears at all for them (only the email skip).
+`:server:test` passes, including a `FirebaseAdminPushNotificationServiceTest` mirroring
+`ResendEmailServiceTest`'s "must never throw with no credential configured" contract test, and an
+updated `AddStaffToAgeGroupUseCaseTest` covering the new constructor shape.
 
-**Not done yet**: `EmailService.sendAgeGroupStaffAdded`'s push equivalent (the other association event
-that already sends email) is out of scope for this change -- only club membership was requested. See
+**Not done yet**: both association events that already send email (club membership, age-group staff)
+now push too, so there's no remaining `EmailService`-has-it-but-`PushNotificationService`-doesn't gap.
+In-app (non-push) notifications and iOS/Desktop/Web support are still unstarted -- see
 `REQUIREMENTS.md`'s Push/In-App Notifications roadmap line.
