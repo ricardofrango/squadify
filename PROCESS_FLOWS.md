@@ -182,6 +182,44 @@ graph TD
 
 Config comes from `ServerConfig` and is injected into the use case: `DEV` enables it by default with labelled fallback credentials (`admin@local.dev` / `admin1234`); `PRODUCTION` keeps it off unless `SEED_ADMIN_ENABLED=true`, which then makes `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` mandatory (no password fallback in production). Covered by `SeedPlatformAdminUseCaseTest`. See `TECHNICAL_DECISIONS.md` §5.
 
+### 2.5 Push Notification Token Registration (`RegisterFcmTokenUseCase` / `RemoveFcmTokenUseCase`)
+
+First piece of push notifications (Android, per the developer -- see `TECHNICAL_DECISIONS.md` §21). No
+`CheckUserPermissionUseCase` call in either use case: `userId` always comes from the caller's own JWT
+(`call.userId`, never a client-supplied parameter), so there's no cross-user access to guard against --
+the route's `authenticate("auth-jwt")` block is the entire authorization boundary.
+
+```mermaid
+graph TD
+    A[Start: userId from JWT, token] --> B{token blank?}
+    B -- Yes --> V(["Throw ValidationException"])
+    B -- No --> C["Upsert fcm_tokens on the token's own uniqueness -- reassigns user_id if this token was already registered to someone else, otherwise inserts"]
+    C --> Z(["Return success"])
+```
+
+```mermaid
+graph TD
+    A2[Start: userId from JWT, token] --> B2["Delete fcm_tokens where user_id = userId AND token = token"]
+    B2 --> Z2(["Return success -- always, even if zero rows matched"])
+```
+
+`POST /v1/fcm-tokens` registers the caller's device; `DELETE /v1/fcm-tokens` (token in the body, not the
+path -- FCM tokens are opaque strings up to ~4096 chars, not idiomatic as a URL segment) removes it,
+called by the client as part of its own logout flow. There is no server-side "logout" concept otherwise
+-- the client's `LogoutUseCase` just clears its local session (see §2.2's login/refresh pair; nothing
+revokes a refresh token early today) -- so token removal is deliberately its own explicit, idempotent
+endpoint the client calls itself, rather than something bolted onto a logout use case that doesn't exist
+yet. Removing an unknown or already-removed token, or one that belongs to a different user (e.g. called
+after the upsert above already reassigned it elsewhere), is a no-op, not an error -- a client's logout
+flow never has to branch on this succeeding.
+
+Verified against a real running server, not just compilation: registered a token as one user, re-registered
+the identical token value as a second user (confirmed exactly one row, reassigned), confirmed the first
+user's delete attempt was a no-op (row untouched), confirmed the second (actual owner) user's delete
+removed it, confirmed a repeat delete stayed a no-op success, and confirmed an unauthenticated request is
+rejected (401) and a blank token is rejected (400). Covered by `RegisterFcmTokenUseCaseTest` and
+`RemoveFcmTokenUseCaseTest`.
+
 ---
 
 ## 3. Platform & Club Administration
@@ -964,13 +1002,14 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
 
 ## 12. Database Schema: Current State of the Art
 
-Source of truth: `server/src/main/kotlin/.../data/database/Tables.kt` (16 Exposed `Table` objects) and `DatabaseFactory.kt`. This *is* the live schema — `DatabaseFactory.init()` calls `SchemaUtils.createMissingTablesAndColumns(...)` against exactly these 16 objects on every boot, so the Kotlin below and the actual Postgres tables are guaranteed to match.
+Source of truth: `server/src/main/kotlin/.../data/database/Tables.kt` (17 Exposed `Table` objects) and `DatabaseFactory.kt`. This *is* the live schema — `DatabaseFactory.init()` calls `SchemaUtils.createMissingTablesAndColumns(...)` against exactly these 17 objects on every boot, so the Kotlin below and the actual Postgres tables are guaranteed to match.
 
 ### 12.1 Entity-Relationship Diagram
 
 ```mermaid
 erDiagram
     USERS ||--o{ REFRESH_TOKENS : issues
+    USERS ||--o{ FCM_TOKENS : registers
     USERS ||--o{ CLUB_MEMBERS : holds
     CLUBS ||--o{ CLUB_MEMBERS : has
     CLUBS ||--o{ SEASONS : runs
@@ -1014,6 +1053,12 @@ erDiagram
         uuid user_id FK
         varchar token UK "500 chars"
         timestamp expires_at
+    }
+    FCM_TOKENS {
+        uuid id PK
+        uuid user_id FK
+        varchar token UK "4096 chars -- unique on the token alone, not (user_id, token); see Tables.kt"
+        timestamp created_at
     }
     CLUBS {
         uuid id PK
@@ -1145,7 +1190,7 @@ erDiagram
 
 ### 12.2 Constraints & defaults worth knowing
 
-- **Unique indexes**: `users.email`; `refresh_tokens.token`; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list.
+- **Unique indexes**: `users.email`; `refresh_tokens.token`; `fcm_tokens.token` — deliberately on the token alone rather than `(user_id, token)`, since a token identifies one app install, not one user; a registration endpoint that gets the same token again (shared device, or a re-login without reinstalling) should reassign the existing row's `user_id` rather than insert a duplicate; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list.
 - **Nullable foreign keys**: `invites.player_id` (only set for `PARENT_PLAYER` invites) and `match_events.player_id` (null when `is_opponent = true`, since the event belongs to a player on the opposing team who isn't in the `players` table).
 - **No `onDelete` behavior is configured on any foreign key** — every `.references(...)` call in `Tables.kt` uses the Exposed default (`NO ACTION`). Deleting a row that still has children (e.g. a `Club` with existing `Teams`) will fail at the database level rather than cascading, nulling out, or being blocked at the application layer with a friendlier error.
 - Several `enum` columns are nullable independently of their parent row's lifecycle: `club_members.role`/`age_group_staff.role`/`user_players.relationship` are all non-null (required at creation), while `invites.role` and `invites.relationship` are nullable because a single `Invite` row is reused for both invite shapes (see §10) and only one of the two is populated depending on `type`.

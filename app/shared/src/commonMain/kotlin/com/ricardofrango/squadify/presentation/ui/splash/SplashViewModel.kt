@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.CheckAndRefreshSessionUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
+import com.ricardofrango.squadify.domain.usecase.RegisterCurrentFcmTokenUseCase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -12,7 +13,8 @@ import kotlinx.coroutines.launch
 
 class SplashViewModel(
     private val checkAndRefreshSessionUseCase: CheckAndRefreshSessionUseCase,
-    private val getClubsUseCase: GetClubsUseCase
+    private val getClubsUseCase: GetClubsUseCase,
+    private val registerCurrentFcmTokenUseCase: RegisterCurrentFcmTokenUseCase
 ) : ViewModel() {
 
     private val _navigationEvent = MutableSharedFlow<SplashNavigationEvent>()
@@ -23,6 +25,7 @@ class SplashViewModel(
     private fun checkSession() {
         viewModelScope.launch {
             if (checkAndRefreshSessionUseCase()) {
+                registerCurrentFcmTokenUseCase()
                 // Checked up front so a single-club session lands directly on that club's details
                 // instead of visiting Dashboard first -- Dashboard would make the exact same redirect
                 // itself (DashboardViewModel.NavigateToOnlyClub, kept as a fallback), but only after

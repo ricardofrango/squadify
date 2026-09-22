@@ -29,6 +29,21 @@ object RefreshTokens : Table("refresh_tokens") {
     override val primaryKey = PrimaryKey(id)
 }
 
+object FcmTokens : Table("fcm_tokens") {
+    val id = uuid("id")
+    val userId = uuid("user_id").references(Users.id)
+    // Unique on the token itself, not (user_id, token) -- an FCM token identifies one specific app
+    // install, not one user. If a different user logs into the same already-installed app (device
+    // shared, or a logout/login without reinstalling), Firebase can hand back the very same token
+    // value, now meant for the new user. Registration (a later commit) upserts on this constraint --
+    // reassigns the existing row's user_id rather than inserting a duplicate -- so a token only ever
+    // points at whoever is actually logged in on that install right now.
+    val token = varchar("token", 4096).uniqueIndex()
+    val createdAt = timestamp("created_at")
+
+    override val primaryKey = PrimaryKey(id)
+}
+
 object Clubs : Table("clubs") {
     val id = uuid("id")
     val name = varchar("name", 255)

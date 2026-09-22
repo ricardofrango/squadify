@@ -601,3 +601,133 @@ is now the one copy both screens use, and `LiveMatchScreen`'s private version wa
 
 Covered by a new `DeleteMatchUseCaseTest` (coach succeeds and clears events/call-ups before the match
 row in the correct order via `coVerifyOrder`; staff denied; not-found).
+
+## 21. Push Notifications (Android): Server-Side Token Registration
+
+First step, per the developer -- storage landed in an earlier commit on this branch (`fcm_tokens` table,
+one user to N tokens). This adds the actual endpoints: `POST /v1/fcm-tokens` (register) and
+`DELETE /v1/fcm-tokens` (remove, called by the client on logout). No client (Android) work yet -- that's
+a later commit on the same branch.
+
+**No `CheckUserPermissionUseCase` call.** Unlike every club/age-group-scoped use case, `RegisterFcmTokenUseCase`/
+`RemoveFcmTokenUseCase` don't need one: `userId` always comes from the caller's own JWT (`call.userId` in
+`FcmTokenRoutes.kt`), never a client-supplied parameter, so there's no cross-user resource to accidentally
+expose -- the route's `authenticate("auth-jwt")` block already is the entire authorization boundary. A
+user registering/removing "someone else's" token isn't a reachable code path in the first place.
+
+**Registration is an upsert, not a plain insert** -- `ExposedFcmTokenRepository.upsertToken` uses Exposed's
+`upsert(FcmTokens.token, onUpdate = { it[userId] = ... })`, conflicting on the token's own unique
+constraint (see the earlier `fcm_tokens` commit's reasoning: a token identifies one app install, not one
+user). The `onUpdate` lambda deliberately touches only `user_id` -- `created_at` is left alone on a
+reassignment, so it keeps meaning "when this token row was first created," not silently becoming a
+"last re-registered at" value under a name that says otherwise.
+
+**Removal is idempotent by design** -- `deleteToken(userId, token)` deletes `WHERE user_id = ? AND token = ?`
+in one statement (no separate existence/ownership check first) and the use case always reports success,
+whether or not a row actually matched. A token that's already gone, was never registered, or now belongs
+to a different user (e.g. reassigned by the upsert above) is not an error -- the client's logout flow
+should never have to branch on this call's result. This is also why the token travels in the `DELETE`
+request's body rather than a path segment: FCM tokens are opaque strings up to ~4096 chars, not the kind
+of thing you'd want URL-encoded into a path.
+
+**Why removal is its own endpoint, not part of a "logout" use case**: there isn't one server-side. The
+client's `LogoutUseCase` (`app/shared/.../domain/usecase/LogoutUseCase.kt`) only ever clears the local
+session (`SessionRepository.clearSession()`) -- no server call at all, and nothing revokes a refresh token
+early today either (see §5's refresh-token rotation, which only invalidates *on use*, not on demand). Given
+that, bolting FCM cleanup onto a use case that doesn't exist would mean inventing server-side logout
+semantics as a side effect of a push-notification feature. Kept as its own explicit, idempotent endpoint
+instead -- the client (a later commit) calls it itself as one step of its own logout sequence, before
+clearing the local session.
+
+Verified against a real running server, not just compilation (see `PROCESS_FLOWS.md` §2.5 for the full
+scenario list): registered a token as one user, re-registered the identical value as a second user and
+confirmed exactly one row reassigned (not duplicated), confirmed a non-owner's delete is a no-op, the real
+owner's delete actually removes it, a repeat delete stays a no-op success, an unauthenticated request is
+rejected, and a blank token is rejected. Covered by `RegisterFcmTokenUseCaseTest` and
+`RemoveFcmTokenUseCaseTest`.
+
+## 22. Push Notifications (Android): Client-Side Registration + Receiving
+
+Third piece on the same branch -- §21 built the server endpoints; this wires the Android client to them
+and adds the receiving side (Firebase Cloud Messaging SDK, `google-services.json` already registered --
+see §12). Still Android-only: iOS/Desktop/Web get no real implementation yet.
+
+**`PushTokenProvider`, not `expect`/`actual`.** `app/shared` needs a way to ask "what's this device's
+current push token," but only Android has an answer -- the natural KMP tool for "one shared interface,
+different behavior per platform" is `expect`/`actual`, but that requires an `actual` on *every* compiled
+target (Android, iOS, JVM/Desktop, JS, wasmJs), meaning four throwaway `return null` files just to satisfy
+the compiler. Used the pattern already established for `AppConfig` instead (§16: "each platform's own
+entry point builds it and passes it in"): `PushTokenProvider` is a plain `commonMain` interface,
+`initKoin` takes one as a parameter defaulting to `NoOpPushTokenProvider` (returns null), and only
+`SquadifyApplication.onCreate` (Android) overrides it with a real, Firebase-backed one
+(`FirebasePushTokenProvider`, wrapping `FirebaseMessaging.getInstance().token`'s Play Services `Task` in
+a manual `suspendCancellableCoroutine` rather than pulling in the whole `kotlinx-coroutines-play-services`
+artifact for one call). Every other platform's entry point needs zero changes.
+
+**Where registration is triggered.** `RegisterCurrentFcmTokenUseCase` (fetch the current token via
+`PushTokenProvider`, register it, swallow any failure -- same best-effort reasoning as `EmailService`,
+§14) is called from two places doing the identical thing for different reasons: `LoginViewModel` right
+after a fresh login, and `SplashViewModel` right after confirming an existing session is still valid on
+app launch. Both already duplicate an analogous piece of logic (the single-club redirect check), so a
+third small duplication here -- calling one shared use case from both -- matches the codebase's existing
+tolerance for that specific kind of ViewModel-level duplication rather than introducing a new
+cross-cutting mechanism (a "session established" event bus, say) to avoid it. `SquadifyMessagingService.
+onNewToken` (fired by Firebase itself whenever a token is created or rotated, not just at login) also
+registers directly -- same best-effort swallowing, since a background system callback has nowhere useful
+to surface a failure to anyway.
+
+**Where removal is triggered.** `RemoveFcmTokenUseCase` takes `PushTokenProvider` + `FcmTokenRepository`,
+fetches the current token itself, and best-effort removes it server-side (same swallow-and-log shape as
+`RegisterCurrentFcmTokenUseCase`). `LogoutUseCase` just calls it before clearing the local session --
+removal has to happen first, since it's an authenticated call needing the soon-to-be-discarded access
+token, but the local session is *always* cleared regardless of whether removal succeeded.
+`LogoutUseCase.invoke()` is `suspend`; its one call site, `AccountViewModel.onLogoutClicked()`, was
+already inside a `viewModelScope.launch { }`, so this needed no further change there.
+
+**Notification channels (API 26+).** Four `NotificationChannelCompat`s are created up front in
+`SquadifyApplication.onCreate` (`createNotificationChannels()`, using `NotificationManagerCompat` --
+these handle the pre-O no-op internally, so unlike the raw platform `NotificationChannel`/
+`NotificationManager` APIs this needs no manual `Build.VERSION.SDK_INT` check): `live_matches`
+(`IMPORTANCE_HIGH` -- kickoff/goals/cards/full-time are time-sensitive enough to warrant a heads-up),
+`age_group` and `invites` (`IMPORTANCE_DEFAULT`), and a `default` fallback. Names/descriptions are
+plain string resources (`strings.xml`), shown to the user in Android's own per-app notification
+settings. Which channel a given notification lands in is decided entirely by the *sender*, not the
+client: FCM's own `notification.android_channel_id` payload field round-trips to the client SDK as
+`RemoteMessage.Notification.channelId`, so `SquadifyMessagingService.onMessageReceived` just reads that
+(`notification.channelId ?: NOTIFICATION_CHANNEL_DEFAULT`) rather than needing any client-side
+classification logic -- once the server actually sends pushes (§21 built registration only, not
+sending), it sets this field per notification type. A message with no channel id set at all (e.g. a
+manual test push from the Firebase console, which can't set this field) falls back to `default`.
+
+**`SquadifyMessagingService`** is instantiated by the Android OS, not Koin, so it can't take constructor-
+injected dependencies the normal way -- it implements `KoinComponent` and resolves
+`RegisterFcmTokenUseCase` via `by inject()` instead (Koin is already started in `SquadifyApplication.
+onCreate` by the time this could ever fire). `onMessageReceived` only handles FCM's standard "notification"
+payload (title/body) for now -- there's no "data" payload contract yet, since nothing server-side actually
+sends a push yet (that's a later commit); tapping a shown notification just opens `MainActivity`, no deep
+linking, for the same reason.
+
+**Notification icon**: `R.drawable.ic_notification`, a hand-authored `VectorDrawable` (`res/drawable/
+ic_notification.xml`) rather than `R.mipmap.ic_launcher` -- Android renders a full-color launcher icon
+degraded (a white silhouette/blob) in the status bar, since it needs a proper monochrome/alpha-only
+asset there. Ten equal 3.0dp dots in a 4-3-3 formation (same layout the app's launcher mark uses),
+2.6dp gaps, inside the 24x24dp box's 2dp safe margin -- `fillColor` is a formality since the system
+re-tints the whole shape anyway.
+
+**`POST_NOTIFICATIONS` runtime permission.** Declaring it in the manifest is necessary but not sufficient
+on API 33+ -- `MainActivity` requests it via `rememberLauncherForActivityResult` in a `LaunchedEffect` on
+first composition. Token registration and message delivery both work identically whether or not this is
+granted; only the *system tray display* is gated by it. `NotificationManagerCompat.notify()`'s own lint
+annotation (`@RequiresPermission(conditional = true)`) requires an explicit guard on API 33+ or `lintVital`
+fails the release build -- used `areNotificationsEnabled()` (covers both "permission never granted" and
+"user disabled notifications for this app" in one check) rather than a raw `checkSelfPermission` call,
+matching Google's own recommended idiom for this exact case.
+
+Verified: `:app:shared:compileAndroidMain` and `:app:androidApp:compileStagingDebugKotlin` both compile
+clean. `:app:androidApp:assembleStagingRelease` (the real release build, including `lintVital`) succeeds
+end to end, and `apksigner verify --print-certs` on the resulting APK confirms it's signed with the real
+release keystore (`CN=Squadify, O=Squadify`), not the debug one. **Not verified**: no actual device/
+emulator run was performed in this environment (no way to launch and interact with the app here) -- the
+permission dialog, notification display, and token registration/removal HTTP calls are all unexercised
+at runtime, only compiled and statically checked. Worth a real manual pass on a device before considering
+this done.

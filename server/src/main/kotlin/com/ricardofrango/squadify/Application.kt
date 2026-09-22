@@ -11,6 +11,7 @@ import com.ricardofrango.squadify.presentation.routes.ageGroupRoutes
 import com.ricardofrango.squadify.presentation.routes.playerRoutes
 import com.ricardofrango.squadify.presentation.routes.matchRoutes
 import com.ricardofrango.squadify.presentation.routes.opponentRoutes
+import com.ricardofrango.squadify.presentation.routes.fcmTokenRoutes
 import com.ricardofrango.squadify.domain.usecase.SeedPlatformAdminUseCase
 import com.ricardofrango.squadify.security.JwtConfig
 import com.ricardofrango.squadify.model.ErrorResponse
@@ -182,6 +183,7 @@ fun Application.module() {
             playerRoutes()
             matchRoutes()
             opponentRoutes()
+            fcmTokenRoutes()
         }
     }
 }
