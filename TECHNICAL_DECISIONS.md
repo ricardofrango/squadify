@@ -731,3 +731,62 @@ emulator run was performed in this environment (no way to launch and interact wi
 permission dialog, notification display, and token registration/removal HTTP calls are all unexercised
 at runtime, only compiled and statically checked. Worth a real manual pass on a device before considering
 this done.
+
+## 23. Push Notifications: Server-Side Sending (First Event: Club Membership Added)
+
+§21/§22 built storage and the Android client's receiving side but nothing server-side ever sent a
+push. This wires the first real send: the same "existing user added to a club directly" event that
+already triggers `EmailService.sendClubMembershipAdded` (§14) now also triggers a push, to every
+device the user has a registered token for, if any.
+
+**Firebase Admin SDK, not a hand-rolled HTTP v1 client.** Sending a real FCM push needs an OAuth2
+access token obtained from a service-account key (JWT-signed, refreshed on expiry) -- rebuilding that
+by hand (as was deliberately avoided for `PushTokenProvider`'s single `getToken()` call on Android, §22)
+isn't the right trade here, since the server needs the *full* send API (multicast, per-token failure
+detail, retries), not one call. `com.google.firebase:firebase-admin` (a plain JVM library -- works on
+any JVM backend, unrelated to the Android `firebase-bom` artifacts) handles credential refresh and
+exposes `FirebaseMessaging.sendEachForMulticast(MulticastMessage)`, which was confirmed against the
+actual resolved jar (`javap` on `FirebaseMessaging`, `MulticastMessage.Builder`, `AndroidConfig.Builder`,
+`AndroidNotification.Builder`) before writing code against it, the same rigor used for Exposed's
+`upsert` (§3).
+
+**`ServerConfig.firebaseServiceAccountJson`** follows the exact same optional/best-effort pattern as
+`resendApiKey`: the raw service-account JSON content (not a file path -- there's no reliable place to
+mount a file on Railway), required from `FIREBASE_SERVICE_ACCOUNT_JSON` and reused from the same
+Firebase project (`squadify-958d3`) already registered for Android Crashlytics/App Distribution/FCM
+(§12) -- a service account with Firebase Cloud Messaging privileges, not necessarily the same key used
+for CI's App Distribution uploads (`ISSUES TO FIX.md`'s CI secret is a separate concern: GitHub Actions
+vs. this server's own runtime). Blank/missing credentials are not a startup failure -- push is a
+notification, not a security-critical value -- `FirebaseAdminPushNotificationService` just logs and
+skips every send, verified against a real running server: `FIREBASE_SERVICE_ACCOUNT_JSON not set --
+skipping push to N device(s)`.
+
+**`FcmTokenRepository.getTokensForUsers(userIds)`** returns a `Map<String, List<String>>`, mirroring
+`UserRepository.getUserRolesInClub`'s existing batch-lookup shape (one query for N users, not N
+queries -- see AI_GUIDELINES.md's database-efficiency rule) -- a user absent from the result has no
+registered device, which is the normal case, not an error. `AddClubMembersUseCase` fetches this map
+*inside* the transaction (same reasoning as `clubName`: the repository has no ambient transaction of
+its own once the block closes) for every newly-added existing member, then -- after the transaction
+commits, alongside the email sends -- calls `PushNotificationService.sendClubMembershipAdded` once per
+member who actually has at least one token. Members with no token are simply skipped; the use case
+never calls the push service for them at all.
+
+**Channel**: every push in this use case sets `notification.android_channel_id` to `"invites"` via
+`AndroidConfig.Builder().setNotification(AndroidNotification.builder().setChannelId(...))`, matching
+`SquadifyMessagingService.NOTIFICATION_CHANNEL_INVITES` on the Android client (§22) -- there's no
+shared code between server and Android for this id (it's an Android UI concept, not a KMP `common`
+model), so the string is duplicated with a comment pointing at the other side rather than introduced as
+a new shared constant for a single string used in exactly two places.
+
+Verified end to end against a real running server and Postgres (no Firebase credentials configured, so
+the send itself falls back to its "skipping" log path, but every step up to the actual FCM call is
+real): registered a member's FCM token, had an admin add that member to a club, and confirmed the log
+shows the token was found (`fcm_tokens` query) and the push was attempted (`skipping push to 1
+device(s)`); repeated with a member who has no registered token and confirmed no push log line appears
+at all for them (only the email skip). `:server:test` passes, including a
+`FirebaseAdminPushNotificationServiceTest` mirroring `ResendEmailServiceTest`'s "must never throw with
+no credential configured" contract test.
+
+**Not done yet**: `EmailService.sendAgeGroupStaffAdded`'s push equivalent (the other association event
+that already sends email) is out of scope for this change -- only club membership was requested. See
+`REQUIREMENTS.md`'s Push/In-App Notifications roadmap line.

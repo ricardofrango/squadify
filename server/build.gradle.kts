@@ -37,6 +37,9 @@ dependencies {
     // Connection pool (recommended)
     implementation(libs.hikaricp)
 
+    // Push notifications (Firebase Admin SDK)
+    implementation(libs.firebase.admin)
+
     // KTOR
     implementation(libs.ktor.server.serialization.kotlinx.json)
     implementation(libs.ktor.server.content.negotiation)

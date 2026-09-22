@@ -143,4 +143,15 @@ object ServerConfig {
      */
     val webAppBaseUrl: String = System.getenv("WEBAPP_BASE_URL")?.takeIf { it.isNotBlank() }
         ?: "http://localhost:8081"
+
+    /**
+     * A Firebase service-account key (the raw JSON content, not a file path -- there's no reliable
+     * place to mount a file on Railway) used by [com.ricardofrango.squadify.data.service.
+     * FirebaseAdminPushNotificationService] to send push notifications through the same Firebase
+     * project (squadify-958d3) already registered for Android -- see TECHNICAL_DECISIONS.md's
+     * push-notifications section. Same best-effort posture as [resendApiKey]: push is a notification,
+     * not a security-critical value, so a missing/blank credential degrades to that service logging
+     * and skipping the send rather than refusing to start.
+     */
+    val firebaseServiceAccountJson: String = System.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")?.takeIf { it.isNotBlank() } ?: ""
 }

@@ -3,11 +3,13 @@ package com.ricardofrango.squadify.di
 import com.ricardofrango.squadify.config.ServerConfig
 import com.ricardofrango.squadify.data.database.DatabaseFactory
 import com.ricardofrango.squadify.data.repository.*
+import com.ricardofrango.squadify.data.service.FirebaseAdminPushNotificationService
 import com.ricardofrango.squadify.data.service.KotlinFlowMatchBus
 import com.ricardofrango.squadify.data.service.ResendEmailService
 import com.ricardofrango.squadify.domain.repository.*
 import com.ricardofrango.squadify.domain.service.EmailService
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
+import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.domain.usecase.*
 import org.koin.dsl.module
@@ -29,6 +31,7 @@ val appModule = module {
     single<LiveMatchBus> { KotlinFlowMatchBus() }
     single<TransactionManager> { DatabaseFactory }
     single<EmailService> { ResendEmailService() }
+    single<PushNotificationService> { FirebaseAdminPushNotificationService() }
 
     // Use Cases
     factory { GetClubsUseCase(get(), get(), get()) }
@@ -49,7 +52,7 @@ val appModule = module {
     factory { RefreshTokenUseCase(get(), get()) }
     factory { CheckUserPermissionUseCase(get(), get(), get(), get(), get()) }
     factory { CheckUserIsAdminUseCase(get(), get()) }
-    factory { AddClubMembersUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { AddClubMembersUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetClubMembersUseCase(get(), get(), get()) }
     factory { UpdateClubMemberRoleUseCase(get(), get(), get()) }
     factory { UpdateClubUseCase(get(), get(), get()) }
