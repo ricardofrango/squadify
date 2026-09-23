@@ -25,7 +25,7 @@ class UpdateMatchStatusUseCase(
     private val matchEventRepository: MatchEventRepository,
     private val liveMatchBus: LiveMatchBus,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
-    private val notifyLiveMatchEventUseCase: NotifyLiveMatchEventUseCase,
+    private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
@@ -33,7 +33,7 @@ class UpdateMatchStatusUseCase(
         matchId: String,
         status: MatchStatus
     ): Boolean {
-        var notificationEvent: LiveMatchNotificationEvent? = null
+        var notificationEvent: MatchNotificationEvent? = null
 
         val success = transactionManager.runInTransaction {
             // 1. Verify match exists first to get context
@@ -59,11 +59,13 @@ class UpdateMatchStatusUseCase(
                 // from the first half's length instead of restarting at 0 (see Match.secondHalfStartedAt).
                 if (status == MatchStatus.LIVE && match.status == MatchStatus.HALF_TIME) {
                     matchRepository.markSecondHalfStarted(matchId, Instant.fromEpochMilliseconds(System.currentTimeMillis()))
-                    notificationEvent = LiveMatchNotificationEvent.SECOND_HALF_STARTED
+                    notificationEvent = MatchNotificationEvent.SECOND_HALF_STARTED
                 } else if (status == MatchStatus.HALF_TIME) {
-                    notificationEvent = LiveMatchNotificationEvent.HALF_TIME
+                    notificationEvent = MatchNotificationEvent.HALF_TIME
                 } else if (status == MatchStatus.FINISHED) {
-                    notificationEvent = LiveMatchNotificationEvent.FULL_TIME
+                    notificationEvent = MatchNotificationEvent.FULL_TIME
+                } else if (status == MatchStatus.CANCELLED) {
+                    notificationEvent = MatchNotificationEvent.CANCELLED
                 }
                 val score = matchEventRepository.getScoreByMatch(matchId)
                 liveMatchBus.publish(
@@ -76,7 +78,7 @@ class UpdateMatchStatusUseCase(
 
         // Sent after the transaction commits -- a failed/slow push must never roll back the status change.
         if (success) {
-            notificationEvent?.let { notifyLiveMatchEventUseCase(matchId, it) }
+            notificationEvent?.let { notifyMatchEventUseCase(matchId, it) }
         }
         return success
     }

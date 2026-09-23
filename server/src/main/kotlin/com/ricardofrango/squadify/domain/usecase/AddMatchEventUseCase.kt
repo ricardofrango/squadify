@@ -14,7 +14,7 @@ class AddMatchEventUseCase(
     private val matchRepository: MatchRepository,
     private val liveMatchBus: LiveMatchBus,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
-    private val notifyLiveMatchEventUseCase: NotifyLiveMatchEventUseCase,
+    private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
@@ -61,7 +61,7 @@ class AddMatchEventUseCase(
 
         // Sent after the transaction commits -- a failed/slow push must never roll back the event.
         if (savedEvent.type == EventType.GOAL || savedEvent.type == EventType.OWN_GOAL) {
-            notifyLiveMatchEventUseCase(matchId, LiveMatchNotificationEvent.GOAL)
+            notifyMatchEventUseCase(matchId, MatchNotificationEvent.GOAL)
         }
 
         return savedEvent

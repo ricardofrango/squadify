@@ -16,6 +16,7 @@ import com.ricardofrango.squadify.model.UpdateMatchRequest
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.runBlocking
@@ -38,7 +39,10 @@ class UpdateMatchUseCaseTest {
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager
     )
-    private val useCase = UpdateMatchUseCase(matchRepository, opponentRepository, checkUserPermissionUseCase, transactionManager)
+    private val notifyMatchEventUseCase = mockk<NotifyMatchEventUseCase>(relaxed = true)
+    private val useCase = UpdateMatchUseCase(
+        matchRepository, opponentRepository, checkUserPermissionUseCase, notifyMatchEventUseCase, transactionManager
+    )
 
     private val clubId = "club-1"
     private val matchId = "m-1"
@@ -65,6 +69,23 @@ class UpdateMatchUseCaseTest {
         assertEquals("New field", saved.captured.location)
         assertEquals("old", saved.captured.notes) // untouched
         assertEquals("opp-1", saved.captured.opponentId) // untouched
+        coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.RESCHEDULED) }
+    }
+
+    @Test
+    fun editingOnlyNotesDoesNotNotify() = runBlocking {
+        val coach = user("coach")
+        coEvery { matchRepository.getMatchById(matchId) } returns match
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+        coEvery { teamRepository.getTeamById(teamId) } returns
+            com.ricardofrango.squadify.model.Team(teamId, clubId, ag1, "s-1", "Sub-15 A", "A", true)
+        coEvery { matchRepository.updateMatch(any()) } returns true
+
+        useCase(coach.id, matchId, UpdateMatchRequest(notes = "new notes"))
+
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
     }
 
     @Test
@@ -81,7 +102,7 @@ class UpdateMatchUseCaseTest {
         assertFailsWith<ForbiddenException> {
             useCase(coach.id, matchId, UpdateMatchRequest(opponentId = "opp-other"))
         }
-        Unit
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
     }
 
     @Test

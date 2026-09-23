@@ -17,37 +17,55 @@ class UpdateMatchUseCase(
     private val matchRepository: MatchRepository,
     private val opponentRepository: OpponentRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
         userId: String,
         matchId: String,
         request: UpdateMatchRequest
-    ): Boolean = transactionManager.runInTransaction {
-        val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
+    ): Boolean {
+        var scheduleChanged = false
 
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = match.clubId,
-            minTeamRole = TeamRole.COACH,
-            teamId = match.teamId,
-            errorMessage = "Only admins, coordinators, or team coaches can edit a match"
-        )
+        val success = transactionManager.runInTransaction {
+            val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
 
-        request.opponentId?.let { opponentId ->
-            val opponent = opponentRepository.getOpponentById(opponentId)
-                ?: throw NotFoundException("Opponent not found")
-            if (opponent.clubId != match.clubId) {
-                throw ForbiddenException("Opponent does not belong to this club")
+            checkUserPermissionUseCase(
+                userId = userId,
+                clubId = match.clubId,
+                minTeamRole = TeamRole.COACH,
+                teamId = match.teamId,
+                errorMessage = "Only admins, coordinators, or team coaches can edit a match"
+            )
+
+            request.opponentId?.let { opponentId ->
+                val opponent = opponentRepository.getOpponentById(opponentId)
+                    ?: throw NotFoundException("Opponent not found")
+                if (opponent.clubId != match.clubId) {
+                    throw ForbiddenException("Opponent does not belong to this club")
+                }
             }
+
+            val merged = match.copy(
+                opponentId = request.opponentId ?: match.opponentId,
+                dateTime = request.dateTime ?: match.dateTime,
+                location = request.location ?: match.location,
+                notes = request.notes ?: match.notes
+            )
+
+            // Only the schedule-relevant fields warrant a "match updated" push -- a notes-only edit
+            // isn't a schedule change (see TECHNICAL_DECISIONS.md's push-notifications section).
+            scheduleChanged = merged.opponentId != match.opponentId ||
+                merged.dateTime != match.dateTime ||
+                merged.location != match.location
+
+            matchRepository.updateMatch(merged)
         }
 
-        val merged = match.copy(
-            opponentId = request.opponentId ?: match.opponentId,
-            dateTime = request.dateTime ?: match.dateTime,
-            location = request.location ?: match.location,
-            notes = request.notes ?: match.notes
-        )
-        matchRepository.updateMatch(merged)
+        // Sent after the transaction commits -- a failed/slow push must never roll back the update.
+        if (success && scheduleChanged) {
+            notifyMatchEventUseCase(matchId, MatchNotificationEvent.RESCHEDULED)
+        }
+        return success
     }
 }

@@ -47,9 +47,9 @@ class AddMatchEventUseCaseTest {
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager
     )
-    private val notifyLiveMatchEventUseCase = mockk<NotifyLiveMatchEventUseCase>(relaxed = true)
+    private val notifyMatchEventUseCase = mockk<NotifyMatchEventUseCase>(relaxed = true)
     private val useCase = AddMatchEventUseCase(
-        matchEventRepository, matchRepository, liveMatchBus, checkUserPermissionUseCase, notifyLiveMatchEventUseCase, transactionManager
+        matchEventRepository, matchRepository, liveMatchBus, checkUserPermissionUseCase, notifyMatchEventUseCase, transactionManager
     )
 
     @Test
@@ -60,7 +60,7 @@ class AddMatchEventUseCaseTest {
         assertFailsWith<NotFoundException> {
             useCase("anyone", "no-such-match", CreateMatchEventRequest(type = EventType.GOAL, minute = 10))
         }
-        coVerify(exactly = 0) { notifyLiveMatchEventUseCase(any(), any()) }
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
     }
 
     @Test
@@ -77,7 +77,7 @@ class AddMatchEventUseCaseTest {
 
         useCase(coach.id, "m-1", CreateMatchEventRequest(type = EventType.GOAL, minute = 23))
 
-        coVerify { notifyLiveMatchEventUseCase("m-1", LiveMatchNotificationEvent.GOAL) }
+        coVerify { notifyMatchEventUseCase("m-1", MatchNotificationEvent.GOAL) }
     }
 
     @Test
@@ -94,7 +94,7 @@ class AddMatchEventUseCaseTest {
 
         useCase(coach.id, "m-1", CreateMatchEventRequest(type = EventType.OWN_GOAL, minute = 40))
 
-        coVerify { notifyLiveMatchEventUseCase("m-1", LiveMatchNotificationEvent.GOAL) }
+        coVerify { notifyMatchEventUseCase("m-1", MatchNotificationEvent.GOAL) }
     }
 
     @Test
@@ -111,6 +111,6 @@ class AddMatchEventUseCaseTest {
 
         useCase(coach.id, "m-1", CreateMatchEventRequest(type = EventType.YELLOW_CARD, minute = 12))
 
-        coVerify(exactly = 0) { notifyLiveMatchEventUseCase(any(), any()) }
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
     }
 }

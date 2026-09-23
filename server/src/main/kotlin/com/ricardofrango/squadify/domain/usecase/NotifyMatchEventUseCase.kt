@@ -11,22 +11,24 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.model.MatchScore
 import org.slf4j.LoggerFactory
 
-enum class LiveMatchNotificationEvent {
-    KICKOFF, HALF_TIME, SECOND_HALF_STARTED, FULL_TIME, GOAL
+enum class MatchNotificationEvent {
+    SCHEDULED, RESCHEDULED, CANCELLED, KICKOFF, HALF_TIME, SECOND_HALF_STARTED, FULL_TIME, GOAL
 }
 
 /**
- * Best-effort push, to every member of the match's club (not just its own age group -- a goal or
- * full-time whistle is club-wide news, unlike the call-up/edit permissions that stay scoped to the
- * age group -- see the developer's own note on this in the accompanying chat), for one of live
- * match's five notification-worthy moments. Called by [StartMatchUseCase], [UpdateMatchStatusUseCase],
- * and [AddMatchEventUseCase] after their own transaction commits -- the same "never fail the caller"
- * posture as [com.ricardofrango.squadify.domain.service.EmailService]/[PushNotificationService] calls
- * elsewhere, except here the data needed for the push (team/opponent names, the club's member token
- * list) is fetched in a transaction of this use case's own, since by the time it runs the triggering
- * use case's transaction has already closed.
+ * Best-effort push, to every member of the match's club (not just its own age group -- see the
+ * developer's own note on this in the accompanying chat), for one of a match's notification-worthy
+ * moments: the schedule ones (a fixture created, rescheduled, or cancelled -- [SCHEDULED]/
+ * [RESCHEDULED]/[CANCELLED]) and the live ones (kickoff, half-time, the second half restarting,
+ * full-time, or a goal). Called by [CreateMatchUseCase], [UpdateMatchUseCase],
+ * [UpdateMatchStatusUseCase], [StartMatchUseCase], and [AddMatchEventUseCase] after their own
+ * transaction commits -- the same "never fail the caller" posture as
+ * [com.ricardofrango.squadify.domain.service.EmailService]/[PushNotificationService] calls elsewhere,
+ * except here the data needed for the push (team/opponent names, the club's member token list) is
+ * fetched in a transaction of this use case's own, since by the time it runs the triggering use
+ * case's transaction has already closed.
  */
-class NotifyLiveMatchEventUseCase(
+class NotifyMatchEventUseCase(
     private val matchRepository: MatchRepository,
     private val matchEventRepository: MatchEventRepository,
     private val teamRepository: TeamRepository,
@@ -45,7 +47,7 @@ class NotifyLiveMatchEventUseCase(
         val tokens: List<String>
     )
 
-    suspend operator fun invoke(matchId: String, event: LiveMatchNotificationEvent) {
+    suspend operator fun invoke(matchId: String, event: MatchNotificationEvent) {
         try {
             val context = transactionManager.runInTransaction {
                 val match = matchRepository.getMatchById(matchId) ?: return@runInTransaction null
@@ -64,19 +66,25 @@ class NotifyLiveMatchEventUseCase(
             } ?: return
 
             when (event) {
-                LiveMatchNotificationEvent.KICKOFF ->
+                MatchNotificationEvent.SCHEDULED ->
+                    pushNotificationService.sendMatchScheduled(context.tokens, context.teamName, context.opponentName)
+                MatchNotificationEvent.RESCHEDULED ->
+                    pushNotificationService.sendMatchRescheduled(context.tokens, context.teamName, context.opponentName)
+                MatchNotificationEvent.CANCELLED ->
+                    pushNotificationService.sendMatchCancelled(context.tokens, context.teamName, context.opponentName)
+                MatchNotificationEvent.KICKOFF ->
                     pushNotificationService.sendMatchKickedOff(context.tokens, context.teamName, context.opponentName)
-                LiveMatchNotificationEvent.HALF_TIME ->
+                MatchNotificationEvent.HALF_TIME ->
                     pushNotificationService.sendHalfTime(context.tokens, context.teamName, context.opponentName, context.score)
-                LiveMatchNotificationEvent.SECOND_HALF_STARTED ->
+                MatchNotificationEvent.SECOND_HALF_STARTED ->
                     pushNotificationService.sendSecondHalfStarted(context.tokens, context.teamName, context.opponentName)
-                LiveMatchNotificationEvent.FULL_TIME ->
+                MatchNotificationEvent.FULL_TIME ->
                     pushNotificationService.sendMatchFinished(context.tokens, context.teamName, context.opponentName, context.score)
-                LiveMatchNotificationEvent.GOAL ->
+                MatchNotificationEvent.GOAL ->
                     pushNotificationService.sendGoalScored(context.tokens, context.teamName, context.opponentName, context.score)
             }
         } catch (e: Exception) {
-            logger.error("Live match notification failed for match {} / {}", matchId, event, e)
+            logger.error("Match notification failed for match {} / {}", matchId, event, e)
         }
     }
 }

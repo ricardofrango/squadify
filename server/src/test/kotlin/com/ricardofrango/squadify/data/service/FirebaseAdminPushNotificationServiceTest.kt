@@ -40,6 +40,21 @@ class FirebaseAdminPushNotificationServiceTest {
     private val score = MatchScore("m-1", 1, 0)
 
     @Test
+    fun sendMatchScheduledNeverThrowsWithNoCredentialConfigured() = runBlocking {
+        pushNotificationService.sendMatchScheduled(tokens = listOf("some-device-token"), teamName = "Sub-15 A", opponentName = "Rivals FC")
+    }
+
+    @Test
+    fun sendMatchRescheduledNeverThrowsWithNoCredentialConfigured() = runBlocking {
+        pushNotificationService.sendMatchRescheduled(tokens = listOf("some-device-token"), teamName = "Sub-15 A", opponentName = "Rivals FC")
+    }
+
+    @Test
+    fun sendMatchCancelledNeverThrowsWithNoCredentialConfigured() = runBlocking {
+        pushNotificationService.sendMatchCancelled(tokens = listOf("some-device-token"), teamName = "Sub-15 A", opponentName = "Rivals FC")
+    }
+
+    @Test
     fun sendMatchKickedOffNeverThrowsWithNoCredentialConfigured() = runBlocking {
         pushNotificationService.sendMatchKickedOff(tokens = listOf("some-device-token"), teamName = "Sub-15 A", opponentName = "Rivals FC")
     }

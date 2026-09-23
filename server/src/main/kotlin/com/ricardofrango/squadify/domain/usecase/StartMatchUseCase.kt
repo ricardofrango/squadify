@@ -20,7 +20,7 @@ class StartMatchUseCase(
     private val teamRepository: TeamRepository,
     private val liveMatchBus: LiveMatchBus,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
-    private val notifyLiveMatchEventUseCase: NotifyLiveMatchEventUseCase,
+    private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
@@ -79,7 +79,7 @@ class StartMatchUseCase(
 
         // Sent after the transaction commits -- a failed/slow push must never roll back kickoff.
         if (success) {
-            notifyLiveMatchEventUseCase(matchId, LiveMatchNotificationEvent.KICKOFF)
+            notifyMatchEventUseCase(matchId, MatchNotificationEvent.KICKOFF)
         }
         return success
     }

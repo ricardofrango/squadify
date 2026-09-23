@@ -27,7 +27,7 @@ import kotlin.time.Instant
  * committed -- see its own doc comment) and must never notify when there's nothing to notify with
  * (no match/team/opponent found, or no club member has a registered device).
  */
-class NotifyLiveMatchEventUseCaseTest {
+class NotifyMatchEventUseCaseTest {
 
     private val matchRepository = mockk<MatchRepository>()
     private val matchEventRepository = mockk<MatchEventRepository>()
@@ -39,7 +39,7 @@ class NotifyLiveMatchEventUseCaseTest {
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
-    private val useCase = NotifyLiveMatchEventUseCase(
+    private val useCase = NotifyMatchEventUseCase(
         matchRepository,
         matchEventRepository,
         teamRepository,
@@ -72,7 +72,7 @@ class NotifyLiveMatchEventUseCaseTest {
     fun kickoffPushesToEveryClubMemberWithAToken() = runBlocking {
         stubHappyPath(listOf("token-1"))
 
-        useCase(matchId, LiveMatchNotificationEvent.KICKOFF)
+        useCase(matchId, MatchNotificationEvent.KICKOFF)
 
         coVerify { pushNotificationService.sendMatchKickedOff(listOf("token-1"), team.name, opponent.name) }
     }
@@ -81,9 +81,36 @@ class NotifyLiveMatchEventUseCaseTest {
     fun goalPushesWithTheCurrentScore() = runBlocking {
         stubHappyPath(listOf("token-1"))
 
-        useCase(matchId, LiveMatchNotificationEvent.GOAL)
+        useCase(matchId, MatchNotificationEvent.GOAL)
 
         coVerify { pushNotificationService.sendGoalScored(listOf("token-1"), team.name, opponent.name, MatchScore(matchId, 1, 0)) }
+    }
+
+    @Test
+    fun scheduledPushesToEveryClubMemberWithAToken() = runBlocking {
+        stubHappyPath(listOf("token-1"))
+
+        useCase(matchId, MatchNotificationEvent.SCHEDULED)
+
+        coVerify { pushNotificationService.sendMatchScheduled(listOf("token-1"), team.name, opponent.name) }
+    }
+
+    @Test
+    fun rescheduledPushesToEveryClubMemberWithAToken() = runBlocking {
+        stubHappyPath(listOf("token-1"))
+
+        useCase(matchId, MatchNotificationEvent.RESCHEDULED)
+
+        coVerify { pushNotificationService.sendMatchRescheduled(listOf("token-1"), team.name, opponent.name) }
+    }
+
+    @Test
+    fun cancelledPushesToEveryClubMemberWithAToken() = runBlocking {
+        stubHappyPath(listOf("token-1"))
+
+        useCase(matchId, MatchNotificationEvent.CANCELLED)
+
+        coVerify { pushNotificationService.sendMatchCancelled(listOf("token-1"), team.name, opponent.name) }
     }
 
     @Test
@@ -96,7 +123,7 @@ class NotifyLiveMatchEventUseCaseTest {
         )
         coEvery { fcmTokenRepository.getTokensForUsers(listOf("u1")) } returns emptyMap()
 
-        useCase(matchId, LiveMatchNotificationEvent.FULL_TIME)
+        useCase(matchId, MatchNotificationEvent.FULL_TIME)
 
         coVerify(exactly = 0) { pushNotificationService.sendMatchFinished(any(), any(), any(), any()) }
     }
@@ -105,7 +132,7 @@ class NotifyLiveMatchEventUseCaseTest {
     fun aNonexistentMatchNeverThrows() = runBlocking {
         coEvery { matchRepository.getMatchById("no-such-match") } returns null
 
-        useCase("no-such-match", LiveMatchNotificationEvent.HALF_TIME)
+        useCase("no-such-match", MatchNotificationEvent.HALF_TIME)
 
         coVerify(exactly = 0) { pushNotificationService.sendHalfTime(any(), any(), any(), any()) }
     }
@@ -116,7 +143,7 @@ class NotifyLiveMatchEventUseCaseTest {
 
         // Must not propagate -- this runs after the triggering use case's own transaction already
         // committed, so a failure here must never surface to that caller.
-        useCase(matchId, LiveMatchNotificationEvent.SECOND_HALF_STARTED)
+        useCase(matchId, MatchNotificationEvent.SECOND_HALF_STARTED)
 
         coVerify(exactly = 0) { pushNotificationService.sendSecondHalfStarted(any(), any(), any()) }
     }

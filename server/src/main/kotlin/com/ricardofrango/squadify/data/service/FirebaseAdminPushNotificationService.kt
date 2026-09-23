@@ -91,6 +91,33 @@ class FirebaseAdminPushNotificationService : PushNotificationService {
         }
     }
 
+    override suspend fun sendMatchScheduled(tokens: List<String>, teamName: String, opponentName: String) {
+        send(
+            tokens = tokens,
+            channelId = AGE_GROUP_CHANNEL,
+            title = "Squadify",
+            body = "New match: $teamName vs $opponentName has been scheduled"
+        )
+    }
+
+    override suspend fun sendMatchRescheduled(tokens: List<String>, teamName: String, opponentName: String) {
+        send(
+            tokens = tokens,
+            channelId = AGE_GROUP_CHANNEL,
+            title = "Squadify",
+            body = "$teamName's match against $opponentName has been updated"
+        )
+    }
+
+    override suspend fun sendMatchCancelled(tokens: List<String>, teamName: String, opponentName: String) {
+        send(
+            tokens = tokens,
+            channelId = AGE_GROUP_CHANNEL,
+            title = "Squadify",
+            body = "$teamName's match against $opponentName has been cancelled"
+        )
+    }
+
     override suspend fun sendMatchKickedOff(tokens: List<String>, teamName: String, opponentName: String) {
         send(
             tokens = tokens,
