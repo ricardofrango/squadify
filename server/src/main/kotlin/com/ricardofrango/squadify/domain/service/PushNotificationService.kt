@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.service
 
+import com.ricardofrango.squadify.model.MatchScore
+
 /**
  * Best-effort push notifications (Firebase Cloud Messaging) for association events -- the push
  * equivalent of [EmailService]. Implementations must never throw: a failed send must never fail the
@@ -21,4 +23,16 @@ interface PushNotificationService {
      * contract as [sendClubMembershipAdded].
      */
     suspend fun sendAgeGroupStaffAdded(tokens: List<String>, ageGroupName: String, clubName: String)
+
+    /**
+     * Live-match events, sent to every device in [tokens] -- unlike the association pushes above,
+     * these go to an entire club's membership (see [com.ricardofrango.squadify.domain.usecase.
+     * NotifyLiveMatchEventUseCase]), not just the person directly affected, so [tokens] here can be
+     * much larger. Same non-empty-[tokens] contract as [sendClubMembershipAdded].
+     */
+    suspend fun sendMatchKickedOff(tokens: List<String>, teamName: String, opponentName: String)
+    suspend fun sendHalfTime(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore)
+    suspend fun sendSecondHalfStarted(tokens: List<String>, teamName: String, opponentName: String)
+    suspend fun sendMatchFinished(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore)
+    suspend fun sendGoalScored(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore)
 }

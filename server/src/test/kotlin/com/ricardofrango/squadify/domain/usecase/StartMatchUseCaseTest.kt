@@ -47,8 +47,15 @@ class StartMatchUseCaseTest {
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager
     )
+    private val notifyLiveMatchEventUseCase = mockk<NotifyLiveMatchEventUseCase>(relaxed = true)
     private val useCase = StartMatchUseCase(
-        matchRepository, matchEventRepository, teamRepository, liveMatchBus, checkUserPermissionUseCase, transactionManager
+        matchRepository,
+        matchEventRepository,
+        teamRepository,
+        liveMatchBus,
+        checkUserPermissionUseCase,
+        notifyLiveMatchEventUseCase,
+        transactionManager
     )
 
     private val clubId = "club-1"
@@ -88,6 +95,7 @@ class StartMatchUseCaseTest {
 
         assertEquals(true, result)
         coVerify { matchRepository.startMatch(matchId, starting, 30) }
+        coVerify { notifyLiveMatchEventUseCase(matchId, LiveMatchNotificationEvent.KICKOFF) }
     }
 
     @Test
@@ -101,7 +109,7 @@ class StartMatchUseCaseTest {
         assertFailsWith<ValidationException> {
             useCase(coach.id, matchId, StartMatchRequest(calledUpIds.take(5), 30))
         }
-        Unit
+        coVerify(exactly = 0) { notifyLiveMatchEventUseCase(any(), any()) }
     }
 
     @Test

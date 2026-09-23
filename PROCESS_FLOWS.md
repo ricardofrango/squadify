@@ -815,7 +815,9 @@ graph TD
     G -- a starter isn't in the call-up list --> V3(["Throw ValidationException"])
     G -- ok --> H["Set isStarting=true on the starters' call-ups (false on the rest), set Match.status=LIVE + halfLengthMinutes + kickoffAt=now"]
     H --> I["Publish LiveMatchUpdate(score, status=LIVE) via LiveMatchBus"]
-    I --> Z(["Return success"])
+    I --> J["Transaction commits"]
+    J --> K["NotifyLiveMatchEventUseCase(matchId, KICKOFF) — best-effort push to every club member (§8.2b)"]
+    K --> Z(["Return success"])
 ```
 
 This is the "KICK OFF" action on the live match console's pre-kickoff screen (client, see below): it locks in the Starting XI (everyone else called up becomes the bench) and the half length in one write, then flips the match live. The a-side count comes from `Team.teamSize` (falling back to 11 for teams recorded before that field existed — see the team-size flows in §4.3/§4.5). It also stamps `Match.kickoffAt` with the wall-clock instant of kickoff — the client derives the live running clock from this timestamp rather than any locally-ticking counter (see §8.4).
@@ -832,7 +834,11 @@ graph TD
     D --> E[Persist event]
     E --> G["Recalculate score from all events for this match"]
     G --> H["Publish LiveMatchUpdate(event, score) via LiveMatchBus for matchId"]
-    H --> Z(["Return created event"])
+    H --> I["Transaction commits"]
+    I --> J{"type == GOAL or OWN_GOAL?"}
+    J -- Yes --> K["NotifyLiveMatchEventUseCase(matchId, GOAL) — best-effort push to every club member (§8.2b)"]
+    J -- No --> Z
+    K --> Z(["Return created event"])
 ```
 
 ### 8.1b Delete Match Event (`DeleteMatchEventUseCase`)
@@ -872,12 +878,51 @@ graph TD
     F -- No --> G
     F2 --> G[Recalculate current score]
     G --> H["Publish LiveMatchUpdate(score, status) via LiveMatchBus"]
-    H --> R2(["Return true"])
+    H --> R2b["Transaction commits"]
+    R2b --> R3{"Which transition?"}
+    R3 -- "HALF_TIME→LIVE" --> R4["NotifyLiveMatchEventUseCase(matchId, SECOND_HALF_STARTED)"]
+    R3 -- "→HALF_TIME" --> R5["NotifyLiveMatchEventUseCase(matchId, HALF_TIME)"]
+    R3 -- "→FINISHED" --> R6["NotifyLiveMatchEventUseCase(matchId, FULL_TIME)"]
+    R3 -- "→CANCELLED" --> R2(["Return true — no notification"])
+    R4 --> R2
+    R5 --> R2
+    R6 --> R2
 ```
 
 Status values flow `SCHEDULED → LIVE → HALF_TIME → FINISHED` (or `CANCELLED`). The use case now validates the transition against `VALID_MATCH_STATUS_TRANSITIONS`: `SCHEDULED → CANCELLED` only (kickoff, i.e. `SCHEDULED → LIVE`, stays exclusive to `StartMatchUseCase`, §8.0 — this is a real HTTP route in its own right, `MatchRoutes.kt`, so without this guard a caller could set a match LIVE here directly and skip `StartMatchUseCase`'s starting-line-up/half-length validation entirely); `LIVE → {HALF_TIME, FINISHED, CANCELLED}`; `HALF_TIME → {LIVE, FINISHED, CANCELLED}`; `FINISHED`/`CANCELLED` are terminal. An invalid transition throws `ValidationException`. (Previously this list closed with "but the use case does not itself validate that the requested transition is legal — any status can currently be set from any other," per §11 — now fixed there too.)
 
-On the specific `HALF_TIME → LIVE` transition (resuming for the second half), this use case also stamps `Match.secondHalfStartedAt` with the wall-clock instant — so the client's running clock can pick up from the first half's nominal length instead of restarting at 0 (see §8.4).
+On the specific `HALF_TIME → LIVE` transition (resuming for the second half), this use case also stamps `Match.secondHalfStartedAt` with the wall-clock instant — so the client's running clock can pick up from the first half's nominal length instead of restarting at 0 (see §8.4). That same transition is also how it distinguishes a second-half restart from a first-ever kickoff notification (which never reaches this use case at all — see §8.0) when deciding which push to send, per §8.2b.
+
+### 8.2b Notify Live Match Event (`NotifyLiveMatchEventUseCase`)
+
+```mermaid
+graph TD
+    A["Start: matchId, event (KICKOFF/HALF_TIME/SECOND_HALF_STARTED/FULL_TIME/GOAL)"] --> B["Open a new transaction (the trigger's own already closed)"]
+    B --> C[Fetch Match by id]
+    C -- not found --> X(["Return — nothing to notify with"])
+    C -- found --> D[Fetch Team by match.teamId]
+    D -- not found --> X
+    D -- found --> E[Fetch Opponent by match.opponentId]
+    E -- not found --> X
+    E -- found --> F["Fetch every active ClubMember of match.clubId"]
+    F --> G["FcmTokenRepository.getTokensForUsers(memberIds), flatten to one token list"]
+    G -- empty --> X
+    G -- non-empty --> H["Recalculate current score"]
+    H --> I["Transaction closes"]
+    I --> J{"Which event?"}
+    J -- KICKOFF --> K1["PushNotificationService.sendMatchKickedOff"]
+    J -- HALF_TIME --> K2["PushNotificationService.sendHalfTime"]
+    J -- SECOND_HALF_STARTED --> K3["PushNotificationService.sendSecondHalfStarted"]
+    J -- FULL_TIME --> K4["PushNotificationService.sendMatchFinished"]
+    J -- GOAL --> K5["PushNotificationService.sendGoalScored"]
+    K1 --> Z(["Return"])
+    K2 --> Z
+    K3 --> Z
+    K4 --> Z
+    K5 --> Z
+```
+
+Not a route — a shared orchestrator called by §8.0, §8.1, and §8.2 after their own transaction has already committed, so it opens a transaction of its own purely to read the data the push needs (see `TECHNICAL_DECISIONS.md` §24). Wrapped in a top-level try/catch that logs and swallows any exception (a not-found match, a repository throwing, a push send failing) — this must never propagate back to the use case that triggered it, the same "best-effort" contract as `EmailService`/`PushNotificationService` elsewhere. Recipients are **every active club member**, not scoped to the match's own age group — deliberately broader than the view/edit permissions the rest of the match domain enforces (§7–§8.2); see the developer's note on this in `TECHNICAL_DECISIONS.md` §24.
 
 ### 8.3 Subscribe to Live Match Updates (`GetLiveMatchUpdatesUseCase`)
 

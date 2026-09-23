@@ -798,3 +798,68 @@ updated `AddStaffToAgeGroupUseCaseTest` covering the new constructor shape.
 now push too, so there's no remaining `EmailService`-has-it-but-`PushNotificationService`-doesn't gap.
 In-app (non-push) notifications and iOS/Desktop/Web support are still unstarted -- see
 `REQUIREMENTS.md`'s Push/In-App Notifications roadmap line.
+
+## 24. Push Notifications: Live Match Events (Club-Wide, Not Association-Scoped)
+
+A different shape of push from §23's: not tied to a specific user gaining access to something, but a
+club-wide broadcast of five live-match moments -- kickoff, a goal (including an own goal), half-time,
+the second half restarting, and full-time -- sent to **every club member**, not just the match's own
+age group's staff/players/parents. Per explicit direction from the developer: live match events are
+club-wide news (anyone at the club might want to know a fixture just went 1-0), unlike the
+call-up/edit/view permissions elsewhere in the match domain, which stay scoped to the age group.
+Whether match *viewing* itself should also be club-wide rather than age-group-scoped is a separate,
+open question the developer raised but explicitly deferred -- not touched by this change; see
+`GetMatchesUseCase`/`GetMatchDetailsUseCase` and "issues to fix.md"'s access-control section for the
+current (age-group-scoped) state.
+
+**`NotifyLiveMatchEventUseCase`**, a new kind of use case for this codebase: not exposed via any route,
+and not a per-user association side effect like §23's pushes, but a shared orchestrator injected into
+the three use cases that can trigger one of these moments (`StartMatchUseCase` -> kickoff,
+`AddMatchEventUseCase` -> goal/own-goal, `UpdateMatchStatusUseCase` -> half-time/second-half/full-time,
+distinguishing the last two by the match's *previous* status, same condition already used there to
+decide whether to call `markSecondHalfStarted`). Precedented by `CheckUserPermissionUseCase`, which is
+exactly this shape (a reusable domain-level helper constructor-injected into ~20 other use cases) --
+introduced here to avoid duplicating "fetch team/opponent names, every club member's tokens, build the
+message, send" three times over, once per trigger.
+
+**Fetch-inside-a-transaction-of-its-own, not the caller's.** Every other best-effort push/email so far
+fetches its data *inside* the triggering use case's transaction, then sends *after* that transaction
+closes -- because the send must never roll back a real change, but the repository calls needed to
+build the message still need an ambient transaction while they run. `NotifyLiveMatchEventUseCase` is
+always called *after* its trigger's transaction has already committed, so it can't reuse that
+transaction -- it opens its own (via the same injected `TransactionManager`) purely to read match/team/
+opponent/token data, then sends outside that. The three trigger use cases themselves needed the same
+"transaction, then a value, then a conditional post-commit call" restructuring §23 already used for
+`AddClubMembersUseCase`/`AddStaffToAgeGroupUseCase` -- `StartMatchUseCase` and `AddMatchEventUseCase`
+were previously expression-bodied (`= transactionManager.runInTransaction { ... }` as the whole
+function), which had to become block-bodied to add a step after the transaction returns.
+
+**Recipients**: `ClubRepository.getClubMembers(match.clubId)` (already existed, used by
+`GetClubMembersUseCase` for the staff picker) for every active member's user id, then
+`FcmTokenRepository.getTokensForUsers` (§23) flattened into one token list -- deliberately every
+member's *every* device, not deduped by user, since each device is a separate real notification target.
+No push is sent (the whole use case short-circuits) if nobody has a registered token at all.
+
+**Channel**: `"live_matches"`, matching `SquadifyMessagingService.NOTIFICATION_CHANNEL_LIVE_MATCHES` on
+the Android client (§22) -- the one channel created at `IMPORTANCE_HIGH` rather than `IMPORTANCE_DEFAULT`,
+since these are the most time-sensitive of the three notification types that exist so far.
+
+**500-token chunking**: a single FCM `MulticastMessage` caps out at 500 recipients -- a real API limit,
+not a style choice -- which the two §23 association pushes could never plausibly hit (one push per
+person added) but a club-wide broadcast plausibly could for a large club. `FirebaseAdminPushNotificationService.send`
+now chunks into groups of 500 and sends one `MulticastMessage` per chunk, aggregating failure-count
+logging per chunk rather than assuming the token list always fits in one call.
+
+Verified end to end against a real running server and Postgres (no Firebase credentials configured, so
+each send falls back to its logged skip path, but every step up to the actual FCM call is real): built
+a full fixture (club, season, age group, 7-a-side team, opponent, 7 players called up), registered FCM
+tokens for two different club members -- the club admin, and a second, deliberately plain member with
+no age-group/team assignment at all -- then drove a match through kickoff, a goal, half-time, the
+second half, and full-time. Every one of the five actions logged exactly one push attempt
+(`skipping push to 3 device(s)`), and critically the device count included the plain member's token --
+confirming recipients really are every club member, not just the ones with access to the match itself.
+`:server:test` passes, including a new `NotifyLiveMatchEventUseCaseTest` (happy path per event, no
+tokens found sends nothing, nonexistent match / a repository throwing both still never propagate),
+five new `FirebaseAdminPushNotificationServiceTest` cases (plus one exercising the >500-token chunking
+path), and coverage added to `StartMatchUseCaseTest`/`UpdateMatchStatusUseCaseTest`/
+`AddMatchEventUseCaseTest` asserting the right event fires (or doesn't) per scenario.

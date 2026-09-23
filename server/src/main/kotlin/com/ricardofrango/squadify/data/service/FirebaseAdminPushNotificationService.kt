@@ -10,6 +10,7 @@ import com.google.firebase.messaging.MulticastMessage
 import com.google.firebase.messaging.Notification
 import com.ricardofrango.squadify.config.ServerConfig
 import com.ricardofrango.squadify.domain.service.PushNotificationService
+import com.ricardofrango.squadify.model.MatchScore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
@@ -41,9 +42,7 @@ class FirebaseAdminPushNotificationService : PushNotificationService {
     override suspend fun sendClubMembershipAdded(tokens: List<String>, clubName: String) {
         send(
             tokens = tokens,
-            // Mirrors SquadifyMessagingService.NOTIFICATION_CHANNEL_INVITES on the Android client --
-            // see TECHNICAL_DECISIONS.md's push-notifications section.
-            channelId = "invites",
+            channelId = INVITES_CHANNEL,
             title = "Squadify",
             body = "You've been added to $clubName"
         )
@@ -52,9 +51,7 @@ class FirebaseAdminPushNotificationService : PushNotificationService {
     override suspend fun sendAgeGroupStaffAdded(tokens: List<String>, ageGroupName: String, clubName: String) {
         send(
             tokens = tokens,
-            // Mirrors SquadifyMessagingService.NOTIFICATION_CHANNEL_AGE_GROUP on the Android client --
-            // see TECHNICAL_DECISIONS.md's push-notifications section.
-            channelId = "age_group",
+            channelId = AGE_GROUP_CHANNEL,
             title = "Squadify",
             body = "You've been added as staff to $ageGroupName at $clubName"
         )
@@ -67,25 +64,83 @@ class FirebaseAdminPushNotificationService : PushNotificationService {
             return
         }
         try {
-            val message = MulticastMessage.builder()
-                .addAllTokens(tokens)
-                .setNotification(Notification.builder().setTitle(title).setBody(body).build())
-                .setAndroidConfig(
-                    AndroidConfig.builder()
-                        .setNotification(AndroidNotification.builder().setChannelId(channelId).build())
-                        .build()
-                )
-                .build()
-            // The Admin SDK's send calls block on real HTTP I/O -- hop off whatever dispatcher the
-            // calling use case is on rather than tying up a request coroutine.
-            val response = withContext(Dispatchers.IO) {
-                FirebaseMessaging.getInstance().sendEachForMulticast(message)
-            }
-            if (response.failureCount > 0) {
-                logger.error("Push send to {} had {} failure(s)", title, response.failureCount)
+            // A single MulticastMessage tops out at 500 tokens -- club-wide live-match pushes are the
+            // one caller here that can plausibly exceed that, so this chunks rather than assuming the
+            // association-push callers' small lists forever stay the only ones.
+            tokens.chunked(500).forEach { chunk ->
+                val message = MulticastMessage.builder()
+                    .addAllTokens(chunk)
+                    .setNotification(Notification.builder().setTitle(title).setBody(body).build())
+                    .setAndroidConfig(
+                        AndroidConfig.builder()
+                            .setNotification(AndroidNotification.builder().setChannelId(channelId).build())
+                            .build()
+                    )
+                    .build()
+                // The Admin SDK's send calls block on real HTTP I/O -- hop off whatever dispatcher the
+                // calling use case is on rather than tying up a request coroutine.
+                val response = withContext(Dispatchers.IO) {
+                    FirebaseMessaging.getInstance().sendEachForMulticast(message)
+                }
+                if (response.failureCount > 0) {
+                    logger.error("Push send to {} had {} failure(s)", title, response.failureCount)
+                }
             }
         } catch (e: Exception) {
             logger.error("Push send threw", e)
         }
+    }
+
+    override suspend fun sendMatchKickedOff(tokens: List<String>, teamName: String, opponentName: String) {
+        send(
+            tokens = tokens,
+            channelId = LIVE_MATCHES_CHANNEL,
+            title = "Squadify",
+            body = "$teamName kicked off against $opponentName"
+        )
+    }
+
+    override suspend fun sendHalfTime(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore) {
+        send(
+            tokens = tokens,
+            channelId = LIVE_MATCHES_CHANNEL,
+            title = "Squadify",
+            body = "Half-time: $teamName ${score.ourScore} - ${score.opponentScore} $opponentName"
+        )
+    }
+
+    override suspend fun sendSecondHalfStarted(tokens: List<String>, teamName: String, opponentName: String) {
+        send(
+            tokens = tokens,
+            channelId = LIVE_MATCHES_CHANNEL,
+            title = "Squadify",
+            body = "Second half under way: $teamName vs $opponentName"
+        )
+    }
+
+    override suspend fun sendMatchFinished(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore) {
+        send(
+            tokens = tokens,
+            channelId = LIVE_MATCHES_CHANNEL,
+            title = "Squadify",
+            body = "Full-time: $teamName ${score.ourScore} - ${score.opponentScore} $opponentName"
+        )
+    }
+
+    override suspend fun sendGoalScored(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore) {
+        send(
+            tokens = tokens,
+            channelId = LIVE_MATCHES_CHANNEL,
+            title = "Squadify",
+            body = "Goal! $teamName ${score.ourScore} - ${score.opponentScore} $opponentName"
+        )
+    }
+
+    private companion object {
+        // Mirror SquadifyMessagingService's NOTIFICATION_CHANNEL_* constants on the Android client --
+        // see TECHNICAL_DECISIONS.md's push-notifications section.
+        const val INVITES_CHANNEL = "invites"
+        const val AGE_GROUP_CHANNEL = "age_group"
+        const val LIVE_MATCHES_CHANNEL = "live_matches"
     }
 }
