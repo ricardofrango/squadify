@@ -1,5 +1,4 @@
 <resources>
-    <string name="app_name">Squadify</string>
     <string name="label_email">Email</string>
     <string name="label_password">Senha</string>
     <string name="label_show_password">Mostrar senha</string>

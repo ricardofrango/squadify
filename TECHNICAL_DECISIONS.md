@@ -415,12 +415,16 @@ build-variant system offers:
 
 - **Android** (`app/androidApp`): three product flavors (`dev`/`staging`/`prod`), each setting a
   `BASE_URL` via `buildConfigField`. `SquadifyApplication.onCreate()` reads `BuildConfig.BASE_URL`/
-  `BuildConfig.DEBUG` and passes them to `initKoin`. Deliberately **not** `applicationId`-suffixed per
-  flavor -- `google-services.json` is registered for the bare `com.ricardofrango.squadify` package only,
-  and a suffix would break Crashlytics/App Distribution for every flavor but the one matching it. One
-  consequence: Firebase App Distribution's task is no longer the flat `appDistributionUploadRelease` --
-  flavors split it into `appDistributionUploadDevRelease`/`...StagingRelease`/`...ProdRelease` (verified:
-  ran `./gradlew :app:androidApp:tasks --all`, confirmed all three exist). Use
+  `BuildConfig.DEBUG` and passes them to `initKoin`. `dev`/`staging` carry an `applicationIdSuffix`
+  (`.dev`/`.stg`; `prod` stays bare, for the real Play Store listing) -- originally *not* suffixed at
+  all, but that let a device that had ever run more than one flavor be handed the *same* FCM
+  registration token across them (Firebase scopes a token by package name + project + signing cert, not
+  by build variant), so a push triggered on one environment's server could land on a device someone only
+  meant to test another environment on; see §24's push-notifications section. `google-services.json` is
+  now registered for all three resulting package names under the one Firebase project (`squadify-958d3`).
+  One consequence: Firebase App Distribution's task is no longer the flat `appDistributionUploadRelease`
+  -- flavors split it into `appDistributionUploadDevRelease`/`...StagingRelease`/`...ProdRelease`
+  (verified: ran `./gradlew :app:androidApp:tasks --all`, confirmed all three exist). Use
   `appDistributionUploadStagingRelease` for tester builds, per the "staging first" rule above.
 - **Desktop & Web** (`app/desktopApp`, `app/webApp`): no OS/toolchain-level build-variant system, so both
   use the same pattern instead -- a `generateSquadifyConfig` Gradle task writes a small
@@ -731,3 +735,322 @@ emulator run was performed in this environment (no way to launch and interact wi
 permission dialog, notification display, and token registration/removal HTTP calls are all unexercised
 at runtime, only compiled and statically checked. Worth a real manual pass on a device before considering
 this done.
+
+## 23. Push Notifications: Server-Side Sending (Club Membership + Age-Group Staff Added)
+
+§21/§22 built storage and the Android client's receiving side but nothing server-side ever sent a
+push. This wires the first real sends: the two "existing user added directly" events that already
+trigger an email -- `EmailService.sendClubMembershipAdded` (club membership) and
+`sendAgeGroupStaffAdded` (age-group staff), both §14 -- now also trigger a push, to every device the
+user has a registered token for, if any.
+
+**Firebase Admin SDK, not a hand-rolled HTTP v1 client.** Sending a real FCM push needs an OAuth2
+access token obtained from a service-account key (JWT-signed, refreshed on expiry) -- rebuilding that
+by hand (as was deliberately avoided for `PushTokenProvider`'s single `getToken()` call on Android, §22)
+isn't the right trade here, since the server needs the *full* send API (multicast, per-token failure
+detail, retries), not one call. `com.google.firebase:firebase-admin` (a plain JVM library -- works on
+any JVM backend, unrelated to the Android `firebase-bom` artifacts) handles credential refresh and
+exposes `FirebaseMessaging.sendEachForMulticast(MulticastMessage)`, which was confirmed against the
+actual resolved jar (`javap` on `FirebaseMessaging`, `MulticastMessage.Builder`, `AndroidConfig.Builder`,
+`AndroidNotification.Builder`) before writing code against it, the same rigor used for Exposed's
+`upsert` (§3).
+
+**`ServerConfig.firebaseServiceAccountJson`** follows the exact same optional/best-effort pattern as
+`resendApiKey`: the raw service-account JSON content (not a file path -- there's no reliable place to
+mount a file on Railway), required from `FIREBASE_SERVICE_ACCOUNT_JSON` and reused from the same
+Firebase project (`squadify-958d3`) already registered for Android Crashlytics/App Distribution/FCM
+(§12) -- a service account with Firebase Cloud Messaging privileges, not necessarily the same key used
+for CI's App Distribution uploads (`ISSUES TO FIX.md`'s CI secret is a separate concern: GitHub Actions
+vs. this server's own runtime). Blank/missing credentials are not a startup failure -- push is a
+notification, not a security-critical value -- `FirebaseAdminPushNotificationService` just logs and
+skips every send, verified against a real running server: `FIREBASE_SERVICE_ACCOUNT_JSON not set --
+skipping push to N device(s)`.
+
+**`FcmTokenRepository.getTokensForUsers(userIds)`** returns a `Map<String, List<String>>`, mirroring
+`UserRepository.getUserRolesInClub`'s existing batch-lookup shape (one query for N users, not N
+queries -- see AI_GUIDELINES.md's database-efficiency rule) -- a user absent from the result has no
+registered device, which is the normal case, not an error. Both use cases (`AddClubMembersUseCase`,
+`AddStaffToAgeGroupUseCase`) fetch this map *inside* the transaction (same reasoning as `clubName`: the
+repository has no ambient transaction of its own once the block closes) for every newly-added existing
+member/staff, then -- after the transaction commits, alongside the email sends -- call the matching
+`PushNotificationService` method once per person who actually has at least one token. Anyone with no
+token is simply skipped; the use case never calls the push service for them at all. `AddStaffToAgeGroupUseCase`'s
+transaction block needed a small reshuffle to add this: its last expression used to be the repository
+call whose `Boolean` result the whole use case returns, so the token fetch (also needing to sit inside
+the transaction) had to be captured into a local `val` first, with that `val` made the block's final
+expression instead.
+
+**Channel**: `AddClubMembersUseCase`'s push sets `notification.android_channel_id` to `"invites"`;
+`AddStaffToAgeGroupUseCase`'s sets it to `"age_group"` -- both via
+`AndroidConfig.Builder().setNotification(AndroidNotification.builder().setChannelId(...))`, matching
+`SquadifyMessagingService.NOTIFICATION_CHANNEL_INVITES`/`NOTIFICATION_CHANNEL_AGE_GROUP` on the Android
+client (§22). There's no shared code between server and Android for these ids (they're an Android UI
+concept, not a KMP `common` model), so each string is duplicated with a comment pointing at the other
+side rather than introduced as a new shared constant for a string used in exactly two places.
+
+Verified end to end against a real running server and Postgres, for both events (no Firebase
+credentials configured, so the send itself falls back to its "skipping" log path, but every step up to
+the actual FCM call is real): registered a token, had an admin add that user to a club (then, in a
+second pass, as staff to an age group), and confirmed the log shows the token was found (`fcm_tokens`
+query) and the push was attempted (`skipping push to 1 device(s)`); repeated both with a user who has
+no registered token and confirmed no push log line appears at all for them (only the email skip).
+`:server:test` passes, including a `FirebaseAdminPushNotificationServiceTest` mirroring
+`ResendEmailServiceTest`'s "must never throw with no credential configured" contract test, and an
+updated `AddStaffToAgeGroupUseCaseTest` covering the new constructor shape.
+
+**Not done yet**: both association events that already send email (club membership, age-group staff)
+now push too, so there's no remaining `EmailService`-has-it-but-`PushNotificationService`-doesn't gap.
+In-app (non-push) notifications and iOS/Desktop/Web support are still unstarted -- see
+`REQUIREMENTS.md`'s Push/In-App Notifications roadmap line.
+
+## 24. Push Notifications: Match Events (Club-Wide, Not Association-Scoped)
+
+A different shape of push from §23's: not tied to a specific user gaining access to something, but a
+club-wide broadcast of a match's notification-worthy moments, sent to **every club member**, not just
+the match's own age group's staff/players/parents. Per explicit direction from the developer: match
+events are club-wide news (anyone at the club might want to know a fixture was scheduled, moved, or
+just went 1-0), unlike the call-up/edit/view permissions elsewhere in the match domain, which stay
+scoped to the age group. Whether match *viewing* itself should also be club-wide rather than
+age-group-scoped is a separate, open question the developer raised but explicitly deferred -- not
+touched by this change; see `GetMatchesUseCase`/`GetMatchDetailsUseCase` and "issues to fix.md"'s
+access-control section for the current (age-group-scoped) state.
+
+Two batches of events, added in separate passes but sharing all the same infrastructure below:
+- **Live-match moments** (first): kickoff, a goal (including an own goal), half-time, the second half
+  restarting, full-time.
+- **Schedule changes** (second, once the developer explicitly scoped it in -- parent/player-facing
+  notification ideas raised in the same conversation, like call-up alerts, were deliberately deferred
+  to the roadmap instead, since the developer wants to keep focus on club features for now; see
+  `REQUIREMENTS.md`): a fixture created, rescheduled (its opponent, date/time, or location actually
+  changed -- a notes-only edit does *not* count as a schedule change and sends nothing), or cancelled.
+
+**`NotifyMatchEventUseCase`** (originally `NotifyLiveMatchEventUseCase`, renamed once the schedule
+events made "live match" no longer an accurate description of everything it sends -- a plain rename,
+done while this was all still on the same unmerged branch, so no compatibility shim was needed), a new
+kind of use case for this codebase: not exposed via any route, and not a per-user association side
+effect like §23's pushes, but a shared orchestrator injected into the five use cases that can trigger
+one of these moments (`CreateMatchUseCase` -> scheduled, `UpdateMatchUseCase` -> rescheduled,
+`UpdateMatchStatusUseCase` -> half-time/second-half/full-time/cancelled -- distinguishing second-half
+from a first-ever kickoff by the match's *previous* status, same condition already used there to decide
+whether to call `markSecondHalfStarted` -- `StartMatchUseCase` -> kickoff, `AddMatchEventUseCase` ->
+goal/own-goal). Precedented by `CheckUserPermissionUseCase`, which is exactly this shape (a reusable
+domain-level helper constructor-injected into ~20 other use cases) -- introduced here to avoid
+duplicating "fetch team/opponent names, every club member's tokens, build the message, send" five
+times over, once per trigger.
+
+**Fetch-inside-a-transaction-of-its-own, not the caller's.** Every other best-effort push/email so far
+fetches its data *inside* the triggering use case's transaction, then sends *after* that transaction
+closes -- because the send must never roll back a real change, but the repository calls needed to
+build the message still need an ambient transaction while they run. `NotifyMatchEventUseCase` is
+always called *after* its trigger's transaction has already committed, so it can't reuse that
+transaction -- it opens its own (via the same injected `TransactionManager`) purely to read match/team/
+opponent/token data, then sends outside that. The five trigger use cases themselves needed the same
+"transaction, then a value, then a conditional post-commit call" restructuring §23 already used for
+`AddClubMembersUseCase`/`AddStaffToAgeGroupUseCase` -- `StartMatchUseCase`, `AddMatchEventUseCase`, and
+`CreateMatchUseCase` were previously expression-bodied (`= transactionManager.runInTransaction { ... }`
+as the whole function), which had to become block-bodied to add a step after the transaction returns.
+`UpdateMatchUseCase` additionally needed to compare the merged match against the original to decide
+*whether* to notify at all -- `request.dateTime != null` isn't the right test (a caller could resend
+the existing value), so it compares the actually-merged `opponentId`/`dateTime`/`location` against the
+pre-edit match instead.
+
+**Recipients**: `ClubRepository.getClubMembers(match.clubId)` (already existed, used by
+`GetClubMembersUseCase` for the staff picker) for every active member's user id, then
+`FcmTokenRepository.getTokensForUsers` (§23) flattened into one token list -- deliberately every
+member's *every* device, not deduped by user, since each device is a separate real notification target.
+No push is sent (the whole use case short-circuits) if nobody has a registered token at all.
+
+**Channel**: the three live-match-adjacent moments use `"live_matches"` (matching
+`SquadifyMessagingService.NOTIFICATION_CHANNEL_LIVE_MATCHES` on the Android client, §22 -- the one
+channel created at `IMPORTANCE_HIGH`); the three schedule-change events use `"age_group"`
+(`NOTIFICATION_CHANNEL_AGE_GROUP`) instead -- its stated purpose on the client ("Roster, staff, and
+age-group updates") already covers a fixture being created, moved, or cancelled, and reusing it meant
+this needed zero Android-side changes (no new channel, no `strings.xml`/`SquadifyApplication` edits).
+
+**500-token chunking**: a single FCM `MulticastMessage` caps out at 500 recipients -- a real API limit,
+not a style choice -- which the two §23 association pushes could never plausibly hit (one push per
+person added) but a club-wide broadcast plausibly could for a large club. `FirebaseAdminPushNotificationService.send`
+now chunks into groups of 500 and sends one `MulticastMessage` per chunk, aggregating failure-count
+logging per chunk rather than assuming the token list always fits in one call.
+
+Verified end to end against a real running server and Postgres (no Firebase credentials configured, so
+each send falls back to its logged skip path, but every step up to the actual FCM call is real), across
+two separate passes:
+- **Live-match moments**: built a full fixture (club, season, age group, 7-a-side team, opponent, 7
+  players called up), registered FCM tokens for two different club members -- the club admin, and a
+  second, deliberately plain member with no age-group/team assignment at all -- then drove a match
+  through kickoff, a goal, half-time, the second half, and full-time. Every one of the five actions
+  logged exactly one push attempt (`skipping push to 3 device(s)`), and critically the device count
+  included the plain member's token -- confirming recipients really are every club member, not just the
+  ones with access to the match itself.
+- **Schedule changes**: created a match (logged one push attempt), edited only its `notes` (logged
+  *zero* -- confirming a non-schedule edit correctly sends nothing), edited its opponent (logged one
+  push attempt), then cancelled it (logged one push attempt) -- exactly 3 attempts across 4 API calls,
+  matching the expected SCHEDULED/RESCHEDULED/CANCELLED firings precisely.
+
+`:server:test` passes, including `NotifyMatchEventUseCaseTest` (happy path per event -- all eight now,
+including the three schedule ones -- no tokens found sends nothing, nonexistent match / a repository
+throwing both still never propagate), `FirebaseAdminPushNotificationServiceTest` cases for every method
+(plus one exercising the >500-token chunking path), a new `CreateMatchUseCaseTest` (this use case had
+no test file before), and coverage added to `UpdateMatchUseCaseTest`/`UpdateMatchStatusUseCaseTest`/
+`StartMatchUseCaseTest`/`AddMatchEventUseCaseTest` asserting the right event fires (or doesn't) per
+scenario -- including that a notes-only `UpdateMatchUseCase` call sends nothing.
+
+## 25. Push Notifications: Environment Isolation + Local Credential Fallback
+
+Found by manual testing, not designed up front: with dev/staging/prod all sharing one `applicationId`
+(`com.ricardofrango.squadify`, no suffix) and one Firebase project, a device that had ever run more than
+one flavor could be handed the *same* FCM registration token across them -- Firebase scopes a token by
+package name + project + signing cert, not by build variant/flavor. Since each server environment
+already only ever sends to tokens found in its *own* database (dev/staging/prod each have separate
+Postgres instances), that alone wasn't the leak: the leak was that the *same physical token* could exist
+in two different environments' databases if the same device registered it against both, and Firebase
+itself has no concept of "environment" to stop a send addressed to that token regardless of which
+environment's server sent it -- it just delivers to whatever device that token is bound to.
+
+**Fix, client side**: `app/androidApp/build.gradle.kts`'s `dev`/`staging` flavors now carry
+`applicationIdSuffix` (`.dev`/`.stg`; `prod` stays bare) -- see §16's "Environment-Based App Config"
+section for the updated description. This makes each flavor a genuinely distinct app to Firebase, so
+even the same physical device produces different, non-interchangeable tokens per flavor, closing the
+loophole. `google-services.json` now registers three `client` entries (one per resulting package name)
+under the same Firebase project (`squadify-958d3`) -- Firebase supports multiple package names under one
+project natively for exactly this multi-flavor scenario, so this didn't require creating additional
+Firebase projects.
+
+**Server side needed no code change**: Firebase Admin SDK credentials are scoped to the *project*, not
+to individual apps/package names, so the one existing `FIREBASE_SERVICE_ACCOUNT_JSON` (§24) still covers
+all three apps -- FCM sends are addressed by device token, not by package name, so
+`FirebaseAdminPushNotificationService` never needed to know which flavor registered a given token.
+Verified empirically: the same default Admin SDK service-account key already used for CI's Firebase App
+Distribution uploads (`firebase-service-account.json`, `client_email` matching Firebase's
+`firebase-adminsdk-<random>@<project>.iam.gserviceaccount.com` auto-provisioned pattern -- not a
+narrowly-scoped "App Distribution only" credential, despite the name association) was confirmed to
+already carry Cloud Messaging permission too, via a real dry-run send (`FirebaseMessaging.send(message,
+dryRun = true)`) that reached Firebase's servers and got rejected only for an intentionally-fake token
+(`"The registration token is not a valid FCM registration token"` -- a token-format rejection, not a
+`PERMISSION_DENIED`, which is what would have happened if this credential actually lacked FCM
+authorization). Confirmed again by sending a real (non-dry-run) message to an actual previously-
+registered device token through the real `FirebaseAdminPushNotificationService` class and getting a
+genuine `200` from `fcm.googleapis.com` -- both checks used a throwaway test class, deleted immediately
+after, never committed.
+
+**`ServerConfig.firebaseServiceAccountJson` gained a local-dev file fallback.** Requiring
+`FIREBASE_SERVICE_ACCOUNT_JSON` exported in every shell before `./gradlew :server:run` works was
+explicitly rejected by the developer as a permanent requirement -- the fix needed to be in code, not a
+runtime habit. Mirrors the exact pattern `app/androidApp/build.gradle.kts` already uses for the release
+keystore (`keystorePropertiesFile.exists()` -> use it, else fall back): when the env var isn't set,
+`ServerConfig` now reads the same gitignored `firebase-service-account.json` file directly. The first
+implementation of this used a single repo-root-relative path and silently never worked under the one
+launch method it was actually for -- Gradle's `application`/`test` tasks default their JVM's working
+directory to the `server/` *module* folder, not the repo root, even though `./gradlew` itself is
+conventionally invoked from the root (confirmed empirically: `File(".").absolutePath` printed
+`.../server` under both `:server:run` and `:server:test`). Fixed by trying `../firebase-service-account.json`
+first (what actually resolves under Gradle's real working directory) with the bare repo-root-relative
+form kept as a second candidate for any other invocation method. The env var still takes priority over
+both when set, since Railway (staging/production) has no reliable place to mount a file at all -- this
+fallback is local-dev-only convenience, not a replacement for the env var in deployed environments.
+
+## 26. Push Notifications: Team Created
+
+A gap noticed only after the match/schedule pushes existed and got compared against: `CreateTeamUseCase`
+and `CreateTeamsUseCase` (batch) had no push at all, unlike every other roster/structural change in the
+club (a member added, age-group staff added, a match scheduled). Same club-wide model as §24's schedule
+pushes -- **every active club member**, not just the new team's own age group -- on the `"age_group"`
+channel (its stated purpose, "Roster, staff, and age-group updates," already covers this).
+
+Not routed through `NotifyMatchEventUseCase` -- there's no `matchId` here, and only two call sites (not
+five), so the "fetch inside a transaction of its own after the caller's has already closed" complexity
+that use case exists for wasn't needed. Both `CreateTeamUseCase` and `CreateTeamsUseCase` instead fetch
+`ClubRepository.getClubMembers`/`FcmTokenRepository.getTokensForUsers` themselves, *inside* their own
+existing transaction (same "fetch inside, send after" shape as `AddClubMembersUseCase`/
+`AddStaffToAgeGroupUseCase`, §23), then call `PushNotificationService.sendTeamCreated` once the
+transaction commits. `CreateTeamUseCase` previously only fetched the club when `teamSize` was provided
+(to validate it against the club's sport); it's now fetched unconditionally, since the push needs the
+club's name regardless.
+
+**One push per invocation, not per team.** `sendTeamCreated` takes `teamNames: List<String>` so a
+`CreateTeamsUseCase` batch of several teams sends a single notification listing every name, rather than
+spamming one push per team created in the same request -- the same reasoning `AddClubMembersUseCase`
+already applies per person added, extended here to "per API call" since a batch team-creation screen is
+a single user action even though it creates N rows.
+
+Verified end to end against a real running server and Postgres, with the real Firebase credential now
+active (via §25's fallback): registered a token for a plain club member, created one team (single-team
+endpoint) and then a batch of two more (batch endpoint) under the same age group, and confirmed exactly
+two push attempts were logged -- one per API call, not three (one per team) -- each correctly gathering
+every club member's tokens (including the admin's own accumulated tokens from earlier test sessions;
+Firebase rejected those specific ones as invalid strings, logged as a failure count, not an exception,
+matching the existing "log and continue" contract). `:server:test` passes, including new
+`CreateTeamUseCaseTest`/`CreateTeamsUseCaseTest` cases asserting the notification fires with the right
+team name(s)/age-group/club name, and that no club member having a token sends nothing.
+
+## 27. Push Notifications: Localization (Device Locale, Not Server-Chosen)
+
+Found via real-device testing: every push so far sent literal, hardcoded English text -- a device set
+to Portuguese (the app already supports EN/PT for its own UI, `app/shared/.../composeResources/
+values-pt/`) still received English notifications, since the server had no way to know or honor that.
+
+**Rejected approach: a server-side "user locale" field.** Storing a preferred language per user (a new
+`users` column, some way to set/sync it, e.g. from device locale at registration or an in-app setting)
+and building each message's text server-side in the right language was the naive fix, but it invents a
+whole new, redundant concept: the device *already* has a locale, already drives every other string in
+the app, and could drift out of sync with a stored value the moment someone changes their phone's
+language without reopening Squadify. It would also break the current one-multicast-per-event shape --
+recipients with different locales would need grouping into separate sends per language, multiplying the
+complexity of every trigger use case for a problem the platform already solves.
+
+**Adopted: FCM's own localized-notification mechanism.** Confirmed both SDKs actually support this by
+inspecting the real dependency jars via `javap` (the same rigor as §26's Admin SDK check) before writing
+code against it: the Admin SDK's `AndroidNotification.Builder` (server side) exposes
+`setBodyLocalizationKey`/`addAllBodyLocalizationArgs` (and title equivalents, unused here -- see below),
+and the client SDK's `RemoteMessage.Notification` (`firebase-messaging-25.0.2.aar`, extracted and
+inspected the same way) exposes the matching `getBodyLocalizationKey`/`getBodyLocalizationArgs`. The
+server sends a *key* (matching an Android string resource name) plus ordered string arguments instead
+of rendered text; the client resolves the key against whichever locale's resources the device is
+actually running -- the exact mechanism Android already uses for every other string in the app, just
+applied to notification bodies too. No new data model, no per-locale send grouping, no drift risk.
+
+**Title is omitted entirely, not localized via a key.** `SquadifyMessagingService.onMessageReceived`
+already had `notification.title ?: getString(R.string.app_name)` as a fallback (§22) -- since the app's
+own name doesn't need the server's help to say correctly, `FirebaseAdminPushNotificationService` simply
+never sets a title anymore, letting that existing fallback do the work locally, using whichever flavor's
+`resValue`-generated `app_name` (§25) the receiving device actually has.
+
+**Server side** (`FirebaseAdminPushNotificationService`): every `sendXxx` method builds a
+`(bodyLocKey, bodyLocArgs)` pair instead of an interpolated string, still going through the same chunked
+`send()` helper (unchanged signature-wise from the caller's perspective -- `PushNotificationService`'s
+own method signatures didn't need to change at all, since they already carried plain data, never
+pre-rendered text). FCM localization args are always strings on the wire (`addBodyLocalizationArg` only
+takes `String`), so match scores are `.toString()`'d before being passed -- every corresponding Android
+string resource placeholder must be `%N$s`, never `%N$d`, or `getString(id, *args)` throws a format
+mismatch client-side (`%d` expects a boxed `Number`, not a `String`).
+
+**Client side** (`SquadifyMessagingService`): a hand-maintained `Map<String, Int>`
+(`BODY_LOCALIZATION_KEYS`) bridges the server's string key to a compile-time `R.string.*` id --
+deliberately not `Resources.getIdentifier()` (a runtime name-based lookup Android's own lint flags as
+slow and fragile). An unrecognized key, or an arg-count/format mismatch against what got sent, falls
+back to the message's own literal `body` rather than dropping the notification -- keeps a manual
+Firebase-console test push (which can't set `body_loc_key` at all) working exactly as before.
+
+**Twelve message templates**, added to both `app/androidApp/src/main/res/values/strings.xml` (English,
+already existed) and a brand-new `res/values-pt/strings.xml` (Portuguese -- this Android module had no
+Portuguese resources at all before this) with matching `%N$s` placeholder counts: the nine match-event
+bodies (§24), the two association-push bodies (§23), and both team-created variants, singular/plural
+(§26). Adding `values-pt/` for the first time surfaced a real, pre-existing gap as a lint `error`, not
+just this feature's own strings: the four notification-channel names/descriptions (§22) had never been
+translated either, since there was nothing to compare them against until now -- translated those too in
+the same change, since they're squarely inside "notifications should be localized" even though they're
+shown in Android's system settings screen rather than in a push body.
+
+**Verified**: `:app:androidApp:lintStagingRelease` (the full lint pass, not just the `lintVital` subset
+that gates release builds) runs Android's own `MissingTranslation`/`StringFormatCount`/
+`StringFormatMatches` checks across every locale automatically -- ran clean against all twelve new keys
+plus the four now-translated channel strings, confirming every EN/PT pair has matching placeholder
+counts and nothing was missed. End to end against a real running server: triggered a club-membership
+push and confirmed the log now reads `Push send of push_club_membership_added had N failure(s)` --
+the structured key, not literal English text -- reaching Firebase successfully (failures only because
+the test token itself was a fake string, the same "reached Firebase, rejected only the token" signal
+already established in §25/§26). **Not verified**: actual rendering on a real device in each language --
+no way to launch and interact with the app in this environment; worth a real on-device pass (toggle the
+device to Portuguese, trigger a push, confirm the Portuguese text actually renders) before considering
+this fully done.

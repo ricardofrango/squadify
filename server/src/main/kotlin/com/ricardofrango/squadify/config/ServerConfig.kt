@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.config
 
+import java.io.File
+
 /**
  * The two environments the server can run in. Defaults to DEV so a plain local `./gradlew run` keeps
  * working exactly as before -- set `APP_ENV=production` (or `prod`) to opt into production behavior.
@@ -143,4 +145,34 @@ object ServerConfig {
      */
     val webAppBaseUrl: String = System.getenv("WEBAPP_BASE_URL")?.takeIf { it.isNotBlank() }
         ?: "http://localhost:8081"
+
+    /**
+     * A Firebase service-account key (the raw JSON content, not a file path -- there's no reliable
+     * place to mount a file on Railway, which is why the env var takes priority) used by
+     * [com.ricardofrango.squadify.data.service.FirebaseAdminPushNotificationService] to send push
+     * notifications through the same Firebase project (squadify-958d3) already registered for Android
+     * -- see TECHNICAL_DECISIONS.md's push-notifications section. Same best-effort posture as
+     * [resendApiKey]: push is a notification, not a security-critical value, so a missing/blank
+     * credential degrades to that service logging and skipping the send rather than refusing to start.
+     *
+     * Local dev falls back to reading `firebase-service-account.json` at the repo root (gitignored,
+     * never committed -- same file/pattern `app/androidApp/build.gradle.kts` already uses for App
+     * Distribution's `keystoreProperties`) when the env var isn't set, so a plain `./gradlew :server:run`
+     * picks it up automatically instead of requiring it exported in every shell. Checked at two
+     * candidate paths, not just one: Gradle's `application`/`test` tasks default their JVM's working
+     * directory to the `server/` module folder, not the repo root, even when `./gradlew` itself was
+     * invoked from the root -- confirmed empirically (`File(".").absolutePath` prints `.../server`
+     * under `:server:run`/`:server:test`), so a bare repo-root-relative path silently never matches
+     * under the one launch method this is actually for. `../firebase-service-account.json` is what
+     * resolves there; the bare repo-root-relative form stays as a second candidate for any other way
+     * this might get invoked (e.g. running a packaged jar directly from the repo root).
+     */
+    val firebaseServiceAccountJson: String = System.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")?.takeIf { it.isNotBlank() }
+        ?: listOf("../firebase-service-account.json", "firebase-service-account.json")
+            .asSequence()
+            .map { File(it) }
+            .firstOrNull { it.isFile }
+            ?.readText()
+            ?.takeIf { it.isNotBlank() }
+        ?: ""
 }

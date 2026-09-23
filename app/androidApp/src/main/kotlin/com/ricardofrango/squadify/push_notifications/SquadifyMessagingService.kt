@@ -22,16 +22,23 @@ import kotlin.random.Random
  * [org.koin.core.component.KoinComponent] rather than constructor injection (Koin is already started in
  * [com.ricardofrango.squadify.SquadifyApplication.onCreate] by the time this could ever fire).
  *
- * Only handles the "notification" message payload (title/body) for now -- there's no structured "data"
- * payload contract yet, since the server doesn't send pushes at all today (this branch only built
- * registration; sending is a later commit). Tapping a notification just opens [com.ricardofrango.squadify.MainActivity]; deep
- * linking to a specific club/match/etc. needs that data contract to exist first.
+ * Only handles the "notification" message payload for now -- there's no structured "data" payload
+ * contract yet for deep-linking a tapped notification anywhere other than opening the app to wherever
+ * it was last (see ISSUES TO FIX.md).
  *
  * Which channel a notification lands in is decided by the sender, not here: FCM's own
- * `notification.android_channel_id` payload field round-trips as [RemoteMessage.Notification.channelId],
- * so the server just needs to set it per notification type once it actually sends pushes. Falls back to
- * [NOTIFICATION_CHANNEL_DEFAULT] for anything that doesn't set one (a manual test push from the Firebase
- * console, for instance, can't set this field).
+ * `notification.android_channel_id` payload field round-trips as [RemoteMessage.Notification.channelId].
+ * Falls back to [NOTIFICATION_CHANNEL_DEFAULT] for anything that doesn't set one (a manual test push
+ * from the Firebase console, for instance, can't set this field).
+ *
+ * The body text is resolved locally, never taken as literal text from the server: the server sends a
+ * `body_loc_key` (matching an entry in [BODY_LOCALIZATION_KEYS], which itself matches a string resource
+ * name in `res/values`, or a locale-specific variant such as `res/values-pt`) plus ordered
+ * `body_loc_args`, and this resolves that against whichever locale's resources the device is actually
+ * running -- the same mechanism the rest of the app already uses for EN/PT, applied to notifications
+ * too (see TECHNICAL_DECISIONS.md §27). Falls back to the message's own literal `body` (or drops the
+ * notification) for anything without a recognized key -- a manual Firebase console test push, for
+ * instance, can't set `body_loc_key` either.
  */
 class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
 
@@ -57,7 +64,7 @@ class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
         super.onMessageReceived(message)
         val notification = message.notification ?: return
         val title = notification.title ?: getString(R.string.app_name)
-        val body = notification.body ?: return
+        val body = resolveLocalizedBody(notification) ?: notification.body ?: return
 
         val contentIntent = PendingIntent.getActivity(
             this,
@@ -82,10 +89,41 @@ class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
         }
     }
 
+    // Resource IDs are compile-time constants, not lookupable by the loc key's own string value without
+    // Resources.getIdentifier() -- slow, and flagged by lint as fragile -- so this map is the bridge,
+    // kept in sync by hand with both FirebaseAdminPushNotificationService's key literals and the string
+    // resources they name. Returns null (never throws) for an unrecognized key or an arg-count mismatch,
+    // so callers fall back to the message's own literal body rather than dropping the notification.
+    private fun resolveLocalizedBody(notification: RemoteMessage.Notification): String? {
+        val key = notification.bodyLocalizationKey ?: return null
+        val resId = BODY_LOCALIZATION_KEYS[key] ?: return null
+        val args = notification.bodyLocalizationArgs ?: emptyArray()
+        return try {
+            getString(resId, *args)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     companion object {
         const val NOTIFICATION_CHANNEL_DEFAULT = "default"
         const val NOTIFICATION_CHANNEL_LIVE_MATCHES = "live_matches"
         const val NOTIFICATION_CHANNEL_AGE_GROUP = "age_group"
         const val NOTIFICATION_CHANNEL_INVITES = "invites"
+
+        private val BODY_LOCALIZATION_KEYS = mapOf(
+            "push_club_membership_added" to R.string.push_club_membership_added,
+            "push_age_group_staff_added" to R.string.push_age_group_staff_added,
+            "push_match_scheduled" to R.string.push_match_scheduled,
+            "push_match_rescheduled" to R.string.push_match_rescheduled,
+            "push_match_cancelled" to R.string.push_match_cancelled,
+            "push_match_kicked_off" to R.string.push_match_kicked_off,
+            "push_half_time" to R.string.push_half_time,
+            "push_second_half_started" to R.string.push_second_half_started,
+            "push_match_finished" to R.string.push_match_finished,
+            "push_goal_scored" to R.string.push_goal_scored,
+            "push_team_created_one" to R.string.push_team_created_one,
+            "push_team_created_many" to R.string.push_team_created_many,
+        )
     }
 }

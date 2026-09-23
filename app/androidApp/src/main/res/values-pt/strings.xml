@@ -1,0 +1,27 @@
+<resources>
+    <!-- Notification channel names/descriptions, shown in Android's own per-app notification
+         settings screen: see the default values/strings.xml. -->
+    <string name="notification_channel_default_name">Geral</string>
+    <string name="notification_channel_default_description">Tudo o que não se enquadra noutra categoria</string>
+    <string name="notification_channel_live_matches_name">Jogos ao Vivo</string>
+    <string name="notification_channel_live_matches_description">Início de jogo, golos, cartões e resultados finais</string>
+    <string name="notification_channel_age_group_name">Escalão</string>
+    <string name="notification_channel_age_group_description">Plantel, staff e atualizações do escalão</string>
+    <string name="notification_channel_invites_name">Convites</string>
+    <string name="notification_channel_invites_description">Convites de clubes e equipas</string>
+
+    <!-- Push notification bodies: see the default values/strings.xml for how these are resolved.
+         Kept in sync manually: every key here must also exist there, and vice versa. -->
+    <string name="push_club_membership_added">Foi adicionado a %1$s</string>
+    <string name="push_age_group_staff_added">Foi adicionado como staff de %1$s, em %2$s</string>
+    <string name="push_match_scheduled">Novo jogo: %1$s vs %2$s foi agendado</string>
+    <string name="push_match_rescheduled">O jogo de %1$s contra %2$s foi atualizado</string>
+    <string name="push_match_cancelled">O jogo de %1$s contra %2$s foi cancelado</string>
+    <string name="push_match_kicked_off">O jogo de %1$s contra %2$s começou</string>
+    <string name="push_half_time">Intervalo: %1$s %2$s - %3$s %4$s</string>
+    <string name="push_second_half_started">A segunda parte de %1$s contra %2$s já começou</string>
+    <string name="push_match_finished">Fim do jogo: %1$s %2$s - %3$s %4$s</string>
+    <string name="push_goal_scored">Golo! %1$s %2$s - %3$s %4$s</string>
+    <string name="push_team_created_one">Nova equipa: %1$s foi adicionada a %2$s</string>
+    <string name="push_team_created_many">Novas equipas adicionadas a %2$s: %1$s</string>
+</resources>

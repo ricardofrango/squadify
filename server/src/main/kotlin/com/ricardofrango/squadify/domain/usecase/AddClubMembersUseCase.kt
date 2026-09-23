@@ -1,9 +1,11 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.ClubRepository
+import com.ricardofrango.squadify.domain.repository.FcmTokenRepository
 import com.ricardofrango.squadify.domain.repository.InviteRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.EmailService
+import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.model.*
 import kotlin.time.Instant
@@ -13,9 +15,11 @@ class AddClubMembersUseCase(
     private val clubRepository: ClubRepository,
     private val userRepository: UserRepository,
     private val inviteRepository: InviteRepository,
+    private val fcmTokenRepository: FcmTokenRepository,
     private val transactionManager: TransactionManager,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
-    private val emailService: EmailService
+    private val emailService: EmailService,
+    private val pushNotificationService: PushNotificationService
 ) {
     suspend operator fun invoke(
         userId: String,
@@ -25,6 +29,7 @@ class AddClubMembersUseCase(
         val membersAdded = mutableListOf<User>()
         val emailsInvited = mutableListOf<String>()
         var clubName = "your club"
+        var pushTokensByUser: Map<String, List<String>> = emptyMap()
 
         transactionManager.runInTransaction {
             // 1. Check permissions (Admin/Coordinator required to invite members)
@@ -80,13 +85,24 @@ class AddClubMembersUseCase(
                 inviteRepository.createInvites(invitesToCreate)
             }
 
+            // fcmTokenRepository has no ambient transaction of its own outside this block either --
+            // fetched here for the same reason clubName is, even though it's only used for the push
+            // notifications sent below.
+            if (membersAdded.isNotEmpty()) {
+                pushTokensByUser = fcmTokenRepository.getTokensForUsers(membersAdded.map { it.id })
+            }
+
             true
         }
 
-        // Sent after the transaction commits -- a failed/slow email must never roll back membership.
+        // Sent after the transaction commits -- a failed/slow email or push must never roll back
+        // membership.
         if (membersAdded.isNotEmpty() || emailsInvited.isNotEmpty()) {
             membersAdded.forEach {
                 emailService.sendClubMembershipAdded(to = it.email, firstName = it.firstName, clubName = clubName)
+                pushTokensByUser[it.id]?.let { tokens ->
+                    pushNotificationService.sendClubMembershipAdded(tokens = tokens, clubName = clubName)
+                }
             }
             emailsInvited.forEach {
                 emailService.sendClubInvite(to = it, clubName = clubName)

@@ -20,58 +20,67 @@ class StartMatchUseCase(
     private val teamRepository: TeamRepository,
     private val liveMatchBus: LiveMatchBus,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
         userId: String,
         matchId: String,
         request: StartMatchRequest
-    ): Boolean = transactionManager.runInTransaction {
-        val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
+    ): Boolean {
+        val success = transactionManager.runInTransaction {
+            val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
 
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = match.clubId,
-            minTeamRole = TeamRole.STAFF,
-            teamId = match.teamId,
-            errorMessage = "Only admins, coordinators, coaches, or team staff can start a match"
-        )
+            checkUserPermissionUseCase(
+                userId = userId,
+                clubId = match.clubId,
+                minTeamRole = TeamRole.STAFF,
+                teamId = match.teamId,
+                errorMessage = "Only admins, coordinators, coaches, or team staff can start a match"
+            )
 
-        if (match.status != MatchStatus.SCHEDULED) {
-            throw ValidationException("Match has already started")
-        }
-        if (request.halfLengthMinutes <= 0) {
-            throw ValidationException("Half length must be a positive number of minutes")
-        }
-        val startingIds = request.startingPlayerIds
-        if (startingIds.isEmpty()) {
-            throw ValidationException("Pick a starting line-up before kicking off")
-        }
-        if (startingIds.toSet().size != startingIds.size) {
-            throw ValidationException("A player can only be in the starting line-up once")
+            if (match.status != MatchStatus.SCHEDULED) {
+                throw ValidationException("Match has already started")
+            }
+            if (request.halfLengthMinutes <= 0) {
+                throw ValidationException("Half length must be a positive number of minutes")
+            }
+            val startingIds = request.startingPlayerIds
+            if (startingIds.isEmpty()) {
+                throw ValidationException("Pick a starting line-up before kicking off")
+            }
+            if (startingIds.toSet().size != startingIds.size) {
+                throw ValidationException("A player can only be in the starting line-up once")
+            }
+
+            // The a-side count this team plays -- falls back to 11 for teams recorded before team sizes
+            // existed (see PROCESS_FLOWS.md's team-size flows).
+            val team = teamRepository.getTeamById(match.teamId) ?: throw NotFoundException("Team not found")
+            val requiredCount = team.teamSize ?: 11
+            if (startingIds.size != requiredCount) {
+                throw ValidationException("The starting line-up needs exactly $requiredCount players")
+            }
+
+            // Every call-up is CALLED_UP -- there's no other status to filter on (see CallUpStatus).
+            val eligiblePlayerIds = matchRepository.getCallUpsForMatch(matchId)
+                .map { it.callUp.playerId }
+                .toSet()
+            if (!eligiblePlayerIds.containsAll(startingIds)) {
+                throw ValidationException("The starting line-up can only include players called up for this match")
+            }
+
+            val started = matchRepository.startMatch(matchId, startingIds, request.halfLengthMinutes)
+            if (started) {
+                val score = matchEventRepository.getScoreByMatch(matchId)
+                liveMatchBus.publish(matchId, LiveMatchUpdate(score = score, status = MatchStatus.LIVE))
+            }
+            started
         }
 
-        // The a-side count this team plays -- falls back to 11 for teams recorded before team sizes
-        // existed (see PROCESS_FLOWS.md's team-size flows).
-        val team = teamRepository.getTeamById(match.teamId) ?: throw NotFoundException("Team not found")
-        val requiredCount = team.teamSize ?: 11
-        if (startingIds.size != requiredCount) {
-            throw ValidationException("The starting line-up needs exactly $requiredCount players")
-        }
-
-        // Every call-up is CALLED_UP -- there's no other status to filter on (see CallUpStatus).
-        val eligiblePlayerIds = matchRepository.getCallUpsForMatch(matchId)
-            .map { it.callUp.playerId }
-            .toSet()
-        if (!eligiblePlayerIds.containsAll(startingIds)) {
-            throw ValidationException("The starting line-up can only include players called up for this match")
-        }
-
-        val success = matchRepository.startMatch(matchId, startingIds, request.halfLengthMinutes)
+        // Sent after the transaction commits -- a failed/slow push must never roll back kickoff.
         if (success) {
-            val score = matchEventRepository.getScoreByMatch(matchId)
-            liveMatchBus.publish(matchId, LiveMatchUpdate(score = score, status = MatchStatus.LIVE))
+            notifyMatchEventUseCase(matchId, MatchNotificationEvent.KICKOFF)
         }
-        success
+        return success
     }
 }

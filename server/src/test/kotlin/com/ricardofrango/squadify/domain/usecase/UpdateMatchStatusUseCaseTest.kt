@@ -40,8 +40,9 @@ class UpdateMatchStatusUseCaseTest {
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager
     )
+    private val notifyMatchEventUseCase = mockk<NotifyMatchEventUseCase>(relaxed = true)
     private val useCase = UpdateMatchStatusUseCase(
-        matchRepository, matchEventRepository, liveMatchBus, checkUserPermissionUseCase, transactionManager
+        matchRepository, matchEventRepository, liveMatchBus, checkUserPermissionUseCase, notifyMatchEventUseCase, transactionManager
     )
 
     private val clubId = "club-1"
@@ -72,6 +73,23 @@ class UpdateMatchStatusUseCaseTest {
 
         assert(result)
         coVerify(exactly = 1) { matchRepository.markSecondHalfStarted(matchId, any()) }
+        coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.SECOND_HALF_STARTED) }
+    }
+
+    @Test
+    fun liveToHalfTimeNotifiesHalfTime() = runBlocking {
+        val coach = coach()
+        val liveMatch = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.LIVE)
+        coEvery { matchRepository.getMatchById(matchId) } returns liveMatch
+        stubCoachPermission(coach)
+        coEvery { matchRepository.updateMatchStatus(matchId, MatchStatus.HALF_TIME) } returns true
+        coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 1, 0)
+
+        val result = useCase(coach.id, matchId, MatchStatus.HALF_TIME)
+
+        assert(result)
+        coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.HALF_TIME) }
+        coVerify(exactly = 0) { matchRepository.markSecondHalfStarted(any(), any()) }
     }
 
     @Test
@@ -88,6 +106,7 @@ class UpdateMatchStatusUseCaseTest {
         }
         coVerify(exactly = 0) { matchRepository.updateMatchStatus(any(), any()) }
         coVerify(exactly = 0) { matchRepository.markSecondHalfStarted(any(), any()) }
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
     }
 
     @Test
@@ -147,5 +166,21 @@ class UpdateMatchStatusUseCaseTest {
         val result = useCase(coach.id, matchId, MatchStatus.FINISHED)
 
         assert(result)
+        coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.FULL_TIME) }
+    }
+
+    @Test
+    fun cancellingAScheduledMatchNotifiesTheClub() = runBlocking {
+        val coach = coach()
+        val scheduledMatch = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.SCHEDULED)
+        coEvery { matchRepository.getMatchById(matchId) } returns scheduledMatch
+        stubCoachPermission(coach)
+        coEvery { matchRepository.updateMatchStatus(matchId, MatchStatus.CANCELLED) } returns true
+        coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 0, 0)
+
+        val result = useCase(coach.id, matchId, MatchStatus.CANCELLED)
+
+        assert(result)
+        coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.CANCELLED) }
     }
 }

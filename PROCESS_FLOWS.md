@@ -444,10 +444,15 @@ graph TD
     E -- Yes --> E2{"teamSize set? — load club, must be in club.sport.teamSizes"}
     E2 -- invalid --> V
     E2 -- ok / not set --> G["Create Team — active=true, teamSize = request.teamSize ?: ageGroup.teamSize"]
-    G --> Z(["Persist Team"])
+    G --> H["Fetch every active ClubMember of clubId; flatten their FcmTokenRepository tokens"]
+    H --> I["Transaction commits"]
+    I --> J{"Any token found?"}
+    J -- Yes --> K["PushNotificationService.sendTeamCreated(tokens, [team.name], ageGroupName, clubName) — every club member, not just this age group's staff"]
+    J -- No --> Z
+    K --> Z(["Return created Team"])
 ```
 
-`teamSize` is the a-side count this team plays. The request field is optional: when omitted the team inherits the age group's default (`ageGroup.teamSize`, itself nullable for age groups created before team sizes existed). When supplied it must be one of the club sport's allowed sizes. The client's Create Team screen pre-selects the age group's default and lets the user change it (e.g. an age group defined as 7-a-side with one team that plays 9-a-side).
+`teamSize` is the a-side count this team plays. The request field is optional: when omitted the team inherits the age group's default (`ageGroup.teamSize`, itself nullable for age groups created before team sizes existed). When supplied it must be one of the club sport's allowed sizes. The client's Create Team screen pre-selects the age group's default and lets the user change it (e.g. an age group defined as 7-a-side with one team that plays 9-a-side). The club is now always fetched (previously only when `teamSize` was set) -- also needed for the push's club name.
 
 ### 4.5b Create Teams (`CreateTeamsUseCase`) — batch
 
@@ -467,10 +472,15 @@ graph TD
     G -- teamSize set AND not in club.sport.teamSizes --> V
     G -- valid --> H["Build Team entity — active=true, teamSize = item.teamSize ?: ageGroup.teamSize"]
     H --> I[Batch insert all Teams]
-    I --> Z(["Return created Teams"])
+    I --> J["Fetch every active ClubMember of clubId; flatten their FcmTokenRepository tokens"]
+    J --> K["Transaction commits"]
+    K --> L{"Any token found?"}
+    L -- Yes --> M["PushNotificationService.sendTeamCreated(tokens, createdTeams.map{name}, ageGroupName, clubName) — one push for the whole batch, every club member"]
+    L -- No --> Z
+    M --> Z(["Return created Teams"])
 ```
 
-Whole batch runs in one transaction (all or nothing), mirroring `CreateAgeGroupsUseCase`. Teams have no name-uniqueness constraint, so there's no conflict branch. Covered by `CreateTeamsUseCaseTest`. The client's Create Teams screen defaults the season to the most recent one (by end date), requires an age group to be picked, and requires a name on every row before it will submit. Each row also has a team-size picker pre-selected to the chosen age group's default (`ageGroup.teamSize`), overridable per row; an omitted `teamSize` falls back to that default server-side.
+Whole batch runs in one transaction (all or nothing), mirroring `CreateAgeGroupsUseCase`. Teams have no name-uniqueness constraint, so there's no conflict branch. Covered by `CreateTeamsUseCaseTest`. The client's Create Teams screen defaults the season to the most recent one (by end date), requires an age group to be picked, and requires a name on every row before it will submit. Each row also has a team-size picker pre-selected to the chosen age group's default (`ageGroup.teamSize`), overridable per row; an omitted `teamSize` falls back to that default server-side. The batch's push lists every created team's name in one notification rather than sending one push per team.
 
 ### 4.6 Update Team (`UpdateTeamUseCase`)
 
@@ -711,7 +721,10 @@ graph TD
     D -- found --> E{opponent.clubId != team.clubId?}
     E -- Yes --> FB(["Throw ForbiddenException: opponent belongs to another club"])
     E -- No --> G[Create Match — status SCHEDULED]
-    G --> Z(["Persist Match"])
+    G --> H[Persist Match]
+    H --> I["Transaction commits"]
+    I --> J["NotifyMatchEventUseCase(match.id, SCHEDULED) — best-effort push to every club member (§8.2b)"]
+    J --> Z(["Return created Match"])
 ```
 
 ### 7.1b Get Match Details (`GetMatchDetailsUseCase`)
@@ -748,7 +761,13 @@ graph TD
     D -- Yes --> E[Fetch Opponent; reject if it belongs to another club]
     D -- No --> G
     E --> G["Merge non-null patch fields onto the match"]
-    G --> Z(["Persist updated Match — status and call-ups are untouched"])
+    G --> H{"opponentId, dateTime, or location actually changed value?"}
+    H --> I[Persist updated Match — status and call-ups are untouched]
+    I --> J["Transaction commits"]
+    J --> K{"Did a schedule field change?"}
+    K -- Yes --> L["NotifyMatchEventUseCase(matchId, RESCHEDULED) — best-effort push to every club member (§8.2b)"]
+    K -- "No (notes-only edit)" --> Z
+    L --> Z(["Return success"])
 ```
 
 ### 7.2 Manage Call-ups (`ManageCallUpsUseCase`) — batch replace
@@ -815,7 +834,9 @@ graph TD
     G -- a starter isn't in the call-up list --> V3(["Throw ValidationException"])
     G -- ok --> H["Set isStarting=true on the starters' call-ups (false on the rest), set Match.status=LIVE + halfLengthMinutes + kickoffAt=now"]
     H --> I["Publish LiveMatchUpdate(score, status=LIVE) via LiveMatchBus"]
-    I --> Z(["Return success"])
+    I --> J["Transaction commits"]
+    J --> K["NotifyMatchEventUseCase(matchId, KICKOFF) — best-effort push to every club member (§8.2b)"]
+    K --> Z(["Return success"])
 ```
 
 This is the "KICK OFF" action on the live match console's pre-kickoff screen (client, see below): it locks in the Starting XI (everyone else called up becomes the bench) and the half length in one write, then flips the match live. The a-side count comes from `Team.teamSize` (falling back to 11 for teams recorded before that field existed — see the team-size flows in §4.3/§4.5). It also stamps `Match.kickoffAt` with the wall-clock instant of kickoff — the client derives the live running clock from this timestamp rather than any locally-ticking counter (see §8.4).
@@ -832,7 +853,11 @@ graph TD
     D --> E[Persist event]
     E --> G["Recalculate score from all events for this match"]
     G --> H["Publish LiveMatchUpdate(event, score) via LiveMatchBus for matchId"]
-    H --> Z(["Return created event"])
+    H --> I["Transaction commits"]
+    I --> J{"type == GOAL or OWN_GOAL?"}
+    J -- Yes --> K["NotifyMatchEventUseCase(matchId, GOAL) — best-effort push to every club member (§8.2b)"]
+    J -- No --> Z
+    K --> Z(["Return created event"])
 ```
 
 ### 8.1b Delete Match Event (`DeleteMatchEventUseCase`)
@@ -872,12 +897,58 @@ graph TD
     F -- No --> G
     F2 --> G[Recalculate current score]
     G --> H["Publish LiveMatchUpdate(score, status) via LiveMatchBus"]
-    H --> R2(["Return true"])
+    H --> R2b["Transaction commits"]
+    R2b --> R3{"Which transition?"}
+    R3 -- "HALF_TIME→LIVE" --> R4["NotifyMatchEventUseCase(matchId, SECOND_HALF_STARTED)"]
+    R3 -- "→HALF_TIME" --> R5["NotifyMatchEventUseCase(matchId, HALF_TIME)"]
+    R3 -- "→FINISHED" --> R6["NotifyMatchEventUseCase(matchId, FULL_TIME)"]
+    R3 -- "→CANCELLED" --> R7["NotifyMatchEventUseCase(matchId, CANCELLED)"]
+    R4 --> R2
+    R5 --> R2
+    R6 --> R2
+    R7 --> R2
 ```
 
 Status values flow `SCHEDULED → LIVE → HALF_TIME → FINISHED` (or `CANCELLED`). The use case now validates the transition against `VALID_MATCH_STATUS_TRANSITIONS`: `SCHEDULED → CANCELLED` only (kickoff, i.e. `SCHEDULED → LIVE`, stays exclusive to `StartMatchUseCase`, §8.0 — this is a real HTTP route in its own right, `MatchRoutes.kt`, so without this guard a caller could set a match LIVE here directly and skip `StartMatchUseCase`'s starting-line-up/half-length validation entirely); `LIVE → {HALF_TIME, FINISHED, CANCELLED}`; `HALF_TIME → {LIVE, FINISHED, CANCELLED}`; `FINISHED`/`CANCELLED` are terminal. An invalid transition throws `ValidationException`. (Previously this list closed with "but the use case does not itself validate that the requested transition is legal — any status can currently be set from any other," per §11 — now fixed there too.)
 
-On the specific `HALF_TIME → LIVE` transition (resuming for the second half), this use case also stamps `Match.secondHalfStartedAt` with the wall-clock instant — so the client's running clock can pick up from the first half's nominal length instead of restarting at 0 (see §8.4).
+On the specific `HALF_TIME → LIVE` transition (resuming for the second half), this use case also stamps `Match.secondHalfStartedAt` with the wall-clock instant — so the client's running clock can pick up from the first half's nominal length instead of restarting at 0 (see §8.4). That same transition is also how it distinguishes a second-half restart from a first-ever kickoff notification (which never reaches this use case at all — see §8.0) when deciding which push to send, per §8.2b. `CANCELLED` (from either `SCHEDULED`, `LIVE`, or `HALF_TIME`) also notifies now, alongside the three live-match transitions — a cancelled fixture is arguably the most notification-worthy of all of them.
+
+### 8.2b Notify Match Event (`NotifyMatchEventUseCase`)
+
+```mermaid
+graph TD
+    A["Start: matchId, event (SCHEDULED/RESCHEDULED/CANCELLED/KICKOFF/HALF_TIME/SECOND_HALF_STARTED/FULL_TIME/GOAL)"] --> B["Open a new transaction (the trigger's own already closed)"]
+    B --> C[Fetch Match by id]
+    C -- not found --> X(["Return — nothing to notify with"])
+    C -- found --> D[Fetch Team by match.teamId]
+    D -- not found --> X
+    D -- found --> E[Fetch Opponent by match.opponentId]
+    E -- not found --> X
+    E -- found --> F["Fetch every active ClubMember of match.clubId"]
+    F --> G["FcmTokenRepository.getTokensForUsers(memberIds), flatten to one token list"]
+    G -- empty --> X
+    G -- non-empty --> H["Recalculate current score"]
+    H --> I["Transaction closes"]
+    I --> J{"Which event?"}
+    J -- SCHEDULED --> K0a["PushNotificationService.sendMatchScheduled"]
+    J -- RESCHEDULED --> K0b["PushNotificationService.sendMatchRescheduled"]
+    J -- CANCELLED --> K0c["PushNotificationService.sendMatchCancelled"]
+    J -- KICKOFF --> K1["PushNotificationService.sendMatchKickedOff"]
+    J -- HALF_TIME --> K2["PushNotificationService.sendHalfTime"]
+    J -- SECOND_HALF_STARTED --> K3["PushNotificationService.sendSecondHalfStarted"]
+    J -- FULL_TIME --> K4["PushNotificationService.sendMatchFinished"]
+    J -- GOAL --> K5["PushNotificationService.sendGoalScored"]
+    K0a --> Z(["Return"])
+    K0b --> Z
+    K0c --> Z
+    K1 --> Z
+    K2 --> Z
+    K3 --> Z
+    K4 --> Z
+    K5 --> Z
+```
+
+Not a route — a shared orchestrator called by §7.1 (a match created), §7.1c (a match's schedule edited), §8.0, §8.1, and §8.2 after their own transaction has already committed, so it opens a transaction of its own purely to read the data the push needs (see `TECHNICAL_DECISIONS.md` §24). Wrapped in a top-level try/catch that logs and swallows any exception (a not-found match, a repository throwing, a push send failing) — this must never propagate back to the use case that triggered it, the same "best-effort" contract as `EmailService`/`PushNotificationService` elsewhere. Recipients are **every active club member**, not scoped to the match's own age group — deliberately broader than the view/edit permissions the rest of the match domain enforces (§7–§8.2); see the developer's note on this in `TECHNICAL_DECISIONS.md` §24. Originally scoped to just the five live-match moments (hence the class's earlier name, `NotifyMatchEventUseCase`) — renamed once the three schedule-change events made "live match" no longer an accurate description of everything it sends.
 
 ### 8.3 Subscribe to Live Match Updates (`GetLiveMatchUpdatesUseCase`)
 

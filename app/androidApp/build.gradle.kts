@@ -62,27 +62,38 @@ android {
         }
     }
 
-    // Environment (not applicationId-suffixed -- google-services.json is registered for the bare
-    // com.ricardofrango.squadify package only; a suffix would break Crashlytics/App Distribution for
-    // every flavor but "dev"). See TECHNICAL_DECISIONS.md's "Environment-Based App Config" section.
+    // Environment. dev/staging carry an applicationIdSuffix (prod stays bare, for the real Play Store
+    // listing) so each is a genuinely distinct app to Firebase -- otherwise a device that's ever run
+    // more than one flavor could get handed the *same* FCM registration token across them (Firebase
+    // scopes a token by package name + project + signing cert, not by build variant), letting a push
+    // triggered on one environment's server land on a device someone only meant to test another
+    // environment on. google-services.json is registered for all three resulting package names under
+    // the one Firebase project (squadify-958d3) -- see TECHNICAL_DECISIONS.md's push-notifications
+    // section and "Environment-Based App Config" section. resValue app_name distinguishes the three on
+    // a device's launcher/recents now that all three can be installed side by side.
     // dev = LAN address for physical-device testing against a local server. staging = what Firebase App
     // Distribution builds should target (appDistributionUploadStagingRelease). prod = the store release.
     flavorDimensions += "environment"
     productFlavors {
         create("dev") {
             dimension = "environment"
+            applicationIdSuffix = ".dev"
             buildConfigField("String", "BASE_URL", "\"http://192.168.1.84:8080/v1\"")
+            resValue("string", "app_name", "Squadify Dev")
         }
         create("staging") {
             dimension = "environment"
+            applicationIdSuffix = ".stg"
             // Railway-generated domain for the staging server -- swap for stg-api.squadify.pt once that
             // custom domain is set up (see ISSUES TO FIX.md).
             buildConfigField("String", "BASE_URL", "\"https://squadify-staging.up.railway.app/v1\"")
+            resValue("string", "app_name", "Squadify Stg")
         }
         create("prod") {
             dimension = "environment"
             // TODO placeholder -- swap once Railway production is rebuilt (see ISSUES TO FIX.md).
             buildConfigField("String", "BASE_URL", "\"https://api.squadify.pt/v1\"")
+            resValue("string", "app_name", "Squadify")
         }
     }
     signingConfigs {
@@ -126,5 +137,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        resValues = true
     }
 }

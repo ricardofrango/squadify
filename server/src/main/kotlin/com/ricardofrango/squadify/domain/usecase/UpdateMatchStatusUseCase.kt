@@ -25,43 +25,61 @@ class UpdateMatchStatusUseCase(
     private val matchEventRepository: MatchEventRepository,
     private val liveMatchBus: LiveMatchBus,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
         userId: String,
         matchId: String,
         status: MatchStatus
-    ): Boolean = transactionManager.runInTransaction {
-        // 1. Verify match exists first to get context
-        val match = matchRepository.getMatchById(matchId)
-            ?: throw NotFoundException("Match not found")
+    ): Boolean {
+        var notificationEvent: MatchNotificationEvent? = null
 
-        // 2. Single permission check (Fail Fast) using match's clubId and teamId
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = match.clubId,
-            minTeamRole = TeamRole.STAFF,
-            teamId = match.teamId,
-            errorMessage = "Only admins, coordinators, coaches, or team staff can update match status"
-        )
+        val success = transactionManager.runInTransaction {
+            // 1. Verify match exists first to get context
+            val match = matchRepository.getMatchById(matchId)
+                ?: throw NotFoundException("Match not found")
 
-        if (status !in (VALID_MATCH_STATUS_TRANSITIONS[match.status] ?: emptySet())) {
-            throw ValidationException("Cannot change match status from ${match.status} to $status")
-        }
-
-        val success = matchRepository.updateMatchStatus(matchId, status)
-        if (success) {
-            // Resuming for the second half -- record when, so the client's running clock can pick up
-            // from the first half's length instead of restarting at 0 (see Match.secondHalfStartedAt).
-            if (status == MatchStatus.LIVE && match.status == MatchStatus.HALF_TIME) {
-                matchRepository.markSecondHalfStarted(matchId, Instant.fromEpochMilliseconds(System.currentTimeMillis()))
-            }
-            val score = matchEventRepository.getScoreByMatch(matchId)
-            liveMatchBus.publish(
-                matchId = matchId,
-                update = LiveMatchUpdate(score = score, status = status)
+            // 2. Single permission check (Fail Fast) using match's clubId and teamId
+            checkUserPermissionUseCase(
+                userId = userId,
+                clubId = match.clubId,
+                minTeamRole = TeamRole.STAFF,
+                teamId = match.teamId,
+                errorMessage = "Only admins, coordinators, coaches, or team staff can update match status"
             )
+
+            if (status !in (VALID_MATCH_STATUS_TRANSITIONS[match.status] ?: emptySet())) {
+                throw ValidationException("Cannot change match status from ${match.status} to $status")
+            }
+
+            val updated = matchRepository.updateMatchStatus(matchId, status)
+            if (updated) {
+                // Resuming for the second half -- record when, so the client's running clock can pick up
+                // from the first half's length instead of restarting at 0 (see Match.secondHalfStartedAt).
+                if (status == MatchStatus.LIVE && match.status == MatchStatus.HALF_TIME) {
+                    matchRepository.markSecondHalfStarted(matchId, Instant.fromEpochMilliseconds(System.currentTimeMillis()))
+                    notificationEvent = MatchNotificationEvent.SECOND_HALF_STARTED
+                } else if (status == MatchStatus.HALF_TIME) {
+                    notificationEvent = MatchNotificationEvent.HALF_TIME
+                } else if (status == MatchStatus.FINISHED) {
+                    notificationEvent = MatchNotificationEvent.FULL_TIME
+                } else if (status == MatchStatus.CANCELLED) {
+                    notificationEvent = MatchNotificationEvent.CANCELLED
+                }
+                val score = matchEventRepository.getScoreByMatch(matchId)
+                liveMatchBus.publish(
+                    matchId = matchId,
+                    update = LiveMatchUpdate(score = score, status = status)
+                )
+            }
+            updated
         }
-        success
+
+        // Sent after the transaction commits -- a failed/slow push must never roll back the status change.
+        if (success) {
+            notificationEvent?.let { notifyMatchEventUseCase(matchId, it) }
+        }
+        return success
     }
 }

@@ -23,6 +23,44 @@
           "other_platform_oauth_client": []
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:435522049821:android:9c1e254bb36f807ed6b3f4",
+        "android_client_info": {
+          "package_name": "com.ricardofrango.squadify.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCV47oB07nSpLqoVT3IqUfKC2qbbXCnZOw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:435522049821:android:6d8ac6257753aa27d6b3f4",
+        "android_client_info": {
+          "package_name": "com.ricardofrango.squadify.stg"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCV47oB07nSpLqoVT3IqUfKC2qbbXCnZOw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
     }
   ],
   "configuration_version": "1"

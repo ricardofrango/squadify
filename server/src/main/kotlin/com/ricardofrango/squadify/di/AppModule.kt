@@ -3,11 +3,13 @@ package com.ricardofrango.squadify.di
 import com.ricardofrango.squadify.config.ServerConfig
 import com.ricardofrango.squadify.data.database.DatabaseFactory
 import com.ricardofrango.squadify.data.repository.*
+import com.ricardofrango.squadify.data.service.FirebaseAdminPushNotificationService
 import com.ricardofrango.squadify.data.service.KotlinFlowMatchBus
 import com.ricardofrango.squadify.data.service.ResendEmailService
 import com.ricardofrango.squadify.domain.repository.*
 import com.ricardofrango.squadify.domain.service.EmailService
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
+import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.domain.usecase.*
 import org.koin.dsl.module
@@ -29,6 +31,7 @@ val appModule = module {
     single<LiveMatchBus> { KotlinFlowMatchBus() }
     single<TransactionManager> { DatabaseFactory }
     single<EmailService> { ResendEmailService() }
+    single<PushNotificationService> { FirebaseAdminPushNotificationService() }
 
     // Use Cases
     factory { GetClubsUseCase(get(), get(), get()) }
@@ -49,14 +52,14 @@ val appModule = module {
     factory { RefreshTokenUseCase(get(), get()) }
     factory { CheckUserPermissionUseCase(get(), get(), get(), get(), get()) }
     factory { CheckUserIsAdminUseCase(get(), get()) }
-    factory { AddClubMembersUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { AddClubMembersUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetClubMembersUseCase(get(), get(), get()) }
     factory { UpdateClubMemberRoleUseCase(get(), get(), get()) }
     factory { UpdateClubUseCase(get(), get(), get()) }
 
-    factory { CreateTeamUseCase(get(), get(), get(), get(), get()) }
-    factory { CreateTeamsUseCase(get(), get(), get(), get(), get()) }
-    factory { AddStaffToAgeGroupUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { CreateTeamUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { CreateTeamsUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { AddStaffToAgeGroupUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetAgeGroupStaffUseCase(get(), get(), get()) }
     factory { GetTeamPlayersUseCase(get(), get(), get(), get()) }
     factory { GetTeamDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
@@ -80,21 +83,22 @@ val appModule = module {
     factory { GetEligiblePlayersForAgeGroupUseCase(get(), get(), get(), get()) }
 
     factory { GetTeamsUseCase(get(), get(), get(), get(), get(), get()) }
-    factory { CreateMatchUseCase(get(), get(), get(), get(), get()) }
+    factory { CreateMatchUseCase(get(), get(), get(), get(), get(), get()) }
     factory { GetMatchesUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { GetMatchDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
-    factory { UpdateMatchUseCase(get(), get(), get(), get()) }
+    factory { UpdateMatchUseCase(get(), get(), get(), get(), get()) }
     factory { DeleteMatchUseCase(get(), get(), get(), get()) }
-    factory { UpdateMatchStatusUseCase(get(), get(), get(), get(), get()) }
-    factory { StartMatchUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { UpdateMatchStatusUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { StartMatchUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { ManageCallUpsUseCase(get(), get(), get()) }
     factory { CreateOpponentUseCase(get(), get(), get()) }
     factory { GetOpponentsUseCase(get(), get(), get()) }
     factory { UpdateOpponentUseCase(get(), get(), get()) }
     factory { RegisterFcmTokenUseCase(get(), get()) }
     factory { RemoveFcmTokenUseCase(get(), get()) }
+    factory { NotifyMatchEventUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
 
-    factory { AddMatchEventUseCase(get(), get(), get(), get(), get()) }
+    factory { AddMatchEventUseCase(get(), get(), get(), get(), get(), get()) }
     factory { DeleteMatchEventUseCase(get(), get(), get(), get(), get()) }
     factory { GetMatchEventsUseCase(get(), get(), get(), get()) }
     factory { GetMatchScoreUseCase(get(), get(), get(), get()) }

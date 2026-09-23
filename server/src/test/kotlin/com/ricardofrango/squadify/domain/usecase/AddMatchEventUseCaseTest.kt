@@ -9,13 +9,23 @@ import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.CreateMatchEventRequest
 import com.ricardofrango.squadify.model.EventType
+import com.ricardofrango.squadify.model.Match
+import com.ricardofrango.squadify.model.MatchScore
+import com.ricardofrango.squadify.model.MatchStatus
+import com.ricardofrango.squadify.model.Team
+import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.User
+import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import kotlin.test.assertFailsWith
+import kotlin.time.Instant
 
 /**
  * Minimal first coverage for this previously-untested use case -- see "Not found" is modelled
@@ -37,8 +47,9 @@ class AddMatchEventUseCaseTest {
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager
     )
+    private val notifyMatchEventUseCase = mockk<NotifyMatchEventUseCase>(relaxed = true)
     private val useCase = AddMatchEventUseCase(
-        matchEventRepository, matchRepository, liveMatchBus, checkUserPermissionUseCase, transactionManager
+        matchEventRepository, matchRepository, liveMatchBus, checkUserPermissionUseCase, notifyMatchEventUseCase, transactionManager
     )
 
     @Test
@@ -49,6 +60,57 @@ class AddMatchEventUseCaseTest {
         assertFailsWith<NotFoundException> {
             useCase("anyone", "no-such-match", CreateMatchEventRequest(type = EventType.GOAL, minute = 10))
         }
-        Unit
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
+    }
+
+    @Test
+    fun aGoalNotifiesTheClub() = runBlocking {
+        val match = Match("m-1", "club-1", "t-1", "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.LIVE)
+        val coach = User("coach", "coach@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
+        coEvery { matchRepository.getMatchById("m-1") } returns match
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, "club-1") } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns TeamRole.COACH
+        coEvery { teamRepository.getTeamById("t-1") } returns Team("t-1", "club-1", "ag-1", "s-1", "Sub-15 A", "A", active = true)
+        coEvery { matchEventRepository.addEvent(any()) } answers { firstArg() }
+        coEvery { matchEventRepository.getScoreByMatch("m-1") } returns MatchScore("m-1", 1, 0)
+
+        useCase(coach.id, "m-1", CreateMatchEventRequest(type = EventType.GOAL, minute = 23))
+
+        coVerify { notifyMatchEventUseCase("m-1", MatchNotificationEvent.GOAL) }
+    }
+
+    @Test
+    fun anOwnGoalAlsoNotifiesTheClub() = runBlocking {
+        val match = Match("m-1", "club-1", "t-1", "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.LIVE)
+        val coach = User("coach", "coach@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
+        coEvery { matchRepository.getMatchById("m-1") } returns match
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, "club-1") } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns TeamRole.COACH
+        coEvery { teamRepository.getTeamById("t-1") } returns Team("t-1", "club-1", "ag-1", "s-1", "Sub-15 A", "A", active = true)
+        coEvery { matchEventRepository.addEvent(any()) } answers { firstArg() }
+        coEvery { matchEventRepository.getScoreByMatch("m-1") } returns MatchScore("m-1", 0, 1)
+
+        useCase(coach.id, "m-1", CreateMatchEventRequest(type = EventType.OWN_GOAL, minute = 40))
+
+        coVerify { notifyMatchEventUseCase("m-1", MatchNotificationEvent.GOAL) }
+    }
+
+    @Test
+    fun aNonGoalEventDoesNotNotify() = runBlocking {
+        val match = Match("m-1", "club-1", "t-1", "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.LIVE)
+        val coach = User("coach", "coach@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
+        coEvery { matchRepository.getMatchById("m-1") } returns match
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, "club-1") } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns TeamRole.COACH
+        coEvery { teamRepository.getTeamById("t-1") } returns Team("t-1", "club-1", "ag-1", "s-1", "Sub-15 A", "A", active = true)
+        coEvery { matchEventRepository.addEvent(any()) } answers { firstArg() }
+        coEvery { matchEventRepository.getScoreByMatch("m-1") } returns MatchScore("m-1", 0, 0)
+
+        useCase(coach.id, "m-1", CreateMatchEventRequest(type = EventType.YELLOW_CARD, minute = 12))
+
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
     }
 }

@@ -14,46 +14,56 @@ class AddMatchEventUseCase(
     private val matchRepository: MatchRepository,
     private val liveMatchBus: LiveMatchBus,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
         userId: String,
         matchId: String,
         request: CreateMatchEventRequest
-    ): MatchEvent = transactionManager.runInTransaction {
-        // 1. Verify match exists first to get context
-        val match = matchRepository.getMatchById(matchId)
-            ?: throw NotFoundException("Match not found")
+    ): MatchEvent {
+        val savedEvent = transactionManager.runInTransaction {
+            // 1. Verify match exists first to get context
+            val match = matchRepository.getMatchById(matchId)
+                ?: throw NotFoundException("Match not found")
 
-        // 2. Single granular permission check using metadata from match
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = match.clubId,
-            minTeamRole = TeamRole.COACH,
-            teamId = match.teamId,
-            errorMessage = "Insufficient permissions to add match events"
-        )
+            // 2. Single granular permission check using metadata from match
+            checkUserPermissionUseCase(
+                userId = userId,
+                clubId = match.clubId,
+                minTeamRole = TeamRole.COACH,
+                teamId = match.teamId,
+                errorMessage = "Insufficient permissions to add match events"
+            )
 
-        // 3. Create the event
-        val event = MatchEvent(
-            id = Uuid.random().toString(),
-            matchId = matchId,
-            type = request.type,
-            minute = request.minute,
-            playerId = request.playerId,
-            opponentPlayerName = request.opponentPlayerName,
-            isOpponent = request.isOpponent,
-            createdAt = Instant.fromEpochMilliseconds(System.currentTimeMillis())
-        )
+            // 3. Create the event
+            val event = MatchEvent(
+                id = Uuid.random().toString(),
+                matchId = matchId,
+                type = request.type,
+                minute = request.minute,
+                playerId = request.playerId,
+                opponentPlayerName = request.opponentPlayerName,
+                isOpponent = request.isOpponent,
+                createdAt = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+            )
 
-        val savedEvent = matchEventRepository.addEvent(event)
+            val savedEvent = matchEventRepository.addEvent(event)
 
-        // 4. Get updated score
-        val score = matchEventRepository.getScoreByMatch(matchId)
+            // 4. Get updated score
+            val score = matchEventRepository.getScoreByMatch(matchId)
 
-        // 5. Broadcast via the Live Match Bus
-        liveMatchBus.publish(matchId, LiveMatchUpdate(savedEvent, score))
+            // 5. Broadcast via the Live Match Bus
+            liveMatchBus.publish(matchId, LiveMatchUpdate(savedEvent, score))
 
-        savedEvent
+            savedEvent
+        }
+
+        // Sent after the transaction commits -- a failed/slow push must never roll back the event.
+        if (savedEvent.type == EventType.GOAL || savedEvent.type == EventType.OWN_GOAL) {
+            notifyMatchEventUseCase(matchId, MatchNotificationEvent.GOAL)
+        }
+
+        return savedEvent
     }
 }
