@@ -45,6 +45,17 @@ dependencies {
     implementation(libs.firebase.messaging)
 }
 
+// Single source of truth for the human-facing semantic version lives in root gradle.properties
+// (VERSION_NAME) -- shared with server/build.gradle.kts so the two can't drift by hand-editing one and
+// forgetting the other. versionCode is computed separately: CI passes -PversionCode=<n>
+// (deploy-staging.yml uses ${{ github.run_number }}, which auto-increments every workflow run) so every
+// uploaded build has a unique, strictly-increasing code even when VERSION_NAME doesn't change between
+// merges to develop -- see TECHNICAL_DECISIONS.md's versioning section for the original problem this
+// solves (every staging redeploy looked identical). Falls back to a fixed placeholder for local builds,
+// where uniqueness doesn't matter.
+val versionNameProp = (project.findProperty("VERSION_NAME") as? String) ?: "1.1.0"
+val ciBuildNumber = (project.findProperty("versionCode") as? String)?.toIntOrNull()
+
 android {
     namespace = "com.ricardofrango.squadify"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -53,8 +64,8 @@ android {
         applicationId = "com.ricardofrango.squadify"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = ciBuildNumber ?: 1
+        versionName = versionNameProp
     }
     packaging {
         resources {
@@ -88,6 +99,11 @@ android {
             // custom domain is set up (see ISSUES TO FIX.md).
             buildConfigField("String", "BASE_URL", "\"https://squadify-staging.up.railway.app/v1\"")
             resValue("string", "app_name", "Squadify Stg")
+            // This is the flavor redeployed on every merge to develop (deploy-staging.yml) -- without a
+            // per-build suffix, every install shows the identical versionName no matter how many times
+            // it's been redeployed, which was the whole original problem (see TECHNICAL_DECISIONS.md's
+            // versioning section). "local" when built outside CI (versionCode wasn't passed in).
+            versionNameSuffix = "-stg.${ciBuildNumber ?: "local"}"
         }
         create("prod") {
             dimension = "environment"

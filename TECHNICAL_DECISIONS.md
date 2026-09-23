@@ -1272,3 +1272,66 @@ first-half/second-half shift-target branches, the paused-uses-frozen-instant cas
 and rejecting a negative minute), `:app:shared:compileKotlinJvm`, `:app:androidApp:compileDevDebugKotlin`
 all clean. **Not verified**: same real-device gap as above, now also covering whether a manually-set
 minute actually renders correctly and consistently across both screens and a second device in practice.
+
+## 30. Automatic Version Naming on Deploy
+
+**Problem**: every merge to `develop` triggers a new staging deploy (`deploy-staging.yml`), but
+`app/androidApp/build.gradle.kts`'s `versionCode`/`versionName` and `server/build.gradle.kts`'s `version`
+were plain hardcoded literals (`2`/`"1.1.0"`/`"1.1.0"` respectively), each edited by hand independently
+and never bumped by CI. Every staging build looked identical to a tester (same `versionName`, same
+`versionCode`), with no way to tell two different deploys apart from the installed app alone. iOS
+(`MARKETING_VERSION`/`CURRENT_PROJECT_VERSION` in the `.pbxproj`) has the same shape of hardcoded literals,
+but no CI workflow builds or deploys iOS at all today, so there's nothing to automate there yet -- noted
+as a gap, not addressed.
+
+**Adopted: split the human-facing version from the build number, matching how Android/iOS's own version
+schemes are already designed to work (`versionName`/`MARKETING_VERSION` for humans, `versionCode`/
+`CURRENT_PROJECT_VERSION` for the platform's own strictly-increasing install-ordering requirement)** --
+rather than reaching for a new tool (semantic-release, Fastlane version management, etc.) for what's
+fundamentally two Gradle properties and one CI flag:
+
+- **Single source of truth for the semantic version**: `VERSION_NAME` in root `gradle.properties`
+  (`1.1.0` today) -- a deliberate, manual bump for when something actually warrants calling itself a new
+  version, not tied to every merge. Root `gradle.properties` entries are automatically visible as project
+  properties to every subproject, so `app/androidApp/build.gradle.kts` (`versionName`) and
+  `server/build.gradle.kts` (`version`) both read the same value via `project.findProperty("VERSION_NAME")`
+  instead of each carrying its own independent literal that can silently drift from the other.
+- **Auto-incrementing build number**: `deploy-staging.yml`'s Gradle invocation now passes
+  `-PversionCode=${{ github.run_number }}` -- the workflow's own run number, which GitHub Actions
+  increments on every run for free, no new infrastructure needed. `app/androidApp/build.gradle.kts` reads
+  it as `ciBuildNumber` and uses it for `versionCode`, falling back to a fixed placeholder (`1`) for local
+  builds where uniqueness doesn't matter.
+- **Making the change visible, not just the invisible versionCode**: the original complaint was that
+  different staging deploys looked identical *to a tester*, and `versionCode` alone doesn't solve that --
+  Android doesn't surface it in Settings > App info the way it surfaces `versionName`. So the `staging`
+  product flavor also gets `versionNameSuffix = "-stg.${ciBuildNumber ?: "local"}"`, making every CI-built
+  staging APK read e.g. `1.1.0-stg.147` -- the same number as the GitHub Actions run that produced it, so
+  the two can be directly correlated. `dev` and `prod` are untouched (`prod` stays a clean `1.1.0`;
+  `dev` isn't built by CI at all).
+- **Why not bump `VERSION_NAME` itself per deploy instead**: that's what semantic-release-style tooling
+  would do, but it conflates "a new deploy happened" with "this is meaningfully a new version" -- every
+  develop merge would produce a `versionName` bump (`1.1.1`, `1.1.2`, ...) with no relationship to actual
+  feature/release boundaries, which is more churn than the problem warranted. The build-number suffix
+  achieves the actual goal (distinguishing deploys) without touching the deliberate semantic version at all.
+
+**Server**: `version` in `server/build.gradle.kts` now reads from the same `VERSION_NAME`, so it can't
+independently drift from Android's, but this is currently still just the Gradle module/artifact version
+(e.g. the fat-jar's filename) -- not exposed anywhere at runtime (no `/version` endpoint). Unlike Android,
+Railway's staging/production deploys aren't GitHub-Actions-driven at all (each Railway service auto-deploys
+directly from the repo/branch per its own dashboard config -- see `deploy-staging.yml`'s and
+`deploy-production.yml`'s own comments), so there's no workflow run number naturally available to inject a
+build identifier the same way; making the backend's *own* deploys distinguishable the way staging Android
+now is would need either a runtime `/version` endpoint reading Railway's own build-time env vars (e.g.
+`RAILWAY_GIT_COMMIT_SHA`) or moving the server's deploy under GitHub Actions' control -- out of scope here,
+left as a follow-up rather than half-solved.
+
+**Verified**: built the `staging` flavor both with `-PversionCode=147` (matching the real CI invocation)
+and without, and inspected the resulting APKs directly with `aapt2 dump badging` rather than trusting the
+Gradle config alone -- `-PversionCode=147` produced `versionCode='147'`, `versionName='1.1.0-stg.147'`;
+no property produced `versionCode='1'`, `versionName='1.1.0-stg.local'`; a `prod` build in the same session
+produced the untouched `versionCode='1'`, `versionName='1.1.0'`. `:server:compileKotlin` clean with the
+version property change. **Not verified**: an actual `deploy-staging.yml` run in GitHub Actions (no way to
+trigger that from this environment) -- the `-PversionCode=${{ github.run_number }}` substitution itself is
+standard GitHub Actions expression syntax, not something that needs its own separate verification, but the
+end-to-end workflow (secrets present, Firebase upload succeeding with the new flag added) hasn't been
+exercised for real.
