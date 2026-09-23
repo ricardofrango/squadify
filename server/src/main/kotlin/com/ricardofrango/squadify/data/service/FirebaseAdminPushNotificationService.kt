@@ -7,7 +7,6 @@ import com.google.firebase.messaging.AndroidConfig
 import com.google.firebase.messaging.AndroidNotification
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.MulticastMessage
-import com.google.firebase.messaging.Notification
 import com.ricardofrango.squadify.config.ServerConfig
 import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.model.MatchScore
@@ -22,6 +21,13 @@ import java.io.ByteArrayInputStream
  * push-notifications section). [FirebaseApp] is process-wide singleton state, so initialization is
  * guarded by [FirebaseApp.getApps] rather than relying solely on this class's own single-instance
  * Koin registration.
+ *
+ * Sends no literal message text at all -- only a body-localization *key* (matching an Android string
+ * resource name) and its ordered arguments, via [AndroidNotification]'s own localization fields.
+ * The client resolves the key against its own device-locale resources, the same mechanism the rest of
+ * the app already uses for EN/PT -- see TECHNICAL_DECISIONS.md §27. The title is omitted entirely for
+ * the same reason: [com.ricardofrango.squadify]'s Android client already falls back to its own
+ * (correctly per-flavor-named) app name locally when no title is sent.
  */
 class FirebaseAdminPushNotificationService : PushNotificationService {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -40,27 +46,63 @@ class FirebaseAdminPushNotificationService : PushNotificationService {
     }
 
     override suspend fun sendClubMembershipAdded(tokens: List<String>, clubName: String) {
-        send(
-            tokens = tokens,
-            channelId = INVITES_CHANNEL,
-            title = "Squadify",
-            body = "You've been added to $clubName"
-        )
+        send(tokens, INVITES_CHANNEL, "push_club_membership_added", listOf(clubName))
     }
 
     override suspend fun sendAgeGroupStaffAdded(tokens: List<String>, ageGroupName: String, clubName: String) {
-        send(
-            tokens = tokens,
-            channelId = AGE_GROUP_CHANNEL,
-            title = "Squadify",
-            body = "You've been added as staff to $ageGroupName at $clubName"
-        )
+        send(tokens, AGE_GROUP_CHANNEL, "push_age_group_staff_added", listOf(ageGroupName, clubName))
     }
 
-    private suspend fun send(tokens: List<String>, channelId: String, title: String, body: String) {
+    override suspend fun sendMatchScheduled(tokens: List<String>, teamName: String, opponentName: String) {
+        send(tokens, AGE_GROUP_CHANNEL, "push_match_scheduled", listOf(teamName, opponentName))
+    }
+
+    override suspend fun sendMatchRescheduled(tokens: List<String>, teamName: String, opponentName: String) {
+        send(tokens, AGE_GROUP_CHANNEL, "push_match_rescheduled", listOf(teamName, opponentName))
+    }
+
+    override suspend fun sendMatchCancelled(tokens: List<String>, teamName: String, opponentName: String) {
+        send(tokens, AGE_GROUP_CHANNEL, "push_match_cancelled", listOf(teamName, opponentName))
+    }
+
+    override suspend fun sendMatchKickedOff(tokens: List<String>, teamName: String, opponentName: String) {
+        send(tokens, LIVE_MATCHES_CHANNEL, "push_match_kicked_off", listOf(teamName, opponentName))
+    }
+
+    override suspend fun sendHalfTime(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore) {
+        send(tokens, LIVE_MATCHES_CHANNEL, "push_half_time", scoreArgs(teamName, opponentName, score))
+    }
+
+    override suspend fun sendSecondHalfStarted(tokens: List<String>, teamName: String, opponentName: String) {
+        send(tokens, LIVE_MATCHES_CHANNEL, "push_second_half_started", listOf(teamName, opponentName))
+    }
+
+    override suspend fun sendMatchFinished(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore) {
+        send(tokens, LIVE_MATCHES_CHANNEL, "push_match_finished", scoreArgs(teamName, opponentName, score))
+    }
+
+    override suspend fun sendGoalScored(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore) {
+        send(tokens, LIVE_MATCHES_CHANNEL, "push_goal_scored", scoreArgs(teamName, opponentName, score))
+    }
+
+    override suspend fun sendTeamCreated(tokens: List<String>, teamNames: List<String>, ageGroupName: String, clubName: String) {
+        if (teamNames.size == 1) {
+            send(tokens, AGE_GROUP_CHANNEL, "push_team_created_one", listOf(teamNames.first(), ageGroupName))
+        } else {
+            send(tokens, AGE_GROUP_CHANNEL, "push_team_created_many", listOf(teamNames.joinToString(", "), ageGroupName))
+        }
+    }
+
+    // FCM localization args are always strings on the wire (AndroidNotification.addBodyLocalizationArg
+    // only takes String) -- every Android string resource this maps to must use %N$s for every
+    // placeholder, including the score numbers, or getString(id, *args) throws a format mismatch.
+    private fun scoreArgs(teamName: String, opponentName: String, score: MatchScore) =
+        listOf(teamName, score.ourScore.toString(), score.opponentScore.toString(), opponentName)
+
+    private suspend fun send(tokens: List<String>, channelId: String, bodyLocKey: String, bodyLocArgs: List<String>) {
         if (tokens.isEmpty()) return
         if (ServerConfig.firebaseServiceAccountJson.isBlank() || FirebaseApp.getApps().isEmpty()) {
-            logger.warn("FIREBASE_SERVICE_ACCOUNT_JSON not set -- skipping push to {} device(s) ({})", tokens.size, title)
+            logger.warn("FIREBASE_SERVICE_ACCOUNT_JSON not set -- skipping push to {} device(s) ({})", tokens.size, bodyLocKey)
             return
         }
         try {
@@ -70,10 +112,15 @@ class FirebaseAdminPushNotificationService : PushNotificationService {
             tokens.chunked(500).forEach { chunk ->
                 val message = MulticastMessage.builder()
                     .addAllTokens(chunk)
-                    .setNotification(Notification.builder().setTitle(title).setBody(body).build())
                     .setAndroidConfig(
                         AndroidConfig.builder()
-                            .setNotification(AndroidNotification.builder().setChannelId(channelId).build())
+                            .setNotification(
+                                AndroidNotification.builder()
+                                    .setChannelId(channelId)
+                                    .setBodyLocalizationKey(bodyLocKey)
+                                    .addAllBodyLocalizationArgs(bodyLocArgs)
+                                    .build()
+                            )
                             .build()
                     )
                     .build()
@@ -83,98 +130,12 @@ class FirebaseAdminPushNotificationService : PushNotificationService {
                     FirebaseMessaging.getInstance().sendEachForMulticast(message)
                 }
                 if (response.failureCount > 0) {
-                    logger.error("Push send to {} had {} failure(s)", title, response.failureCount)
+                    logger.error("Push send of {} had {} failure(s)", bodyLocKey, response.failureCount)
                 }
             }
         } catch (e: Exception) {
             logger.error("Push send threw", e)
         }
-    }
-
-    override suspend fun sendMatchScheduled(tokens: List<String>, teamName: String, opponentName: String) {
-        send(
-            tokens = tokens,
-            channelId = AGE_GROUP_CHANNEL,
-            title = "Squadify",
-            body = "New match: $teamName vs $opponentName has been scheduled"
-        )
-    }
-
-    override suspend fun sendMatchRescheduled(tokens: List<String>, teamName: String, opponentName: String) {
-        send(
-            tokens = tokens,
-            channelId = AGE_GROUP_CHANNEL,
-            title = "Squadify",
-            body = "$teamName's match against $opponentName has been updated"
-        )
-    }
-
-    override suspend fun sendMatchCancelled(tokens: List<String>, teamName: String, opponentName: String) {
-        send(
-            tokens = tokens,
-            channelId = AGE_GROUP_CHANNEL,
-            title = "Squadify",
-            body = "$teamName's match against $opponentName has been cancelled"
-        )
-    }
-
-    override suspend fun sendMatchKickedOff(tokens: List<String>, teamName: String, opponentName: String) {
-        send(
-            tokens = tokens,
-            channelId = LIVE_MATCHES_CHANNEL,
-            title = "Squadify",
-            body = "$teamName kicked off against $opponentName"
-        )
-    }
-
-    override suspend fun sendHalfTime(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore) {
-        send(
-            tokens = tokens,
-            channelId = LIVE_MATCHES_CHANNEL,
-            title = "Squadify",
-            body = "Half-time: $teamName ${score.ourScore} - ${score.opponentScore} $opponentName"
-        )
-    }
-
-    override suspend fun sendSecondHalfStarted(tokens: List<String>, teamName: String, opponentName: String) {
-        send(
-            tokens = tokens,
-            channelId = LIVE_MATCHES_CHANNEL,
-            title = "Squadify",
-            body = "Second half under way: $teamName vs $opponentName"
-        )
-    }
-
-    override suspend fun sendMatchFinished(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore) {
-        send(
-            tokens = tokens,
-            channelId = LIVE_MATCHES_CHANNEL,
-            title = "Squadify",
-            body = "Full-time: $teamName ${score.ourScore} - ${score.opponentScore} $opponentName"
-        )
-    }
-
-    override suspend fun sendGoalScored(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore) {
-        send(
-            tokens = tokens,
-            channelId = LIVE_MATCHES_CHANNEL,
-            title = "Squadify",
-            body = "Goal! $teamName ${score.ourScore} - ${score.opponentScore} $opponentName"
-        )
-    }
-
-    override suspend fun sendTeamCreated(tokens: List<String>, teamNames: List<String>, ageGroupName: String, clubName: String) {
-        val body = if (teamNames.size == 1) {
-            "New team: ${teamNames.first()} has been added to $ageGroupName"
-        } else {
-            "New teams added to $ageGroupName: ${teamNames.joinToString(", ")}"
-        }
-        send(
-            tokens = tokens,
-            channelId = AGE_GROUP_CHANNEL,
-            title = "Squadify",
-            body = body
-        )
     }
 
     private companion object {

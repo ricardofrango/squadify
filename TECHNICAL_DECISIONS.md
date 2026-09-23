@@ -983,3 +983,74 @@ Firebase rejected those specific ones as invalid strings, logged as a failure co
 matching the existing "log and continue" contract). `:server:test` passes, including new
 `CreateTeamUseCaseTest`/`CreateTeamsUseCaseTest` cases asserting the notification fires with the right
 team name(s)/age-group/club name, and that no club member having a token sends nothing.
+
+## 27. Push Notifications: Localization (Device Locale, Not Server-Chosen)
+
+Found via real-device testing: every push so far sent literal, hardcoded English text -- a device set
+to Portuguese (the app already supports EN/PT for its own UI, `app/shared/.../composeResources/
+values-pt/`) still received English notifications, since the server had no way to know or honor that.
+
+**Rejected approach: a server-side "user locale" field.** Storing a preferred language per user (a new
+`users` column, some way to set/sync it, e.g. from device locale at registration or an in-app setting)
+and building each message's text server-side in the right language was the naive fix, but it invents a
+whole new, redundant concept: the device *already* has a locale, already drives every other string in
+the app, and could drift out of sync with a stored value the moment someone changes their phone's
+language without reopening Squadify. It would also break the current one-multicast-per-event shape --
+recipients with different locales would need grouping into separate sends per language, multiplying the
+complexity of every trigger use case for a problem the platform already solves.
+
+**Adopted: FCM's own localized-notification mechanism.** Confirmed both SDKs actually support this by
+inspecting the real dependency jars via `javap` (the same rigor as §26's Admin SDK check) before writing
+code against it: the Admin SDK's `AndroidNotification.Builder` (server side) exposes
+`setBodyLocalizationKey`/`addAllBodyLocalizationArgs` (and title equivalents, unused here -- see below),
+and the client SDK's `RemoteMessage.Notification` (`firebase-messaging-25.0.2.aar`, extracted and
+inspected the same way) exposes the matching `getBodyLocalizationKey`/`getBodyLocalizationArgs`. The
+server sends a *key* (matching an Android string resource name) plus ordered string arguments instead
+of rendered text; the client resolves the key against whichever locale's resources the device is
+actually running -- the exact mechanism Android already uses for every other string in the app, just
+applied to notification bodies too. No new data model, no per-locale send grouping, no drift risk.
+
+**Title is omitted entirely, not localized via a key.** `SquadifyMessagingService.onMessageReceived`
+already had `notification.title ?: getString(R.string.app_name)` as a fallback (§22) -- since the app's
+own name doesn't need the server's help to say correctly, `FirebaseAdminPushNotificationService` simply
+never sets a title anymore, letting that existing fallback do the work locally, using whichever flavor's
+`resValue`-generated `app_name` (§25) the receiving device actually has.
+
+**Server side** (`FirebaseAdminPushNotificationService`): every `sendXxx` method builds a
+`(bodyLocKey, bodyLocArgs)` pair instead of an interpolated string, still going through the same chunked
+`send()` helper (unchanged signature-wise from the caller's perspective -- `PushNotificationService`'s
+own method signatures didn't need to change at all, since they already carried plain data, never
+pre-rendered text). FCM localization args are always strings on the wire (`addBodyLocalizationArg` only
+takes `String`), so match scores are `.toString()`'d before being passed -- every corresponding Android
+string resource placeholder must be `%N$s`, never `%N$d`, or `getString(id, *args)` throws a format
+mismatch client-side (`%d` expects a boxed `Number`, not a `String`).
+
+**Client side** (`SquadifyMessagingService`): a hand-maintained `Map<String, Int>`
+(`BODY_LOCALIZATION_KEYS`) bridges the server's string key to a compile-time `R.string.*` id --
+deliberately not `Resources.getIdentifier()` (a runtime name-based lookup Android's own lint flags as
+slow and fragile). An unrecognized key, or an arg-count/format mismatch against what got sent, falls
+back to the message's own literal `body` rather than dropping the notification -- keeps a manual
+Firebase-console test push (which can't set `body_loc_key` at all) working exactly as before.
+
+**Twelve message templates**, added to both `app/androidApp/src/main/res/values/strings.xml` (English,
+already existed) and a brand-new `res/values-pt/strings.xml` (Portuguese -- this Android module had no
+Portuguese resources at all before this) with matching `%N$s` placeholder counts: the nine match-event
+bodies (§24), the two association-push bodies (§23), and both team-created variants, singular/plural
+(§26). Adding `values-pt/` for the first time surfaced a real, pre-existing gap as a lint `error`, not
+just this feature's own strings: the four notification-channel names/descriptions (§22) had never been
+translated either, since there was nothing to compare them against until now -- translated those too in
+the same change, since they're squarely inside "notifications should be localized" even though they're
+shown in Android's system settings screen rather than in a push body.
+
+**Verified**: `:app:androidApp:lintStagingRelease` (the full lint pass, not just the `lintVital` subset
+that gates release builds) runs Android's own `MissingTranslation`/`StringFormatCount`/
+`StringFormatMatches` checks across every locale automatically -- ran clean against all twelve new keys
+plus the four now-translated channel strings, confirming every EN/PT pair has matching placeholder
+counts and nothing was missed. End to end against a real running server: triggered a club-membership
+push and confirmed the log now reads `Push send of push_club_membership_added had N failure(s)` --
+the structured key, not literal English text -- reaching Firebase successfully (failures only because
+the test token itself was a fake string, the same "reached Firebase, rejected only the token" signal
+already established in §25/§26). **Not verified**: actual rendering on a real device in each language --
+no way to launch and interact with the app in this environment; worth a real on-device pass (toggle the
+device to Portuguese, trigger a push, confirm the Portuguese text actually renders) before considering
+this fully done.

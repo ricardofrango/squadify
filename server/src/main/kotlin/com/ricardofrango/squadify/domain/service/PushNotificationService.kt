@@ -7,6 +7,11 @@ import com.ricardofrango.squadify.model.MatchScore
  * equivalent of [EmailService]. Implementations must never throw: a failed send must never fail the
  * use case that triggered it, since the underlying database association already succeeded by the
  * time these are called. See TECHNICAL_DECISIONS.md.
+ *
+ * These method signatures deliberately carry plain data (names, scores), never pre-rendered message
+ * text -- implementations localize by sending a body-localization *key* + those arguments (FCM's own
+ * mechanism), letting the client render in its own device locale, rather than the server picking a
+ * language. See TECHNICAL_DECISIONS.md §27.
  */
 interface PushNotificationService {
     /**

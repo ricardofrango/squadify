@@ -7,4 +7,21 @@
     <string name="notification_channel_age_group_description">Roster, staff, and age-group updates</string>
     <string name="notification_channel_invites_name">Invites</string>
     <string name="notification_channel_invites_description">Club and team invitations</string>
+
+    <!-- Push notification bodies, resolved by SquadifyMessagingService from the FCM message's own
+         body_loc_key (matching this resource's name) + body_loc_args, never from literal text the
+         server sends: see TECHNICAL_DECISIONS.md's push-notifications section. Args always arrive
+         as strings, so every placeholder here must be %N$s, even for numbers (match scores). -->
+    <string name="push_club_membership_added">You\'ve been added to %1$s</string>
+    <string name="push_age_group_staff_added">You\'ve been added as staff to %1$s at %2$s</string>
+    <string name="push_match_scheduled">New match: %1$s vs %2$s has been scheduled</string>
+    <string name="push_match_rescheduled">%1$s\'s match against %2$s has been updated</string>
+    <string name="push_match_cancelled">%1$s\'s match against %2$s has been cancelled</string>
+    <string name="push_match_kicked_off">%1$s kicked off against %2$s</string>
+    <string name="push_half_time">Half-time: %1$s %2$s - %3$s %4$s</string>
+    <string name="push_second_half_started">Second half under way: %1$s vs %2$s</string>
+    <string name="push_match_finished">Full-time: %1$s %2$s - %3$s %4$s</string>
+    <string name="push_goal_scored">Goal! %1$s %2$s - %3$s %4$s</string>
+    <string name="push_team_created_one">New team: %1$s has been added to %2$s</string>
+    <string name="push_team_created_many">New teams added to %2$s: %1$s</string>
 </resources>
