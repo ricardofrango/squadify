@@ -949,3 +949,37 @@ first (what actually resolves under Gradle's real working directory) with the ba
 form kept as a second candidate for any other invocation method. The env var still takes priority over
 both when set, since Railway (staging/production) has no reliable place to mount a file at all -- this
 fallback is local-dev-only convenience, not a replacement for the env var in deployed environments.
+
+## 26. Push Notifications: Team Created
+
+A gap noticed only after the match/schedule pushes existed and got compared against: `CreateTeamUseCase`
+and `CreateTeamsUseCase` (batch) had no push at all, unlike every other roster/structural change in the
+club (a member added, age-group staff added, a match scheduled). Same club-wide model as §24's schedule
+pushes -- **every active club member**, not just the new team's own age group -- on the `"age_group"`
+channel (its stated purpose, "Roster, staff, and age-group updates," already covers this).
+
+Not routed through `NotifyMatchEventUseCase` -- there's no `matchId` here, and only two call sites (not
+five), so the "fetch inside a transaction of its own after the caller's has already closed" complexity
+that use case exists for wasn't needed. Both `CreateTeamUseCase` and `CreateTeamsUseCase` instead fetch
+`ClubRepository.getClubMembers`/`FcmTokenRepository.getTokensForUsers` themselves, *inside* their own
+existing transaction (same "fetch inside, send after" shape as `AddClubMembersUseCase`/
+`AddStaffToAgeGroupUseCase`, §23), then call `PushNotificationService.sendTeamCreated` once the
+transaction commits. `CreateTeamUseCase` previously only fetched the club when `teamSize` was provided
+(to validate it against the club's sport); it's now fetched unconditionally, since the push needs the
+club's name regardless.
+
+**One push per invocation, not per team.** `sendTeamCreated` takes `teamNames: List<String>` so a
+`CreateTeamsUseCase` batch of several teams sends a single notification listing every name, rather than
+spamming one push per team created in the same request -- the same reasoning `AddClubMembersUseCase`
+already applies per person added, extended here to "per API call" since a batch team-creation screen is
+a single user action even though it creates N rows.
+
+Verified end to end against a real running server and Postgres, with the real Firebase credential now
+active (via §25's fallback): registered a token for a plain club member, created one team (single-team
+endpoint) and then a batch of two more (batch endpoint) under the same age group, and confirmed exactly
+two push attempts were logged -- one per API call, not three (one per team) -- each correctly gathering
+every club member's tokens (including the admin's own accumulated tokens from earlier test sessions;
+Firebase rejected those specific ones as invalid strings, logged as a failure count, not an exception,
+matching the existing "log and continue" contract). `:server:test` passes, including new
+`CreateTeamUseCaseTest`/`CreateTeamsUseCaseTest` cases asserting the notification fires with the right
+team name(s)/age-group/club name, and that no club member having a token sends nothing.

@@ -41,4 +41,15 @@ interface PushNotificationService {
     suspend fun sendSecondHalfStarted(tokens: List<String>, teamName: String, opponentName: String)
     suspend fun sendMatchFinished(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore)
     suspend fun sendGoalScored(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore)
+
+    /**
+     * Sent to every device in [tokens] when one or more teams are created under an age group -- like
+     * the match schedule pushes above, every active club member gets this (a new team is club-wide
+     * roster news), not just the age group's own staff/players/parents. [teamNames] covers both
+     * [com.ricardofrango.squadify.domain.usecase.CreateTeamUseCase] (one team) and
+     * [com.ricardofrango.squadify.domain.usecase.CreateTeamsUseCase] (a batch) with a single method,
+     * rather than sending one push per team when several are created at once. Same non-empty-[tokens]
+     * contract as [sendClubMembershipAdded].
+     */
+    suspend fun sendTeamCreated(tokens: List<String>, teamNames: List<String>, ageGroupName: String, clubName: String)
 }

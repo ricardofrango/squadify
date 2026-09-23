@@ -163,6 +163,20 @@ class FirebaseAdminPushNotificationService : PushNotificationService {
         )
     }
 
+    override suspend fun sendTeamCreated(tokens: List<String>, teamNames: List<String>, ageGroupName: String, clubName: String) {
+        val body = if (teamNames.size == 1) {
+            "New team: ${teamNames.first()} has been added to $ageGroupName"
+        } else {
+            "New teams added to $ageGroupName: ${teamNames.joinToString(", ")}"
+        }
+        send(
+            tokens = tokens,
+            channelId = AGE_GROUP_CHANNEL,
+            title = "Squadify",
+            body = body
+        )
+    }
+
     private companion object {
         // Mirror SquadifyMessagingService's NOTIFICATION_CHANNEL_* constants on the Android client --
         // see TECHNICAL_DECISIONS.md's push-notifications section.

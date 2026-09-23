@@ -1,20 +1,28 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
+import com.ricardofrango.squadify.domain.repository.ClubRepository
+import com.ricardofrango.squadify.domain.repository.FcmTokenRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
+import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AgeGroup
+import com.ricardofrango.squadify.model.Club
+import com.ricardofrango.squadify.model.ClubMemberSummary
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ClubStatus
 import com.ricardofrango.squadify.model.CreateTeamRequest
+import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
@@ -34,12 +42,16 @@ class CreateTeamUseCaseTest {
     private val playerRepository = mockk<PlayerRepository>()
     private val userRepository = mockk<UserRepository>()
     private val ageGroupRepository = mockk<AgeGroupRepository>()
-    private val clubRepository = mockk<com.ricardofrango.squadify.domain.repository.ClubRepository>()
+    private val clubRepository = mockk<ClubRepository>()
+    private val fcmTokenRepository = mockk<FcmTokenRepository>()
+    private val pushNotificationService = mockk<PushNotificationService>(relaxed = true)
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager)
-    private val useCase = CreateTeamUseCase(teamRepository, ageGroupRepository, clubRepository, checkUserPermissionUseCase, transactionManager)
+    private val useCase = CreateTeamUseCase(
+        teamRepository, ageGroupRepository, clubRepository, fcmTokenRepository, checkUserPermissionUseCase, pushNotificationService, transactionManager
+    )
 
     private val clubIdA = "club-a"
 
@@ -50,6 +62,14 @@ class CreateTeamUseCaseTest {
         seasonId = "season-1",
         startYear = 2014,
         endYear = 2014
+    )
+
+    private val club = Club(
+        id = clubIdA,
+        name = "Test FC",
+        status = ClubStatus.ACTIVE,
+        createdAt = Instant.fromEpochMilliseconds(0),
+        sport = SportType.FOOTBALL
     )
 
     private val dummyTeam = Team(
@@ -78,6 +98,9 @@ class CreateTeamUseCaseTest {
         coEvery { userRepository.findById(coordinator.id) } returns coordinator
         coEvery { userRepository.getUserRoleInClub(coordinator.id, clubIdA) } returns ClubRole.COORDINATOR
         coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns consistentAgeGroup
+        coEvery { clubRepository.getClubById(clubIdA) } returns club
+        coEvery { clubRepository.getClubMembers(clubIdA) } returns emptyList()
+        coEvery { fcmTokenRepository.getTokensForUsers(emptyList()) } returns emptyMap()
         coEvery { teamRepository.createTeam(any()) } returns dummyTeam
         val request = CreateTeamRequest(clubId = clubIdA, ageGroupId = "age-group-1", seasonId = "season-1", name = "Team 1")
 
@@ -113,17 +136,15 @@ class CreateTeamUseCaseTest {
     }
 
     @Test
-    fun aNonexistentClubIsNotFoundWhenTeamSizeIsSet() = runBlocking {
-        // The club lookup only happens when a teamSize is given (to validate it against the club's
-        // sport), so the request must include one to reach this branch.
+    fun aNonexistentClubIsNotFound() = runBlocking {
+        // The club is now always fetched (needed for the push notification's club name, not just to
+        // validate an optional teamSize) -- no teamSize needed in the request to reach this branch.
         val admin = user("p2-club-admin")
         coEvery { userRepository.findById(admin.id) } returns admin
         coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
         coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns consistentAgeGroup
         coEvery { clubRepository.getClubById(clubIdA) } returns null
-        val request = CreateTeamRequest(
-            clubId = clubIdA, ageGroupId = "age-group-1", seasonId = "season-1", name = "Team 1", teamSize = 11
-        )
+        val request = CreateTeamRequest(clubId = clubIdA, ageGroupId = "age-group-1", seasonId = "season-1", name = "Team 1")
 
         assertFailsWith<NotFoundException> {
             useCase(admin.id, request)
@@ -157,5 +178,41 @@ class CreateTeamUseCaseTest {
             useCase(admin.id, request)
         }
         Unit
+    }
+
+    @Test
+    fun creatingATeamNotifiesTheClub() = runBlocking {
+        val admin = user("p2-club-admin")
+        coEvery { userRepository.findById(admin.id) } returns admin
+        coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
+        coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns consistentAgeGroup
+        coEvery { clubRepository.getClubById(clubIdA) } returns club
+        coEvery { clubRepository.getClubMembers(clubIdA) } returns listOf(
+            ClubMemberSummary("u1", "A", "B", "a@b.com", ClubRole.MEMBER)
+        )
+        coEvery { fcmTokenRepository.getTokensForUsers(listOf("u1")) } returns mapOf("u1" to listOf("token-1"))
+        coEvery { teamRepository.createTeam(any()) } returns dummyTeam
+        val request = CreateTeamRequest(clubId = clubIdA, ageGroupId = "age-group-1", seasonId = "season-1", name = "Team 1")
+
+        useCase(admin.id, request)
+
+        coVerify { pushNotificationService.sendTeamCreated(listOf("token-1"), listOf("Team 1"), "U12", "Test FC") }
+    }
+
+    @Test
+    fun noClubMemberHasATokenSendsNothing() = runBlocking {
+        val admin = user("p2-club-admin")
+        coEvery { userRepository.findById(admin.id) } returns admin
+        coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
+        coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns consistentAgeGroup
+        coEvery { clubRepository.getClubById(clubIdA) } returns club
+        coEvery { clubRepository.getClubMembers(clubIdA) } returns emptyList()
+        coEvery { fcmTokenRepository.getTokensForUsers(emptyList()) } returns emptyMap()
+        coEvery { teamRepository.createTeam(any()) } returns dummyTeam
+        val request = CreateTeamRequest(clubId = clubIdA, ageGroupId = "age-group-1", seasonId = "season-1", name = "Team 1")
+
+        useCase(admin.id, request)
+
+        coVerify(exactly = 0) { pushNotificationService.sendTeamCreated(any(), any(), any(), any()) }
     }
 }

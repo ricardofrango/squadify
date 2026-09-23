@@ -89,4 +89,24 @@ class FirebaseAdminPushNotificationServiceTest {
             score = score
         )
     }
+
+    @Test
+    fun sendTeamCreatedNeverThrowsWithOneTeamName() = runBlocking {
+        pushNotificationService.sendTeamCreated(
+            tokens = listOf("some-device-token"),
+            teamNames = listOf("Sub-15 A"),
+            ageGroupName = "U15",
+            clubName = "Test FC"
+        )
+    }
+
+    @Test
+    fun sendTeamCreatedNeverThrowsWithSeveralTeamNames() = runBlocking {
+        pushNotificationService.sendTeamCreated(
+            tokens = listOf("some-device-token"),
+            teamNames = listOf("Sub-15 A", "Sub-15 B"),
+            ageGroupName = "U15",
+            clubName = "Test FC"
+        )
+    }
 }

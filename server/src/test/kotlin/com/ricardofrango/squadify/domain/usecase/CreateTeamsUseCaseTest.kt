@@ -1,15 +1,19 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
+import com.ricardofrango.squadify.domain.repository.ClubRepository
+import com.ricardofrango.squadify.domain.repository.FcmTokenRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
+import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Club
+import com.ricardofrango.squadify.model.ClubMemberSummary
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ClubStatus
 import com.ricardofrango.squadify.model.SportType
@@ -19,6 +23,7 @@ import com.ricardofrango.squadify.model.TeamItemRequest
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.runBlocking
@@ -38,12 +43,16 @@ class CreateTeamsUseCaseTest {
     private val playerRepository = mockk<PlayerRepository>()
     private val userRepository = mockk<UserRepository>()
     private val ageGroupRepository = mockk<AgeGroupRepository>()
-    private val clubRepository = mockk<com.ricardofrango.squadify.domain.repository.ClubRepository>()
+    private val clubRepository = mockk<ClubRepository>()
+    private val fcmTokenRepository = mockk<FcmTokenRepository>()
+    private val pushNotificationService = mockk<PushNotificationService>(relaxed = true)
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager)
-    private val useCase = CreateTeamsUseCase(teamRepository, ageGroupRepository, clubRepository, checkUserPermissionUseCase, transactionManager)
+    private val useCase = CreateTeamsUseCase(
+        teamRepository, ageGroupRepository, clubRepository, fcmTokenRepository, checkUserPermissionUseCase, pushNotificationService, transactionManager
+    )
 
     private val clubIdA = "club-a"
 
@@ -52,6 +61,10 @@ class CreateTeamsUseCaseTest {
             id = clubIdA, name = "C", status = ClubStatus.ACTIVE,
             createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL
         )
+        // Default: no club members found, so tests that don't care about the push simply never trigger
+        // one -- dedicated tests below override this to actually exercise sendTeamCreated.
+        coEvery { clubRepository.getClubMembers(clubIdA) } returns emptyList()
+        coEvery { fcmTokenRepository.getTokensForUsers(emptyList()) } returns emptyMap()
     }
 
     private val consistentAgeGroup = AgeGroup(
@@ -173,5 +186,37 @@ class CreateTeamsUseCaseTest {
             useCase(admin.id, request("Team A"))
         }
         Unit
+    }
+
+    @Test
+    fun creatingABatchNotifiesTheClubWithEveryTeamName() = runBlocking {
+        val coordinator = user("p3-coordinator")
+        coEvery { userRepository.findById(coordinator.id) } returns coordinator
+        coEvery { userRepository.getUserRoleInClub(coordinator.id, clubIdA) } returns ClubRole.COORDINATOR
+        coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns consistentAgeGroup
+        coEvery { clubRepository.getClubMembers(clubIdA) } returns listOf(
+            ClubMemberSummary("u1", "A", "B", "a@b.com", ClubRole.MEMBER)
+        )
+        coEvery { fcmTokenRepository.getTokensForUsers(listOf("u1")) } returns mapOf("u1" to listOf("token-1"))
+        val created = slot<List<Team>>()
+        coEvery { teamRepository.createTeams(capture(created)) } answers { created.captured }
+
+        useCase(coordinator.id, request("Team A", "Team B"))
+
+        coVerify { pushNotificationService.sendTeamCreated(listOf("token-1"), listOf("Team A", "Team B"), "U12", "C") }
+    }
+
+    @Test
+    fun noClubMemberHasATokenSendsNothing() = runBlocking {
+        val coordinator = user("p3-coordinator")
+        coEvery { userRepository.findById(coordinator.id) } returns coordinator
+        coEvery { userRepository.getUserRoleInClub(coordinator.id, clubIdA) } returns ClubRole.COORDINATOR
+        coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns consistentAgeGroup
+        val created = slot<List<Team>>()
+        coEvery { teamRepository.createTeams(capture(created)) } answers { created.captured }
+
+        useCase(coordinator.id, request("Team A"))
+
+        coVerify(exactly = 0) { pushNotificationService.sendTeamCreated(any(), any(), any(), any()) }
     }
 }

@@ -444,10 +444,15 @@ graph TD
     E -- Yes --> E2{"teamSize set? — load club, must be in club.sport.teamSizes"}
     E2 -- invalid --> V
     E2 -- ok / not set --> G["Create Team — active=true, teamSize = request.teamSize ?: ageGroup.teamSize"]
-    G --> Z(["Persist Team"])
+    G --> H["Fetch every active ClubMember of clubId; flatten their FcmTokenRepository tokens"]
+    H --> I["Transaction commits"]
+    I --> J{"Any token found?"}
+    J -- Yes --> K["PushNotificationService.sendTeamCreated(tokens, [team.name], ageGroupName, clubName) — every club member, not just this age group's staff"]
+    J -- No --> Z
+    K --> Z(["Return created Team"])
 ```
 
-`teamSize` is the a-side count this team plays. The request field is optional: when omitted the team inherits the age group's default (`ageGroup.teamSize`, itself nullable for age groups created before team sizes existed). When supplied it must be one of the club sport's allowed sizes. The client's Create Team screen pre-selects the age group's default and lets the user change it (e.g. an age group defined as 7-a-side with one team that plays 9-a-side).
+`teamSize` is the a-side count this team plays. The request field is optional: when omitted the team inherits the age group's default (`ageGroup.teamSize`, itself nullable for age groups created before team sizes existed). When supplied it must be one of the club sport's allowed sizes. The client's Create Team screen pre-selects the age group's default and lets the user change it (e.g. an age group defined as 7-a-side with one team that plays 9-a-side). The club is now always fetched (previously only when `teamSize` was set) -- also needed for the push's club name.
 
 ### 4.5b Create Teams (`CreateTeamsUseCase`) — batch
 
@@ -467,10 +472,15 @@ graph TD
     G -- teamSize set AND not in club.sport.teamSizes --> V
     G -- valid --> H["Build Team entity — active=true, teamSize = item.teamSize ?: ageGroup.teamSize"]
     H --> I[Batch insert all Teams]
-    I --> Z(["Return created Teams"])
+    I --> J["Fetch every active ClubMember of clubId; flatten their FcmTokenRepository tokens"]
+    J --> K["Transaction commits"]
+    K --> L{"Any token found?"}
+    L -- Yes --> M["PushNotificationService.sendTeamCreated(tokens, createdTeams.map{name}, ageGroupName, clubName) — one push for the whole batch, every club member"]
+    L -- No --> Z
+    M --> Z(["Return created Teams"])
 ```
 
-Whole batch runs in one transaction (all or nothing), mirroring `CreateAgeGroupsUseCase`. Teams have no name-uniqueness constraint, so there's no conflict branch. Covered by `CreateTeamsUseCaseTest`. The client's Create Teams screen defaults the season to the most recent one (by end date), requires an age group to be picked, and requires a name on every row before it will submit. Each row also has a team-size picker pre-selected to the chosen age group's default (`ageGroup.teamSize`), overridable per row; an omitted `teamSize` falls back to that default server-side.
+Whole batch runs in one transaction (all or nothing), mirroring `CreateAgeGroupsUseCase`. Teams have no name-uniqueness constraint, so there's no conflict branch. Covered by `CreateTeamsUseCaseTest`. The client's Create Teams screen defaults the season to the most recent one (by end date), requires an age group to be picked, and requires a name on every row before it will submit. Each row also has a team-size picker pre-selected to the chosen age group's default (`ageGroup.teamSize`), overridable per row; an omitted `teamSize` falls back to that default server-side. The batch's push lists every created team's name in one notification rather than sending one push per team.
 
 ### 4.6 Update Team (`UpdateTeamUseCase`)
 
