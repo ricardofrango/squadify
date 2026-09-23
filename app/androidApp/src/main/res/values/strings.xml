@@ -1,5 +1,4 @@
 <resources>
-    <string name="app_name">Squadify</string>
     <string name="notification_channel_default_name">General</string>
     <string name="notification_channel_default_description">Anything that doesn\'t fit another category</string>
     <string name="notification_channel_live_matches_name">Live Matches</string>

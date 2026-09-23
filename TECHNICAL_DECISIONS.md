@@ -415,12 +415,16 @@ build-variant system offers:
 
 - **Android** (`app/androidApp`): three product flavors (`dev`/`staging`/`prod`), each setting a
   `BASE_URL` via `buildConfigField`. `SquadifyApplication.onCreate()` reads `BuildConfig.BASE_URL`/
-  `BuildConfig.DEBUG` and passes them to `initKoin`. Deliberately **not** `applicationId`-suffixed per
-  flavor -- `google-services.json` is registered for the bare `com.ricardofrango.squadify` package only,
-  and a suffix would break Crashlytics/App Distribution for every flavor but the one matching it. One
-  consequence: Firebase App Distribution's task is no longer the flat `appDistributionUploadRelease` --
-  flavors split it into `appDistributionUploadDevRelease`/`...StagingRelease`/`...ProdRelease` (verified:
-  ran `./gradlew :app:androidApp:tasks --all`, confirmed all three exist). Use
+  `BuildConfig.DEBUG` and passes them to `initKoin`. `dev`/`staging` carry an `applicationIdSuffix`
+  (`.dev`/`.stg`; `prod` stays bare, for the real Play Store listing) -- originally *not* suffixed at
+  all, but that let a device that had ever run more than one flavor be handed the *same* FCM
+  registration token across them (Firebase scopes a token by package name + project + signing cert, not
+  by build variant), so a push triggered on one environment's server could land on a device someone only
+  meant to test another environment on; see §24's push-notifications section. `google-services.json` is
+  now registered for all three resulting package names under the one Firebase project (`squadify-958d3`).
+  One consequence: Firebase App Distribution's task is no longer the flat `appDistributionUploadRelease`
+  -- flavors split it into `appDistributionUploadDevRelease`/`...StagingRelease`/`...ProdRelease`
+  (verified: ran `./gradlew :app:androidApp:tasks --all`, confirmed all three exist). Use
   `appDistributionUploadStagingRelease` for tester builds, per the "staging first" rule above.
 - **Desktop & Web** (`app/desktopApp`, `app/webApp`): no OS/toolchain-level build-variant system, so both
   use the same pattern instead -- a `generateSquadifyConfig` Gradle task writes a small
@@ -891,3 +895,57 @@ throwing both still never propagate), `FirebaseAdminPushNotificationServiceTest`
 no test file before), and coverage added to `UpdateMatchUseCaseTest`/`UpdateMatchStatusUseCaseTest`/
 `StartMatchUseCaseTest`/`AddMatchEventUseCaseTest` asserting the right event fires (or doesn't) per
 scenario -- including that a notes-only `UpdateMatchUseCase` call sends nothing.
+
+## 25. Push Notifications: Environment Isolation + Local Credential Fallback
+
+Found by manual testing, not designed up front: with dev/staging/prod all sharing one `applicationId`
+(`com.ricardofrango.squadify`, no suffix) and one Firebase project, a device that had ever run more than
+one flavor could be handed the *same* FCM registration token across them -- Firebase scopes a token by
+package name + project + signing cert, not by build variant/flavor. Since each server environment
+already only ever sends to tokens found in its *own* database (dev/staging/prod each have separate
+Postgres instances), that alone wasn't the leak: the leak was that the *same physical token* could exist
+in two different environments' databases if the same device registered it against both, and Firebase
+itself has no concept of "environment" to stop a send addressed to that token regardless of which
+environment's server sent it -- it just delivers to whatever device that token is bound to.
+
+**Fix, client side**: `app/androidApp/build.gradle.kts`'s `dev`/`staging` flavors now carry
+`applicationIdSuffix` (`.dev`/`.stg`; `prod` stays bare) -- see §16's "Environment-Based App Config"
+section for the updated description. This makes each flavor a genuinely distinct app to Firebase, so
+even the same physical device produces different, non-interchangeable tokens per flavor, closing the
+loophole. `google-services.json` now registers three `client` entries (one per resulting package name)
+under the same Firebase project (`squadify-958d3`) -- Firebase supports multiple package names under one
+project natively for exactly this multi-flavor scenario, so this didn't require creating additional
+Firebase projects.
+
+**Server side needed no code change**: Firebase Admin SDK credentials are scoped to the *project*, not
+to individual apps/package names, so the one existing `FIREBASE_SERVICE_ACCOUNT_JSON` (§24) still covers
+all three apps -- FCM sends are addressed by device token, not by package name, so
+`FirebaseAdminPushNotificationService` never needed to know which flavor registered a given token.
+Verified empirically: the same default Admin SDK service-account key already used for CI's Firebase App
+Distribution uploads (`firebase-service-account.json`, `client_email` matching Firebase's
+`firebase-adminsdk-<random>@<project>.iam.gserviceaccount.com` auto-provisioned pattern -- not a
+narrowly-scoped "App Distribution only" credential, despite the name association) was confirmed to
+already carry Cloud Messaging permission too, via a real dry-run send (`FirebaseMessaging.send(message,
+dryRun = true)`) that reached Firebase's servers and got rejected only for an intentionally-fake token
+(`"The registration token is not a valid FCM registration token"` -- a token-format rejection, not a
+`PERMISSION_DENIED`, which is what would have happened if this credential actually lacked FCM
+authorization). Confirmed again by sending a real (non-dry-run) message to an actual previously-
+registered device token through the real `FirebaseAdminPushNotificationService` class and getting a
+genuine `200` from `fcm.googleapis.com` -- both checks used a throwaway test class, deleted immediately
+after, never committed.
+
+**`ServerConfig.firebaseServiceAccountJson` gained a local-dev file fallback.** Requiring
+`FIREBASE_SERVICE_ACCOUNT_JSON` exported in every shell before `./gradlew :server:run` works was
+explicitly rejected by the developer as a permanent requirement -- the fix needed to be in code, not a
+runtime habit. Mirrors the exact pattern `app/androidApp/build.gradle.kts` already uses for the release
+keystore (`keystorePropertiesFile.exists()` -> use it, else fall back): when the env var isn't set,
+`ServerConfig` now reads the same gitignored `firebase-service-account.json` file directly. The first
+implementation of this used a single repo-root-relative path and silently never worked under the one
+launch method it was actually for -- Gradle's `application`/`test` tasks default their JVM's working
+directory to the `server/` *module* folder, not the repo root, even though `./gradlew` itself is
+conventionally invoked from the root (confirmed empirically: `File(".").absolutePath` printed
+`.../server` under both `:server:run` and `:server:test`). Fixed by trying `../firebase-service-account.json`
+first (what actually resolves under Gradle's real working directory) with the bare repo-root-relative
+form kept as a second candidate for any other invocation method. The env var still takes priority over
+both when set, since Railway (staging/production) has no reliable place to mount a file at all -- this
+fallback is local-dev-only convenience, not a replacement for the env var in deployed environments.
