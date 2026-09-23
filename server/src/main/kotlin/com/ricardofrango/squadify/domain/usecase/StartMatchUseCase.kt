@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.domain.usecase
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
+import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
@@ -21,6 +22,7 @@ class StartMatchUseCase(
     private val liveMatchBus: LiveMatchBus,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
+    private val clubMatchesBus: ClubMatchesBus,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
@@ -28,6 +30,8 @@ class StartMatchUseCase(
         matchId: String,
         request: StartMatchRequest
     ): Boolean {
+        var updatedMatch: Match? = null
+
         val success = transactionManager.runInTransaction {
             val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
 
@@ -71,8 +75,14 @@ class StartMatchUseCase(
 
             val started = matchRepository.startMatch(matchId, startingIds, request.halfLengthMinutes)
             if (started) {
+                // Re-fetch (kickoffAt/halfLengthMinutes were just set by startMatch above, not
+                // available on the pre-kickoff `match` read at the top) -- must happen inside this
+                // transaction, since a MatchRepository call made outside one throws. Shared by both
+                // broadcasts below.
+                val refetched = matchRepository.getMatchById(matchId)
+                updatedMatch = refetched
                 val score = matchEventRepository.getScoreByMatch(matchId)
-                liveMatchBus.publish(matchId, LiveMatchUpdate(score = score, status = MatchStatus.LIVE))
+                liveMatchBus.publish(matchId, LiveMatchUpdate(score = score, match = refetched))
             }
             started
         }
@@ -80,6 +90,7 @@ class StartMatchUseCase(
         // Sent after the transaction commits -- a failed/slow push must never roll back kickoff.
         if (success) {
             notifyMatchEventUseCase(matchId, MatchNotificationEvent.KICKOFF)
+            updatedMatch?.let { clubMatchesBus.publish(it.clubId, ClubMatchesUpdate(match = it)) }
         }
         return success
     }

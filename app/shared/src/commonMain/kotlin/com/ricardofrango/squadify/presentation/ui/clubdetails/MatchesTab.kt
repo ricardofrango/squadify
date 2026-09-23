@@ -14,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,6 +57,18 @@ fun MatchesTab(
     onNavigateToMatch: (matchId: String) -> Unit
 ) {
     val details = state.details ?: return
+
+    // Live-updates the fixture list for as long as this tab is on screen: connects when this
+    // composable enters composition (tab selected, or returning from a match's own detail screen,
+    // which disposed this same composable while it was open) and disconnects when it leaves (a
+    // different tab selected, or navigating to a match). A REST refresh runs alongside the
+    // (re)connect so a stale list is corrected immediately rather than waiting for the next socket
+    // event, since the socket only pushes -- it carries no backlog for whatever changed while away.
+    DisposableEffect(details.club.id) {
+        viewModel.refreshMatches(details.club.id)
+        viewModel.connectToClubMatchesUpdates(details.club.id)
+        onDispose { viewModel.disconnectFromClubMatchesUpdates() }
+    }
 
     // The club has no fixtures at all -- the full empty state, no filter row.
     if (state.matches.isEmpty()) {

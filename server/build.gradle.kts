@@ -6,7 +6,10 @@ plugins {
 }
 
 group = "com.ricardofrango.squadify"
-version = "1.1.0"
+// Same source of truth as app/androidApp's versionName (root gradle.properties' VERSION_NAME) -- see
+// TECHNICAL_DECISIONS.md's versioning section. Only used for the Gradle module/artifact version today
+// (e.g. the fat-jar's filename); not yet exposed at runtime (no /version endpoint).
+version = (project.findProperty("VERSION_NAME") as? String) ?: "1.1.0"
 application {
     mainClass = "com.ricardofrango.squadify.ApplicationKt"
 }

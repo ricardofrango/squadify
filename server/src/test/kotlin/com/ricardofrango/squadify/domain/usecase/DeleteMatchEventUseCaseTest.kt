@@ -6,11 +6,13 @@ import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
+import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
+import com.ricardofrango.squadify.model.ClubMatchesUpdate
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.Match
@@ -44,8 +46,9 @@ class DeleteMatchEventUseCaseTest {
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager
     )
+    private val clubMatchesBus = mockk<ClubMatchesBus>(relaxed = true)
     private val useCase = DeleteMatchEventUseCase(
-        matchEventRepository, matchRepository, liveMatchBus, checkUserPermissionUseCase, transactionManager
+        matchEventRepository, matchRepository, liveMatchBus, checkUserPermissionUseCase, clubMatchesBus, transactionManager
     )
 
     private val clubId = "club-1"
@@ -78,6 +81,7 @@ class DeleteMatchEventUseCaseTest {
 
         assertEquals(true, result)
         coVerify { matchEventRepository.deleteEvent(eventId) }
+        coVerify { clubMatchesBus.publish(clubId, ClubMatchesUpdate(score = MatchScore(matchId, 0, 0))) }
     }
 
     @Test

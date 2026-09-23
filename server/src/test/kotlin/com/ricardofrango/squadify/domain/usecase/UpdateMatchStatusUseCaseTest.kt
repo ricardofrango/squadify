@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
+import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.model.ClubRole
@@ -41,8 +42,9 @@ class UpdateMatchStatusUseCaseTest {
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager
     )
     private val notifyMatchEventUseCase = mockk<NotifyMatchEventUseCase>(relaxed = true)
+    private val clubMatchesBus = mockk<ClubMatchesBus>(relaxed = true)
     private val useCase = UpdateMatchStatusUseCase(
-        matchRepository, matchEventRepository, liveMatchBus, checkUserPermissionUseCase, notifyMatchEventUseCase, transactionManager
+        matchRepository, matchEventRepository, liveMatchBus, checkUserPermissionUseCase, notifyMatchEventUseCase, clubMatchesBus, transactionManager
     )
 
     private val clubId = "club-1"
@@ -167,6 +169,7 @@ class UpdateMatchStatusUseCaseTest {
 
         assert(result)
         coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.FULL_TIME) }
+        coVerify { clubMatchesBus.publish(clubId, com.ricardofrango.squadify.model.ClubMatchesUpdate(match = liveMatch.copy(status = MatchStatus.FINISHED))) }
     }
 
     @Test

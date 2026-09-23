@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
+import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
@@ -48,6 +49,7 @@ class StartMatchUseCaseTest {
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager
     )
     private val notifyMatchEventUseCase = mockk<NotifyMatchEventUseCase>(relaxed = true)
+    private val clubMatchesBus = mockk<ClubMatchesBus>(relaxed = true)
     private val useCase = StartMatchUseCase(
         matchRepository,
         matchEventRepository,
@@ -55,6 +57,7 @@ class StartMatchUseCaseTest {
         liveMatchBus,
         checkUserPermissionUseCase,
         notifyMatchEventUseCase,
+        clubMatchesBus,
         transactionManager
     )
 
@@ -96,6 +99,7 @@ class StartMatchUseCaseTest {
         assertEquals(true, result)
         coVerify { matchRepository.startMatch(matchId, starting, 30) }
         coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.KICKOFF) }
+        coVerify { clubMatchesBus.publish(clubId, com.ricardofrango.squadify.model.ClubMatchesUpdate(match = match)) }
     }
 
     @Test

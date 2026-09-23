@@ -104,4 +104,10 @@ jobs:
       # itself, per Firebase's own docs ("./gradlew assembleRelease appDistributionUploadRelease").
       # Both tasks must run in the same invocation or the upload task fails with "Could not find an
       # APK file for this variant".
-      - run: ./gradlew :app:androidApp:assembleStagingRelease :app:androidApp:appDistributionUploadStagingRelease --no-daemon
+      #
+      # -PversionCode=${{ github.run_number }}: this workflow's own run number, which auto-increments on
+      # every run -- gives every staging build a unique, strictly-increasing versionCode and a distinct
+      # "-stg.<n>" versionName suffix (see app/androidApp/build.gradle.kts), so two different staging
+      # deploys are never visually identical to a tester again. See TECHNICAL_DECISIONS.md's versioning
+      # section.
+      - run: ./gradlew :app:androidApp:assembleStagingRelease :app:androidApp:appDistributionUploadStagingRelease --no-daemon -PversionCode=${{ github.run_number }}

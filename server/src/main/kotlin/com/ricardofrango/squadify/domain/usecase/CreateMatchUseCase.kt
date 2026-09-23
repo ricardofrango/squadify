@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.domain.usecase
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
+import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
@@ -15,6 +16,7 @@ class CreateMatchUseCase(
     private val opponentRepository: OpponentRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
+    private val clubMatchesBus: ClubMatchesBus,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
@@ -58,6 +60,7 @@ class CreateMatchUseCase(
 
         // Sent after the transaction commits -- a failed/slow push must never roll back the match.
         notifyMatchEventUseCase(created.id, MatchNotificationEvent.SCHEDULED)
+        clubMatchesBus.publish(created.clubId, ClubMatchesUpdate(match = created))
 
         return created
     }

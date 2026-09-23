@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
+import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.model.ClubRole
@@ -40,8 +41,9 @@ class UpdateMatchUseCaseTest {
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager
     )
     private val notifyMatchEventUseCase = mockk<NotifyMatchEventUseCase>(relaxed = true)
+    private val clubMatchesBus = mockk<ClubMatchesBus>(relaxed = true)
     private val useCase = UpdateMatchUseCase(
-        matchRepository, opponentRepository, checkUserPermissionUseCase, notifyMatchEventUseCase, transactionManager
+        matchRepository, opponentRepository, checkUserPermissionUseCase, notifyMatchEventUseCase, clubMatchesBus, transactionManager
     )
 
     private val clubId = "club-1"
@@ -70,6 +72,7 @@ class UpdateMatchUseCaseTest {
         assertEquals("old", saved.captured.notes) // untouched
         assertEquals("opp-1", saved.captured.opponentId) // untouched
         coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.RESCHEDULED) }
+        coVerify { clubMatchesBus.publish(clubId, com.ricardofrango.squadify.model.ClubMatchesUpdate(match = saved.captured)) }
     }
 
     @Test

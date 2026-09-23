@@ -204,6 +204,10 @@ object Matches : Table("matches") {
     // secondHalfStartedAt stays null until the HALF_TIME -> LIVE transition.
     val kickoffAt = timestamp("kickoff_at").nullable()
     val secondHalfStartedAt = timestamp("second_half_started_at").nullable()
+    // Wall-clock instant the running clock was paused (PauseMatchUseCase) -- null while running. On
+    // resume, whichever of kickoffAt/secondHalfStartedAt is currently driving the clock shifts forward
+    // by the paused duration and this clears back to null (see Match.pausedAt's own doc comment).
+    val pausedAt = timestamp("paused_at").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

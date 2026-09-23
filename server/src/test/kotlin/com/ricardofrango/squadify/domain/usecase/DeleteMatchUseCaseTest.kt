@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
+import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
@@ -39,7 +40,8 @@ class DeleteMatchUseCaseTest {
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager
     )
-    private val useCase = DeleteMatchUseCase(matchRepository, matchEventRepository, checkUserPermissionUseCase, transactionManager)
+    private val clubMatchesBus = mockk<ClubMatchesBus>(relaxed = true)
+    private val useCase = DeleteMatchUseCase(matchRepository, matchEventRepository, checkUserPermissionUseCase, clubMatchesBus, transactionManager)
 
     private val clubId = "club-1"
     private val matchId = "m-1"
@@ -71,6 +73,7 @@ class DeleteMatchUseCaseTest {
             matchRepository.manageCallUps(matchId, emptyList())
             matchRepository.deleteMatch(matchId)
         }
+        coVerify { clubMatchesBus.publish(clubId, com.ricardofrango.squadify.model.ClubMatchesUpdate(deletedMatchId = matchId)) }
     }
 
     @Test

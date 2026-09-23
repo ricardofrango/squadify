@@ -78,7 +78,9 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Real-time broadcasting via **WebSockets**.
     - [x] Live Event logging (Goals, Assists, Cards, Subs).
     - [x] Live Score calculation.
-    - [x] Live match console (client): kickoff line-up picker, live squad/events tabs, event logging & deletion, full-time summary.
+    - [x] Live match console (client): kickoff line-up picker, live squad/events tabs, event logging & deletion, full-time summary. Pause/Resume freezes the running clock for a mid-half stoppage, and "Set minute" applies a manual correction -- both server-authoritative (persisted and broadcast), not client-clock-derived, and neither behind a confirmation dialog (lower-stakes, reversible). See `TECHNICAL_DECISIONS.md` §29.
+    - [x] Club-wide Matches tab live-updates via a second, club-scoped WebSocket (`/clubs/{clubId}/matches/live`) — connects while the tab is on screen, disconnects on tab-switch or navigating into a match, reconnects + REST-refreshes on return. Fixture create/edit/delete/kickoff/status-change and per-goal score updates all broadcast live. See `TECHNICAL_DECISIONS.md` §28.
+    - [x] The running clock formula is shared (`elapsedMatchSeconds` in `common/model/Models.kt`) between the live match console and the Matches list's live badge, so the two can never disagree, and both reflect a paused clock identically. See `TECHNICAL_DECISIONS.md` §29.
     - [ ] Historical match statistics (Post-match analysis) — the summary screen's "Minutes played" row is a placeholder, no per-player breakdown yet.
 - [ ] **Phase 6: Dashboards & Aggregated Summaries**: Role-specific overview endpoints.
     - [/] **Super Admin Summary**: Global platform health (Total clubs, active users, system logs).

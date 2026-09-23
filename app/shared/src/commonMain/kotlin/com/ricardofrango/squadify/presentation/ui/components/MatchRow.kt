@@ -14,6 +14,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,11 +29,13 @@ import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
+import com.ricardofrango.squadify.model.elapsedMatchSeconds
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import squadify.app.shared.generated.resources.Res
+import squadify.app.shared.generated.resources.label_paused_badge
 import squadify.app.shared.generated.resources.label_result_draw
 import squadify.app.shared.generated.resources.label_result_loss
 import squadify.app.shared.generated.resources.label_result_win
@@ -36,6 +43,7 @@ import squadify.app.shared.generated.resources.matches_full_time
 import squadify.app.shared.generated.resources.matches_half_time
 import squadify.app.shared.generated.resources.matches_live
 import squadify.app.shared.generated.resources.matches_minute
+import kotlinx.coroutines.delay
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
@@ -150,9 +158,33 @@ fun MatchRow(
 
 private val MatchRowShape = RoundedCornerShape(16.dp)
 private val LiveRed = Color(0xFFC0392B)
+private val CardYellow = Color(0xFFF1C40F)
 
 @Composable
 private fun LiveDateBlock(match: Match) {
+    // Ticks this row's own minute badge every 15s while the match is LIVE -- without this, the badge
+    // only updated when something else forced a recomposition (a new club-socket event, or reopening
+    // the tab), which read as "the timer doesn't update" (see TECHNICAL_DECISIONS.md's match-clock
+    // section). 15s rather than the live console's 1s: this only ever displays whole minutes, and a
+    // whole club Matches list of these ticking every second would be needlessly expensive.
+    var tick by remember { mutableStateOf(0) }
+    LaunchedEffect(match.id, match.status) {
+        if (match.status == MatchStatus.LIVE) {
+            while (true) {
+                delay(15_000)
+                tick++
+            }
+        }
+    }
+    val isPaused = match.pausedAt != null
+    // Shares elapsedMatchSeconds with the live match console (LiveMatchScreen) -- previously this used
+    // a bare `now - kickoffAt` that ignored secondHalfStartedAt/halfLengthMinutes entirely, so it kept
+    // counting straight through kickoff instead of showing the second-half-adjusted minute the console
+    // showed for the same match.
+    val minute = remember(tick, match) {
+        (elapsedMatchSeconds(match, Clock.System.now()) / 60).coerceIn(0, 130)
+    }
+
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(40.dp)) {
         Surface(shape = RoundedCornerShape(4.dp), color = LiveRed) {
             Text(
@@ -167,10 +199,13 @@ private fun LiveDateBlock(match: Match) {
             // The trailing apostrophe is appended here, not baked into the string resource -- the
             // Compose Multiplatform resource generator doesn't reliably unescape a trailing \' in a
             // formatted string, which rendered as a literal "3\'" instead of "3'".
-            if (match.status == MatchStatus.HALF_TIME) stringResource(Res.string.matches_half_time)
-            else "${stringResource(Res.string.matches_minute, liveMinute(match.kickoffAt ?: match.dateTime))}'",
+            when {
+                match.status == MatchStatus.HALF_TIME -> stringResource(Res.string.matches_half_time)
+                isPaused -> stringResource(Res.string.label_paused_badge)
+                else -> "${stringResource(Res.string.matches_minute, minute)}'"
+            },
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-            color = PitchGreen
+            color = if (isPaused) CardYellow else PitchGreen
         )
     }
 }
@@ -214,11 +249,6 @@ private fun resultLabel(score: MatchScore): StringResource = when {
     else -> Res.string.label_result_draw
 }
 
-private fun liveMinute(kickoff: Instant): Int {
-    val mins = (Clock.System.now() - kickoff).inWholeMinutes
-    return mins.coerceIn(1, 130).toInt()
-}
-
 private fun timeLabel(instant: Instant): String {
     val dt = instant.toLocalDateTime(TimeZone.currentSystemDefault())
     return "${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}"
@@ -231,6 +261,7 @@ private fun previewMatch(
     status: MatchStatus,
     kickoffAt: Instant? = null,
     secondHalfStartedAt: Instant? = null,
+    pausedAt: Instant? = null,
     location: String? = "Municipal Stadium"
 ) = Match(
     id = "m1",
@@ -242,7 +273,8 @@ private fun previewMatch(
     status = status,
     halfLengthMinutes = if (secondHalfStartedAt != null) 45 else null,
     kickoffAt = kickoffAt,
-    secondHalfStartedAt = secondHalfStartedAt
+    secondHalfStartedAt = secondHalfStartedAt,
+    pausedAt = pausedAt
 )
 
 @Preview
@@ -281,6 +313,24 @@ private fun MatchRowHalfTimePreview() {
             opponentName = "Sporting Youth",
             teamName = "Sub 2015 A",
             score = MatchScore("m1", 0, 0),
+            onClick = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun MatchRowPausedPreview() {
+    SquadifyTheme {
+        MatchRow(
+            match = previewMatch(
+                MatchStatus.LIVE,
+                kickoffAt = Clock.System.now() - 23.minutes,
+                pausedAt = Clock.System.now() - 2.minutes
+            ),
+            opponentName = "Sporting Youth",
+            teamName = "Sub 2015 A",
+            score = MatchScore("m1", 1, 1),
             onClick = {}
         )
     }

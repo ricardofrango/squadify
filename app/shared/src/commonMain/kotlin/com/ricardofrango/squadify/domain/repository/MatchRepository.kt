@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.repository
 
+import com.ricardofrango.squadify.model.ClubMatchesUpdate
 import com.ricardofrango.squadify.model.CreateMatchEventRequest
 import com.ricardofrango.squadify.model.CreateMatchRequest
 import com.ricardofrango.squadify.model.LiveMatchUpdate
@@ -20,6 +21,9 @@ interface MatchRepository {
     suspend fun deleteMatch(matchId: String)
     suspend fun updateMatchStatus(matchId: String, status: MatchStatus)
     suspend fun startMatch(matchId: String, request: StartMatchRequest)
+    suspend fun pauseMatch(matchId: String)
+    suspend fun resumeMatch(matchId: String)
+    suspend fun setMatchMinute(matchId: String, minute: Int)
     suspend fun manageCallUps(matchId: String, playerIds: List<String>)
 
     suspend fun getMatchEvents(matchId: String): List<MatchEvent>
@@ -29,4 +33,9 @@ interface MatchRepository {
     // Cold: opens a WebSocket to `/matches/{matchId}/live` when collected and closes it when the
     // collector cancels. Reconnection on drop is the caller's job (see LiveMatchViewModel).
     fun observeLiveMatch(matchId: String): Flow<LiveMatchUpdate>
+    // Cold: opens a WebSocket to `/clubs/{clubId}/matches/live` when collected and closes it when the
+    // collector cancels -- mirrors observeLiveMatch but for the whole club's fixture list rather than
+    // one match's own event log. See ClubDetailsViewModel for the connect-on-tab-enter/disconnect-on-
+    // tab-leave lifecycle this is used with.
+    fun observeClubMatches(clubId: String): Flow<ClubMatchesUpdate>
 }

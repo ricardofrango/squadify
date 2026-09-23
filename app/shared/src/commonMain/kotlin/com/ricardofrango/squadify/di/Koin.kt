@@ -126,12 +126,16 @@ val domainModule = module {
     factory { DeleteMatchUseCase(get()) }
     factory { UpdateMatchStatusUseCase(get()) }
     factory { StartMatchUseCase(get()) }
+    factory { PauseMatchUseCase(get()) }
+    factory { ResumeMatchUseCase(get()) }
+    factory { SetMatchMinuteUseCase(get()) }
     factory { ManageCallUpsUseCase(get()) }
     factory { GetMatchEventsUseCase(get()) }
     factory { GetMatchScoreUseCase(get()) }
     factory { AddMatchEventUseCase(get()) }
     factory { DeleteMatchEventUseCase(get()) }
     factory { ObserveLiveMatchUseCase(get()) }
+    factory { ObserveClubMatchesUseCase(get()) }
     factory { GetClubMembersUseCase(get()) }
     factory { GetAgeGroupStaffUseCase(get()) }
     factory { AddStaffToAgeGroupUseCase(get()) }
