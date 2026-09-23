@@ -95,7 +95,7 @@ graph TD
     D -- allowed --> R[Fetch and return data from repository]
 ```
 
-Use cases that follow this pattern exactly (fetch-context → require at least `MEMBER` → return): `GetClubDetailsUseCase`, `GetAgeGroupsUseCase`, `GetSeasonsUseCase`, `GetTeamsUseCase`, `GetTeamDetailsUseCase` (adds aggregation + a `canManage` probe — see §4.6b), `GetTeamPlayersUseCase`, `GetAgeGroupPlayersByClubUseCase`, `GetAgeGroupStaffUseCase`, `GetPlayersUseCase`, `GetPlayerUseCase` (adds aggregation, no `canManage` probe — see §5.1b), `GetMatchesUseCase`, `GetMatchDetailsUseCase` (adds aggregation + `canManage`/`canManageMatchDay` probes — see §7.1b), `GetMatchEventsUseCase`, `GetMatchScoreUseCase`, `GetOpponentsUseCase`, and `GetLiveMatchUpdatesUseCase` (terminal step is "subscribe to the live bus" instead of "return data" — see §8.3).
+Use cases that follow this pattern exactly (fetch-context → require at least `MEMBER` → return): `GetClubDetailsUseCase`, `GetAgeGroupsUseCase`, `GetSeasonsUseCase`, `GetTeamsUseCase`, `GetTeamDetailsUseCase` (adds aggregation + a `canManage` probe — see §4.6b), `GetTeamPlayersUseCase`, `GetAgeGroupPlayersByClubUseCase`, `GetAgeGroupStaffUseCase`, `GetPlayersUseCase`, `GetPlayerUseCase` (adds aggregation, no `canManage` probe — see §5.1b), `GetMatchesUseCase`, `GetMatchDetailsUseCase` (adds aggregation + `canManage`/`canManageMatchDay` probes — see §7.1b), `GetMatchEventsUseCase`, `GetMatchScoreUseCase`, `GetOpponentsUseCase`, `GetLiveMatchUpdatesUseCase` (terminal step is "subscribe to the live bus" instead of "return data" — see §8.3), and `GetClubMatchesUpdatesUseCase` (same, but with no match to fetch first and no `matchId` context — see §8.5).
 
 Their individual diagrams are omitted below to avoid 15 near-identical copies; only the use cases with distinct branching logic get a dedicated diagram.
 
@@ -853,7 +853,8 @@ graph TD
     D --> E[Persist event]
     E --> G["Recalculate score from all events for this match"]
     G --> H["Publish LiveMatchUpdate(event, score) via LiveMatchBus for matchId"]
-    H --> I["Transaction commits"]
+    H --> H2["Publish ClubMatchesUpdate(score) via ClubMatchesBus for match.clubId (§8.5)"]
+    H2 --> I["Transaction commits"]
     I --> J{"type == GOAL or OWN_GOAL?"}
     J -- Yes --> K["NotifyMatchEventUseCase(matchId, GOAL) — best-effort push to every club member (§8.2b)"]
     J -- No --> Z
@@ -874,7 +875,8 @@ graph TD
     D -- ok --> E[Delete event]
     E --> G[Recalculate score]
     G --> H["Publish LiveMatchUpdate(score, deletedEventId) via LiveMatchBus"]
-    H --> Z(["Return success"])
+    H --> H2["Publish ClubMatchesUpdate(score) via ClubMatchesBus for match.clubId (§8.5)"]
+    H2 --> Z(["Return success"])
 ```
 
 Removes a mis-logged goal, card, or substitution row. The client always confirms with the user first (see below — "Confirms only on Full time and event deletion").
@@ -950,6 +952,70 @@ graph TD
 
 Not a route — a shared orchestrator called by §7.1 (a match created), §7.1c (a match's schedule edited), §8.0, §8.1, and §8.2 after their own transaction has already committed, so it opens a transaction of its own purely to read the data the push needs (see `TECHNICAL_DECISIONS.md` §24). Wrapped in a top-level try/catch that logs and swallows any exception (a not-found match, a repository throwing, a push send failing) — this must never propagate back to the use case that triggered it, the same "best-effort" contract as `EmailService`/`PushNotificationService` elsewhere. Recipients are **every active club member**, not scoped to the match's own age group — deliberately broader than the view/edit permissions the rest of the match domain enforces (§7–§8.2); see the developer's note on this in `TECHNICAL_DECISIONS.md` §24. Originally scoped to just the five live-match moments (hence the class's earlier name, `NotifyMatchEventUseCase`) — renamed once the three schedule-change events made "live match" no longer an accurate description of everything it sends.
 
+### 8.2c Pause Match (`PauseMatchUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, matchId] --> B[Fetch Match by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=STAFF, teamId=match.teamId]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- status != LIVE --> V1(["Throw ValidationException"])
+    C -- pausedAt already set --> V2(["Throw ValidationException"])
+    C -- allowed, LIVE, not already paused --> D["MatchRepository.pauseMatch(matchId, now)"]
+    D --> E["Publish LiveMatchUpdate(score, match=updated) via LiveMatchBus for matchId"]
+    E --> F2["Publish ClubMatchesUpdate(match=updated) via ClubMatchesBus for match.clubId (§8.5)"]
+    F2 --> Z(["Return success"])
+```
+
+Freezes the running clock for a mid-half stoppage (injury, weather) without a proper HALF_TIME transition — the match stays LIVE the whole time; only `Match.pausedAt` changes. Same match-day permission gate as kicking off / changing status (§8.0/§8.2, open to staff, not just the coach). See `TECHNICAL_DECISIONS.md` §29 for why this is a timestamp field rather than a new `MatchStatus` value.
+
+### 8.2d Resume Match (`ResumeMatchUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, matchId] --> B[Fetch Match by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=STAFF, teamId=match.teamId]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- status != LIVE --> V1(["Throw ValidationException"])
+    C -- pausedAt is null --> V2(["Throw ValidationException"])
+    C -- allowed, LIVE, paused --> D["pauseDuration = now - pausedAt"]
+    D --> E{"secondHalfStartedAt set?"}
+    E -- yes --> F1["Shift secondHalfStartedAt forward by pauseDuration; kickoffAt untouched"]
+    E -- no --> F2b["Shift kickoffAt forward by pauseDuration"]
+    F1 --> G["MatchRepository.resumeMatch(matchId, kickoffAt, secondHalfStartedAt) — pausedAt cleared"]
+    F2b --> G
+    G --> H["Publish LiveMatchUpdate(score, match=updated) via LiveMatchBus for matchId"]
+    H --> I["Publish ClubMatchesUpdate(match=updated) via ClubMatchesBus for match.clubId (§8.5)"]
+    I --> Z(["Return success"])
+```
+
+Un-freezes the clock by shifting whichever of `kickoffAt`/`secondHalfStartedAt` is currently driving `elapsedMatchSeconds` (§8.4) forward by however long the stoppage lasted, so the clock continues from where it paused instead of jumping forward by the pause duration. No separate "total paused time" field — shifting the reference timestamp bakes the pause in permanently, and clearing `pausedAt` is enough.
+
+### 8.2e Set Match Minute (`SetMatchMinuteUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, matchId, minute] --> B[Fetch Match by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=STAFF, teamId=match.teamId]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- status != LIVE --> V1(["Throw ValidationException"])
+    C -- minute < 0 --> V2(["Throw ValidationException"])
+    C -- allowed --> D["at = match.pausedAt ?: now"]
+    D --> E{"secondHalfStartedAt set?"}
+    E -- yes --> F1["newSecondHalfStartedAt = at - (targetSeconds - halfLengthSeconds); kickoffAt untouched"]
+    E -- no --> F2["newKickoffAt = at - targetSeconds; secondHalfStartedAt stays null"]
+    F1 --> G["MatchRepository.adjustMatchClock(matchId, kickoffAt, secondHalfStartedAt) — pausedAt NOT touched"]
+    F2 --> G
+    G --> H["Publish LiveMatchUpdate(score, match=updated) via LiveMatchBus for matchId"]
+    H --> I["Publish ClubMatchesUpdate(match=updated) via ClubMatchesBus for match.clubId (§8.5)"]
+    I --> Z(["Return success"])
+```
+
+A manual correction to the running clock (the touchline coach nudging it to match the referee's watch) — server-persisted and broadcast like every other clock mutation above, replacing an earlier client-only version that applied the correction as a local overlay never sent to the server at all (see `TECHNICAL_DECISIONS.md` §29's addendum for the bug report and full rationale). Solves for an absolute target rather than a relative shift (§8.2d solves "shift forward by however long the pause lasted"; this solves "make `elapsedMatchSeconds` equal to `minute` right now") — using `match.pausedAt` in place of `now` when paused, so a frozen display can be corrected without accidentally resuming it. `adjustMatchClock` is a distinct repository method from `resumeMatch` specifically because it must leave `pausedAt` untouched, unlike resuming.
+
 ### 8.3 Subscribe to Live Match Updates (`GetLiveMatchUpdatesUseCase`)
 
 ```mermaid
@@ -969,10 +1035,26 @@ Together, §8.0–§8.2 (the writers) and §8.3 (the reader) implement the hybri
 `LiveMatchScreen` (design canvas artboard "16") is one screen whose layout is entirely driven by `Match.status`:
 
 - **SCHEDULED** — pre-kickoff: a half-length picker and a Starting XI/Bench picker built from the match's called-up/confirmed players, gated on picking exactly `Team.teamSize` (fallback 11) starters. "KICK OFF" calls §8.0.
-- **LIVE / HALF_TIME** — the console: a scoreline (tapping a score logs an unattributed/opponent goal via §8.1), Squad and Events tabs, and a HALF TIME / FULL TIME action bar (§8.2, confirmed with a dialog first). The Squad tab's On pitch / Bench / Sent off split is *derived client-side* from the Starting XI (`MatchCallUp.isStarting`) replayed against the event log (substitutions move a player between On pitch/Bench, a red card moves them to Sent off) — nothing extra is persisted for this. Tapping a player opens a sheet to log a goal/assist/card, or substitute (a two-step tap: pick the player, then who they swap with) — bench players can't be tapped for goals/cards, only brought on. Deleting a logged event (§8.1b) asks for confirmation first, matching "Confirms only on Full time and event deletion."
+- **LIVE / HALF_TIME** — the console: a scoreline (tapping a score logs an unattributed/opponent goal via §8.1), Squad and Events tabs, and a HALF TIME / FULL TIME action bar (§8.2, confirmed with a dialog first), plus a Pause/Resume text control next to "Set minute" (§8.2c/§8.2d/§8.2e), both visible only while `status == LIVE` and neither behind a confirmation dialog -- lower-stakes, reversible actions unlike ending a half. While paused, the clock and half label freeze and tint amber, and the score boxes stop accepting taps (a goal can't be logged mid-stoppage). The Squad tab's On pitch / Bench / Sent off split is *derived client-side* from the Starting XI (`MatchCallUp.isStarting`) replayed against the event log (substitutions move a player between On pitch/Bench, a red card moves them to Sent off) — nothing extra is persisted for this. Tapping a player opens a sheet to log a goal/assist/card, or substitute (a two-step tap: pick the player, then who they swap with) — bench players can't be tapped for goals/cards, only brought on. Deleting a logged event (§8.1b) asks for confirmation first, matching "Confirms only on Full time and event deletion."
 - **FINISHED / CANCELLED** — a read-only full-time summary: final score, a WIN/LOSS/DRAW/CANCELLED badge, and the same event timeline reused from the Events tab (delete disabled here).
 
-Every mutating action applies its own REST response to local state immediately, so the coach driving the match never waits on the socket; `GetLiveMatchUpdatesUseCase`'s WebSocket (§8.3) is a second, best-effort listener that folds in changes from other devices watching the same match and is not retried if it drops. The running clock (shown as `MM:SS`) is derived, not locally ticked: it's computed client-side as `now - Match.kickoffAt`, or once the second half has started, `halfLengthMinutes + (now - Match.secondHalfStartedAt)` — recomputed every second and on every recomposition, so it's correct across navigation/app restarts and unaffected by the device's timezone (`Instant` subtraction is timezone-agnostic). "Set minute" applies a local-only offset on top of this derived value rather than overwriting it, so the offset itself resets (recomputing fresh from the persisted timestamps) if the screen is reopened. Everything that matters for the record — score, events, status, the Starting XI, and now the kickoff/second-half timestamps — is server-authoritative. The club-details match list's live badge (`MatchesTab`) shows a coarser whole-minutes count (e.g. "12'", no seconds) derived from the same `kickoffAt`.
+Every mutating action applies its own REST response to local state immediately, so the coach driving the match never waits on the socket; `GetLiveMatchUpdatesUseCase`'s WebSocket (§8.3) is a second, best-effort listener that folds in changes from other devices watching the same match and is not retried if it drops. The one exception is Pause/Resume (§8.2c/§8.2d): rather than compute the new local state itself, the client refetches `MatchDetails` after either action, since the server is the sole time authority (both the pause instant and the resume-time shift math happen server-side, with no client clock trusted for either) — see `TECHNICAL_DECISIONS.md` §29.
+
+The running clock (shown as `MM:SS`) is `elapsedMatchSeconds(match, now)`, a pure function in `common/model/Models.kt` shared by this screen and the club Matches list's live badge (`MatchRow`, via `MatchesTab`) so the two can never disagree: `now - Match.kickoffAt`, or once the second half has started, `halfLengthMinutes + (now - Match.secondHalfStartedAt)` -- and if `Match.pausedAt` is set, `now` is substituted with the frozen `pausedAt` instant so the value stops advancing. Recomputed every second (this screen) or every 15 seconds (the coarser whole-minutes list badge) and on every recomposition, so it's correct across navigation/app restarts and unaffected by the device's timezone (`Instant` subtraction is timezone-agnostic). "Set minute" (§8.2e) is a server-persisted correction, not a local overlay -- `LiveMatchViewModel.onSetMinute` refetches `MatchDetails` after the call commits, the same "server is the sole time authority" pattern as Pause/Resume. Everything that matters for the record — score, events, status, the Starting XI, and the kickoff/second-half/paused timestamps — is server-authoritative.
+
+### 8.5 Subscribe to Club Matches Updates (`GetClubMatchesUpdatesUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, clubId] --> B[CheckUserPermissionUseCase — minClubRole=MEMBER]
+    B -- denied --> F(["Throw ForbiddenException"])
+    B -- allowed --> D[Subscribe to ClubMatchesBus Flow for clubId]
+    D --> Z(["Return reactive Flow of ClubMatchesUpdate — bridged to a WebSocket session"])
+```
+
+The club-scoped counterpart to §8.3, mirroring it exactly but for the whole fixture list rather than one match's own event log — see `TECHNICAL_DECISIONS.md` §28 for the full design rationale (why a second bus/route instead of extending `LiveMatchBus`, what publishes to it, and the connect/disconnect lifecycle below). Unlike §8.3, there's no match to fetch first — the gate is a plain club-membership check against `clubId` directly. `CreateMatchUseCase` (§7.1), `UpdateMatchUseCase` (§7.1c), `DeleteMatchUseCase` (§7.2b), `StartMatchUseCase` (§8.0), `UpdateMatchStatusUseCase` (§8.2), `PauseMatchUseCase` (§8.2c), `ResumeMatchUseCase` (§8.2d), and `SetMatchMinuteUseCase` (§8.2e) each publish a `ClubMatchesUpdate(match=...)` or `ClubMatchesUpdate(deletedMatchId=...)` to `ClubMatchesBus` after their own transaction commits, alongside (not instead of) the push notifications and, where applicable, the `LiveMatchBus` publish those same use cases already made. `AddMatchEventUseCase` (§8.1) and `DeleteMatchEventUseCase` (§8.1b) additionally publish `ClubMatchesUpdate(score=...)` per goal, so the list's score badges update live too, without a full `Match` in the payload since nothing else about the row changed.
+
+**Client**: `MatchesTab` opens this socket (via `ObserveClubMatchesUseCase` → `ClubDetailsViewModel.connectToClubMatchesUpdates`) for as long as it's on screen — a `DisposableEffect(details.club.id)` connects (and triggers a REST refresh via `refreshMatches`) when the composable enters composition, and disconnects when it leaves. Because `MatchesTab` is only composed while the Matches tab is selected, Navigation-Compose's normal dispose-on-navigate-away/recompose-on-return behavior doubles as the connect/disconnect trigger: switching to a different tab, or opening a match from the list into §8.4's live console, closes the socket; returning to the Matches tab (including back from that match screen) reopens it and re-fetches the list over REST first, since the socket carries no backlog for whatever changed while it was disconnected.
 
 ---
 
@@ -1238,6 +1320,7 @@ erDiagram
         integer half_length_minutes "nullable -- set at kickoff by StartMatchUseCase"
         timestamp kickoff_at "nullable -- wall-clock instant of kickoff, set by StartMatchUseCase"
         timestamp second_half_started_at "nullable -- wall-clock instant the 2nd half resumed, set by UpdateMatchStatusUseCase on HALF_TIME -> LIVE"
+        timestamp paused_at "nullable -- wall-clock instant the clock was frozen, set by PauseMatchUseCase, cleared by ResumeMatchUseCase"
     }
     MATCH_CALL_UPS {
         uuid id PK

@@ -108,6 +108,24 @@ class ExposedMatchRepository : MatchRepository {
             it[secondHalfStartedAt] = at
         } > 0
 
+    override suspend fun pauseMatch(matchId: String, at: Instant): Boolean =
+        MatchesTable.update({ MatchesTable.id eq matchId.toUuid() }) {
+            it[pausedAt] = at
+        } > 0
+
+    override suspend fun resumeMatch(matchId: String, kickoffAt: Instant, secondHalfStartedAt: Instant?): Boolean =
+        MatchesTable.update({ MatchesTable.id eq matchId.toUuid() }) {
+            it[pausedAt] = null
+            it[MatchesTable.kickoffAt] = kickoffAt
+            it[MatchesTable.secondHalfStartedAt] = secondHalfStartedAt
+        } > 0
+
+    override suspend fun adjustMatchClock(matchId: String, kickoffAt: Instant, secondHalfStartedAt: Instant?): Boolean =
+        MatchesTable.update({ MatchesTable.id eq matchId.toUuid() }) {
+            it[MatchesTable.kickoffAt] = kickoffAt
+            it[MatchesTable.secondHalfStartedAt] = secondHalfStartedAt
+        } > 0
+
     override suspend fun getCallUpsForMatch(matchId: String): List<MatchCallUpWithPlayer> =
         (CallUpsTable innerJoin PlayersTable).selectAll()
             .where { CallUpsTable.matchId eq matchId.toUuid() }
@@ -190,7 +208,8 @@ class ExposedMatchRepository : MatchRepository {
         notes = row[MatchesTable.notes],
         halfLengthMinutes = row[MatchesTable.halfLengthMinutes],
         kickoffAt = row[MatchesTable.kickoffAt],
-        secondHalfStartedAt = row[MatchesTable.secondHalfStartedAt]
+        secondHalfStartedAt = row[MatchesTable.secondHalfStartedAt],
+        pausedAt = row[MatchesTable.pausedAt]
     )
 
     private fun toOpponent(row: ResultRow): Opponent = Opponent(

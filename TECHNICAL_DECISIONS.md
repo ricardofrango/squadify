@@ -1054,3 +1054,221 @@ already established in §25/§26). **Not verified**: actual rendering on a real 
 no way to launch and interact with the app in this environment; worth a real on-device pass (toggle the
 device to Portuguese, trigger a push, confirm the Portuguese text actually renders) before considering
 this fully done.
+
+## 28. Club-Wide Matches Socket (Live-Updating the Matches Tab)
+
+**Problem**: reported during manual testing -- a user on the club's Matches tab didn't see a new match
+appear (or an existing one change status) when someone else acted on it from a different session; the
+list only ever refreshed by accident, because Navigation-Compose destroys and recreates
+`ClubDetailsViewModel` on every full navigation away-and-back, and that recreation was mistaken for a
+refresh mechanism. The Matches list itself had zero polling and zero subscription -- it was fetched
+exactly once per `ClubDetailsViewModel` instance (see the `loadClubDetails` staleness guard), unlike a
+single match's own live console, which already had a dedicated per-match socket (`/matches/{matchId}/live`
+-- §match-day live console sections above).
+
+**Adopted: a second, club-scoped WebSocket** (`/clubs/{clubId}/matches/live`), deliberately mirroring the
+existing per-match one rather than extending it or building a generic pub/sub layer:
+- **Server**: `ClubMatchesBus` (interface) / `KotlinFlowClubMatchesBus` (in-memory impl, one
+  `MutableSharedFlow` per `clubId`) mirror `LiveMatchBus`/`KotlinFlowMatchBus` exactly.
+  `GetClubMatchesUpdatesUseCase` mirrors `GetLiveMatchUpdatesUseCase` (`ClubRole.MEMBER` gate, same as
+  reading anything else club-scoped) and the route in `ClubRoutes.kt` mirrors `matchRoutes()`'s
+  token-query-param-authenticated WS route (browser WebSockets can't set an `Authorization` header).
+- **What publishes**: `CreateMatchUseCase`, `UpdateMatchUseCase`, `DeleteMatchUseCase`, `StartMatchUseCase`,
+  and `UpdateMatchStatusUseCase` each call `clubMatchesBus.publish(clubId, ClubMatchesUpdate(...))` after
+  their own transaction commits (same "never roll back on a slow/failed broadcast" discipline as the push
+  notifications sent from the same use cases). `ClubMatchesUpdate` carries either the updated `match` (for
+  a create/edit/status change) or a `deletedMatchId` (for a permanent delete) -- never both.
+
+  **Bug found in manual testing** (kickoff/half-time/second-half/full-time all silently failed the whole
+  request, not just the broadcast): `StartMatchUseCase` and `UpdateMatchStatusUseCase` originally called
+  `matchRepository.getMatchById(matchId)` *after* `transactionManager.runInTransaction { ... }` returned,
+  to build the updated `Match` for the broadcast. Every repository call in this codebase assumes an
+  ambient Exposed transaction (`DatabaseFactory.dbQuery`/`suspendTransaction`, opened only by
+  `runInTransaction`) -- calling one outside that block throws, and since this ran unconditionally inside
+  the `if (success)` block, it took the entire kickoff/status-change request down with it (the DB write
+  itself had already committed by then, which is exactly why the client had to leave and reopen the match
+  to see the change: the REST response failed, but the mutation underneath it hadn't). Fixed two different
+  ways: `UpdateMatchStatusUseCase` now builds the updated row from the `match` already loaded earlier in
+  the same transaction (`match.copy(status = status)`) rather than re-fetching at all.
+  `StartMatchUseCase` still needs a genuine re-fetch (`kickoffAt`/`halfLengthMinutes` are set server-side
+  by `startMatch` and aren't derivable from the pre-kickoff `match`), so that re-fetch moved to run
+  *inside* the transaction, with the result captured in an outer `var` and published only after commit --
+  same shape as `UpdateMatchUseCase`'s `updated` capture just above.
+- **Client**: `MatchRepository.observeClubMatches(clubId)` mirrors `observeLiveMatch(matchId)` (a cold
+  `channelFlow` opening the socket on collection, closing on cancellation), wrapped by
+  `ObserveClubMatchesUseCase`.
+- **Goal-by-goal score updates**: initially scoped out, then added once manual testing showed a goal
+  logged from a match's live console didn't update that match's score badge back on the Matches list.
+  `AddMatchEventUseCase`/`DeleteMatchEventUseCase` now also call `clubMatchesBus.publish(match.clubId,
+  ClubMatchesUpdate(score = ...))` (alongside their existing `liveMatchBus.publish` for the match's own
+  console), carrying only the recomputed `MatchScore` -- not a full `Match` -- since nothing else about
+  the row changed. `ClubMatchesUpdate` has three mutually-exclusive fields (`match`, `deletedMatchId`,
+  `score`); exactly one is set per update, and `ClubDetailsViewModel.connectToClubMatchesUpdates`
+  branches on which.
+
+**Connect/disconnect lifecycle -- explicit requirement, not just "subscribe somewhere reasonable"**: the
+socket must be open only while the Matches tab is actually on screen, closing on tab-switch-away *and* on
+navigating to a specific match's own detail screen, and reconnecting (with a REST refresh alongside it,
+not just a bare reconnect) when returning from that match screen. `MatchesTab` is composed only inside the
+`ClubDetailsScreen`'s tab `when` (the Matches branch), so Navigation-Compose's normal
+dispose-on-navigate-away / recompose-on-return behavior for that composable is exactly the connect/
+disconnect signal needed -- no manual screen-level bookkeeping required. Implemented as a single
+`DisposableEffect(details.club.id)` at the top of `MatchesTab`: on entry it calls both
+`ClubDetailsViewModel.refreshMatches(clubId)` (REST) and `.connectToClubMatchesUpdates(clubId)` (opens the
+socket), and `onDispose` calls `.disconnectFromClubMatchesUpdates()`. The REST refresh runs alongside the
+reconnect, not instead of it, because the socket only pushes future events -- it carries no backlog for
+whatever changed on the match while its own screen was open and the club socket was disconnected.
+`ClubDetailsViewModel` holds the subscription as an explicit `clubMatchesJob: Job?` field (unlike
+`LiveMatchViewModel`'s simpler `subscribed: Boolean` flag) because this ViewModel outlives a single visit
+to the Matches tab -- `viewModelScope` being cleared isn't the right cancellation trigger here, tab-leave
+is, so the job needs to be cancellable on its own.
+
+**Verified**: `:server:compileKotlin`, `:server:test` (full suite, including new/updated coverage for
+`GetClubMatchesUpdatesUseCase` and the publish call in each of the seven modified use cases: the original
+five plus `AddMatchEventUseCase`/`DeleteMatchEventUseCase` for the goal-score follow-up),
+`:app:shared:compileKotlinJvm`, `:app:androidApp:compileDevDebugKotlin` all clean. Route existence and
+auth were separately confirmed against the actual running local dev server with a raw WebSocket handshake
+(`curl -i -N` with `Upgrade: websocket` headers) against `/v1/clubs/{clubId}/matches/live` -- `101
+Switching Protocols` followed by an `Unauthorized` close frame with no `token` query param, matching the
+route's own code path exactly. (A first diagnostic attempt at this same curl check omitted the `/v1`
+API-version prefix that `BASE_URL` always carries and got a plain `404` on both the new club route and the
+long-established per-match one -- a mistake in the diagnostic command itself, not evidence of either being
+broken; re-run with `/v1` both returned the expected handshake.) **Not verified**: an actual real-device
+pass confirming the Matches tab live-updates (including the goal-score case) when a second session changes
+a match (same category of gap as §27's "not verified" -- no way to drive two concurrent app sessions
+against a real running server in this environment).
+
+**Addendum -- a real crash found on a real device**: `ClubDetailsViewModel.connectToClubMatchesUpdates`
+launched `observeClubMatchesUseCase(clubId).collect { ... }` inside a plain `viewModelScope.launch { }`
+with no `try`/`catch` around it. When the socket's underlying TCP connection is torn down (reported: the
+app backgrounded on a foldable, closing the device -- `java.net.SocketException: Software caused
+connection abort` surfacing from OkHttp's `WebSocketReader` read loop), that exception propagates out of
+`collect`, and since nothing catches it, it's an uncaught exception in that coroutine -- which crashes the
+whole app, not just this screen (`FATAL EXCEPTION`, not a caught/logged error). `LiveMatchViewModel
+.subscribeToLiveUpdates` already wrapped its own equivalent `collect` in try/catch/finally for exactly
+this reason (its own doc comment: "A dropped socket is not retried... REST calls keep working
+regardless") -- this was simply missed when `connectToClubMatchesUpdates` was written, not a deliberate
+gap. Fixed by wrapping it the same way. No retry logic added, matching the existing pattern: `MatchesTab`
+already re-connects (and REST-refreshes) whenever the tab re-enters composition, so a dropped socket
+self-heals the next time the screen is genuinely revisited, same as the per-match socket always has.
+
+## 29. Live Match Clock: Shared Formula, and Pausing It
+
+**Two bugs found in manual testing**, both in how the club Matches list's live minute badge (`MatchRow`)
+computed the running clock, independently of the live match console's own (correct) formula:
+
+1. **`MatchRow.liveMinute(kickoff)` used only `Match.kickoffAt`**, completely ignoring
+   `secondHalfStartedAt`/`halfLengthMinutes` -- so once a match reached its second half, the list kept
+   counting straight through from kickoff instead of picking up the console's
+   `halfLengthMinutes + (now - secondHalfStartedAt)` adjustment. Reported as: the console correctly showed
+   ~30' into the second half, the list showed "3'" (the raw wall-clock minutes since kickoff for a
+   short-half-length test match).
+2. **`MatchRow` had no ticking mechanism at all** -- `liveMinute()` was a plain function called directly in
+   composition, so the badge only advanced when something *else* forced a recomposition (a club-socket
+   event, reopening the tab). Reported as "the timer doesn't update unless I leave and come back."
+
+**Fix**: extracted the one formula both screens need into `common/model/Models.kt` as a top-level pure
+function, `elapsedMatchSeconds(match: Match, now: Instant): Int` -- LiveMatchScreen's own private copy
+was deleted in favor of it, and `MatchRow` was rewritten to call the same function instead of its narrower
+one. The two screens now structurally cannot disagree again, unlike before when each had its own private
+implementation. `MatchRow` also gained a `LaunchedEffect` tick loop (every 15s while `status == LIVE` --
+coarser than the console's 1s, since this only ever displays whole minutes and a whole list of these
+ticking every second would be needless recomposition churn across every row in view).
+
+**New requirement surfaced during the same testing pass: pausing the clock.** The coach needs to freeze
+the running time for a stoppage (injury, weather) shorter than a proper HALF_TIME, and that frozen state
+must render identically on both the live console and the club Matches list -- the same "one formula, two
+screens" principle that motivated the extraction above, extended to a third state, not just two.
+
+**Adopted: a single nullable `Match.pausedAt: Instant?` field**, not a new `MatchStatus` value and not a
+separate "total paused duration" counter:
+- **Freezing**: `elapsedMatchSeconds` substitutes `pausedAt` for `now` whenever it's set, so the computed
+  value simply stops advancing -- no branch needed elsewhere for "is this paused," the formula's normal
+  path already produces the right (frozen) number.
+- **Un-freezing**: on resume, the server computes `pauseDuration = now - pausedAt` and shifts *forward* by
+  that amount whichever of `kickoffAt`/`secondHalfStartedAt` is the one currently driving the formula
+  (`secondHalfStartedAt` if the second half has started, `kickoffAt` otherwise -- the other one is left
+  untouched, since it's no longer part of the active calculation either way), then clears `pausedAt` back
+  to null. Shifting the reference timestamp bakes the pause duration in permanently with zero extra state
+  -- no running "total paused seconds" tally to maintain and keep in sync.
+- **Why not a new `MatchStatus.PAUSED`**: pause/resume never changes what the match's *state* is (still
+  LIVE, still mid-half) -- only whether its clock is advancing. Folding it into `MatchStatus` would have
+  meant extending `VALID_MATCH_STATUS_TRANSITIONS` (§UpdateMatchStatusUseCase) with `LIVE ⇄ PAUSED` edges
+  and auditing every other place that already branches on `MatchStatus` (permission checks, push
+  notifications, the Matches tab's status filter) for whether PAUSED needed handling there too. A
+  timestamp field sidesteps all of that: everything that already worked for a LIVE match keeps working
+  unmodified, since `status` itself never changes.
+
+**Server**: `PauseMatchUseCase`/`ResumeMatchUseCase` (new, mirroring `StartMatchUseCase`'s/
+`UpdateMatchStatusUseCase`'s shape exactly -- same `TeamRole.STAFF` match-day gate, same "must be LIVE"
+guard) call `MatchRepository.pauseMatch`/`resumeMatch`, then publish the updated `Match` to both
+`LiveMatchBus` (the console) and `ClubMatchesBus` (§28's list broadcast) -- pause/resume needed no changes
+to either bus or to `ClubMatchesUpdate`'s shape, since both already carry a whole `Match`. New routes
+`POST /matches/{matchId}/pause` and `POST /matches/{matchId}/resume`, mirroring `/start`'s shape (no
+request body). New `paused_at` column on `matches`, auto-created by Exposed's
+`SchemaUtils.createMissingTablesAndColumns` on next server start -- no manual migration.
+
+**A real, unrelated bug found and fixed while re-reading this code for the pause feature**:
+`LiveMatchUpdate`'s old `status: MatchStatus? = null` field couldn't represent "this field is deliberately
+being cleared" versus "this event didn't touch it" -- both look identical (`null`). Pause/resume would
+have hit this immediately (`pausedAt` needing to go from a real Instant back to `null` on resume, over the
+same kind of field). Fixed by replacing `status` with `match: Match? = null` -- the whole updated row,
+swapped in wholesale -- the same reasoning `ClubMatchesUpdate` already used for exactly this reason (see
+§28). `StartMatchUseCase` and `UpdateMatchStatusUseCase` (the two pre-existing publishers of a non-null
+value on that field) were updated to match; `AddMatchEventUseCase`/`DeleteMatchEventUseCase` were
+unaffected (they never set it).
+
+**Client**: `LiveMatchScreen` gained a "Pause"/"Resume" text control (styled like the existing "Set
+minute" tap target, no confirmation dialog -- unlike ending a half or finishing the match, this is a
+low-stakes, fully reversible action) next to it, visible only while `status == LIVE`. While paused, the
+clock and half-label tint amber (`CardYellow`) instead of green, and the score boxes stop accepting taps
+(no goal can be logged mid-stoppage). `LiveMatchViewModel.onPauseClock`/`onResumeClock` deliberately
+refetch `MatchDetails` from the server afterward rather than computing the new state locally (unlike most
+of this ViewModel's other actions) -- "the game time should be server side" was an explicit requirement,
+and the resume-time shift math depends on the server's own `now()` for both the pause instant and the
+duration calculation, so trusting this device's clock for either would reintroduce exactly the kind of
+disagreement-between-screens bug this whole section started with.
+
+**Verified**: `:server:test` (full suite, including new coverage for `PauseMatchUseCase`/
+`ResumeMatchUseCase` -- permission gate, LIVE-only guard, already-paused/not-paused guards, and the
+first-half-vs-second-half branch of which timestamp shifts on resume), `:app:shared:compileKotlinJvm`,
+`:app:androidApp:compileDevDebugKotlin` all clean. **Not verified**: no real-device pass confirming pause/
+resume actually freezes and un-freezes the clock correctly in practice, or that the Matches list and live
+console render the exact same number at the exact same moment (same category of gap as §28's "not
+verified").
+
+**Addendum -- two more bugs found in the very next round of manual testing:**
+
+1. **The Matches list's minute badge started at "1'" instead of "0'"**: `MatchRow`'s `coerceIn(1, 130)`
+   floor (inherited from the pre-extraction `liveMinute()` it replaced) forced a minimum displayed
+   minute of 1 even in the first 59 seconds after kickoff. Changed to `coerceIn(0, 130)`.
+
+2. **"Set minute" never reached the server at all.** It was a client-only `manualOffsetSeconds` value
+   (`remember(details.match.id) { mutableStateOf(0) }`) added *on top of* the server-derived
+   `elapsedMatchSeconds` result, deliberately documented at the time as "the intended behaviour: the
+   clock is server-derived truth, not a locally remembered correction" -- which turned out to be the
+   wrong call once tested: the coach expects a minute correction to be a real correction, visible to
+   the club Matches list and to any other device watching the same match, not a private overlay only
+   the device that set it ever sees. Confirmed by the report: a second device opening the match's own
+   detail screen fresh still saw the *uncorrected* time, since nothing about the correction had ever
+   left the device that made it.
+
+   **Fixed by making it a fourth server-persisted clock mutation**, alongside kickoff/pause/resume:
+   `SetMatchMinuteUseCase` (new) takes a target `minute`, computes the shift needed so that
+   `elapsedMatchSeconds` evaluates to exactly that value -- at `Match.pausedAt` if currently paused (so
+   a frozen display can still be corrected without side-effecting a resume), at real `now()` otherwise --
+   and applies it to whichever of `kickoffAt`/`secondHalfStartedAt` is the active reference, mirroring
+   `ResumeMatchUseCase`'s shift math but solving for an absolute target instead of a relative pause
+   duration. New repository method `adjustMatchClock` (distinct from `resumeMatch`: it must NOT clear
+   `pausedAt` as a side effect, since setting the minute while paused is a legitimate, separate action).
+   New route `PATCH /matches/{matchId}/minute`. Same LIVE-only gate as pause (setting HALF_TIME's
+   nonexistent clock isn't meaningful), so the client now also hides the "Set minute" control outside
+   `status == LIVE`, alongside Pause/Resume, rather than showing it unconditionally as before.
+   `LiveMatchViewModel.onSetMinute` refetches `MatchDetails` afterward, same as `onPauseClock`/
+   `onResumeClock` and for the same reason -- the server is the sole time authority.
+
+**Verified (addendum)**: `:server:test` (including new `SetMatchMinuteUseCaseTest` coverage: the
+first-half/second-half shift-target branches, the paused-uses-frozen-instant case, the LIVE-only guard,
+and rejecting a negative minute), `:app:shared:compileKotlinJvm`, `:app:androidApp:compileDevDebugKotlin`
+all clean. **Not verified**: same real-device gap as above, now also covering whether a manually-set
+minute actually renders correctly and consistently across both screens and a second device in practice.

@@ -394,6 +394,9 @@
     <string name="label_first_half">1st half</string>
     <string name="label_second_half">2nd half</string>
     <string name="label_set_minute">Set minute</string>
+    <string name="label_paused_badge">Paused</string>
+    <string name="label_pause_clock">Pause</string>
+    <string name="label_resume_clock">Resume</string>
     <string name="msg_score_tap_hint">Tap a score to log a goal</string>
     <string name="msg_own_goals_none">none of ours scored</string>
     <string name="msg_own_goals_count">%1$d own goal(s)</string>

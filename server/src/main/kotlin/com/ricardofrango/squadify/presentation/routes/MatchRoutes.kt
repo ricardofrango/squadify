@@ -27,6 +27,9 @@ fun Route.matchRoutes() {
     val getMatchScoreUseCase by inject<GetMatchScoreUseCase>()
     val getLiveMatchUpdatesUseCase by inject<GetLiveMatchUpdatesUseCase>()
     val startMatchUseCase by inject<StartMatchUseCase>()
+    val pauseMatchUseCase by inject<PauseMatchUseCase>()
+    val resumeMatchUseCase by inject<ResumeMatchUseCase>()
+    val setMatchMinuteUseCase by inject<SetMatchMinuteUseCase>()
 
     authenticate("auth-jwt") {
         route("/matches") {
@@ -104,6 +107,43 @@ fun Route.matchRoutes() {
                         call.respond(HttpStatusCode.NoContent)
                     } else {
                         call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to start match"))
+                    }
+                }
+
+                post("/pause") {
+                    val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                    val matchId = call.parameters["matchId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+
+                    val success = pauseMatchUseCase(currentUserId, matchId)
+                    if (success) {
+                        call.respond(HttpStatusCode.NoContent)
+                    } else {
+                        call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to pause match"))
+                    }
+                }
+
+                post("/resume") {
+                    val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                    val matchId = call.parameters["matchId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+
+                    val success = resumeMatchUseCase(currentUserId, matchId)
+                    if (success) {
+                        call.respond(HttpStatusCode.NoContent)
+                    } else {
+                        call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to resume match"))
+                    }
+                }
+
+                patch("/minute") {
+                    val currentUserId = call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
+                    val matchId = call.parameters["matchId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
+                    val request = call.receive<SetMatchMinuteRequest>()
+
+                    val success = setMatchMinuteUseCase(currentUserId, matchId, request.minute)
+                    if (success) {
+                        call.respond(HttpStatusCode.NoContent)
+                    } else {
+                        call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to set match minute"))
                     }
                 }
 

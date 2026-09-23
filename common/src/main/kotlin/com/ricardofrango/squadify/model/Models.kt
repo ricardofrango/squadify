@@ -106,10 +106,38 @@ data class MatchScore(
 data class LiveMatchUpdate(
     val event: MatchEvent? = null,
     val score: MatchScore,
-    val status: MatchStatus? = null,
+    // The match's own row, set whenever any of its fields change (status, kickoffAt,
+    // secondHalfStartedAt, pausedAt) -- kickoff, half-time, second-half resume, full-time, cancel,
+    // pause, and resume all publish this. Carries the whole row rather than individual delta fields
+    // (e.g. a bare `status: MatchStatus?`, this field's previous shape) deliberately: a field that's
+    // merely absent from one update (because that event didn't touch it) is indistinguishable from one
+    // being deliberately cleared back to null (e.g. [Match.pausedAt] on resume) unless the whole object
+    // is swapped in wholesale -- the same reasoning behind ClubMatchesUpdate's [Match] field.
+    val match: Match? = null,
     // Set instead of [event] when this update is announcing that an event was removed (see
     // DeleteMatchEventUseCase) -- listeners drop it from their local event list.
     val deletedEventId: String? = null
+)
+
+/**
+ * Broadcast on the club-wide `/clubs/{clubId}/matches/live` socket -- unlike [LiveMatchUpdate] (one
+ * match's own event log/score, subscribed to only while that match's live console is open), this
+ * covers the whole fixture list: a match created, its schedule fields changed, its status changing
+ * (including kickoff), or cancelled all surface as [match] carrying the updated row; a permanent
+ * removal surfaces as [deletedMatchId] instead; a goal logged or removed during a live match surfaces
+ * as [score] (its own [MatchScore.matchId] says which match) rather than the whole [match], since
+ * nothing else about the row changed. Exactly one of the three is set per update. Whoever's looking at
+ * a club's Matches tab subscribes for as long as that tab is visible, so the list itself (including its
+ * live score badges) stays live without a manual refresh -- see TECHNICAL_DECISIONS.md's push-
+ * notifications section for why this exists alongside (not instead of) the push notifications for the
+ * same events: a push reaches a closed app, this only patches an already-open screen while it's on
+ * screen.
+ */
+@Serializable
+data class ClubMatchesUpdate(
+    val match: Match? = null,
+    val deletedMatchId: String? = null,
+    val score: MatchScore? = null
 )
 
 @Serializable
@@ -612,8 +640,30 @@ data class Match(
     // transitions HALF_TIME -> LIVE). The running clock is `halfLengthMinutes + (now -
     // secondHalfStartedAt)` once this is set, so it continues from the first half's length instead of
     // restarting at 0. Null until the second half starts.
-    val secondHalfStartedAt: Instant? = null
+    val secondHalfStartedAt: Instant? = null,
+    // Wall-clock instant the running clock was paused (PauseMatchUseCase), for a stoppage mid-half --
+    // distinct from HALF_TIME, which already stops the clock on its own. Null while running. On
+    // resume (ResumeMatchUseCase), the server shifts whichever of [kickoffAt]/[secondHalfStartedAt] is
+    // currently driving the clock forward by the paused duration and clears this back to null, so
+    // [elapsedMatchSeconds] needs no separate "total paused time" bookkeeping.
+    val pausedAt: Instant? = null
 )
+
+/**
+ * The single formula for a LIVE (or paused-while-LIVE) match's running clock, in seconds since
+ * kickoff -- shared by the live match console (`LiveMatchScreen`) and the club Matches list's live
+ * badge (`MatchRow`) so the two can never disagree, which they did before this was extracted (the
+ * list used to derive its badge from [Match.kickoffAt] alone, ignoring [Match.secondHalfStartedAt]
+ * entirely). Returns 0 before kickoff. While [Match.pausedAt] is set, the clock is frozen at the
+ * instant it paused rather than continuing to advance against [now].
+ */
+fun elapsedMatchSeconds(match: Match, now: Instant): Int {
+    val secondHalfStart = match.secondHalfStartedAt
+    val referenceInstant = secondHalfStart ?: match.kickoffAt ?: return 0
+    val baseSeconds = if (secondHalfStart != null) (match.halfLengthMinutes ?: 0) * 60 else 0
+    val clockAt = match.pausedAt ?: now
+    return baseSeconds + (clockAt - referenceInstant).inWholeSeconds.toInt()
+}
 
 @Serializable
 data class MatchCallUp(
@@ -687,6 +737,19 @@ data class CreateMatchRequest(
 @Serializable
 data class UpdateMatchStatusRequest(
     val status: MatchStatus
+)
+
+/**
+ * Body of `PATCH /matches/{matchId}/minute` -- a manual correction to the running clock (the touchline
+ * coach nudging it to match the referee's watch), server-persisted like everything else about a live
+ * match's timing: shifts whichever of `kickoffAt`/`secondHalfStartedAt` is currently driving
+ * [elapsedMatchSeconds] so that function evaluates to [minute] at the instant the request is handled
+ * (or at [Match.pausedAt] if the match is currently paused, so a paused match's frozen display can
+ * still be corrected). See SetMatchMinuteUseCase.
+ */
+@Serializable
+data class SetMatchMinuteRequest(
+    val minute: Int
 )
 
 /**

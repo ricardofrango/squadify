@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.presentation.routes
 import com.ricardofrango.squadify.domain.usecase.AddClubMembersUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubHomeUseCase
+import com.ricardofrango.squadify.domain.usecase.GetClubMatchesUpdatesUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubMembersUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
 import com.ricardofrango.squadify.domain.usecase.ProvisionClubUseCase
@@ -11,6 +12,7 @@ import com.ricardofrango.squadify.model.AddClubMembersRequest
 import com.ricardofrango.squadify.model.ErrorResponse
 import com.ricardofrango.squadify.model.ProvisionClubRequest
 import com.ricardofrango.squadify.model.UpdateClubRequest
+import com.ricardofrango.squadify.security.JwtConfig
 import com.ricardofrango.squadify.security.userId
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
@@ -21,6 +23,8 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import io.ktor.server.websocket.*
+import io.ktor.websocket.*
 import org.koin.ktor.ext.inject
 
 fun Route.clubRoutes() {
@@ -31,6 +35,7 @@ fun Route.clubRoutes() {
     val addClubMembersUseCase by inject<AddClubMembersUseCase>()
     val getClubMembersUseCase by inject<GetClubMembersUseCase>()
     val updateClubUseCase by inject<UpdateClubUseCase>()
+    val getClubMatchesUpdatesUseCase by inject<GetClubMatchesUpdatesUseCase>()
 
     authenticate("auth-jwt") {
         route("/clubs") {
@@ -118,6 +123,28 @@ fun Route.clubRoutes() {
                         call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
                     call.respond(getClubMembersUseCase(currentUserId, clubId))
                 }
+            }
+        }
+    }
+
+    // WebSocket route with token-query-param auth (outside the main authenticate block), mirroring
+    // matchRoutes()'s /matches/{matchId}/live -- browser WebSockets can't set an Authorization header.
+    route("/clubs/{clubId}/matches/live") {
+        webSocket {
+            val clubId = call.parameters["clubId"] ?: return@webSocket
+
+            try {
+                val currentUserId = call.request.queryParameters["token"]
+                    ?.run { JwtConfig.verifier.verify(this).subject }
+                    ?: run {
+                        close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Unauthorized"))
+                        return@webSocket
+                    }
+
+                getClubMatchesUpdatesUseCase(currentUserId, clubId)
+                    .collect(::sendSerialized)
+            } catch (e: Exception) {
+                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Forbidden or Not Found"))
             }
         }
     }

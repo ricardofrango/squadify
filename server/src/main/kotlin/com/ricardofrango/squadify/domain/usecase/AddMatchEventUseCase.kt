@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
+import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
@@ -15,6 +16,7 @@ class AddMatchEventUseCase(
     private val liveMatchBus: LiveMatchBus,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
+    private val clubMatchesBus: ClubMatchesBus,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
@@ -53,8 +55,10 @@ class AddMatchEventUseCase(
             // 4. Get updated score
             val score = matchEventRepository.getScoreByMatch(matchId)
 
-            // 5. Broadcast via the Live Match Bus
+            // 5. Broadcast via the Live Match Bus (the match's own console) and the club-wide Matches
+            // list bus (just the score, not a full Match -- nothing else about the row changed).
             liveMatchBus.publish(matchId, LiveMatchUpdate(savedEvent, score))
+            clubMatchesBus.publish(match.clubId, ClubMatchesUpdate(score = score))
 
             savedEvent
         }

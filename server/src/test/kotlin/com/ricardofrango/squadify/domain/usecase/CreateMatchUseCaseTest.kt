@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
+import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
@@ -40,8 +41,9 @@ class CreateMatchUseCaseTest {
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager
     )
     private val notifyMatchEventUseCase = mockk<NotifyMatchEventUseCase>(relaxed = true)
+    private val clubMatchesBus = mockk<ClubMatchesBus>(relaxed = true)
     private val useCase = CreateMatchUseCase(
-        matchRepository, teamRepository, opponentRepository, checkUserPermissionUseCase, notifyMatchEventUseCase, transactionManager
+        matchRepository, teamRepository, opponentRepository, checkUserPermissionUseCase, notifyMatchEventUseCase, clubMatchesBus, transactionManager
     )
 
     private val clubId = "club-1"
@@ -65,6 +67,7 @@ class CreateMatchUseCaseTest {
         val result = useCase(coach.id, CreateMatchRequest(teamId = teamId, opponentId = "opp-1", dateTime = Instant.fromEpochMilliseconds(1)))
 
         coVerify { notifyMatchEventUseCase(result.id, MatchNotificationEvent.SCHEDULED) }
+        coVerify { clubMatchesBus.publish(clubId, com.ricardofrango.squadify.model.ClubMatchesUpdate(match = result)) }
     }
 
     @Test

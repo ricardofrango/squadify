@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.data.remote
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.SessionRepository
+import com.ricardofrango.squadify.model.ClubMatchesUpdate
 import com.ricardofrango.squadify.model.CreateMatchEventRequest
 import com.ricardofrango.squadify.model.CreateMatchRequest
 import com.ricardofrango.squadify.model.LiveMatchUpdate
@@ -12,6 +13,7 @@ import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
+import com.ricardofrango.squadify.model.SetMatchMinuteRequest
 import com.ricardofrango.squadify.model.StartMatchRequest
 import com.ricardofrango.squadify.model.UpdateMatchRequest
 import com.ricardofrango.squadify.model.UpdateMatchStatusRequest
@@ -74,6 +76,20 @@ class MatchRepositoryImpl(
         }.handleResponse<Unit>()
     }
 
+    override suspend fun pauseMatch(matchId: String) {
+        httpClient.post("${appConfig.baseUrl}/matches/$matchId/pause") { auth() }.handleResponse<Unit>()
+    }
+
+    override suspend fun resumeMatch(matchId: String) {
+        httpClient.post("${appConfig.baseUrl}/matches/$matchId/resume") { auth() }.handleResponse<Unit>()
+    }
+
+    override suspend fun setMatchMinute(matchId: String, minute: Int) {
+        httpClient.patch("${appConfig.baseUrl}/matches/$matchId/minute") {
+            contentType(ContentType.Application.Json); setBody(SetMatchMinuteRequest(minute)); auth()
+        }.handleResponse<Unit>()
+    }
+
     override suspend fun getMatchEvents(matchId: String): List<MatchEvent> =
         httpClient.get("${appConfig.baseUrl}/matches/$matchId/events") { auth() }.handleResponse()
 
@@ -97,6 +113,17 @@ class MatchRepositoryImpl(
         httpClient.webSocket("$wsUrl/matches/$matchId/live?token=$token") {
             while (isActive) {
                 val update = receiveDeserialized<LiveMatchUpdate>()
+                this@channelFlow.send(update)
+            }
+        }
+    }
+
+    override fun observeClubMatches(clubId: String): Flow<ClubMatchesUpdate> = channelFlow {
+        val token = sessionRepository.getToken()
+        val wsUrl = appConfig.baseUrl.replaceFirst("http", "ws")
+        httpClient.webSocket("$wsUrl/clubs/$clubId/matches/live?token=$token") {
+            while (isActive) {
+                val update = receiveDeserialized<ClubMatchesUpdate>()
                 this@channelFlow.send(update)
             }
         }

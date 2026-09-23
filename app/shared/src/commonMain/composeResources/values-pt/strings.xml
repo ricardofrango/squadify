@@ -393,6 +393,9 @@
     <string name="label_first_half">1ª parte</string>
     <string name="label_second_half">2ª parte</string>
     <string name="label_set_minute">Definir minuto</string>
+    <string name="label_paused_badge">Em pausa</string>
+    <string name="label_pause_clock">Pausar</string>
+    <string name="label_resume_clock">Retomar</string>
     <string name="msg_score_tap_hint">Toque num resultado para registar um golo</string>
     <string name="msg_own_goals_none">nenhum autogolo nosso</string>
     <string name="msg_own_goals_count">%1$d autogolo(s)</string>

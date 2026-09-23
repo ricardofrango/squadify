@@ -26,6 +26,7 @@ import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Player
+import com.ricardofrango.squadify.model.elapsedMatchSeconds
 import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -379,23 +380,8 @@ private fun timeOfDay(instant: Instant): String {
     return "${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}"
 }
 
-/**
- * Elapsed match time in seconds, derived from the match's persisted kickoff/second-half timestamps --
- * plain Instant subtraction, so it's correct regardless of the device's timezone (there's no local
- * wall-clock math involved at all). Continues from the first half's nominal length once the second
- * half has started, rather than restarting at 0. Returns 0 before kickoff.
- */
-private fun elapsedMatchSeconds(match: Match): Int {
-    val now = Clock.System.now()
-    val secondHalfStart = match.secondHalfStartedAt
-    return if (secondHalfStart != null) {
-        val halfLengthSeconds = (match.halfLengthMinutes ?: 0) * 60
-        halfLengthSeconds + (now - secondHalfStart).inWholeSeconds.toInt()
-    } else {
-        val kickoff = match.kickoffAt ?: return 0
-        (now - kickoff).inWholeSeconds.toInt()
-    }
-}
+// elapsedMatchSeconds(match, now) itself now lives in common/model/Models.kt -- shared with MatchRow's
+// club Matches list badge so the two can never disagree (see that function's own doc comment).
 
 /** The running match clock, e.g. 1502 seconds -> "25:02". */
 private fun formatMatchClock(totalSeconds: Int): String {
@@ -429,12 +415,12 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
     var showFullTimeConfirm by remember { mutableStateOf(false) }
     var actionSheet by remember { mutableStateOf<ActionSheet?>(null) }
     var deletingEvent by remember { mutableStateOf<DisplayEvent?>(null) }
-    // A one-off "Set minute" nudge on top of the wall-clock elapsed time -- resets when the screen is
-    // reopened (recomputes fresh from the persisted timestamps instead), which is the intended
-    // behaviour: the clock is server-derived truth, not a locally remembered correction.
-    var manualOffsetSeconds by remember(details.match.id) { mutableStateOf(0) }
     var tick by remember { mutableStateOf(0) }
+    val isPaused = details.match.pausedAt != null
 
+    // Keeps ticking (recomposing) throughout LIVE, paused or not -- elapsedMatchSeconds itself freezes
+    // the value while match.pausedAt is set, so a wasted tick just recomputes the same frozen number
+    // rather than needing its own separate on/off condition here.
     LaunchedEffect(status) {
         if (status == MatchStatus.LIVE) {
             while (true) {
@@ -444,8 +430,10 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
         }
     }
 
-    val displaySeconds = remember(tick, details.match, manualOffsetSeconds) {
-        elapsedMatchSeconds(details.match) + manualOffsetSeconds
+    // "Set minute" (below) is a server-persisted correction (onSetMinute), not a local nudge -- once
+    // applied, this recomputes straight from the corrected details.match like any other change.
+    val displaySeconds = remember(tick, details.match) {
+        elapsedMatchSeconds(details.match, Clock.System.now())
     }
     val displayMinute = displaySeconds / 60
 
@@ -479,11 +467,11 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                ScoreBox(state.score.ourScore, PitchGreen, enabled = status == MatchStatus.LIVE && !state.isSubmitting) {
+                ScoreBox(state.score.ourScore, PitchGreen, enabled = status == MatchStatus.LIVE && !isPaused && !state.isSubmitting) {
                     viewModel.onLogGoal(displayMinute, isOpponent = false)
                 }
                 Spacer(Modifier.width(8.dp))
-                ScoreBox(state.score.opponentScore, CarbonGray, enabled = status == MatchStatus.LIVE && !state.isSubmitting) {
+                ScoreBox(state.score.opponentScore, CarbonGray, enabled = status == MatchStatus.LIVE && !isPaused && !state.isSubmitting) {
                     viewModel.onLogGoal(displayMinute, isOpponent = true)
                 }
                 Spacer(Modifier.width(16.dp))
@@ -497,12 +485,16 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
                     } else {
                         Text(
                             formatMatchClock(displaySeconds),
-                            color = PitchGreen,
+                            color = if (isPaused) CardYellow else PitchGreen,
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                         )
                         Text(
-                            stringResource(if (isSecondHalf) Res.string.label_second_half else Res.string.label_first_half).uppercase(),
-                            color = Color.White.copy(alpha = 0.5f),
+                            if (isPaused) {
+                                stringResource(Res.string.label_paused_badge).uppercase()
+                            } else {
+                                stringResource(if (isSecondHalf) Res.string.label_second_half else Res.string.label_first_half).uppercase()
+                            },
+                            color = if (isPaused) CardYellow.copy(alpha = 0.8f) else Color.White.copy(alpha = 0.5f),
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
@@ -523,16 +515,31 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    stringResource(Res.string.label_set_minute),
-                    color = PitchGreen,
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { showSetMinute = true }
+                if (status == MatchStatus.LIVE) {
+                    Text(
+                        stringResource(if (isPaused) Res.string.label_resume_clock else Res.string.label_pause_clock),
+                        color = if (isPaused) CardYellow else PitchGreen,
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.clickable(
+                            enabled = !state.isSubmitting,
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { if (isPaused) viewModel.onResumeClock() else viewModel.onPauseClock() }
+                        )
                     )
-                )
+                    Spacer(Modifier.width(16.dp))
+                    Text(
+                        stringResource(Res.string.label_set_minute),
+                        color = PitchGreen,
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.clickable(
+                            enabled = !state.isSubmitting,
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { showSetMinute = true }
+                        )
+                    )
+                }
             }
         }
 
@@ -604,7 +611,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
         SetMinuteDialog(
             initial = displayMinute,
             onConfirm = {
-                manualOffsetSeconds = it * 60 - elapsedMatchSeconds(details.match)
+                viewModel.onSetMinute(it)
                 showSetMinute = false
             },
             onDismiss = { showSetMinute = false }

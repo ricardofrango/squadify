@@ -7,11 +7,15 @@ import com.ricardofrango.squadify.domain.usecase.GetClubHomeUseCase
 import com.ricardofrango.squadify.domain.usecase.GetMatchScoreUseCase
 import com.ricardofrango.squadify.domain.usecase.GetMatchesUseCase
 import com.ricardofrango.squadify.domain.usecase.GetOpponentsUseCase
+import com.ricardofrango.squadify.domain.usecase.ObserveClubMatchesUseCase
 import com.ricardofrango.squadify.model.AgeGroup
+import com.ricardofrango.squadify.model.Match
+import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Team
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_failed_to_load_club_details
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -24,8 +28,15 @@ class ClubDetailsViewModel(
     private val getClubHomeUseCase: GetClubHomeUseCase,
     private val getMatchesUseCase: GetMatchesUseCase,
     private val getMatchScoreUseCase: GetMatchScoreUseCase,
-    private val getOpponentsUseCase: GetOpponentsUseCase
+    private val getOpponentsUseCase: GetOpponentsUseCase,
+    private val observeClubMatchesUseCase: ObserveClubMatchesUseCase
 ) : ViewModel() {
+
+    // Collects the club-wide matches-list socket (see MatchesTab's DisposableEffect for the
+    // connect-on-tab-enter/disconnect-on-tab-leave lifecycle this belongs to) -- an explicit Job so
+    // disconnectFromClubMatchesUpdates() can cancel it independently of viewModelScope, since this
+    // ViewModel outlives a single visit to the Matches tab.
+    private var clubMatchesJob: Job? = null
 
     // Starts in Loading, not Idle(): loadClubDetails() always runs immediately on mount (from the
     // screen's LaunchedEffect), so an initial Idle() only bought a one-frame gap where none of the
@@ -60,28 +71,7 @@ class ClubDetailsViewModel(
                     null
                 }
                 // Same best-effort treatment for the Matches tab's data.
-                val matches = try {
-                    getMatchesUseCase(clubId)
-                } catch (e: Exception) {
-                    emptyList()
-                }
-                // Matches don't carry a score on Match itself (it's derived from events) -- fetch it
-                // per match, for anything with a score worth showing (finished results, and live/
-                // half-time matches so the Matches tab shows the current score, not just the minute).
-                // Best-effort and per-match so one bad fetch doesn't blank every result.
-                val matchScores = try {
-                    coroutineScope {
-                        matches.filter {
-                            it.status == MatchStatus.FINISHED || it.status == MatchStatus.LIVE || it.status == MatchStatus.HALF_TIME
-                        }
-                            .map { match -> async { match.id to runCatching { getMatchScoreUseCase(match.id) }.getOrNull() } }
-                            .awaitAll()
-                            .mapNotNull { (id, score) -> score?.let { id to it } }
-                            .toMap()
-                    }
-                } catch (e: Exception) {
-                    emptyMap()
-                }
+                val (matches, matchScores) = fetchMatchesWithScores(clubId)
                 val opponents = try {
                     getOpponentsUseCase(clubId)
                 } catch (e: Exception) {
@@ -119,6 +109,94 @@ class ClubDetailsViewModel(
                 _state.update { ClubDetailsUiState.Idle(error = message) }
             }
         }
+    }
+
+    // Matches don't carry a score on Match itself (it's derived from events) -- fetch it per match,
+    // for anything with a score worth showing (finished results, and live/half-time matches so the
+    // Matches tab shows the current score, not just the minute). Best-effort and per-match so one bad
+    // fetch doesn't blank every result. Shared by loadClubDetails and refreshMatches.
+    private suspend fun fetchMatchesWithScores(clubId: String): Pair<List<Match>, Map<String, MatchScore>> {
+        val matches = try {
+            getMatchesUseCase(clubId)
+        } catch (e: Exception) {
+            emptyList()
+        }
+        val matchScores = try {
+            coroutineScope {
+                matches.filter {
+                    it.status == MatchStatus.FINISHED || it.status == MatchStatus.LIVE || it.status == MatchStatus.HALF_TIME
+                }
+                    .map { match -> async { match.id to runCatching { getMatchScoreUseCase(match.id) }.getOrNull() } }
+                    .awaitAll()
+                    .mapNotNull { (id, score) -> score?.let { id to it } }
+                    .toMap()
+            }
+        } catch (e: Exception) {
+            emptyMap()
+        }
+        return matches to matchScores
+    }
+
+    /**
+     * Re-fetches the Matches tab's own data via REST (not the socket) -- used when returning from a
+     * match's own detail screen, where the club-matches socket was disconnected while away and may
+     * have missed updates in the meantime (see MatchesTab's DisposableEffect).
+     */
+    fun refreshMatches(clubId: String) {
+        viewModelScope.launch {
+            val (matches, matchScores) = fetchMatchesWithScores(clubId)
+            _state.update { state ->
+                if (state is ClubDetailsUiState.Idle) {
+                    state.copy(matches = matches, matchScores = matchScores)
+                } else state
+            }
+        }
+    }
+
+    /**
+     * Opens the club-wide matches-list socket for as long as the Matches tab is visible (connected in
+     * MatchesTab's DisposableEffect on entry, disconnected on tab-switch-away or navigation to a
+     * match). Covers both a match's own fields (status, schedule -- [ClubMatchesUpdate.match]/
+     * [ClubMatchesUpdate.deletedMatchId]) and, per goal, its score badge ([ClubMatchesUpdate.score]).
+     */
+    fun connectToClubMatchesUpdates(clubId: String) {
+        disconnectFromClubMatchesUpdates()
+        clubMatchesJob = viewModelScope.launch {
+            try {
+                observeClubMatchesUseCase(clubId).collect { update ->
+                    val deletedMatchId = update.deletedMatchId
+                    val updatedMatch = update.match
+                    val updatedScore = update.score
+                    _state.update { state ->
+                        if (state !is ClubDetailsUiState.Idle) return@update state
+                        when {
+                            deletedMatchId != null -> state.copy(matches = state.matches.filterNot { it.id == deletedMatchId })
+                            updatedMatch != null -> {
+                                val updatedMatches = if (state.matches.any { it.id == updatedMatch.id }) {
+                                    state.matches.map { if (it.id == updatedMatch.id) updatedMatch else it }
+                                } else {
+                                    state.matches + updatedMatch
+                                }
+                                state.copy(matches = updatedMatches)
+                            }
+                            updatedScore != null -> state.copy(matchScores = state.matchScores + (updatedScore.matchId to updatedScore))
+                            else -> state
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Socket dropped (e.g. the app backgrounded and the OS tore down the connection --
+                // SocketException: Software caused connection abort) -- must be caught here, not left to
+                // propagate: an uncaught exception in a plain launch{} coroutine crashes the whole app,
+                // not just this screen. REST (refreshMatches) keeps working regardless; mirrors
+                // LiveMatchViewModel.subscribeToLiveUpdates' same catch for the same reason.
+            }
+        }
+    }
+
+    fun disconnectFromClubMatchesUpdates() {
+        clubMatchesJob?.cancel()
+        clubMatchesJob = null
     }
 
     fun onSeasonSelected(seasonId: String?) {

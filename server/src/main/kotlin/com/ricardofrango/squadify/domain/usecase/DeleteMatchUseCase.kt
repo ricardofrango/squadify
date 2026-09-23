@@ -2,8 +2,10 @@ package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
+import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.model.ClubMatchesUpdate
 import com.ricardofrango.squadify.model.TeamRole
 
 /**
@@ -16,23 +18,35 @@ class DeleteMatchUseCase(
     private val matchRepository: MatchRepository,
     private val matchEventRepository: MatchEventRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val clubMatchesBus: ClubMatchesBus,
     private val transactionManager: TransactionManager
 ) {
-    suspend operator fun invoke(userId: String, matchId: String): Boolean = transactionManager.runInTransaction {
-        val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
+    suspend operator fun invoke(userId: String, matchId: String): Boolean {
+        var clubId: String? = null
 
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = match.clubId,
-            minTeamRole = TeamRole.COACH,
-            teamId = match.teamId,
-            errorMessage = "Only admins, coordinators, or team coaches can delete a match"
-        )
+        val success = transactionManager.runInTransaction {
+            val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
+            clubId = match.clubId
 
-        // No ON DELETE CASCADE on call-ups'/events' matchId foreign keys -- clear both before the
-        // match row itself or the delete fails the FK constraint.
-        matchEventRepository.deleteEventsByMatch(matchId)
-        matchRepository.manageCallUps(matchId, emptyList())
-        matchRepository.deleteMatch(matchId)
+            checkUserPermissionUseCase(
+                userId = userId,
+                clubId = match.clubId,
+                minTeamRole = TeamRole.COACH,
+                teamId = match.teamId,
+                errorMessage = "Only admins, coordinators, or team coaches can delete a match"
+            )
+
+            // No ON DELETE CASCADE on call-ups'/events' matchId foreign keys -- clear both before the
+            // match row itself or the delete fails the FK constraint.
+            matchEventRepository.deleteEventsByMatch(matchId)
+            matchRepository.manageCallUps(matchId, emptyList())
+            matchRepository.deleteMatch(matchId)
+        }
+
+        // Sent after the transaction commits -- a failed/slow broadcast must never roll back the delete.
+        if (success) {
+            clubId?.let { clubMatchesBus.publish(it, ClubMatchesUpdate(deletedMatchId = matchId)) }
+        }
+        return success
     }
 }

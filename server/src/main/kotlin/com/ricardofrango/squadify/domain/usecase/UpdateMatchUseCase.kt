@@ -2,9 +2,12 @@ package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
+import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.model.ClubMatchesUpdate
+import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.UpdateMatchRequest
 
@@ -18,6 +21,7 @@ class UpdateMatchUseCase(
     private val opponentRepository: OpponentRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
+    private val clubMatchesBus: ClubMatchesBus,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
@@ -26,6 +30,7 @@ class UpdateMatchUseCase(
         request: UpdateMatchRequest
     ): Boolean {
         var scheduleChanged = false
+        var updated: Match? = null
 
         val success = transactionManager.runInTransaction {
             val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
@@ -59,12 +64,17 @@ class UpdateMatchUseCase(
                 merged.dateTime != match.dateTime ||
                 merged.location != match.location
 
+            updated = merged
+
             matchRepository.updateMatch(merged)
         }
 
         // Sent after the transaction commits -- a failed/slow push must never roll back the update.
-        if (success && scheduleChanged) {
-            notifyMatchEventUseCase(matchId, MatchNotificationEvent.RESCHEDULED)
+        if (success) {
+            if (scheduleChanged) {
+                notifyMatchEventUseCase(matchId, MatchNotificationEvent.RESCHEDULED)
+            }
+            updated?.let { clubMatchesBus.publish(it.clubId, ClubMatchesUpdate(match = it)) }
         }
         return success
     }

@@ -9,6 +9,9 @@ import com.ricardofrango.squadify.domain.usecase.GetMatchDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetMatchEventsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetMatchScoreUseCase
 import com.ricardofrango.squadify.domain.usecase.ObserveLiveMatchUseCase
+import com.ricardofrango.squadify.domain.usecase.PauseMatchUseCase
+import com.ricardofrango.squadify.domain.usecase.ResumeMatchUseCase
+import com.ricardofrango.squadify.domain.usecase.SetMatchMinuteUseCase
 import com.ricardofrango.squadify.domain.usecase.StartMatchUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateMatchStatusUseCase
 import com.ricardofrango.squadify.model.CreateMatchEventRequest
@@ -44,6 +47,9 @@ class LiveMatchViewModel(
     private val getMatchScoreUseCase: GetMatchScoreUseCase,
     private val startMatchUseCase: StartMatchUseCase,
     private val updateMatchStatusUseCase: UpdateMatchStatusUseCase,
+    private val pauseMatchUseCase: PauseMatchUseCase,
+    private val resumeMatchUseCase: ResumeMatchUseCase,
+    private val setMatchMinuteUseCase: SetMatchMinuteUseCase,
     private val addMatchEventUseCase: AddMatchEventUseCase,
     private val deleteMatchEventUseCase: DeleteMatchEventUseCase,
     private val observeLiveMatchUseCase: ObserveLiveMatchUseCase
@@ -89,10 +95,8 @@ class LiveMatchViewModel(
                                 next = next.copy(events = (next.events + event).sortedBy { it.minute })
                             }
                         }
-                        update.status?.let { status ->
-                            if (status != next.details.match.status) {
-                                next = next.copy(details = next.details.copy(match = next.details.match.copy(status = status)))
-                            }
+                        update.match?.let { match ->
+                            next = next.copy(details = next.details.copy(match = match))
                         }
                         next
                     }
@@ -147,6 +151,34 @@ class LiveMatchViewModel(
             details = current.details.copy(match = current.details.match.copy(status = MatchStatus.FINISHED)),
             isSubmitting = false
         )
+    }
+
+    /**
+     * Freezes the running clock for a mid-half stoppage -- distinct from [onHalfTime], which is a
+     * proper status transition. Refetches rather than computing the new state locally: the server is
+     * the sole authority on match time (both here and for [onResumeClock] below), so there's no local
+     * clock-skew risk from trusting this device's own `now()` for either the pause instant or the
+     * resume-time shift math (see PauseMatchUseCase/ResumeMatchUseCase).
+     */
+    fun onPauseClock() = runSubmitting { current ->
+        pauseMatchUseCase(matchId)
+        current.copy(details = getMatchDetailsUseCase(matchId), isSubmitting = false)
+    }
+
+    fun onResumeClock() = runSubmitting { current ->
+        resumeMatchUseCase(matchId)
+        current.copy(details = getMatchDetailsUseCase(matchId), isSubmitting = false)
+    }
+
+    /**
+     * A manual correction to the running clock -- server-persisted (unlike the local-only "nudge on
+     * top of the derived value" this replaced, which never reached the server, the club Matches list,
+     * or any other device watching the same match). Refetches for the same reason as [onPauseClock]/
+     * [onResumeClock]: the server computes the actual shift, this device's own clock is never trusted.
+     */
+    fun onSetMinute(minute: Int) = runSubmitting { current ->
+        setMatchMinuteUseCase(matchId, minute)
+        current.copy(details = getMatchDetailsUseCase(matchId), isSubmitting = false)
     }
 
     /** Our score box (unattributed) or the opponent's -- see LiveMatchScreen's score row. */
