@@ -7,8 +7,8 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.slf4j.LoggerFactory
@@ -20,32 +20,32 @@ object DatabaseFactory : TransactionManager {
         try {
             val driverClassName = "org.postgresql.Driver"
             val jdbcURL = "jdbc:postgresql://${ServerConfig.databaseHost}:${ServerConfig.databasePort}/${ServerConfig.databaseName}"
-            val database = Database.connect(createHikariDataSource(jdbcURL, driverClassName))
+            val dataSource = createHikariDataSource(jdbcURL, driverClassName)
+
+            // Schema changes now go through versioned files in `src/main/resources/db/migration`
+            // (V1__baseline.sql onward), applied here on every boot -- replaces the previous
+            // `SchemaUtils.createMissingTablesAndColumns` approach (see TECHNICAL_DECISIONS.md).
+            // `baselineOnMigrate` + `baselineVersion("1")` mark any database that already has this
+            // schema (dev/staging/production, all migrated the old way before this change) as already
+            // being at V1 *without* re-running V1's SQL (which would fail -- the tables already exist);
+            // only a genuinely empty database (a fresh local Postgres, a fresh CI run) actually executes
+            // V1 end-to-end. Every migration after V1 always actually runs, everywhere.
+            Flyway.configure()
+                .dataSource(dataSource)
+                .baselineOnMigrate(true)
+                .baselineVersion("1")
+                .load()
+                .migrate()
+
+            val database = Database.connect(dataSource)
 
             transaction(database) {
-                SchemaUtils.createMissingTablesAndColumns(
-                    Users,
-                    Clubs,
-                    RefreshTokens,
-                    FcmTokens,
-                    ClubMembers,
-                    Seasons,
-                    AgeGroups,
-                    Teams,
-                    Players,
-                    AgeGroupPlayers,
-                    AgeGroupStaff,
-                    UserPlayers,
-                    Invites,
-                    Opponents,
-                    Matches,
-                    MatchCallUps,
-                    MatchEvents
-                )
                 // One-off, idempotent backfill for the old single `birth_year` column -> the new
-                // `start_year`/`end_year` range (see AgeGroup in core Models.kt). Safe to run on every
-                // boot: a no-op once `birth_year` is gone, and the `start_year = 0` guard means it never
-                // touches rows that already have a real range set.
+                // `start_year`/`end_year` range (see AgeGroup in core Models.kt), predating Flyway --
+                // kept running unconditionally rather than folded into the migration chain, since it's
+                // already a no-op once `birth_year` is gone (the `start_year = 0` guard means it never
+                // touches rows that already have a real range set) and this project can't verify every
+                // real environment has already been through it.
                 exec(
                     """
                     DO $$
