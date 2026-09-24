@@ -36,6 +36,25 @@ data class TokenResponse(
     val refreshToken: String
 )
 
+/** Body of `PATCH /users/me` -- the caller is always "self", resolved from the JWT, never a path id. */
+@Serializable
+data class UpdateProfileRequest(
+    val firstName: String,
+    val lastName: String,
+    val phone: String? = null
+)
+
+/**
+ * Body of `POST /users/me/password` -- [currentPassword] must verify against the caller's own stored
+ * hash (same `BCrypt.checkpw` gate `LoginUseCase` uses) before [newPassword] is accepted, so a stolen
+ * access token alone isn't enough to lock the real owner out.
+ */
+@Serializable
+data class ChangePasswordRequest(
+    val currentPassword: String,
+    val newPassword: String
+)
+
 /**
  * A stored refresh-token record, as retrieved for validation. Server-internal (never returned to a
  * client) — carries just what `RefreshTokenUseCase` needs to decide whether the token is still usable.

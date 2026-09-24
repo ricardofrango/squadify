@@ -220,6 +220,47 @@ removed it, confirmed a repeat delete stayed a no-op success, and confirmed an u
 rejected (401) and a blank token is rejected (400). Covered by `RegisterFcmTokenUseCaseTest` and
 `RemoveFcmTokenUseCaseTest`.
 
+### 2.6 Get Current User (`GetCurrentUserUseCase`)
+
+Backs the Account screen's own profile load. No `CheckUserPermissionUseCase` call, same reasoning as §2.5: `userId` is always the caller's own JWT subject, never a parameter, so there's no cross-user access to guard.
+
+```mermaid
+graph TD
+    A[Start: userId from JWT] --> B[Find user by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> Z(["Return User"])
+```
+
+### 2.7 Update Profile (`UpdateProfileUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId from JWT, firstName, lastName, phone?] --> B{firstName or lastName blank?}
+    B -- Yes --> V(["Throw ValidationException"])
+    B -- No --> C["Update firstName, lastName, phone (blank phone normalized to null)"]
+    C --> D[Re-fetch and return updated User]
+```
+
+`email`, `status`, and `isPlatformAdmin` aren't fields on `UpdateProfileRequest` at all — there's no self-service path to them through this use case, by construction rather than by an extra check.
+
+### 2.8 Change Password (`ChangePasswordUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId from JWT, currentPassword, newPassword] --> B{newPassword shorter than 8 chars?}
+    B -- Yes --> V(["Throw ValidationException"])
+    B -- No --> C[Find user by id]
+    C -- not found --> N(["Throw NotFoundException"])
+    C -- found --> D[Find password hash by userId]
+    D --> E{BCrypt.checkpw currentPassword matches?}
+    E -- No --> U(["Throw UnauthorizedException: current password is incorrect"])
+    E -- Yes --> F[Hash newPassword with BCrypt]
+    F --> G[Update stored password hash]
+    G --> Z(["Return success"])
+```
+
+Same `BCrypt.checkpw` gate `LoginUseCase` uses for the current-password check, so a stolen access token alone can't be used to lock the real account owner out. Both use cases covered by `UpdateProfileUseCaseTest`/`ChangePasswordUseCaseTest`. See `TECHNICAL_DECISIONS.md` §32.
+
 ---
 
 ## 3. Platform & Club Administration

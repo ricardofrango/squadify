@@ -1444,3 +1444,41 @@ so it's rendered as a static, inert label, the same reasoning applied to the sel
 rejected before any repository call, coordinator can set `stadiumLocation`), `:app:shared:compileKotlinJvm`,
 `:app:androidApp:compileDevDebugKotlin` all clean. **Not verified**: no real-device pass; the Permissions
 tab and the Create Match auto-fill are explicitly out of scope for this change.
+
+## 33. Self-Service Account: Profile Update + Change Password
+
+**Problem**: the Account screen was logout-only -- there was no way for a user to fix a typo in their
+own name, add a phone number, or change their password, and no backend endpoint existed to even fetch
+the caller's own user record. Built from a Claude Design mockup (two reference screenshots) covering both
+flows on one screen.
+
+**New self-scoped routes**, mirroring `FcmTokenRoutes.kt`'s shape (no path parameter -- the caller is
+always resolved from the JWT via the existing `call.userId` extension, never a path/query id, so there is
+no way to target another user's account through this surface):
+- `GET /v1/users/me` -- returns the caller's own `User`.
+- `PATCH /v1/users/me` -- body `UpdateProfileRequest(firstName, lastName, phone?)`. Deliberately narrow:
+  `email`, `status`, and `isPlatformAdmin` are not part of the request at all, so there's no field to
+  forget to strip server-side -- they simply can't be self-service-edited through this endpoint.
+- `POST /v1/users/me/password` -- body `ChangePasswordRequest(currentPassword, newPassword)`.
+  `ChangePasswordUseCase` requires `currentPassword` to verify against the stored hash (`BCrypt.checkpw`,
+  the same gate `LoginUseCase` uses) before accepting `newPassword` (min 8 chars, same rule the client
+  enforces) -- so a stolen access token alone isn't enough to lock the real owner out of their own account.
+
+**Client UI** (`AccountScreen`/`AccountViewModel`/`AccountUiState`) follows the same dirty-tracking
+pattern as `EditPlayerScreen`: a `ProfileFormFields` `original`/`form` pair drives `isDirty`/`canSaveProfile`,
+with Save as a checkmark in the top bar (green when enabled, dimmed when not). The password change is a
+**second, independent** flow on the same screen -- its own `PasswordFormFields`, its own
+submitting/error/success state -- so one action's in-flight state never blocks or gets clobbered by the
+other. Password visibility uses the app's existing `PasswordVisibilityToggle` eye icon (already used on
+Login/Register) instead of the mockup's literal "Show"/"Hide" text links, to stay consistent with the
+app's established visual language. The mockup's "Reset demo" affordance was left out entirely -- it's a
+design-prototype-only convenience with no real counterpart. "Change email" is rendered as a static,
+non-interactive label (no backend support for changing a verified email exists yet); email itself is
+shown read-only with a "Verified" badge, since `LoginUseCase` denies non-`ACTIVE` accounts outright, so
+every session that can reach this screen is, by construction, already on an active, verified account.
+
+**Verified**: `:server:test` (full suite, including new `UpdateProfileUseCaseTest`/
+`ChangePasswordUseCaseTest` -- happy path, blank-field validation, wrong current password rejected, short
+new password rejected without even querying the user), `:app:shared:compileKotlinJvm`,
+`:app:androidApp:compileDevDebugKotlin` all clean. **Not verified**: no real-device pass, and "Change
+email" has no backend behind it yet (tracked as a gap, not implemented as part of this change).

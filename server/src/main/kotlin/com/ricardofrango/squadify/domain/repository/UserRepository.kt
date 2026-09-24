@@ -11,6 +11,9 @@ interface UserRepository {
     suspend fun findByEmails(emails: List<String>): List<User>
     suspend fun findPasswordHashByEmail(email: String): String?
     suspend fun createUser(user: User, passwordHash: String): User
+    // Profile fields only -- email/status/isPlatformAdmin are never self-service editable this way.
+    suspend fun updateProfile(userId: String, firstName: String, lastName: String, phone: String?): Boolean
+    suspend fun updatePasswordHash(userId: String, passwordHash: String): Boolean
     suspend fun getUserRoleInClub(userId: String, clubId: String): ClubRole?
     suspend fun getUserRolesInClub(userIds: List<String>, clubId: String): Map<String, ClubRole>
     suspend fun saveRefreshToken(userId: String, token: String, expiresAt: Instant)

@@ -466,4 +466,23 @@
     <string name="label_stadium_location_placeholder">ex. Campo do Ribamar, Estrada da Praia</string>
     <string name="msg_stadium_location_helper">Onde se realizam os jogos em casa, se for diferente da morada do clube. Sugerido como localização ao agendar um jogo em casa.</string>
     <string name="msg_failed_to_load_club">Não foi possível carregar este clube. Por favor, tente novamente.</string>
+
+    <!-- Edit User Details -->
+    <string name="msg_member_since_status">Membro desde %1$s · %2$s</string>
+    <string name="label_pending_status">Pendente</string>
+    <string name="label_suspended_status">Suspenso</string>
+    <string name="label_profile_section">PERFIL</string>
+    <string name="msg_no_profile_changes">Sem alterações</string>
+    <string name="msg_unsaved_profile_changes">Alterações não guardadas</string>
+    <string name="label_verified_badge">Verificado</string>
+    <string name="msg_used_to_sign_in">Usado para entrar.</string>
+    <string name="btn_change_email">Alterar email</string>
+    <string name="label_change_password_section">ALTERAR SENHA</string>
+    <string name="label_current_password_field">Senha atual</string>
+    <string name="label_new_password_field">Nova senha</string>
+    <string name="msg_password_min_length">Mínimo de 8 caracteres.</string>
+    <string name="label_confirm_new_password_field">Confirmar nova senha</string>
+    <string name="btn_change_password">Alterar senha</string>
+    <string name="btn_changing_password">A alterar...</string>
+    <string name="msg_password_changed">Senha alterada.</string>
 </resources>

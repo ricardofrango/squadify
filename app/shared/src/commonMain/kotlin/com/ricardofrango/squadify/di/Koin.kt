@@ -91,6 +91,7 @@ val dataModule = module {
     single<AgeGroupRepository> { AgeGroupRepositoryImpl(get(), get(), get()) }
     single<MatchRepository> { MatchRepositoryImpl(get(), get(), get()) }
     single<OpponentRepository> { OpponentRepositoryImpl(get(), get(), get()) }
+    single<UserRepository> { UserRepositoryImpl(get(), get(), get()) }
     single<SessionRepository> { SessionRepositoryImpl(get()) }
     single<FcmTokenRepository> { FcmTokenRepositoryImpl(get(), get(), get()) }
 }
@@ -101,6 +102,9 @@ val domainModule = module {
     factory { CheckAndRefreshSessionUseCase(get(), get()) }
     factory { GetClubsUseCase(get()) }
     factory { LogoutUseCase(get(), get()) }
+    factory { GetCurrentUserUseCase(get()) }
+    factory { UpdateProfileUseCase(get()) }
+    factory { ChangePasswordUseCase(get()) }
     factory { RegisterFcmTokenUseCase(get()) }
     factory { RemoveFcmTokenUseCase(get(), get()) }
     factory { RegisterCurrentFcmTokenUseCase(get(), get()) }
