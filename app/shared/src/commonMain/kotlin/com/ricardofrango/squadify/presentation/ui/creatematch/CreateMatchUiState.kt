@@ -18,6 +18,11 @@ sealed class CreateMatchUiState {
     data class Idle(
         val clubId: String,
         val clubName: String,
+        // The concrete age group this screen is scoped to -- resolved whether the screen was opened
+        // from an age group directly or from one of its teams (see CreateMatchViewModel.load). Passed
+        // to GetOpponentsUseCase/CreateOpponentUseCase so a coach of specifically this age group can
+        // view/add opponents, not just a club admin/coordinator.
+        val ageGroupId: String,
         val ageGroupName: String,
         val seasonName: String,
         val teamFixed: Boolean,

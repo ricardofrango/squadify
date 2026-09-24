@@ -15,10 +15,11 @@ class OpponentRepositoryImpl(
     private val sessionRepository: SessionRepository
 ) : OpponentRepository {
 
-    override suspend fun getOpponents(clubId: String): List<Opponent> {
+    override suspend fun getOpponents(clubId: String, ageGroupId: String?): List<Opponent> {
         val token = sessionRepository.getToken()
         return httpClient.get("${appConfig.baseUrl}/opponents") {
             parameter("clubId", clubId)
+            ageGroupId?.let { parameter("ageGroupId", it) }
             token?.let { header(HttpHeaders.Authorization, "Bearer $it") }
         }.handleResponse()
     }

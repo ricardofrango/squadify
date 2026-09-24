@@ -32,13 +32,13 @@ class CreatePlayersViewModel(
         _state.update { it.copy(error = null) }
     }
 
-    fun onCreateClicked(clubId: String, players: List<CreatePlayer>) {
+    fun onCreateClicked(clubId: String, players: List<CreatePlayer>, ageGroupId: String? = null) {
         if (_state.value.isSubmitting || players.isEmpty()) return
 
         viewModelScope.launch {
             _state.update { it.copy(isSubmitting = true, error = null) }
             try {
-                createPlayersUseCase(CreatePlayersRequest(clubId, players))
+                createPlayersUseCase(CreatePlayersRequest(clubId, players, ageGroupId))
                 _navigationEvent.emit(CreatePlayersNavigationEvent.NavigateBackWithPlayersCreated)
             } catch (e: ApiException) {
                 _state.update { it.copy(isSubmitting = false, error = getString(Res.string.msg_create_players_failed)) }

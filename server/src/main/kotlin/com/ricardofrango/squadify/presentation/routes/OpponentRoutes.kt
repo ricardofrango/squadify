@@ -22,8 +22,9 @@ fun Route.opponentRoutes() {
                     HttpStatusCode.BadRequest,
                     ErrorResponse("clubId is required", "VAL_001")
                 )
+                val ageGroupId = call.request.queryParameters["ageGroupId"]
                 val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
-                val opponents = getOpponentsUseCase(currentUserId, clubId)
+                val opponents = getOpponentsUseCase(currentUserId, clubId, ageGroupId)
                 call.respond(opponents)
             }
 

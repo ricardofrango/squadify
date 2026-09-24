@@ -396,7 +396,13 @@ data class TeamItemRequest(
 @Serializable
 data class CreatePlayersRequest(
     val clubId: String,
-    val players: List<CreatePlayer>
+    val players: List<CreatePlayer>,
+    // Set when this request originates from an age-group context (e.g. the "+ Add new player"
+    // shortcut on that age group's "Add players" screen) -- lets a coach of specifically THIS age
+    // group create players, not just a club admin/coordinator. Null for the standalone club-roster
+    // entry points (Club Details' "Add players to club"), which stay coordinator-only. See
+    // CreatePlayersUseCase.
+    val ageGroupId: String? = null
 )
 
 @Serializable
@@ -722,7 +728,12 @@ data class UpdateMatchRequest(
 data class CreateOpponentRequest(
     val name: String,
     val shortName: String? = null,
-    val logoUrl: String? = null
+    val logoUrl: String? = null,
+    // Set when this request originates from an age-group/match context (the "+ Add new opponent"
+    // shortcut on the create-match screen) -- lets a coach of specifically THIS age group create
+    // opponents, not just a club admin/coordinator. See CreateOpponentUseCase, and
+    // CreatePlayersRequest's identical field for the same reason.
+    val ageGroupId: String? = null
 )
 
 @Serializable

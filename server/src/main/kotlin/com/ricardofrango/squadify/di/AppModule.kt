@@ -80,7 +80,7 @@ val appModule = module {
     factory { GetPlayerUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetPlayersUseCase(get(), get(), get(), get(), get(), get()) }
     factory { GetAgeGroupPlayersByClubUseCase(get(), get(), get()) }
-    factory { CreatePlayersUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { CreatePlayersUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { UpdatePlayerUseCase(get(), get(), get(), get(), get(), get()) }
     factory { AddPlayersToAgeGroupUseCase(get(), get(), get(), get()) }
     factory { GetEligiblePlayersForAgeGroupUseCase(get(), get(), get(), get()) }
@@ -97,8 +97,8 @@ val appModule = module {
     factory { ResumeMatchUseCase(get(), get(), get(), get(), get(), get()) }
     factory { SetMatchMinuteUseCase(get(), get(), get(), get(), get(), get()) }
     factory { ManageCallUpsUseCase(get(), get(), get()) }
-    factory { CreateOpponentUseCase(get(), get(), get()) }
-    factory { GetOpponentsUseCase(get(), get(), get()) }
+    factory { CreateOpponentUseCase(get(), get(), get(), get()) }
+    factory { GetOpponentsUseCase(get(), get(), get(), get()) }
     factory { UpdateOpponentUseCase(get(), get(), get()) }
     factory { RegisterFcmTokenUseCase(get(), get()) }
     factory { RemoveFcmTokenUseCase(get(), get()) }

@@ -1335,3 +1335,62 @@ trigger that from this environment) -- the `-PversionCode=${{ github.run_number 
 standard GitHub Actions expression syntax, not something that needs its own separate verification, but the
 end-to-end workflow (secrets present, Firebase upload succeeding with the new flag added) hasn't been
 exercised for real.
+
+## 31. Age-Group-Scoped Coach Access to Create Players/Opponents
+
+**Problem**: a user manually promoted from `STAFF` to `COACH` in `age_group_staff` for one age group
+(their only role anywhere -- no `club_members` row at all) got denied both creating a new player and
+creating a match. Root cause traced to `CreatePlayersUseCase`/`CreateOpponentUseCase` requiring
+`ClubRole.COORDINATOR` with **no** age-group-staff fallback at all, and `GetOpponentsUseCase` requiring
+at least `ClubRole.MEMBER` -- so this coach couldn't even see the club's existing opponent list, pushing
+them toward the "+ Add new opponent"/"+ Add new player" shortcuts (embedded in the same submit action as
+creating a match/adding players -- see PERMISSION_TEST_MATRIX.md's "Opponents" and "Age groups & seasons"
+sections) every time.
+
+**First attempt (implemented, then reverted after developer review) added a club-wide fallback**: a new
+`allowAnyAgeGroupTeamRole` flag on `CheckUserPermissionUseCase` that granted access if the caller coached
+*any* age group in the club (`AgeGroupRepository.getBestTeamRoleInClub`), not the specific one the action
+concerned. **Rejected**: too broad -- a coach of age group X could create players/opponents "for" an
+unrelated age group Y just by holding a `COACH` row anywhere in the club, which the developer flagged
+directly: *"if the minimum permission level is COACH, it should be provided the age group id in where we
+are associating players or creating opponents to validate that that user is really a coach to the age
+group he is adding changes."*
+
+**Adopted: thread a real `ageGroupId` through instead**, reusing `CheckUserPermissionUseCase`'s existing
+per-age-group `ageGroupId` parameter (the same mechanism `AddPlayersToAgeGroupUseCase` already used) --
+no new permission-check machinery needed, just getting a real age-group id to the three use cases that
+were missing one:
+- **`CreatePlayersRequest`** gained an optional `ageGroupId: String?` field. The "+ Add new player"
+  shortcut on `AddPlayersToAgeGroupScreen` now threads its *live-selected* age group (not just the
+  screen's `initialAgeGroupId` -- the user may have changed the picker) through
+  `onNavigateToCreatePlayers(ageGroupId)` → `Screen.CreatePlayers(clubId, clubName, ageGroupId)` →
+  `CreatePlayersViewModel.onCreateClicked(clubId, players, ageGroupId)`. The standalone club-roster entry
+  points (Club Details' "Add players to club" overflow item, the empty-players-state button) have no
+  age-group context and keep passing `null` -- coordinator-only there, unchanged.
+- **`CreateOpponentRequest`** gained the identical optional `ageGroupId: String?` field as
+  `CreatePlayersRequest` (a POST body naturally carries it, same as the players request -- an earlier
+  version made this a separate `ageGroupId` call parameter/query parameter instead, mirroring how
+  `clubId` already isn't part of this request body; corrected after review, since that put the sibling
+  players/opponents requests in two different shapes for no real reason -- see the developer's own
+  framing of the fix as "inside the model as optional"). **`GetOpponentsUseCase`** is the one case that
+  keeps `ageGroupId` as a separate parameter/query parameter: it's a `GET`, which has no body at all in
+  this codebase's routes (`clubId` itself is already query-param-only there), so a query parameter is
+  the only option. `CreateMatchViewModel`'s `Context` gained a concrete `ageGroupId` field (resolved
+  directly when the screen was opened from an age group, or via `teamDetails.ageGroup.id` when opened
+  from a team) and passes it into both the opponent-list fetch (as a parameter) and the inline "+ Add
+  new opponent" creation (as a field on the request it builds).
+- **Both `CreatePlayersUseCase` and `CreateOpponentUseCase`/`GetOpponentsUseCase` validate the supplied
+  `ageGroupId` actually belongs to the request's `clubId`** (fetch the age group, `ForbiddenException` on
+  a mismatch) before trusting it in the permission check -- otherwise a coach of Club A's age group could
+  pair a mismatched `clubId`/`ageGroupId` to spoof authorization into Club B. `AddPlayersToAgeGroupUseCase`
+  sidesteps this class of bug entirely by deriving `clubId` *from* the fetched age group rather than
+  accepting both independently; these three use cases needed the explicit check since their `clubId`
+  comes from elsewhere (the request body / route) for reasons unrelated to the age group.
+
+**Verified**: `:server:test` (full suite, including new `CreatePlayersUseCaseTest`/
+`CreateOpponentUseCaseTest`/`GetOpponentsUseCaseTest` -- age-group-scoped coach passes, wrong-age-group
+coach denied, no-age-group-context denied for a non-coordinator, cross-club age group rejected, not-found
+age group rejected, coordinator's club-wide path unaffected), `:app:shared:compileKotlinJvm`,
+`:app:androidApp:compileDevDebugKotlin` all clean. **Not verified**: no real-device pass confirming the
+"+ Add new player"/"+ Add new opponent" shortcuts actually succeed end-to-end for an age-group coach in
+practice (same category of gap as this session's other client-facing fixes).

@@ -104,10 +104,23 @@ scoped by team assignment (confirmed with the developer): an opponent isn't tied
 in the data model, and the list is low-sensitivity reference data (just the names of other teams/clubs
 this club plays against). Any club member -- with or without a team assignment -- can list them.
 
+**2026-09-24**: also gained an *optional* `ageGroupId` parameter (see the `CreatePlayersUseCase`/
+`CreateOpponentUseCase` row above for the full rationale, incl. why this stayed per-age-group rather
+than a club-wide "coach of anything" check on a first attempt). When the caller supplies it -- the
+create-match screen always knows which age group it's scoped to -- `minTeamRole = TeamRole.COACH,
+ageGroupId = ageGroupId` is passed to `CheckUserPermissionUseCase`, so a coach of *that specific* age
+group can see the list even with zero `club_members` role. Reported bug: P5 (a coach whose *only* row
+anywhere is `age_group_staff`, with no `club_members`/`ClubRole` row at all) got an empty opponent list
+from this use case -- `minClubRole = MEMBER` alone denies someone with no club role whatsoever, which
+then silently pushed them toward the "+ Add new opponent" shortcut on the create-match screen (see
+above) instead of picking an existing one.
+
 | Persona | Action | Current | Target | |
 |---|---|---|---|---|
 | P2 | List Club A's opponents | Allow | Allow | ✅ |
 | P4 | List Club A's opponents | Allow | Allow | ✅ (intentional -- see above, not scoped like Teams/Players/Matches/Seasons/AgeGroups) |
+| P5 | List Club A's opponents, with the ageGroupId of the age group they coach | Deny (empty list) | Allow | ✅ **fixed 2026-09-24** -- see note above |
+| P5 | List Club A's opponents, with a *different* age group's id (not theirs) or no ageGroupId at all | Deny | Deny | ✅ (correctly still denied -- coaching age group X doesn't grant blanket club access) |
 | P12 | List Club A's opponents | Deny | Deny | ✅ |
 
 ### Matches
@@ -158,7 +171,8 @@ otherwise. Audited on 2026-09-03:
 | `DeleteMatchUseCase` | no `minClubRole`, `minTeamRole = COACH` + `teamId` | ✅ correct -- new, 2026-09-19; deliberately coach-only, same gate as `UpdateMatchUseCase`/`CreateMatchUseCase`, not grouped with the 2026-09-18 staff-level match-day operations above |
 | `UpdateTeamUseCase` | was `minClubRole = COORDINATOR` only, no team-role path at all -- a coach could never edit their own team's name | ❌ was a bug; **fixed** -- added `minTeamRole = TeamRole.COACH` alongside the club-role check, see `UpdateTeamUseCaseTest` |
 | `AddStaffToTeamsUseCase` | `minClubRole = COORDINATOR` only, no team-role path, no `teamId` | Intentional (decided with the developer): assigning staff grants someone else write access to the team, so it stays admin/coordinator-only |
-| `CreatePlayersUseCase`, `UpdatePlayerUseCase`, `CreateAgeGroupsUseCase`, `UpdateAgeGroupUseCase`, `CreateSeasonUseCase`, `UpdateSeasonUseCase`, `CreateOpponentUseCase`, `UpdateOpponentUseCase`, `AddClubMembersUseCase` | `minClubRole = COORDINATOR` only, club-wide, no team scoping | Intentional -- these are club-structural/administrative actions, not team-scoped |
+| `CreatePlayersUseCase`, `CreateOpponentUseCase` | was `minClubRole = COORDINATOR` only, club-wide, no team/age-group scoping at all | ❌ was a bug; **fixed 2026-09-24** -- both requests gained an *optional* `ageGroupId` field, threaded from whichever age-group/match screen the "+ Add new player"/"+ Add new opponent" shortcut was launched from (the standalone club-roster entry points -- Club Details' "Add players to club" -- have no age group in scope and keep passing `null`, staying coordinator-only). When set, `checkUserPermissionUseCase(..., minTeamRole = TeamRole.COACH, ageGroupId = request.ageGroupId, ...)` uses the *existing* per-age-group staff check (the same mechanism `AddPlayersToAgeGroupUseCase` already used), so only a coach of *that specific* age group passes -- not a coach of some unrelated age group elsewhere in the club. Both use cases first fetch the age group and reject (`ForbiddenException`) if its `clubId` doesn't match the request's `clubId`, closing a cross-club spoofing gap a looser design would have had. **First attempt (reverted, see git history) added a club-wide "is this user a coach of ANY age group in the club" fallback (`allowAnyAgeGroupTeamRole` / `getBestTeamRoleInClub`) instead -- rejected as too broad: it would let a coach of age group X act on an unrelated age group Y just by being *a* coach somewhere in the club.** Reported bug: a coach with only an `age_group_staff` row (no `club_members` row at all) got a `ForbiddenException` when the client's "+ Add new player"/"+ Add new opponent" shortcuts silently called these use cases -- see the corresponding rows in "Age groups & seasons" and "Opponents" below. |
+| `UpdatePlayerUseCase`, `CreateAgeGroupsUseCase`, `UpdateAgeGroupUseCase`, `CreateSeasonUseCase`, `UpdateSeasonUseCase`, `UpdateOpponentUseCase`, `AddClubMembersUseCase` | `minClubRole = COORDINATOR` only, club-wide, no team scoping | Intentional -- these are club-structural/administrative actions, not team-scoped |
 
 Players and family members get zero write access everywhere today, by construction: there is no branch
 in `CheckUserPermissionUseCase` that ever grants access via `TeamPlayers`/`UserPlayers`. When their

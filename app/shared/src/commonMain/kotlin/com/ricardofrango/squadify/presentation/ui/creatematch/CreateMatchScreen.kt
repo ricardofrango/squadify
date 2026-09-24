@@ -481,6 +481,7 @@ private fun formatTime(time: LocalTime): String =
 private fun sampleIdle(teamFixed: Boolean) = CreateMatchUiState.Idle(
     clubId = "c1",
     clubName = "CD Ribamar",
+    ageGroupId = "ag1",
     ageGroupName = "Sub-15",
     seasonName = "26/27",
     teamFixed = teamFixed,

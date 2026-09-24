@@ -254,8 +254,8 @@ fun AppNavigation() {
                 onNavigateBack = {
                     navController.popBackStack()
                 },
-                onNavigateToCreatePlayers = {
-                    navController.navigate(Screen.CreatePlayers(screen.clubId, screen.clubName))
+                onNavigateToCreatePlayers = { ageGroupId ->
+                    navController.navigate(Screen.CreatePlayers(screen.clubId, screen.clubName, ageGroupId))
                 },
                 onPlayersAdded = {
                     navController.previousBackStackEntry
@@ -302,6 +302,7 @@ fun AppNavigation() {
             CreatePlayersScreen(
                 clubId = screen.clubId,
                 clubName = screen.clubName,
+                ageGroupId = screen.ageGroupId,
                 onNavigateBack = {
                     navController.popBackStack()
                 },
