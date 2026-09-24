@@ -52,6 +52,7 @@ class CreateMatchViewModel(
     private data class Context(
         val clubId: String,
         val clubName: String,
+        val ageGroupId: String,
         val ageGroupName: String,
         val seasonName: String,
         val teams: List<Team>,
@@ -66,10 +67,10 @@ class CreateMatchViewModel(
             try {
                 val ctx = when {
                     teamId != null -> getTeamDetailsUseCase(teamId).let { d ->
-                        Context(d.club.id, d.club.name, d.ageGroup.name, d.season.name, listOf(d.team), teamFixed = true)
+                        Context(d.club.id, d.club.name, d.ageGroup.id, d.ageGroup.name, d.season.name, listOf(d.team), teamFixed = true)
                     }
                     ageGroupId != null -> getAgeGroupDetailsUseCase(ageGroupId).let { d ->
-                        Context(d.club.id, d.club.name, d.ageGroup.name, d.season.name, d.teams, teamFixed = false)
+                        Context(d.club.id, d.club.name, d.ageGroup.id, d.ageGroup.name, d.season.name, d.teams, teamFixed = false)
                     }
                     else -> {
                         _state.update { CreateMatchUiState.Error(getString(Res.string.msg_failed_to_load_match_form)) }
@@ -77,7 +78,7 @@ class CreateMatchViewModel(
                     }
                 }
                 val opponents = try {
-                    getOpponentsUseCase(ctx.clubId)
+                    getOpponentsUseCase(ctx.clubId, ctx.ageGroupId)
                 } catch (e: Exception) {
                     emptyList()
                 }
@@ -85,6 +86,7 @@ class CreateMatchViewModel(
                     CreateMatchUiState.Idle(
                         clubId = ctx.clubId,
                         clubName = ctx.clubName,
+                        ageGroupId = ctx.ageGroupId,
                         ageGroupName = ctx.ageGroupName,
                         seasonName = ctx.seasonName,
                         teamFixed = ctx.teamFixed,
@@ -137,7 +139,7 @@ class CreateMatchViewModel(
                 val opponentId = current.selectedOpponentId
                     ?: createOpponentUseCase(
                         current.clubId,
-                        CreateOpponentRequest(name = current.newOpponentName.trim())
+                        CreateOpponentRequest(name = current.newOpponentName.trim(), ageGroupId = current.ageGroupId)
                     ).id
 
                 val dateTime: Instant = current.date

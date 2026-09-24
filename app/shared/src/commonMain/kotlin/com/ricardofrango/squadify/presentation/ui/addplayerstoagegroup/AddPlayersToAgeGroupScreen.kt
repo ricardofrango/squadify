@@ -51,7 +51,7 @@ fun AddPlayersToAgeGroupScreen(
     clubName: String,
     initialAgeGroupId: String? = null,
     onNavigateBack: () -> Unit,
-    onNavigateToCreatePlayers: () -> Unit,
+    onNavigateToCreatePlayers: (ageGroupId: String?) -> Unit,
     onPlayersAdded: () -> Unit,
     // True once, on return from the create-players screen -- reload the eligible list so the
     // just-registered players are pickable straight away.
@@ -87,7 +87,7 @@ fun AddPlayersToAgeGroupScreen(
             viewModel.onAgeGroupSelected(it)
         },
         onPlayerToggled = viewModel::onPlayerToggled,
-        onAddNewPlayer = onNavigateToCreatePlayers,
+        onAddNewPlayer = { onNavigateToCreatePlayers((uiState as? AddPlayersToAgeGroupUiState.Idle)?.selectedAgeGroup?.id) },
         onAddClick = viewModel::onAddClicked
     )
 }

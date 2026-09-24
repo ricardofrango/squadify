@@ -80,6 +80,7 @@ private val DateDisplayFormat = LocalDate.Format {
 fun CreatePlayersScreen(
     clubId: String,
     clubName: String,
+    ageGroupId: String? = null,
     onNavigateBack: () -> Unit,
     onPlayersCreated: () -> Unit,
     viewModel: CreatePlayersViewModel = koinViewModel()
@@ -135,7 +136,7 @@ fun CreatePlayersScreen(
                         birthDate = LocalDate.parse(r.birthDateIso!!)
                     )
                 }
-                viewModel.onCreateClicked(clubId, players)
+                viewModel.onCreateClicked(clubId, players, ageGroupId)
             }
         }
     )

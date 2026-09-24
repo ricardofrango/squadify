@@ -60,8 +60,12 @@ sealed class Screen {
         val initialAgeGroupId: String? = null
     ) : Screen()
 
+    // ageGroupId: set when reached from an age group's own "Add players" screen ("+ Add new player"),
+    // so the coach of specifically that age group -- not just a club admin/coordinator -- is
+    // authorized to create these players server-side. Null from the standalone club-roster entry
+    // points (Club Details' "Add players to club"), which stay coordinator-only.
     @Serializable
-    data class CreatePlayers(val clubId: String, val clubName: String) : Screen()
+    data class CreatePlayers(val clubId: String, val clubName: String, val ageGroupId: String? = null) : Screen()
 
     // Registers a brand-new person to the club (by email -- see AddClubMembersRequest): an existing
     // account is added as a member immediately, an unknown email gets an invite. This is how a

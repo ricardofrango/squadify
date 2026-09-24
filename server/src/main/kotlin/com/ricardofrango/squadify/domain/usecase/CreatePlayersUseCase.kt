@@ -1,10 +1,13 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.InviteRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.exception.ForbiddenException
+import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.*
 import kotlin.time.Instant
@@ -15,15 +18,30 @@ class CreatePlayersUseCase(
     private val userRepository: UserRepository,
     private val inviteRepository: InviteRepository,
     private val clubRepository: ClubRepository,
+    private val ageGroupRepository: AgeGroupRepository,
     private val transactionManager: TransactionManager,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
     suspend operator fun invoke(userId: String, request: CreatePlayersRequest): List<Player> = transactionManager.runInTransaction {
+        // When the caller supplies an age group (the "+ Add new player" shortcut from that age
+        // group's own screen), validate it actually belongs to this club before trusting it for the
+        // permission check below -- otherwise a coach of Club A's age group could create players in
+        // Club B by pairing a mismatched clubId/ageGroupId.
+        request.ageGroupId?.let { ageGroupId ->
+            val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId)
+                ?: throw NotFoundException("Age group not found")
+            if (ageGroup.clubId != request.clubId) {
+                throw ForbiddenException("Age group does not belong to this club")
+            }
+        }
+
         checkUserPermissionUseCase(
             userId = userId,
             clubId = request.clubId,
             minClubRole = ClubRole.COORDINATOR,
-            errorMessage = "Insufficient permissions to create players"
+            minTeamRole = TeamRole.COACH,
+            ageGroupId = request.ageGroupId,
+            errorMessage = "Only admins, coordinators, or this age group's coaches can create players"
         )
 
         // 1. Create players in batch
