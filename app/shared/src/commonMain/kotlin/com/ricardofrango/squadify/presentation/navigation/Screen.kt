@@ -29,6 +29,11 @@ sealed class Screen {
     @Serializable
     data class CreateSeason(val clubId: String, val clubName: String) : Screen()
 
+    // Tabbed "Club Details" / "Permissions" (the latter empty for now -- see TECHNICAL_DECISIONS.md).
+    // The screen loads the club itself from [clubId], so it needs nothing else from the caller.
+    @Serializable
+    data class EditClub(val clubId: String) : Screen()
+
     @Serializable
     data class CreateAgeGroups(
         val clubId: String,

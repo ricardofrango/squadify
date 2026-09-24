@@ -17,6 +17,7 @@ import com.ricardofrango.squadify.presentation.ui.splash.SplashScreen
 import com.ricardofrango.squadify.presentation.ui.dashboard.DashboardScreen
 import com.ricardofrango.squadify.presentation.ui.account.AccountScreen
 import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubDetailsScreen
+import com.ricardofrango.squadify.presentation.ui.editclub.EditClubScreen
 import com.ricardofrango.squadify.presentation.ui.createseason.CreateSeasonScreen
 import com.ricardofrango.squadify.presentation.ui.createteams.CreateTeamsScreen
 import com.ricardofrango.squadify.presentation.ui.addplayerstoagegroup.AddPlayersToAgeGroupScreen
@@ -178,7 +179,23 @@ fun AppNavigation() {
                 onNavigateToAccount = {
                     navController.navigate(Screen.Account)
                 },
+                onNavigateToEditClub = {
+                    navController.navigate(Screen.EditClub(screen.clubId))
+                },
                 refreshClubDetails = structureChanged
+            )
+        }
+
+        composable<Screen.EditClub> { backStackEntry ->
+            val screen: Screen.EditClub = backStackEntry.toRoute()
+            EditClubScreen(
+                clubId = screen.clubId,
+                onNavigateBack = { navController.popBackStack() },
+                onClubUpdated = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                }
             )
         }
 

@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.domain.usecase
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.UpdateClubRequest
 
@@ -16,6 +17,10 @@ class UpdateClubUseCase(
         clubId: String,
         request: UpdateClubRequest
     ): Boolean = transactionManager.runInTransaction {
+        if (request.name?.isBlank() == true) {
+            throw ValidationException("Club name cannot be blank")
+        }
+
         val existingClub = clubRepository.getClubById(clubId)
             ?: throw NotFoundException("Club not found")
 
@@ -33,6 +38,7 @@ class UpdateClubUseCase(
             email = request.email ?: existingClub.email,
             phone = request.phone ?: existingClub.phone,
             address = request.address ?: existingClub.address,
+            stadiumLocation = request.stadiumLocation ?: existingClub.stadiumLocation,
             status = request.status ?: existingClub.status
         )
 

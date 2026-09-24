@@ -1394,3 +1394,53 @@ age group rejected, coordinator's club-wide path unaffected), `:app:shared:compi
 `:app:androidApp:compileDevDebugKotlin` all clean. **Not verified**: no real-device pass confirming the
 "+ Add new player"/"+ Add new opponent" shortcuts actually succeed end-to-end for an age-group coach in
 practice (same category of gap as this session's other client-facing fixes).
+
+## 32. Edit Club Details Screen + Stadium Location
+
+**Problem**: there was no client screen at all for editing a club's own details, even though the server
+route (`PATCH /v1/clubs/{clubId}`, `UpdateClubUseCase`) already existed — the client had no
+`ClubRepository.updateClub`, no use case, nothing. Built from a Claude Design mockup (two reference
+screenshots) covering a tabbed "Club details" / "Permissions" screen.
+
+**New client vertical slice, reusing the existing server endpoint as-is** (plus two small server
+additions below): `ClubRepository.updateClub`/`GetClubUseCase`/`UpdateClubUseCase` (client), and a new
+`EditClubScreen`/`EditClubViewModel`/`EditClubUiState`, following the same dirty-tracked,
+checkmark-save-in-the-header pattern as `EditPlayerScreen`/`AccountScreen`. Reached from Club Details'
+bottom "More" menu (`Screen.EditClub(clubId)` — the screen fetches the club itself via `GetClubUseCase`,
+so the caller only needs to pass an id). Saving stamps the same `KEY_CLUB_STRUCTURE_CHANGED` signal the
+Create* screens use, so Club Details reloads and picks up a changed name/short name on the way back.
+
+**Two tabs, one built**: "Club details" (the editable form) and "Permissions" (an empty placeholder --
+"management is coming soon" -- per the developer's explicit instruction to leave it for a later change,
+once role/permission management has a real design). `EditClubUiState.Idle.selectedTab` already carries
+which tab is active so wiring the second tab up later is additive, not a rework.
+
+**New field: `Club.stadiumLocation`** — where home matches are actually played, for the (fairly common)
+case where that differs from `address` (the official, administrative address; e.g. a club office vs. a
+municipal stadium shared by several clubs). Modeled as a plain string, the same shape as `Match.location`
+(not a structured/geocoded address), specifically so a future "default a new home match's location to the
+club's stadium location" feature (mentioned by the developer as the next step, on the Create Match
+screen — not implemented in this change) is a straight copy, no conversion needed. New nullable
+`stadium_location varchar(500)` column on `clubs`, migrated automatically by
+`SchemaUtils.createMissingTablesAndColumns` (see `PROCESS_FLOWS.md` §12) — no manual migration needed.
+Threaded through `Club`/`UpdateClubRequest`/`ExposedClubRepository` the same way `address` already is,
+following the same "null = keep current" patch convention (and the same pre-existing limitation: there's
+no way to *clear* it back to null once set, same as every other optional field on this request).
+
+**Small server-side tightening while touching `UpdateClubUseCase`**: a blank (non-null but
+empty/whitespace) `name` in the patch is now rejected with `ValidationException` before touching the
+repository — previously nothing stopped a coordinator from clearing a club's name entirely through this
+endpoint. Also corrected a stale line in `PROCESS_FLOWS.md` §3.4 that said this route required
+`minClubRole=CLUB_ADMIN`; the code (and `UpdateClubUseCaseTest`) has required only `COORDINATOR` since
+admin/coordinator were made fully equivalent short of billing — the doc just hadn't been updated to match.
+
+**Left non-functional, matching an established pattern**: the mockup's "Add logo" affordance and camera
+icon — there's no image-upload capability anywhere in this app yet (a `logoUrl` is just a string field),
+so it's rendered as a static, inert label, the same reasoning applied to the self-service Account screen's
+"Change email" affordance in a parallel change. The mockup's "Reset demo" was left out entirely
+(prototype-only convenience, no real counterpart).
+
+**Verified**: `:server:test` (full suite, including new `UpdateClubUseCaseTest` cases — blank name
+rejected before any repository call, coordinator can set `stadiumLocation`), `:app:shared:compileKotlinJvm`,
+`:app:androidApp:compileDevDebugKotlin` all clean. **Not verified**: no real-device pass; the Permissions
+tab and the Create Match auto-fill are explicitly out of scope for this change.

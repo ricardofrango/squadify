@@ -9,6 +9,7 @@ import com.ricardofrango.squadify.domain.service.PushTokenProvider
 import com.ricardofrango.squadify.domain.usecase.*
 import com.ricardofrango.squadify.presentation.ui.account.AccountViewModel
 import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubDetailsViewModel
+import com.ricardofrango.squadify.presentation.ui.editclub.EditClubViewModel
 import com.ricardofrango.squadify.presentation.ui.createseason.CreateSeasonViewModel
 import com.ricardofrango.squadify.presentation.ui.createagegroups.CreateAgeGroupsViewModel
 import com.ricardofrango.squadify.presentation.ui.createteams.CreateTeamsViewModel
@@ -104,6 +105,8 @@ val domainModule = module {
     factory { RemoveFcmTokenUseCase(get(), get()) }
     factory { RegisterCurrentFcmTokenUseCase(get(), get()) }
     factory { GetClubDetailsUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { GetClubUseCase(get()) }
+    factory { UpdateClubUseCase(get()) }
     factory { GetClubHomeUseCase(get()) }
     factory { GetTeamDetailsUseCase(get()) }
     factory { GetPlayerDetailsUseCase(get()) }
@@ -149,6 +152,7 @@ val presentationModule = module {
     viewModelOf(::DashboardViewModel)
     viewModelOf(::AccountViewModel)
     viewModelOf(::ClubDetailsViewModel)
+    viewModelOf(::EditClubViewModel)
     viewModelOf(::CreateSeasonViewModel)
     viewModelOf(::CreateAgeGroupsViewModel)
     viewModelOf(::CreateTeamsViewModel)
