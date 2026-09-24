@@ -52,6 +52,9 @@ val appModule = module {
         )
     }
     factory { LoginUseCase(get(), get()) }
+    factory { GetCurrentUserUseCase(get(), get()) }
+    factory { UpdateProfileUseCase(get(), get()) }
+    factory { ChangePasswordUseCase(get(), get()) }
     factory { RefreshTokenUseCase(get(), get()) }
     factory { CheckUserPermissionUseCase(get(), get(), get(), get(), get()) }
     factory { CheckUserIsAdminUseCase(get(), get()) }

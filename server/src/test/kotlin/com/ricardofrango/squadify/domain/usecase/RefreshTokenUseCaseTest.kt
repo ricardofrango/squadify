@@ -120,6 +120,8 @@ private class FakeUserRepository : UserRepository {
     override suspend fun findByEmails(emails: List<String>): List<User> = emptyList()
     override suspend fun findPasswordHashByEmail(email: String): String? = null
     override suspend fun createUser(user: User, passwordHash: String): User = user
+    override suspend fun updateProfile(userId: String, firstName: String, lastName: String, phone: String?): Boolean = false
+    override suspend fun updatePasswordHash(userId: String, passwordHash: String): Boolean = false
     override suspend fun getUserRoleInClub(userId: String, clubId: String): ClubRole? = null
     override suspend fun getUserRolesInClub(userIds: List<String>, clubId: String): Map<String, ClubRole> = emptyMap()
     override suspend fun countAllUsers(): Long = 0

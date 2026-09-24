@@ -467,4 +467,23 @@
     <string name="label_stadium_location_placeholder">e.g. Campo do Ribamar, Estrada da Praia</string>
     <string name="msg_stadium_location_helper">Where home matches are played, if different from the club address. Suggested as the location when you schedule a home match.</string>
     <string name="msg_failed_to_load_club">Couldn\'t load this club. Please try again.</string>
+
+    <!-- Edit User Details -->
+    <string name="msg_member_since_status">Member since %1$s · %2$s</string>
+    <string name="label_pending_status">Pending</string>
+    <string name="label_suspended_status">Suspended</string>
+    <string name="label_profile_section">PROFILE</string>
+    <string name="msg_no_profile_changes">No changes</string>
+    <string name="msg_unsaved_profile_changes">Unsaved changes</string>
+    <string name="label_verified_badge">Verified</string>
+    <string name="msg_used_to_sign_in">Used to sign in.</string>
+    <string name="btn_change_email">Change email</string>
+    <string name="label_change_password_section">CHANGE PASSWORD</string>
+    <string name="label_current_password_field">Current password</string>
+    <string name="label_new_password_field">New password</string>
+    <string name="msg_password_min_length">At least 8 characters.</string>
+    <string name="label_confirm_new_password_field">Confirm new password</string>
+    <string name="btn_change_password">Change password</string>
+    <string name="btn_changing_password">Changing...</string>
+    <string name="msg_password_changed">Password changed.</string>
 </resources>

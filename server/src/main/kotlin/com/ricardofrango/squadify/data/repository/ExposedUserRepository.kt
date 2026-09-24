@@ -15,6 +15,7 @@ import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
 import com.ricardofrango.squadify.util.toUuid
@@ -60,6 +61,18 @@ class ExposedUserRepository : UserRepository {
             ?.singleOrNull()
             ?.let(::toUser)
             ?: throw DatabaseException("Failed to create user")
+
+    override suspend fun updateProfile(userId: String, firstName: String, lastName: String, phone: String?): Boolean =
+        Users.update({ Users.id eq userId.toUuid() }) {
+            it[Users.firstName] = firstName
+            it[Users.lastName] = lastName
+            it[Users.phone] = phone
+        } > 0
+
+    override suspend fun updatePasswordHash(userId: String, passwordHash: String): Boolean =
+        Users.update({ Users.id eq userId.toUuid() }) {
+            it[Users.passwordHash] = passwordHash
+        } > 0
 
     override suspend fun getUserRoleInClub(userId: String, clubId: String): ClubRole? =
         ClubMembers.selectAll().where {
