@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
+import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.ClubRole
@@ -16,6 +17,7 @@ import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import kotlin.test.assertFailsWith
@@ -96,5 +98,27 @@ class UpdateClubUseCaseTest {
 
         useCase(coordinator.id, clubIdA, UpdateClubRequest(name = "New Name"))
         Unit
+    }
+
+    @Test
+    fun blankNameIsRejectedBeforeTouchingTheRepository() = runBlocking {
+        assertFailsWith<ValidationException> {
+            useCase("someone", clubIdA, UpdateClubRequest(name = "   "))
+        }
+        Unit
+    }
+
+    @Test
+    fun coordinatorCanSetTheStadiumLocation() = runBlocking {
+        val coordinator = user("p3-coordinator")
+        coEvery { userRepository.findById(coordinator.id) } returns coordinator
+        coEvery { userRepository.getUserRoleInClub(coordinator.id, clubIdA) } returns ClubRole.COORDINATOR
+        coEvery { clubRepository.getClubById(clubIdA) } returns club
+        val updated = slot<Club>()
+        coEvery { clubRepository.updateClub(capture(updated)) } returns true
+
+        useCase(coordinator.id, clubIdA, UpdateClubRequest(stadiumLocation = "Estrada da Praia, Ribamar"))
+
+        assert(updated.captured.stadiumLocation == "Estrada da Praia, Ribamar")
     }
 }

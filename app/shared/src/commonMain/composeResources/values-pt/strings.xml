@@ -443,4 +443,27 @@
     <string name="label_minutes_played">Minutos jogados</string>
     <string name="msg_minutes_played_subtitle">Por jogador, a partir do registo de substituições</string>
     <string name="btn_back_to_match">Voltar ao jogo</string>
+
+    <!-- Edit Club Details -->
+    <string name="msg_edit_club_details">Editar detalhes do clube</string>
+    <string name="tab_club_details">Detalhes do clube</string>
+    <string name="tab_permissions">Permissões</string>
+    <string name="msg_permissions_coming_soon">A gestão de permissões estará disponível brevemente.</string>
+    <string name="label_add_logo">Adicionar logótipo</string>
+    <string name="msg_no_club_changes">Sem alterações</string>
+    <string name="msg_unsaved_club_changes">Alterações não guardadas</string>
+    <string name="label_identity_section">IDENTIDADE</string>
+    <string name="label_club_name_field">Nome do clube *</string>
+    <string name="label_short_name_field">Nome abreviado</string>
+    <string name="msg_short_name_helper">Aparece nos jogos e no espaço reservado ao logótipo. Até 6 caracteres.</string>
+    <string name="label_contact_section">CONTACTO</string>
+    <string name="label_where_section">LOCALIZAÇÃO</string>
+    <string name="label_club_address_field">Morada do clube</string>
+    <string name="msg_club_address_helper">A morada oficial e administrativa.</string>
+    <string name="label_phone_field">Telemóvel</string>
+    <string name="label_stadium_location_field">Localização do estádio</string>
+    <string name="label_new_badge">Novo</string>
+    <string name="label_stadium_location_placeholder">ex. Campo do Ribamar, Estrada da Praia</string>
+    <string name="msg_stadium_location_helper">Onde se realizam os jogos em casa, se for diferente da morada do clube. Sugerido como localização ao agendar um jogo em casa.</string>
+    <string name="msg_failed_to_load_club">Não foi possível carregar este clube. Por favor, tente novamente.</string>
 </resources>

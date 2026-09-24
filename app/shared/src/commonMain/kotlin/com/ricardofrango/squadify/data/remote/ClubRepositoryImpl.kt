@@ -8,6 +8,7 @@ import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubDetailsResponse
 import com.ricardofrango.squadify.model.ClubHome
 import com.ricardofrango.squadify.model.ClubMemberSummary
+import com.ricardofrango.squadify.model.UpdateClubRequest
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.http.*
@@ -57,6 +58,17 @@ class ClubRepositoryImpl(
     override suspend fun addClubMembers(clubId: String, request: AddClubMembersRequest) {
         val token = sessionRepository.getToken()
         httpClient.post("${appConfig.baseUrl}/clubs/$clubId/members") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+            token?.let {
+                header(HttpHeaders.Authorization, "Bearer $it")
+            }
+        }.handleResponse<Unit>()
+    }
+
+    override suspend fun updateClub(clubId: String, request: UpdateClubRequest) {
+        val token = sessionRepository.getToken()
+        httpClient.patch("${appConfig.baseUrl}/clubs/$clubId") {
             contentType(ContentType.Application.Json)
             setBody(request)
             token?.let {

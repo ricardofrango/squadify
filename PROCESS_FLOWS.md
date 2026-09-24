@@ -291,13 +291,17 @@ Alerts carry structured parts (`ageGroupName`, `date`, `count`) rather than rend
 
 ```mermaid
 graph TD
-    A[Start: userId, clubId, patch fields] --> B[Fetch Club by id]
-    B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minClubRole=CLUB_ADMIN]
-    C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D["Merge patch fields over existing (null = keep current)"]
-    D --> Z(["Persist updated Club"])
+    A[Start: userId, clubId, patch fields] --> B{name is blank (non-null but empty/whitespace)?}
+    B -- Yes --> V(["Throw ValidationException"])
+    B -- No --> C[Fetch Club by id]
+    C -- not found --> N(["Throw NotFoundException"])
+    C -- found --> D[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    D -- denied --> F(["Throw ForbiddenException"])
+    D -- allowed --> E["Merge patch fields over existing (null = keep current, incl. stadiumLocation)"]
+    E --> Z(["Persist updated Club"])
 ```
+
+(Corrected from an earlier revision of this doc that said `minClubRole=CLUB_ADMIN` — the code has required only `COORDINATOR` since admin/coordinator were made fully equivalent short of billing; see `UpdateClubUseCaseTest`.) `stadiumLocation` — where home matches are actually played, when that differs from the official `address` — is edited from the client's Edit Club Details screen (Club Details' "More" menu); see `TECHNICAL_DECISIONS.md` §32.
 
 ### 3.5 Update Club Member Role (`UpdateClubMemberRoleUseCase`)
 
@@ -1221,6 +1225,7 @@ erDiagram
         varchar email "255 chars, nullable"
         varchar phone "50 chars, nullable"
         varchar address "500 chars, nullable"
+        varchar stadium_location "500 chars, nullable -- where home matches are played, if different from address"
         enum status "ClubStatus, default ACTIVE"
         enum sport "SportType, default FOOTBALL"
         timestamp created_at

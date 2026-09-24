@@ -57,6 +57,7 @@ class ExposedClubRepository : ClubRepository {
             it[email] = club.email
             it[phone] = club.phone
             it[address] = club.address
+            it[stadiumLocation] = club.stadiumLocation
             it[status] = club.status
             it[sport] = club.sport
             it[createdAt] = club.createdAt
@@ -76,6 +77,7 @@ class ExposedClubRepository : ClubRepository {
             it[email] = club.email
             it[phone] = club.phone
             it[address] = club.address
+            it[stadiumLocation] = club.stadiumLocation
             it[status] = club.status
         } > 0
 
@@ -133,6 +135,7 @@ class ExposedClubRepository : ClubRepository {
         email = row[Clubs.email],
         phone = row[Clubs.phone],
         address = row[Clubs.address],
+        stadiumLocation = row[Clubs.stadiumLocation],
         status = row[Clubs.status],
         createdAt = row[Clubs.createdAt],
         sport = row[Clubs.sport]

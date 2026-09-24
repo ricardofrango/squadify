@@ -444,4 +444,27 @@
     <string name="label_minutes_played">Minutes played</string>
     <string name="msg_minutes_played_subtitle">Per player, from the sub log</string>
     <string name="btn_back_to_match">Back to the match</string>
+
+    <!-- Edit Club Details -->
+    <string name="msg_edit_club_details">Edit club details</string>
+    <string name="tab_club_details">Club details</string>
+    <string name="tab_permissions">Permissions</string>
+    <string name="msg_permissions_coming_soon">Permissions management is coming soon.</string>
+    <string name="label_add_logo">Add logo</string>
+    <string name="msg_no_club_changes">No changes</string>
+    <string name="msg_unsaved_club_changes">Unsaved changes</string>
+    <string name="label_identity_section">IDENTITY</string>
+    <string name="label_club_name_field">Club name *</string>
+    <string name="label_short_name_field">Short name</string>
+    <string name="msg_short_name_helper">Shown on fixtures and the logo placeholder. Up to 6 characters.</string>
+    <string name="label_contact_section">CONTACT</string>
+    <string name="label_where_section">WHERE</string>
+    <string name="label_club_address_field">Club address</string>
+    <string name="msg_club_address_helper">The official, administrative address.</string>
+    <string name="label_phone_field">Phone</string>
+    <string name="label_stadium_location_field">Stadium location</string>
+    <string name="label_new_badge">New</string>
+    <string name="label_stadium_location_placeholder">e.g. Campo do Ribamar, Estrada da Praia</string>
+    <string name="msg_stadium_location_helper">Where home matches are played, if different from the club address. Suggested as the location when you schedule a home match.</string>
+    <string name="msg_failed_to_load_club">Couldn\'t load this club. Please try again.</string>
 </resources>

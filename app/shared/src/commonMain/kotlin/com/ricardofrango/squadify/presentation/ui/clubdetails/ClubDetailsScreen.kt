@@ -27,6 +27,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -77,6 +78,7 @@ import squadify.app.shared.generated.resources.label_all_seasons
 import squadify.app.shared.generated.resources.label_create_age_group
 import squadify.app.shared.generated.resources.label_create_staff
 import squadify.app.shared.generated.resources.label_create_team
+import squadify.app.shared.generated.resources.msg_edit_club_details
 import squadify.app.shared.generated.resources.label_number_prefix
 import squadify.app.shared.generated.resources.label_search_players
 import squadify.app.shared.generated.resources.msg_no_players_admin_subtitle
@@ -136,6 +138,7 @@ fun ClubDetailsScreen(
     // Screen.ClubDetails.isRootClub), so it carries its own direct route to Account/logout instead of
     // only being reachable from Dashboard's top bar.
     onNavigateToAccount: () -> Unit,
+    onNavigateToEditClub: () -> Unit,
     // True exactly once, right after returning from a Create* screen having created something --
     // forces a reload past loadClubDetails' "already have this club" guard, since Koin scopes this
     // ViewModel to the nav back-stack entry (so popping back here reuses stale state).
@@ -316,6 +319,19 @@ fun ClubDetailsScreen(
                                 onClick = {
                                     showMoreMenu = false
                                     onNavigateToCreatePlayers(clubName)
+                                }
+                            )
+                            HorizontalDivider(color = CarbonGray.copy(alpha = 0.15f))
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(Res.string.msg_edit_club_details),
+                                        color = DeepCarbon
+                                    )
+                                },
+                                onClick = {
+                                    showMoreMenu = false
+                                    onNavigateToEditClub()
                                 }
                             )
                         }
