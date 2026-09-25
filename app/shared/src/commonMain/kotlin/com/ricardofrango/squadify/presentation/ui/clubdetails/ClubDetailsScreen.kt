@@ -149,6 +149,7 @@ fun ClubDetailsScreen(
     val selectedTab = (uiState as? ClubDetailsUiState.Idle)?.selectedTab ?: CLUB_TAB_HOME
     val clubName = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name ?: ""
     val sport = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.sport ?: SportType.FOOTBALL
+    val canEditClub = (uiState as? ClubDetailsUiState.Idle)?.canEditClub ?: false
 
     LaunchedEffect(clubId) {
         viewModel.loadClubDetails(clubId)
@@ -253,87 +254,96 @@ fun ClubDetailsScreen(
                                     viewModel.onTabSelected(CLUB_TAB_PLAYERS)
                                 }
                             )
-                            // Ordered to match how a club is actually built up: a season before
-                            // anything can attach to it, then age groups, then teams within them,
-                            // then players. See AI_GUIDELINES.md / user direction on menu ordering.
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        stringResource(Res.string.label_add_season),
-                                        color = DeepCarbon
-                                    )
-                                },
-                                onClick = {
-                                    showMoreMenu = false
-                                    onNavigateToCreateSeason(clubName)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        stringResource(Res.string.label_create_age_group),
-                                        color = DeepCarbon
-                                    )
-                                },
-                                onClick = {
-                                    showMoreMenu = false
-                                    // The Create Age Groups screen picks the season itself; from here
-                                    // the user hasn't indicated one, so pass no pre-selection. Still
-                                    // no-ops if the club has no seasons at all yet -- create one first.
-                                    val hasSeasons = (uiState as? ClubDetailsUiState.Idle)
-                                        ?.details?.seasons?.isNotEmpty() == true
-                                    if (hasSeasons) onNavigateToCreateAgeGroups(clubName, sport, null)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        stringResource(Res.string.label_create_team),
-                                        color = DeepCarbon
-                                    )
-                                },
-                                onClick = {
-                                    showMoreMenu = false
-                                    onNavigateToCreateTeams(clubName, sport)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        stringResource(Res.string.label_create_staff),
-                                        color = DeepCarbon
-                                    )
-                                },
-                                onClick = {
-                                    showMoreMenu = false
-                                    onNavigateToCreateStaff(clubName)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        stringResource(Res.string.label_add_players_to_club),
-                                        color = DeepCarbon
-                                    )
-                                },
-                                onClick = {
-                                    showMoreMenu = false
-                                    onNavigateToCreatePlayers(clubName)
-                                }
-                            )
-                            HorizontalDivider(color = CarbonGray.copy(alpha = 0.15f))
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        stringResource(Res.string.msg_edit_club_details),
-                                        color = DeepCarbon
-                                    )
-                                },
-                                onClick = {
-                                    showMoreMenu = false
-                                    onNavigateToEditClub()
-                                }
-                            )
+                            // Every item below creates/edits something at the club level -- all
+                            // permanently coordinator/admin-only, not club-configurable (see
+                            // TECHNICAL_DECISIONS.md §35 bucket 2), the same gate `canEditClub` already
+                            // is. "Add players to club" is CREATE_PLAYERS, which is club-configurable in
+                            // general, but this specific entry point never supplies an ageGroupId (see
+                            // CreatePlayersScreen), so it always resolves to the same coordinator-only
+                            // check in practice.
+                            if (canEditClub) {
+                                // Ordered to match how a club is actually built up: a season before
+                                // anything can attach to it, then age groups, then teams within them,
+                                // then players. See AI_GUIDELINES.md / user direction on menu ordering.
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            stringResource(Res.string.label_add_season),
+                                            color = DeepCarbon
+                                        )
+                                    },
+                                    onClick = {
+                                        showMoreMenu = false
+                                        onNavigateToCreateSeason(clubName)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            stringResource(Res.string.label_create_age_group),
+                                            color = DeepCarbon
+                                        )
+                                    },
+                                    onClick = {
+                                        showMoreMenu = false
+                                        // The Create Age Groups screen picks the season itself; from here
+                                        // the user hasn't indicated one, so pass no pre-selection. Still
+                                        // no-ops if the club has no seasons at all yet -- create one first.
+                                        val hasSeasons = (uiState as? ClubDetailsUiState.Idle)
+                                            ?.details?.seasons?.isNotEmpty() == true
+                                        if (hasSeasons) onNavigateToCreateAgeGroups(clubName, sport, null)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            stringResource(Res.string.label_create_team),
+                                            color = DeepCarbon
+                                        )
+                                    },
+                                    onClick = {
+                                        showMoreMenu = false
+                                        onNavigateToCreateTeams(clubName, sport)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            stringResource(Res.string.label_create_staff),
+                                            color = DeepCarbon
+                                        )
+                                    },
+                                    onClick = {
+                                        showMoreMenu = false
+                                        onNavigateToCreateStaff(clubName)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            stringResource(Res.string.label_add_players_to_club),
+                                            color = DeepCarbon
+                                        )
+                                    },
+                                    onClick = {
+                                        showMoreMenu = false
+                                        onNavigateToCreatePlayers(clubName)
+                                    }
+                                )
+                                HorizontalDivider(color = CarbonGray.copy(alpha = 0.15f))
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            stringResource(Res.string.msg_edit_club_details),
+                                            color = DeepCarbon
+                                        )
+                                    },
+                                    onClick = {
+                                        showMoreMenu = false
+                                        onNavigateToEditClub()
+                                    }
+                                )
+                            }
                         }
                     }
                 }
