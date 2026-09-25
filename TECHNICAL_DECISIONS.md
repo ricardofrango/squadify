@@ -1788,3 +1788,28 @@ split fields), `:app:shared:compileKotlinJvm`, `:app:androidApp:compileDevDebugK
 **Not verified**: the live match console's read-only notice and hidden controls on a real device (this
 round of fixes was verified by compilation + the server's unit suite only, unlike some earlier work in
 this file that included live-device passes).
+
+**Follow-up #1**: the same audit found the Club Details screen's bottom-nav "More" menu -- Add season,
+Create age group, Create team, Create staff, Add players to club, Edit club details -- rendered every
+item unconditionally, with no permission check at all. All six are permanently coordinator/admin-only
+(the "Add players to club" entry point never supplies an `ageGroupId`, so `ConfigurablePermission.CREATE_PLAYERS`
+resolves to the same coordinator-only outcome here in practice). Fixed by gating all but the plain
+"Players" tab-switch behind `ClubDetailsUiState.Idle.canEditClub`, the same flag the screen's own
+empty-state cards (`NoSeasonsState`/`NoAgeGroupsState`/`NoTeamsState`/`NoPlayersState`) already used
+correctly -- the bug was one missed call site, not a missing flag.
+
+**Follow-up #2**: the developer then asked whether the *Edit Club Details* screen itself (reached via
+that menu item) should be restricted to coordinators/admins, not just the menu entry pointing to it.
+It wasn't: `EditClubViewModel.load()` called the client's `GetClubUseCase`, which hit the same
+`GET /clubs/{clubId}` endpoint `GetClubDetailsUseCase` backs (readable by any `MEMBER`) and then
+discarded everything except `.club` -- throwing away the very `canEditClub` boolean that endpoint
+already computes. `GetClubPermissionsUseCase` is deliberately open to any member too (its own doc
+comment: "changing a setting is the separate, coordinator+-only `UpdateClubPermissionsUseCase`"). So a
+non-coordinator who reached this screen any other way than the now-hidden menu item (a direct web deep
+link, for instance) would see the fully editable club-details form and the Permissions tab, with only
+the eventual Save calls failing. Fixed by having the client's `GetClubUseCase` return the full
+`ClubDetailsResponse` (club + `canEditClub`) instead of narrowing it to `.club`, and having
+`EditClubViewModel.load()` check `canEditClub` before rendering the form at all -- a non-editor gets the
+shared `msg_permission_denied` copy in the screen's existing Error state, never the editable content.
+This is the same "the flag the read endpoint already computes was being discarded" root cause as §35's
+original bug, just one layer further down the client's own call chain rather than the server's.
