@@ -2034,3 +2034,81 @@ and confirming green again.
 `:app:androidApp:compileDevDebugKotlin` all clean. **Not verified**: a live device pass on staging
 re-running the exact reported repro (log out, log in as a different user, open Account without clearing
 app data).
+
+## 40. Web: Real URLs, Working Back/Forward, and Auth-Gated Deep Links
+
+**Problem**: the web target (js/wasmJs) never changed the browser's URL as the user navigated between
+screens -- `AppNavigation.kt` uses standard `androidx.navigation.compose` (`NavHost`/`rememberNavController`),
+which keeps its back stack purely in memory and never touches `window.location`/History unless explicitly
+told to. The whole SPA session was therefore a single browser history entry: the address bar never
+changed, the browser's Back button just left the site entirely (nothing for it to pop to), and a copied
+link was always just the bare root URL -- useless for sharing a specific screen with someone.
+
+**Fix has two independent halves, both needed** (the developer's own framing of the two follow-up
+questions this section answers): making the URL reflect the current screen at all, and making a URL that
+*is* shared actually resolve to something once opened cold.
+
+**Half 1 -- URL sync**: `androidx.navigation`'s multiplatform fork ships exactly this capability already,
+just opt-in and marked experimental: `NavController.bindToBrowserHistoryIfWeb()` calls
+`NavController.bindToBrowserNavigation()` (`@ExperimentalBrowserHistoryApi`, in `navigation-runtime`),
+which binds the back stack to `window.history.pushState`/`popstate` in both directions -- app navigation
+writes a new URL, and the browser's Back/Forward buttons drive `navController` the other way. Wired up
+once, from a `LaunchedEffect(navController)` right where `NavHost` is set up in `AppNavigation()`. A no-op
+on every other platform (Android/iOS/Desktop have no address bar to sync) via a small `expect`/`actual`
+(`WebDeepLinking.kt`) -- following this module's existing per-target-file convention for anything
+browser-specific (`Platform.js.kt`/`Platform.wasmJs.kt` already split the same way, since kotlin-wrappers'
+typed DOM bindings aren't published for wasmJs; a shared `webMain` file was tried first but broke Compose
+Multiplatform's resource-codegen for the `js` target in a way `--rerun-tasks` fixed once but that isn't
+worth depending on -- reverted to per-target `jsMain`/`wasmJsMain` files with a hand-rolled minimal
+`external interface` instead of a typed DOM library, mirroring exactly what `navigation-runtime`'s own
+(internal, so unusable directly) `BrowserWindow`/`refBrowserWindow` does, `js("window")` included).
+
+**Update**: URLs originally rendered with the fully-qualified `Screen` class name as the path segment (e.g.
+`#...Screen.ClubDetails/<clubId>?isRootClub=false`) -- functionally correct (unique per screen+args,
+round-trips through `NavController.navigate(route: String)` untouched) but not a clean path, and the
+developer didn't want package names showing up in a link they'd share with someone. Fixed without needing
+the "reconstruct the library's private argument-filling step" workaround originally assumed necessary:
+reading `navigation-common`'s actual source (`RouteBuilder.kt`/`RouteSerializer.kt`) shows the path segment
+is just `serializer.descriptor.serialName` -- exactly what a kotlinx.serialization `@SerialName` override
+replaces, with no library-side change needed; everything downstream (each non-optional property becomes a
+`/{name}` path segment, each optional/default one a `?name={name}` query param) is untouched by this. Every
+`Screen` entry (`Screen.kt`) now carries an explicit `@SerialName("club")`/`@SerialName("live-match")`/etc.,
+so the same URL now reads `#club/<clubId>?isRootClub=false` instead of
+`#...Screen.ClubDetails/<clubId>?isRootClub=false`. These names are load-bearing for already-shared links
+going forward, not just cosmetic -- renaming one later is a breaking change to any link a user has already
+shared or bookmarked, the same way changing a server API path would be. **Not re-verified live in a
+browser** for this follow-up (confirmed by reading the library's route-building source directly instead,
+and by the full multi-target build below) -- worth a quick `wasmJsBrowserDevelopmentRun` pass before
+relying on the exact rendered shape.
+
+**Half 2 -- deep links are safe by construction, not just functional**: `bindToBrowserNavigation()`'s own
+default behavior, if used as-is, would try to navigate straight to whatever the opening URL's fragment
+says the *instant* it binds -- before `SplashViewModel`'s session check (a real network call, not just a
+local read) has resolved. Tested and confirmed this really does race: a cold-loaded protected route
+would render (and fail to load its data, 401) before Login ever got a chance to intercept it. Fixed by
+taking control of the *first* URL read away from the library entirely:
+`initialDeepLinkRouteOrNull()` reads the URL's `#...` fragment and clears it from the visible URL
+**synchronously**, during `AppNavigation`'s first composition (`remember { ... }`, guaranteed to run
+before the `LaunchedEffect` that binds the library a moment later) -- so by the time
+`bindToBrowserHistoryIfWeb()` runs, there is nothing left in the URL for its own auto-navigate step to
+act on. The captured route is instead threaded into `SplashScreen` → `SplashViewModel.setDeepLinkRoute()`,
+and only honored (`SplashNavigationEvent.NavigateToDeepLink`) on the **success** branch of the session
+check -- an expired or logged-out visitor opening a stale shared link still lands on Login exactly like
+normal, the deep link is simply dropped, never bypassing auth. Fixing the underlying URL-sync direction
+means the two halves compose correctly: after Login/Dashboard/ClubDetails redirect, this same URL keeps
+syncing normally going forward.
+
+**Verified live in a real browser** (`wasmJsBrowserDevelopmentRun`), not just by reasoning about the
+library's source: Login → Register → Back correctly returns to Login *within the app* (URL updates each
+way, confirmed the browser's Back button no longer exits the site); a fresh tab opened directly to
+`#...Screen.Dashboard` with no session correctly and safely resolves to `#...Screen.Login`, never
+rendering the protected screen. One test artifact worth recording: repeatedly hash-navigating the *same*
+already-open tab produced a confusing stacked `[Login, Dashboard]` result once, which a **fresh tab**
+with the identical URL did not reproduce -- session-history/`popstate` replay specific to reusing one tab
+across many same-origin hash-only navigations in the test tooling, not a defect in the app's own logic
+(confirmed via temporary diagnostic logging showing the hash was correctly read-and-cleared and the
+session check correctly returned `false` on the run that nonetheless left the stale tab in that state).
+
+**Not attempted**: a full authenticated deep-link round trip against a live backend (no server was running
+for this verification pass -- the unauthenticated safety path was the one that actually needed proving);
+resuming a deep link *after* a fresh login rather than dropping it.

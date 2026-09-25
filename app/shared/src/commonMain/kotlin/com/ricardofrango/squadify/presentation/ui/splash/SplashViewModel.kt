@@ -17,6 +17,16 @@ class SplashViewModel(
     private val registerCurrentFcmTokenUseCase: RegisterCurrentFcmTokenUseCase
 ) : ViewModel() {
 
+    // Set once, before the first collection of [navigationEvent] -- see SplashScreen. Not a constructor
+    // param: Koin's default viewModel factory has no way to pass a per-navigation value into it, and this
+    // is only ever known at the call site (AppNavigation reads the URL once, synchronously, before this
+    // ViewModel is even created).
+    private var deepLinkRoute: String? = null
+
+    fun setDeepLinkRoute(route: String?) {
+        deepLinkRoute = route
+    }
+
     private val _navigationEvent = MutableSharedFlow<SplashNavigationEvent>()
     val navigationEvent: Flow<SplashNavigationEvent> = _navigationEvent
         .asSharedFlow()
@@ -26,6 +36,17 @@ class SplashViewModel(
         viewModelScope.launch {
             if (checkAndRefreshSessionUseCase()) {
                 registerCurrentFcmTokenUseCase()
+
+                // A deep-linked route (a shared web link) takes priority over the usual
+                // Dashboard/single-club redirect below, but only now that the session is confirmed
+                // valid -- an expired/logged-out visitor never reaches this branch at all, so a stale
+                // shared link can't be used to bypass Login.
+                val route = deepLinkRoute
+                if (route != null) {
+                    _navigationEvent.emit(SplashNavigationEvent.NavigateToDeepLink(route))
+                    return@launch
+                }
+
                 // Checked up front so a single-club session lands directly on that club's details
                 // instead of visiting Dashboard first -- Dashboard would make the exact same redirect
                 // itself (DashboardViewModel.NavigateToOnlyClub, kept as a fallback), but only after

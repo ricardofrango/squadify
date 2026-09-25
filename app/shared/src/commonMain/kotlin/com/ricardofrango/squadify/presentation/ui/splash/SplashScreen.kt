@@ -27,17 +27,21 @@ import org.koin.compose.viewmodel.koinViewModel
  */
 @Composable
 fun SplashScreen(
+    deepLinkRoute: String?,
     onNavigateToLogin: () -> Unit,
     onNavigateToDashboard: () -> Unit,
     onNavigateToOnlyClub: (String) -> Unit,
+    onNavigateToDeepLink: (String) -> Unit,
     viewModel: SplashViewModel = koinViewModel()
 ) {
     LaunchedEffect(Unit) {
+        viewModel.setDeepLinkRoute(deepLinkRoute)
         viewModel.navigationEvent.collect { event ->
             when (event) {
                 SplashNavigationEvent.NavigateToLogin -> onNavigateToLogin()
                 SplashNavigationEvent.NavigateToDashboard -> onNavigateToDashboard()
                 is SplashNavigationEvent.NavigateToOnlyClub -> onNavigateToOnlyClub(event.clubId)
+                is SplashNavigationEvent.NavigateToDeepLink -> onNavigateToDeepLink(event.route)
             }
         }
     }
