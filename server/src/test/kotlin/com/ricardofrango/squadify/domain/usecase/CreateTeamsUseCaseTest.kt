@@ -21,6 +21,7 @@ import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.CreateTeamsRequest
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.TeamItemRequest
+import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -34,9 +35,10 @@ import kotlin.test.assertFailsWith
 import kotlin.time.Instant
 
 /**
- * Batch team creation shares CreateTeamUseCase's rules (COORDINATOR+ gate; the age group must
- * belong to the request's club and season), applied once for the whole batch, plus a blank-name
- * check on every row. Mirrors CreateTeamUseCaseTest.
+ * Batch team creation shares CreateTeamUseCase's rules (`ConfigurablePermission.CREATE_TEAM` gate,
+ * defaulting to Coach -- see §37 in TECHNICAL_DECISIONS.md; the age group must belong to the request's
+ * club and season), applied once for the whole batch, plus a blank-name check on every row. Mirrors
+ * CreateTeamUseCaseTest.
  */
 class CreateTeamsUseCaseTest {
 
@@ -117,9 +119,43 @@ class CreateTeamsUseCaseTest {
         val member = user("p4-plain-member")
         coEvery { userRepository.findById(member.id) } returns member
         coEvery { userRepository.getUserRoleInClub(member.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns consistentAgeGroup
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(member.id, "age-group-1") } returns null
 
         assertFailsWith<ForbiddenException> {
             useCase(member.id, request("Team A"))
+        }
+        Unit
+    }
+
+    @Test
+    fun ageGroupCoachCanCreateTheWholeBatch() = runBlocking {
+        // The concrete fix behind §37: a coach who isn't a club coordinator/admin can now create teams
+        // in an age group they coach, since CREATE_TEAM defaults to Coach like its siblings.
+        val coach = user("p8-coach")
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "age-group-1") } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns consistentAgeGroup
+        val created = slot<List<Team>>()
+        coEvery { teamRepository.createTeams(capture(created)) } answers { created.captured }
+
+        val result = useCase(coach.id, request("Team A", "Team B"))
+
+        assertEquals(listOf("Team A", "Team B"), result.map { it.name })
+        Unit
+    }
+
+    @Test
+    fun ageGroupStaffCannotCreateTeamsByDefault() = runBlocking {
+        val staff = user("p9-staff")
+        coEvery { userRepository.findById(staff.id) } returns staff
+        coEvery { userRepository.getUserRoleInClub(staff.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, "age-group-1") } returns TeamRole.STAFF
+        coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns consistentAgeGroup
+
+        assertFailsWith<ForbiddenException> {
+            useCase(staff.id, request("Team A"))
         }
         Unit
     }

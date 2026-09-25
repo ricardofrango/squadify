@@ -485,7 +485,7 @@ graph TD
 
 ### 4.4b Get Age Group Details (`GetAgeGroupDetailsUseCase`)
 
-The aggregate behind the age-group detail screen. Follows the standard permission-gated read (§1.3) with an aggregation step and three independent, non-throwing permission probes -- each matching the real gate its action's own use case enforces, rather than one literal check standing in for all three (see TECHNICAL_DECISIONS.md §35's "reshuffled taxonomy" note on why bundling these caused a real button-visibility bug):
+The aggregate behind the age-group detail screen. Follows the standard permission-gated read (§1.3) with an aggregation step and four independent, non-throwing permission probes -- each matching the real gate its action's own use case enforces, rather than one literal check standing in for several at once (see TECHNICAL_DECISIONS.md §35/§37's "reshuffled taxonomy" notes on why bundling these caused real button-visibility bugs):
 
 ```mermaid
 graph TD
@@ -497,27 +497,28 @@ graph TD
     D --> E[teams = club teams filtered to this age group]
     E --> G["upcomingMatches = each team's matches that are either SCHEDULED with dateTime >= now, or currently LIVE/HALF_TIME, sorted by dateTime"]
     G --> G2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
-    G2 --> H["canManageAgeGroup = non-throwing probe: minClubRole=COORDINATOR only (no team-role path) -- add staff / create team"]
-    H --> H2["canManageMatch = non-throwing probe of configurablePermission=MANAGE_MATCH on ageGroupId -- schedule match"]
+    G2 --> H["canAddStaff = non-throwing probe: minClubRole=COORDINATOR only (no team-role path)"]
+    H --> H1["canCreateTeam = non-throwing probe of configurablePermission=CREATE_TEAM on ageGroupId"]
+    H1 --> H2["canManageMatch = non-throwing probe of configurablePermission=MANAGE_MATCH on ageGroupId -- schedule match"]
     H2 --> H3["canAssignPlayersToAgeGroup = non-throwing probe of configurablePermission=ASSIGN_PLAYERS_TO_AGE_GROUP on ageGroupId -- add players"]
-    H3 --> Z(["Return AgeGroupDetails: ageGroup, club, season, players (pool), staff, teams, upcomingMatches, upcomingMatchScores, opponents, canManageAgeGroup, canManageMatch, canAssignPlayersToAgeGroup"])
+    H3 --> Z(["Return AgeGroupDetails: ageGroup, club, season, players (pool), staff, teams, upcomingMatches, upcomingMatchScores, opponents, canAddStaff, canCreateTeam, canManageMatch, canAssignPlayersToAgeGroup"])
 ```
 
-`opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canManageAgeGroup` gates "Add staff"/"Create team" (permanently coordinator/admin-only, not club-configurable, the same way `ClubDetailsResponse.canEditClub` is); `canManageMatch` gates "Schedule match"; `canAssignPlayersToAgeGroup` gates "Add players" -- the latter two are club-configurable and can each diverge from the coordinator-only default independently. A match in progress stays in `upcomingMatches` rather than disappearing between "scheduled" and "finished" -- `upcomingMatchScores` lets the client show its running score (see `MatchRow` in `TECHNICAL_DECISIONS.md`/the client's `presentation/ui/components` package).
+`opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canAddStaff` gates "Add staff" (permanently coordinator/admin-only, not club-configurable, the same way `ClubDetailsResponse.canEditClub` is); `canCreateTeam` gates "Create team" (`ConfigurablePermission.CREATE_TEAM`, defaults to Coach -- moved here from the fixed bucket in §37, since a coach who'd just set up an age group had no way to add a second team to it themselves); `canManageMatch` gates "Schedule match"; `canAssignPlayersToAgeGroup` gates "Add players" -- these last three are club-configurable and can each diverge from the coordinator-only default independently. A match in progress stays in `upcomingMatches` rather than disappearing between "scheduled" and "finished" -- `upcomingMatchScores` lets the client show its running score (see `MatchRow` in `TECHNICAL_DECISIONS.md`/the client's `presentation/ui/components` package).
 
 ### 4.5 Create Team (`CreateTeamUseCase`)
 
 ```mermaid
 graph TD
-    A[Start: userId, clubId, ageGroupId, seasonId, name, code, teamSize?] --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
-    B -- denied --> F(["Throw ForbiddenException"])
-    B -- allowed --> C{name blank?}
+    A[Start: userId, clubId, ageGroupId, seasonId, name, code, teamSize?] --> C{name blank?}
     C -- Yes --> V(["Throw ValidationException"])
     C -- No --> D[Load age group by id]
-    D -- not found --> V
+    D -- not found --> V2(["Throw NotFoundException"])
     D -- found --> E{"age group's clubId == request clubId AND seasonId == request seasonId?"}
     E -- No --> V
-    E -- Yes --> E2{"teamSize set? — load club, must be in club.sport.teamSizes"}
+    E -- Yes --> B["CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=CREATE_TEAM, ageGroupId"]
+    B -- denied --> F(["Throw ForbiddenException"])
+    B -- allowed --> E2{"teamSize set? — load club, must be in club.sport.teamSizes"}
     E2 -- invalid --> V
     E2 -- ok / not set --> G["Create Team — active=true, teamSize = request.teamSize ?: ageGroup.teamSize"]
     G --> H["Fetch every active ClubMember of clubId; flatten their FcmTokenRepository tokens"]
@@ -528,21 +529,21 @@ graph TD
     K --> Z(["Return created Team"])
 ```
 
-`teamSize` is the a-side count this team plays. The request field is optional: when omitted the team inherits the age group's default (`ageGroup.teamSize`, itself nullable for age groups created before team sizes existed). When supplied it must be one of the club sport's allowed sizes. The client's Create Team screen pre-selects the age group's default and lets the user change it (e.g. an age group defined as 7-a-side with one team that plays 9-a-side). The club is now always fetched (previously only when `teamSize` was set) -- also needed for the push's club name.
+The age group is loaded and validated to actually belong to the request's `clubId`/`seasonId` **before** the permission check, not after -- that check trusts the supplied `ageGroupId` to resolve the caller's age-group-staff role, so an unvalidated one would let a coach of Club A's age group spoof permission to create a team in Club B (same guard as `CreatePlayersUseCase`). `configurablePermission=CREATE_TEAM` (§37 in TECHNICAL_DECISIONS.md, defaults to Coach) means an age-group coach can create a team in their own age group without needing a club coordinator/admin. `teamSize` is the a-side count this team plays. The request field is optional: when omitted the team inherits the age group's default (`ageGroup.teamSize`, itself nullable for age groups created before team sizes existed). When supplied it must be one of the club sport's allowed sizes. The client's Create Team screen pre-selects the age group's default and lets the user change it (e.g. an age group defined as 7-a-side with one team that plays 9-a-side). The club is now always fetched (previously only when `teamSize` was set) -- also needed for the push's club name.
 
 ### 4.5b Create Teams (`CreateTeamsUseCase`) — batch
 
 ```mermaid
 graph TD
-    A[Start: userId, clubId, seasonId, ageGroupId, items list] --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
-    B -- denied --> F(["Throw ForbiddenException"])
-    B -- allowed --> C{items list empty?}
+    A[Start: userId, clubId, seasonId, ageGroupId, items list] --> C{items list empty?}
     C -- Yes --> V(["Throw ValidationException"])
     C -- No --> D[Load age group by id]
-    D -- not found --> V
+    D -- not found --> V2(["Throw NotFoundException"])
     D -- found --> E{"age group belongs to this club AND this season?"}
     E -- No --> V
-    E -- Yes --> E2[Load club — for its sport's allowed team sizes]
+    E -- Yes --> B["CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=CREATE_TEAM, ageGroupId"]
+    B -- denied --> F(["Throw ForbiddenException"])
+    B -- allowed --> E2[Load club — for its sport's allowed team sizes]
     E2 --> G{For each item}
     G -- name blank --> V
     G -- teamSize set AND not in club.sport.teamSizes --> V
@@ -556,7 +557,7 @@ graph TD
     M --> Z(["Return created Teams"])
 ```
 
-Whole batch runs in one transaction (all or nothing), mirroring `CreateAgeGroupsUseCase`. Teams have no name-uniqueness constraint, so there's no conflict branch. Covered by `CreateTeamsUseCaseTest`. The client's Create Teams screen defaults the season to the most recent one (by end date), requires an age group to be picked, and requires a name on every row before it will submit. Each row also has a team-size picker pre-selected to the chosen age group's default (`ageGroup.teamSize`), overridable per row; an omitted `teamSize` falls back to that default server-side. The batch's push lists every created team's name in one notification rather than sending one push per team.
+Whole batch runs in one transaction (all or nothing), mirroring `CreateAgeGroupsUseCase`. Teams have no name-uniqueness constraint, so there's no conflict branch. Covered by `CreateTeamsUseCaseTest`. Same age-group-validated-before-permission-check ordering as the single-team case above, and the same `configurablePermission=CREATE_TEAM` gate. The client's Create Teams screen defaults the season to the most recent one (by end date), requires an age group to be picked, and requires a name on every row before it will submit. Each row also has a team-size picker pre-selected to the chosen age group's default (`ageGroup.teamSize`), overridable per row; an omitted `teamSize` falls back to that default server-side. The batch's push lists every created team's name in one notification rather than sending one push per team.
 
 ### 4.6 Update Team (`UpdateTeamUseCase`)
 

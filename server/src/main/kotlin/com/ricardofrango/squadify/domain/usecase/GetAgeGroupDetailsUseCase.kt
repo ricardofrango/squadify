@@ -68,10 +68,10 @@ class GetAgeGroupDetailsUseCase(
             .filter { it.status == MatchStatus.LIVE || it.status == MatchStatus.HALF_TIME }
             .associate { it.id to matchEventRepository.getScoreByMatch(it.id) }
 
-        // Add staff / create team are permanently coordinator+/admin-only -- not club configurable
-        // (see TECHNICAL_DECISIONS.md §35's bucket 2), so this is a plain literal check, unlike the
-        // two below.
-        val canManageAgeGroup = try {
+        // Add staff is the one remaining permanently coordinator+/admin-only action here -- not club
+        // configurable (see TECHNICAL_DECISIONS.md §35's bucket 2), so this is a plain literal check,
+        // unlike the configurable ones below (create team moved out of this fixed bucket in §37).
+        val canAddStaff = try {
             checkUserPermissionUseCase(
                 userId = userId,
                 clubId = ageGroup.clubId,
@@ -105,7 +105,8 @@ class GetAgeGroupDetailsUseCase(
             upcomingMatches = upcomingMatches,
             upcomingMatchScores = upcomingMatchScores,
             opponents = opponentRepository.getOpponentsByClub(ageGroup.clubId),
-            canManageAgeGroup = canManageAgeGroup,
+            canAddStaff = canAddStaff,
+            canCreateTeam = canDo(ConfigurablePermission.CREATE_TEAM),
             canManageMatch = canDo(ConfigurablePermission.MANAGE_MATCH),
             canAssignPlayersToAgeGroup = canDo(ConfigurablePermission.ASSIGN_PLAYERS_TO_AGE_GROUP)
         )

@@ -512,6 +512,8 @@
     <string name="msg_permission_create_opponent_desc">Who can add a new opponent club.</string>
     <string name="label_permission_edit_opponent">Edit opponents</string>
     <string name="msg_permission_edit_opponent_desc">Who can edit an existing opponent\'s details.</string>
+    <string name="label_permission_create_team">Create teams</string>
+    <string name="msg_permission_create_team_desc">Who can create a new team within an age group.</string>
     <string name="label_permission_manage_match">Schedule matches</string>
     <string name="msg_permission_manage_match_desc">Who can schedule, edit, or delete a match.</string>
     <string name="label_permission_manage_call_ups">Manage call-ups</string>

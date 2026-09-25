@@ -84,7 +84,7 @@ class GetAgeGroupDetailsUseCaseTest {
     }
 
     @Test
-    fun coordinatorGetsTheAggregateWithAllThreeManageFlagsTrueAndOnlyThisAgeGroupsTeams() = runBlocking {
+    fun coordinatorGetsTheAggregateWithAllFourManageFlagsTrueAndOnlyThisAgeGroupsTeams() = runBlocking {
         val coord = user("p3-coordinator")
         coEvery { userRepository.findById(coord.id) } returns coord
         coEvery { userRepository.getUserRoleInClub(coord.id, clubIdA) } returns ClubRole.COORDINATOR
@@ -94,7 +94,8 @@ class GetAgeGroupDetailsUseCaseTest {
 
         assertEquals(listOf("t1"), result.teams.map { it.id })
         assertEquals("26/27", result.season.name)
-        assertEquals(true, result.canManageAgeGroup)
+        assertEquals(true, result.canAddStaff)
+        assertEquals(true, result.canCreateTeam)
         assertEquals(true, result.canManageMatch)
         assertEquals(true, result.canAssignPlayersToAgeGroup)
         Unit
@@ -102,9 +103,9 @@ class GetAgeGroupDetailsUseCaseTest {
 
     @Test
     fun ageGroupStaffCanReadButNoneOfTheManageFlagsAreTrue() = runBlocking {
-        // STAFF passes the read gate (minTeamRole = STAFF) but clears none of the three manage
-        // thresholds: canManageAgeGroup is permanently coordinator-only, and the two configurable
-        // ones (MANAGE_MATCH/ASSIGN_PLAYERS_TO_AGE_GROUP) default to Coach.
+        // STAFF passes the read gate (minTeamRole = STAFF) but clears none of the four manage
+        // thresholds: canAddStaff is permanently coordinator-only, and the three configurable ones
+        // (CREATE_TEAM/MANAGE_MATCH/ASSIGN_PLAYERS_TO_AGE_GROUP) default to Coach.
         val staff = user("p6-staff")
         coEvery { userRepository.findById(staff.id) } returns staff
         coEvery { userRepository.getUserRoleInClub(staff.id, clubIdA) } returns ClubRole.MEMBER
@@ -113,17 +114,20 @@ class GetAgeGroupDetailsUseCaseTest {
 
         val result = useCase(staff.id, ageGroupId)
 
-        assertEquals(false, result.canManageAgeGroup)
+        assertEquals(false, result.canAddStaff)
+        assertEquals(false, result.canCreateTeam)
         assertEquals(false, result.canManageMatch)
         assertEquals(false, result.canAssignPlayersToAgeGroup)
         Unit
     }
 
     @Test
-    fun ageGroupCoachCanManageMatchesAndAssignPlayersButNotTheAgeGroupItself() = runBlocking {
-        // A coach clears the two club-configurable thresholds (both default to Coach) but adding
-        // staff / creating a team stays permanently coordinator/admin-only -- this is exactly the
-        // mismatch that used to be missed when all three were bundled into one literal COACH probe.
+    fun ageGroupCoachCanCreateTeamsManageMatchesAndAssignPlayersButNotAddStaff() = runBlocking {
+        // A coach clears the three club-configurable thresholds (all default to Coach, including the
+        // newly-split-out CREATE_TEAM -- §37: a coach who'd just set up an age group had no way to add
+        // a second team to it themselves before this) but adding staff stays permanently
+        // coordinator/admin-only -- this is exactly the mismatch that used to be missed when
+        // create-team and add-staff were bundled into one literal COACH-excluding probe.
         val coach = user("p7-coach")
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
@@ -132,7 +136,8 @@ class GetAgeGroupDetailsUseCaseTest {
 
         val result = useCase(coach.id, ageGroupId)
 
-        assertEquals(false, result.canManageAgeGroup)
+        assertEquals(false, result.canAddStaff)
+        assertEquals(true, result.canCreateTeam)
         assertEquals(true, result.canManageMatch)
         assertEquals(true, result.canAssignPlayersToAgeGroup)
         Unit

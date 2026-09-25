@@ -27,8 +27,10 @@ enum class TeamRole(val level: Int) {
  * `TECHNICAL_DECISIONS.md` on configurable permissions). Each maps to one or more server use cases that
  * already gate on a [TeamRole] threshold today -- this just makes that threshold a per-club setting
  * instead of a hardcoded constant. Deliberately NOT configurable, by design: who may change these
- * settings (always `ClubRole.COORDINATOR`+, never a [TeamRole]), and every structural club-setup action
- * (seasons/age groups/teams/members/staff assignment), which stays coordinator-only.
+ * settings (always `ClubRole.COORDINATOR`+, never a [TeamRole]), and every *other* structural club-setup
+ * action (seasons/age groups/members/staff assignment), which stays coordinator-only -- creating a team
+ * used to be in that fixed group too, until a coach who'd just finished setting up an age group turned
+ * out to have no way to add a second team to it themselves (§37).
  */
 @Serializable
 enum class ConfigurablePermission {
@@ -37,6 +39,7 @@ enum class ConfigurablePermission {
     ASSIGN_PLAYERS_TO_AGE_GROUP,
     CREATE_OPPONENT,
     EDIT_OPPONENT,
+    CREATE_TEAM,
     // Pre-match: scheduling the fixture itself (MANAGE_MATCH) and building the pre-match squad list
     // (MANAGE_CALL_UPS) are kept as two separate settings from everything that happens once the match
     // is actually live.
@@ -656,11 +659,12 @@ data class TeamDetails(
  * Everything attached to one age group, for its detail screen: the group and its [season], the full
  * player [pool][players], the [staff], the [teams] under it (all sharing the same pool), and the
  * upcoming matches across those teams ([opponents] is the club's opponent list so the client can
- * resolve `match.opponentId` to a name/logo). Three independent, non-throwing permission probes, each
- * matching the real gate its action's use case enforces (see `ConfigurablePermission`/§35 in
- * TECHNICAL_DECISIONS.md): [canManageAgeGroup] gates adding staff (`AddStaffToAgeGroupUseCase`) and
- * creating a team (`CreateTeamsUseCase`) -- both permanently coordinator/admin-only, not club
- * configurable, same idea as `ClubDetailsResponse.canEditClub`; [canManageMatch] gates scheduling a
+ * resolve `match.opponentId` to a name/logo). Four independent, non-throwing permission probes, each
+ * matching the real gate its action's use case enforces (see `ConfigurablePermission`/§35/§37 in
+ * TECHNICAL_DECISIONS.md): [canAddStaff] gates adding staff (`AddStaffToAgeGroupUseCase`) --
+ * permanently coordinator/admin-only, not club configurable, same idea as
+ * `ClubDetailsResponse.canEditClub`; [canCreateTeam] gates creating a team in this age group
+ * (`CreateTeamsUseCase`, `ConfigurablePermission.CREATE_TEAM`); [canManageMatch] gates scheduling a
  * match (`CreateMatchUseCase`, `ConfigurablePermission.MANAGE_MATCH`); [canAssignPlayersToAgeGroup]
  * gates adding an existing club player to this age group's pool (`AddPlayersToAgeGroupUseCase`,
  * `ConfigurablePermission.ASSIGN_PLAYERS_TO_AGE_GROUP`).
@@ -678,7 +682,8 @@ data class AgeGroupDetails(
     // entries have none. Lets a live match in this list show its running score.
     val upcomingMatchScores: Map<String, MatchScore> = emptyMap(),
     val opponents: List<Opponent>,
-    val canManageAgeGroup: Boolean,
+    val canAddStaff: Boolean,
+    val canCreateTeam: Boolean,
     val canManageMatch: Boolean,
     val canAssignPlayersToAgeGroup: Boolean
 )

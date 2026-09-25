@@ -48,7 +48,7 @@ private val MonthYear = LocalDate.Format {
  * The hub for one age group: its eligibility rule, the counts, then Players / Staff / Teams /
  * Matches. Built to the "Age group details" artboard of the design canvas linked in AI_GUIDELINES.md
  * ("UI Design Reference"). Each add/manage affordance is gated on its own `AgeGroupDetails` flag --
- * `canManageAgeGroup` (staff/team, coordinator+ only), `canManageMatch` (schedule), or
+ * `canAddStaff` (coordinator+ only), `canCreateTeam`, `canManageMatch` (schedule), or
  * `canAssignPlayersToAgeGroup` (add players) -- see that data class's doc comment.
  */
 @Composable
@@ -120,7 +120,7 @@ private fun AgeGroupDetailsContent(
                 onNavigateBack = onNavigateBack,
                 actions = {
                     val canScheduleFromMenu = details != null && details.canManageMatch && details.teams.isNotEmpty()
-                    if (details != null && (details.canAssignPlayersToAgeGroup || details.canManageAgeGroup || canScheduleFromMenu)) {
+                    if (details != null && (details.canAssignPlayersToAgeGroup || details.canAddStaff || details.canCreateTeam || canScheduleFromMenu)) {
                         var open by remember { mutableStateOf(false) }
                         Box {
                             IconButton(onClick = { open = true }) {
@@ -137,11 +137,13 @@ private fun AgeGroupDetailsContent(
                                         onClick = { open = false; onAddPlayers(details) }
                                     )
                                 }
-                                if (details.canManageAgeGroup) {
+                                if (details.canAddStaff) {
                                     DropdownMenuItem(
                                         text = { Text(stringResource(Res.string.label_add_staff_to_age_group), color = DeepCarbon) },
                                         onClick = { open = false; onAddStaff(details) }
                                     )
+                                }
+                                if (details.canCreateTeam) {
                                     DropdownMenuItem(
                                         text = { Text(stringResource(Res.string.label_create_team), color = DeepCarbon) },
                                         onClick = { open = false; onCreateTeam(details) }
@@ -254,7 +256,7 @@ private fun AgeGroupBody(
             SectionHeader(
                 title = stringResource(Res.string.label_age_group_staff),
                 count = details.staff.size,
-                onAdd = if (details.canManageAgeGroup) onAddStaff else null
+                onAdd = if (details.canAddStaff) onAddStaff else null
             )
         }
         if (details.staff.isEmpty()) {
@@ -262,7 +264,7 @@ private fun AgeGroupBody(
                 EmptySectionCard(
                     title = stringResource(Res.string.msg_no_staff_age_group),
                     hint = null,
-                    action = if (details.canManageAgeGroup) stringResource(Res.string.btn_add_staff) to onAddStaff else null
+                    action = if (details.canAddStaff) stringResource(Res.string.btn_add_staff) to onAddStaff else null
                 )
             }
         } else {
@@ -274,7 +276,7 @@ private fun AgeGroupBody(
             SectionHeader(
                 title = stringResource(Res.string.tab_teams),
                 count = details.teams.size,
-                onAdd = if (details.canManageAgeGroup) onCreateTeam else null
+                onAdd = if (details.canCreateTeam) onCreateTeam else null
             )
         }
         if (details.teams.isEmpty()) {
@@ -282,7 +284,7 @@ private fun AgeGroupBody(
                 EmptySectionCard(
                     title = stringResource(Res.string.msg_no_teams_in_age_group),
                     hint = stringResource(Res.string.msg_no_teams_in_age_group_hint),
-                    action = if (details.canManageAgeGroup) stringResource(Res.string.label_create_team) to onCreateTeam else null
+                    action = if (details.canCreateTeam) stringResource(Res.string.label_create_team) to onCreateTeam else null
                 )
             }
         } else {
@@ -629,7 +631,8 @@ private fun sampleDetails(populated: Boolean, canManage: Boolean): AgeGroupDetai
         ) else emptyList(),
         upcomingMatches = emptyList(),
         opponents = emptyList(),
-        canManageAgeGroup = canManage,
+        canAddStaff = canManage,
+        canCreateTeam = canManage,
         canManageMatch = canManage,
         canAssignPlayersToAgeGroup = canManage
     )

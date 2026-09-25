@@ -510,6 +510,8 @@
     <string name="msg_permission_create_opponent_desc">Quem pode adicionar um novo clube adversário.</string>
     <string name="label_permission_edit_opponent">Editar adversários</string>
     <string name="msg_permission_edit_opponent_desc">Quem pode editar os dados de um adversário existente.</string>
+    <string name="label_permission_create_team">Criar equipas</string>
+    <string name="msg_permission_create_team_desc">Quem pode criar uma nova equipa num escalão.</string>
     <string name="label_permission_manage_match">Agendar jogos</string>
     <string name="msg_permission_manage_match_desc">Quem pode agendar, editar ou eliminar um jogo.</string>
     <string name="label_permission_manage_call_ups">Gerir convocatórias</string>

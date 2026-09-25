@@ -1813,3 +1813,45 @@ the eventual Save calls failing. Fixed by having the client's `GetClubUseCase` r
 shared `msg_permission_denied` copy in the screen's existing Error state, never the editable content.
 This is the same "the flag the read endpoint already computes was being discarded" root cause as §35's
 original bug, just one layer further down the client's own call chain rather than the server's.
+
+## 37. `CREATE_TEAM` Joins the Configurable Permissions
+
+**Problem**: after §35/§36 shipped, the developer asked to see the permissions table again and noticed
+"Create Team" wasn't on it -- then reported the concrete symptom: *"I just entered the details of an age
+group, and the coach cannot create additional teams to the age group."* Creating a team had been placed
+in §35's bucket 2 ("fixed at COORDINATOR+, not configurable") alongside seasons/age groups/members/staff
+assignment, on the reasoning that these all change the club's own shape rather than its day-to-day
+content. In practice, adding a second team to an age group a coach already runs is exactly the kind of
+day-to-day content-management action the other seven configurable permissions cover (creating players,
+assigning them to an age group, scheduling a match, and so on) -- the original bucket placement was a
+misjudgment, not a deliberate restriction the developer still wanted.
+
+**Fix**: added `ConfigurablePermission.CREATE_TEAM` as a ninth value, defaulting to Coach like every
+other "create" action (`defaultMinTeamRole`'s existing `if (MANAGE_LIVE_MATCH) STAFF else COACH` logic
+needed no change). `CreateTeamUseCase`/`CreateTeamsUseCase` now pass
+`configurablePermission = ConfigurablePermission.CREATE_TEAM, ageGroupId = request.ageGroupId` instead of
+a literal `minClubRole = ClubRole.COORDINATOR` with no team-role path at all. This required reordering
+each use case's body: the age-group-belongs-to-this-club-and-season validation now runs **before** the
+permission check rather than after, since that check trusts the supplied `ageGroupId` to resolve the
+caller's age-group-staff role -- doing it in the old order would let a coach of Club A's age group spoof
+permission to create a team in Club B, the exact cross-club-spoofing risk `CreatePlayersUseCase` already
+guards against the same way.
+
+**Client-side fallout, the same "one bundled flag, several different real gates" shape as §36**:
+`AgeGroupDetails.canManageAgeGroup` used to gate both "Add staff" (still permanently coordinator-only)
+and "Create team" (now configurable) behind one literal probe. Split into `canAddStaff` (unchanged
+literal check) and a new `canCreateTeam` (probes `configurablePermission = CREATE_TEAM` against this
+specific age group). `AgeGroupDetailsScreen`'s "Add staff"/"Create team" section headers, empty-state
+actions, and overflow-menu items were updated to each read their own correct flag instead of sharing one.
+The club-level "Create team" shortcut in `ClubDetailsScreen`'s "More" menu was deliberately left gated on
+`canEditClub` (coordinator-only) rather than reworked -- that entry point lets the user pick *which* age
+group afterward, inside the Create Teams form, so there's no single age group to probe
+`CREATE_TEAM` against in advance; a coach still reaches the now-open path through their own age group's
+detail screen, which is the concrete workflow that was reported broken.
+
+**Verified**: `:server:test` (full suite, including new `CreateTeamUseCaseTest`/`CreateTeamsUseCaseTest`
+cases showing an age-group coach now succeeding and an age-group staff member still correctly denied by
+default, plus updated `GetAgeGroupDetailsUseCaseTest` cases distinguishing `canAddStaff` from
+`canCreateTeam` for a coach), `:app:shared:compileKotlinJvm`, `:app:androidApp:compileDevDebugKotlin` all
+clean. **Not verified**: a live device pass showing the "Create team" action actually appear for a real
+coach account (verified via the server's unit suite and the client's compiled type-correctness only).
