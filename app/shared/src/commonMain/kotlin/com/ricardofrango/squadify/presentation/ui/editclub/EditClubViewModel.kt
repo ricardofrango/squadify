@@ -11,6 +11,11 @@ import com.ricardofrango.squadify.model.ClubPermissionSetting
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.UpdateClubPermissionsRequest
+import com.ricardofrango.squadify.presentation.errorMessage
+import squadify.app.shared.generated.resources.Res
+import squadify.app.shared.generated.resources.msg_club_change_failed
+import squadify.app.shared.generated.resources.msg_failed_to_load_club
+import squadify.app.shared.generated.resources.msg_permissions_save_failed
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,7 +41,7 @@ class EditClubViewModel(
                     val permissions = getClubPermissionsUseCase(clubId).settings
                     idleFor(club, permissions)
                 } catch (e: Exception) {
-                    EditClubUiState.Error(e.message ?: "Couldn't load this club. Please try again.")
+                    EditClubUiState.Error(errorMessage(e, Res.string.msg_failed_to_load_club))
                 }
             }
         }
@@ -87,11 +92,9 @@ class EditClubViewModel(
                 }
                 onSaved()
             } catch (e: Exception) {
+                val message = errorMessage(e, Res.string.msg_club_change_failed)
                 _state.update {
-                    (it as EditClubUiState.Idle).copy(
-                        isSubmitting = false,
-                        submitError = e.message ?: "Couldn't save your changes. Please try again."
-                    )
+                    (it as EditClubUiState.Idle).copy(isSubmitting = false, submitError = message)
                 }
             }
         }
@@ -122,11 +125,9 @@ class EditClubViewModel(
                     )
                 }
             } catch (e: Exception) {
+                val message = errorMessage(e, Res.string.msg_permissions_save_failed)
                 _state.update {
-                    (it as EditClubUiState.Idle).copy(
-                        isSubmittingPermissions = false,
-                        permissionsSubmitError = e.message ?: "Couldn't save these permissions. Please try again."
-                    )
+                    (it as EditClubUiState.Idle).copy(isSubmittingPermissions = false, permissionsSubmitError = message)
                 }
             }
         }

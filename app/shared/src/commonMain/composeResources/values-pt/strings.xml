@@ -470,8 +470,12 @@
     <string name="label_stadium_location_placeholder">ex. Campo do Ribamar, Estrada da Praia</string>
     <string name="msg_stadium_location_helper">Onde se realizam os jogos em casa, se for diferente da morada do clube. Sugerido como localização ao agendar um jogo em casa.</string>
     <string name="msg_failed_to_load_club">Não foi possível carregar este clube. Por favor, tente novamente.</string>
+    <string name="msg_club_change_failed">A alteração não foi guardada. Por favor, tente novamente.</string>
 
     <!-- Edit User Details -->
+    <string name="msg_failed_to_load_account">Não foi possível carregar a sua conta. Por favor, tente novamente.</string>
+    <string name="msg_profile_save_failed">Não foi possível guardar as suas alterações. Por favor, tente novamente.</string>
+    <string name="msg_password_change_failed">Não foi possível alterar a sua senha. Por favor, tente novamente.</string>
     <string name="msg_member_since_status">Membro desde %1$s · %2$s</string>
     <string name="label_pending_status">Pendente</string>
     <string name="label_suspended_status">Suspenso</string>
@@ -492,6 +496,7 @@
 
     <!-- Club Permissions -->
     <string name="msg_permissions_intro">Defina o nível mínimo necessário para cada ação abaixo. Coordenadores e administradores do clube podem sempre fazer tudo, independentemente destas definições.</string>
+    <string name="msg_permissions_save_failed">Não foi possível guardar estas permissões. Por favor, tente novamente.</string>
     <string name="label_permission_level_staff">Qualquer elemento da equipa técnica</string>
     <string name="label_permission_level_coach">Apenas treinador</string>
     <string name="label_permission_level_coordinator_only">Apenas coordenador</string>

@@ -472,8 +472,12 @@
     <string name="label_stadium_location_placeholder">e.g. Campo do Ribamar, Estrada da Praia</string>
     <string name="msg_stadium_location_helper">Where home matches are played, if different from the club address. Suggested as the location when you schedule a home match.</string>
     <string name="msg_failed_to_load_club">Couldn\'t load this club. Please try again.</string>
+    <string name="msg_club_change_failed">That change didn\'t save. Please try again.</string>
 
     <!-- Edit User Details -->
+    <string name="msg_failed_to_load_account">Couldn\'t load your account. Please try again.</string>
+    <string name="msg_profile_save_failed">Couldn\'t save your changes. Please try again.</string>
+    <string name="msg_password_change_failed">Couldn\'t change your password. Please try again.</string>
     <string name="msg_member_since_status">Member since %1$s · %2$s</string>
     <string name="label_pending_status">Pending</string>
     <string name="label_suspended_status">Suspended</string>
@@ -494,6 +498,7 @@
 
     <!-- Club Permissions -->
     <string name="msg_permissions_intro">Set the minimum role required for each action below. Coordinators and club admins can always do everything, regardless of these settings.</string>
+    <string name="msg_permissions_save_failed">These permissions didn\'t save. Please try again.</string>
     <string name="label_permission_level_staff">Any staff</string>
     <string name="label_permission_level_coach">Coach only</string>
     <string name="label_permission_level_coordinator_only">Coordinator only</string>

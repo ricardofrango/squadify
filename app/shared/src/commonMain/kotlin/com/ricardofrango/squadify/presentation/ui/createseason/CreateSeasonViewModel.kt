@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.domain.usecase.CreateSeasonUseCase
 import com.ricardofrango.squadify.domain.usecase.GetSeasonsUseCase
 import com.ricardofrango.squadify.model.CreateSeasonRequest
 import com.ricardofrango.squadify.model.SeasonType
+import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_create_season_failed
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -81,8 +82,8 @@ class CreateSeasonViewModel(
                     )
                 )
                 _navigationEvent.emit(CreateSeasonNavigationEvent.NavigateBackWithSeasonCreated)
-            } catch (e: ApiException) {
-                if (e.statusCode == 409) {
+            } catch (e: Exception) {
+                if (e is ApiException && e.statusCode == 409) {
                     // The server's uniqueness check is exactly club+type+startDate+endDate, so the
                     // season it collided with is whichever local season matches those same fields.
                     val collidesWith = current.existingSeasons.find {
@@ -96,13 +97,8 @@ class CreateSeasonViewModel(
                         )
                     }
                 } else {
-                    _state.update {
-                        current.copy(isSubmitting = false, error = getString(Res.string.msg_create_season_failed))
-                    }
-                }
-            } catch (e: Exception) {
-                _state.update {
-                    current.copy(isSubmitting = false, error = getString(Res.string.msg_create_season_failed))
+                    val message = errorMessage(e, Res.string.msg_create_season_failed)
+                    _state.update { current.copy(isSubmitting = false, error = message) }
                 }
             }
         }

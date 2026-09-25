@@ -8,6 +8,11 @@ import com.ricardofrango.squadify.domain.usecase.LogoutUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateProfileUseCase
 import com.ricardofrango.squadify.model.ChangePasswordRequest
 import com.ricardofrango.squadify.model.User
+import com.ricardofrango.squadify.presentation.errorMessage
+import squadify.app.shared.generated.resources.Res
+import squadify.app.shared.generated.resources.msg_failed_to_load_account
+import squadify.app.shared.generated.resources.msg_password_change_failed
+import squadify.app.shared.generated.resources.msg_profile_save_failed
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
@@ -36,7 +41,7 @@ class AccountViewModel(
             _state.value = try {
                 idleFor(getCurrentUserUseCase())
             } catch (e: Exception) {
-                AccountUiState.Error(e.message ?: "Couldn't load your account. Please try again.")
+                AccountUiState.Error(errorMessage(e, Res.string.msg_failed_to_load_account))
             }
         }
     }
@@ -77,12 +82,8 @@ class AccountViewModel(
                     it.copy(original = fields, form = fields, isSubmittingProfile = false)
                 }
             } catch (e: Exception) {
-                updateIdle {
-                    it.copy(
-                        isSubmittingProfile = false,
-                        profileSubmitError = e.message ?: "Couldn't save your changes. Please try again."
-                    )
-                }
+                val message = errorMessage(e, Res.string.msg_profile_save_failed)
+                updateIdle { it.copy(isSubmittingProfile = false, profileSubmitError = message) }
             }
         }
     }
@@ -111,12 +112,8 @@ class AccountViewModel(
                     )
                 }
             } catch (e: Exception) {
-                updateIdle {
-                    it.copy(
-                        isSubmittingPassword = false,
-                        passwordSubmitError = e.message ?: "Couldn't change your password. Please try again."
-                    )
-                }
+                val message = errorMessage(e, Res.string.msg_password_change_failed)
+                updateIdle { it.copy(isSubmittingPassword = false, passwordSubmitError = message) }
             }
         }
     }
