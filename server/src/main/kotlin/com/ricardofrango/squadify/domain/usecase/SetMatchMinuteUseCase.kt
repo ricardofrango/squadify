@@ -8,9 +8,10 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.ClubMatchesUpdate
+import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.LiveMatchUpdate
 import com.ricardofrango.squadify.model.MatchStatus
-import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.elapsedMatchSeconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
@@ -40,7 +41,8 @@ class SetMatchMinuteUseCase(
         checkUserPermissionUseCase(
             userId = userId,
             clubId = match.clubId,
-            minTeamRole = TeamRole.STAFF,
+            minClubRole = ClubRole.COORDINATOR,
+            configurablePermission = ConfigurablePermission.MANAGE_LIVE_MATCH,
             teamId = match.teamId,
             errorMessage = "Only admins, coordinators, coaches, or team staff can set the match minute"
         )

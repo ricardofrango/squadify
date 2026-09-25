@@ -22,7 +22,8 @@ class ManageCallUpsUseCase(
         checkUserPermissionUseCase(
             userId = userId,
             clubId = match.clubId,
-            minTeamRole = TeamRole.STAFF,
+            minClubRole = ClubRole.COORDINATOR,
+            configurablePermission = ConfigurablePermission.MANAGE_LIVE_MATCH,
             teamId = match.teamId,
             errorMessage = "Insufficient permissions to manage call-ups"
         )

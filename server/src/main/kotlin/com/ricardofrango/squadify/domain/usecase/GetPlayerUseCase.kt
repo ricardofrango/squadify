@@ -68,6 +68,7 @@ class GetPlayerUseCase(
 
         PlayerProfile(
             player = player,
+            ageGroupId = ageGroup?.id,
             ageGroupLabel = ageGroupLabel,
             seasonLabel = seasonLabel,
             goals = goals,

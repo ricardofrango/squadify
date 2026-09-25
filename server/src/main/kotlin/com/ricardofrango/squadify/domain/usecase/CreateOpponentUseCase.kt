@@ -6,9 +6,9 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.CreateOpponentRequest
 import com.ricardofrango.squadify.model.Opponent
-import com.ricardofrango.squadify.model.TeamRole
 import kotlin.uuid.Uuid
 
 class CreateOpponentUseCase(
@@ -34,7 +34,7 @@ class CreateOpponentUseCase(
             userId = userId,
             clubId = clubId,
             minClubRole = ClubRole.COORDINATOR,
-            minTeamRole = TeamRole.COACH,
+            configurablePermission = ConfigurablePermission.CREATE_OPPONENT,
             ageGroupId = request.ageGroupId,
             errorMessage = "Only admins, coordinators, or this age group's coaches can create opponents"
         )

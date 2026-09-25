@@ -9,7 +9,7 @@ import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AddPlayersToAgeGroupRequest
 import com.ricardofrango.squadify.model.AgeGroupPlayer
 import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.ConfigurablePermission
 import kotlin.uuid.Uuid
 
 /**
@@ -37,7 +37,7 @@ class AddPlayersToAgeGroupUseCase(
             userId = userId,
             clubId = ageGroup.clubId,
             minClubRole = ClubRole.COORDINATOR,
-            minTeamRole = TeamRole.COACH,
+            configurablePermission = ConfigurablePermission.ASSIGN_PLAYERS_TO_AGE_GROUP,
             ageGroupId = ageGroupId,
             errorMessage = "Only admins, coordinators, or this age group's coaches can add players"
         )

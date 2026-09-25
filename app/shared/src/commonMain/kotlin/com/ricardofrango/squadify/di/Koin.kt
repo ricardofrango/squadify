@@ -111,6 +111,8 @@ val domainModule = module {
     factory { GetClubDetailsUseCase(get(), get(), get(), get(), get(), get()) }
     factory { GetClubUseCase(get()) }
     factory { UpdateClubUseCase(get()) }
+    factory { GetClubPermissionsUseCase(get()) }
+    factory { UpdateClubPermissionsUseCase(get()) }
     factory { GetClubHomeUseCase(get()) }
     factory { GetTeamDetailsUseCase(get()) }
     factory { GetPlayerDetailsUseCase(get()) }

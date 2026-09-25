@@ -1,21 +1,25 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
+import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.UserStatus
+import com.ricardofrango.squadify.model.defaultMinTeamRole
 
 class CheckUserPermissionUseCase(
     private val userRepository: UserRepository,
     private val teamRepository: TeamRepository,
     private val playerRepository: PlayerRepository,
     private val ageGroupRepository: AgeGroupRepository,
-    private val transactionManager: TransactionManager
+    private val transactionManager: TransactionManager,
+    private val clubPermissionRepository: ClubPermissionRepository
 ) {
     /**
      * Checks if a user has permission at the club or age-group level.
@@ -26,7 +30,13 @@ class CheckUserPermissionUseCase(
      * @param minClubRole The minimum ClubRole required (e.g., COORDINATOR).
      * @param minTeamRole The minimum age-group staff role required (`age_group_staff`) once an
      *   age-group context is known -- either [ageGroupId] directly or [teamId] resolved to its age
-     *   group. Coaches/staff attach to age groups now, not teams.
+     *   group. Coaches/staff attach to age groups now, not teams. Ignored when [configurablePermission]
+     *   is given -- the two are mutually exclusive; a call site uses one or the other.
+     * @param configurablePermission When set, [minTeamRole] is resolved from this club's own setting for
+     *   the action instead of being a literal constant -- an explicit override if the club has one
+     *   ([ClubPermissionRepository.getOverride], which may itself be `null` meaning "coordinator-only"),
+     *   else [defaultMinTeamRole]. See `TECHNICAL_DECISIONS.md` on configurable permissions -- who may
+     *   *change* these settings is never itself configurable (always plain `minClubRole = COORDINATOR`).
      * @param teamId Optional team ID; used only to derive its age group for the staff / player-link
      *   checks below.
      * @param ageGroupId Optional age-group ID for operations that act on an age group directly
@@ -50,6 +60,7 @@ class CheckUserPermissionUseCase(
         clubId: String,
         minClubRole: ClubRole? = null,
         minTeamRole: TeamRole? = null,
+        configurablePermission: ConfigurablePermission? = null,
         teamId: String? = null,
         ageGroupId: String? = null,
         allowPlayerOrParentAccess: Boolean = false,
@@ -83,10 +94,19 @@ class CheckUserPermissionUseCase(
             }
         }
 
-        // 3. Check age-group staff role
-        if (effectiveAgeGroupId != null && minTeamRole != null) {
+        // 3. Check age-group staff role. When configurablePermission is given, its resolved threshold
+        // replaces the literal minTeamRole entirely -- an override row that exists but stores `null`
+        // means "coordinator-only" and must NOT fall back to the default (only a genuinely *missing*
+        // row does), so this checks row presence explicitly rather than chaining `?:`.
+        val effectiveMinTeamRole = if (configurablePermission != null) {
+            val override = clubPermissionRepository.getOverride(clubId, configurablePermission)
+            if (override != null) override.minTeamRole else configurablePermission.defaultMinTeamRole
+        } else {
+            minTeamRole
+        }
+        if (effectiveAgeGroupId != null && effectiveMinTeamRole != null) {
             val userAgeGroupRole = ageGroupRepository.getUserRoleInAgeGroup(userId, effectiveAgeGroupId)
-            if (userAgeGroupRole != null && userAgeGroupRole.level >= minTeamRole.level) {
+            if (userAgeGroupRole != null && userAgeGroupRole.level >= effectiveMinTeamRole.level) {
                 return@runInTransaction
             }
         }

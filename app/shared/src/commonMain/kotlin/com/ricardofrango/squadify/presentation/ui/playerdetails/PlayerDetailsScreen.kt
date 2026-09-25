@@ -374,6 +374,7 @@ private fun sampleProfile(withPosition: Boolean, withEvents: Boolean, canManage:
         weightKg = if (withPosition) 47 else null,
         emergencyContact = if (withPosition) "Ana Bragança · +351 912 345 678" else null
     ),
+    ageGroupId = "ag1",
     ageGroupLabel = "Sub-15 A",
     seasonLabel = "26/27",
     goals = 9,

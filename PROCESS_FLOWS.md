@@ -36,24 +36,25 @@ Almost every use case starts by fetching a parent resource for context, then del
 
 ```mermaid
 graph TD
-    A[Start: userId, clubId, minClubRole?, minTeamRole?, teamId?, ageGroupId?] --> B[Load user by id]
+    A[Start: userId, clubId, minClubRole?, minTeamRole?, configurablePermission?, teamId?, ageGroupId?] --> B[Load user by id]
     B -- not found --> X1(["Throw ForbiddenException: User not found"])
     B -- found --> C{user.isPlatformAdmin?}
     C -- Yes --> ALLOW(["Allow — God Mode"])
     C -- No --> R["Resolve age-group context: ageGroupId, else team.ageGroupId for teamId"]
     R --> D[Get user's ClubRole for clubId]
     D --> E{Has a club role?}
-    E -- No --> H
+    E -- No --> RESOLVE
     E -- Yes --> F{Role is CLUB_ADMIN or COORDINATOR?}
     F -- Yes --> G{minClubRole is null OR role.level >= minClubRole.level?}
     G -- Yes --> ALLOW
-    G -- No --> H
+    G -- No --> RESOLVE
     F -- No --> I{minClubRole == MEMBER AND role.level >= MEMBER.level AND no age-group context?}
     I -- Yes --> ALLOW
-    I -- No --> H{age-group context AND minTeamRole provided?}
+    I -- No --> RESOLVE["configurablePermission given? resolve effective minTeamRole: club's override if a row exists (its minTeamRole as-is, even null) else the action's default; else use the literal minTeamRole as passed"]
+    RESOLVE --> H{age-group context AND effective minTeamRole not null?}
     H -- No --> P{allowPlayerOrParentAccess?}
     H -- Yes --> J["Get user's role in the age group (age_group_staff)"]
-    J --> K{role exists AND level >= minTeamRole.level?}
+    J --> K{role exists AND level >= effective minTeamRole.level?}
     K -- Yes --> ALLOW
     K -- No --> P
     P -- No --> DENY(["Throw ForbiddenException: errorMessage"])
@@ -65,7 +66,7 @@ graph TD
     M -- No --> DENY
 ```
 
-Key behaviours baked into this one function: Platform Admins bypass everything ("God Mode"); a club-level `CLUB_ADMIN`/`COORDINATOR` role satisfies almost any check without needing a lower-level role; a plain `MEMBER` role is only sufficient when no age-group-specific check is requested; `COACH`/`STAFF` roles are validated per **age group** via `age_group_staff` (a `teamId` passed by a caller is resolved to its age group first); the opt-in player/parent path grants a read when a linked player sits in the relevant age group's pool.
+Key behaviours baked into this one function: Platform Admins bypass everything ("God Mode"); a club-level `CLUB_ADMIN`/`COORDINATOR` role satisfies almost any check without needing a lower-level role; a plain `MEMBER` role is only sufficient when no age-group-specific check is requested; `COACH`/`STAFF` roles are validated per **age group** via `age_group_staff` (a `teamId` passed by a caller is resolved to its age group first); the opt-in player/parent path grants a read when a linked player sits in the relevant age group's pool. `configurablePermission` (mutually exclusive with a literal `minTeamRole` at any one call site) resolves the effective staff-role threshold from the club's own `ClubPermissionOverrides` setting instead of a hardcoded constant — see `TECHNICAL_DECISIONS.md` §35 for the full configurable-permissions design, including which actions are (and deliberately aren't) configurable, and the `ClubPermissionRepository.getOverride` row-exists-vs-null distinction that a naive `?:` chain would get wrong.
 
 ### 1.2 `CheckUserIsAdminUseCase` — platform-level gate
 
@@ -343,6 +344,34 @@ graph TD
 ```
 
 (Corrected from an earlier revision of this doc that said `minClubRole=CLUB_ADMIN` — the code has required only `COORDINATOR` since admin/coordinator were made fully equivalent short of billing; see `UpdateClubUseCaseTest`.) `stadiumLocation` — where home matches are actually played, when that differs from the official `address` — is edited from the client's Edit Club Details screen (Club Details' "More" menu); see `TECHNICAL_DECISIONS.md` §32.
+
+### 3.4b Get / Update Club Permissions (`GetClubPermissionsUseCase` / `UpdateClubPermissionsUseCase`)
+
+The Edit Club Details screen's "Permissions" tab — see `TECHNICAL_DECISIONS.md` §35 for the full design (which actions are configurable, and why three of them gained a `minClubRole` floor they never had before as part of this change).
+
+```mermaid
+graph TD
+    A[Start: userId, clubId] --> B[CheckUserPermissionUseCase — minClubRole=MEMBER]
+    B -- denied --> F(["Throw ForbiddenException"])
+    B -- allowed --> C[Fetch this club's explicit overrides]
+    C --> D["For each of the 8 ConfigurablePermission values: override's minTeamRole if a row exists, else the action's default"]
+    D --> Z(["Return one ClubPermissionSetting per action, always 8"])
+```
+
+```mermaid
+graph TD
+    A2[Start: userId, clubId, settings list] --> B2[CheckUserPermissionUseCase — minClubRole=COORDINATOR, no configurablePermission]
+    B2 -- denied --> F2(["Throw ForbiddenException"])
+    B2 -- allowed --> C2{Any duplicate action in the settings list?}
+    C2 -- Yes --> V2(["Throw ValidationException"])
+    C2 -- No --> D2["Delete all of this club's existing overrides, then insert exactly the submitted settings"]
+    D2 --> Z2(["Return success"])
+```
+
+Update is deliberately a full replace, not a per-action patch — the client always submits the whole
+8-action form. `GET` is readable by any club member; `PATCH` is fixed at `minClubRole=COORDINATOR` with no
+`configurablePermission` involved anywhere in its own check — changing a setting is never itself one of
+the settings.
 
 ### 3.5 Update Club Member Role (`UpdateClubMemberRoleUseCase`)
 
@@ -630,9 +659,14 @@ any that are absent rather than showing a placeholder.
 
 ```mermaid
 graph TD
-    A[Start: userId, playerId, patch] --> B[Fetch Player by id]
+    A[Start: userId, playerId, patch incl. optional ageGroupId] --> B[Fetch Player by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    B -- found --> AG{ageGroupId supplied?}
+    AG -- Yes --> AGF[Fetch AgeGroup by id]
+    AGF -- not found --> N2(["Throw NotFoundException"])
+    AGF -- found, wrong club --> FB(["Throw ForbiddenException"])
+    AGF -- found, right club --> C
+    AG -- No --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=EDIT_PLAYER, ageGroupId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D["Merge patch fields (name, birthDate, shirtNumber, photoUrl, position, heightCm, weightKg, emergencyContact)"]
     D --> E[Persist updated Player]
@@ -658,15 +692,22 @@ graph TD
 
 The `parents` list is a **total replacement**, not a merge: every existing parent link and pending parent-invite is deleted before the new list is applied.
 
+`ageGroupId` (optional, same cross-club-validated shape as `CreatePlayersRequest.ageGroupId` — see §5.1)
+lets this be authorized via `ConfigurablePermission.EDIT_PLAYER` as that age group's own coach, not just a
+club-wide coordinator+ — added alongside making the action configurable (see `TECHNICAL_DECISIONS.md`
+§35); before that change this use case had no age-group-staff path at all, unlike its sibling
+`CreatePlayersUseCase`.
+
 **Client screen:** `EditPlayerScreen` (design canvas "17A"/"17B") is the first client consumer of this
 use case. Reached from the player profile's overflow menu (gated on `canManage`, §5.1b), it edits every
 field `UpdatePlayerRequest` supports except `photoUrl`/`email`/`parents` -- name, date of birth, shirt
-number, position, height/weight, and emergency contact -- reusing Create Players' field styling. A
-green banner ("Only the name and date of birth are required. The rest can wait.") shows when the
-player's optional fields were never set; the pinned Save button (and a matching header checkmark) stay
-disabled until the form is both valid (name + DOB present) and different from what was loaded. Saving
-flags `KEY_CLUB_STRUCTURE_CHANGED` so the profile screen reloads on return, same cascade pattern as the
-other create/edit screens (`AppNavigation.kt`).
+number, position, height/weight, and emergency contact -- reusing Create Players' field styling, and
+passes the player's own `ageGroupId` (from `PlayerProfile`, resolved server-side the same way
+`ageGroupLabel` already was) through on save. A green banner ("Only the name and date of birth are
+required. The rest can wait.") shows when the player's optional fields were never set; the pinned Save
+button (and a matching header checkmark) stay disabled until the form is both valid (name + DOB present)
+and different from what was loaded. Saving flags `KEY_CLUB_STRUCTURE_CHANGED` so the profile screen
+reloads on return, same cascade pattern as the other create/edit screens (`AppNavigation.kt`).
 
 ### 5.3 Add Players to Age Group (`AddPlayersToAgeGroupUseCase`) — with age eligibility
 
@@ -731,23 +772,42 @@ Someone not yet a club member can't be picked there, so that screen also has a "
 
 ```mermaid
 graph TD
-    A[Start: userId, clubId, name, shortName, logoUrl] --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    A[Start: userId, clubId, name, shortName, logoUrl, ageGroupId?] --> AG{ageGroupId supplied?}
+    AG -- Yes --> AGF[Fetch AgeGroup by id]
+    AGF -- not found --> N(["Throw NotFoundException"])
+    AGF -- found, wrong club --> FB(["Throw ForbiddenException"])
+    AGF -- found, right club --> B
+    AG -- No --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=CREATE_OPPONENT, ageGroupId]
     B -- denied --> F(["Throw ForbiddenException"])
     B -- allowed --> C[Create Opponent record]
     C --> Z(["Persist Opponent"])
 ```
 
+Same cross-club-validated, age-group-scoped `ageGroupId` shape as `CreatePlayersUseCase` (§5.1) — a
+coordinator+ can always create club-wide; an age-group coach only for that specific age group's opponents.
+`CREATE_OPPONENT`'s minimum staff role is configurable per club — see `TECHNICAL_DECISIONS.md` §35.
+
 ### 6.2 Update Opponent (`UpdateOpponentUseCase`)
 
 ```mermaid
 graph TD
-    A[Start: userId, opponentId, patch] --> B[Fetch Opponent by id]
+    A[Start: userId, opponentId, patch incl. optional ageGroupId] --> B[Fetch Opponent by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    B -- found --> AG{ageGroupId supplied?}
+    AG -- Yes --> AGF[Fetch AgeGroup by id]
+    AGF -- not found --> N2(["Throw NotFoundException"])
+    AGF -- found, wrong club --> FB(["Throw ForbiddenException"])
+    AGF -- found, right club --> C
+    AG -- No --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=EDIT_OPPONENT, ageGroupId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D["Merge patch fields (name, shortName, logoUrl)"]
     D --> Z(["Persist updated Opponent"])
 ```
+
+`ageGroupId`, added alongside making `EDIT_OPPONENT` configurable (`TECHNICAL_DECISIONS.md` §35), gives
+this the same age-group-coach path its sibling `CreateOpponentUseCase` already had — previously
+coordinator-only, no staff path at all. Not yet reachable from the client — no screen calls
+`UpdateOpponentUseCase` today.
 
 ---
 
@@ -759,7 +819,7 @@ graph TD
 graph TD
     A[Start: userId, teamId, opponentId, location, dateTime, notes] --> B[Fetch Team by id]
     B -- not found --> N1(["Throw NotFoundException: Team not found"])
-    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=COACH, teamId]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_MATCH, teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D[Fetch Opponent by id]
     D -- not found --> N2(["Throw NotFoundException: Opponent not found"])
@@ -800,7 +860,7 @@ The bottom button just opens the live match screen; starting the game and record
 graph TD
     A[Start: userId, matchId, patch (opponentId?, dateTime?, location?, notes?)] --> B[Fetch Match by id]
     B -- not found --> N1(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=COACH, teamId=match.teamId]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D{patch.opponentId set?}
     D -- Yes --> E[Fetch Opponent; reject if it belongs to another club]
@@ -821,7 +881,7 @@ graph TD
 graph TD
     A[Start: userId, matchId, playerIds list] --> B[Fetch Match by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=STAFF, teamId=match.teamId]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_LIVE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D["Set call-ups for the match to exactly this playerIds list (repository owns diff/replace)"]
     D --> Z(["Return success"])
@@ -835,7 +895,7 @@ The same single write handles both adding and removing -- the client sends the f
 graph TD
     A[Start: userId, matchId] --> B[Fetch Match by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=COACH, teamId=match.teamId]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D["Delete all MatchEvents for this match"]
     D --> E["Clear all call-ups for this match (manageCallUps with an empty list)"]
@@ -843,8 +903,10 @@ graph TD
     G --> Z(["Return success"])
 ```
 
-Coach-only, same gate as editing a match -- deliberately **not** opened to staff along with the
-match-day operations in §7.2/§8.0/§8.2 (see TECHNICAL_DECISIONS.md §19). Events and call-ups are
+Same `MANAGE_MATCH` gate as scheduling/editing a match -- deliberately a **separate**, coach-tier-by-default
+configurable action from the match-day operations in §7.2/§8.0/§8.2 (`MANAGE_LIVE_MATCH`, staff-tier by
+default; see TECHNICAL_DECISIONS.md §19 for the original coach-vs-staff split, and §35 for how both are
+now per-club configurable). Events and call-ups are
 cleared first because neither's `matchId` foreign key has `ON DELETE CASCADE`; deleting the match row
 first would fail the constraint. Exposed via `DELETE /matches/{matchId}` (`MatchRoutes.kt`), reachable
 from `MatchDetailsScreen`'s top-right overflow menu (a `ConfirmDialog` -- see `presentation.ui.components`
@@ -869,7 +931,7 @@ binary, no per-player status shown anywhere in the client.
 graph TD
     A[Start: userId, matchId, startingPlayerIds, halfLengthMinutes] --> B[Fetch Match by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=STAFF, teamId=match.teamId]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_LIVE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D{"status == SCHEDULED? halfLengthMinutes > 0? startingPlayerIds non-empty, no duplicates?"}
     D -- No --> V1(["Throw ValidationException"])
@@ -892,7 +954,7 @@ This is the "KICK OFF" action on the live match console's pre-kickoff screen (cl
 graph TD
     A[Start: userId, matchId, type, minute, playerId?, opponentPlayerName?, isOpponent] --> B[Fetch Match by id]
     B -- not found --> V(["Throw ValidationException: Match not found"])
-    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=COACH, teamId=match.teamId]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=LOG_MATCH_EVENT, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D[Create MatchEvent record]
     D --> E[Persist event]
@@ -912,7 +974,7 @@ graph TD
 graph TD
     A[Start: userId, matchId, eventId] --> B[Fetch Match by id]
     B -- not found --> N1(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=COACH, teamId=match.teamId]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=LOG_MATCH_EVENT, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D[Fetch Event by id]
     D -- not found --> N2(["Throw NotFoundException"])
@@ -932,7 +994,7 @@ Removes a mis-logged goal, card, or substitution row. The client always confirms
 graph TD
     A[Start: userId, matchId, newStatus] --> B[Fetch Match by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=STAFF, teamId=match.teamId]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_LIVE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> T{"newStatus in VALID_MATCH_STATUS_TRANSITIONS[match.status]?"}
     T -- No --> V(["Throw ValidationException"])
@@ -1003,7 +1065,7 @@ Not a route — a shared orchestrator called by §7.1 (a match created), §7.1c 
 graph TD
     A[Start: userId, matchId] --> B[Fetch Match by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=STAFF, teamId=match.teamId]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_LIVE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- status != LIVE --> V1(["Throw ValidationException"])
     C -- pausedAt already set --> V2(["Throw ValidationException"])
@@ -1021,7 +1083,7 @@ Freezes the running clock for a mid-half stoppage (injury, weather) without a pr
 graph TD
     A[Start: userId, matchId] --> B[Fetch Match by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=STAFF, teamId=match.teamId]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_LIVE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- status != LIVE --> V1(["Throw ValidationException"])
     C -- pausedAt is null --> V2(["Throw ValidationException"])
@@ -1044,7 +1106,7 @@ Un-freezes the clock by shifting whichever of `kickoffAt`/`secondHalfStartedAt` 
 graph TD
     A[Start: userId, matchId, minute] --> B[Fetch Match by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minTeamRole=STAFF, teamId=match.teamId]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_LIVE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- status != LIVE --> V1(["Throw ValidationException"])
     C -- minute < 0 --> V2(["Throw ValidationException"])
@@ -1200,7 +1262,7 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
 
 ## 12. Database Schema: Current State of the Art
 
-Source of truth: `server/src/main/kotlin/.../data/database/Tables.kt` (17 Exposed `Table` objects, describing the schema for query-building) **and** the versioned SQL files under `server/src/main/resources/db/migration/` (which actually create/alter it — see `TECHNICAL_DECISIONS.md` §34). `DatabaseFactory.init()` runs Flyway against those files on every boot, so the diagram below and the real Postgres tables are guaranteed to match *as long as every `Tables.kt` change ships with a matching new migration file* — unlike the old `SchemaUtils.createMissingTablesAndColumns` approach, Flyway does not infer schema changes from `Tables.kt` automatically.
+Source of truth: `server/src/main/kotlin/.../data/database/Tables.kt` (18 Exposed `Table` objects, describing the schema for query-building) **and** the versioned SQL files under `server/src/main/resources/db/migration/` (which actually create/alter it — see `TECHNICAL_DECISIONS.md` §34). `DatabaseFactory.init()` runs Flyway against those files on every boot, so the diagram below and the real Postgres tables are guaranteed to match *as long as every `Tables.kt` change ships with a matching new migration file* — unlike the old `SchemaUtils.createMissingTablesAndColumns` approach, Flyway does not infer schema changes from `Tables.kt` automatically.
 
 ### 12.1 Entity-Relationship Diagram
 
@@ -1210,6 +1272,7 @@ erDiagram
     USERS ||--o{ FCM_TOKENS : registers
     USERS ||--o{ CLUB_MEMBERS : holds
     CLUBS ||--o{ CLUB_MEMBERS : has
+    CLUBS ||--o{ CLUB_PERMISSION_OVERRIDES : configures
     CLUBS ||--o{ SEASONS : runs
     CLUBS ||--o{ AGE_GROUPS : defines
     SEASONS ||--o{ AGE_GROUPS : scopes
@@ -1277,6 +1340,12 @@ erDiagram
         uuid user_id FK
         enum role "ClubRole"
         boolean active "default true"
+    }
+    CLUB_PERMISSION_OVERRIDES {
+        uuid id PK
+        uuid club_id FK
+        varchar permission "ConfigurablePermission, unique with club_id"
+        varchar min_team_role "TeamRole, nullable -- null means coordinator-only"
     }
     SEASONS {
         uuid id PK

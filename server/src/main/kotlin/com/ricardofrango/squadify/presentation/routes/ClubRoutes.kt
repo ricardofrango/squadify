@@ -5,12 +5,15 @@ import com.ricardofrango.squadify.domain.usecase.GetClubDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubHomeUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubMatchesUpdatesUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubMembersUseCase
+import com.ricardofrango.squadify.domain.usecase.GetClubPermissionsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
 import com.ricardofrango.squadify.domain.usecase.ProvisionClubUseCase
+import com.ricardofrango.squadify.domain.usecase.UpdateClubPermissionsUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateClubUseCase
 import com.ricardofrango.squadify.model.AddClubMembersRequest
 import com.ricardofrango.squadify.model.ErrorResponse
 import com.ricardofrango.squadify.model.ProvisionClubRequest
+import com.ricardofrango.squadify.model.UpdateClubPermissionsRequest
 import com.ricardofrango.squadify.model.UpdateClubRequest
 import com.ricardofrango.squadify.security.JwtConfig
 import com.ricardofrango.squadify.security.userId
@@ -36,6 +39,8 @@ fun Route.clubRoutes() {
     val getClubMembersUseCase by inject<GetClubMembersUseCase>()
     val updateClubUseCase by inject<UpdateClubUseCase>()
     val getClubMatchesUpdatesUseCase by inject<GetClubMatchesUpdatesUseCase>()
+    val getClubPermissionsUseCase by inject<GetClubPermissionsUseCase>()
+    val updateClubPermissionsUseCase by inject<UpdateClubPermissionsUseCase>()
 
     authenticate("auth-jwt") {
         route("/clubs") {
@@ -122,6 +127,27 @@ fun Route.clubRoutes() {
                     val currentUserId =
                         call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
                     call.respond(getClubMembersUseCase(currentUserId, clubId))
+                }
+
+                get("/permissions") {
+                    val clubId =
+                        call.parameters["clubId"]
+                            ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId =
+                        call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                    call.respond(getClubPermissionsUseCase(currentUserId, clubId))
+                }
+
+                patch("/permissions") {
+                    val clubId =
+                        call.parameters["clubId"]
+                            ?: return@patch call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId =
+                        call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
+                    val request = call.receive<UpdateClubPermissionsRequest>()
+
+                    updateClubPermissionsUseCase(currentUserId, clubId, request)
+                    call.respond(HttpStatusCode.NoContent)
                 }
             }
         }

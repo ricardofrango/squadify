@@ -242,3 +242,21 @@ object MatchEvents : Table("match_events") {
 
     override val primaryKey = PrimaryKey(id)
 }
+
+// A club's overrides for `ConfigurablePermission` (see Models.kt). No row for a given
+// (club_id, permission) pair means "use ConfigurablePermission.defaultMinTeamRole" -- a row exists only
+// once a coordinator/admin has actually changed that action away from its default. min_team_role itself
+// being NULL is a real, distinct value (not "no override"): it means "coordinator-only", i.e. the
+// age-group-staff path is disabled entirely for that action.
+object ClubPermissionOverrides : Table("club_permission_overrides") {
+    val id = uuid("id")
+    val clubId = uuid("club_id").references(Clubs.id)
+    val permission = enumerationByName("permission", 50, ConfigurablePermission::class)
+    val minTeamRole = enumerationByName("min_team_role", 50, TeamRole::class).nullable()
+
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex("unique_club_permission", clubId, permission)
+    }
+}

@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import com.ricardofrango.squadify.model.ClubPermissionSetting
+import com.ricardofrango.squadify.model.ConfigurablePermission
+import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.UpdateClubRequest
 
 const val EDIT_CLUB_TAB_DETAILS = 0
@@ -46,7 +49,14 @@ sealed class EditClubUiState {
         val original: ClubFormFields,
         val form: ClubFormFields,
         val isSubmitting: Boolean = false,
-        val submitError: String? = null
+        val submitError: String? = null,
+        // Permissions tab -- loaded alongside the club itself (see EditClubViewModel.load), with its
+        // own independent dirty/submit/error state, same "two unrelated save actions on one screen"
+        // shape as AccountUiState.Idle's profile vs. password split.
+        val originalPermissions: List<ClubPermissionSetting>,
+        val permissions: List<ClubPermissionSetting>,
+        val isSubmittingPermissions: Boolean = false,
+        val permissionsSubmitError: String? = null
     ) : EditClubUiState() {
         val isDirty: Boolean get() = form != original
         val isValid: Boolean get() = form.name.isNotBlank()
@@ -59,5 +69,11 @@ sealed class EditClubUiState {
                 .mapNotNull { it.firstOrNull()?.uppercaseChar() }
                 .take(2)
                 .joinToString("")
+
+        val permissionsDirty: Boolean get() = permissions != originalPermissions
+        val canSavePermissions: Boolean get() = permissionsDirty && !isSubmittingPermissions
+
+        fun minTeamRoleFor(action: ConfigurablePermission): TeamRole? =
+            permissions.first { it.action == action }.minTeamRole
     }
 }

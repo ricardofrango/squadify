@@ -28,6 +28,7 @@ val appModule = module {
     single<MatchEventRepository> { ExposedMatchEventRepository() }
     single<OpponentRepository> { ExposedOpponentRepository() }
     single<FcmTokenRepository> { ExposedFcmTokenRepository() }
+    single<ClubPermissionRepository> { ExposedClubPermissionRepository() }
 
     // Services
     single<LiveMatchBus> { KotlinFlowMatchBus() }
@@ -56,7 +57,9 @@ val appModule = module {
     factory { UpdateProfileUseCase(get(), get()) }
     factory { ChangePasswordUseCase(get(), get()) }
     factory { RefreshTokenUseCase(get(), get()) }
-    factory { CheckUserPermissionUseCase(get(), get(), get(), get(), get()) }
+    factory { CheckUserPermissionUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { GetClubPermissionsUseCase(get(), get()) }
+    factory { UpdateClubPermissionsUseCase(get(), get(), get()) }
     factory { CheckUserIsAdminUseCase(get(), get()) }
     factory { AddClubMembersUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetClubMembersUseCase(get(), get(), get()) }
@@ -84,7 +87,7 @@ val appModule = module {
     factory { GetPlayersUseCase(get(), get(), get(), get(), get(), get()) }
     factory { GetAgeGroupPlayersByClubUseCase(get(), get(), get()) }
     factory { CreatePlayersUseCase(get(), get(), get(), get(), get(), get(), get()) }
-    factory { UpdatePlayerUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { UpdatePlayerUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { AddPlayersToAgeGroupUseCase(get(), get(), get(), get()) }
     factory { GetEligiblePlayersForAgeGroupUseCase(get(), get(), get(), get()) }
 
@@ -102,7 +105,7 @@ val appModule = module {
     factory { ManageCallUpsUseCase(get(), get(), get()) }
     factory { CreateOpponentUseCase(get(), get(), get(), get()) }
     factory { GetOpponentsUseCase(get(), get(), get(), get()) }
-    factory { UpdateOpponentUseCase(get(), get(), get()) }
+    factory { UpdateOpponentUseCase(get(), get(), get(), get()) }
     factory { RegisterFcmTokenUseCase(get(), get()) }
     factory { RemoveFcmTokenUseCase(get(), get()) }
     factory { NotifyMatchEventUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }

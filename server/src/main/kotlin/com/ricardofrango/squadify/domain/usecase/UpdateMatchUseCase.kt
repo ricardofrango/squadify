@@ -7,8 +7,9 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubMatchesUpdate
+import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.Match
-import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.UpdateMatchRequest
 
 /**
@@ -38,7 +39,8 @@ class UpdateMatchUseCase(
             checkUserPermissionUseCase(
                 userId = userId,
                 clubId = match.clubId,
-                minTeamRole = TeamRole.COACH,
+                minClubRole = ClubRole.COORDINATOR,
+                configurablePermission = ConfigurablePermission.MANAGE_MATCH,
                 teamId = match.teamId,
                 errorMessage = "Only admins, coordinators, or team coaches can edit a match"
             )

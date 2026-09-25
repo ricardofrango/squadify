@@ -47,7 +47,8 @@ class UpdateMatchStatusUseCase(
             checkUserPermissionUseCase(
                 userId = userId,
                 clubId = match.clubId,
-                minTeamRole = TeamRole.STAFF,
+                minClubRole = ClubRole.COORDINATOR,
+                configurablePermission = ConfigurablePermission.MANAGE_LIVE_MATCH,
                 teamId = match.teamId,
                 errorMessage = "Only admins, coordinators, coaches, or team staff can update match status"
             )

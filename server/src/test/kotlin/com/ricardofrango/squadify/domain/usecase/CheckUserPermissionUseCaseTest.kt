@@ -1,19 +1,23 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
+import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.model.AgeGroupPlayer
+import com.ricardofrango.squadify.model.ClubPermissionSetting
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
@@ -33,11 +37,12 @@ class CheckUserPermissionUseCaseTest {
     private val teamRepository = mockk<TeamRepository>()
     private val playerRepository = mockk<PlayerRepository>()
     private val ageGroupRepository = mockk<AgeGroupRepository>()
+    private val clubPermissionRepository = mockk<ClubPermissionRepository>()
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
     private val useCase = CheckUserPermissionUseCase(
-        userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager
+        userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
 
     private val clubIdA = "club-a"
@@ -280,4 +285,82 @@ class CheckUserPermissionUseCaseTest {
     // Keeps AgeGroupPlayer referenced so its shape stays test-covered alongside the pool checks above.
     @Suppress("unused")
     private fun link(id: String, ageGroupId: String, playerId: String) = AgeGroupPlayer(id, ageGroupId, playerId)
+
+    // --- configurablePermission resolution (see TECHNICAL_DECISIONS.md on configurable permissions) ---
+
+    @Test
+    fun configurablePermissionFallsBackToItsDefaultWhenClubHasNoOverride() = runBlocking {
+        // CREATE_PLAYERS defaults to COACH -- no override row means a coach should still pass.
+        val coach = user("coach-default")
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { clubPermissionRepository.getOverride(clubIdA, ConfigurablePermission.CREATE_PLAYERS) } returns null
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+
+        useCase(
+            coach.id, clubIdA,
+            minClubRole = ClubRole.COORDINATOR,
+            configurablePermission = ConfigurablePermission.CREATE_PLAYERS,
+            ageGroupId = ag1
+        )
+        Unit
+    }
+
+    @Test
+    fun configurablePermissionOverrideToStaffAdmitsAStaffMember() = runBlocking {
+        // MANAGE_LIVE_MATCH defaults to STAFF already, but this exercises the override path explicitly
+        // (as opposed to the default-fallback path above) with an explicit STAFF override row.
+        val staff = user("staff-override")
+        coEvery { userRepository.findById(staff.id) } returns staff
+        coEvery { userRepository.getUserRoleInClub(staff.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { clubPermissionRepository.getOverride(clubIdA, ConfigurablePermission.MANAGE_LIVE_MATCH) } returns
+            ClubPermissionSetting(ConfigurablePermission.MANAGE_LIVE_MATCH, TeamRole.STAFF)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, ag1) } returns TeamRole.STAFF
+
+        useCase(
+            staff.id, clubIdA,
+            minClubRole = ClubRole.COORDINATOR,
+            configurablePermission = ConfigurablePermission.MANAGE_LIVE_MATCH,
+            ageGroupId = ag1
+        )
+        Unit
+    }
+
+    @Test
+    fun configurablePermissionOverrideToCoordinatorOnlyDeniesACoachWhoWouldOtherwisePass() = runBlocking {
+        // An override row with minTeamRole = null means "coordinator-only" -- must NOT be treated the
+        // same as "no override" (which would fall back to the COACH default and admit this coach).
+        val coach = user("coach-locked-out")
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { clubPermissionRepository.getOverride(clubIdA, ConfigurablePermission.CREATE_PLAYERS) } returns
+            ClubPermissionSetting(ConfigurablePermission.CREATE_PLAYERS, null)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+
+        assertFailsWith<ForbiddenException> {
+            useCase(
+                coach.id, clubIdA,
+                minClubRole = ClubRole.COORDINATOR,
+                configurablePermission = ConfigurablePermission.CREATE_PLAYERS,
+                ageGroupId = ag1
+            )
+        }
+        Unit
+    }
+
+    @Test
+    fun coordinatorPassesAConfigurablePermissionRegardlessOfItsStaffSetting() = runBlocking {
+        // The minClubRole = COORDINATOR floor is independent of configurablePermission entirely -- a
+        // coordinator passes via step 2 before the club-permission repository is even consulted.
+        val coordinator = user("coordinator-always")
+        coEvery { userRepository.findById(coordinator.id) } returns coordinator
+        coEvery { userRepository.getUserRoleInClub(coordinator.id, clubIdA) } returns ClubRole.COORDINATOR
+
+        useCase(
+            coordinator.id, clubIdA,
+            minClubRole = ClubRole.COORDINATOR,
+            configurablePermission = ConfigurablePermission.MANAGE_MATCH
+        )
+        coVerify(exactly = 0) { clubPermissionRepository.getOverride(any(), any()) }
+    }
 }

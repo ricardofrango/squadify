@@ -33,7 +33,8 @@ class AddMatchEventUseCase(
             checkUserPermissionUseCase(
                 userId = userId,
                 clubId = match.clubId,
-                minTeamRole = TeamRole.COACH,
+                minClubRole = ClubRole.COORDINATOR,
+                configurablePermission = ConfigurablePermission.LOG_MATCH_EVENT,
                 teamId = match.teamId,
                 errorMessage = "Insufficient permissions to add match events"
             )

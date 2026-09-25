@@ -32,7 +32,8 @@ class CreateMatchUseCase(
             checkUserPermissionUseCase(
                 userId = userId,
                 clubId = team.clubId,
-                minTeamRole = TeamRole.COACH,
+                minClubRole = ClubRole.COORDINATOR,
+                configurablePermission = ConfigurablePermission.MANAGE_MATCH,
                 teamId = request.teamId,
                 errorMessage = "Only admins, coordinators, or team coaches can create matches"
             )
