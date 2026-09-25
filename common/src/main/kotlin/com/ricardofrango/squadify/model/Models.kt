@@ -37,9 +37,17 @@ enum class ConfigurablePermission {
     ASSIGN_PLAYERS_TO_AGE_GROUP,
     CREATE_OPPONENT,
     EDIT_OPPONENT,
+    // Pre-match: scheduling the fixture itself (MANAGE_MATCH) and building the pre-match squad list
+    // (MANAGE_CALL_UPS) are kept as two separate settings from everything that happens once the match
+    // is actually live.
     MANAGE_MATCH,
-    MANAGE_LIVE_MATCH,
-    LOG_MATCH_EVENT
+    MANAGE_CALL_UPS,
+    // Everything from kickoff onward -- starting XI, pause/resume, clock correction, status changes,
+    // AND logging goals/cards/substitutions (a substitution is itself just a match event, see
+    // EventType.SUBSTITUTION_IN/OUT) -- is one setting: once the match is live, it's all the same
+    // moment and the same person is typically operating all of it. There is deliberately no separate
+    // "log match events" action anymore.
+    MANAGE_LIVE_MATCH
 }
 
 /** The threshold each [ConfigurablePermission] falls back to until a club explicitly overrides it. */

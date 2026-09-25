@@ -50,18 +50,21 @@ class ManageCallUpsUseCaseTest {
     private fun user(id: String) = User(id, "$id@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
 
     @Test
-    fun ageGroupStaffCanManageCallUps() = runBlocking {
+    fun ageGroupStaffIsDeniedByDefault() = runBlocking {
+        // MANAGE_CALL_UPS defaults to COACH (unlike MANAGE_LIVE_MATCH, which stays STAFF) -- call-ups
+        // are a pre-match action, kept as its own, stricter-by-default setting from everything that
+        // happens once the match goes live.
         val staff = user("staff")
         coEvery { matchRepository.getMatchById(matchId) } returns match
         coEvery { userRepository.findById(staff.id) } returns staff
         coEvery { userRepository.getUserRoleInClub(staff.id, clubId) } returns ClubRole.MEMBER
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, ag1) } returns TeamRole.STAFF
         coEvery { teamRepository.getTeamById(teamId) } returns team
-        coEvery { matchRepository.manageCallUps(matchId, listOf("p1", "p2")) } returns true
 
-        val result = useCase(staff.id, matchId, ManageCallUpRequest(listOf("p1", "p2")))
-
-        assertEquals(true, result)
+        assertFailsWith<ForbiddenException> {
+            useCase(staff.id, matchId, ManageCallUpRequest(listOf("p1", "p2")))
+        }
+        Unit
     }
 
     @Test

@@ -881,7 +881,7 @@ graph TD
 graph TD
     A[Start: userId, matchId, playerIds list] --> B[Fetch Match by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_LIVE_MATCH, teamId=match.teamId]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_CALL_UPS, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D["Set call-ups for the match to exactly this playerIds list (repository owns diff/replace)"]
     D --> Z(["Return success"])
@@ -904,8 +904,9 @@ graph TD
 ```
 
 Same `MANAGE_MATCH` gate as scheduling/editing a match -- deliberately a **separate**, coach-tier-by-default
-configurable action from the match-day operations in §7.2/§8.0/§8.2 (`MANAGE_LIVE_MATCH`, staff-tier by
-default; see TECHNICAL_DECISIONS.md §19 for the original coach-vs-staff split, and §35 for how both are
+configurable action from both the pre-match call-ups in §7.2 (`MANAGE_CALL_UPS`, also coach-tier by
+default) and the live-match operations in §8.0/§8.1/§8.1b/§8.2 (`MANAGE_LIVE_MATCH`, staff-tier by
+default; see TECHNICAL_DECISIONS.md §19 for the original coach-vs-staff split, and §35 for how all three are
 now per-club configurable). Events and call-ups are
 cleared first because neither's `matchId` foreign key has `ON DELETE CASCADE`; deleting the match row
 first would fail the constraint. Exposed via `DELETE /matches/{matchId}` (`MatchRoutes.kt`), reachable
@@ -954,7 +955,7 @@ This is the "KICK OFF" action on the live match console's pre-kickoff screen (cl
 graph TD
     A[Start: userId, matchId, type, minute, playerId?, opponentPlayerName?, isOpponent] --> B[Fetch Match by id]
     B -- not found --> V(["Throw ValidationException: Match not found"])
-    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=LOG_MATCH_EVENT, teamId=match.teamId]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_LIVE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D[Create MatchEvent record]
     D --> E[Persist event]
@@ -974,7 +975,7 @@ graph TD
 graph TD
     A[Start: userId, matchId, eventId] --> B[Fetch Match by id]
     B -- not found --> N1(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=LOG_MATCH_EVENT, teamId=match.teamId]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_LIVE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D[Fetch Event by id]
     D -- not found --> N2(["Throw NotFoundException"])

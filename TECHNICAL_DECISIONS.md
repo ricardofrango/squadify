@@ -1662,3 +1662,42 @@ Postgres databases (fresh DB migrates cleanly; Koin resolves all 84 definitions 
 dependency). **Not verified**: the Permissions tab UI itself end-to-end on a real device (the 500 above
 was caught reaching it from a real device, but not re-confirmed working after the fix within this
 session).
+
+**Reshuffled taxonomy: `LOG_MATCH_EVENT` retired, `MANAGE_CALL_UPS` split out.** After the feature shipped,
+the developer flagged that "Manage live matches" and "Register match events" looked like the same
+permission in practice, and asked why call-ups weren't configurable at all. Working through it together
+surfaced the real distinction the original 8-bucket list had missed: it isn't "live match ops" vs. "event
+logging" -- it's **pre-match** vs. **live**. Pre-match covers scheduling the fixture (`MANAGE_MATCH`,
+unchanged) and building the squad list for it (`MANAGE_CALL_UPS`, newly split out of what used to be
+lumped under live-match ops); everything from kickoff onward -- starting XI, pause/resume, clock
+correction, status changes, and logging goals/cards/substitutions -- is one continuous moment with
+typically one person operating all of it, so it stays a single setting, `MANAGE_LIVE_MATCH`, which now
+also absorbs what `LOG_MATCH_EVENT` used to gate (a substitution was already, mechanically, just another
+`MatchEvent` row via `AddMatchEventUseCase`/`DeleteMatchEventUseCase` -- there was never a separate
+substitution endpoint, so merging its permission with live-match ops changes no code path, only the
+authorization threshold). The developer's own words on the default tiers: *"the default of manage live
+match is staff, but the manage call-ups defaults to coach"* -- call-ups, being a pre-match, less
+time-pressured action, gets the stricter coach-only-by-default treatment that six of the eight buckets
+already had, while live match ops keeps the staff-permissive default from §19 (match-day operations opened
+to staff so a parent-coach isn't blocked mid-game waiting on the one person with coach rank).
+
+`ConfigurablePermission` is still an 8-value enum (`CREATE_PLAYERS`, `EDIT_PLAYER`,
+`ASSIGN_PLAYERS_TO_AGE_GROUP`, `CREATE_OPPONENT`, `EDIT_OPPONENT`, `MANAGE_MATCH`, `MANAGE_CALL_UPS`,
+`MANAGE_LIVE_MATCH`) -- one value removed (`LOG_MATCH_EVENT`), one added (`MANAGE_CALL_UPS`), net count
+unchanged. `defaultMinTeamRole`'s logic didn't need to change at all (`STAFF` for `MANAGE_LIVE_MATCH`,
+`COACH` for everything else) since `MANAGE_CALL_UPS` falls into the same "everything else" bucket that
+already defaulted to `COACH`. Three use cases moved to the new enum values: `ManageCallUpsUseCase` now
+passes `configurablePermission = MANAGE_CALL_UPS` (was `MANAGE_LIVE_MATCH`), `AddMatchEventUseCase` and
+`DeleteMatchEventUseCase` now pass `MANAGE_LIVE_MATCH` (was `LOG_MATCH_EVENT`). Since no club had ever
+overridden the old `LOG_MATCH_EVENT`/live-match settings away from their defaults yet (feature still
+pre-release at this point), there was no override-migration concern -- a club's stored
+`club_permission_overrides` rows key on the enum's serialized name, so this is only safe because the
+renamed/removed value had zero rows in production; a later rename of a *live* configurable permission
+would need an actual data migration, not just an enum edit.
+
+Test impact: `ManageCallUpsUseCaseTest`'s STAFF-caller case flipped from a happy-path assertion to a
+`ForbiddenException` assertion (`ageGroupStaffIsDeniedByDefault`), since STAFF no longer clears the new
+COACH-level default bar for call-ups; the COACH-caller case needed no change. `AddMatchEventUseCaseTest`/
+`DeleteMatchEventUseCaseTest` needed no changes at all -- both only ever exercised a COACH-level caller
+succeeding, and moving to the more permissive `MANAGE_LIVE_MATCH` default (STAFF) doesn't break a COACH
+still succeeding.

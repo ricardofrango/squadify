@@ -36,7 +36,7 @@ class DeleteMatchEventUseCase(
             userId = userId,
             clubId = match.clubId,
             minClubRole = ClubRole.COORDINATOR,
-            configurablePermission = ConfigurablePermission.LOG_MATCH_EVENT,
+            configurablePermission = ConfigurablePermission.MANAGE_LIVE_MATCH,
             teamId = match.teamId,
             errorMessage = "Insufficient permissions to delete match events"
         )

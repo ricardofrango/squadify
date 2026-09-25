@@ -81,7 +81,7 @@ import squadify.app.shared.generated.resources.label_permission_edit_player
 import squadify.app.shared.generated.resources.label_permission_level_coach
 import squadify.app.shared.generated.resources.label_permission_level_coordinator_only
 import squadify.app.shared.generated.resources.label_permission_level_staff
-import squadify.app.shared.generated.resources.label_permission_log_match_event
+import squadify.app.shared.generated.resources.label_permission_manage_call_ups
 import squadify.app.shared.generated.resources.label_permission_manage_live_match
 import squadify.app.shared.generated.resources.label_permission_manage_match
 import squadify.app.shared.generated.resources.label_phone_field
@@ -97,7 +97,7 @@ import squadify.app.shared.generated.resources.msg_permission_create_opponent_de
 import squadify.app.shared.generated.resources.msg_permission_create_players_desc
 import squadify.app.shared.generated.resources.msg_permission_edit_opponent_desc
 import squadify.app.shared.generated.resources.msg_permission_edit_player_desc
-import squadify.app.shared.generated.resources.msg_permission_log_match_event_desc
+import squadify.app.shared.generated.resources.msg_permission_manage_call_ups_desc
 import squadify.app.shared.generated.resources.msg_permission_manage_live_match_desc
 import squadify.app.shared.generated.resources.msg_permission_manage_match_desc
 import squadify.app.shared.generated.resources.msg_permissions_intro
@@ -293,8 +293,8 @@ private fun permissionLabel(action: ConfigurablePermission) = when (action) {
     ConfigurablePermission.CREATE_OPPONENT -> Res.string.label_permission_create_opponent
     ConfigurablePermission.EDIT_OPPONENT -> Res.string.label_permission_edit_opponent
     ConfigurablePermission.MANAGE_MATCH -> Res.string.label_permission_manage_match
+    ConfigurablePermission.MANAGE_CALL_UPS -> Res.string.label_permission_manage_call_ups
     ConfigurablePermission.MANAGE_LIVE_MATCH -> Res.string.label_permission_manage_live_match
-    ConfigurablePermission.LOG_MATCH_EVENT -> Res.string.label_permission_log_match_event
 }
 
 private fun permissionDescription(action: ConfigurablePermission) = when (action) {
@@ -304,8 +304,8 @@ private fun permissionDescription(action: ConfigurablePermission) = when (action
     ConfigurablePermission.CREATE_OPPONENT -> Res.string.msg_permission_create_opponent_desc
     ConfigurablePermission.EDIT_OPPONENT -> Res.string.msg_permission_edit_opponent_desc
     ConfigurablePermission.MANAGE_MATCH -> Res.string.msg_permission_manage_match_desc
+    ConfigurablePermission.MANAGE_CALL_UPS -> Res.string.msg_permission_manage_call_ups_desc
     ConfigurablePermission.MANAGE_LIVE_MATCH -> Res.string.msg_permission_manage_live_match_desc
-    ConfigurablePermission.LOG_MATCH_EVENT -> Res.string.msg_permission_log_match_event_desc
 }
 
 // null means "coordinator-only" -- the age-group-staff path is disabled entirely for this action.

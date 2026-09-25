@@ -504,10 +504,10 @@
     <string name="msg_permission_edit_opponent_desc">Who can edit an existing opponent\'s details.</string>
     <string name="label_permission_manage_match">Schedule matches</string>
     <string name="msg_permission_manage_match_desc">Who can schedule, edit, or delete a match.</string>
+    <string name="label_permission_manage_call_ups">Manage call-ups</string>
+    <string name="msg_permission_manage_call_ups_desc">Who can set the pre-match squad list for a game.</string>
     <string name="label_permission_manage_live_match">Run live matches</string>
-    <string name="msg_permission_manage_live_match_desc">Who can kick off, pause or resume, correct the clock, manage call-ups, or change a match\'s status.</string>
-    <string name="label_permission_log_match_event">Log match events</string>
-    <string name="msg_permission_log_match_event_desc">Who can add or remove goals, cards, and substitutions.</string>
+    <string name="msg_permission_manage_live_match_desc">Who can kick off, pause or resume, correct the clock, change a match\'s status, or add and remove goals, cards, and substitutions.</string>
     <string name="btn_save_permissions">Save permissions</string>
     <string name="btn_saving_permissions">Saving...</string>
 </resources>

@@ -503,10 +503,10 @@
     <string name="msg_permission_edit_opponent_desc">Quem pode editar os dados de um adversário existente.</string>
     <string name="label_permission_manage_match">Agendar jogos</string>
     <string name="msg_permission_manage_match_desc">Quem pode agendar, editar ou eliminar um jogo.</string>
+    <string name="label_permission_manage_call_ups">Gerir convocatórias</string>
+    <string name="msg_permission_manage_call_ups_desc">Quem pode definir a convocatória de pré-jogo para um jogo.</string>
     <string name="label_permission_manage_live_match">Gerir jogos ao vivo</string>
-    <string name="msg_permission_manage_live_match_desc">Quem pode iniciar, pausar ou retomar, corrigir o cronómetro, gerir convocatórias ou alterar o estado de um jogo.</string>
-    <string name="label_permission_log_match_event">Registar eventos de jogo</string>
-    <string name="msg_permission_log_match_event_desc">Quem pode adicionar ou remover golos, cartões e substituições.</string>
+    <string name="msg_permission_manage_live_match_desc">Quem pode iniciar, pausar ou retomar, corrigir o cronómetro, alterar o estado de um jogo, ou adicionar e remover golos, cartões e substituições.</string>
     <string name="btn_save_permissions">Guardar permissões</string>
     <string name="btn_saving_permissions">A guardar...</string>
 </resources>
