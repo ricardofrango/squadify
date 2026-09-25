@@ -1,10 +1,12 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.InviteRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.*
 import kotlin.time.Instant
@@ -15,6 +17,7 @@ class UpdatePlayerUseCase(
     private val userRepository: UserRepository,
     private val inviteRepository: InviteRepository,
     private val clubRepository: ClubRepository,
+    private val ageGroupRepository: AgeGroupRepository,
     private val transactionManager: TransactionManager,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase
 ) {
@@ -26,10 +29,22 @@ class UpdatePlayerUseCase(
         val existingPlayer = playerRepository.getPlayerById(playerId)
             ?: throw NotFoundException("Player not found")
 
+        // Same cross-club spoofing guard as CreatePlayersUseCase -- validate the supplied ageGroupId
+        // actually belongs to this player's club before trusting it in the permission check below.
+        request.ageGroupId?.let { ageGroupId ->
+            val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId)
+                ?: throw NotFoundException("Age group not found")
+            if (ageGroup.clubId != existingPlayer.clubId) {
+                throw ForbiddenException("Age group does not belong to this club")
+            }
+        }
+
         checkUserPermissionUseCase(
             userId = userId,
             clubId = existingPlayer.clubId,
             minClubRole = ClubRole.COORDINATOR,
+            configurablePermission = ConfigurablePermission.EDIT_PLAYER,
+            ageGroupId = request.ageGroupId,
             errorMessage = "Insufficient permissions to update player"
         )
 

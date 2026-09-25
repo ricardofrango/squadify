@@ -45,6 +45,7 @@ class EditPlayerViewModel(
                 )
                 _state.update {
                     EditPlayerUiState.Idle(
+                        ageGroupId = profile.ageGroupId,
                         ageGroupLabel = profile.ageGroupLabel,
                         seasonLabel = profile.seasonLabel,
                         original = fields,
@@ -74,7 +75,7 @@ class EditPlayerViewModel(
         viewModelScope.launch {
             _state.update { (it as EditPlayerUiState.Idle).copy(isSubmitting = true, submitError = null) }
             try {
-                updatePlayerUseCase(playerId, current.form.toRequest())
+                updatePlayerUseCase(playerId, current.form.toRequest().copy(ageGroupId = current.ageGroupId))
                 _navigationEvent.emit(EditPlayerNavigationEvent.NavigateBackWithPlayerUpdated)
             } catch (e: Exception) {
                 _state.update {

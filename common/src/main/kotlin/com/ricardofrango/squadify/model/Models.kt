@@ -22,6 +22,61 @@ enum class TeamRole(val level: Int) {
     STAFF(2)
 }
 
+/**
+ * Actions a club admin/coordinator can tune the minimum age-group-staff role for (see
+ * `TECHNICAL_DECISIONS.md` on configurable permissions). Each maps to one or more server use cases that
+ * already gate on a [TeamRole] threshold today -- this just makes that threshold a per-club setting
+ * instead of a hardcoded constant. Deliberately NOT configurable, by design: who may change these
+ * settings (always `ClubRole.COORDINATOR`+, never a [TeamRole]), and every structural club-setup action
+ * (seasons/age groups/teams/members/staff assignment), which stays coordinator-only.
+ */
+@Serializable
+enum class ConfigurablePermission {
+    CREATE_PLAYERS,
+    EDIT_PLAYER,
+    ASSIGN_PLAYERS_TO_AGE_GROUP,
+    CREATE_OPPONENT,
+    EDIT_OPPONENT,
+    // Pre-match: scheduling the fixture itself (MANAGE_MATCH) and building the pre-match squad list
+    // (MANAGE_CALL_UPS) are kept as two separate settings from everything that happens once the match
+    // is actually live.
+    MANAGE_MATCH,
+    MANAGE_CALL_UPS,
+    // Everything from kickoff onward -- starting XI, pause/resume, clock correction, status changes,
+    // AND logging goals/cards/substitutions (a substitution is itself just a match event, see
+    // EventType.SUBSTITUTION_IN/OUT) -- is one setting: once the match is live, it's all the same
+    // moment and the same person is typically operating all of it. There is deliberately no separate
+    // "log match events" action anymore.
+    MANAGE_LIVE_MATCH
+}
+
+/** The threshold each [ConfigurablePermission] falls back to until a club explicitly overrides it. */
+val ConfigurablePermission.defaultMinTeamRole: TeamRole
+    get() = if (this == ConfigurablePermission.MANAGE_LIVE_MATCH) TeamRole.STAFF else TeamRole.COACH
+
+/**
+ * One club's setting for one [ConfigurablePermission]. [minTeamRole] `null` means "coordinator-only" --
+ * the age-group-staff path is disabled entirely for this action, leaving only the (fixed) `COORDINATOR`+
+ * club-role floor every configurable action also always carries.
+ */
+@Serializable
+data class ClubPermissionSetting(
+    val action: ConfigurablePermission,
+    val minTeamRole: TeamRole?
+)
+
+/** `GET /clubs/{clubId}/permissions` -- always one entry per [ConfigurablePermission], override-or-default. */
+@Serializable
+data class ClubPermissionsResponse(
+    val settings: List<ClubPermissionSetting>
+)
+
+/** `PATCH /clubs/{clubId}/permissions` -- replaces the club's full set of overrides. */
+@Serializable
+data class UpdateClubPermissionsRequest(
+    val settings: List<ClubPermissionSetting>
+)
+
 @Serializable
 enum class UserStatus {
     ACTIVE,
@@ -265,6 +320,7 @@ data class Player(
 @Serializable
 data class PlayerProfile(
     val player: Player,
+    val ageGroupId: String?,
     val ageGroupLabel: String?,
     val seasonLabel: String?,
     val goals: Int,
@@ -452,7 +508,12 @@ data class UpdatePlayerRequest(
     val position: PlayerPosition? = null,
     val heightCm: Int? = null,
     val weightKg: Int? = null,
-    val emergencyContact: String? = null
+    val emergencyContact: String? = null,
+    // Same role as CreatePlayersRequest.ageGroupId -- set when the caller knows which age group this
+    // edit is happening in context of, so a coach (not just a coordinator+) can be authorized via
+    // ConfigurablePermission.EDIT_PLAYER. Omitted from a generic entry point that has no age-group
+    // context: only coordinator+ can edit from there, same as before this field existed.
+    val ageGroupId: String? = null
 )
 
 @Serializable
@@ -494,7 +555,10 @@ data class UpdateTeamRequest(
 data class UpdateOpponentRequest(
     val name: String? = null,
     val shortName: String? = null,
-    val logoUrl: String? = null
+    val logoUrl: String? = null,
+    // Same role as CreateOpponentRequest.ageGroupId -- see UpdatePlayerRequest.ageGroupId's doc for why
+    // this is optional rather than required.
+    val ageGroupId: String? = null
 )
 
 /** Body of `POST /age-groups/{ageGroupId}/players`. Every player must already belong to the club and

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -28,12 +31,16 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,7 +49,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.ricardofrango.squadify.model.ClubPermissionSetting
+import com.ricardofrango.squadify.model.ConfigurablePermission
+import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
@@ -53,6 +64,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.btn_retry
 import squadify.app.shared.generated.resources.btn_save_changes
+import squadify.app.shared.generated.resources.btn_save_permissions
+import squadify.app.shared.generated.resources.btn_saving_permissions
 import squadify.app.shared.generated.resources.ic_check
 import squadify.app.shared.generated.resources.label_add_logo
 import squadify.app.shared.generated.resources.label_club_address_field
@@ -60,6 +73,17 @@ import squadify.app.shared.generated.resources.label_club_name_field
 import squadify.app.shared.generated.resources.label_contact_section
 import squadify.app.shared.generated.resources.label_email
 import squadify.app.shared.generated.resources.label_identity_section
+import squadify.app.shared.generated.resources.label_permission_assign_players_to_age_group
+import squadify.app.shared.generated.resources.label_permission_create_opponent
+import squadify.app.shared.generated.resources.label_permission_create_players
+import squadify.app.shared.generated.resources.label_permission_edit_opponent
+import squadify.app.shared.generated.resources.label_permission_edit_player
+import squadify.app.shared.generated.resources.label_permission_level_coach
+import squadify.app.shared.generated.resources.label_permission_level_coordinator_only
+import squadify.app.shared.generated.resources.label_permission_level_staff
+import squadify.app.shared.generated.resources.label_permission_manage_call_ups
+import squadify.app.shared.generated.resources.label_permission_manage_live_match
+import squadify.app.shared.generated.resources.label_permission_manage_match
 import squadify.app.shared.generated.resources.label_phone_field
 import squadify.app.shared.generated.resources.label_short_name_field
 import squadify.app.shared.generated.resources.label_stadium_location_field
@@ -68,7 +92,15 @@ import squadify.app.shared.generated.resources.label_where_section
 import squadify.app.shared.generated.resources.msg_club_address_helper
 import squadify.app.shared.generated.resources.msg_edit_club_details
 import squadify.app.shared.generated.resources.msg_no_club_changes
-import squadify.app.shared.generated.resources.msg_permissions_coming_soon
+import squadify.app.shared.generated.resources.msg_permission_assign_players_to_age_group_desc
+import squadify.app.shared.generated.resources.msg_permission_create_opponent_desc
+import squadify.app.shared.generated.resources.msg_permission_create_players_desc
+import squadify.app.shared.generated.resources.msg_permission_edit_opponent_desc
+import squadify.app.shared.generated.resources.msg_permission_edit_player_desc
+import squadify.app.shared.generated.resources.msg_permission_manage_call_ups_desc
+import squadify.app.shared.generated.resources.msg_permission_manage_live_match_desc
+import squadify.app.shared.generated.resources.msg_permission_manage_match_desc
+import squadify.app.shared.generated.resources.msg_permissions_intro
 import squadify.app.shared.generated.resources.msg_short_name_helper
 import squadify.app.shared.generated.resources.msg_stadium_location_helper
 import squadify.app.shared.generated.resources.msg_unsaved_club_changes
@@ -79,12 +111,12 @@ import squadify.app.shared.generated.resources.title_club_details
 private val FormRoundedShape = RoundedCornerShape(18.dp)
 
 /**
- * Tabbed club settings hub: "Club details" (built here) and "Permissions" (an empty placeholder for
- * now -- see TECHNICAL_DECISIONS.md). Reached from Club Details' bottom "More" menu. Follows the same
- * dirty-tracked, checkmark-save-in-the-header pattern as EditPlayerScreen/AccountScreen; "Add logo" and
- * "Stadium location" mirror the design canvas artboard for this screen, with "Add logo" left
- * non-functional (no image-upload capability exists anywhere in the app yet, same reasoning as
- * Account's "Change email").
+ * Tabbed club settings hub: "Club details" (dirty-tracked, checkmark-save-in-the-header, same pattern
+ * as EditPlayerScreen/AccountScreen) and "Permissions" (each configurable action's minimum age-group-
+ * staff role, with its own independent save action -- see TECHNICAL_DECISIONS.md on configurable
+ * permissions). Reached from Club Details' bottom "More" menu. "Add logo" and "Stadium location" mirror
+ * the design canvas artboard for this screen, with "Add logo" left non-functional (no image-upload
+ * capability exists anywhere in the app yet, same reasoning as Account's "Change email").
  */
 @Composable
 fun EditClubScreen(
@@ -103,7 +135,9 @@ fun EditClubScreen(
         onRetry = { viewModel.load(clubId) },
         onTabSelected = { viewModel.onTabSelected(it) },
         onFormChange = { form -> viewModel.updateForm(form) },
-        onSaveClick = { viewModel.onSaveClicked(clubId, onSaved = onClubUpdated) }
+        onSaveClick = { viewModel.onSaveClicked(clubId, onSaved = onClubUpdated) },
+        onPermissionChanged = { action, minTeamRole -> viewModel.onPermissionChanged(action, minTeamRole) },
+        onSavePermissionsClick = { viewModel.onSavePermissionsClicked(clubId) }
     )
 }
 
@@ -115,7 +149,9 @@ private fun EditClubContent(
     onRetry: () -> Unit,
     onTabSelected: (Int) -> Unit,
     onFormChange: (ClubFormFields) -> Unit,
-    onSaveClick: () -> Unit
+    onSaveClick: () -> Unit,
+    onPermissionChanged: (ConfigurablePermission, TeamRole?) -> Unit,
+    onSavePermissionsClick: () -> Unit
 ) {
     val idle = uiState as? EditClubUiState.Idle
 
@@ -190,7 +226,12 @@ private fun EditClubContent(
             }
 
             is EditClubUiState.Idle -> when (uiState.selectedTab) {
-                EDIT_CLUB_TAB_PERMISSIONS -> PermissionsPlaceholder(boxModifier)
+                EDIT_CLUB_TAB_PERMISSIONS -> PermissionsForm(
+                    state = uiState,
+                    modifier = boxModifier,
+                    onPermissionChanged = onPermissionChanged,
+                    onSaveClick = onSavePermissionsClick
+                )
                 else -> ClubDetailsForm(
                     state = uiState,
                     modifier = boxModifier,
@@ -202,14 +243,139 @@ private fun EditClubContent(
 }
 
 @Composable
-private fun PermissionsPlaceholder(modifier: Modifier) {
-    Box(modifier.padding(24.dp), contentAlignment = Alignment.Center) {
+private fun PermissionsForm(
+    state: EditClubUiState.Idle,
+    modifier: Modifier,
+    onPermissionChanged: (ConfigurablePermission, TeamRole?) -> Unit,
+    onSaveClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
         Text(
-            text = stringResource(Res.string.msg_permissions_coming_soon),
-            style = MaterialTheme.typography.bodyMedium,
-            color = DeepCarbon.copy(alpha = 0.5f),
-            textAlign = TextAlign.Center
+            text = stringResource(Res.string.msg_permissions_intro),
+            style = MaterialTheme.typography.bodySmall,
+            color = DeepCarbon.copy(alpha = 0.6f)
         )
+
+        state.permissions.forEach { setting ->
+            PermissionRow(
+                setting = setting,
+                onChange = { newValue -> onPermissionChanged(setting.action, newValue) }
+            )
+        }
+
+        if (state.permissionsSubmitError != null) {
+            Text(
+                text = state.permissionsSubmitError,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
+        PrimaryLoadingButton(
+            text = stringResource(Res.string.btn_save_permissions),
+            submittingText = stringResource(Res.string.btn_saving_permissions),
+            isLoading = state.isSubmittingPermissions,
+            enabled = state.canSavePermissions,
+            onClick = onSaveClick
+        )
+    }
+}
+
+private fun permissionLabel(action: ConfigurablePermission) = when (action) {
+    ConfigurablePermission.CREATE_PLAYERS -> Res.string.label_permission_create_players
+    ConfigurablePermission.EDIT_PLAYER -> Res.string.label_permission_edit_player
+    ConfigurablePermission.ASSIGN_PLAYERS_TO_AGE_GROUP -> Res.string.label_permission_assign_players_to_age_group
+    ConfigurablePermission.CREATE_OPPONENT -> Res.string.label_permission_create_opponent
+    ConfigurablePermission.EDIT_OPPONENT -> Res.string.label_permission_edit_opponent
+    ConfigurablePermission.MANAGE_MATCH -> Res.string.label_permission_manage_match
+    ConfigurablePermission.MANAGE_CALL_UPS -> Res.string.label_permission_manage_call_ups
+    ConfigurablePermission.MANAGE_LIVE_MATCH -> Res.string.label_permission_manage_live_match
+}
+
+private fun permissionDescription(action: ConfigurablePermission) = when (action) {
+    ConfigurablePermission.CREATE_PLAYERS -> Res.string.msg_permission_create_players_desc
+    ConfigurablePermission.EDIT_PLAYER -> Res.string.msg_permission_edit_player_desc
+    ConfigurablePermission.ASSIGN_PLAYERS_TO_AGE_GROUP -> Res.string.msg_permission_assign_players_to_age_group_desc
+    ConfigurablePermission.CREATE_OPPONENT -> Res.string.msg_permission_create_opponent_desc
+    ConfigurablePermission.EDIT_OPPONENT -> Res.string.msg_permission_edit_opponent_desc
+    ConfigurablePermission.MANAGE_MATCH -> Res.string.msg_permission_manage_match_desc
+    ConfigurablePermission.MANAGE_CALL_UPS -> Res.string.msg_permission_manage_call_ups_desc
+    ConfigurablePermission.MANAGE_LIVE_MATCH -> Res.string.msg_permission_manage_live_match_desc
+}
+
+// null means "coordinator-only" -- the age-group-staff path is disabled entirely for this action.
+private fun levelLabel(minTeamRole: TeamRole?) = when (minTeamRole) {
+    TeamRole.STAFF -> Res.string.label_permission_level_staff
+    TeamRole.COACH -> Res.string.label_permission_level_coach
+    null -> Res.string.label_permission_level_coordinator_only
+}
+
+@Composable
+private fun PermissionRow(
+    setting: ClubPermissionSetting,
+    onChange: (TeamRole?) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.2f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(permissionLabel(setting.action)),
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                color = DeepCarbon
+            )
+            Text(
+                text = stringResource(permissionDescription(setting.action)),
+                style = MaterialTheme.typography.bodySmall,
+                color = DeepCarbon.copy(alpha = 0.6f)
+            )
+            Spacer(Modifier.height(10.dp))
+            Box {
+                Surface(
+                    onClick = { expanded = true },
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = CarbonGray.copy(alpha = 0.06f),
+                    border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.3f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp).fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = stringResource(levelLabel(setting.minTeamRole)),
+                            color = DeepCarbon,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text("▾", color = DeepCarbon.copy(alpha = 0.4f), fontWeight = FontWeight.Bold)
+                    }
+                }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.background(Color.White)) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.label_permission_level_staff), color = DeepCarbon) },
+                        onClick = { onChange(TeamRole.STAFF); expanded = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.label_permission_level_coach), color = DeepCarbon) },
+                        onClick = { onChange(TeamRole.COACH); expanded = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.label_permission_level_coordinator_only), color = DeepCarbon) },
+                        onClick = { onChange(null); expanded = false }
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -381,18 +547,25 @@ private fun sampleFields() = ClubFormFields(
     stadiumLocation = ""
 )
 
+private fun samplePermissions() = ConfigurablePermission.entries.map {
+    ClubPermissionSetting(it, if (it == ConfigurablePermission.MANAGE_LIVE_MATCH) TeamRole.STAFF else TeamRole.COACH)
+}
+
 @Preview
 @Composable
 private fun EditClubDetailsPreview() {
     SquadifyTheme {
         val fields = sampleFields()
+        val permissions = samplePermissions()
         EditClubContent(
-            uiState = EditClubUiState.Idle(original = fields, form = fields),
+            uiState = EditClubUiState.Idle(original = fields, form = fields, originalPermissions = permissions, permissions = permissions),
             onNavigateBack = {},
             onRetry = {},
             onTabSelected = {},
             onFormChange = {},
-            onSaveClick = {}
+            onSaveClick = {},
+            onPermissionChanged = { _, _ -> },
+            onSavePermissionsClick = {}
         )
     }
 }
@@ -402,16 +575,21 @@ private fun EditClubDetailsPreview() {
 private fun EditClubDetailsDirtyPreview() {
     SquadifyTheme {
         val fields = sampleFields()
+        val permissions = samplePermissions()
         EditClubContent(
             uiState = EditClubUiState.Idle(
                 original = fields,
-                form = fields.copy(stadiumLocation = "Estrada da Praia, Ribamar")
+                form = fields.copy(stadiumLocation = "Estrada da Praia, Ribamar"),
+                originalPermissions = permissions,
+                permissions = permissions
             ),
             onNavigateBack = {},
             onRetry = {},
             onTabSelected = {},
             onFormChange = {},
-            onSaveClick = {}
+            onSaveClick = {},
+            onPermissionChanged = { _, _ -> },
+            onSavePermissionsClick = {}
         )
     }
 }
@@ -421,17 +599,49 @@ private fun EditClubDetailsDirtyPreview() {
 private fun EditClubPermissionsTabPreview() {
     SquadifyTheme {
         val fields = sampleFields()
+        val permissions = samplePermissions()
         EditClubContent(
             uiState = EditClubUiState.Idle(
                 selectedTab = EDIT_CLUB_TAB_PERMISSIONS,
                 original = fields,
-                form = fields
+                form = fields,
+                originalPermissions = permissions,
+                permissions = permissions
             ),
             onNavigateBack = {},
             onRetry = {},
             onTabSelected = {},
             onFormChange = {},
-            onSaveClick = {}
+            onSaveClick = {},
+            onPermissionChanged = { _, _ -> },
+            onSavePermissionsClick = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun EditClubPermissionsTabDirtyPreview() {
+    SquadifyTheme {
+        val fields = sampleFields()
+        val permissions = samplePermissions()
+        EditClubContent(
+            uiState = EditClubUiState.Idle(
+                selectedTab = EDIT_CLUB_TAB_PERMISSIONS,
+                original = fields,
+                form = fields,
+                originalPermissions = permissions,
+                permissions = permissions.map {
+                    if (it.action == ConfigurablePermission.MANAGE_MATCH) it.copy(minTeamRole = null) else it
+                }
+            ),
+            onNavigateBack = {},
+            onRetry = {},
+            onTabSelected = {},
+            onFormChange = {},
+            onSaveClick = {},
+            onPermissionChanged = { _, _ -> },
+            onSavePermissionsClick = {}
         )
     }
 }
@@ -446,7 +656,9 @@ private fun EditClubLoadingPreview() {
             onRetry = {},
             onTabSelected = {},
             onFormChange = {},
-            onSaveClick = {}
+            onSaveClick = {},
+            onPermissionChanged = { _, _ -> },
+            onSavePermissionsClick = {}
         )
     }
 }
@@ -461,7 +673,9 @@ private fun EditClubErrorPreview() {
             onRetry = {},
             onTabSelected = {},
             onFormChange = {},
-            onSaveClick = {}
+            onSaveClick = {},
+            onPermissionChanged = { _, _ -> },
+            onSavePermissionsClick = {}
         )
     }
 }

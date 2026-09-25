@@ -460,6 +460,7 @@ private fun EditPlayerFilledPreview() {
         val fields = sampleFields(filled = true)
         EditPlayerContent(
             uiState = EditPlayerUiState.Idle(
+                ageGroupId = "ag1",
                 ageGroupLabel = "Sub-15 A",
                 seasonLabel = "26/27",
                 original = fields,
@@ -487,6 +488,7 @@ private fun EditPlayerOptionalFieldsNeverSetPreview() {
         val fields = sampleFields(filled = false)
         EditPlayerContent(
             uiState = EditPlayerUiState.Idle(
+                ageGroupId = "ag1",
                 ageGroupLabel = "Sub-15 A",
                 seasonLabel = "26/27",
                 original = fields,

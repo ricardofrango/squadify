@@ -1549,3 +1549,155 @@ assuming either one is "the" local dev database.
 **Verified**: `:server:test` (unaffected -- no test touches a real database), plus the three live-boot
 scenarios above against real local Postgres databases (not just unit tests). **Not verified**: an actual
 staging/production boot after this change ships (can't be verified from this repo/session).
+
+## 35. Configurable Club Permissions
+
+**Problem**: every write action's minimum role was a hardcoded constant in its use case (`minTeamRole =
+TeamRole.COACH`, etc.) -- fine for a single club, but the developer wants each club's admin/coordinator to
+tune *some* of these thresholds themselves (e.g. "let any staff member log match events" vs. "coaches
+only" vs. "coordinators only"), while others stay fixed. Design worked out with the developer over several
+rounds before implementation: a full audit of every `checkUserPermissionUseCase(...)` call site first (see
+`PERMISSION_TEST_MATRIX.md` §1.1/§2 for the underlying model), then the developer sorted the audited list
+into three buckets.
+
+**The three buckets, as the developer specified them:**
+1. **Configurable** (a club admin/coordinator can change the minimum age-group-staff role, or disable the
+   staff path entirely): creating/editing players, assigning players to an age group, creating/editing
+   opponents, scheduling/editing/deleting a match, live match operations (kickoff/pause/resume/minute
+   correction/call-ups/status), logging match events. Two of these (editing a player, editing an opponent)
+   had **no** staff-level path at all before this change -- only `minClubRole = ClubRole.COORDINATOR` --
+   inconsistent with their sibling create actions; fixed as part of adding the setting, mirroring
+   `CreatePlayersUseCase`'s existing age-group-scoped, cross-club-validated `ageGroupId` pattern exactly
+   (`UpdatePlayerRequest`/`UpdateOpponentRequest` both gained the same optional `ageGroupId` field). Three
+   of these (scheduling/editing/deleting a match, live match operations, logging events) had **no**
+   `minClubRole` floor at all -- a club admin who wasn't personally that team's coach genuinely could not
+   schedule a match. Fixed alongside making them configurable: all eight configurable actions now always
+   carry a fixed `minClubRole = ClubRole.COORDINATOR` floor underneath whatever the club's staff-level
+   setting says, so a coordinator/admin can always act regardless of configuration.
+2. **Fixed at COORDINATOR+, not configurable**: editing club details, adding members, changing member
+   roles, creating/editing seasons/age groups/teams, adding staff to an age group. These change the club's
+   own shape rather than its day-to-day content, and were left alone.
+3. **Fixed at COORDINATOR+, explicitly non-configurable by design**: changing the permission settings
+   themselves. The developer's own words: *"only coordinator and club admin can change permissions...this
+   one is not configurable."* Being allowed to *do* a configurable action never implies being allowed to
+   *change* its threshold -- `UpdateClubPermissionsUseCase` always checks `minClubRole = ClubRole.COORDINATOR`
+   with no `configurablePermission` involved at all.
+
+Platform admins are untouched by any of this -- `CheckUserPermissionUseCase`'s very first check
+(`user.isPlatformAdmin` → "God Mode") already runs before any club-specific policy is even consulted, per
+the developer's explicit confirmation that admins "do not suffer permission changes."
+
+**Data model**: `ConfigurablePermission` (8-value enum, one per configurable action above) and
+`ClubPermissionSetting(action, minTeamRole: TeamRole?)` in `common` Models.kt -- `minTeamRole = null` is a
+real, distinct value meaning "coordinator-only" (the age-group-staff path disabled entirely for that
+action), not "no opinion". A new `club_permission_overrides` table (`V2__club_permission_overrides.sql`,
+see §34) stores only the **explicit overrides** a club has actually made: **no row for a
+(club_id, permission) pair means "use `ConfigurablePermission.defaultMinTeamRole`"** (`STAFF` for live
+match operations, `COACH` for the other seven, matching every action's pre-existing hardcoded behavior
+exactly, so shipping this changes nothing for a club that never touches the new setting) -- a row only
+gets written once a coordinator/admin actually changes something away from default.
+
+**`CheckUserPermissionUseCase` gained one new optional parameter, `configurablePermission`, rather than
+each of the 16 affected use cases resolving its own threshold and passing a literal `minTeamRole`**: the
+two are mutually exclusive at a call site (pass one or the other). When `configurablePermission` is given,
+it fetches the club's override (`ClubPermissionRepository.getOverride`) and uses its `minTeamRole` value
+*as-is* --including `null`-- only falling back to the action's default when the override row is
+genuinely absent; a bug caught during testing (see below) is a direct consequence of this "row exists but
+is null" vs. "row absent" distinction being easy to collapse incorrectly with a careless `?:` chain. This
+keeps the blast radius small: 14 of the 16 affected use cases needed only a one-line change to their
+existing `checkUserPermissionUseCase(...)` call (swap a literal `minTeamRole =` for
+`configurablePermission =`, add `minClubRole = ClubRole.COORDINATOR` to the three that lacked it); only
+`CheckUserPermissionUseCase` itself gained a new constructor dependency
+(`ClubPermissionRepository`) plus the two genuinely new use cases,
+`GetClubPermissionsUseCase`/`UpdateClubPermissionsUseCase` (`GET`/`PATCH /v1/clubs/{clubId}/permissions`,
+the latter always replacing the club's full override set rather than a per-action patch, since the client
+always submits the whole 8-action form).
+
+**A real bug found via a real test failure, not caught by review**: the first pass at bulk-updating the ~40
+affected test files' `CheckUserPermissionUseCase(...)` constructor calls gave the new
+`ClubPermissionRepository` dependency a relaxed mock (`mockk<ClubPermissionRepository>(relaxed = true)`)
+with no explicit stub, reasoning that an unstubbed call would just be irrelevant noise for tests not
+exercising the new parameter. It wasn't: MockK's relaxer, needing to return *something* for the nullable
+`ClubPermissionSetting?` return type, synthesized a **non-null** object instead of returning `null` --
+which this use case's logic treats as a real override, not "no override" -- and one test
+(`DeleteMatchUseCaseTest.ageGroupStaffIsDenied`) started passing a caller it should have denied because
+the fabricated object's `minTeamRole` field happened to resolve to a value at or below the caller's actual
+role. Fixed by giving every one of those test files an explicit
+`init { coEvery { clubPermissionRepository.getOverride(any(), any()) } returns null }` right after the
+mock's declaration -- deterministic "no override" behavior instead of relying on relaxed-mock defaults,
+which this incident shows are not safe to trust for a nullable-object return type feeding into real
+authorization logic.
+
+**Client**: the "Permissions" tab on Edit Club Details (§32's placeholder) now lists all 8 actions, each
+with a label/description and a 3-way picker (Any staff / Coach only / Coordinator only), loaded alongside
+the club itself and saved as its own independent action -- a separate `PrimaryLoadingButton` at the bottom
+of the tab, not the header checkmark (which stays scoped to the Club Details tab only), same "two
+unrelated saves on one screen" shape as `AccountScreen`'s profile vs. password split.
+
+**A second real bug, this time only caught by a real device against a real database, not by any test**:
+`GetClubPermissionsUseCase` was the one use case in this whole change that didn't wrap its body in
+`transactionManager.runInTransaction { ... }` -- every other use case in this codebase does (compare
+`GetOpponentsUseCase`/`GetClubMembersUseCase`), including this one's own sibling
+`UpdateClubPermissionsUseCase`. The permission check still passed (`CheckUserPermissionUseCase` wraps
+itself internally), but the subsequent `clubPermissionRepository.getOverrides(clubId)` call ran with no
+active Exposed transaction context and threw, surfacing to the Android app as `GET
+/v1/clubs/{clubId}/permissions` → 500 "An internal server error occurred" the first time the Permissions
+tab was actually opened on a device against a real Postgres-backed server. `GetClubPermissionsUseCaseTest`
+never had a chance to catch this: its `TransactionManager` is a trivial `object : TransactionManager {
+override suspend fun <T> runInTransaction(block: suspend () -> T): T = block() }`, and its
+`ClubPermissionRepository` is a plain mockk stub -- neither can fail the way a real Exposed query does
+outside a real transaction, so a mocked unit test structurally cannot exercise this class of bug. Fixed by
+adding the missing `transactionManager` dependency and wrapping the body, exactly like every sibling use
+case already does; the discipline this reinforces is that transaction-boundary correctness is something
+only a real device/DB pass (or an integration test against a real database, which this project doesn't
+have) can actually verify -- not something to assume from a passing mocked test suite.
+
+**Verified**: `:server:test` (full suite, including new `CheckUserPermissionUseCaseTest` cases for the
+configurable-permission resolution -- default fallback, explicit override, coordinator-only override
+correctly denying a coach who'd otherwise pass, coordinator bypass never even querying the repository --
+plus new `UpdatePlayerUseCaseTest`/`UpdateOpponentUseCaseTest`/`GetClubPermissionsUseCaseTest`/
+`UpdateClubPermissionsUseCaseTest`, previously untested use cases), `:app:shared:compileKotlinJvm`,
+`:app:androidApp:compileDevDebugKotlin` all clean, plus three live-boot smoke tests against real local
+Postgres databases (fresh DB migrates cleanly; Koin resolves all 84 definitions with no missing
+dependency). **Not verified**: the Permissions tab UI itself end-to-end on a real device (the 500 above
+was caught reaching it from a real device, but not re-confirmed working after the fix within this
+session).
+
+**Reshuffled taxonomy: `LOG_MATCH_EVENT` retired, `MANAGE_CALL_UPS` split out.** After the feature shipped,
+the developer flagged that "Manage live matches" and "Register match events" looked like the same
+permission in practice, and asked why call-ups weren't configurable at all. Working through it together
+surfaced the real distinction the original 8-bucket list had missed: it isn't "live match ops" vs. "event
+logging" -- it's **pre-match** vs. **live**. Pre-match covers scheduling the fixture (`MANAGE_MATCH`,
+unchanged) and building the squad list for it (`MANAGE_CALL_UPS`, newly split out of what used to be
+lumped under live-match ops); everything from kickoff onward -- starting XI, pause/resume, clock
+correction, status changes, and logging goals/cards/substitutions -- is one continuous moment with
+typically one person operating all of it, so it stays a single setting, `MANAGE_LIVE_MATCH`, which now
+also absorbs what `LOG_MATCH_EVENT` used to gate (a substitution was already, mechanically, just another
+`MatchEvent` row via `AddMatchEventUseCase`/`DeleteMatchEventUseCase` -- there was never a separate
+substitution endpoint, so merging its permission with live-match ops changes no code path, only the
+authorization threshold). The developer's own words on the default tiers: *"the default of manage live
+match is staff, but the manage call-ups defaults to coach"* -- call-ups, being a pre-match, less
+time-pressured action, gets the stricter coach-only-by-default treatment that six of the eight buckets
+already had, while live match ops keeps the staff-permissive default from §19 (match-day operations opened
+to staff so a parent-coach isn't blocked mid-game waiting on the one person with coach rank).
+
+`ConfigurablePermission` is still an 8-value enum (`CREATE_PLAYERS`, `EDIT_PLAYER`,
+`ASSIGN_PLAYERS_TO_AGE_GROUP`, `CREATE_OPPONENT`, `EDIT_OPPONENT`, `MANAGE_MATCH`, `MANAGE_CALL_UPS`,
+`MANAGE_LIVE_MATCH`) -- one value removed (`LOG_MATCH_EVENT`), one added (`MANAGE_CALL_UPS`), net count
+unchanged. `defaultMinTeamRole`'s logic didn't need to change at all (`STAFF` for `MANAGE_LIVE_MATCH`,
+`COACH` for everything else) since `MANAGE_CALL_UPS` falls into the same "everything else" bucket that
+already defaulted to `COACH`. Three use cases moved to the new enum values: `ManageCallUpsUseCase` now
+passes `configurablePermission = MANAGE_CALL_UPS` (was `MANAGE_LIVE_MATCH`), `AddMatchEventUseCase` and
+`DeleteMatchEventUseCase` now pass `MANAGE_LIVE_MATCH` (was `LOG_MATCH_EVENT`). Since no club had ever
+overridden the old `LOG_MATCH_EVENT`/live-match settings away from their defaults yet (feature still
+pre-release at this point), there was no override-migration concern -- a club's stored
+`club_permission_overrides` rows key on the enum's serialized name, so this is only safe because the
+renamed/removed value had zero rows in production; a later rename of a *live* configurable permission
+would need an actual data migration, not just an enum edit.
+
+Test impact: `ManageCallUpsUseCaseTest`'s STAFF-caller case flipped from a happy-path assertion to a
+`ForbiddenException` assertion (`ageGroupStaffIsDeniedByDefault`), since STAFF no longer clears the new
+COACH-level default bar for call-ups; the COACH-caller case needed no change. `AddMatchEventUseCaseTest`/
+`DeleteMatchEventUseCaseTest` needed no changes at all -- both only ever exercised a COACH-level caller
+succeeding, and moving to the more permissive `MANAGE_LIVE_MATCH` default (STAFF) doesn't break a COACH
+still succeeding.

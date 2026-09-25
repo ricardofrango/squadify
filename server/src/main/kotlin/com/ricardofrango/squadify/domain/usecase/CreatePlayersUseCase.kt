@@ -39,7 +39,7 @@ class CreatePlayersUseCase(
             userId = userId,
             clubId = request.clubId,
             minClubRole = ClubRole.COORDINATOR,
-            minTeamRole = TeamRole.COACH,
+            configurablePermission = ConfigurablePermission.CREATE_PLAYERS,
             ageGroupId = request.ageGroupId,
             errorMessage = "Only admins, coordinators, or this age group's coaches can create players"
         )

@@ -41,6 +41,10 @@ sealed class EditPlayerUiState {
      * live [form], since it's describing the player's on-file state, not this edit session.
      */
     data class Idle(
+        // Carried through (not user-editable) so a save can be authorized via
+        // ConfigurablePermission.EDIT_PLAYER as this player's own age-group coach, not just a
+        // coordinator+ -- see CreatePlayersScreen's identical ageGroupId threading.
+        val ageGroupId: String?,
         val ageGroupLabel: String?,
         val seasonLabel: String?,
         val original: PlayerFormFields,

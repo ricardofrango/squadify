@@ -486,4 +486,28 @@
     <string name="btn_change_password">Change password</string>
     <string name="btn_changing_password">Changing...</string>
     <string name="msg_password_changed">Password changed.</string>
+
+    <!-- Club Permissions -->
+    <string name="msg_permissions_intro">Set the minimum role required for each action below. Coordinators and club admins can always do everything, regardless of these settings.</string>
+    <string name="label_permission_level_staff">Any staff</string>
+    <string name="label_permission_level_coach">Coach only</string>
+    <string name="label_permission_level_coordinator_only">Coordinator only</string>
+    <string name="label_permission_create_players">Create players</string>
+    <string name="msg_permission_create_players_desc">Who can register new players to the club or an age group.</string>
+    <string name="label_permission_edit_player">Edit players</string>
+    <string name="msg_permission_edit_player_desc">Who can edit an existing player\'s details.</string>
+    <string name="label_permission_assign_players_to_age_group">Assign players to an age group</string>
+    <string name="msg_permission_assign_players_to_age_group_desc">Who can add existing club players to an age group\'s pool.</string>
+    <string name="label_permission_create_opponent">Create opponents</string>
+    <string name="msg_permission_create_opponent_desc">Who can add a new opponent club.</string>
+    <string name="label_permission_edit_opponent">Edit opponents</string>
+    <string name="msg_permission_edit_opponent_desc">Who can edit an existing opponent\'s details.</string>
+    <string name="label_permission_manage_match">Schedule matches</string>
+    <string name="msg_permission_manage_match_desc">Who can schedule, edit, or delete a match.</string>
+    <string name="label_permission_manage_call_ups">Manage call-ups</string>
+    <string name="msg_permission_manage_call_ups_desc">Who can set the pre-match squad list for a game.</string>
+    <string name="label_permission_manage_live_match">Run live matches</string>
+    <string name="msg_permission_manage_live_match_desc">Who can kick off, pause or resume, correct the clock, change a match\'s status, or add and remove goals, cards, and substitutions.</string>
+    <string name="btn_save_permissions">Save permissions</string>
+    <string name="btn_saving_permissions">Saving...</string>
 </resources>

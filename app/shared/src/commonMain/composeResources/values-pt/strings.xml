@@ -485,4 +485,28 @@
     <string name="btn_change_password">Alterar senha</string>
     <string name="btn_changing_password">A alterar...</string>
     <string name="msg_password_changed">Senha alterada.</string>
+
+    <!-- Club Permissions -->
+    <string name="msg_permissions_intro">Defina o nível mínimo necessário para cada ação abaixo. Coordenadores e administradores do clube podem sempre fazer tudo, independentemente destas definições.</string>
+    <string name="label_permission_level_staff">Qualquer elemento da equipa técnica</string>
+    <string name="label_permission_level_coach">Apenas treinador</string>
+    <string name="label_permission_level_coordinator_only">Apenas coordenador</string>
+    <string name="label_permission_create_players">Criar jogadores</string>
+    <string name="msg_permission_create_players_desc">Quem pode registar novos jogadores no clube ou num escalão.</string>
+    <string name="label_permission_edit_player">Editar jogadores</string>
+    <string name="msg_permission_edit_player_desc">Quem pode editar os dados de um jogador existente.</string>
+    <string name="label_permission_assign_players_to_age_group">Associar jogadores a um escalão</string>
+    <string name="msg_permission_assign_players_to_age_group_desc">Quem pode adicionar jogadores existentes do clube ao plantel de um escalão.</string>
+    <string name="label_permission_create_opponent">Criar adversários</string>
+    <string name="msg_permission_create_opponent_desc">Quem pode adicionar um novo clube adversário.</string>
+    <string name="label_permission_edit_opponent">Editar adversários</string>
+    <string name="msg_permission_edit_opponent_desc">Quem pode editar os dados de um adversário existente.</string>
+    <string name="label_permission_manage_match">Agendar jogos</string>
+    <string name="msg_permission_manage_match_desc">Quem pode agendar, editar ou eliminar um jogo.</string>
+    <string name="label_permission_manage_call_ups">Gerir convocatórias</string>
+    <string name="msg_permission_manage_call_ups_desc">Quem pode definir a convocatória de pré-jogo para um jogo.</string>
+    <string name="label_permission_manage_live_match">Gerir jogos ao vivo</string>
+    <string name="msg_permission_manage_live_match_desc">Quem pode iniciar, pausar ou retomar, corrigir o cronómetro, alterar o estado de um jogo, ou adicionar e remover golos, cartões e substituições.</string>
+    <string name="btn_save_permissions">Guardar permissões</string>
+    <string name="btn_saving_permissions">A guardar...</string>
 </resources>

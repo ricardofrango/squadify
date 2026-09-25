@@ -6,7 +6,8 @@ import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubMatchesUpdate
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ConfigurablePermission
 
 /**
  * Permanently removes a match, its call-ups, and its events. Coach-only, same as editing a match
@@ -31,7 +32,8 @@ class DeleteMatchUseCase(
             checkUserPermissionUseCase(
                 userId = userId,
                 clubId = match.clubId,
-                minTeamRole = TeamRole.COACH,
+                minClubRole = ClubRole.COORDINATOR,
+                configurablePermission = ConfigurablePermission.MANAGE_MATCH,
                 teamId = match.teamId,
                 errorMessage = "Only admins, coordinators, or team coaches can delete a match"
             )
