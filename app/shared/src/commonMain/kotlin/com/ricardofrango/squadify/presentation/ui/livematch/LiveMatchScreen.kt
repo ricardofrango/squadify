@@ -175,6 +175,7 @@ private fun LiveBadge() {
 @Composable
 private fun PreKickoffContent(state: LiveMatchUiState.Idle, viewModel: LiveMatchViewModel, onNavigateBack: () -> Unit) {
     val details = state.details
+    val canManage = details.canManageLiveMatch
     val requiredCount = details.team.teamSize ?: 11
     // Every call-up is CALLED_UP -- there's no other status to filter on (see CallUpStatus).
     val eligible = remember(details) { details.callUps }
@@ -229,9 +230,9 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, viewModel: LiveMatch
             }
 
             items(starting, key = { it.callUp.id }) { callUp ->
-                CallUpToggleRow(callUp.player, selected = true) {
-                    startingIds = startingIds - callUp.callUp.playerId
-                }
+                CallUpToggleRow(callUp.player, selected = true, onClick = if (canManage) {
+                    { startingIds = startingIds - callUp.callUp.playerId }
+                } else null)
             }
 
             if (bench.isNotEmpty()) {
@@ -252,9 +253,9 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, viewModel: LiveMatch
                     }
                 }
                 items(bench, key = { it.callUp.id }) { callUp ->
-                    CallUpToggleRow(callUp.player, selected = false) {
-                        startingIds = startingIds + callUp.callUp.playerId
-                    }
+                    CallUpToggleRow(callUp.player, selected = false, onClick = if (canManage) {
+                        { startingIds = startingIds + callUp.callUp.playerId }
+                    } else null)
                 }
             }
 
@@ -275,40 +276,50 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, viewModel: LiveMatch
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(8.dp))
             }
-            Button(
-                onClick = { viewModel.onKickOff(starting.map { it.callUp.playerId }, halfLength) },
-                enabled = starting.size == requiredCount && !state.isSubmitting,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PitchGreen,
-                    contentColor = Color.White,
-                    disabledContainerColor = CarbonGray,
-                    disabledContentColor = Color.White.copy(alpha = 0.4f)
-                )
-            ) {
-                if (state.isSubmitting) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-                } else {
-                    Text(
-                        stringResource(Res.string.btn_kick_off).uppercase(),
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold)
+            if (canManage) {
+                Button(
+                    onClick = { viewModel.onKickOff(starting.map { it.callUp.playerId }, halfLength) },
+                    enabled = starting.size == requiredCount && !state.isSubmitting,
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PitchGreen,
+                        contentColor = Color.White,
+                        disabledContainerColor = CarbonGray,
+                        disabledContentColor = Color.White.copy(alpha = 0.4f)
                     )
+                ) {
+                    if (state.isSubmitting) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
+                    } else {
+                        Text(
+                            stringResource(Res.string.btn_kick_off).uppercase(),
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold)
+                        )
+                    }
                 }
+                Spacer(Modifier.height(6.dp))
+                val remaining = requiredCount - starting.size
+                Text(
+                    text = if (remaining > 0) {
+                        stringResource(Res.string.msg_pick_more_to_kick_off, remaining, halfLength)
+                    } else {
+                        stringResource(Res.string.msg_ready_to_kick_off, halfLength)
+                    },
+                    color = Color.White.copy(alpha = 0.5f),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            } else {
+                Text(
+                    stringResource(Res.string.msg_live_match_read_only),
+                    color = Color.White.copy(alpha = 0.5f),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
             }
-            Spacer(Modifier.height(6.dp))
-            val remaining = requiredCount - starting.size
-            Text(
-                text = if (remaining > 0) {
-                    stringResource(Res.string.msg_pick_more_to_kick_off, remaining, halfLength)
-                } else {
-                    stringResource(Res.string.msg_ready_to_kick_off, halfLength)
-                },
-                color = Color.White.copy(alpha = 0.5f),
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
         }
     }
 }
@@ -330,9 +341,10 @@ private fun HalfLengthPill(minutes: Int, selected: Boolean, onClick: () -> Unit)
 }
 
 @Composable
-private fun CallUpToggleRow(player: Player, selected: Boolean, onClick: () -> Unit) {
+private fun CallUpToggleRow(player: Player, selected: Boolean, onClick: (() -> Unit)?) {
     Surface(
-        onClick = onClick,
+        onClick = onClick ?: {},
+        enabled = onClick != null,
         modifier = Modifier.fillMaxWidth(),
         shape = CardShape,
         color = if (selected) PitchGreen.copy(alpha = 0.18f) else CarbonGray,
@@ -403,6 +415,7 @@ private sealed class ActionSheet {
 @Composable
 private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatchViewModel, onNavigateBack: () -> Unit) {
     val details = state.details
+    val canManage = details.canManageLiveMatch
     val status = details.match.status
 
     // The clock is derived from the match's persisted kickoffAt/secondHalfStartedAt timestamps (see
@@ -467,11 +480,11 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                ScoreBox(state.score.ourScore, PitchGreen, enabled = status == MatchStatus.LIVE && !isPaused && !state.isSubmitting) {
+                ScoreBox(state.score.ourScore, PitchGreen, enabled = canManage && status == MatchStatus.LIVE && !isPaused && !state.isSubmitting) {
                     viewModel.onLogGoal(displayMinute, isOpponent = false)
                 }
                 Spacer(Modifier.width(8.dp))
-                ScoreBox(state.score.opponentScore, CarbonGray, enabled = status == MatchStatus.LIVE && !isPaused && !state.isSubmitting) {
+                ScoreBox(state.score.opponentScore, CarbonGray, enabled = canManage && status == MatchStatus.LIVE && !isPaused && !state.isSubmitting) {
                     viewModel.onLogGoal(displayMinute, isOpponent = true)
                 }
                 Spacer(Modifier.width(16.dp))
@@ -515,7 +528,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (status == MatchStatus.LIVE) {
+                if (status == MatchStatus.LIVE && canManage) {
                     Text(
                         stringResource(if (isPaused) Res.string.label_resume_clock else Res.string.label_pause_clock),
                         color = if (isPaused) CardYellow else PitchGreen,
@@ -560,8 +573,8 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
 
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (state.selectedTab) {
-                LiveMatchTab.SQUAD -> SquadTab(squad) { row, onPitch -> actionSheet = ActionSheet.PlayerActions(row, onPitch) }
-                LiveMatchTab.EVENTS -> EventsTab(displayEvents, details) { deletingEvent = it }
+                LiveMatchTab.SQUAD -> SquadTab(squad, canManage) { row, onPitch -> actionSheet = ActionSheet.PlayerActions(row, onPitch) }
+                LiveMatchTab.EVENTS -> EventsTab(displayEvents, details, onDeleteRequest = if (canManage) { { deletingEvent = it } } else null)
             }
         }
 
@@ -570,38 +583,40 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(8.dp))
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (status == MatchStatus.HALF_TIME) {
-                    Button(
-                        onClick = { viewModel.onResumeSecondHalf() },
-                        enabled = !state.isSubmitting,
-                        modifier = Modifier.weight(1f).height(52.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)
-                    ) {
-                        Text(stringResource(Res.string.btn_start_second_half), fontWeight = FontWeight.Bold)
+            if (canManage) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (status == MatchStatus.HALF_TIME) {
+                        Button(
+                            onClick = { viewModel.onResumeSecondHalf() },
+                            enabled = !state.isSubmitting,
+                            modifier = Modifier.weight(1f).height(52.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)
+                        ) {
+                            Text(stringResource(Res.string.btn_start_second_half), fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = { showHalfTimeConfirm = true },
+                            enabled = !state.isSubmitting,
+                            modifier = Modifier.weight(1f).height(52.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                        ) {
+                            Text(stringResource(Res.string.btn_half_time), fontWeight = FontWeight.Bold)
+                        }
                     }
-                } else {
                     OutlinedButton(
-                        onClick = { showHalfTimeConfirm = true },
+                        onClick = { showFullTimeConfirm = true },
                         enabled = !state.isSubmitting,
                         modifier = Modifier.weight(1f).height(52.dp),
                         shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                        border = BorderStroke(1.dp, LiveRed),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = LiveRed)
                     ) {
-                        Text(stringResource(Res.string.btn_half_time), fontWeight = FontWeight.Bold)
+                        Text(stringResource(Res.string.btn_full_time), fontWeight = FontWeight.Bold)
                     }
-                }
-                OutlinedButton(
-                    onClick = { showFullTimeConfirm = true },
-                    enabled = !state.isSubmitting,
-                    modifier = Modifier.weight(1f).height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, LiveRed),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = LiveRed)
-                ) {
-                    Text(stringResource(Res.string.btn_full_time), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -757,7 +772,7 @@ private fun deriveSquad(details: MatchDetails, events: List<MatchEvent>): Derive
 }
 
 @Composable
-private fun SquadTab(squad: DerivedSquad, onPlayerClick: (SquadPlayerRow, Boolean) -> Unit) {
+private fun SquadTab(squad: DerivedSquad, canManage: Boolean, onPlayerClick: (SquadPlayerRow, Boolean) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
@@ -779,7 +794,7 @@ private fun SquadTab(squad: DerivedSquad, onPlayerClick: (SquadPlayerRow, Boolea
             )
         }
         items(squad.onPitch, key = { it.player.id }) { row ->
-            SquadRow(row, SquadRowStyle.ON_PITCH) { onPlayerClick(row, true) }
+            SquadRow(row, SquadRowStyle.ON_PITCH, onClick = if (canManage) { { onPlayerClick(row, true) } } else null)
         }
         if (squad.bench.isNotEmpty()) {
             item {
@@ -791,7 +806,7 @@ private fun SquadTab(squad: DerivedSquad, onPlayerClick: (SquadPlayerRow, Boolea
                 )
             }
             items(squad.bench, key = { it.player.id }) { row ->
-                SquadRow(row, SquadRowStyle.BENCH) { onPlayerClick(row, false) }
+                SquadRow(row, SquadRowStyle.BENCH, onClick = if (canManage) { { onPlayerClick(row, false) } } else null)
             }
         }
         if (squad.sentOff.isNotEmpty()) {
@@ -1013,7 +1028,7 @@ private fun buildDisplayEvents(events: List<MatchEvent>): List<DisplayEvent> {
 }
 
 @Composable
-private fun EventsTab(displayEvents: List<DisplayEvent>, details: MatchDetails, onDeleteRequest: (DisplayEvent) -> Unit) {
+private fun EventsTab(displayEvents: List<DisplayEvent>, details: MatchDetails, onDeleteRequest: ((DisplayEvent) -> Unit)?) {
     if (displayEvents.isEmpty()) {
         Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
             Text(stringResource(Res.string.msg_no_events_yet), color = Color.White.copy(alpha = 0.5f), textAlign = TextAlign.Center)
@@ -1026,7 +1041,7 @@ private fun EventsTab(displayEvents: List<DisplayEvent>, details: MatchDetails, 
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(displayEvents, key = { it.key }) { de ->
-            EventRow(de, details, onDelete = { onDeleteRequest(de) })
+            EventRow(de, details, onDelete = onDeleteRequest?.let { { it(de) } })
         }
         item { Spacer(Modifier.height(8.dp)) }
     }

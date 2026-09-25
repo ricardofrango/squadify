@@ -2,9 +2,9 @@ package com.ricardofrango.squadify.presentation.ui.createstaff
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ricardofrango.squadify.data.remote.ApiException
 import com.ricardofrango.squadify.domain.usecase.AddClubMembersUseCase
 import com.ricardofrango.squadify.model.AddClubMembersRequest
+import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_create_staff_failed
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.getString
 
 class CreateStaffViewModel(
     private val addClubMembersUseCase: AddClubMembersUseCase
@@ -39,10 +38,9 @@ class CreateStaffViewModel(
             try {
                 addClubMembersUseCase(clubId, AddClubMembersRequest(emails))
                 _navigationEvent.emit(CreateStaffNavigationEvent.NavigateBackWithStaffCreated)
-            } catch (e: ApiException) {
-                _state.update { it.copy(isSubmitting = false, error = getString(Res.string.msg_create_staff_failed)) }
             } catch (e: Exception) {
-                _state.update { it.copy(isSubmitting = false, error = getString(Res.string.msg_create_staff_failed)) }
+                val message = errorMessage(e, Res.string.msg_create_staff_failed)
+                _state.update { it.copy(isSubmitting = false, error = message) }
             }
         }
     }

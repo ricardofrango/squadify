@@ -54,7 +54,7 @@ private val DayMonth = LocalDate.Format { day(); char(' '); monthName(MonthNames
  * Reference"). One dark header (avatar, name, shirt number/position/age-group line) over a white
  * body: a fixed stat row (goals/assists/times called up -- all-time, no season/last-5/career split
  * yet), a Player Information card, and a Recent Events list. The overflow menu's "Edit player" (design
- * "17") is gated on [PlayerProfile.canManage].
+ * "17") is gated on [PlayerProfile.canEditPlayer].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,7 +100,7 @@ private fun PlayerDetailsContent(
                     title = stringResource(Res.string.title_player_profile),
                     onNavigateBack = onNavigateBack,
                     actions = {
-                        if (profile != null && profile.canManage) {
+                        if (profile != null && profile.canEditPlayer) {
                             var open by remember { mutableStateOf(false) }
                             Box {
                                 IconButton(onClick = { open = true }) {
@@ -381,7 +381,7 @@ private fun sampleProfile(withPosition: Boolean, withEvents: Boolean, canManage:
     assists = 6,
     timesCalledUp = 14,
     guardiansLinked = 2,
-    canManage = canManage,
+    canEditPlayer = canManage,
     recentEvents = if (withEvents) {
         listOf(
             PlayerProfileEvent(EventType.GOAL, 63, "AD Fontelas", Instant.fromEpochMilliseconds(0)),

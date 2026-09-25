@@ -1701,3 +1701,90 @@ COACH-level default bar for call-ups; the COACH-caller case needed no change. `A
 `DeleteMatchEventUseCaseTest` needed no changes at all -- both only ever exercised a COACH-level caller
 succeeding, and moving to the more permissive `MANAGE_LIVE_MATCH` default (STAFF) doesn't break a COACH
 still succeeding.
+
+## 36. Permission-Aware UI: Fixing Stale "canManage" Flags and Adding Real Gating
+
+**Problem, reported after §35 shipped**: the developer noticed two things live-testing the configurable
+permissions feature. First, a denied action just showed a generic "something went wrong" error with no
+hint that it was a permissions problem. Second -- the concrete example given was the live match
+console's "Start game" button -- a user without permission to do something could still *see* the button
+for it; only pressing it revealed the denial, via that same unhelpful generic error. The developer then
+clarified the scope explicitly: *"what I gave you, was just an example of ui issue regarding
+permissions, but the issue also happens on other screens"* -- so this was a full audit, not a
+single-button fix.
+
+**Root cause #1, a real correctness bug, not just a missing feature**: `GetMatchDetailsUseCase` computed
+its client-facing visibility flags (`canManage`/`canManageMatchDay`) using **hardcoded literal
+`minTeamRole` checks** (`minTeamRole = TeamRole.COACH` / `TeamRole.STAFF`) -- left over from before §35
+made these actions club-configurable. The real use cases (`ManageCallUpsUseCase`, `AddMatchEventUseCase`,
+etc.) all resolve their threshold via `configurablePermission`, which can be overridden per club. So the
+two computations could simply disagree: a club that opened call-ups to staff, or restricted live-match
+ops to coordinator-only, would show a UI whose buttons no longer matched what the server would actually
+allow -- visible-but-denied in one direction, hidden-but-allowed in the other. The same bug, in the same
+shape, was found in three more use cases once this pattern was known to look for: `GetAgeGroupDetailsUseCase`
+(`AgeGroupDetails.canManage`, one literal check bundling four different actions with three different real
+gates), `GetTeamDetailsUseCase` (`TeamDetails.canManage`, gating "Schedule match" with a literal check
+instead of `MANAGE_MATCH`), and `GetPlayerUseCase` (`PlayerProfile.canManage`, a plain coordinator-only
+check standing in for `EDIT_PLAYER`, which defaults to Coach).
+
+**Fix, applied identically everywhere this pattern was found**: replace every literal `minTeamRole`
+probe with a `configurablePermission` probe resolved against the *specific* action it actually gates, and
+split one bundled boolean into as many independent flags as there are genuinely distinct gates -- never
+let one flag's "yes" imply another's, since a club can now configure them to disagree on purpose.
+Concretely:
+- `MatchDetails`: `canManage`/`canManageMatchDay` (two flags) → `canManageMatch` / `canManageCallUps` /
+  `canManageLiveMatch` (three flags, one per action's real `ConfigurablePermission`).
+- `AgeGroupDetails`: one `canManage` → `canManageAgeGroup` (add staff / create team -- both permanently
+  coordinator/admin-only, not configurable, so this one stays a plain literal `minClubRole=COORDINATOR`
+  check, correctly) / `canManageMatch` (schedule match, `MANAGE_MATCH`) / `canAssignPlayersToAgeGroup`
+  (add players, `ASSIGN_PLAYERS_TO_AGE_GROUP`).
+- `TeamDetails`: `canManage` → `canManageMatch` (its only gated action, schedule match).
+- `PlayerProfile`: `canManage` → `canEditPlayer`, now resolved with `configurablePermission = EDIT_PLAYER`
+  against the player's own primary age group (needed for the age-group-staff-role lookup
+  `CheckUserPermissionUseCase` requires when a `configurablePermission` is given), matching
+  `UpdatePlayerUseCase`'s real gate exactly.
+
+Every client screen consuming one of these flags was updated to the new, more specific name(s) -- this
+was mostly a rename at each call site since the screens already *had* per-action visibility gates (the
+UI-hiding pattern already existed for these four screens); the bug was that the flag being checked didn't
+match the action being gated, not that gating was absent.
+
+**Root cause #2: no gating at all on the live match console.** Unlike the four detail screens above,
+`LiveMatchScreen`'s every action (kickoff, log goal/card/assist, substitution, pause/resume clock, set
+minute, half-time/full-time, delete event) was rendered unconditionally to any viewer who could open the
+screen -- even though `LiveMatchViewModel` already fetches `MatchDetails` (and therefore
+`canManageLiveMatch`) for its own purposes, that field was simply never read for UI decisions. This is the
+literal "Start game" complaint, but the same gap existed on every other button in that console, since
+opening a *live* match (unlike a *scheduled* one) doesn't route through `MatchDetailsScreen`'s own gate at
+all -- `MatchDetailsViewModel.load()` redirects straight to the live console for any club member the
+moment a match's status is `LIVE`/`HALF_TIME`, permission or not, so a plain viewer legitimately lands
+there and needs the screen itself to hide what they can't do. Fixed by threading `details.canManageLiveMatch`
+through every action in `LiveConsoleContent`/`PreKickoffContent`: score taps, the pause/resume-clock and
+set-minute row, the half-time/full-time button row, and squad-row taps (which open the log-event/
+substitution sheet) are hidden outright rather than merely disabled; the events tab's delete ("✕")
+affordance is passed as `null` rather than a real callback. A non-manager who lands on the console (e.g.
+a plain club member the moment a match goes live) instead sees a static explanatory notice
+(`msg_live_match_read_only`) where the action controls would be.
+
+**Root cause #3: even a correctly-denied action gave no signal of *why*.** Every mutating ViewModel's
+catch block (in `LiveMatchViewModel`, `MatchDetailsViewModel`, and the create/add/edit ViewModels for
+players, staff, teams, matches, and age-group assignments) collapsed `ApiException` and every other
+`Exception` into the same one fixed, generic string, discarding the `ApiException.statusCode` entirely --
+so a 403 looked identical to a network timeout or a validation failure. Fixed with one small shared
+helper, `errorMessage(e, fallback)` in `presentation/ErrorMessages.kt`: if the caught exception is an
+`ApiException` with `statusCode == 403`, it always resolves to one fixed, localized
+`msg_permission_denied` string ("You don't have permission to do this...") regardless of which action
+failed; any other exception falls back to the caller's own existing copy, unchanged. This still follows
+`AI_GUIDELINES.md` "No Raw Exception Messages in UI" -- the server's actual `ForbiddenException` message is
+never shown, only this one static string -- while finally telling the user *what kind* of failure this
+was. Wired into every catch block found doing this across the app (both load-failure and submit-failure
+paths), not just the ones the developer happened to hit live-testing.
+
+**Verified**: `:server:test` (full suite, including three new `GetAgeGroupDetailsUseCaseTest` cases that
+directly demonstrate the old bug -- a coach clearing `canManageMatch`/`canAssignPlayersToAgeGroup` but
+correctly still failing `canManageAgeGroup`, which the old single-flag design couldn't express), plus
+`GetMatchDetailsUseCaseTest`/`GetTeamDetailsUseCaseTest`/`GetPlayerUseCaseTest` updated for the renamed/
+split fields), `:app:shared:compileKotlinJvm`, `:app:androidApp:compileDevDebugKotlin` all clean.
+**Not verified**: the live match console's read-only notice and hidden controls on a real device (this
+round of fixes was verified by compilation + the server's unit suite only, unlike some earlier work in
+this file that included live-device passes).

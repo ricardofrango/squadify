@@ -45,7 +45,8 @@ import kotlin.time.Instant
 /**
  * A team's detail is now age-group-scoped: the permission check resolves the team to its age group,
  * staff/pool come from the age group, and the team itself contributes only its fixture list.
- * `canManage` is a non-throwing COORDINATOR / age-group-coach probe.
+ * `canManageMatch` is a non-throwing probe of `ConfigurablePermission.MANAGE_MATCH` -- defaults to
+ * coach, same as these tests' expectations, but is club-configurable (see `CreateMatchUseCase`).
  */
 class GetTeamDetailsUseCaseTest {
 
@@ -121,7 +122,7 @@ class GetTeamDetailsUseCaseTest {
 
         assertEquals("Sub-15", result.ageGroup.name)
         assertEquals("26/27", result.season.name)
-        assertTrue(result.canManage)
+        assertTrue(result.canManageMatch)
     }
 
     @Test
@@ -132,7 +133,7 @@ class GetTeamDetailsUseCaseTest {
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
 
-        assertTrue(useCase(coach.id, teamId).canManage)
+        assertTrue(useCase(coach.id, teamId).canManageMatch)
     }
 
     @Test
@@ -143,7 +144,7 @@ class GetTeamDetailsUseCaseTest {
         coEvery { userRepository.getUserRoleInClub(staff.id, clubIdA) } returns ClubRole.MEMBER
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, ag1) } returns TeamRole.STAFF
 
-        assertFalse(useCase(staff.id, teamId).canManage)
+        assertFalse(useCase(staff.id, teamId).canManageMatch)
     }
 
     @Test
@@ -163,7 +164,7 @@ class GetTeamDetailsUseCaseTest {
         val result = useCase(parent.id, teamId)
 
         assertEquals(1, result.poolSize)
-        assertFalse(result.canManage)
+        assertFalse(result.canManageMatch)
     }
 
     @Test

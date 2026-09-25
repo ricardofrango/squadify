@@ -315,7 +315,10 @@ data class Player(
  * Everything shown on the player profile screen: the player record plus derived stats (goals,
  * assists, times called up -- all-time, no season/career split yet) and the player's most recent
  * logged match events. [guardiansLinked] is a plain count -- who they are isn't shown on this screen.
- * [canManage] is a non-throwing probe for the COORDINATOR gate that guards the edit action.
+ * [canEditPlayer] is a non-throwing probe of the same club-configurable `ConfigurablePermission.EDIT_PLAYER`
+ * gate `UpdatePlayerUseCase` actually enforces (resolved against [ageGroupId], the player's primary
+ * age group), not a fixed coordinator-only check -- a coach a club has allowed to edit players (the
+ * default) needs to see the edit action too, not just a coordinator/admin.
  */
 @Serializable
 data class PlayerProfile(
@@ -328,7 +331,7 @@ data class PlayerProfile(
     val timesCalledUp: Int,
     val guardiansLinked: Int,
     val recentEvents: List<PlayerProfileEvent>,
-    val canManage: Boolean
+    val canEditPlayer: Boolean
 )
 
 /** One logged event for [PlayerProfile.recentEvents], enriched with the match it happened in. */
@@ -626,8 +629,9 @@ data class TeamMatchResult(
  * while players and staff belong to the age group. [poolSize] and [staff] are surfaced read-only so
  * the screen can point back to the age group; [siblingTeamNames] are the other teams sharing that
  * same player pool. [opponents] is the club's opponent list so the client can resolve
- * `match.opponentId`. [canManage] gates the edit / schedule actions -- true for a club
- * admin/coordinator or a coach of this age group, same idea as `AgeGroupDetails.canManage`.
+ * `match.opponentId`. [canManageMatch] gates scheduling a match for this team -- a non-throwing probe
+ * of the same club-configurable `ConfigurablePermission.MANAGE_MATCH` gate `CreateMatchUseCase`
+ * actually enforces, not a fixed coordinator-only check.
  */
 @Serializable
 data class TeamDetails(
@@ -645,16 +649,21 @@ data class TeamDetails(
     val upcomingMatchScores: Map<String, MatchScore> = emptyMap(),
     val recentResults: List<TeamMatchResult>,
     val opponents: List<Opponent>,
-    val canManage: Boolean
+    val canManageMatch: Boolean
 )
 
 /**
  * Everything attached to one age group, for its detail screen: the group and its [season], the full
  * player [pool][players], the [staff], the [teams] under it (all sharing the same pool), and the
  * upcoming matches across those teams ([opponents] is the club's opponent list so the client can
- * resolve `match.opponentId` to a name/logo). [canManage] is true for a club admin/coordinator or a
- * coach assigned to this age group -- it gates the add/edit actions, same idea as
- * `ClubDetailsResponse.canEditClub`.
+ * resolve `match.opponentId` to a name/logo). Three independent, non-throwing permission probes, each
+ * matching the real gate its action's use case enforces (see `ConfigurablePermission`/§35 in
+ * TECHNICAL_DECISIONS.md): [canManageAgeGroup] gates adding staff (`AddStaffToAgeGroupUseCase`) and
+ * creating a team (`CreateTeamsUseCase`) -- both permanently coordinator/admin-only, not club
+ * configurable, same idea as `ClubDetailsResponse.canEditClub`; [canManageMatch] gates scheduling a
+ * match (`CreateMatchUseCase`, `ConfigurablePermission.MANAGE_MATCH`); [canAssignPlayersToAgeGroup]
+ * gates adding an existing club player to this age group's pool (`AddPlayersToAgeGroupUseCase`,
+ * `ConfigurablePermission.ASSIGN_PLAYERS_TO_AGE_GROUP`).
  */
 @Serializable
 data class AgeGroupDetails(
@@ -669,7 +678,9 @@ data class AgeGroupDetails(
     // entries have none. Lets a live match in this list show its running score.
     val upcomingMatchScores: Map<String, MatchScore> = emptyMap(),
     val opponents: List<Opponent>,
-    val canManage: Boolean
+    val canManageAgeGroup: Boolean,
+    val canManageMatch: Boolean,
+    val canAssignPlayersToAgeGroup: Boolean
 )
 
 /**
@@ -762,12 +773,19 @@ data class MatchCallUpWithPlayer(
 /**
  * The match plus everything its detail screen needs: the [opponent], the current [callUps], the
  * [team] / [ageGroup] / [season] it belongs to, and the age group's [poolPlayers] (who can be added
- * to the call-up). [canManage] is true for a club admin/coordinator or a **coach** of the age group --
- * it gates editing the match itself (date/time/location/notes; see `UpdateMatchUseCase`).
- * [canManageMatchDay] is true for a club admin/coordinator or a coach **or staff** of the age group --
- * it gates match-day operations that don't change the match's own record: managing call-ups
- * (`ManageCallUpsUseCase`), starting the match (`StartMatchUseCase`), and updating its status
- * (`UpdateMatchStatusUseCase`). Logging/deleting match events stays coach-only, same as [canManage].
+ * to the call-up). Each `canManageX` flag is a direct, independent probe of the same club-configurable
+ * permission its corresponding use case enforces (see `ConfigurablePermission`/§35 in
+ * TECHNICAL_DECISIONS.md) -- a club can override each away from its default separately, so one flag
+ * being true never implies another: [canManageMatch] gates editing/deleting the match's own record
+ * (date/time/location/notes; `UpdateMatchUseCase`/`DeleteMatchUseCase`, `ConfigurablePermission.MANAGE_MATCH`);
+ * [canManageCallUps] gates the pre-match squad list (`ManageCallUpsUseCase`,
+ * `ConfigurablePermission.MANAGE_CALL_UPS`); [canManageLiveMatch] gates kickoff, pause/resume, clock
+ * correction, status changes, and logging/deleting match events -- everything from kickoff onward
+ * (`StartMatchUseCase`/`PauseMatchUseCase`/`ResumeMatchUseCase`/`SetMatchMinuteUseCase`/
+ * `UpdateMatchStatusUseCase`/`AddMatchEventUseCase`/`DeleteMatchEventUseCase`,
+ * `ConfigurablePermission.MANAGE_LIVE_MATCH`). The client uses these to hide (not just disable) the
+ * corresponding buttons for a viewer who can't use them, rather than relying solely on the server
+ * rejecting the call.
  */
 @Serializable
 data class MatchDetails(
@@ -778,8 +796,9 @@ data class MatchDetails(
     val season: Season,
     val callUps: List<MatchCallUpWithPlayer>,
     val poolPlayers: List<Player>,
-    val canManage: Boolean,
-    val canManageMatchDay: Boolean,
+    val canManageMatch: Boolean,
+    val canManageCallUps: Boolean,
+    val canManageLiveMatch: Boolean,
     // The running/final scoreline, rebuilt from match events -- 0-0 before any goals are logged.
     val score: MatchScore
 )

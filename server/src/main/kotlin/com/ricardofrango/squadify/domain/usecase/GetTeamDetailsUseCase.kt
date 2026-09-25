@@ -12,6 +12,7 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchOutcome
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.TeamDetails
@@ -23,8 +24,9 @@ import kotlin.time.Clock
  * Everything attached to one team, for its detail screen. A team is a scheduling handle under an age
  * group, so this returns its fixtures ([TeamDetails.upcomingMatches] / [TeamDetails.recentResults])
  * plus a read-only view of the age group's pool size and staff. Readable by any club member (and a
- * linked player/parent of a player in the age-group pool); [TeamDetails.canManage] is a non-throwing
- * probe for the COORDINATOR / age-group-coach gate that guards the edit / schedule actions.
+ * linked player/parent of a player in the age-group pool); [TeamDetails.canManageMatch] is a
+ * non-throwing probe of the same `ConfigurablePermission.MANAGE_MATCH` gate that scheduling a match
+ * actually enforces (see `CreateMatchUseCase`).
  */
 class GetTeamDetailsUseCase(
     private val teamRepository: TeamRepository,
@@ -58,12 +60,12 @@ class GetTeamDetailsUseCase(
         val season = seasonRepository.getSeasonById(team.seasonId)
             ?: throw NotFoundException("Season not found")
 
-        val canManage = try {
+        val canManageMatch = try {
             checkUserPermissionUseCase(
                 userId = userId,
                 clubId = team.clubId,
                 minClubRole = ClubRole.COORDINATOR,
-                minTeamRole = TeamRole.COACH,
+                configurablePermission = ConfigurablePermission.MANAGE_MATCH,
                 teamId = teamId
             )
             true
@@ -118,7 +120,7 @@ class GetTeamDetailsUseCase(
             upcomingMatchScores = upcomingMatchScores,
             recentResults = recentResults,
             opponents = opponentRepository.getOpponentsByClub(team.clubId),
-            canManage = canManage
+            canManageMatch = canManageMatch
         )
     }
 }

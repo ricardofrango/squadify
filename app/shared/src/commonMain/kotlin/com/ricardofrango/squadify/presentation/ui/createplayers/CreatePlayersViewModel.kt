@@ -2,10 +2,10 @@ package com.ricardofrango.squadify.presentation.ui.createplayers
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ricardofrango.squadify.data.remote.ApiException
 import com.ricardofrango.squadify.domain.usecase.CreatePlayersUseCase
 import com.ricardofrango.squadify.model.CreatePlayer
 import com.ricardofrango.squadify.model.CreatePlayersRequest
+import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_create_players_failed
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.getString
 
 class CreatePlayersViewModel(
     private val createPlayersUseCase: CreatePlayersUseCase
@@ -40,10 +39,9 @@ class CreatePlayersViewModel(
             try {
                 createPlayersUseCase(CreatePlayersRequest(clubId, players, ageGroupId))
                 _navigationEvent.emit(CreatePlayersNavigationEvent.NavigateBackWithPlayersCreated)
-            } catch (e: ApiException) {
-                _state.update { it.copy(isSubmitting = false, error = getString(Res.string.msg_create_players_failed)) }
             } catch (e: Exception) {
-                _state.update { it.copy(isSubmitting = false, error = getString(Res.string.msg_create_players_failed)) }
+                val message = errorMessage(e, Res.string.msg_create_players_failed)
+                _state.update { it.copy(isSubmitting = false, error = message) }
             }
         }
     }

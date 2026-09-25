@@ -1,5 +1,9 @@
 <resources>
     <string name="app_name">Squadify</string>
+
+    <!-- Shared error messages -->
+    <string name="msg_permission_denied">You don\'t have permission to do this. Ask a club coordinator or admin if you think this is wrong.</string>
+
     <string name="label_email">Email</string>
     <string name="label_password">Password</string>
     <string name="label_show_password">Show password</string>
@@ -380,6 +384,7 @@
 
     <!-- Live Match Console -->
     <string name="msg_live_match_action_failed">Something went wrong. Please try again.</string>
+    <string name="msg_live_match_read_only">You can follow along here, but only a coach or staff member can start the match, log events, or manage the clock.</string>
     <string name="msg_kickoff_time_location">Kick-off %1$s · %2$s</string>
     <string name="msg_kickoff_time_only">Kick-off %1$s</string>
     <string name="label_half_length">Half length</string>

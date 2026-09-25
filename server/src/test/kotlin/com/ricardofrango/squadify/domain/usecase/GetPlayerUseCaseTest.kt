@@ -82,6 +82,9 @@ class GetPlayerUseCaseTest {
         )
         coEvery { matchRepository.countCallUpsByPlayer(playerId) } returns 14L
         coEvery { playerRepository.countGuardiansByPlayer(playerId) } returns 2L
+        // canEditPlayer now resolves ConfigurablePermission.EDIT_PLAYER against the player's own age
+        // group -- default null (no age-group role) unless a test overrides it below.
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(any(), ag1) } returns null
     }
 
     @Test
@@ -113,7 +116,7 @@ class GetPlayerUseCaseTest {
         assertEquals("25/26", result.seasonLabel)
         assertEquals(3, result.recentEvents.size)
         assertEquals("AD Fontelas", result.recentEvents.first().opponentName)
-        assertEquals(false, result.canManage)
+        assertEquals(false, result.canEditPlayer)
         Unit
     }
 
@@ -127,7 +130,7 @@ class GetPlayerUseCaseTest {
 
         val result = useCase(coordinator.id, playerId)
 
-        assertEquals(true, result.canManage)
+        assertEquals(true, result.canEditPlayer)
         Unit
     }
 

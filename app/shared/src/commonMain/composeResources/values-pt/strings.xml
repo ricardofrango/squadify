@@ -1,4 +1,7 @@
 <resources>
+    <!-- Shared error messages -->
+    <string name="msg_permission_denied">Não tem permissão para fazer isto. Se achar que isto está errado, contacte um coordenador ou administrador do clube.</string>
+
     <string name="label_email">Email</string>
     <string name="label_password">Senha</string>
     <string name="label_show_password">Mostrar senha</string>
@@ -379,6 +382,7 @@
 
     <!-- Live Match Console -->
     <string name="msg_live_match_action_failed">Ocorreu um erro. Por favor, tente novamente.</string>
+    <string name="msg_live_match_read_only">Pode acompanhar aqui, mas só um treinador ou membro da equipa técnica pode iniciar o jogo, registar eventos ou gerir o cronómetro.</string>
     <string name="msg_kickoff_time_location">Início às %1$s · %2$s</string>
     <string name="msg_kickoff_time_only">Início às %1$s</string>
     <string name="label_half_length">Duração da parte</string>

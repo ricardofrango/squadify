@@ -10,6 +10,7 @@ import com.ricardofrango.squadify.domain.usecase.GetTeamDetailsUseCase
 import com.ricardofrango.squadify.model.CreateMatchRequest
 import com.ricardofrango.squadify.model.CreateOpponentRequest
 import com.ricardofrango.squadify.model.Team
+import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_create_match_failed
 import squadify.app.shared.generated.resources.msg_failed_to_load_match_form
@@ -157,10 +158,9 @@ class CreateMatchViewModel(
                 )
                 _navigationEvent.emit(CreateMatchNavigationEvent.NavigateBackWithMatchCreated)
             } catch (e: Exception) {
+                val message = errorMessage(e, Res.string.msg_create_match_failed)
                 _state.update {
-                    (it as? CreateMatchUiState.Idle)
-                        ?.copy(isSubmitting = false, error = getString(Res.string.msg_create_match_failed))
-                        ?: it
+                    (it as? CreateMatchUiState.Idle)?.copy(isSubmitting = false, error = message) ?: it
                 }
             }
         }

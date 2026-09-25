@@ -123,7 +123,7 @@ private fun MatchDetailsContent(
                     subtitle = details?.let { "${it.ageGroup.name} · ${it.season.name}" },
                     onNavigateBack = onNavigateBack,
                     actions = {
-                        if (details != null && details.canManage) {
+                        if (details != null && details.canManageMatch) {
                             var menuOpen by remember { mutableStateOf(false) }
                             Box {
                                 IconButton(onClick = { menuOpen = true }) {
@@ -147,7 +147,9 @@ private fun MatchDetailsContent(
             }
         },
         bottomBar = {
-            if (details != null && details.canManageMatchDay) {
+            // Starting/entering the live match console is gated on live-match ops specifically --
+            // not on managing call-ups, which is now a separate, independently configurable setting.
+            if (details != null && details.canManageLiveMatch) {
                 BottomActionBar(
                     state = uiState as MatchDetailsUiState.Idle,
                     onEnterLiveMatch = onEnterLiveMatch
@@ -261,8 +263,8 @@ private fun MatchBody(
     // A finished match is a record, not something to keep editing -- call-ups, kickoff, location
     // etc. all freeze once the game is over, regardless of the viewer's role.
     val notFinished = details.match.status != MatchStatus.FINISHED
-    val canEditMatch = details.canManage && notFinished
-    val canManageMatchDay = details.canManageMatchDay && notFinished
+    val canEditMatch = details.canManageMatch && notFinished
+    val canManageCallUps = details.canManageCallUps && notFinished
     var showEdit by remember { mutableStateOf(false) }
 
     val sortedCallUps = details.callUps.sortedWith(callUpComparator(state.sort))
@@ -297,14 +299,14 @@ private fun MatchBody(
                 Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
                 SortChip(stringResource(Res.string.label_position_field), state.sort == CallUpSort.POSITION) { onSortSelected(CallUpSort.POSITION) }
                 SortChip(stringResource(Res.string.label_sort_name), state.sort == CallUpSort.NAME) { onSortSelected(CallUpSort.NAME) }
-                if (canManageMatchDay) {
+                if (canManageCallUps) {
                     Spacer(Modifier.weight(1f))
                     // TODO: reminders aren't wired yet -- kept inert per the design.
                     Text(stringResource(Res.string.label_remind), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = PitchGreen.copy(alpha = 0.5f))
                 }
             }
         }
-        if (canManageMatchDay && counts.calledUp < RECOMMENDED_SQUAD) {
+        if (canManageCallUps && counts.calledUp < RECOMMENDED_SQUAD) {
             item {
                 Text(
                     stringResource(Res.string.msg_squad_hint, counts.calledUp, RECOMMENDED_SQUAD),
@@ -317,12 +319,12 @@ private fun MatchBody(
             item { Text(stringResource(Res.string.msg_no_callups), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
         } else {
             items(sortedCallUps, key = { it.callUp.id }) { cu ->
-                CallUpRow(cu, onRemove = if (canManageMatchDay) { { onRemoveFromCallUp(cu) } } else null)
+                CallUpRow(cu, onRemove = if (canManageCallUps) { { onRemoveFromCallUp(cu) } } else null)
             }
         }
 
         // ---- Available ----
-        if (canManageMatchDay && details.poolPlayers.isNotEmpty()) {
+        if (canManageCallUps && details.poolPlayers.isNotEmpty()) {
             item {
                 Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 12.dp)) {
                     Text(stringResource(Res.string.label_available), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
@@ -677,8 +679,9 @@ private fun sampleDetails(status: MatchStatus, canManage: Boolean, score: MatchS
     poolPlayers = listOf(
         Player(id = "p2", clubId = "c1", firstName = "Xavier", lastName = "Boaventura", birthDate = LocalDate(2011, 8, 4), shirtNumber = 7, active = true)
     ),
-    canManage = canManage,
-    canManageMatchDay = canManage,
+    canManageMatch = canManage,
+    canManageCallUps = canManage,
+    canManageLiveMatch = canManage,
     score = score
 )
 

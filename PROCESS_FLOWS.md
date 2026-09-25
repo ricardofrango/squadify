@@ -96,7 +96,7 @@ graph TD
     D -- allowed --> R[Fetch and return data from repository]
 ```
 
-Use cases that follow this pattern exactly (fetch-context → require at least `MEMBER` → return): `GetClubDetailsUseCase`, `GetAgeGroupsUseCase`, `GetSeasonsUseCase`, `GetTeamsUseCase`, `GetTeamDetailsUseCase` (adds aggregation + a `canManage` probe — see §4.6b), `GetTeamPlayersUseCase`, `GetAgeGroupPlayersByClubUseCase`, `GetAgeGroupStaffUseCase`, `GetPlayersUseCase`, `GetPlayerUseCase` (adds aggregation, no `canManage` probe — see §5.1b), `GetMatchesUseCase`, `GetMatchDetailsUseCase` (adds aggregation + `canManage`/`canManageMatchDay` probes — see §7.1b), `GetMatchEventsUseCase`, `GetMatchScoreUseCase`, `GetOpponentsUseCase`, `GetLiveMatchUpdatesUseCase` (terminal step is "subscribe to the live bus" instead of "return data" — see §8.3), and `GetClubMatchesUpdatesUseCase` (same, but with no match to fetch first and no `matchId` context — see §8.5).
+Use cases that follow this pattern exactly (fetch-context → require at least `MEMBER` → return): `GetClubDetailsUseCase`, `GetAgeGroupsUseCase`, `GetSeasonsUseCase`, `GetTeamsUseCase`, `GetTeamDetailsUseCase` (adds aggregation + a `canManageMatch` probe — see §4.6b), `GetTeamPlayersUseCase`, `GetAgeGroupPlayersByClubUseCase`, `GetAgeGroupStaffUseCase`, `GetPlayersUseCase`, `GetPlayerUseCase` (adds aggregation + a `canEditPlayer` probe — see §5.1b), `GetMatchesUseCase`, `GetMatchDetailsUseCase` (adds aggregation + `canManageMatch`/`canManageCallUps`/`canManageLiveMatch` probes — see §7.1b), `GetMatchEventsUseCase`, `GetMatchScoreUseCase`, `GetOpponentsUseCase`, `GetLiveMatchUpdatesUseCase` (terminal step is "subscribe to the live bus" instead of "return data" — see §8.3), and `GetClubMatchesUpdatesUseCase` (same, but with no match to fetch first and no `matchId` context — see §8.5).
 
 Their individual diagrams are omitted below to avoid 15 near-identical copies; only the use cases with distinct branching logic get a dedicated diagram.
 
@@ -485,7 +485,7 @@ graph TD
 
 ### 4.4b Get Age Group Details (`GetAgeGroupDetailsUseCase`)
 
-The aggregate behind the age-group detail screen. Follows the standard permission-gated read (§1.3) with an aggregation step and a `canManage` probe:
+The aggregate behind the age-group detail screen. Follows the standard permission-gated read (§1.3) with an aggregation step and three independent, non-throwing permission probes -- each matching the real gate its action's own use case enforces, rather than one literal check standing in for all three (see TECHNICAL_DECISIONS.md §35's "reshuffled taxonomy" note on why bundling these caused a real button-visibility bug):
 
 ```mermaid
 graph TD
@@ -497,11 +497,13 @@ graph TD
     D --> E[teams = club teams filtered to this age group]
     E --> G["upcomingMatches = each team's matches that are either SCHEDULED with dateTime >= now, or currently LIVE/HALF_TIME, sorted by dateTime"]
     G --> G2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
-    G2 --> H["canManage = non-throwing probe: minClubRole=COORDINATOR OR minTeamRole=COACH on ageGroupId"]
-    H --> Z(["Return AgeGroupDetails: ageGroup, club, season, players (pool), staff, teams, upcomingMatches, upcomingMatchScores, opponents, canManage"])
+    G2 --> H["canManageAgeGroup = non-throwing probe: minClubRole=COORDINATOR only (no team-role path) -- add staff / create team"]
+    H --> H2["canManageMatch = non-throwing probe of configurablePermission=MANAGE_MATCH on ageGroupId -- schedule match"]
+    H2 --> H3["canAssignPlayersToAgeGroup = non-throwing probe of configurablePermission=ASSIGN_PLAYERS_TO_AGE_GROUP on ageGroupId -- add players"]
+    H3 --> Z(["Return AgeGroupDetails: ageGroup, club, season, players (pool), staff, teams, upcomingMatches, upcomingMatchScores, opponents, canManageAgeGroup, canManageMatch, canAssignPlayersToAgeGroup"])
 ```
 
-`opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canManage` gates the add/edit actions on the detail screen, the same way `ClubDetailsResponse.canEditClub` does. A match in progress stays in `upcomingMatches` rather than disappearing between "scheduled" and "finished" -- `upcomingMatchScores` lets the client show its running score (see `MatchRow` in `TECHNICAL_DECISIONS.md`/the client's `presentation/ui/components` package).
+`opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canManageAgeGroup` gates "Add staff"/"Create team" (permanently coordinator/admin-only, not club-configurable, the same way `ClubDetailsResponse.canEditClub` is); `canManageMatch` gates "Schedule match"; `canAssignPlayersToAgeGroup` gates "Add players" -- the latter two are club-configurable and can each diverge from the coordinator-only default independently. A match in progress stays in `upcomingMatches` rather than disappearing between "scheduled" and "finished" -- `upcomingMatchScores` lets the client show its running score (see `MatchRow` in `TECHNICAL_DECISIONS.md`/the client's `presentation/ui/components` package).
 
 ### 4.5 Create Team (`CreateTeamUseCase`)
 
@@ -570,7 +572,7 @@ graph TD
 
 ### 4.6b Get Team Details (`GetTeamDetailsUseCase`)
 
-The aggregate behind the team detail screen. A team is only a scheduling handle, so the payload leads with its fixtures and carries the age group's pool size + staff read-only. Standard permission-gated read (§1.3) with an aggregation step and a `canManage` probe:
+The aggregate behind the team detail screen. A team is only a scheduling handle, so the payload leads with its fixtures and carries the age group's pool size + staff read-only. Standard permission-gated read (§1.3) with an aggregation step and a `canManageMatch` probe:
 
 ```mermaid
 graph TD
@@ -579,17 +581,17 @@ graph TD
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER, minTeamRole=STAFF, teamId, allowPlayerOrParentAccess]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D[Fetch club + age group + season]
-    D --> G["canManage = non-throwing probe: minClubRole=COORDINATOR OR minTeamRole=COACH on teamId"]
+    D --> G["canManageMatch = non-throwing probe of configurablePermission=MANAGE_MATCH on teamId"]
     G --> H[matches = matchRepository.getMatchesByTeam]
     H --> I["upcomingMatches = SCHEDULED with dateTime >= now, OR currently LIVE/HALF_TIME, sorted ascending"]
     I --> I2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
     H --> J["recentResults = FINISHED, newest first, each paired with its scoreline from matchEventRepository.getScoreByMatch → WIN/DRAW/LOSS"]
     I2 --> K[siblingTeamNames = other teams in the same age group]
     J --> K
-    K --> Z(["Return TeamDetails: team, club, ageGroup, season, poolSize, siblingTeamNames, staff, upcomingMatches, upcomingMatchScores, recentResults, opponents, canManage"])
+    K --> Z(["Return TeamDetails: team, club, ageGroup, season, poolSize, siblingTeamNames, staff, upcomingMatches, upcomingMatchScores, recentResults, opponents, canManageMatch"])
 ```
 
-`poolSize` / `staff` come from the age group (players and staff belong to it, not the team); the screen links back to the age-group detail for both. `club` is carried so a screen opened from here (e.g. Schedule Match) has the club name without another call. `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canManage` gates the schedule-match / edit-team actions. As with the age-group screen, a live match stays in `upcomingMatches` (it hasn't reached `recentResults` yet) and `upcomingMatchScores` carries its running score.
+`poolSize` / `staff` come from the age group (players and staff belong to it, not the team); the screen links back to the age-group detail for both. `club` is carried so a screen opened from here (e.g. Schedule Match) has the club name without another call. `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canManageMatch` gates the schedule-match action ("Edit team" is a decorative, unwired menu item -- see TECHNICAL_DECISIONS.md §35). As with the age-group screen, a live match stays in `upcomingMatches` (it hasn't reached `recentResults` yet) and `upcomingMatchScores` carries its running score.
 
 ---
 
@@ -638,8 +640,8 @@ graph TD
     E --> G["goals/assists = count of GOAL/ASSIST in events"]
     G --> H["recentEvents = first 5 of events, each resolved to its Match + Opponent name"]
     H --> I["timesCalledUp = countCallUpsByPlayer; guardiansLinked = countGuardiansByPlayer"]
-    I --> J["canManage = non-throwing probe of CheckUserPermissionUseCase — minClubRole=COORDINATOR"]
-    J --> Z(["Return PlayerProfile: player, ageGroupLabel, seasonLabel, goals, assists, timesCalledUp, guardiansLinked, recentEvents, canManage"])
+    I --> J["canEditPlayer = non-throwing probe of configurablePermission=EDIT_PLAYER on this player's primary age group"]
+    J --> Z(["Return PlayerProfile: player, ageGroupLabel, seasonLabel, goals, assists, timesCalledUp, guardiansLinked, recentEvents, canEditPlayer"])
 ```
 
 Stats are all-time -- there's no season/last-5/career split yet (the client's player profile screen
@@ -647,8 +649,9 @@ only shows one fixed set of numbers). `ageGroupLabel`/`seasonLabel` are the play
 membership (real `AgeGroupPlayers` data) and that age group's season; this is distinct from the
 "Sub N" text the client also shows next to the player's name/position, which it derives purely from
 `Player.birthDate` and today's date (`AgeGroupDefaults.currentSeasonEndYear`/`inferredName`) with no
-server round-trip. `canManage` gates the player profile screen's "Edit player" overflow action, same
-pattern as `TeamDetails.canManage` / `AgeGroupDetails.canManage`.
+server round-trip. `canEditPlayer` gates the player profile screen's "Edit player" overflow action --
+a non-throwing probe of the same club-configurable gate `UpdatePlayerUseCase` actually enforces, not a
+fixed coordinator-only check (see TECHNICAL_DECISIONS.md §35).
 
 `Player.position` is a `PlayerPosition` enum (`GOALKEEPER`/`DEFENDER`/`MIDFIELD`/`WINGER`/`STRIKER`),
 and `Player` also carries `heightCm`, `weightKg`, and a free-text `emergencyContact` -- all four are
@@ -699,7 +702,7 @@ club-wide coordinator+ — added alongside making the action configurable (see `
 `CreatePlayersUseCase`.
 
 **Client screen:** `EditPlayerScreen` (design canvas "17A"/"17B") is the first client consumer of this
-use case. Reached from the player profile's overflow menu (gated on `canManage`, §5.1b), it edits every
+use case. Reached from the player profile's overflow menu (gated on `canEditPlayer`, §5.1b), it edits every
 field `UpdatePlayerRequest` supports except `photoUrl`/`email`/`parents` -- name, date of birth, shirt
 number, position, height/weight, and emergency contact -- reusing Create Players' field styling, and
 passes the player's own `ageGroupId` (from `PlayerProfile`, resolved server-side the same way
@@ -834,7 +837,7 @@ graph TD
 
 ### 7.1b Get Match Details (`GetMatchDetailsUseCase`)
 
-The aggregate behind the match screen. Standard permission-gated read (§1.3, `MEMBER` + age-group `STAFF` + linked player/parent) plus an aggregation step and two non-throwing permission probes (`canManage`, `canManageMatchDay`):
+The aggregate behind the match screen. Standard permission-gated read (§1.3, `MEMBER` + age-group `STAFF` + linked player/parent) plus an aggregation step and three independent, non-throwing permission probes (`canManageMatch`, `canManageCallUps`, `canManageLiveMatch`), each resolved against the exact `configurablePermission` its own action's use case enforces rather than a literal role check that can drift out of sync with a club's actual configuration (see TECHNICAL_DECISIONS.md §35's "reshuffled taxonomy" note -- this replaced an earlier two-flag `canManage`/`canManageMatchDay` design that used hardcoded thresholds and could show/hide the wrong buttons once a club overrode any of the three):
 
 ```mermaid
 graph TD
@@ -844,13 +847,14 @@ graph TD
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D[Fetch opponent + team + age group + season]
     D --> E["callUps = call-ups for the match; poolPlayers = age group's players MINUS whoever is already called up"]
-    E --> G["canManage = non-throwing probe: minClubRole=COORDINATOR OR minTeamRole=COACH on the team"]
-    G --> G2["canManageMatchDay = canManage OR non-throwing probe: minClubRole=COORDINATOR OR minTeamRole=STAFF on the team"]
-    G2 --> H["score = matchEventRepository.getScoreByMatch(matchId) — 0-0 before any goals are logged"]
-    H --> Z(["Return MatchDetails: match, opponent, team, ageGroup, season, callUps, poolPlayers, canManage, canManageMatchDay, score"])
+    E --> G["canManageMatch = non-throwing probe of configurablePermission=MANAGE_MATCH on the team"]
+    G --> G2["canManageCallUps = non-throwing probe of configurablePermission=MANAGE_CALL_UPS on the team"]
+    G2 --> G3["canManageLiveMatch = non-throwing probe of configurablePermission=MANAGE_LIVE_MATCH on the team"]
+    G3 --> H["score = matchEventRepository.getScoreByMatch(matchId) — 0-0 before any goals are logged"]
+    H --> Z(["Return MatchDetails: match, opponent, team, ageGroup, season, callUps, poolPlayers, canManageMatch, canManageCallUps, canManageLiveMatch, score"])
 ```
 
-The use case composes `MatchDetails` itself now — the old `MatchRepository.getMatchDetails` (opponent + call-ups only) was removed. `poolPlayers` is the "Available" list on the call-up screen. `canManage` (coach+ only) gates just the edit sheet -- changing the match's own date/time/location/notes. `canManageMatchDay` (coach **or staff**) gates call-up management and entering the live match screen (start/status/events) -- see §19 in `TECHNICAL_DECISIONS.md` for why these split. Both are further gated client-side: the client forces the screen read-only once `match.status == FINISHED` regardless of either flag, so a finished match becomes a plain record (no editing call-ups, kickoff, location, etc.). `score` feeds the FINISHED-state result banner (colored WIN/LOSS/DRAW + scoreline) on the details screen, the same rebuilt-from-events value `MatchRow` already showed in match lists.
+The use case composes `MatchDetails` itself now — the old `MatchRepository.getMatchDetails` (opponent + call-ups only) was removed. `poolPlayers` is the "Available" list on the call-up screen. `canManageMatch` gates just the edit sheet -- changing the match's own date/time/location/notes -- and the delete-match menu item. `canManageCallUps` gates managing the pre-match squad list. `canManageLiveMatch` gates entering the live match console and every action inside it (kickoff, clock, logging/deleting events, status changes) -- see §19 in `TECHNICAL_DECISIONS.md` for the original coach-vs-staff rationale and §35 for how all three are now independently club-configurable. All three are further gated client-side: the client forces the screen read-only once `match.status == FINISHED` regardless of any flag, so a finished match becomes a plain record (no editing call-ups, kickoff, location, etc.), and the live match console itself hides (not just disables) every action a viewer's `canManageLiveMatch` doesn't clear, showing a read-only notice instead. `score` feeds the FINISHED-state result banner (colored WIN/LOSS/DRAW + scoreline) on the details screen, the same rebuilt-from-events value `MatchRow` already showed in match lists.
 
 The bottom button just opens the live match screen; starting the game and recording events all live there. If the match is already LIVE/HALF_TIME when this screen loads (tapped in from a list, or discovered on a reload), the client redirects straight to the live match screen instead of rendering the details view -- see `MatchDetailsViewModel.load()` / `AppNavigation.kt`'s `Screen.MatchDetails` route, which pops this screen off the back stack when redirecting (rather than stacking under it) so back-navigation from the live screen doesn't bounce straight back into another redirect.
 

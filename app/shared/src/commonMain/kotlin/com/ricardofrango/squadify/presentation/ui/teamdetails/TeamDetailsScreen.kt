@@ -54,7 +54,7 @@ private val DayMonth = LocalDate.Format {
  * The hub for one team. A team is a scheduling handle under an age group, so this screen leads with
  * its fixtures (upcoming + recent results) and links back to the age group for staff and the player
  * pool rather than re-listing them. Built to the "Team details" artboard (12A / 12B) of the design
- * canvas linked in AI_GUIDELINES.md. Manage affordances are gated on [TeamDetails.canManage].
+ * canvas linked in AI_GUIDELINES.md. Manage affordances are gated on [TeamDetails.canManageMatch].
  */
 @Composable
 fun TeamDetailsScreen(
@@ -105,7 +105,7 @@ private fun TeamDetailsContent(
                 subtitle = details?.let { "${it.ageGroup.name} · ${it.season.name}" },
                 onNavigateBack = onNavigateBack,
                 actions = {
-                    if (details != null && details.canManage) {
+                    if (details != null && details.canManageMatch) {
                         var open by remember { mutableStateOf(false) }
                         Box {
                             IconButton(onClick = { open = true }) {
@@ -187,7 +187,7 @@ private fun TeamBody(
             SectionHeader(
                 title = stringResource(Res.string.label_upcoming_matches),
                 count = details.upcomingMatches.size,
-                onAdd = if (details.canManage) onScheduleMatch else null
+                onAdd = if (details.canManageMatch) onScheduleMatch else null
             )
         }
         if (details.upcomingMatches.isEmpty()) {
@@ -195,7 +195,7 @@ private fun TeamBody(
                 EmptySectionCard(
                     title = stringResource(Res.string.msg_no_upcoming_matches),
                     hint = null,
-                    action = if (details.canManage) stringResource(Res.string.label_schedule_match) to onScheduleMatch else null
+                    action = if (details.canManageMatch) stringResource(Res.string.label_schedule_match) to onScheduleMatch else null
                 )
             }
         } else {
@@ -635,7 +635,7 @@ private fun sampleDetails(populated: Boolean, canManage: Boolean): TeamDetails {
             TeamMatchResult(match("r4", "o2", MatchStatus.FINISHED, null), 0, 2, MatchOutcome.LOSS)
         ) else emptyList(),
         opponents = opponents,
-        canManage = canManage
+        canManageMatch = canManage
     )
 }
 

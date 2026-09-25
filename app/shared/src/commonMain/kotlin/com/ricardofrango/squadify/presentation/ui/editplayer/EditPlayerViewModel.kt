@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.GetPlayerDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdatePlayerUseCase
+import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_edit_player_failed
 import squadify.app.shared.generated.resources.msg_failed_to_load_player
@@ -53,7 +54,8 @@ class EditPlayerViewModel(
                     )
                 }
             } catch (e: Exception) {
-                _state.update { EditPlayerUiState.Error(getString(Res.string.msg_failed_to_load_player)) }
+                val message = errorMessage(e, Res.string.msg_failed_to_load_player)
+                _state.update { EditPlayerUiState.Error(message) }
             }
         }
     }
@@ -78,11 +80,9 @@ class EditPlayerViewModel(
                 updatePlayerUseCase(playerId, current.form.toRequest().copy(ageGroupId = current.ageGroupId))
                 _navigationEvent.emit(EditPlayerNavigationEvent.NavigateBackWithPlayerUpdated)
             } catch (e: Exception) {
+                val message = errorMessage(e, Res.string.msg_edit_player_failed)
                 _state.update {
-                    (it as EditPlayerUiState.Idle).copy(
-                        isSubmitting = false,
-                        submitError = getString(Res.string.msg_edit_player_failed)
-                    )
+                    (it as EditPlayerUiState.Idle).copy(isSubmitting = false, submitError = message)
                 }
             }
         }
