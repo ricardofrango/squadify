@@ -1,4 +1,7 @@
 <resources>
+    <!-- Shared error messages -->
+    <string name="msg_permission_denied">Não tem permissão para fazer isto. Se achar que isto está errado, contacte um coordenador ou administrador do clube.</string>
+
     <string name="label_email">Email</string>
     <string name="label_password">Senha</string>
     <string name="label_show_password">Mostrar senha</string>
@@ -379,6 +382,7 @@
 
     <!-- Live Match Console -->
     <string name="msg_live_match_action_failed">Ocorreu um erro. Por favor, tente novamente.</string>
+    <string name="msg_live_match_read_only">Pode acompanhar aqui, mas só um treinador ou membro da equipa técnica pode iniciar o jogo, registar eventos ou gerir o cronómetro.</string>
     <string name="msg_kickoff_time_location">Início às %1$s · %2$s</string>
     <string name="msg_kickoff_time_only">Início às %1$s</string>
     <string name="label_half_length">Duração da parte</string>
@@ -466,8 +470,12 @@
     <string name="label_stadium_location_placeholder">ex. Campo do Ribamar, Estrada da Praia</string>
     <string name="msg_stadium_location_helper">Onde se realizam os jogos em casa, se for diferente da morada do clube. Sugerido como localização ao agendar um jogo em casa.</string>
     <string name="msg_failed_to_load_club">Não foi possível carregar este clube. Por favor, tente novamente.</string>
+    <string name="msg_club_change_failed">A alteração não foi guardada. Por favor, tente novamente.</string>
 
     <!-- Edit User Details -->
+    <string name="msg_failed_to_load_account">Não foi possível carregar a sua conta. Por favor, tente novamente.</string>
+    <string name="msg_profile_save_failed">Não foi possível guardar as suas alterações. Por favor, tente novamente.</string>
+    <string name="msg_password_change_failed">Não foi possível alterar a sua senha. Por favor, tente novamente.</string>
     <string name="msg_member_since_status">Membro desde %1$s · %2$s</string>
     <string name="label_pending_status">Pendente</string>
     <string name="label_suspended_status">Suspenso</string>
@@ -488,6 +496,7 @@
 
     <!-- Club Permissions -->
     <string name="msg_permissions_intro">Defina o nível mínimo necessário para cada ação abaixo. Coordenadores e administradores do clube podem sempre fazer tudo, independentemente destas definições.</string>
+    <string name="msg_permissions_save_failed">Não foi possível guardar estas permissões. Por favor, tente novamente.</string>
     <string name="label_permission_level_staff">Qualquer elemento da equipa técnica</string>
     <string name="label_permission_level_coach">Apenas treinador</string>
     <string name="label_permission_level_coordinator_only">Apenas coordenador</string>
@@ -501,6 +510,8 @@
     <string name="msg_permission_create_opponent_desc">Quem pode adicionar um novo clube adversário.</string>
     <string name="label_permission_edit_opponent">Editar adversários</string>
     <string name="msg_permission_edit_opponent_desc">Quem pode editar os dados de um adversário existente.</string>
+    <string name="label_permission_create_team">Criar equipas</string>
+    <string name="msg_permission_create_team_desc">Quem pode criar uma nova equipa num escalão.</string>
     <string name="label_permission_manage_match">Agendar jogos</string>
     <string name="msg_permission_manage_match_desc">Quem pode agendar, editar ou eliminar um jogo.</string>
     <string name="label_permission_manage_call_ups">Gerir convocatórias</string>

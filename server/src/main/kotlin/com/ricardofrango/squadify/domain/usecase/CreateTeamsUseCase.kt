@@ -9,6 +9,7 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.CreateTeamsRequest
 import com.ricardofrango.squadify.model.Team
 import kotlin.uuid.Uuid
@@ -16,8 +17,8 @@ import kotlin.uuid.Uuid
 /**
  * Batch counterpart of [CreateTeamUseCase]: creates every team in [CreateTeamsRequest.items] under
  * the one season/age group, inside a single transaction so the whole batch either lands or none of
- * it does (mirrors [CreateAgeGroupsUseCase]). Same COORDINATOR+ gate and same age-group-belongs-to-
- * club-and-season validation as the single-team case.
+ * it does (mirrors [CreateAgeGroupsUseCase]). Same `ConfigurablePermission.CREATE_TEAM` gate and same
+ * age-group-belongs-to-club-and-season validation as the single-team case.
  */
 class CreateTeamsUseCase(
     private val teamRepository: TeamRepository,
@@ -34,19 +35,16 @@ class CreateTeamsUseCase(
         var pushTokens: List<String> = emptyList()
 
         val createdTeams = transactionManager.runInTransaction {
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = request.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                errorMessage = "Only admins or coordinators can create teams"
-            )
-
             if (request.items.isEmpty()) {
                 throw ValidationException("At least one team must be provided")
             }
 
             // The age group must actually belong to the club and season the teams are being created
             // under -- otherwise a team could reference an age group from a different season/club.
+            // Validated BEFORE the permission check below, since that check trusts this ageGroupId to
+            // resolve the caller's age-group-staff role -- an unvalidated ageGroupId would let a coach
+            // of Club A's age group spoof permission to create teams in Club B (same guard as
+            // CreatePlayersUseCase).
             val ageGroup = ageGroupRepository.getAgeGroupById(request.ageGroupId)
                 ?: throw NotFoundException("Age group not found")
             if (ageGroup.clubId != request.clubId) {
@@ -56,6 +54,15 @@ class CreateTeamsUseCase(
                 throw ValidationException("Age group does not belong to the given season")
             }
             ageGroupName = ageGroup.name
+
+            checkUserPermissionUseCase(
+                userId = userId,
+                clubId = request.clubId,
+                minClubRole = ClubRole.COORDINATOR,
+                configurablePermission = ConfigurablePermission.CREATE_TEAM,
+                ageGroupId = request.ageGroupId,
+                errorMessage = "Only admins, coordinators, or this age group's coaches can create teams"
+            )
 
             val club = clubRepository.getClubById(request.clubId)
                 ?: throw NotFoundException("Club not found")

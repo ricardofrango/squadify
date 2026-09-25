@@ -9,6 +9,7 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.CreateTeamRequest
 import com.ricardofrango.squadify.model.Team
 import kotlin.uuid.Uuid
@@ -28,20 +29,16 @@ class CreateTeamUseCase(
         var pushTokens: List<String> = emptyList()
 
         val createdTeam = transactionManager.runInTransaction {
-            // Permission check: Only CLUB_ADMIN or COORDINATOR can create teams
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = request.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                errorMessage = "Only admins or coordinators can create teams"
-            )
-
             if (request.name.isBlank()) {
                 throw ValidationException("Team name cannot be empty")
             }
 
             // A team's age group must actually belong to the club and season it's being created under --
             // otherwise a team could reference an age group from a completely different season/club.
+            // Validated BEFORE the permission check below, since that check trusts this ageGroupId to
+            // resolve the caller's age-group-staff role -- an unvalidated ageGroupId would let a coach
+            // of Club A's age group spoof permission to create a team in Club B (same guard as
+            // CreatePlayersUseCase).
             val ageGroup = ageGroupRepository.getAgeGroupById(request.ageGroupId)
                 ?: throw NotFoundException("Age group not found")
             if (ageGroup.clubId != request.clubId) {
@@ -51,6 +48,15 @@ class CreateTeamUseCase(
                 throw ValidationException("Age group does not belong to the given season")
             }
             ageGroupName = ageGroup.name
+
+            checkUserPermissionUseCase(
+                userId = userId,
+                clubId = request.clubId,
+                minClubRole = ClubRole.COORDINATOR,
+                configurablePermission = ConfigurablePermission.CREATE_TEAM,
+                ageGroupId = request.ageGroupId,
+                errorMessage = "Only admins, coordinators, or this age group's coaches can create teams"
+            )
 
             // clubRepository has no ambient transaction of its own outside this block -- fetched here,
             // not after the transaction closes, even though it's only used for the push sent below.

@@ -1,5 +1,9 @@
 <resources>
     <string name="app_name">Squadify</string>
+
+    <!-- Shared error messages -->
+    <string name="msg_permission_denied">You don\'t have permission to do this. Ask a club coordinator or admin if you think this is wrong.</string>
+
     <string name="label_email">Email</string>
     <string name="label_password">Password</string>
     <string name="label_show_password">Show password</string>
@@ -380,6 +384,7 @@
 
     <!-- Live Match Console -->
     <string name="msg_live_match_action_failed">Something went wrong. Please try again.</string>
+    <string name="msg_live_match_read_only">You can follow along here, but only a coach or staff member can start the match, log events, or manage the clock.</string>
     <string name="msg_kickoff_time_location">Kick-off %1$s · %2$s</string>
     <string name="msg_kickoff_time_only">Kick-off %1$s</string>
     <string name="label_half_length">Half length</string>
@@ -467,8 +472,12 @@
     <string name="label_stadium_location_placeholder">e.g. Campo do Ribamar, Estrada da Praia</string>
     <string name="msg_stadium_location_helper">Where home matches are played, if different from the club address. Suggested as the location when you schedule a home match.</string>
     <string name="msg_failed_to_load_club">Couldn\'t load this club. Please try again.</string>
+    <string name="msg_club_change_failed">That change didn\'t save. Please try again.</string>
 
     <!-- Edit User Details -->
+    <string name="msg_failed_to_load_account">Couldn\'t load your account. Please try again.</string>
+    <string name="msg_profile_save_failed">Couldn\'t save your changes. Please try again.</string>
+    <string name="msg_password_change_failed">Couldn\'t change your password. Please try again.</string>
     <string name="msg_member_since_status">Member since %1$s · %2$s</string>
     <string name="label_pending_status">Pending</string>
     <string name="label_suspended_status">Suspended</string>
@@ -489,6 +498,7 @@
 
     <!-- Club Permissions -->
     <string name="msg_permissions_intro">Set the minimum role required for each action below. Coordinators and club admins can always do everything, regardless of these settings.</string>
+    <string name="msg_permissions_save_failed">These permissions didn\'t save. Please try again.</string>
     <string name="label_permission_level_staff">Any staff</string>
     <string name="label_permission_level_coach">Coach only</string>
     <string name="label_permission_level_coordinator_only">Coordinator only</string>
@@ -502,6 +512,8 @@
     <string name="msg_permission_create_opponent_desc">Who can add a new opponent club.</string>
     <string name="label_permission_edit_opponent">Edit opponents</string>
     <string name="msg_permission_edit_opponent_desc">Who can edit an existing opponent\'s details.</string>
+    <string name="label_permission_create_team">Create teams</string>
+    <string name="msg_permission_create_team_desc">Who can create a new team within an age group.</string>
     <string name="label_permission_manage_match">Schedule matches</string>
     <string name="msg_permission_manage_match_desc">Who can schedule, edit, or delete a match.</string>
     <string name="label_permission_manage_call_ups">Manage call-ups</string>

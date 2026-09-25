@@ -76,6 +76,7 @@ import squadify.app.shared.generated.resources.label_identity_section
 import squadify.app.shared.generated.resources.label_permission_assign_players_to_age_group
 import squadify.app.shared.generated.resources.label_permission_create_opponent
 import squadify.app.shared.generated.resources.label_permission_create_players
+import squadify.app.shared.generated.resources.label_permission_create_team
 import squadify.app.shared.generated.resources.label_permission_edit_opponent
 import squadify.app.shared.generated.resources.label_permission_edit_player
 import squadify.app.shared.generated.resources.label_permission_level_coach
@@ -95,6 +96,7 @@ import squadify.app.shared.generated.resources.msg_no_club_changes
 import squadify.app.shared.generated.resources.msg_permission_assign_players_to_age_group_desc
 import squadify.app.shared.generated.resources.msg_permission_create_opponent_desc
 import squadify.app.shared.generated.resources.msg_permission_create_players_desc
+import squadify.app.shared.generated.resources.msg_permission_create_team_desc
 import squadify.app.shared.generated.resources.msg_permission_edit_opponent_desc
 import squadify.app.shared.generated.resources.msg_permission_edit_player_desc
 import squadify.app.shared.generated.resources.msg_permission_manage_call_ups_desc
@@ -292,6 +294,7 @@ private fun permissionLabel(action: ConfigurablePermission) = when (action) {
     ConfigurablePermission.ASSIGN_PLAYERS_TO_AGE_GROUP -> Res.string.label_permission_assign_players_to_age_group
     ConfigurablePermission.CREATE_OPPONENT -> Res.string.label_permission_create_opponent
     ConfigurablePermission.EDIT_OPPONENT -> Res.string.label_permission_edit_opponent
+    ConfigurablePermission.CREATE_TEAM -> Res.string.label_permission_create_team
     ConfigurablePermission.MANAGE_MATCH -> Res.string.label_permission_manage_match
     ConfigurablePermission.MANAGE_CALL_UPS -> Res.string.label_permission_manage_call_ups
     ConfigurablePermission.MANAGE_LIVE_MATCH -> Res.string.label_permission_manage_live_match
@@ -303,6 +306,7 @@ private fun permissionDescription(action: ConfigurablePermission) = when (action
     ConfigurablePermission.ASSIGN_PLAYERS_TO_AGE_GROUP -> Res.string.msg_permission_assign_players_to_age_group_desc
     ConfigurablePermission.CREATE_OPPONENT -> Res.string.msg_permission_create_opponent_desc
     ConfigurablePermission.EDIT_OPPONENT -> Res.string.msg_permission_edit_opponent_desc
+    ConfigurablePermission.CREATE_TEAM -> Res.string.msg_permission_create_team_desc
     ConfigurablePermission.MANAGE_MATCH -> Res.string.msg_permission_manage_match_desc
     ConfigurablePermission.MANAGE_CALL_UPS -> Res.string.msg_permission_manage_call_ups_desc
     ConfigurablePermission.MANAGE_LIVE_MATCH -> Res.string.msg_permission_manage_live_match_desc

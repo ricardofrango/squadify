@@ -2,7 +2,6 @@ package com.ricardofrango.squadify.presentation.ui.addstafftoagegroup
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ricardofrango.squadify.data.remote.ApiException
 import com.ricardofrango.squadify.domain.usecase.AddStaffToAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupStaffUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupsUseCase
@@ -11,6 +10,7 @@ import com.ricardofrango.squadify.domain.usecase.GetSeasonsUseCase
 import com.ricardofrango.squadify.model.AddStaffToAgeGroup
 import com.ricardofrango.squadify.model.AddStaffToAgeGroupRequest
 import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_add_staff_failed
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.getString
 
 class AddStaffToAgeGroupViewModel(
     private val getAgeGroupsUseCase: GetAgeGroupsUseCase,
@@ -156,10 +155,9 @@ class AddStaffToAgeGroupViewModel(
                 val staff = current.selectedRoles.map { (userId, role) -> AddStaffToAgeGroup(userId, role) }
                 addStaffToAgeGroupUseCase(ageGroupId, AddStaffToAgeGroupRequest(staff))
                 _navigationEvent.emit(AddStaffToAgeGroupNavigationEvent.NavigateBackWithStaffAdded)
-            } catch (e: ApiException) {
-                _state.update { current.copy(isSubmitting = false, error = getString(Res.string.msg_add_staff_failed)) }
             } catch (e: Exception) {
-                _state.update { current.copy(isSubmitting = false, error = getString(Res.string.msg_add_staff_failed)) }
+                val message = errorMessage(e, Res.string.msg_add_staff_failed)
+                _state.update { current.copy(isSubmitting = false, error = message) }
             }
         }
     }

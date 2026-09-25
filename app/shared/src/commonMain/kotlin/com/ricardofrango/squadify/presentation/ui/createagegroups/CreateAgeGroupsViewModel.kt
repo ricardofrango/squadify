@@ -8,6 +8,7 @@ import com.ricardofrango.squadify.domain.usecase.GetAgeGroupsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetSeasonsUseCase
 import com.ricardofrango.squadify.model.AgeGroupItemRequest
 import com.ricardofrango.squadify.model.CreateAgeGroupsRequest
+import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_age_group_conflict
 import squadify.app.shared.generated.resources.msg_create_age_groups_failed
@@ -86,20 +87,16 @@ class CreateAgeGroupsViewModel(
             try {
                 createAgeGroupsUseCase(CreateAgeGroupsRequest(clubId, seasonId, items))
                 _navigationEvent.emit(CreateAgeGroupsNavigationEvent.NavigateBackWithAgeGroupsCreated)
-            } catch (e: ApiException) {
+            } catch (e: Exception) {
                 // The server can only report the first conflicting row today (see ISSUES TO FIX.md),
                 // so this can't name a specific row the way the season screen's conflict message does
                 // -- it just points back at the birth year fields to review.
-                val message = if (e.statusCode == 409) {
+                val message = if (e is ApiException && e.statusCode == 409) {
                     getString(Res.string.msg_age_group_conflict)
                 } else {
-                    getString(Res.string.msg_create_age_groups_failed)
+                    errorMessage(e, Res.string.msg_create_age_groups_failed)
                 }
                 _state.update { current.copy(isSubmitting = false, error = message) }
-            } catch (e: Exception) {
-                _state.update {
-                    current.copy(isSubmitting = false, error = getString(Res.string.msg_create_age_groups_failed))
-                }
             }
         }
     }

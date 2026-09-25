@@ -11,11 +11,18 @@ import com.ricardofrango.squadify.model.ClubPermissionSetting
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.UpdateClubPermissionsRequest
+import com.ricardofrango.squadify.presentation.errorMessage
+import squadify.app.shared.generated.resources.Res
+import squadify.app.shared.generated.resources.msg_club_change_failed
+import squadify.app.shared.generated.resources.msg_failed_to_load_club
+import squadify.app.shared.generated.resources.msg_permission_denied
+import squadify.app.shared.generated.resources.msg_permissions_save_failed
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 
 class EditClubViewModel(
     private val getClubUseCase: GetClubUseCase,
@@ -32,11 +39,20 @@ class EditClubViewModel(
             _state.update { EditClubUiState.Loading }
             _state.update {
                 try {
-                    val club = getClubUseCase(clubId)
-                    val permissions = getClubPermissionsUseCase(clubId).settings
-                    idleFor(club, permissions)
+                    val details = getClubUseCase(clubId)
+                    if (!details.canEditClub) {
+                        // Defense in depth: the "Edit club details" menu item is already hidden from a
+                        // non-editor (ClubDetailsScreen's "More" menu), but this screen must refuse to
+                        // show editable content (including the Permissions tab) to anyone who reaches it
+                        // some other way -- e.g. a direct web deep link -- not just rely on the save
+                        // actions' own server-side 403.
+                        EditClubUiState.Error(getString(Res.string.msg_permission_denied))
+                    } else {
+                        val permissions = getClubPermissionsUseCase(clubId).settings
+                        idleFor(details.club, permissions)
+                    }
                 } catch (e: Exception) {
-                    EditClubUiState.Error(e.message ?: "Couldn't load this club. Please try again.")
+                    EditClubUiState.Error(errorMessage(e, Res.string.msg_failed_to_load_club))
                 }
             }
         }
@@ -87,11 +103,9 @@ class EditClubViewModel(
                 }
                 onSaved()
             } catch (e: Exception) {
+                val message = errorMessage(e, Res.string.msg_club_change_failed)
                 _state.update {
-                    (it as EditClubUiState.Idle).copy(
-                        isSubmitting = false,
-                        submitError = e.message ?: "Couldn't save your changes. Please try again."
-                    )
+                    (it as EditClubUiState.Idle).copy(isSubmitting = false, submitError = message)
                 }
             }
         }
@@ -122,11 +136,9 @@ class EditClubViewModel(
                     )
                 }
             } catch (e: Exception) {
+                val message = errorMessage(e, Res.string.msg_permissions_save_failed)
                 _state.update {
-                    (it as EditClubUiState.Idle).copy(
-                        isSubmittingPermissions = false,
-                        permissionsSubmitError = e.message ?: "Couldn't save these permissions. Please try again."
-                    )
+                    (it as EditClubUiState.Idle).copy(isSubmittingPermissions = false, permissionsSubmitError = message)
                 }
             }
         }

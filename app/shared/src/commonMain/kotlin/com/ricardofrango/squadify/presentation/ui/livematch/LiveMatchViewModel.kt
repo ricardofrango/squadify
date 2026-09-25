@@ -2,7 +2,6 @@ package com.ricardofrango.squadify.presentation.ui.livematch
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ricardofrango.squadify.data.remote.ApiException
 import com.ricardofrango.squadify.domain.usecase.AddMatchEventUseCase
 import com.ricardofrango.squadify.domain.usecase.DeleteMatchEventUseCase
 import com.ricardofrango.squadify.domain.usecase.GetMatchDetailsUseCase
@@ -19,6 +18,7 @@ import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.StartMatchRequest
+import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_failed_to_load_match
 import squadify.app.shared.generated.resources.msg_live_match_action_failed
@@ -224,10 +224,9 @@ class LiveMatchViewModel(
                 // burst of duplicate POSTs. Compute the result once, then apply it as a plain value.
                 val result = block(current)
                 _state.update { result }
-            } catch (e: ApiException) {
-                _state.update { current.copy(isSubmitting = false, error = getString(Res.string.msg_live_match_action_failed)) }
             } catch (e: Exception) {
-                _state.update { current.copy(isSubmitting = false, error = getString(Res.string.msg_live_match_action_failed)) }
+                val message = errorMessage(e, Res.string.msg_live_match_action_failed)
+                _state.update { current.copy(isSubmitting = false, error = message) }
             }
         }
     }

@@ -13,6 +13,7 @@ import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Team
+import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_failed_to_load_club_details
 import kotlinx.coroutines.Job
@@ -21,7 +22,6 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.getString
 
 class ClubDetailsViewModel(
     private val getClubDetailsUseCase: GetClubDetailsUseCase,
@@ -105,7 +105,7 @@ class ClubDetailsViewModel(
                 // Never surface e.message to the UI: it's an implementation detail (can leak server
                 // internals, exception class names, etc.), not user-facing copy. See AI_GUIDELINES.md
                 // "No Raw Exception Messages in UI".
-                val message = getString(Res.string.msg_failed_to_load_club_details)
+                val message = errorMessage(e, Res.string.msg_failed_to_load_club_details)
                 _state.update { ClubDetailsUiState.Idle(error = message) }
             }
         }

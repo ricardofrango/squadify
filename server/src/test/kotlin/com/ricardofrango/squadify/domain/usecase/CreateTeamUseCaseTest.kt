@@ -20,6 +20,7 @@ import com.ricardofrango.squadify.model.ClubStatus
 import com.ricardofrango.squadify.model.CreateTeamRequest
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.Team
+import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -32,10 +33,13 @@ import kotlin.time.Instant
 
 /**
  * Covers the "Age groups & seasons" team-creation rows of `PERMISSION_TEST_MATRIX.md`.
- * CreateTeamUseCase already treats CLUB_ADMIN and COORDINATOR equivalently (it passes
- * `minClubRole = ClubRole.COORDINATOR`), so that part is correct. What's missing: it never checks
- * that `ageGroupId` actually belongs to `seasonId` (or to `clubId` at all) before creating the team.
- * See "issues to fix.md" -- "A team's season isn't validated against its age group's season."
+ * CreateTeamUseCase treats CLUB_ADMIN and COORDINATOR equivalently (both always clear the
+ * `minClubRole = ClubRole.COORDINATOR` floor) and validates that `ageGroupId` actually belongs to
+ * `clubId`/`seasonId` before creating the team (and before the permission check even runs, since that
+ * check trusts this `ageGroupId` -- see `CreateTeamUseCase`'s own comment on the cross-club spoofing
+ * risk this ordering avoids). `ConfigurablePermission.CREATE_TEAM` (§37 in TECHNICAL_DECISIONS.md) means
+ * a coach of this specific age group can also create a team in it now, by default -- not just a
+ * coordinator/admin.
  */
 class CreateTeamUseCaseTest {
 
@@ -116,10 +120,46 @@ class CreateTeamUseCaseTest {
         val member = user("p4-plain-member")
         coEvery { userRepository.findById(member.id) } returns member
         coEvery { userRepository.getUserRoleInClub(member.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns consistentAgeGroup
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(member.id, "age-group-1") } returns null
         val request = CreateTeamRequest(clubId = clubIdA, ageGroupId = "age-group-1", seasonId = "season-1", name = "Team 1")
 
         assertFailsWith<ForbiddenException> {
             useCase(member.id, request)
+        }
+        Unit
+    }
+
+    @Test
+    fun ageGroupCoachCanCreateATeamInTheirOwnAgeGroup() = runBlocking {
+        // The concrete fix behind §37: a coach who isn't a club coordinator/admin can now create a
+        // team in an age group they coach, since CREATE_TEAM defaults to Coach like its siblings.
+        val coach = user("p8-coach")
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "age-group-1") } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns consistentAgeGroup
+        coEvery { clubRepository.getClubById(clubIdA) } returns club
+        coEvery { clubRepository.getClubMembers(clubIdA) } returns emptyList()
+        coEvery { fcmTokenRepository.getTokensForUsers(emptyList()) } returns emptyMap()
+        coEvery { teamRepository.createTeam(any()) } returns dummyTeam
+        val request = CreateTeamRequest(clubId = clubIdA, ageGroupId = "age-group-1", seasonId = "season-1", name = "Team 1")
+
+        useCase(coach.id, request)
+        Unit
+    }
+
+    @Test
+    fun ageGroupStaffCannotCreateATeamByDefault() = runBlocking {
+        val staff = user("p9-staff")
+        coEvery { userRepository.findById(staff.id) } returns staff
+        coEvery { userRepository.getUserRoleInClub(staff.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, "age-group-1") } returns TeamRole.STAFF
+        coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns consistentAgeGroup
+        val request = CreateTeamRequest(clubId = clubIdA, ageGroupId = "age-group-1", seasonId = "season-1", name = "Team 1")
+
+        assertFailsWith<ForbiddenException> {
+            useCase(staff.id, request)
         }
         Unit
     }

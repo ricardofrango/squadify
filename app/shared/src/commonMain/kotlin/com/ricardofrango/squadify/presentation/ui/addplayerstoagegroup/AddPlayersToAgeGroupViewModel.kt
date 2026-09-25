@@ -2,11 +2,11 @@ package com.ricardofrango.squadify.presentation.ui.addplayerstoagegroup
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ricardofrango.squadify.data.remote.ApiException
 import com.ricardofrango.squadify.domain.usecase.AddPlayersToAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetEligiblePlayersForAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.GetSeasonsUseCase
+import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_add_players_failed
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -144,10 +144,9 @@ class AddPlayersToAgeGroupViewModel(
             try {
                 addPlayersToAgeGroupUseCase(ageGroupId, current.selectedPlayerIds.toList())
                 _navigationEvent.emit(AddPlayersToAgeGroupNavigationEvent.NavigateBackWithPlayersAdded)
-            } catch (e: ApiException) {
-                _state.update { current.copy(isSubmitting = false, error = getString(Res.string.msg_add_players_failed)) }
             } catch (e: Exception) {
-                _state.update { current.copy(isSubmitting = false, error = getString(Res.string.msg_add_players_failed)) }
+                val message = errorMessage(e, Res.string.msg_add_players_failed)
+                _state.update { current.copy(isSubmitting = false, error = message) }
             }
         }
     }

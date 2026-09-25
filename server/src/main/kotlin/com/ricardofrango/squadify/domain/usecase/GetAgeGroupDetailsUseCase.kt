@@ -13,14 +13,15 @@ import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.AgeGroupDetails
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.TeamRole
 import kotlin.time.Clock
 
 /**
  * Everything attached to one age group, for its detail screen. Readable by any club member (and a
- * linked player/parent); [AgeGroupDetails.canManage] is a non-throwing probe for the COORDINATOR /
- * age-group-coach gate that guards the add/edit actions.
+ * linked player/parent); see `AgeGroupDetails`' own doc comment for its three independent
+ * `canManageX` probes.
  */
 class GetAgeGroupDetailsUseCase(
     private val ageGroupRepository: AgeGroupRepository,
@@ -67,12 +68,26 @@ class GetAgeGroupDetailsUseCase(
             .filter { it.status == MatchStatus.LIVE || it.status == MatchStatus.HALF_TIME }
             .associate { it.id to matchEventRepository.getScoreByMatch(it.id) }
 
-        val canManage = try {
+        // Add staff is the one remaining permanently coordinator+/admin-only action here -- not club
+        // configurable (see TECHNICAL_DECISIONS.md §35's bucket 2), so this is a plain literal check,
+        // unlike the configurable ones below (create team moved out of this fixed bucket in §37).
+        val canAddStaff = try {
+            checkUserPermissionUseCase(
+                userId = userId,
+                clubId = ageGroup.clubId,
+                minClubRole = ClubRole.COORDINATOR
+            )
+            true
+        } catch (e: ForbiddenException) {
+            false
+        }
+
+        suspend fun canDo(permission: ConfigurablePermission): Boolean = try {
             checkUserPermissionUseCase(
                 userId = userId,
                 clubId = ageGroup.clubId,
                 minClubRole = ClubRole.COORDINATOR,
-                minTeamRole = TeamRole.COACH,
+                configurablePermission = permission,
                 ageGroupId = ageGroupId
             )
             true
@@ -90,7 +105,10 @@ class GetAgeGroupDetailsUseCase(
             upcomingMatches = upcomingMatches,
             upcomingMatchScores = upcomingMatchScores,
             opponents = opponentRepository.getOpponentsByClub(ageGroup.clubId),
-            canManage = canManage
+            canAddStaff = canAddStaff,
+            canCreateTeam = canDo(ConfigurablePermission.CREATE_TEAM),
+            canManageMatch = canDo(ConfigurablePermission.MANAGE_MATCH),
+            canAssignPlayersToAgeGroup = canDo(ConfigurablePermission.ASSIGN_PLAYERS_TO_AGE_GROUP)
         )
     }
 }

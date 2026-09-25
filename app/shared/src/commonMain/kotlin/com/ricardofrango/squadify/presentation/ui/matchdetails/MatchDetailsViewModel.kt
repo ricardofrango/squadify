@@ -12,6 +12,7 @@ import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.UpdateMatchRequest
+import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_failed_to_load_match
 import squadify.app.shared.generated.resources.msg_match_change_failed
@@ -23,7 +24,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.getString
 
 class MatchDetailsViewModel(
     private val getMatchDetailsUseCase: GetMatchDetailsUseCase,
@@ -61,7 +61,8 @@ class MatchDetailsViewModel(
                     )
                 }
             } catch (e: Exception) {
-                _state.update { MatchDetailsUiState.Error(getString(Res.string.msg_failed_to_load_match)) }
+                val message = errorMessage(e, Res.string.msg_failed_to_load_match)
+                _state.update { MatchDetailsUiState.Error(message) }
             }
         }
     }
@@ -73,7 +74,7 @@ class MatchDetailsViewModel(
     /** Coach or staff adds a pool player to the call-up (batch replace under the hood). */
     fun onAddToCallUp(player: Player) {
         val current = idle() ?: return
-        if (!current.details.canManageMatchDay) return
+        if (!current.details.canManageCallUps) return
 
         val optimistic = MatchCallUpWithPlayer(
             callUp = MatchCallUp(id = "pending-${player.id}", matchId = matchId, playerId = player.id, status = CallUpStatus.CALLED_UP),
@@ -91,13 +92,14 @@ class MatchDetailsViewModel(
                 manageCallUpsUseCase(matchId, playerIds)
                 load(matchId, forceReload = true) // pull back the real call-up ids
             } catch (e: Exception) {
+                val message = errorMessage(e, Res.string.msg_match_change_failed)
                 _state.update {
                     (it as? MatchDetailsUiState.Idle)?.copy(
                         details = it.details.copy(
                             callUps = it.details.callUps.filterNot { cu -> cu.callUp.id == optimistic.callUp.id },
                             poolPlayers = (it.details.poolPlayers + player).distinctBy { p -> p.id }
                         ),
-                        transientError = getString(Res.string.msg_match_change_failed)
+                        transientError = message
                     ) ?: it
                 }
             }
@@ -108,7 +110,7 @@ class MatchDetailsViewModel(
      * [onAddToCallUp] in reverse). */
     fun onRemoveFromCallUp(callUp: MatchCallUpWithPlayer) {
         val current = idle() ?: return
-        if (!current.details.canManageMatchDay) return
+        if (!current.details.canManageCallUps) return
 
         _state.update {
             current.copy(details = current.details.copy(
@@ -122,13 +124,14 @@ class MatchDetailsViewModel(
                 manageCallUpsUseCase(matchId, playerIds)
                 load(matchId, forceReload = true) // pull back the real call-up ids
             } catch (e: Exception) {
+                val message = errorMessage(e, Res.string.msg_match_change_failed)
                 _state.update {
                     (it as? MatchDetailsUiState.Idle)?.copy(
                         details = it.details.copy(
                             callUps = (it.details.callUps + callUp).distinctBy { cu -> cu.callUp.id },
                             poolPlayers = it.details.poolPlayers.filterNot { p -> p.id == callUp.player.id }
                         ),
-                        transientError = getString(Res.string.msg_match_change_failed)
+                        transientError = message
                     ) ?: it
                 }
             }
@@ -137,17 +140,18 @@ class MatchDetailsViewModel(
 
     fun onEditMatch(request: UpdateMatchRequest) {
         val current = idle() ?: return
-        if (!current.details.canManage) return
+        if (!current.details.canManageMatch) return
         viewModelScope.launch {
             _state.update { current.copy(isSubmitting = true, transientError = null) }
             try {
                 updateMatchUseCase(matchId, request)
                 load(matchId, forceReload = true)
             } catch (e: Exception) {
+                val message = errorMessage(e, Res.string.msg_match_change_failed)
                 _state.update {
                     (it as? MatchDetailsUiState.Idle)?.copy(
                         isSubmitting = false,
-                        transientError = getString(Res.string.msg_match_change_failed)
+                        transientError = message
                     ) ?: it
                 }
             }
@@ -167,17 +171,18 @@ class MatchDetailsViewModel(
      * match itself is gone, so this waits for the server before navigating away. */
     fun onDeleteMatch() {
         val current = idle() ?: return
-        if (!current.details.canManage) return
+        if (!current.details.canManageMatch) return
         viewModelScope.launch {
             _state.update { current.copy(isSubmitting = true, transientError = null) }
             try {
                 deleteMatchUseCase(matchId)
                 _navEvent.emit(MatchDetailsNavEvent.MatchDeleted)
             } catch (e: Exception) {
+                val message = errorMessage(e, Res.string.msg_match_change_failed)
                 _state.update {
                     (it as? MatchDetailsUiState.Idle)?.copy(
                         isSubmitting = false,
-                        transientError = getString(Res.string.msg_match_change_failed)
+                        transientError = message
                     ) ?: it
                 }
             }

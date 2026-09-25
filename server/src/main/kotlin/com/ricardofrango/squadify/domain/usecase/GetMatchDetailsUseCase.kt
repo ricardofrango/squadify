@@ -11,6 +11,7 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.TeamRole
 
@@ -52,27 +53,19 @@ class GetMatchDetailsUseCase(
         val poolPlayers = playerRepository.getPlayersByAgeGroup(team.ageGroupId)
             .filter { it.id !in calledUpIds }
 
-        val canManage = try {
+        // Each flag is a non-throwing probe of the exact same configurable-permission gate its
+        // corresponding use case actually enforces (UpdateMatchUseCase/DeleteMatchUseCase,
+        // ManageCallUpsUseCase, and the live-match use cases respectively) -- resolved independently
+        // rather than one implying another, since a club can now override each of the three away from
+        // its default and have them disagree (e.g. call-ups open to staff but live-match ops
+        // coordinator-only). See TECHNICAL_DECISIONS.md §35 on why these must track the real
+        // configurable thresholds instead of a literal minTeamRole.
+        suspend fun canDo(permission: ConfigurablePermission): Boolean = try {
             checkUserPermissionUseCase(
                 userId = userId,
                 clubId = match.clubId,
                 minClubRole = ClubRole.COORDINATOR,
-                minTeamRole = TeamRole.COACH,
-                teamId = match.teamId
-            )
-            true
-        } catch (e: ForbiddenException) {
-            false
-        }
-
-        // Match-day operations (call-ups, starting, status) are open to STAFF too -- unlike editing
-        // the match's own record, which stays coach-only (canManage above).
-        val canManageMatchDay = canManage || try {
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = match.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                minTeamRole = TeamRole.STAFF,
+                configurablePermission = permission,
                 teamId = match.teamId
             )
             true
@@ -88,8 +81,9 @@ class GetMatchDetailsUseCase(
             season = season,
             callUps = callUps,
             poolPlayers = poolPlayers,
-            canManage = canManage,
-            canManageMatchDay = canManageMatchDay,
+            canManageMatch = canDo(ConfigurablePermission.MANAGE_MATCH),
+            canManageCallUps = canDo(ConfigurablePermission.MANAGE_CALL_UPS),
+            canManageLiveMatch = canDo(ConfigurablePermission.MANAGE_LIVE_MATCH),
             score = matchEventRepository.getScoreByMatch(matchId)
         )
     }

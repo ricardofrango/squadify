@@ -88,7 +88,7 @@ class GetMatchDetailsUseCaseTest {
     }
 
     @Test
-    fun coachSeesDetailsWithPoolMinusCalledUpAndCanManage() = runBlocking {
+    fun coachSeesDetailsWithPoolMinusCalledUpAndCanManageEverything() = runBlocking {
         val coach = user("coach")
         baseStubs()
         coEvery { userRepository.findById(coach.id) } returns coach
@@ -102,13 +102,16 @@ class GetMatchDetailsUseCaseTest {
         assertEquals(listOf("p-called"), d.callUps.map { it.player.id })
         // Pool is the age group minus whoever is already called up.
         assertEquals(listOf("p-free"), d.poolPlayers.map { it.id })
-        assertTrue(d.canManage)
-        assertTrue(d.canManageMatchDay)
+        // A coach clears all three default thresholds (MANAGE_MATCH/MANAGE_CALL_UPS default to
+        // Coach, MANAGE_LIVE_MATCH defaults to Staff, which Coach also satisfies).
+        assertTrue(d.canManageMatch)
+        assertTrue(d.canManageCallUps)
+        assertTrue(d.canManageLiveMatch)
         assertEquals(MatchScore(matchId, 2, 1), d.score)
     }
 
     @Test
-    fun ageGroupStaffCanManageMatchDayButNotEditTheMatch() = runBlocking {
+    fun ageGroupStaffCanManageLiveMatchOnlyByDefault() = runBlocking {
         val staff = user("staff")
         baseStubs()
         coEvery { userRepository.findById(staff.id) } returns staff
@@ -117,10 +120,11 @@ class GetMatchDetailsUseCaseTest {
 
         val d = useCase(staff.id, matchId)
 
-        // Staff can run match day (call-ups, start, status) but not edit the match's own record --
-        // that stays coach-only, same as before this change.
-        assertFalse(d.canManage)
-        assertTrue(d.canManageMatchDay)
+        // By default, staff can run live-match ops but not edit the match's own record or manage
+        // call-ups -- both of those stay coach-only by default (see ConfigurablePermission).
+        assertFalse(d.canManageMatch)
+        assertFalse(d.canManageCallUps)
+        assertTrue(d.canManageLiveMatch)
     }
 
     @Test

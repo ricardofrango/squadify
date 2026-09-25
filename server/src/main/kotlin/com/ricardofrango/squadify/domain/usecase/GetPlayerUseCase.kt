@@ -10,6 +10,7 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.PlayerProfile
 import com.ricardofrango.squadify.model.PlayerProfileEvent
@@ -42,8 +43,14 @@ class GetPlayerUseCase(
         val ageGroupLabel = ageGroup?.name
         val seasonLabel = ageGroup?.let { seasonRepository.getSeasonById(it.seasonId) }?.name
 
-        val canManage = try {
-            checkUserPermissionUseCase(userId, player.clubId, minClubRole = ClubRole.COORDINATOR)
+        val canEditPlayer = try {
+            checkUserPermissionUseCase(
+                userId = userId,
+                clubId = player.clubId,
+                minClubRole = ClubRole.COORDINATOR,
+                configurablePermission = ConfigurablePermission.EDIT_PLAYER,
+                ageGroupId = ageGroup?.id
+            )
             true
         } catch (e: ForbiddenException) {
             false
@@ -76,7 +83,7 @@ class GetPlayerUseCase(
             timesCalledUp = matchRepository.countCallUpsByPlayer(playerId).toInt(),
             guardiansLinked = playerRepository.countGuardiansByPlayer(playerId).toInt(),
             recentEvents = recentEvents,
-            canManage = canManage
+            canEditPlayer = canEditPlayer
         )
     }
 }
