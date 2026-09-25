@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
+import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.model.ClubPermissionSetting
 import com.ricardofrango.squadify.model.ClubPermissionsResponse
 import com.ricardofrango.squadify.model.ClubRole
@@ -15,15 +16,17 @@ import com.ricardofrango.squadify.model.defaultMinTeamRole
  */
 class GetClubPermissionsUseCase(
     private val clubPermissionRepository: ClubPermissionRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase
+    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val transactionManager: TransactionManager
 ) {
-    suspend operator fun invoke(userId: String, clubId: String): ClubPermissionsResponse {
-        checkUserPermissionUseCase(userId, clubId, minClubRole = ClubRole.MEMBER)
+    suspend operator fun invoke(userId: String, clubId: String): ClubPermissionsResponse =
+        transactionManager.runInTransaction {
+            checkUserPermissionUseCase(userId, clubId, minClubRole = ClubRole.MEMBER)
 
-        val overrides = clubPermissionRepository.getOverrides(clubId).associateBy { it.action }
-        val settings = ConfigurablePermission.entries.map { action ->
-            overrides[action] ?: ClubPermissionSetting(action, action.defaultMinTeamRole)
+            val overrides = clubPermissionRepository.getOverrides(clubId).associateBy { it.action }
+            val settings = ConfigurablePermission.entries.map { action ->
+                overrides[action] ?: ClubPermissionSetting(action, action.defaultMinTeamRole)
+            }
+            ClubPermissionsResponse(settings)
         }
-        return ClubPermissionsResponse(settings)
-    }
 }

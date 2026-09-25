@@ -34,7 +34,7 @@ class GetClubPermissionsUseCaseTest {
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
-    private val useCase = GetClubPermissionsUseCase(clubPermissionRepository, checkUserPermissionUseCase)
+    private val useCase = GetClubPermissionsUseCase(clubPermissionRepository, checkUserPermissionUseCase, transactionManager)
 
     private val clubId = "club-1"
 

@@ -58,7 +58,7 @@ val appModule = module {
     factory { ChangePasswordUseCase(get(), get()) }
     factory { RefreshTokenUseCase(get(), get()) }
     factory { CheckUserPermissionUseCase(get(), get(), get(), get(), get(), get()) }
-    factory { GetClubPermissionsUseCase(get(), get()) }
+    factory { GetClubPermissionsUseCase(get(), get(), get()) }
     factory { UpdateClubPermissionsUseCase(get(), get(), get()) }
     factory { CheckUserIsAdminUseCase(get(), get()) }
     factory { AddClubMembersUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }

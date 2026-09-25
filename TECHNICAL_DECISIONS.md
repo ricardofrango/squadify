@@ -1634,6 +1634,24 @@ the club itself and saved as its own independent action -- a separate `PrimaryLo
 of the tab, not the header checkmark (which stays scoped to the Club Details tab only), same "two
 unrelated saves on one screen" shape as `AccountScreen`'s profile vs. password split.
 
+**A second real bug, this time only caught by a real device against a real database, not by any test**:
+`GetClubPermissionsUseCase` was the one use case in this whole change that didn't wrap its body in
+`transactionManager.runInTransaction { ... }` -- every other use case in this codebase does (compare
+`GetOpponentsUseCase`/`GetClubMembersUseCase`), including this one's own sibling
+`UpdateClubPermissionsUseCase`. The permission check still passed (`CheckUserPermissionUseCase` wraps
+itself internally), but the subsequent `clubPermissionRepository.getOverrides(clubId)` call ran with no
+active Exposed transaction context and threw, surfacing to the Android app as `GET
+/v1/clubs/{clubId}/permissions` → 500 "An internal server error occurred" the first time the Permissions
+tab was actually opened on a device against a real Postgres-backed server. `GetClubPermissionsUseCaseTest`
+never had a chance to catch this: its `TransactionManager` is a trivial `object : TransactionManager {
+override suspend fun <T> runInTransaction(block: suspend () -> T): T = block() }`, and its
+`ClubPermissionRepository` is a plain mockk stub -- neither can fail the way a real Exposed query does
+outside a real transaction, so a mocked unit test structurally cannot exercise this class of bug. Fixed by
+adding the missing `transactionManager` dependency and wrapping the body, exactly like every sibling use
+case already does; the discipline this reinforces is that transaction-boundary correctness is something
+only a real device/DB pass (or an integration test against a real database, which this project doesn't
+have) can actually verify -- not something to assume from a passing mocked test suite.
+
 **Verified**: `:server:test` (full suite, including new `CheckUserPermissionUseCaseTest` cases for the
 configurable-permission resolution -- default fallback, explicit override, coordinator-only override
 correctly denying a coach who'd otherwise pass, coordinator bypass never even querying the repository --
@@ -1641,4 +1659,6 @@ plus new `UpdatePlayerUseCaseTest`/`UpdateOpponentUseCaseTest`/`GetClubPermissio
 `UpdateClubPermissionsUseCaseTest`, previously untested use cases), `:app:shared:compileKotlinJvm`,
 `:app:androidApp:compileDevDebugKotlin` all clean, plus three live-boot smoke tests against real local
 Postgres databases (fresh DB migrates cleanly; Koin resolves all 84 definitions with no missing
-dependency). **Not verified**: no real-device pass exercising the new Permissions tab UI end-to-end.
+dependency). **Not verified**: the Permissions tab UI itself end-to-end on a real device (the 500 above
+was caught reaching it from a real device, but not re-confirmed working after the fix within this
+session).
