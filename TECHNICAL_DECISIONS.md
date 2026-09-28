@@ -1986,3 +1986,51 @@ first, while this interceptor is the safety net for a session that outlives that
 fixed), `:app:shared:compileKotlinJvm`/`compileKotlinJs`/`compileKotlinWasmJs`/`compileKotlinIosArm64`,
 `:app:androidApp:compileDevDebugKotlin` all clean. **Not verified**: a live device pass watching an actual
 session survive a real access-token expiry mid-match without the user noticing.
+
+## 39. Clearing the Bearer Provider's Token Cache on Login/Logout
+
+**Problem**: on staging, the developer logged out and logged back in as a different user, then noticed
+the Account screen still showed the *first* user -- every request kept authenticating as whoever had
+logged in first, until app data was cleared (a full reinstall-equivalent). This is a regression introduced
+by §38's own work, and made much worse by it: §38's `bearer { loadTokens { ... } }` reads from
+`SessionRepository` on the *first* request only and then caches whatever it returned, in memory, for the
+entire lifetime of the `HttpClient` instance (Ktor's `AuthTokenHolder`, `BearerAuthConfig.cacheTokens =
+true` by default) -- confirmed by reading Ktor 3.5.2's own source, not assumed. Neither `LoginUseCase` nor
+`LogoutUseCase` told the plugin to forget that cache when they changed `SessionRepository`'s stored
+tokens directly, so the plugin kept serving the stale cached `BearerTokens` on every subsequent request
+regardless of what `SessionRepository` now held. Before §38, this couldn't happen -- every repository read
+`sessionRepository.getToken()` fresh, per call, with no caching layer in between. §38's 48-hour token
+bump (from 1 hour) made the bug far more persistent in practice: a stale cached token used to naturally
+get evicted by a 401-driven refresh within an hour; now it stays "valid," and wrongly cached, for up to
+two days.
+
+**Fix**: call `HttpClient.clearAuthTokens()` (a Ktor top-level extension, `authProviders.forEach {
+it.clearToken() }`) at every point outside the plugin's own `refreshTokens { }` callback where
+`SessionRepository`'s tokens are deliberately changed:
+- `LoginUseCase`, right after `sessionRepository.saveToken/saveRefreshToken` -- otherwise logging in again
+  on the same still-running app process (e.g. right after a logout) would keep sending whichever tokens
+  were cached from *before* this login.
+- `LogoutUseCase`, right after `sessionRepository.clearSession()` -- otherwise the next login's
+  `loadTokens()` never even runs, since the plugin thinks it already has a valid cached token.
+- `AuthenticatedHttpClientFactory`'s `HttpResponseValidator`, right after the existing
+  `sessionRepository.clearSession()` on a final 401 -- defensive, so a forced logout can't leave the same
+  stale-cache trap for whichever login happens next.
+
+Both use cases now take `httpClient: HttpClient` as a constructor parameter (the same default,
+unqualified/authenticated client every other repository uses); `Koin.kt`'s `LoginUseCase`/`LogoutUseCase`
+factory registrations updated to 3-arg `get(), get(), get()`.
+
+**Verified with a real regression test**, not just by inspection: `clearAuthTokensPicksUpADifferentUsersSessionOnTheNextRequest`
+in `AuthenticatedHttpClientFactoryTest` drives a request as "user A" (caching user A's token in the real
+`Auth` plugin against a `MockEngine`), changes the fake `SessionRepository` to "user B" without going
+through `loadTokens()` again, calls `clearAuthTokens()`, then asserts the *next* request attaches user
+B's token rather than the stale cached one. Confirmed the test actually exercises the fix and isn't
+vacuous by temporarily commenting out the `clearAuthTokens()` call under test (via a throwaway `sed`
+edit) -- the test failed as expected (`BUILD FAILED`, wrong `Authorization` header) -- then restoring it
+and confirming green again.
+
+**Verified**: `:app:shared:jvmTest` (6 tests, including the new regression test), `:server:test`,
+`:app:shared:compileKotlinJvm`/`compileKotlinJs`/`compileKotlinWasmJs`/`compileKotlinIosArm64`,
+`:app:androidApp:compileDevDebugKotlin` all clean. **Not verified**: a live device pass on staging
+re-running the exact reported repro (log out, log in as a different user, open Account without clearing
+app data).

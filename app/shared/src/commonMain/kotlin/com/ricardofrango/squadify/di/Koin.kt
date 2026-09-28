@@ -117,11 +117,11 @@ val dataModule = module {
 }
 
 val domainModule = module {
-    factory { LoginUseCase(get(), get()) }
+    factory { LoginUseCase(get(), get(), get()) }
     factory { RegisterUseCase(get()) }
     factory { CheckAndRefreshSessionUseCase(get(), get()) }
     factory { GetClubsUseCase(get()) }
-    factory { LogoutUseCase(get(), get()) }
+    factory { LogoutUseCase(get(), get(), get()) }
     factory { GetCurrentUserUseCase(get()) }
     factory { UpdateProfileUseCase(get()) }
     factory { ChangePasswordUseCase(get()) }

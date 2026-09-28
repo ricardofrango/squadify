@@ -5,6 +5,7 @@ import com.ricardofrango.squadify.domain.service.SessionEventBus
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.auth.clearAuthTokens
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.http.HttpHeaders
@@ -202,5 +203,34 @@ class AuthenticatedHttpClientFactoryTest {
 
         assertTrue(forceLogouts.isNotEmpty())
         collector.cancel()
+    }
+
+    @Test
+    fun clearAuthTokensPicksUpADifferentUsersSessionOnTheNextRequest() = runTest {
+        // Reproduces the reported bug: logging out and a different user logging in, on the same
+        // still-running app process, kept authenticating every request as the *first* user -- because
+        // the bearer provider's loadTokens() result is cached in memory for the life of the client
+        // instance (see LoginUseCase/LogoutUseCase's doc comments), and nothing told it to forget that
+        // cache just because SessionRepository changed underneath it. clearAuthTokens() (called by both
+        // use cases now) is the fix -- verified here directly against the real Auth plugin.
+        val session = InMemorySessionRepository(token = "user-a-token", refreshToken = "user-a-refresh")
+        val bus = SessionEventBus()
+        val engine = MockEngine { request ->
+            assertEquals("Bearer ${session.storedToken}", request.headers[HttpHeaders.Authorization])
+            respond("ok", HttpStatusCode.OK)
+        }
+        val client = createAuthenticatedHttpClient(publicClient(engine), baseUrl, session, bus)
+
+        client.get("$baseUrl/users/me") // caches user A's token in the Auth plugin
+
+        // "Logout" then "login as user B" -- SessionRepository changes, but nothing has told the
+        // already-constructed client about it yet.
+        session.storedToken = "user-b-token"
+        session.storedRefreshToken = "user-b-refresh"
+        client.clearAuthTokens()
+
+        val response = client.get("$baseUrl/users/me")
+
+        assertEquals(HttpStatusCode.OK, response.status)
     }
 }
