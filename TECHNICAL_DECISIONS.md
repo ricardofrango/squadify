@@ -1855,3 +1855,35 @@ default, plus updated `GetAgeGroupDetailsUseCaseTest` cases distinguishing `canA
 `canCreateTeam` for a coach), `:app:shared:compileKotlinJvm`, `:app:androidApp:compileDevDebugKotlin` all
 clean. **Not verified**: a live device pass showing the "Create team" action actually appear for a real
 coach account (verified via the server's unit suite and the client's compiled type-correctness only).
+
+## 38. Access Token Session Length: 1 Hour → 48 Hours
+
+**Problem**: the developer reported losing their session mid-match -- a live match can easily run past
+an hour once warm-up, stoppages, and the post-match wrap-up are counted, and `JwtConfig`'s access token
+(`ACCESS_TOKEN_VALIDITY_MS`) was only valid for 1 hour. The client's only refresh path,
+`CheckAndRefreshSessionUseCase`, runs once at Splash (app cold start) -- it unconditionally mints a fresh
+access token there, but nothing re-runs it later in the session, and there is no interceptor that catches
+a 401 mid-request and silently retries with a refreshed token. So a session opened before a match and
+still open when the access token expires mid-match has no path back to a valid token short of the user
+leaving and relaunching the app.
+
+**Fix (step 1 of 2, this change)**: bumped `ACCESS_TOKEN_VALIDITY_MS` from `1.hours` to `48.hours` --
+`JwtConfigTest`'s `accessTokenExpiresOneHourOut` updated (and renamed) to assert the new 48-hour value.
+The refresh token (30 days) and its own expiry/rotation logic in `RefreshTokenUseCase` are unchanged.
+
+**Deliberately not done in this change**: automatically refreshing the session when a request comes back
+401/`Token is invalid or expired` (`AUTH_001`), instead of only at app start. That's the developer's
+explicitly named follow-up -- a Ktor client `Auth`/interceptor-level retry-with-refresh, not a config
+constant -- and is out of scope here on purpose; 48 hours is a stopgap that covers the reported case
+(a single match) without yet solving the general one (any session left open longer than the access
+token's lifetime).
+
+**Branching note**: this shipped through the normal `develop`-first flow, not directly to `main` --
+confirmed with the developer after they said "on main branch": `main` was well behind `develop` (last
+merge #78 vs. develop's #90+) at the time, and landing a change on `main` first would have put it ahead
+of `develop` on this one commit, backwards from how every other change in this project ships (see the
+branch-strategy note this repo's memory already carries).
+
+**Verified**: `:server:test` full suite green, including the updated `JwtConfigTest`. **Not verified**:
+a live device pass confirming a session actually survives 48 hours without being force-refreshed by some
+other path first (e.g. app reinstall, manual logout).
