@@ -31,78 +31,74 @@ class MatchRepositoryImpl(
     private val sessionRepository: SessionRepository
 ) : MatchRepository {
 
-    private suspend fun HttpRequestBuilder.auth() {
-        sessionRepository.getToken()?.let { header(HttpHeaders.Authorization, "Bearer $it") }
-    }
-
     override suspend fun createMatch(request: CreateMatchRequest): Match =
         httpClient.post("${appConfig.baseUrl}/matches") {
-            contentType(ContentType.Application.Json); setBody(request); auth()
+            contentType(ContentType.Application.Json); setBody(request)
         }.handleResponse()
 
     override suspend fun getMatches(clubId: String): List<Match> =
         httpClient.get("${appConfig.baseUrl}/matches") {
-            parameter("clubId", clubId); auth()
+            parameter("clubId", clubId)
         }.handleResponse()
 
     override suspend fun getMatchDetails(matchId: String): MatchDetails =
-        httpClient.get("${appConfig.baseUrl}/matches/$matchId") { auth() }.handleResponse()
+        httpClient.get("${appConfig.baseUrl}/matches/$matchId").handleResponse()
 
     override suspend fun updateMatch(matchId: String, request: UpdateMatchRequest) {
         httpClient.patch("${appConfig.baseUrl}/matches/$matchId") {
-            contentType(ContentType.Application.Json); setBody(request); auth()
+            contentType(ContentType.Application.Json); setBody(request)
         }.handleResponse<Unit>()
     }
 
     override suspend fun deleteMatch(matchId: String) {
-        httpClient.delete("${appConfig.baseUrl}/matches/$matchId") { auth() }.handleResponse<Unit>()
+        httpClient.delete("${appConfig.baseUrl}/matches/$matchId").handleResponse<Unit>()
     }
 
     override suspend fun updateMatchStatus(matchId: String, status: MatchStatus) {
         httpClient.patch("${appConfig.baseUrl}/matches/$matchId/status") {
-            contentType(ContentType.Application.Json); setBody(UpdateMatchStatusRequest(status)); auth()
+            contentType(ContentType.Application.Json); setBody(UpdateMatchStatusRequest(status))
         }.handleResponse<Unit>()
     }
 
     override suspend fun manageCallUps(matchId: String, playerIds: List<String>) {
         httpClient.post("${appConfig.baseUrl}/matches/$matchId/call-up") {
-            contentType(ContentType.Application.Json); setBody(ManageCallUpRequest(playerIds)); auth()
+            contentType(ContentType.Application.Json); setBody(ManageCallUpRequest(playerIds))
         }.handleResponse<Unit>()
     }
 
     override suspend fun startMatch(matchId: String, request: StartMatchRequest) {
         httpClient.post("${appConfig.baseUrl}/matches/$matchId/start") {
-            contentType(ContentType.Application.Json); setBody(request); auth()
+            contentType(ContentType.Application.Json); setBody(request)
         }.handleResponse<Unit>()
     }
 
     override suspend fun pauseMatch(matchId: String) {
-        httpClient.post("${appConfig.baseUrl}/matches/$matchId/pause") { auth() }.handleResponse<Unit>()
+        httpClient.post("${appConfig.baseUrl}/matches/$matchId/pause").handleResponse<Unit>()
     }
 
     override suspend fun resumeMatch(matchId: String) {
-        httpClient.post("${appConfig.baseUrl}/matches/$matchId/resume") { auth() }.handleResponse<Unit>()
+        httpClient.post("${appConfig.baseUrl}/matches/$matchId/resume").handleResponse<Unit>()
     }
 
     override suspend fun setMatchMinute(matchId: String, minute: Int) {
         httpClient.patch("${appConfig.baseUrl}/matches/$matchId/minute") {
-            contentType(ContentType.Application.Json); setBody(SetMatchMinuteRequest(minute)); auth()
+            contentType(ContentType.Application.Json); setBody(SetMatchMinuteRequest(minute))
         }.handleResponse<Unit>()
     }
 
     override suspend fun getMatchEvents(matchId: String): List<MatchEvent> =
-        httpClient.get("${appConfig.baseUrl}/matches/$matchId/events") { auth() }.handleResponse()
+        httpClient.get("${appConfig.baseUrl}/matches/$matchId/events").handleResponse()
 
     override suspend fun getMatchScore(matchId: String): MatchScore =
-        httpClient.get("${appConfig.baseUrl}/matches/$matchId/events/score") { auth() }.handleResponse()
+        httpClient.get("${appConfig.baseUrl}/matches/$matchId/events/score").handleResponse()
 
     override suspend fun addMatchEvent(matchId: String, request: CreateMatchEventRequest): MatchEvent =
         httpClient.post("${appConfig.baseUrl}/matches/$matchId/events") {
-            contentType(ContentType.Application.Json); setBody(request); auth()
+            contentType(ContentType.Application.Json); setBody(request)
         }.handleResponse()
 
     override suspend fun deleteMatchEvent(matchId: String, eventId: String) {
-        httpClient.delete("${appConfig.baseUrl}/matches/$matchId/events/$eventId") { auth() }.handleResponse<Unit>()
+        httpClient.delete("${appConfig.baseUrl}/matches/$matchId/events/$eventId").handleResponse<Unit>()
     }
 
     override fun observeLiveMatch(matchId: String): Flow<LiveMatchUpdate> = channelFlow {
