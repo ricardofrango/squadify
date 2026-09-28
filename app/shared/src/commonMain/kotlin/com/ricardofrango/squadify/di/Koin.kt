@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.*
 import com.ricardofrango.squadify.domain.service.NoOpPushTokenProvider
 import com.ricardofrango.squadify.domain.service.PushTokenProvider
+import com.ricardofrango.squadify.domain.service.SessionEventBus
 import com.ricardofrango.squadify.domain.usecase.*
 import com.ricardofrango.squadify.presentation.ui.account.AccountViewModel
 import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubDetailsViewModel
@@ -44,11 +45,18 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.dsl.viewModelOf
 import org.koin.core.context.startKoin
+import org.koin.core.qualifier.named
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
 
+val publicHttpClientQualifier = named("publicHttpClient")
+
 val dataModule = module {
-    single {
+    // No auth of any kind -- used only by AuthRepositoryImpl (login/register/the raw refresh call).
+    // Keeping this entirely separate from the authenticated client below means a bad-login 401 (same
+    // AUTH_001 code the server uses for an expired/invalid JWT -- see Application.kt) can never be
+    // mistaken for a dead session and force-logout the user while they're still on the Login screen.
+    single(publicHttpClientQualifier) {
         val json = Json {
             ignoreUnknownKeys = true
             prettyPrint = true
@@ -81,19 +89,31 @@ val dataModule = module {
         }
     }
 
+    // Every other repository's client -- see createAuthenticatedHttpClient's own doc comment for what
+    // it does and why it's a standalone function rather than being inlined here.
+    single<HttpClient> {
+        createAuthenticatedHttpClient(
+            publicClient = get(publicHttpClientQualifier),
+            baseUrl = get<AppConfig>().baseUrl,
+            sessionRepository = get(),
+            sessionEventBus = get()
+        )
+    }
+
     single<Settings> { Settings() }
-    single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
-    single<ClubRepository> { ClubRepositoryImpl(get(), get(), get()) }
-    single<TeamRepository> { TeamRepositoryImpl(get(), get(), get()) }
-    single<PlayerRepository> { PlayerRepositoryImpl(get(), get(), get()) }
-    single<AgeGroupPlayerRepository> { AgeGroupPlayerRepositoryImpl(get(), get(), get()) }
-    single<SeasonRepository> { SeasonRepositoryImpl(get(), get(), get()) }
-    single<AgeGroupRepository> { AgeGroupRepositoryImpl(get(), get(), get()) }
+    single { SessionEventBus() }
+    single<AuthRepository> { AuthRepositoryImpl(get(publicHttpClientQualifier), get()) }
+    single<ClubRepository> { ClubRepositoryImpl(get(), get()) }
+    single<TeamRepository> { TeamRepositoryImpl(get(), get()) }
+    single<PlayerRepository> { PlayerRepositoryImpl(get(), get()) }
+    single<AgeGroupPlayerRepository> { AgeGroupPlayerRepositoryImpl(get(), get()) }
+    single<SeasonRepository> { SeasonRepositoryImpl(get(), get()) }
+    single<AgeGroupRepository> { AgeGroupRepositoryImpl(get(), get()) }
     single<MatchRepository> { MatchRepositoryImpl(get(), get(), get()) }
-    single<OpponentRepository> { OpponentRepositoryImpl(get(), get(), get()) }
-    single<UserRepository> { UserRepositoryImpl(get(), get(), get()) }
+    single<OpponentRepository> { OpponentRepositoryImpl(get(), get()) }
+    single<UserRepository> { UserRepositoryImpl(get(), get()) }
     single<SessionRepository> { SessionRepositoryImpl(get()) }
-    single<FcmTokenRepository> { FcmTokenRepositoryImpl(get(), get(), get()) }
+    single<FcmTokenRepository> { FcmTokenRepositoryImpl(get(), get()) }
 }
 
 val domainModule = module {

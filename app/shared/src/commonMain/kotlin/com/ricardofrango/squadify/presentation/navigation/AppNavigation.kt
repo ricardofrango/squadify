@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.navigation.NavBackStackEntry
@@ -10,7 +11,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.ricardofrango.squadify.domain.service.SessionEventBus
 import com.ricardofrango.squadify.model.SportType
+import org.koin.compose.koinInject
 import com.ricardofrango.squadify.presentation.ui.login.LoginScreen
 import com.ricardofrango.squadify.presentation.ui.register.RegisterScreen
 import com.ricardofrango.squadify.presentation.ui.splash.SplashScreen
@@ -55,7 +58,19 @@ private fun NavController.consumeAndCascadeStructureChanged(entry: NavBackStackE
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    
+
+    // Fires when the authenticated HTTP client (see Koin.kt) gives up on a request after its own
+    // refresh-and-retry -- the session is truly dead, from wherever the user currently is in the app,
+    // not just from Splash's own cold-start check or Account's manual logout button.
+    val sessionEventBus = koinInject<SessionEventBus>()
+    LaunchedEffect(Unit) {
+        sessionEventBus.forceLogout.collect {
+            navController.navigate(Screen.Login) {
+                popUpTo(navController.graph.id) { inclusive = true }
+            }
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = Screen.Splash

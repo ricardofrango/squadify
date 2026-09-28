@@ -18,7 +18,11 @@ object JwtConfig {
     
     // Expressed via kotlin.time.Duration so the values are unambiguous and can't silently overflow an
     // Int (the previous `36_000_000 * 24` literal was meant to be 24 days but actually computed to 10).
-    private val ACCESS_TOKEN_VALIDITY_MS: Long = 1.hours.inWholeMilliseconds
+    // Was 1 hour -- too short in practice: a session opened at the start of a live match (which can run
+    // well past an hour once warm-up, delays, and the post-match wrap-up are counted) would expire mid-
+    // match, and the client only refreshes proactively at app start, not automatically on a 401. Bumped
+    // to 48 hours as a first step; automatically retrying on 401 with a silent refresh is the follow-up.
+    private val ACCESS_TOKEN_VALIDITY_MS: Long = 48.hours.inWholeMilliseconds
     private val REFRESH_TOKEN_VALIDITY_MS: Long = 30.days.inWholeMilliseconds
 
     private val algorithm = Algorithm.HMAC256(SECRET)

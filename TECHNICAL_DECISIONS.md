@@ -1855,3 +1855,134 @@ default, plus updated `GetAgeGroupDetailsUseCaseTest` cases distinguishing `canA
 `canCreateTeam` for a coach), `:app:shared:compileKotlinJvm`, `:app:androidApp:compileDevDebugKotlin` all
 clean. **Not verified**: a live device pass showing the "Create team" action actually appear for a real
 coach account (verified via the server's unit suite and the client's compiled type-correctness only).
+
+## 38. Session Length and Automatic Refresh-on-401
+
+**Problem**: the developer reported losing their session mid-match -- a live match can easily run past
+an hour once warm-up, stoppages, and the post-match wrap-up are counted, and `JwtConfig`'s access token
+(`ACCESS_TOKEN_VALIDITY_MS`) was only valid for 1 hour. The client's only refresh path,
+`CheckAndRefreshSessionUseCase`, runs once at Splash (app cold start) -- it unconditionally mints a fresh
+access token there, but nothing re-runs it later in the session, and there is no interceptor that catches
+a 401 mid-request and silently retries with a refreshed token. So a session opened before a match and
+still open when the access token expires mid-match has no path back to a valid token short of the user
+leaving and relaunching the app.
+
+**Fix (step 1 of 2, this change)**: bumped `ACCESS_TOKEN_VALIDITY_MS` from `1.hours` to `48.hours` --
+`JwtConfigTest`'s `accessTokenExpiresOneHourOut` updated (and renamed) to assert the new 48-hour value.
+The refresh token (30 days) and its own expiry/rotation logic in `RefreshTokenUseCase` are unchanged.
+
+**Deliberately not done in this change**: automatically refreshing the session when a request comes back
+401/`Token is invalid or expired` (`AUTH_001`), instead of only at app start. That's the developer's
+explicitly named follow-up -- a Ktor client `Auth`/interceptor-level retry-with-refresh, not a config
+constant -- and is out of scope here on purpose; 48 hours is a stopgap that covers the reported case
+(a single match) without yet solving the general one (any session left open longer than the access
+token's lifetime).
+
+**Branching note**: this shipped through the normal `develop`-first flow, not directly to `main` --
+confirmed with the developer after they said "on main branch": `main` was well behind `develop` (last
+merge #78 vs. develop's #90+) at the time, and landing a change on `main` first would have put it ahead
+of `develop` on this one commit, backwards from how every other change in this project ships (see the
+branch-strategy note this repo's memory already carries).
+
+**Verified**: `:server:test` full suite green, including the updated `JwtConfigTest`. **Not verified**:
+a live device pass confirming a session actually survives 48 hours without being force-refreshed by some
+other path first (e.g. app reinstall, manual logout).
+
+**Step 2 (this change): automatic refresh-and-retry on a 401, via Ktor's own `Auth`/bearer plugin.** The
+48-hour bump only raises how long a session survives *unattended* -- it doesn't fix the underlying gap the
+developer named explicitly: *"we need to refresh the session automatically when we receive an
+unauthorized."* Before this, the only refresh path was `CheckAndRefreshSessionUseCase`, called exactly
+once from `SplashViewModel` at app cold start; nothing re-ran it later, and no code anywhere caught a 401
+mid-session and retried.
+
+**Two clients, not one.** Every repository previously shared one Koin-singleton `HttpClient`, including
+`AuthRepositoryImpl` (login/register/refresh), and each repository manually read
+`sessionRepository.getToken()` and attached `Authorization: Bearer $it` per call site (~60 call sites
+across 10 files). Installing Ktor's `Auth` plugin directly on that single client would have made a failed
+*login attempt* (bad password) indistinguishable from a *dead session*: both are a 401 with the exact
+same server error code, `AUTH_001` (`UnauthorizedException`, thrown both by `LoginUseCase` for bad
+credentials and by the JWT `Authentication` plugin's challenge handler for an expired/invalid token --
+see `Application.kt`/`SquadifyException.kt`). Reacting to *any* 401 by force-logging-out would have wiped
+the Login screen's in-progress error message every time someone mistyped their password. Fixed by
+splitting into a `publicHttpClientQualifier`-tagged client (no Auth, used only by `AuthRepositoryImpl`)
+and the default, unqualified `HttpClient` (used by every other repository) derived from it via
+`.config { }` with `Auth` and a `HttpResponseValidator` layered on top. All ~60 manual
+`token?.let { header(...) }` call sites were deleted along with the `SessionRepository` constructor
+parameter they existed for (`MatchRepositoryImpl` keeps it -- its two WebSocket methods pass the token as
+a URL query param, since browser WebSockets can't set an `Authorization` header, a path the `Auth` plugin
+doesn't touch either way).
+
+**The mechanism** (`createAuthenticatedHttpClient` in `AuthenticatedHttpClientFactory.kt`, pulled out of
+`Koin.kt` as a standalone function specifically so it's unit-testable without a running Koin container):
+`bearer { loadTokens { ... }; refreshTokens { ... }; sendWithoutRequest { true } }` -- `loadTokens`/
+`refreshTokens` both read/write `SessionRepository` directly rather than trusting the plugin's own
+`oldTokens` cache, since `CheckAndRefreshSessionUseCase` (Splash) refreshes independently through the
+*public* client and writes straight to `SessionRepository`, which would otherwise leave the bearer
+provider's in-memory cache stale until the next 401 forced it to catch up anyway. `refreshTokens` calls
+`POST /auth/refresh` marked via `markAsRefreshTokenRequest()` (exempts just that one request from the
+plugin's own auth-header-attaching and infinite-loop-prevention bookkeeping -- it's a member extension
+function on the `RefreshTokensParams` receiver, resolved automatically from inside the nested request
+builder lambda by Kotlin's two-receiver scoping, no explicit qualification or import needed) and, on any
+failure (dead/revoked refresh token, or a network error reaching the endpoint at all), returns `null`
+rather than duplicating any logout logic itself. Ktor's plugin then does exactly what was asked --
+transparently retries the original failed request once with the new token -- with no code needed from
+this app to implement the retry itself.
+
+**"If it returns 401 again, logout"**: a single `HttpResponseValidator { validateResponse { ... } }`,
+installed alongside `Auth` on the same client, is the one place that decides a session is truly dead --
+`sessionRepository.clearSession()` plus a new `SessionEventBus.emitForceLogout()`. This works precisely
+*because* `HttpResponseValidator` only ever observes the fully-resolved response an `execute()` call
+returns to its caller -- by the time it runs, Ktor's `Auth` plugin has already exhausted its one
+refresh-and-retry attempt internally (confirmed by reading Ktor 3.5.2's actual `Auth.kt`/
+`BearerAuthProvider.kt` source, not just its docs -- see below), so any 401 that still reaches the
+validator is final, not an intermediate one about to be retried. This also means the validator's
+side effect never fires for `AuthRepositoryImpl`'s own calls (login/register/the refresh POST itself,
+inasmuch as it goes through the *public* client) -- confirmed by test, see below.
+
+**No prior "force logout from anywhere" existed.** `SplashViewModel`/`AccountViewModel` each fire their
+own one-shot `NavigateToLogin` event, but nothing let arbitrary background code (like a 401 discovered
+mid-request on some unrelated screen) get the user back to the Login screen. Added
+`SessionEventBus` (a bare `MutableSharedFlow<Unit>`, `domain/service/SessionEventBus.kt`), collected for
+the app's whole lifetime by a `LaunchedEffect` in `AppNavigation()`'s root composable (injected via
+`koinInject()`, this codebase's first use of plain-singleton Compose injection -- everywhere else only
+ever injects a ViewModel via `koinViewModel()`), which clears the *entire* back stack
+(`popUpTo(navController.graph.id) { inclusive = true }`, not just up to Dashboard/Splash like the two
+existing manual paths) and navigates to `Screen.Login`, since a forced logout can happen from literally
+any screen in the app.
+
+**Verified with real tests against a real Ktor pipeline, not by inspection alone** -- this codebase had
+*zero* networking test infrastructure before this change (no `MockEngine` usage anywhere). Added
+`ktor-client-mock` + `kotlinx-coroutines-test` and a new `AuthenticatedHttpClientFactoryTest` exercising
+`createAuthenticatedHttpClient` directly against a `MockEngine`, with an in-memory fake
+`SessionRepository`: a plain successful request is unaffected; a 401-then-successful-refresh silently
+retries and succeeds, with the new tokens persisted; a 401 whose refresh call *also* fails 401s clears
+the session and fires `forceLogout`; a 401 that survives even a freshly-refreshed token (Auth doesn't
+retry a second time) also fires `forceLogout`; a session with no stored tokens at all sends no
+`Authorization` header and any resulting 401 still fires `forceLogout`. Writing these caught two real
+mistakes before they shipped, not just confirmed the design on paper:
+1. The test's own mock client initially omitted `ContentNegotiation`, so `handleResponse<TokenResponse>()`
+   inside `refreshTokens` silently failed to deserialize the mocked refresh response and swallowed the
+   exception -- every 401 test failed with "no retry ever attempted" until the test's client was given
+   the same plugins the real "public" client has.
+2. One test asserted the refreshed access token was still present in `SessionRepository` *after* a retry
+   that itself still came back 401 -- wrong: `clearSession()` (fired by the validator, since the final
+   response the caller sees is still 401) correctly wipes it again immediately after, so the test's own
+   expectation was the bug, not the production code.
+
+Also confirmed empirically (a standalone throwaway Gradle project, not just documentation): Ktor 3.5.2's
+`Auth` plugin does **not** require a `WWW-Authenticate` challenge header to trigger a refresh when there
+is exactly one configured provider (this app's case) -- `Auth.kt`'s `findProvider` special-cases
+`candidateProviders.size == 1` to proceed regardless. This app's server never sends that header on a 401
+(`Application.kt`), so this distinction mattered and is exercised by the test with no such header present.
+
+**Not done in this change, on purpose**: reconciling the *two* independent refresh paths (Splash's
+`CheckAndRefreshSessionUseCase` via the public client, and this interceptor's own `refreshTokens` via the
+authenticated client) into one. Both ultimately read/write the same `SessionRepository`, so they stay
+consistent with each other, but each keeps its own reason to exist -- Splash proactively refreshes once
+at cold start so the very first authenticated request of a session doesn't need to detour through a 401
+first, while this interceptor is the safety net for a session that outlives that single refresh.
+
+**Verified**: `:server:test`, `:app:shared:jvmTest` (5 new tests, including the two bugs above caught and
+fixed), `:app:shared:compileKotlinJvm`/`compileKotlinJs`/`compileKotlinWasmJs`/`compileKotlinIosArm64`,
+`:app:androidApp:compileDevDebugKotlin` all clean. **Not verified**: a live device pass watching an actual
+session survive a real access-token expiry mid-match without the user noticing.

@@ -2,7 +2,6 @@ package com.ricardofrango.squadify.data.remote
 
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.ClubRepository
-import com.ricardofrango.squadify.domain.repository.SessionRepository
 import com.ricardofrango.squadify.model.AddClubMembersRequest
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubDetailsResponse
@@ -17,85 +16,42 @@ import io.ktor.http.*
 
 class ClubRepositoryImpl(
     private val httpClient: HttpClient,
-    private val appConfig: AppConfig,
-    private val sessionRepository: SessionRepository
+    private val appConfig: AppConfig
 ) : ClubRepository {
-    
-    override suspend fun getClubs(): List<Club> {
-        val token = sessionRepository.getToken()
-        return httpClient.get("${appConfig.baseUrl}/clubs") {
-            token?.let {
-                header(HttpHeaders.Authorization, "Bearer $it")
-            }
-        }.handleResponse()
-    }
 
-    override suspend fun getClubById(clubId: String): ClubDetailsResponse {
-        val token = sessionRepository.getToken()
-        return httpClient.get("${appConfig.baseUrl}/clubs/$clubId") {
-            token?.let {
-                header(HttpHeaders.Authorization, "Bearer $it")
-            }
-        }.handleResponse()
-    }
+    override suspend fun getClubs(): List<Club> =
+        httpClient.get("${appConfig.baseUrl}/clubs").handleResponse()
 
-    override suspend fun getClubHome(clubId: String): ClubHome {
-        val token = sessionRepository.getToken()
-        return httpClient.get("${appConfig.baseUrl}/clubs/$clubId/home") {
-            token?.let {
-                header(HttpHeaders.Authorization, "Bearer $it")
-            }
-        }.handleResponse()
-    }
+    override suspend fun getClubById(clubId: String): ClubDetailsResponse =
+        httpClient.get("${appConfig.baseUrl}/clubs/$clubId").handleResponse()
 
-    override suspend fun getClubMembers(clubId: String): List<ClubMemberSummary> {
-        val token = sessionRepository.getToken()
-        return httpClient.get("${appConfig.baseUrl}/clubs/$clubId/members") {
-            token?.let {
-                header(HttpHeaders.Authorization, "Bearer $it")
-            }
-        }.handleResponse()
-    }
+    override suspend fun getClubHome(clubId: String): ClubHome =
+        httpClient.get("${appConfig.baseUrl}/clubs/$clubId/home").handleResponse()
+
+    override suspend fun getClubMembers(clubId: String): List<ClubMemberSummary> =
+        httpClient.get("${appConfig.baseUrl}/clubs/$clubId/members").handleResponse()
 
     override suspend fun addClubMembers(clubId: String, request: AddClubMembersRequest) {
-        val token = sessionRepository.getToken()
         httpClient.post("${appConfig.baseUrl}/clubs/$clubId/members") {
             contentType(ContentType.Application.Json)
             setBody(request)
-            token?.let {
-                header(HttpHeaders.Authorization, "Bearer $it")
-            }
         }.handleResponse<Unit>()
     }
 
     override suspend fun updateClub(clubId: String, request: UpdateClubRequest) {
-        val token = sessionRepository.getToken()
         httpClient.patch("${appConfig.baseUrl}/clubs/$clubId") {
             contentType(ContentType.Application.Json)
             setBody(request)
-            token?.let {
-                header(HttpHeaders.Authorization, "Bearer $it")
-            }
         }.handleResponse<Unit>()
     }
 
-    override suspend fun getClubPermissions(clubId: String): ClubPermissionsResponse {
-        val token = sessionRepository.getToken()
-        return httpClient.get("${appConfig.baseUrl}/clubs/$clubId/permissions") {
-            token?.let {
-                header(HttpHeaders.Authorization, "Bearer $it")
-            }
-        }.handleResponse()
-    }
+    override suspend fun getClubPermissions(clubId: String): ClubPermissionsResponse =
+        httpClient.get("${appConfig.baseUrl}/clubs/$clubId/permissions").handleResponse()
 
     override suspend fun updateClubPermissions(clubId: String, request: UpdateClubPermissionsRequest) {
-        val token = sessionRepository.getToken()
         httpClient.patch("${appConfig.baseUrl}/clubs/$clubId/permissions") {
             contentType(ContentType.Application.Json)
             setBody(request)
-            token?.let {
-                header(HttpHeaders.Authorization, "Bearer $it")
-            }
         }.handleResponse<Unit>()
     }
 }
