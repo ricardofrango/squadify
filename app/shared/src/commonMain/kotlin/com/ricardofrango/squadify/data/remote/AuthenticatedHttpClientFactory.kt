@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.model.TokenResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.clearAuthTokens
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.request.post
@@ -72,8 +73,14 @@ fun createAuthenticatedHttpClient(
         validateResponse { response ->
             if (response.status == HttpStatusCode.Unauthorized) {
                 // By the time a response reaches here, Auth (above) has already tried its one
-                // refresh-and-retry -- this 401 is final, so the session really is dead.
+                // refresh-and-retry -- this 401 is final, so the session really is dead. Also drop the
+                // bearer provider's own in-memory token cache (see LoginUseCase/LogoutUseCase's doc
+                // comments on why loadTokens() caching this across SessionRepository changes is the root
+                // cause of the "still authenticated as the old session" class of bug) -- otherwise the
+                // very next request on this same client would just re-attach the same now-known-dead
+                // token and 401 again, instead of sending no token at all until a fresh login runs.
                 sessionRepository.clearSession()
+                response.call.client.clearAuthTokens()
                 sessionEventBus.emitForceLogout()
             }
         }
