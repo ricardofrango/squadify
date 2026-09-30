@@ -124,7 +124,8 @@ private fun MatchDetailsContent(
                     subtitle = details?.let { "${it.ageGroup.name} · ${it.season.name}" },
                     onNavigateBack = onNavigateBack,
                     actions = {
-                        if (details != null && details.canManageMatch) {
+                        // Delete is the menu's only item, and a played (FINISHED) match can't be deleted.
+                        if (details != null && details.canManageMatch && details.match.status != MatchStatus.FINISHED) {
                             var menuOpen by remember { mutableStateOf(false) }
                             Box {
                                 IconButton(onClick = { menuOpen = true }) {

@@ -909,7 +909,9 @@ graph TD
     B -- not found --> N(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D["Delete all MatchEvents for this match"]
+    C -- allowed --> ST{match.status == FINISHED?}
+    ST -- Yes --> CF(["Throw ConflictException: a played match can't be deleted"])
+    ST -- No --> D["Delete all MatchEvents for this match"]
     D --> E["Clear all call-ups for this match (manageCallUps with an empty list)"]
     E --> G["Delete the Match row"]
     G --> Z(["Return success"])
@@ -924,6 +926,12 @@ cleared first because neither's `matchId` foreign key has `ON DELETE CASCADE`; d
 first would fail the constraint. Exposed via `DELETE /matches/{matchId}` (`MatchRoutes.kt`), reachable
 from `MatchDetailsScreen`'s top-right overflow menu (a `ConfirmDialog` -- see `presentation.ui.components`
 -- gates the actual call, since this is irreversible).
+
+**A played match can't be deleted.** Once a match is `FINISHED` it has happened: its events, player stats
+(§8.2f) and report (§8.6) hang off it, so the use case rejects the delete with `ConflictException` (409),
+and the client hides the overflow menu for a finished match. Any match that never ended stays deletable,
+whether it's still scheduled (even past its date), cancelled, or live/at half-time. Covered by
+`DeleteMatchUseCaseTest`.
 
 **Removed: `UpdateCallUpStatusUseCase`.** A call-up used to carry a 5-value attendance status
 (`CALLED_UP`/`CONFIRMED`/`DECLINED`/`NOT_AVAILABLE`/`STANDBY`), settable only by Coach-level staff (or

@@ -9,10 +9,12 @@ import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.exception.ConflictException
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Match
+import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.User
@@ -93,6 +95,40 @@ class DeleteMatchUseCaseTest {
         assertFailsWith<ForbiddenException> { useCase(staff.id, matchId) }
         coVerify(exactly = 0) { matchRepository.deleteMatch(any()) }
         Unit
+    }
+
+    private fun stubCoach(): User {
+        val coach = user("coach")
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+        coEvery { teamRepository.getTeamById(teamId) } returns team
+        coEvery { matchEventRepository.deleteEventsByMatch(matchId) } returns Unit
+        coEvery { matchRepository.manageCallUps(matchId, emptyList()) } returns true
+        coEvery { matchRepository.deleteMatch(matchId) } returns true
+        return coach
+    }
+
+    @Test
+    fun aFinishedMatchCannotBeDeleted() = runBlocking {
+        val coach = stubCoach()
+        coEvery { matchRepository.getMatchById(matchId) } returns match.copy(status = MatchStatus.FINISHED)
+
+        assertFailsWith<ConflictException> { useCase(coach.id, matchId) }
+        coVerify(exactly = 0) { matchEventRepository.deleteEventsByMatch(any()) }
+        coVerify(exactly = 0) { matchRepository.deleteMatch(any()) }
+        Unit
+    }
+
+    @Test
+    fun aMatchThatWasNeverEndedCanStillBeDeleted() = runBlocking {
+        // Past its date but never played, cancelled, or started but not ended -- none of these count
+        // as "happened", so all stay deletable.
+        val coach = stubCoach()
+        listOf(MatchStatus.SCHEDULED, MatchStatus.CANCELLED, MatchStatus.LIVE, MatchStatus.HALF_TIME).forEach { status ->
+            coEvery { matchRepository.getMatchById(matchId) } returns match.copy(status = status)
+            assertEquals(true, useCase(coach.id, matchId), "status $status")
+        }
     }
 
     @Test
