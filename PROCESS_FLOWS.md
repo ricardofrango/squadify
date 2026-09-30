@@ -977,7 +977,9 @@ graph TD
     B -- not found --> V(["Throw ValidationException: Match not found"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_LIVE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D[Create MatchEvent record]
+    C -- allowed --> LV{"match.status is LIVE or HALF_TIME?"}
+    LV -- No --> VL(["Throw ValidationException: events only while live"])
+    LV -- Yes --> D[Create MatchEvent record]
     D --> E[Persist event]
     E --> G["Recalculate score from all events for this match"]
     G --> H["Publish LiveMatchUpdate(event, score) via LiveMatchBus for matchId"]
@@ -997,7 +999,9 @@ graph TD
     B -- not found --> N1(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_LIVE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D[Fetch Event by id]
+    C -- allowed --> LV{"match.status is LIVE or HALF_TIME?"}
+    LV -- No --> VL(["Throw ValidationException: events only while live"])
+    LV -- Yes --> D[Fetch Event by id]
     D -- not found --> N2(["Throw NotFoundException"])
     D -- event.matchId != matchId --> V(["Throw ValidationException"])
     D -- ok --> E[Delete event]
@@ -1006,6 +1010,8 @@ graph TD
     H --> H2["Publish ClubMatchesUpdate(score) via ClubMatchesBus for match.clubId (§8.5)"]
     H2 --> Z(["Return success"])
 ```
+
+Events can only be added (§8.1) or removed (here) while the match is `LIVE` or `HALF_TIME`. Before kickoff there is nothing to log, and once the match is `FINISHED` its player stats are frozen from these events (§8.2f), so they can't change afterwards.
 
 Removes a mis-logged goal, card, or substitution row. The client always confirms with the user first (see below — "Confirms only on Full time and event deletion").
 

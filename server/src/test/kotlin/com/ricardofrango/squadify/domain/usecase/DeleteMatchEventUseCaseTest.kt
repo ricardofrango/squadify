@@ -17,6 +17,7 @@ import com.ricardofrango.squadify.model.ClubMatchesUpdate
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.Match
+import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.Team
@@ -59,7 +60,7 @@ class DeleteMatchEventUseCaseTest {
     private val teamId = "t-1"
     private val ag1 = "ag-1"
     private val eventId = "ev-1"
-    private val match = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1))
+    private val match = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.LIVE)
     private val event = MatchEvent(eventId, matchId, EventType.GOAL, minute = 10, playerId = "p1", createdAt = Instant.fromEpochMilliseconds(1))
 
     private fun coach() = User("coach", "coach@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
@@ -126,6 +127,17 @@ class DeleteMatchEventUseCaseTest {
         assertFailsWith<ForbiddenException> {
             useCase(member.id, matchId, eventId)
         }
+        Unit
+    }
+
+    @Test
+    fun eventsOfAFinishedMatchCannotBeRemoved() = runBlocking {
+        val coach = coach()
+        coEvery { matchRepository.getMatchById(matchId) } returns match.copy(status = MatchStatus.FINISHED)
+        stubCoachPermission(coach)
+
+        assertFailsWith<ValidationException> { useCase(coach.id, matchId, eventId) }
+        coVerify(exactly = 0) { matchEventRepository.deleteEvent(any()) }
         Unit
     }
 }

@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.*
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
@@ -38,6 +39,12 @@ class AddMatchEventUseCase(
                 teamId = match.teamId,
                 errorMessage = "Insufficient permissions to add match events"
             )
+
+            // Events only exist while the match is being played. Once it's FINISHED its player stats
+            // are frozen from these events (see UpdateMatchStatusUseCase), so they can't change after.
+            if (match.status != MatchStatus.LIVE && match.status != MatchStatus.HALF_TIME) {
+                throw ValidationException("Events can only be logged while the match is live")
+            }
 
             // 3. Create the event
             val event = MatchEvent(

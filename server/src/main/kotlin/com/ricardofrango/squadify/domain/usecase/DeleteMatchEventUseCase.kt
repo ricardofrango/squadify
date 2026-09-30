@@ -11,6 +11,7 @@ import com.ricardofrango.squadify.model.ClubMatchesUpdate
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.LiveMatchUpdate
+import com.ricardofrango.squadify.model.MatchStatus
 
 /**
  * Removes a logged event (a mis-tap goal, card, or substitution) and re-broadcasts the recomputed
@@ -40,6 +41,12 @@ class DeleteMatchEventUseCase(
             teamId = match.teamId,
             errorMessage = "Insufficient permissions to delete match events"
         )
+
+        // Same rule as AddMatchEventUseCase: a FINISHED match's events (and the player stats frozen
+        // from them) are final.
+        if (match.status != MatchStatus.LIVE && match.status != MatchStatus.HALF_TIME) {
+            throw ValidationException("Events can only be removed while the match is live")
+        }
 
         val event = matchEventRepository.getEventById(eventId) ?: throw NotFoundException("Event not found")
         if (event.matchId != matchId) {
