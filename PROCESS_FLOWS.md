@@ -141,8 +141,8 @@ graph TD
     D -- not found --> U
     D -- found --> E{BCrypt.checkpw matches?}
     E -- No --> U
-    E -- Yes --> F[Generate Access Token — 1h]
-    F --> G[Generate Refresh Token — 24d]
+    E -- Yes --> F[Generate Access Token — 48h]
+    F --> G[Generate Refresh Token — 30d]
     G --> H[Save Refresh Token to DB]
     H --> Z(["Return accessToken, refreshToken, user"])
 ```
@@ -260,7 +260,7 @@ graph TD
     G --> Z(["Return success"])
 ```
 
-Same `BCrypt.checkpw` gate `LoginUseCase` uses for the current-password check, so a stolen access token alone can't be used to lock the real account owner out. Both use cases covered by `UpdateProfileUseCaseTest`/`ChangePasswordUseCaseTest`. See `TECHNICAL_DECISIONS.md` §32.
+Same `BCrypt.checkpw` gate `LoginUseCase` uses for the current-password check, so a stolen access token alone can't be used to lock the real account owner out. Both use cases covered by `UpdateProfileUseCaseTest`/`ChangePasswordUseCaseTest`. See `TECHNICAL_DECISIONS.md` §33.
 
 ---
 
@@ -592,7 +592,7 @@ graph TD
     K --> Z(["Return TeamDetails: team, club, ageGroup, season, poolSize, siblingTeamNames, staff, upcomingMatches, upcomingMatchScores, recentResults, opponents, canManageMatch"])
 ```
 
-`poolSize` / `staff` come from the age group (players and staff belong to it, not the team); the screen links back to the age-group detail for both. `club` is carried so a screen opened from here (e.g. Schedule Match) has the club name without another call. `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canManageMatch` gates the schedule-match action ("Edit team" is a decorative, unwired menu item -- see TECHNICAL_DECISIONS.md §35). As with the age-group screen, a live match stays in `upcomingMatches` (it hasn't reached `recentResults` yet) and `upcomingMatchScores` carries its running score.
+`poolSize` / `staff` come from the age group (players and staff belong to it, not the team); the screen links back to the age-group detail for both. `club` is carried so a screen opened from here (e.g. Schedule Match) has the club name without another call. `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canManageMatch` gates the schedule-match action ("Edit team" is a decorative, unwired menu item in `TeamDetailsScreen` -- no Edit Team screen exists yet). As with the age-group screen, a live match stays in `upcomingMatches` (it hasn't reached `recentResults` yet) and `upcomingMatchScores` carries its running score.
 
 ---
 
@@ -602,7 +602,12 @@ graph TD
 
 ```mermaid
 graph TD
-    A[Start: userId, clubId, players list] --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    A[Start: userId, clubId, players list, ageGroupId?] --> AG{ageGroupId supplied?}
+    AG -- Yes --> AGF[Fetch AgeGroup by id]
+    AGF -- not found --> N0(["Throw NotFoundException"])
+    AGF -- found, wrong club --> FB0(["Throw ForbiddenException"])
+    AGF -- found, right club --> B
+    AG -- No --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=CREATE_PLAYERS, ageGroupId]
     B -- denied --> F(["Throw ForbiddenException"])
     B -- allowed --> C{Any player first/last name blank?}
     C -- Yes --> V(["Throw ValidationException"])
@@ -624,6 +629,8 @@ graph TD
     Q --> Z
     P --> Z
 ```
+
+`ageGroupId` is optional: the "+ Add new player" shortcut on Add Players to Age Group passes the selected age group, so that age group's coach can create players through `ConfigurablePermission.CREATE_PLAYERS` (defaults to Coach). It's checked against `clubId` before the permission check to block cross-club spoofing. The club-roster entry points send no `ageGroupId`, so they stay coordinator-only. See `TECHNICAL_DECISIONS.md` §31/§35.
 
 ### 5.1b Get Player Profile (`GetPlayerUseCase`)
 
@@ -721,7 +728,7 @@ Players belong to **age-group pools**, not teams. A player can be in several age
 graph TD
     A[Start: userId, ageGroupId, playerIds list] --> B[Fetch AgeGroup by id]
     B -- not found --> V0(["Throw ValidationException: Age group not found"])
-    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR OR minTeamRole=COACH on ageGroupId]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=ASSIGN_PLAYERS_TO_AGE_GROUP, ageGroupId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> E0{playerIds empty?}
     E0 -- Yes --> V0b(["Throw ValidationException"])
@@ -1261,7 +1268,8 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
 - [x] **No match-status transition validation.** `UpdateMatchStatusUseCase` accepted any `MatchStatus` value from any current status — nothing stopped jumping straight from `SCHEDULED` to `FINISHED`, and (a sharper version of the same gap) a coach could set `SCHEDULED -> LIVE` through this use case directly, completely bypassing `StartMatchUseCase`'s starting-line-up/half-length validation, since it's a separately exposed route (`MatchRoutes.kt`), not something `StartMatchUseCase` delegates to.
   **Fixed:** added an explicit transition table (`VALID_MATCH_STATUS_TRANSITIONS`) -- `SCHEDULED -> CANCELLED` only (kickoff stays exclusive to `StartMatchUseCase`); `LIVE -> {HALF_TIME, FINISHED, CANCELLED}`; `HALF_TIME -> {LIVE, FINISHED, CANCELLED}`; `FINISHED`/`CANCELLED` are terminal. An invalid transition now throws `ValidationException`. See `UpdateMatchStatusUseCaseTest`.
 - [ ] **No historical/aggregated match statistics use case exists yet.** `GetMatchScoreUseCase`/`GetMatchEventsUseCase` only expose live/raw data — this matches the open `REQUIREMENTS.md` Phase 5 item "Historical match statistics (Post-match analysis)".
-- [ ] **Invite emails are not sent.** Confirmed at the use-case level: every invite-creation path only writes to the `Invites` table (§10) — no email/SMTP call exists, matching the documented "Email System (Pending)" decision.
+- [x] **Invite emails are not sent.** Every invite-creation path used to only write to the `Invites` table (§10), with no email call anywhere.
+  **Partly fixed:** `ProvisionClubUseCase`/`AddClubMembersUseCase` now send emails via Resend (`TECHNICAL_DECISIONS.md` §14). The `PARENT_PLAYER` paths (`CreatePlayersUseCase`/`UpdatePlayerUseCase`) still send nothing, on purpose, since parents/players are out of scope for now.
 
 
 ---
@@ -1492,12 +1500,12 @@ erDiagram
 ### 12.4 Current persistence setup
 
 - **Engine**: PostgreSQL, both dev and production. H2 has been removed entirely. The connection is built from `ServerConfig.kt`'s `DATABASE_HOST`/`DATABASE_PORT`/`DATABASE_USER`/`DATABASE_PASSWORD`/`DATABASE_NAME` env vars — host and password are required explicitly when `APP_ENV=production` (no silent fallback), while the database name defaults per environment (`squadify_dev` / `squadify_production`), so dev and production stay isolated even against the same Postgres server. `docker-compose.yml` at the repo root provides a local Postgres matching the dev defaults.
-- **Schema creation**: `SchemaUtils.createMissingTablesAndColumns(...)` runs on every boot, listing all tables explicitly. It's additive-only — it can add a missing table or column, but never drops or alters an existing one. One hand-written exception: `DatabaseFactory.init()` runs a raw, idempotent SQL block right after schema creation that backfills `age_groups.start_year`/`end_year` from the old single `birth_year` column (if it still exists) and then drops that column — the one-off migration for the birth-year-range change (§4.3/§5.3). It's a no-op once `birth_year` is gone, so it's safe to leave running on every boot rather than being a real migration-history mechanism.
-- **Flyway vs. reality**: Flyway is still a declared build dependency, but no Flyway migration scripts exist anywhere in the repo, and `DatabaseFactory.kt` never invokes Flyway at all. The actual mechanism today is `createMissingTablesAndColumns` plus the one hand-written backfill above — there's still no real schema history/rollback story, just ad hoc raw SQL when a change needs more than "add a column."
+- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables) and `V2__club_permission_overrides.sql`. An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
+- **Legacy backfill**: right after Flyway, `DatabaseFactory.init()` still runs a raw, idempotent SQL block that backfills `age_groups.start_year`/`end_year` from the old single `birth_year` column (if it still exists) and then drops that column (§4.3/§5.3). It's a no-op once `birth_year` is gone. It was deliberately left outside the migration chain because there's no way to confirm every environment has already run it.
 - **Connection pool**: HikariCP, `maximumPoolSize = 3` in dev / `10` in production, `autoCommit = false`, isolation level `TRANSACTION_REPEATABLE_READ`.
 
 ### 12.5 Schema-level gaps observed
 
 - [ ] No `onDelete` cascade/set-null strategy anywhere — every FK relies on the DB's default no-action behavior (see §12.2).
-- [ ] The Flyway/`SchemaUtils` mismatch above: Flyway is still an unused dependency; `createMissingTablesAndColumns` remains the only real migration mechanism, with no schema history/rollback story.
+- [x] The Flyway/`SchemaUtils` mismatch: **fixed**, since Flyway is now the real migration mechanism (§12.4, `TECHNICAL_DECISIONS.md` §34). There are still no down/rollback scripts, as Flyway Community only supports forward migrations.
 - [ ] `AgeGroups.start_year`/`end_year` each have a `.default(0)` that has no real-world meaning and is never actually relied upon for a normal insert (`CreateAgeGroupsUseCase` always supplies explicit values) — the default exists only as the "not yet migrated" sentinel the one-off `birth_year` backfill above checks for.
