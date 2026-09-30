@@ -15,7 +15,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,16 +29,22 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.*
+import com.ricardofrango.squadify.presentation.ui.components.daysAgoLabel
+import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
+import com.ricardofrango.squadify.presentation.ui.theme.Amber
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.daysUntil
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 private val CardShape = RoundedCornerShape(16.dp)
@@ -103,13 +113,33 @@ fun HomeTab(
 
         // ---- Needs you ----
         if (home.alerts.isNotEmpty()) {
+            // Design 27a: time-bound items first (call-ups), then pending reports oldest first (the
+            // server already sends them in that order), then configuration gaps.
+            val callUps = home.alerts.filter { it.type == ClubHomeAlertType.CALLUPS_UNSENT }
+            val reports = home.alerts.filter { it.type == ClubHomeAlertType.MATCH_REPORT_PENDING }
+            val gaps = home.alerts.filter { it.type == ClubHomeAlertType.AGE_GROUP_NEEDS_COACH }
+            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SectionTitle(stringResource(Res.string.label_home_needs_you))
-                home.alerts.forEach { alert ->
+                callUps.forEach { AlertRow(it, dotColor = PitchGreen, onClick = null) }
+                // 1-2 pending reports are normal rows; from 3 up they collapse into one group (27b).
+                if (reports.size >= REPORT_GROUP_THRESHOLD) {
+                    PendingReportsGroup(reports, today, onNavigateToMatch)
+                } else {
+                    reports.forEach { alert ->
+                        AlertRow(
+                            alert,
+                            dotColor = reportDotColor(alert, today),
+                            subtitle = reportPlayedLine(alert, today),
+                            onClick = alert.matchId?.let { id -> { onNavigateToMatch(id) } }
+                        )
+                    }
+                }
+                gaps.forEach { alert ->
                     AlertRow(
-                        alert = alert,
+                        alert,
+                        dotColor = DeepCarbon.copy(alpha = 0.25f),
                         onClick = alert.ageGroupId?.let { id -> { onNavigateToAgeGroup(id) } }
-                            ?: alert.matchId?.let { id -> { onNavigateToMatch(id) } }
                     )
                 }
             }
@@ -213,21 +243,91 @@ private fun CallUpPill(calledUp: Int) {
     }
 }
 
+private const val REPORT_GROUP_THRESHOLD = 3
+// A pending report older than this gets an amber dot (27e).
+private const val REPORT_OVERDUE_DAYS = 7
+
+private fun reportDotColor(alert: ClubHomeAlert, today: LocalDate): Color =
+    if (alert.date != null && alert.date!!.daysUntil(today) > REPORT_OVERDUE_DAYS) Amber else PitchGreen
+
+/** "Played 27 Sep · 3 days ago" -- relative age matters more than the date, so both are shown. */
 @Composable
-private fun AlertRow(alert: ClubHomeAlert, onClick: (() -> Unit)?) {
-    val text = when (alert.type) {
-        ClubHomeAlertType.AGE_GROUP_NEEDS_COACH ->
-            stringResource(Res.string.msg_home_needs_coach, alert.ageGroupName ?: "")
-        ClubHomeAlertType.CALLUPS_UNSENT ->
-            stringResource(
-                Res.string.msg_home_callups_unsent,
-                alert.count,
-                alert.date?.let { stringResource(weekdayLabel(it.dayOfWeek)) } ?: ""
-            )
-        ClubHomeAlertType.MATCH_REPORT_PENDING ->
-            stringResource(Res.string.msg_home_match_report_pending, alert.teamName ?: "", alert.opponentName ?: "")
-    }
+private fun reportPlayedLine(alert: ClubHomeAlert, today: LocalDate): String? {
+    val date = alert.date ?: return null
+    return stringResource(Res.string.home_report_played, shortDateLabel(date), daysAgoLabel(date, today))
+}
+
+/**
+ * Three or more pending reports: one row with the count and the oldest date, collapsed by default;
+ * tapping expands the list inline, oldest first, each child opening its match (27b/27d). The
+ * expanded state survives recomposition and rotation for this visit.
+ */
+@Composable
+private fun PendingReportsGroup(reports: List<ClubHomeAlert>, today: LocalDate, onNavigateToMatch: (String) -> Unit) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val oldest = reports.mapNotNull { it.date }.minOrNull()
+    val anyOverdue = reports.any { reportDotColor(it, today) == Amber }
     Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = CardShape,
+        color = Color.White,
+        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
+    ) {
+        Column {
+            AlertRowContent(
+                title = stringResource(Res.string.msg_home_match_reports_pending, reports.size),
+                subtitle = oldest?.let { stringResource(Res.string.home_reports_oldest, shortDateLabel(it), daysAgoLabel(it, today)) },
+                dotColor = if (anyOverdue) Amber else PitchGreen,
+                trailing = if (expanded) " ˄" else " ˅",
+                onClick = { expanded = !expanded }
+            )
+            if (expanded) {
+                reports.forEach { alert ->
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(CarbonGray.copy(alpha = 0.06f)))
+                    Box(Modifier.background(Color(0xFFFAFAFA)).padding(start = 16.dp)) {
+                        AlertRowContent(
+                            title = alertText(alert),
+                            subtitle = reportPlayedLine(alert, today),
+                            dotColor = reportDotColor(alert, today),
+                            trailing = " ›",
+                            onClick = alert.matchId?.let { id -> { onNavigateToMatch(id) } }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun alertText(alert: ClubHomeAlert): String = when (alert.type) {
+    ClubHomeAlertType.AGE_GROUP_NEEDS_COACH ->
+        stringResource(Res.string.msg_home_needs_coach, alert.ageGroupName ?: "")
+    ClubHomeAlertType.CALLUPS_UNSENT ->
+        stringResource(
+            Res.string.msg_home_callups_unsent,
+            alert.count,
+            alert.date?.let { stringResource(weekdayLabel(it.dayOfWeek)) } ?: ""
+        )
+    ClubHomeAlertType.MATCH_REPORT_PENDING ->
+        stringResource(Res.string.msg_home_match_report_pending, alert.teamName ?: "", alert.opponentName ?: "")
+}
+
+@Composable
+private fun AlertRow(alert: ClubHomeAlert, dotColor: Color, subtitle: String? = null, onClick: (() -> Unit)?) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = CardShape,
+        color = Color.White,
+        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
+    ) {
+        AlertRowContent(alertText(alert), subtitle, dotColor, trailing = onClick?.let { " ›" }, onClick = onClick)
+    }
+}
+
+@Composable
+private fun AlertRowContent(title: String, subtitle: String?, dotColor: Color, trailing: String?, onClick: (() -> Unit)?) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .then(
@@ -236,26 +336,25 @@ private fun AlertRow(alert: ClubHomeAlert, onClick: (() -> Unit)?) {
                     indication = null,
                     onClick = onClick
                 ) else Modifier
-            ),
-        shape = CardShape,
-        color = Color.White,
-        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 16.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(Modifier.size(8.dp).background(PitchGreen, CircleShape))
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                color = DeepCarbon, modifier = Modifier.weight(1f),
-                maxLines = 2, overflow = TextOverflow.Ellipsis
             )
-            if (onClick != null) {
-                Text(" ›", color = DeepCarbon.copy(alpha = 0.35f), fontWeight = FontWeight.Bold)
+            .padding(horizontal = 14.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(Modifier.align(if (subtitle != null) Alignment.Top else Alignment.CenterVertically).padding(top = if (subtitle != null) 6.dp else 0.dp).size(8.dp).background(dotColor, CircleShape))
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            // The title clamps at two lines; the date line never truncates (27c).
+            Text(
+                title,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                color = DeepCarbon, maxLines = 2, overflow = TextOverflow.Ellipsis
+            )
+            if (subtitle != null) {
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.62f))
             }
+        }
+        if (trailing != null) {
+            Text(trailing, color = DeepCarbon.copy(alpha = 0.35f), fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -321,6 +420,10 @@ private fun HomeTabPreview() {
                     ClubHomeAlert(ClubHomeAlertType.CALLUPS_UNSENT, count = 2, date = kotlinx.datetime.LocalDate(2026, 9, 12)),
                     ClubHomeAlert(ClubHomeAlertType.AGE_GROUP_NEEDS_COACH, count = 1, ageGroupId = "ag-x", ageGroupName = "Sub-11"),
                     ClubHomeAlert(
+                        ClubHomeAlertType.MATCH_REPORT_PENDING, count = 1, date = kotlinx.datetime.LocalDate(2026, 9, 14),
+                        matchId = "m-a", teamName = "Sub-15 C", opponentName = "SC Praia Norte"
+                    ),
+                    ClubHomeAlert(
                         ClubHomeAlertType.MATCH_REPORT_PENDING, count = 1, date = kotlinx.datetime.LocalDate(2026, 9, 27),
                         matchId = "m-x", teamName = "Sub-15 A", opponentName = "AD Fontelas"
                     )
@@ -332,3 +435,32 @@ private fun HomeTabPreview() {
         )
     }
 }
+
+@Preview
+@Composable
+private fun HomeTabManyPendingReportsPreview() {
+    val club = Club("c1", "CD Ribamar", status = ClubStatus.ACTIVE, sport = SportType.FOOTBALL, createdAt = Instant.fromEpochMilliseconds(0))
+    fun report(id: String, day: Int, team: String, opp: String) = ClubHomeAlert(
+        ClubHomeAlertType.MATCH_REPORT_PENDING, count = 1, date = kotlinx.datetime.LocalDate(2026, 9, day),
+        matchId = id, teamName = team, opponentName = opp
+    )
+    SquadifyTheme {
+        HomeTab(
+            home = ClubHome(
+                club = club, seasonName = "26/27", role = ClubRole.MEMBER,
+                teamCount = 3, playerCount = 40, coachCount = 3, matchesThisWeek = 2,
+                nextUp = emptyList(),
+                alerts = listOf(
+                    report("m1", 14, "Sub-15 C", "SC Praia Norte"),
+                    report("m2", 20, "Sub-15 A", "GD Marinhas"),
+                    report("m3", 21, "Sub-15 B", "CD Aveleda"),
+                    report("m4", 27, "Sub-15 A", "AD Fontelas")
+                )
+            ),
+            onRetry = {},
+            onNavigateToAgeGroup = {},
+            onNavigateToMatch = {}
+        )
+    }
+}
+
