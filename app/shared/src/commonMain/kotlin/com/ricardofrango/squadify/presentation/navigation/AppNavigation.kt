@@ -33,6 +33,7 @@ import com.ricardofrango.squadify.presentation.ui.createagegroups.CreateAgeGroup
 import com.ricardofrango.squadify.presentation.ui.teamdetails.TeamDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.creatematch.CreateMatchScreen
 import com.ricardofrango.squadify.presentation.ui.matchdetails.MatchDetailsScreen
+import com.ricardofrango.squadify.presentation.ui.matchreport.MatchReportScreen
 import com.ricardofrango.squadify.presentation.ui.livematch.LiveMatchScreen
 import com.ricardofrango.squadify.presentation.ui.playerdetails.PlayerDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.editplayer.EditPlayerScreen
@@ -469,6 +470,7 @@ fun AppNavigation() {
                 matchId = screen.matchId,
                 onNavigateBack = { navController.popBackStack() },
                 onEnterLiveMatch = { matchId -> navController.navigate(Screen.LiveMatch(matchId)) },
+                onOpenReport = { matchId, edit -> navController.navigate(Screen.MatchReport(matchId, edit)) },
                 onRedirectToLiveMatch = { matchId ->
                     // Replace this entry rather than push on top of it -- otherwise back from
                     // LiveMatch lands back on this screen, which immediately redirects again.
@@ -499,6 +501,19 @@ fun AppNavigation() {
             LiveMatchScreen(
                 matchId = screen.matchId,
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Screen.MatchReport> { backStackEntry ->
+            val screen: Screen.MatchReport = backStackEntry.toRoute()
+            MatchReportScreen(
+                matchId = screen.matchId,
+                startEditing = screen.edit,
+                onNavigateBack = { changed ->
+                    // A saved report changes Match Details' card and Home's to-do -- cascade a reload.
+                    if (changed) navController.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
             )
         }
 

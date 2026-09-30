@@ -11,6 +11,9 @@ import com.ricardofrango.squadify.model.ManageCallUpRequest
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchEvent
+import com.ricardofrango.squadify.model.MatchReport
+import com.ricardofrango.squadify.model.MatchReportDetails
+import com.ricardofrango.squadify.model.SaveMatchReportRequest
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.SetMatchMinuteRequest
@@ -59,6 +62,14 @@ class MatchRepositoryImpl(
             contentType(ContentType.Application.Json); setBody(UpdateMatchStatusRequest(status))
         }.handleResponse<Unit>()
     }
+
+    override suspend fun getMatchReport(matchId: String): MatchReportDetails =
+        httpClient.get("${appConfig.baseUrl}/matches/$matchId/report").handleResponse()
+
+    override suspend fun saveMatchReport(matchId: String, request: SaveMatchReportRequest): MatchReport =
+        httpClient.put("${appConfig.baseUrl}/matches/$matchId/report") {
+            contentType(ContentType.Application.Json); setBody(request)
+        }.handleResponse()
 
     override suspend fun manageCallUps(matchId: String, playerIds: List<String>) {
         httpClient.post("${appConfig.baseUrl}/matches/$matchId/call-up") {

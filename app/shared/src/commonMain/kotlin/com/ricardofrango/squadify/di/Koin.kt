@@ -20,6 +20,7 @@ import com.ricardofrango.squadify.presentation.ui.agegroupdetails.AgeGroupDetail
 import com.ricardofrango.squadify.presentation.ui.teamdetails.TeamDetailsViewModel
 import com.ricardofrango.squadify.presentation.ui.creatematch.CreateMatchViewModel
 import com.ricardofrango.squadify.presentation.ui.matchdetails.MatchDetailsViewModel
+import com.ricardofrango.squadify.presentation.ui.matchreport.MatchReportViewModel
 import com.ricardofrango.squadify.presentation.ui.livematch.LiveMatchViewModel
 import com.ricardofrango.squadify.presentation.ui.addstafftoagegroup.AddStaffToAgeGroupViewModel
 import com.ricardofrango.squadify.presentation.ui.createstaff.CreateStaffViewModel
@@ -153,6 +154,8 @@ val domainModule = module {
     factory { GetMatchDetailsUseCase(get()) }
     factory { UpdateMatchUseCase(get()) }
     factory { DeleteMatchUseCase(get()) }
+    factory { GetMatchReportUseCase(get()) }
+    factory { SaveMatchReportUseCase(get()) }
     factory { UpdateMatchStatusUseCase(get()) }
     factory { StartMatchUseCase(get()) }
     factory { PauseMatchUseCase(get()) }
@@ -188,6 +191,7 @@ val presentationModule = module {
     viewModelOf(::TeamDetailsViewModel)
     viewModelOf(::CreateMatchViewModel)
     viewModelOf(::MatchDetailsViewModel)
+    viewModelOf(::MatchReportViewModel)
     viewModelOf(::LiveMatchViewModel)
     viewModelOf(::AddStaffToAgeGroupViewModel)
     viewModelOf(::CreateStaffViewModel)

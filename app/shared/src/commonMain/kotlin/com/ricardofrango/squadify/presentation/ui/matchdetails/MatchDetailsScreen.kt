@@ -28,6 +28,7 @@ import com.ricardofrango.squadify.presentation.ui.components.TimePickerSheet
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
@@ -69,6 +70,7 @@ fun MatchDetailsScreen(
     onNavigateBack: () -> Unit,
     onEnterLiveMatch: (matchId: String) -> Unit,
     onRedirectToLiveMatch: (matchId: String) -> Unit,
+    onOpenReport: (matchId: String, edit: Boolean) -> Unit,
     refreshOnReturn: Boolean = false,
     viewModel: MatchDetailsViewModel = koinViewModel()
 ) {
@@ -95,7 +97,8 @@ fun MatchDetailsScreen(
         onRemoveFromCallUp = viewModel::onRemoveFromCallUp,
         onEditMatch = viewModel::onEditMatch,
         onDeleteMatch = viewModel::onDeleteMatch,
-        onEnterLiveMatch = viewModel::onEnterLiveMatch
+        onEnterLiveMatch = viewModel::onEnterLiveMatch,
+        onOpenReport = { edit -> onOpenReport(matchId, edit) }
     )
 }
 
@@ -110,7 +113,8 @@ private fun MatchDetailsContent(
     onRemoveFromCallUp: (MatchCallUpWithPlayer) -> Unit,
     onEditMatch: (UpdateMatchRequest) -> Unit,
     onDeleteMatch: () -> Unit,
-    onEnterLiveMatch: () -> Unit
+    onEnterLiveMatch: () -> Unit,
+    onOpenReport: (edit: Boolean) -> Unit
 ) {
     val details = (uiState as? MatchDetailsUiState.Idle)?.details
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -159,7 +163,9 @@ private fun MatchDetailsContent(
             }
         }
     ) { paddingValues ->
-        val boxModifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White)
+        // A finished match's body is WhiteSmoke so its white bordered cards (the report card first) read as cards (design 23).
+        val bodyColor = if (details?.match?.status == MatchStatus.FINISHED) WhiteSmoke else Color.White
+        val boxModifier = Modifier.fillMaxSize().padding(paddingValues).background(bodyColor)
         when (uiState) {
             is MatchDetailsUiState.Loading ->
                 Box(boxModifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
@@ -177,7 +183,8 @@ private fun MatchDetailsContent(
                 onSortSelected = onSortSelected,
                 onAddToCallUp = onAddToCallUp,
                 onRemoveFromCallUp = onRemoveFromCallUp,
-                onEditMatch = onEditMatch
+                onEditMatch = onEditMatch,
+                onOpenReport = onOpenReport
             )
         }
     }
@@ -258,7 +265,8 @@ private fun MatchBody(
     onSortSelected: (CallUpSort) -> Unit,
     onAddToCallUp: (Player) -> Unit,
     onRemoveFromCallUp: (MatchCallUpWithPlayer) -> Unit,
-    onEditMatch: (UpdateMatchRequest) -> Unit
+    onEditMatch: (UpdateMatchRequest) -> Unit,
+    onOpenReport: (edit: Boolean) -> Unit
 ) {
     val details = state.details
     val counts = callUpCounts(details)
@@ -278,6 +286,11 @@ private fun MatchBody(
     ) {
         state.transientError?.let {
             item { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+        }
+
+        // ---- Match report: the first card on a finished match, for staff only (design 23) ----
+        details.report?.let { report ->
+            item { MatchReportCard(report, onOpenReport) }
         }
 
         // ---- Details ----
@@ -701,7 +714,7 @@ private fun MatchDetailsFinishedWinPreview() {
     SquadifyTheme {
         MatchDetailsContent(
             uiState = MatchDetailsUiState.Idle(sampleDetails(MatchStatus.FINISHED, canManage = true, score = MatchScore("m1", 3, 1))),
-            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onRemoveFromCallUp = {}, onEditMatch = {}, onDeleteMatch = {}, onEnterLiveMatch = {}
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onRemoveFromCallUp = {}, onEditMatch = {}, onDeleteMatch = {}, onEnterLiveMatch = {}, onOpenReport = {}
         )
     }
 }
@@ -712,7 +725,7 @@ private fun MatchDetailsScheduledCanManagePreview() {
     SquadifyTheme {
         MatchDetailsContent(
             uiState = MatchDetailsUiState.Idle(sampleDetails(MatchStatus.SCHEDULED, canManage = true)),
-            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onRemoveFromCallUp = {}, onEditMatch = {}, onDeleteMatch = {}, onEnterLiveMatch = {}
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onRemoveFromCallUp = {}, onEditMatch = {}, onDeleteMatch = {}, onEnterLiveMatch = {}, onOpenReport = {}
         )
     }
 }
@@ -726,7 +739,7 @@ private fun MatchDetailsSortedByPositionPreview() {
                 details = sampleDetails(MatchStatus.SCHEDULED, canManage = true),
                 sort = CallUpSort.POSITION
             ),
-            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onRemoveFromCallUp = {}, onEditMatch = {}, onDeleteMatch = {}, onEnterLiveMatch = {}
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onRemoveFromCallUp = {}, onEditMatch = {}, onDeleteMatch = {}, onEnterLiveMatch = {}, onOpenReport = {}
         )
     }
 }
@@ -737,7 +750,7 @@ private fun MatchDetailsLoadingPreview() {
     SquadifyTheme {
         MatchDetailsContent(
             uiState = MatchDetailsUiState.Loading,
-            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onRemoveFromCallUp = {}, onEditMatch = {}, onDeleteMatch = {}, onEnterLiveMatch = {}
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onRemoveFromCallUp = {}, onEditMatch = {}, onDeleteMatch = {}, onEnterLiveMatch = {}, onOpenReport = {}
         )
     }
 }

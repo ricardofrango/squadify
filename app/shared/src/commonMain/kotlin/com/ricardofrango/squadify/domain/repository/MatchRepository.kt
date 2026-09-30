@@ -7,6 +7,9 @@ import com.ricardofrango.squadify.model.LiveMatchUpdate
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchEvent
+import com.ricardofrango.squadify.model.MatchReport
+import com.ricardofrango.squadify.model.MatchReportDetails
+import com.ricardofrango.squadify.model.SaveMatchReportRequest
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.StartMatchRequest
@@ -25,6 +28,9 @@ interface MatchRepository {
     suspend fun resumeMatch(matchId: String)
     suspend fun setMatchMinute(matchId: String, minute: Int)
     suspend fun manageCallUps(matchId: String, playerIds: List<String>)
+    // The post-match report for a FINISHED match: text, each called-up player's stats and rating.
+    suspend fun getMatchReport(matchId: String): MatchReportDetails
+    suspend fun saveMatchReport(matchId: String, request: SaveMatchReportRequest): MatchReport
 
     suspend fun getMatchEvents(matchId: String): List<MatchEvent>
     suspend fun getMatchScore(matchId: String): MatchScore

@@ -1274,6 +1274,12 @@ graph TD
 - **Who can write it:** anyone who clears `MANAGE_MATCH`, the same configurable permission as scheduling and editing the match (Coach by default).
 - **Drafts and completion:** saving with `complete = false` keeps a draft, and the report stays in the Home tab's to-do (§3.3b) until it's completed. Once completed it stays completed, and remains editable.
 - **Tests:** covered by `GetMatchReportUseCaseTest` and `SaveMatchReportUseCaseTest`.
+- **Response extras:** `MatchReportDetails` also carries `teamName`, `opponentName` and `updatedByName` for the screen header and its "Last updated … by …" line.
+
+**Client:** Match Details' report card opens `MatchReportScreen`:
+- **"Fill in report":** opens the editor.
+- **"View report":** opens the read view, with Edit available to whoever can edit.
+- **Returning:** saving anything flags the previous screen to reload, so the card and Home's to-do update. See `TECHNICAL_DECISIONS.md` §41 for the screen design.
 
 ---
 

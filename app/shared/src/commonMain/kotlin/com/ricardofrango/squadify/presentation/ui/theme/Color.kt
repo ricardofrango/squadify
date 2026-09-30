@@ -9,6 +9,14 @@ val PitchGreen = Color(0xFF2E7D32) // Slightly deeper, more professional green
 val PitchGreenLight = Color(0xFF4CAF50)
 val WhiteSmoke = Color(0xFFF5F5F5)
 
+// Status accents (design 23-27): amber marks something pending, deep green the top rating band,
+// alert red the lowest band and destructive actions. AmberText is amber's readable text colour on an
+// amber tint (plain amber text measures under 4.5:1 on white).
+val Amber = Color(0xFFF9A825)
+val AmberText = Color(0xFF7A5200)
+val DeepGreen = Color(0xFF1B5E20)
+val AlertRed = Color(0xFFC62828)
+
 // Light Mode Palette
 val md_theme_light_primary = CarbonGray
 val md_theme_light_onPrimary = Color(0xFFFFFFFF)
