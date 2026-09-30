@@ -853,7 +853,12 @@ data class MatchPlayerStatsWithPlayer(
 @Serializable
 data class MatchReportDetails(
     val match: Match,
+    // For the header ("Sub-15 A vs AD Fontelas · 27 Sep"); opponent is its short name when it has one.
+    val teamName: String,
+    val opponentName: String,
     val report: MatchReport? = null,
+    // Full name of whoever last saved the report, for "Last updated 28 Sep by Nuno Ferreira".
+    val updatedByName: String? = null,
     val playerStats: List<MatchPlayerStatsWithPlayer>,
     val canEdit: Boolean
 )
@@ -907,7 +912,25 @@ data class MatchDetails(
     val canManageCallUps: Boolean,
     val canManageLiveMatch: Boolean,
     // The running/final scoreline, rebuilt from match events -- 0-0 before any goals are logged.
-    val score: MatchScore
+    val score: MatchScore,
+    // The match report card's data. Null unless the match is FINISHED and the caller may read the
+    // report (club coordinators/admins and the age group's staff -- never players or parents).
+    val report: MatchReportSummary? = null
+)
+
+@Serializable
+enum class MatchReportStatus { NOT_STARTED, DRAFT, COMPLETED }
+
+/** What the Match Details report card needs, without loading the whole report. */
+@Serializable
+data class MatchReportSummary(
+    val status: MatchReportStatus,
+    val updatedAt: Instant? = null,
+    val updatedByName: String? = null,
+    val ratedPlayers: Int,
+    // Called-up players with a stats line; 0 for a match finished before post-match stats existed.
+    val ratablePlayers: Int,
+    val canEdit: Boolean
 )
 
 /** Body of `PATCH /matches/{matchId}`. Every field is optional; nulls are left untouched. */

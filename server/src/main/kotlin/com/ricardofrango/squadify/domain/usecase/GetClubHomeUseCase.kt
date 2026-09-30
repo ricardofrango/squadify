@@ -141,7 +141,8 @@ class GetClubHomeUseCase(
                     )
                 }
 
-            // Finished matches still waiting on their report, most recent first. Only matches with a
+            // Finished matches still waiting on their report, oldest first (the longest-overdue on top,
+            // per the design). Only matches with a
             // full-time minute: those finished before post-match stats existed have no stats to rate,
             // and shouldn't flood the list.
             val finished = allMatches.filter {
@@ -151,7 +152,7 @@ class GetClubHomeUseCase(
             val teamNames = teams.associate { it.id to it.name }
             finished
                 .filter { it.id !in completed }
-                .sortedByDescending { it.dateTime }
+                .sortedBy { it.dateTime }
                 .forEach { match ->
                     alerts += ClubHomeAlert(
                         type = ClubHomeAlertType.MATCH_REPORT_PENDING,

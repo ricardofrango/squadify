@@ -5,6 +5,7 @@ import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.repository.MatchPlayerStatsRepository
 import com.ricardofrango.squadify.domain.repository.MatchReportRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
+import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
@@ -18,6 +19,7 @@ import com.ricardofrango.squadify.model.MatchCallUp
 import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
 import com.ricardofrango.squadify.model.MatchPlayerStats
 import com.ricardofrango.squadify.model.MatchStatus
+import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.TeamRole
@@ -45,6 +47,8 @@ class GetMatchReportUseCaseTest {
     private val playerRepository = mockk<PlayerRepository>()
     private val ageGroupRepository = mockk<AgeGroupRepository>()
     private val userRepository = mockk<UserRepository>()
+    private val opponentRepository = mockk<OpponentRepository>()
+    init { coEvery { opponentRepository.getOpponentById("opp-1") } returns Opponent("opp-1", "club-1", "Associação Desportiva de Fontelas", "AD Fontelas", null) }
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
@@ -54,7 +58,8 @@ class GetMatchReportUseCaseTest {
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
     private val useCase = GetMatchReportUseCase(
-        matchRepository, matchReportRepository, matchPlayerStatsRepository, checkUserPermissionUseCase, transactionManager
+        matchRepository, matchReportRepository, matchPlayerStatsRepository, userRepository, teamRepository, opponentRepository,
+        checkUserPermissionUseCase, transactionManager
     )
 
     private val clubId = "club-1"
@@ -93,6 +98,8 @@ class GetMatchReportUseCaseTest {
         assertEquals("Ana", details.playerStats.single().player.firstName)
         assertEquals(7, details.playerStats.single().stats.rating)
         assertTrue(details.canEdit)
+        assertEquals("Sub-15 A", details.teamName)
+        assertEquals("AD Fontelas", details.opponentName)
     }
 
     @Test

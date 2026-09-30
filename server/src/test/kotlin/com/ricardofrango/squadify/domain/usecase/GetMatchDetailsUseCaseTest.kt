@@ -3,6 +3,8 @@ package com.ricardofrango.squadify.domain.usecase
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
+import com.ricardofrango.squadify.domain.repository.MatchPlayerStatsRepository
+import com.ricardofrango.squadify.domain.repository.MatchReportRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
@@ -15,6 +17,10 @@ import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.CallUpStatus
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Match
+import com.ricardofrango.squadify.model.MatchStatus
+import com.ricardofrango.squadify.model.MatchReportStatus
+import com.ricardofrango.squadify.model.MatchPlayerStats
+import com.ricardofrango.squadify.model.MatchReport
 import com.ricardofrango.squadify.model.MatchCallUp
 import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
 import com.ricardofrango.squadify.model.MatchScore
@@ -55,9 +61,12 @@ class GetMatchDetailsUseCaseTest {
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
+    private val matchReportRepository = mockk<MatchReportRepository>()
+    private val matchPlayerStatsRepository = mockk<MatchPlayerStatsRepository>()
     private val useCase = GetMatchDetailsUseCase(
         matchRepository, opponentRepository, teamRepository, ageGroupRepository, seasonRepository,
-        playerRepository, matchEventRepository, checkUserPermissionUseCase, transactionManager
+        playerRepository, matchEventRepository, matchReportRepository, matchPlayerStatsRepository, userRepository,
+        checkUserPermissionUseCase, transactionManager
     )
 
     private val clubId = "club-1"
@@ -138,5 +147,58 @@ class GetMatchDetailsUseCaseTest {
 
         assertFailsWith<ForbiddenException> { useCase(outsider.id, matchId) }
         Unit
+    }
+
+    private fun stubCoach(): User {
+        val coach = user("coach")
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+        return coach
+    }
+
+    @Test
+    fun aFinishedMatchCarriesTheReportSummaryForStaff() = runBlocking {
+        val coach = stubCoach()
+        baseStubs()
+        coEvery { matchRepository.getMatchById(matchId) } returns match.copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
+        val nuno = User("nuno", "n@t.com", firstName = "Nuno", lastName = "Ferreira", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
+        coEvery { userRepository.findById("nuno") } returns nuno
+        coEvery { matchReportRepository.getByMatch(matchId) } returns
+            MatchReport(matchId, tactic = "4-4-2", updatedAt = Instant.fromEpochMilliseconds(5), updatedByUserId = "nuno")
+        coEvery { matchPlayerStatsRepository.getByMatch(matchId) } returns listOf(
+            MatchPlayerStats(matchId, "p1", true, 90, 0, 0, 0, 0, 0, rating = 7),
+            MatchPlayerStats(matchId, "p2", false, 0, 0, 0, 0, 0, 0)
+        )
+
+        val report = useCase(coach.id, matchId).report!!
+
+        assertEquals(MatchReportStatus.DRAFT, report.status)
+        assertEquals("Nuno Ferreira", report.updatedByName)
+        assertEquals(1, report.ratedPlayers)
+        assertEquals(2, report.ratablePlayers)
+        assertTrue(report.canEdit)
+    }
+
+    @Test
+    fun noReportSummaryBeforeFullTime() = runBlocking {
+        val coach = stubCoach()
+        baseStubs()
+
+        assertEquals(null, useCase(coach.id, matchId).report)
+    }
+
+    @Test
+    fun aParentGetsNoReportSummary() = runBlocking {
+        val parent = user("parent")
+        baseStubs()
+        coEvery { matchRepository.getMatchById(matchId) } returns match.copy(status = MatchStatus.FINISHED)
+        coEvery { userRepository.findById(parent.id) } returns parent
+        coEvery { userRepository.getUserRoleInClub(parent.id, clubId) } returns null
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(parent.id, ag1) } returns null
+        coEvery { playerRepository.getPlayersByUser(parent.id) } returns listOf(player("p-called"))
+        coEvery { playerRepository.getPlayersByAgeGroup(ag1) } returns listOf(player("p-called"), player("p-free"))
+
+        assertEquals(null, useCase(parent.id, matchId).report)
     }
 }

@@ -323,7 +323,7 @@ graph TD
     G -- No --> I
     H --> I{coaches any season age group?}
     I -- Yes --> J["group that age group's SCHEDULED matches within 5 days that have zero call-ups, one CALLUPS_UNSENT alert per day"]
-    J --> K["one MATCH_REPORT_PENDING alert per FINISHED match of those age groups with a fullTimeMinute and no completed report (one batched report lookup), newest first"]
+    J --> K["one MATCH_REPORT_PENDING alert per FINISHED match of those age groups with a fullTimeMinute and no completed report (one batched report lookup), oldest first"]
     I -- No --> Z
     K --> Z(["Return ClubHome — club, seasonName, role, counts, nextUp, alerts"])
 ```
@@ -866,10 +866,14 @@ graph TD
     G --> G2["canManageCallUps = non-throwing probe of configurablePermission=MANAGE_CALL_UPS on the team"]
     G2 --> G3["canManageLiveMatch = non-throwing probe of configurablePermission=MANAGE_LIVE_MATCH on the team"]
     G3 --> H["score = matchEventRepository.getScoreByMatch(matchId) — 0-0 before any goals are logged"]
-    H --> Z(["Return MatchDetails: match, opponent, team, ageGroup, season, callUps, poolPlayers, canManageMatch, canManageCallUps, canManageLiveMatch, score"])
+    H --> R{"status == FINISHED and caller clears the report read gate (COORDINATOR, or age-group STAFF)?"}
+    R -- Yes --> R2["report = MatchReportSummary: status NOT_STARTED/DRAFT/COMPLETED, updatedAt, updatedByName, ratedPlayers / ratablePlayers, canEdit = canManageMatch"]
+    R -- No --> R3["report = null"]
+    R2 --> Z(["Return MatchDetails: match, opponent, team, ageGroup, season, callUps, poolPlayers, canManageMatch, canManageCallUps, canManageLiveMatch, score, report"])
+    R3 --> Z
 ```
 
-The use case composes `MatchDetails` itself now — the old `MatchRepository.getMatchDetails` (opponent + call-ups only) was removed. `poolPlayers` is the "Available" list on the call-up screen. `canManageMatch` gates just the edit sheet -- changing the match's own date/time/location/notes -- and the delete-match menu item. `canManageCallUps` gates managing the pre-match squad list. `canManageLiveMatch` gates entering the live match console and every action inside it (kickoff, clock, logging/deleting events, status changes) -- see §19 in `TECHNICAL_DECISIONS.md` for the original coach-vs-staff rationale and §35 for how all three are now independently club-configurable. All three are further gated client-side: the client forces the screen read-only once `match.status == FINISHED` regardless of any flag, so a finished match becomes a plain record (no editing call-ups, kickoff, location, etc.), and the live match console itself hides (not just disables) every action a viewer's `canManageLiveMatch` doesn't clear, showing a read-only notice instead. `score` feeds the FINISHED-state result banner (colored WIN/LOSS/DRAW + scoreline) on the details screen, the same rebuilt-from-events value `MatchRow` already showed in match lists.
+The use case composes `MatchDetails` itself now — the old `MatchRepository.getMatchDetails` (opponent + call-ups only) was removed. `poolPlayers` is the "Available" list on the call-up screen. `canManageMatch` gates just the edit sheet -- changing the match's own date/time/location/notes -- and the delete-match menu item. `canManageCallUps` gates managing the pre-match squad list. `canManageLiveMatch` gates entering the live match console and every action inside it (kickoff, clock, logging/deleting events, status changes) -- see §19 in `TECHNICAL_DECISIONS.md` for the original coach-vs-staff rationale and §35 for how all three are now independently club-configurable. All three are further gated client-side: the client forces the screen read-only once `match.status == FINISHED` regardless of any flag, so a finished match becomes a plain record (no editing call-ups, kickoff, location, etc.), and the live match console itself hides (not just disables) every action a viewer's `canManageLiveMatch` doesn't clear, showing a read-only notice instead. `report` drives the Match report card (§8.6), so the match screen needs no second request for it. It's null for players and parents, and for any match that hasn't finished. `score` feeds the FINISHED-state result banner (colored WIN/LOSS/DRAW + scoreline) on the details screen, the same rebuilt-from-events value `MatchRow` already showed in match lists.
 
 The bottom button just opens the live match screen; starting the game and recording events all live there. If the match is already LIVE/HALF_TIME when this screen loads (tapped in from a list, or discovered on a reload), the client redirects straight to the live match screen instead of rendering the details view -- see `MatchDetailsViewModel.load()` / `AppNavigation.kt`'s `Screen.MatchDetails` route, which pops this screen off the back stack when redirecting (rather than stacking under it) so back-navigation from the live screen doesn't bounce straight back into another redirect.
 
@@ -1248,7 +1252,7 @@ graph TD
     D -- No --> V(["Throw ValidationException"])
     D -- Yes --> E["playerStats = match_player_stats rows joined to the call-up's players"]
     E --> G["canEdit = non-throwing probe of configurablePermission=MANAGE_MATCH on the team"]
-    G --> Z(["Return MatchReportDetails: match, report (null until first saved), playerStats, canEdit"])
+    G --> Z(["Return MatchReportDetails: match, report (null until first saved), updatedByName, playerStats, canEdit"])
 ```
 
 ```mermaid

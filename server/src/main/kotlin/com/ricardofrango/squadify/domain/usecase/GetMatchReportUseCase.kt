@@ -3,6 +3,9 @@ package com.ricardofrango.squadify.domain.usecase
 import com.ricardofrango.squadify.domain.repository.MatchPlayerStatsRepository
 import com.ricardofrango.squadify.domain.repository.MatchReportRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
+import com.ricardofrango.squadify.domain.repository.OpponentRepository
+import com.ricardofrango.squadify.domain.repository.TeamRepository
+import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
@@ -25,6 +28,9 @@ class GetMatchReportUseCase(
     private val matchRepository: MatchRepository,
     private val matchReportRepository: MatchReportRepository,
     private val matchPlayerStatsRepository: MatchPlayerStatsRepository,
+    private val userRepository: UserRepository,
+    private val teamRepository: TeamRepository,
+    private val opponentRepository: OpponentRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager
 ) {
@@ -63,9 +69,15 @@ class GetMatchReportUseCase(
             false
         }
 
+        val report = matchReportRepository.getByMatch(matchId)
+        val team = teamRepository.getTeamById(match.teamId) ?: throw NotFoundException("Team not found")
+        val opponent = opponentRepository.getOpponentById(match.opponentId) ?: throw NotFoundException("Opponent not found")
         MatchReportDetails(
             match = match,
-            report = matchReportRepository.getByMatch(matchId),
+            teamName = team.name,
+            opponentName = opponent.shortName ?: opponent.name,
+            report = report,
+            updatedByName = report?.let { userRepository.findById(it.updatedByUserId) }?.let { "${it.firstName} ${it.lastName}" },
             playerStats = playerStats,
             canEdit = canEdit
         )
