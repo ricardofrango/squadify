@@ -27,6 +27,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -379,7 +380,7 @@ private fun PositionField(selected: PlayerPosition?, onOptionSelected: (PlayerPo
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = selected?.let { stringResource(positionLabel(it)) } ?: stringResource(Res.string.label_position_not_set),
+                        text = selected?.let { stringResource(it.labelRes()) } ?: stringResource(Res.string.label_position_not_set),
                         color = if (selected != null) DeepCarbon else DeepCarbon.copy(alpha = 0.4f),
                         fontWeight = if (selected != null) FontWeight.Bold else FontWeight.Normal
                     )
@@ -389,7 +390,7 @@ private fun PositionField(selected: PlayerPosition?, onOptionSelected: (PlayerPo
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.background(Color.White)) {
                 PlayerPosition.entries.forEach { position ->
                     DropdownMenuItem(
-                        text = { Text(stringResource(positionLabel(position)), color = DeepCarbon) },
+                        text = { Text(stringResource(position.labelRes()), color = DeepCarbon) },
                         onClick = { onOptionSelected(position); expanded = false }
                     )
                 }
@@ -398,13 +399,6 @@ private fun PositionField(selected: PlayerPosition?, onOptionSelected: (PlayerPo
     }
 }
 
-private fun positionLabel(position: PlayerPosition) = when (position) {
-    PlayerPosition.GOALKEEPER -> Res.string.label_position_goalkeeper
-    PlayerPosition.DEFENDER -> Res.string.label_position_defender
-    PlayerPosition.MIDFIELD -> Res.string.label_position_midfield
-    PlayerPosition.WINGER -> Res.string.label_position_winger
-    PlayerPosition.STRIKER -> Res.string.label_position_striker
-}
 
 @Composable
 private fun FormField(

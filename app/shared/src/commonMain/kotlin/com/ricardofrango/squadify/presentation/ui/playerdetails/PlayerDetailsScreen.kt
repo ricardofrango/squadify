@@ -28,6 +28,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -202,17 +203,10 @@ private fun subtitleLine(profile: PlayerProfile): String {
         birthYear = profile.player.birthDate.year,
         seasonEndYear = AgeGroupDefaults.currentSeasonEndYear(today)
     )
-    val positionText = profile.player.position?.let { stringResource(positionLabel(it)) }
+    val positionText = profile.player.position?.let { stringResource(it.labelRes()) }
     return listOfNotNull(positionText, subLabel).joinToString(" · ")
 }
 
-private fun positionLabel(position: PlayerPosition) = when (position) {
-    PlayerPosition.GOALKEEPER -> Res.string.label_position_goalkeeper
-    PlayerPosition.DEFENDER -> Res.string.label_position_defender
-    PlayerPosition.MIDFIELD -> Res.string.label_position_midfield
-    PlayerPosition.WINGER -> Res.string.label_position_winger
-    PlayerPosition.STRIKER -> Res.string.label_position_striker
-}
 
 // ---------------------------------------------------------------------------------------------
 // Body (white)

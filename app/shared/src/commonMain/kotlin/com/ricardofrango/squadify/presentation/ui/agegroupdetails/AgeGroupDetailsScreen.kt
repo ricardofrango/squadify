@@ -26,6 +26,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -493,9 +494,19 @@ private fun PlayerRow(player: Player, playsUp: Boolean, onClick: () -> Unit) {
                     color = if (player.active) DeepCarbon else DeepCarbon.copy(alpha = 0.4f),
                     maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
-                if (playsUp) {
+                if (player.position != null || playsUp) {
                     Spacer(Modifier.height(2.dp))
-                    MiniChip(stringResource(Res.string.label_plays_up))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        player.position?.let {
+                            Text(
+                                stringResource(it.labelRes()),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = DeepCarbon.copy(alpha = 0.55f)
+                            )
+                            if (playsUp) Spacer(Modifier.width(8.dp))
+                        }
+                        if (playsUp) MiniChip(stringResource(Res.string.label_plays_up))
+                    }
                 }
             }
             player.shirtNumber?.let {
@@ -613,13 +624,14 @@ private fun sampleDetails(populated: Boolean, canManage: Boolean): AgeGroupDetai
     val ag = AgeGroup(id = "ag1", clubId = "c1", name = "Sub 2015", seasonId = "s1", startYear = 2015, endYear = 2015)
     val club = Club(id = "c1", name = "CD Ribamar", status = ClubStatus.ACTIVE, sport = SportType.FOOTBALL, createdAt = Instant.fromEpochMilliseconds(0))
     val season = Season(id = "s1", clubId = "c1", name = "26/27", type = SeasonType.EUROPEAN_YEAR, startDate = LocalDate(2026, 7, 1), endDate = LocalDate(2027, 6, 30), active = true)
-    fun p(id: String, f: String, l: String, y: Int, n: Int?) = Player(id, "c1", f, l, LocalDate(y, 3, 1), n, null, true)
+    fun p(id: String, f: String, l: String, y: Int, n: Int?, pos: PlayerPosition? = null) =
+        Player(id, "c1", f, l, LocalDate(y, 3, 1), n, null, true, position = pos)
     return AgeGroupDetails(
         ageGroup = ag, club = club, season = season,
         players = if (populated) listOf(
-            p("p1", "Afonso", "Rebelo", 2015, 7),
+            p("p1", "Afonso", "Rebelo", 2015, 7, PlayerPosition.MIDFIELD),
             p("p2", "Bruno", "Tavares", 2015, 4),
-            p("p3", "Caetano", "Lousada", 2016, 11)
+            p("p3", "Caetano", "Lousada", 2016, 11, PlayerPosition.STRIKER)
         ) else emptyList(),
         staff = if (populated) listOf(
             AgeGroupStaffMember("u1", "Nuno", "Faria", TeamRole.COACH),
