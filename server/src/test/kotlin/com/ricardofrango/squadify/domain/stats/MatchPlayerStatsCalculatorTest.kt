@@ -29,11 +29,11 @@ class MatchPlayerStatsCalculatorTest {
     private fun callUp(playerId: String, starting: Boolean) =
         MatchCallUp("cu-$playerId", "m", playerId, CallUpStatus.CALLED_UP, isStarting = starting)
 
-    // `half` decides createdAt: first-half events are logged before the second half started.
+    // `half` is the recorded period; createdAt matches it too, so legacy fallback tests can drop period.
     private var seq = 0
     private fun event(type: EventType, playerId: String?, minute: Int, half: Int, isOpponent: Boolean = false): MatchEvent {
         val base = if (half == 1) kickoff else secondHalfStart
-        return MatchEvent("e${seq++}", "m", type, minute, playerId, isOpponent = isOpponent, createdAt = base + (seq).minutes / 100)
+        return MatchEvent("e${seq++}", "m", type, minute, playerId, isOpponent = isOpponent, createdAt = base + (seq).minutes / 100, period = half)
     }
 
     private fun statsFor(playerId: String, callUps: List<MatchCallUp>, events: List<MatchEvent>, m: Match = match) =
@@ -147,5 +147,26 @@ class MatchPlayerStatsCalculatorTest {
         val events = listOf(event(EventType.GOAL, "not-called-up", 10, half = 1))
         val rows = MatchPlayerStatsCalculator.calculate(match, callUps, events)
         assertEquals(setOf("a", "b"), rows.map { it.playerId }.toSet())
+    }
+
+    @Test
+    fun theRecordedPeriodWinsOverTimestamps() {
+        // A half-time substitution (period 1), but a "Set minute" correction after the restart moved
+        // secondHalfStartedAt to before it was logged. Timestamps would wrongly put it in the second half.
+        val corrected = match.copy(secondHalfStartedAt = kickoff + 30.minutes)
+        val callUps = listOf(callUp("a", true), callUp("b", false))
+        val events = listOf(
+            event(EventType.SUBSTITUTION_OUT, "a", 45, half = 1).copy(createdAt = kickoff + 50.minutes),
+            event(EventType.SUBSTITUTION_IN, "b", 45, half = 1).copy(createdAt = kickoff + 50.minutes)
+        )
+        assertEquals(45, statsFor("a", callUps, events, corrected).minutesPlayed)
+        assertEquals((47 - 45) + (93 - 45), statsFor("b", callUps, events, corrected).minutesPlayed)
+    }
+
+    @Test
+    fun eventsWithoutAPeriodFallBackToTimestamps() {
+        val callUps = listOf(callUp("a", true))
+        val events = listOf(event(EventType.SUBSTITUTION_OUT, "a", 60, half = 2).copy(period = null))
+        assertEquals(47 + (60 - 45), statsFor("a", callUps, events).minutesPlayed)
     }
 }

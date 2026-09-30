@@ -28,6 +28,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.time.Instant
 
@@ -138,5 +139,27 @@ class AddMatchEventUseCaseTest {
             }
         }
         coVerify(exactly = 0) { matchEventRepository.addEvent(any()) }
+    }
+
+    @Test
+    fun eachEventRecordsTheHalfItHappenedIn() = runBlocking {
+        val coach = User("coach", "coach@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, "club-1") } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns TeamRole.COACH
+        coEvery { teamRepository.getTeamById("t-1") } returns Team("t-1", "club-1", "ag-1", "s-1", "Sub-15 A", "A", active = true)
+        coEvery { matchEventRepository.addEvent(any()) } answers { firstArg() }
+        coEvery { matchEventRepository.getScoreByMatch("m-1") } returns MatchScore("m-1", 0, 0)
+        val base = Match("m-1", "club-1", "t-1", "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.LIVE)
+        val request = CreateMatchEventRequest(type = EventType.YELLOW_CARD, minute = 20)
+
+        coEvery { matchRepository.getMatchById("m-1") } returns base
+        assertEquals(1, useCase(coach.id, "m-1", request).period, "first half")
+
+        coEvery { matchRepository.getMatchById("m-1") } returns base.copy(status = MatchStatus.HALF_TIME)
+        assertEquals(1, useCase(coach.id, "m-1", request).period, "during the break")
+
+        coEvery { matchRepository.getMatchById("m-1") } returns base.copy(secondHalfStartedAt = Instant.fromEpochMilliseconds(5))
+        assertEquals(2, useCase(coach.id, "m-1", request).period, "second half")
     }
 }

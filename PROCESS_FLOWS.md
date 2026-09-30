@@ -986,7 +986,7 @@ graph TD
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> LV{"match.status is LIVE or HALF_TIME?"}
     LV -- No --> VL(["Throw ValidationException: events only while live"])
-    LV -- Yes --> D[Create MatchEvent record]
+    LV -- Yes --> D["Create MatchEvent record — period = 2 if LIVE with secondHalfStartedAt set, else 1"]
     D --> E[Persist event]
     E --> G["Recalculate score from all events for this match"]
     G --> H["Publish LiveMatchUpdate(event, score) via LiveMatchBus for matchId"]
@@ -1081,7 +1081,9 @@ graph TD
     H --> Z(["MatchPlayerStats: started, minutesPlayed, counts; rating = null"])
 ```
 
-- **Which half an event belongs to** is decided by when it was logged (`createdAt` before or after `secondHalfStartedAt`), not by its minute. First-half stoppage minutes (46', 47') overlap second-half ones. A substitution logged during the break therefore counts at the end of the first half, and the player coming on gets the whole second half.
+- **Which half an event belongs to** comes from `MatchEvent.period`, which `AddMatchEventUseCase` records when the event is logged: 1 while the first half is live or during the break, 2 once the second half has started. The minute alone can't tell, because first-half stoppage minutes (46', 47') overlap second-half ones. A substitution logged during the break is period 1, so it counts at the end of the first half and the player coming on gets the whole second half.
+  - **Why not timestamps:** comparing `createdAt` with `secondHalfStartedAt` would be wrong, because that field is the clock's reference point and moves with pause/resume and "Set minute". An end-to-end run caught a half-time substitution being credited to the second half that way.
+  - **Older events:** events logged before `period` existed still fall back to that timestamp comparison.
 - **Worked example:** 45-minute halves, the first ending at 47' and the second at 93'. A player who plays the whole match gets 47 + 48 = 95 minutes.
 - **Fallbacks:** if either end minute is missing, it falls back to the nominal half length.
 - **Why storing a snapshot is safe:** it is computed once and never goes stale. A finished match's events can't change (§8.1/§8.1b), and a finished match can't be deleted (§7.2b). `rating` is the only column written afterwards, by the match report (§8.6).
@@ -1567,6 +1569,7 @@ erDiagram
         varchar opponent_player_name "255 chars, nullable"
         boolean is_opponent "default false"
         timestamp created_at
+        integer period "nullable -- 1 or 2, the half it happened in, recorded when logged"
     }
     MATCH_PLAYER_STATS {
         uuid id PK
@@ -1628,7 +1631,7 @@ erDiagram
 ### 12.4 Current persistence setup
 
 - **Engine**: PostgreSQL, both dev and production. H2 has been removed entirely. The connection is built from `ServerConfig.kt`'s `DATABASE_HOST`/`DATABASE_PORT`/`DATABASE_USER`/`DATABASE_PASSWORD`/`DATABASE_NAME` env vars — host and password are required explicitly when `APP_ENV=production` (no silent fallback), while the database name defaults per environment (`squadify_dev` / `squadify_production`), so dev and production stay isolated even against the same Postgres server. `docker-compose.yml` at the repo root provides a local Postgres matching the dev defaults.
-- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, and `V5__match_reports.sql`. An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
+- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, `V5__match_reports.sql`, and `V6__match_event_period.sql`. An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
 - **Legacy backfill**: right after Flyway, `DatabaseFactory.init()` still runs a raw, idempotent SQL block that backfills `age_groups.start_year`/`end_year` from the old single `birth_year` column (if it still exists) and then drops that column (§4.3/§5.3). It's a no-op once `birth_year` is gone. It was deliberately left outside the migration chain because there's no way to confirm every environment has already run it.
 - **Connection pool**: HikariCP, `maximumPoolSize = 3` in dev / `10` in production, `autoCommit = false`, isolation level `TRANSACTION_REPEATABLE_READ`.
 

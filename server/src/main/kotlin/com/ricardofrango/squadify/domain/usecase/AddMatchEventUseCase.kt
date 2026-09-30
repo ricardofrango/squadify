@@ -55,7 +55,11 @@ class AddMatchEventUseCase(
                 playerId = request.playerId,
                 opponentPlayerName = request.opponentPlayerName,
                 isOpponent = request.isOpponent,
-                createdAt = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+                createdAt = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
+                // The half is fixed now, from the match state -- not inferred later from timestamps,
+                // since secondHalfStartedAt is the clock's reference point and moves with pause/resume
+                // and "Set minute". Logged during the break (HALF_TIME) counts as the first half.
+                period = if (match.status == MatchStatus.LIVE && match.secondHalfStartedAt != null) 2 else 1
             )
 
             val savedEvent = matchEventRepository.addEvent(event)

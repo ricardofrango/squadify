@@ -248,6 +248,8 @@ object MatchEvents : Table("match_events") {
     val opponentPlayerName = varchar("opponent_player_name", 255).nullable()
     val isOpponent = bool("is_opponent").default(false)
     val createdAt = timestamp("created_at")
+    // 1 or 2 -- the half the event happened in (see MatchEvent.period). Null for older events.
+    val period = integer("period").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

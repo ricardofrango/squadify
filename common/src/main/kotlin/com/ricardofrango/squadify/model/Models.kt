@@ -150,7 +150,12 @@ data class MatchEvent(
     val playerId: String? = null,
     val opponentPlayerName: String? = null,
     val isOpponent: Boolean = false,
-    val createdAt: Instant
+    val createdAt: Instant,
+    // Which half the event happened in (1 or 2), recorded by the server when it's logged: 1 while
+    // the first half is live or during the break, 2 once the second half has started. Minutes alone
+    // can't tell (first-half stoppage time overlaps the second half's first minutes). Null for events
+    // logged before this existed.
+    val period: Int? = null
 )
 
 @Serializable

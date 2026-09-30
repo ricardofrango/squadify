@@ -2132,7 +2132,11 @@ Closes Phase 5's last open item, "Historical match statistics (post-match analys
 - **Unit:** both hold the match-clock minute, the same floor(`elapsedMatchSeconds` / 60) unit the live console writes into `MatchEvent.minute`. So pauses and "Set minute" corrections are already accounted for.
 - **Finishing from the break:** a match finished straight from the break (no second half) takes its full-time minute from `first_half_end_minute`. Otherwise the break would count as playing time.
 
-**Deciding which half an event belongs to uses when it was logged, not its minute.** The match clock restarts at the nominal half length for the second half (see §29). So a 46' event can be first-half stoppage time or the second half's first minute. `createdAt` compared with `secondHalfStartedAt` settles it. A substitution logged during the break falls in the first half, so the incoming player is credited with the whole second half.
+**Each event records which half it happened in.** The match clock restarts at the nominal half length for the second half (see §29), so a 46' event can be first-half stoppage time or the second half's first minute.
+- **How it works:** `AddMatchEventUseCase` stamps `MatchEvent.period` (`V6`) from the match state when the event is logged: 1 while the first half is live or during the break, 2 once the second half has started. A substitution logged during the break is period 1, so the incoming player is credited with the whole second half.
+- **The first version got this wrong, and an end-to-end run caught it:** it compared `createdAt` with `secondHalfStartedAt` instead. That field is the clock's reference point, not the real restart time: resume and "Set minute" shift it. One clock correction after the restart moved it to before the half-time substitution, which was then credited to the second half.
+- **Older events:** events logged before `period` existed still fall back to that comparison. It's approximate, but the best available.
+- **Why a separate migration:** `period` is in `V6` rather than folded into `V4`. The server test suite's `ApplicationTest` boots against the local `squadify_dev` database, so `V4` had already been applied there, and editing it would break Flyway's checksum validation.
 
 **Considered and dropped: linking related events** (an assist to its goal, a substitution's IN to its OUT, via a `related_event_id` column). Minutes played only needs each player's own IN/OUT events, not the pairing. Linking an assist to a goal needs a UI change in the live console to pick the goal. Either can be added later without touching the stats snapshot.
 
@@ -2152,5 +2156,16 @@ Per the developer: no "player of the match", and no attendance.
   - Completed report ids come from one batched query (`getCompletedMatchIds`), not one lookup per match.
 - **Screens:** the report and the stats have no client screens yet. Those will be designed separately, so for now the to-do lands on the existing match details screen.
 
-**Verified:** `:server:test` (new `MatchPlayerStatsCalculatorTest`, 11 cases, plus updated `UpdateMatchStatusUseCaseTest`, `AddMatchEventUseCaseTest`, `DeleteMatchEventUseCaseTest`, `DeleteMatchUseCaseTest`). `V1`–`V4` were applied in order to a throwaway local Postgres database. **Not verified:** a real match played to full time on a device, and the resulting rows checked in the database.
+**Verified:**
+- **Unit tests:** `:server:test`, including the new calculator, report and home tests.
+- **End to end:** a throwaway test (not committed) ran the real app module on a fresh Postgres database, with `V1`–`V6` applied, through the real HTTP routes. It covered:
+  - kickoff, goals, "Set minute" corrections
+  - a half-time substitution, second half, full time
+  - an event rejected before kickoff and after full time
+  - deleting the finished match rejected (409)
+  - the Home to-do appearing, staying for a draft, and clearing on completion
+  - an out-of-range rating rejected
+  - the stored minutes checked per player
+
+**Not verified:** a real match played on a device.
 

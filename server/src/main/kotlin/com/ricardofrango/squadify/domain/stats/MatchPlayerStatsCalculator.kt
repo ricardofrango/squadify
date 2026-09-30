@@ -16,10 +16,12 @@ import com.ricardofrango.squadify.model.MatchPlayerStats
  * 45-minute half that ended at 47' and a second half that ended at 93' gives 47 + 48 = 95 minutes for
  * someone who played the whole match.
  *
- * Which half an event belongs to is decided by when it was logged ([MatchEvent.createdAt] before or
- * after [Match.secondHalfStartedAt]), not by its minute: first-half stoppage-time minutes (46', 47')
- * overlap second-half ones. A substitution logged during the break counts as happening at the end of
- * the first half, so the player coming on plays the whole second half.
+ * Which half an event belongs to comes from [MatchEvent.period], recorded by the server when the
+ * event was logged, not from its minute: first-half stoppage-time minutes (46', 47') overlap
+ * second-half ones. A substitution logged during the break is period 1, so it counts at the end of the
+ * first half and the player coming on plays the whole second half. Events from before `period` existed
+ * fall back to comparing [MatchEvent.createdAt] with [Match.secondHalfStartedAt], which is only
+ * approximate: that timestamp moves with pause/resume and "Set minute" corrections.
  *
  * A player's time on the pitch starts at 0' if they started, or at their SUBSTITUTION_IN, and stops at
  * their SUBSTITUTION_OUT or RED_CARD. Their state carries over the break.
@@ -72,7 +74,13 @@ object MatchPlayerStatsCalculator {
             it.type == EventType.SUBSTITUTION_IN || it.type == EventType.SUBSTITUTION_OUT || it.type == EventType.RED_CARD
         }
         val byHalf = relevant.groupBy { event ->
-            if (halves.size == 1 || secondHalfStartedAt == null || event.createdAt < secondHalfStartedAt) 0 else 1
+            val period = event.period
+            when {
+                halves.size == 1 -> 0
+                period != null -> (period - 1).coerceIn(0, 1)
+                secondHalfStartedAt == null || event.createdAt < secondHalfStartedAt -> 0
+                else -> 1
+            }
         }
 
         var onPitch = started
