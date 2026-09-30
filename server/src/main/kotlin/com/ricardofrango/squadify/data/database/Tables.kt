@@ -274,6 +274,27 @@ object MatchPlayerStatsTable : Table("match_player_stats") {
     }
 }
 
+// The coach's post-match report (see MatchReport in Models.kt). At most one per match; every text
+// column is optional free text. completed_at null means the report is still pending.
+object MatchReports : Table("match_reports") {
+    val id = uuid("id")
+    val matchId = uuid("match_id").references(Matches.id).uniqueIndex("unique_match_report")
+    val tactic = text("tactic").nullable()
+    val positiveAspects = text("positive_aspects").nullable()
+    val lessPositiveAspects = text("less_positive_aspects").nullable()
+    val aspectsToImprove = text("aspects_to_improve").nullable()
+    val teamNotes = text("team_notes").nullable()
+    val opponentStrengths = text("opponent_strengths").nullable()
+    val opponentWeaknesses = text("opponent_weaknesses").nullable()
+    val opponentBestPlayers = text("opponent_best_players").nullable()
+    val opponentAdditionalInfo = text("opponent_additional_info").nullable()
+    val completedAt = timestamp("completed_at").nullable()
+    val updatedAt = timestamp("updated_at")
+    val updatedBy = uuid("updated_by").references(Users.id)
+
+    override val primaryKey = PrimaryKey(id)
+}
+
 // A club's overrides for `ConfigurablePermission` (see Models.kt). No row for a given
 // (club_id, permission) pair means "use ConfigurablePermission.defaultMinTeamRole" -- a row exists only
 // once a coordinator/admin has actually changed that action away from its default. min_team_role itself

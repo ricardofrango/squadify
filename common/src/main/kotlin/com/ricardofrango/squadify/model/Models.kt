@@ -783,6 +783,76 @@ data class MatchPlayerStats(
     val rating: Int? = null
 )
 
+/**
+ * The coach's post-match report for a FINISHED match. Every text field is free text and optional.
+ * The report is "pending" (listed in the Home tab's to-do) until [completedAt] is set; it stays
+ * editable after that.
+ */
+@Serializable
+data class MatchReport(
+    val matchId: String,
+    // Our team
+    val tactic: String? = null,
+    val positiveAspects: String? = null,
+    val lessPositiveAspects: String? = null,
+    val aspectsToImprove: String? = null,
+    val teamNotes: String? = null,
+    // The opponent
+    val opponentStrengths: String? = null,
+    val opponentWeaknesses: String? = null,
+    val opponentBestPlayers: String? = null,
+    val opponentAdditionalInfo: String? = null,
+    val completedAt: Instant? = null,
+    val updatedAt: Instant,
+    val updatedByUserId: String
+)
+
+/** One player's rating in a [SaveMatchReportRequest]. `null` clears it. */
+@Serializable
+data class MatchPlayerRatingInput(
+    val playerId: String,
+    val rating: Int?
+)
+
+/**
+ * Saves the report text and the per-player ratings (0-10) together. [complete] marks the report as
+ * done, which removes it from the Home tab's to-do; saving with `complete = false` keeps a draft.
+ * Once completed a report stays completed.
+ */
+@Serializable
+data class SaveMatchReportRequest(
+    val tactic: String? = null,
+    val positiveAspects: String? = null,
+    val lessPositiveAspects: String? = null,
+    val aspectsToImprove: String? = null,
+    val teamNotes: String? = null,
+    val opponentStrengths: String? = null,
+    val opponentWeaknesses: String? = null,
+    val opponentBestPlayers: String? = null,
+    val opponentAdditionalInfo: String? = null,
+    val ratings: List<MatchPlayerRatingInput> = emptyList(),
+    val complete: Boolean = false
+)
+
+@Serializable
+data class MatchPlayerStatsWithPlayer(
+    val stats: MatchPlayerStats,
+    val player: Player
+)
+
+/**
+ * Everything behind the match report screen: the finished match, its report (null until first
+ * saved), each called-up player's stats line (which carries their rating), and whether the caller
+ * may edit.
+ */
+@Serializable
+data class MatchReportDetails(
+    val match: Match,
+    val report: MatchReport? = null,
+    val playerStats: List<MatchPlayerStatsWithPlayer>,
+    val canEdit: Boolean
+)
+
 @Serializable
 data class MatchCallUp(
     val id: String,

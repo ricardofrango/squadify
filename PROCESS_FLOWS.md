@@ -1221,6 +1221,47 @@ The club-scoped counterpart to §8.3, mirroring it exactly but for the whole fix
 
 **Client**: `MatchesTab` opens this socket (via `ObserveClubMatchesUseCase` → `ClubDetailsViewModel.connectToClubMatchesUpdates`) for as long as it's on screen — a `DisposableEffect(details.club.id)` connects (and triggers a REST refresh via `refreshMatches`) when the composable enters composition, and disconnects when it leaves. Because `MatchesTab` is only composed while the Matches tab is selected, Navigation-Compose's normal dispose-on-navigate-away/recompose-on-return behavior doubles as the connect/disconnect trigger: switching to a different tab, or opening a match from the list into §8.4's live console, closes the socket; returning to the Matches tab (including back from that match screen) reopens it and re-fetches the list over REST first, since the socket carries no backlog for whatever changed while it was disconnected.
 
+### 8.6 Match Report (`GetMatchReportUseCase` / `SaveMatchReportUseCase`)
+
+The coach's post-match report for a `FINISHED` match. It has two parts:
+- **Free text:** tactic, positive aspects, less positive aspects, aspects to improve, and team notes for our team; strengths, weaknesses, best players, and additional info for the opponent.
+- **Ratings:** a 0-10 rating per called-up player, stored on that player's `match_player_stats` row (§8.2f).
+
+`GET` / `PUT /v1/matches/{matchId}/report`.
+
+```mermaid
+graph TD
+    A[Start: userId, matchId] --> B[Fetch Match by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C["CheckUserPermissionUseCase — minClubRole=COORDINATOR, minTeamRole=STAFF, teamId (no player/parent access)"]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D{status == FINISHED?}
+    D -- No --> V(["Throw ValidationException"])
+    D -- Yes --> E["playerStats = match_player_stats rows joined to the call-up's players"]
+    E --> G["canEdit = non-throwing probe of configurablePermission=MANAGE_MATCH on the team"]
+    G --> Z(["Return MatchReportDetails: match, report (null until first saved), playerStats, canEdit"])
+```
+
+```mermaid
+graph TD
+    A2[Start: userId, matchId, SaveMatchReportRequest] --> B2[Fetch Match by id]
+    B2 -- not found --> N2(["Throw NotFoundException"])
+    B2 -- found --> C2["CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_MATCH, teamId"]
+    C2 -- denied --> F2(["Throw ForbiddenException"])
+    C2 -- allowed --> D2{status == FINISHED?}
+    D2 -- No --> V2(["Throw ValidationException"])
+    D2 -- Yes --> E2{"ratings: each player once, each 0-10 or null, each player has a stats row?"}
+    E2 -- No --> V2
+    E2 -- Yes --> G2["Upsert match_reports (blank text becomes null). completedAt = existing ?: (complete ? now : null)"]
+    G2 --> H2["updateRatings on match_player_stats"]
+    H2 --> Z2(["Return MatchReport"])
+```
+
+- **Who can read it:** coordinators/admins and the match's age-group staff only. Players and parents can't, even though they can read the rest of the match, because the report holds ratings and the coach's notes.
+- **Who can write it:** anyone who clears `MANAGE_MATCH`, the same configurable permission as scheduling and editing the match (Coach by default).
+- **Drafts and completion:** saving with `complete = false` keeps a draft, and the report stays in the Home tab's to-do (§3.3b) until it's completed. Once completed it stays completed, and remains editable.
+- **Tests:** covered by `GetMatchReportUseCaseTest` and `SaveMatchReportUseCaseTest`.
+
 ---
 
 ## 9. Dashboards
@@ -1321,7 +1362,7 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
 
 ## 12. Database Schema: Current State of the Art
 
-Source of truth: `server/src/main/kotlin/.../data/database/Tables.kt` (19 Exposed `Table` objects, describing the schema for query-building) **and** the versioned SQL files under `server/src/main/resources/db/migration/` (which actually create/alter it — see `TECHNICAL_DECISIONS.md` §34). `DatabaseFactory.init()` runs Flyway against those files on every boot, so the diagram below and the real Postgres tables are guaranteed to match *as long as every `Tables.kt` change ships with a matching new migration file* — unlike the old `SchemaUtils.createMissingTablesAndColumns` approach, Flyway does not infer schema changes from `Tables.kt` automatically.
+Source of truth: `server/src/main/kotlin/.../data/database/Tables.kt` (20 Exposed `Table` objects, describing the schema for query-building) **and** the versioned SQL files under `server/src/main/resources/db/migration/` (which actually create/alter it — see `TECHNICAL_DECISIONS.md` §34). `DatabaseFactory.init()` runs Flyway against those files on every boot, so the diagram below and the real Postgres tables are guaranteed to match *as long as every `Tables.kt` change ships with a matching new migration file* — unlike the old `SchemaUtils.createMissingTablesAndColumns` approach, Flyway does not infer schema changes from `Tables.kt` automatically.
 
 ### 12.1 Entity-Relationship Diagram
 
@@ -1356,6 +1397,8 @@ erDiagram
     MATCHES ||--o{ MATCH_EVENTS : logs
     MATCHES ||--o{ MATCH_PLAYER_STATS : summarizes
     PLAYERS ||--o{ MATCH_PLAYER_STATS : played_in
+    MATCHES ||--o| MATCH_REPORTS : reported_in
+    USERS ||--o{ MATCH_REPORTS : last_edited
     PLAYERS ||--o{ MATCH_EVENTS : optionally_involved
 
     USERS {
@@ -1531,11 +1574,27 @@ erDiagram
         integer red_cards "default 0"
         integer rating "nullable -- 0-10, set by the coach's match report"
     }
+    MATCH_REPORTS {
+        uuid id PK
+        uuid match_id FK "unique -- one report per match"
+        text tactic "nullable -- free text, e.g. 4-4-2"
+        text positive_aspects "nullable"
+        text less_positive_aspects "nullable"
+        text aspects_to_improve "nullable"
+        text team_notes "nullable"
+        text opponent_strengths "nullable"
+        text opponent_weaknesses "nullable"
+        text opponent_best_players "nullable"
+        text opponent_additional_info "nullable"
+        timestamp completed_at "nullable -- null while pending (Home tab to-do)"
+        timestamp updated_at
+        uuid updated_by FK
+    }
 ```
 
 ### 12.2 Constraints & defaults worth knowing
 
-- **Unique indexes**: `users.email`; `refresh_tokens.token`; `club_members(club_id, user_id)` — one membership per user per club (`V3__unique_club_members.sql`); both add-member repository methods insert with `ON CONFLICT DO NOTHING`, so re-adding an existing member keeps their current row and role rather than duplicating or downgrading it; `fcm_tokens.token` — deliberately on the token alone rather than `(user_id, token)`, since a token identifies one app install, not one user; a registration endpoint that gets the same token again (shared device, or a re-login without reinstalling) should reassign the existing row's `user_id` rather than insert a duplicate; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list; `match_player_stats(match_id, player_id)` — one stats line per player per match. A `CHECK` keeps `match_player_stats.rating` NULL or between 0 and 10.
+- **Unique indexes**: `users.email`; `refresh_tokens.token`; `club_members(club_id, user_id)` — one membership per user per club (`V3__unique_club_members.sql`); both add-member repository methods insert with `ON CONFLICT DO NOTHING`, so re-adding an existing member keeps their current row and role rather than duplicating or downgrading it; `fcm_tokens.token` — deliberately on the token alone rather than `(user_id, token)`, since a token identifies one app install, not one user; a registration endpoint that gets the same token again (shared device, or a re-login without reinstalling) should reassign the existing row's `user_id` rather than insert a duplicate; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list; `match_player_stats(match_id, player_id)` — one stats line per player per match; `match_reports.match_id` — one report per match. A `CHECK` keeps `match_player_stats.rating` NULL or between 0 and 10.
 - **Nullable foreign keys**: `invites.player_id` (only set for `PARENT_PLAYER` invites) and `match_events.player_id` (null when `is_opponent = true`, since the event belongs to a player on the opposing team who isn't in the `players` table).
 - **No `onDelete` behavior is configured on any foreign key** — every `.references(...)` call in `Tables.kt` uses the Exposed default (`NO ACTION`). Deleting a row that still has children (e.g. a `Club` with existing `Teams`) will fail at the database level rather than cascading, nulling out, or being blocked at the application layer with a friendlier error.
 - Several `enum` columns are nullable independently of their parent row's lifecycle: `club_members.role`/`age_group_staff.role`/`user_players.relationship` are all non-null (required at creation), while `invites.role` and `invites.relationship` are nullable because a single `Invite` row is reused for both invite shapes (see §10) and only one of the two is populated depending on `type`.
@@ -1562,7 +1621,7 @@ erDiagram
 ### 12.4 Current persistence setup
 
 - **Engine**: PostgreSQL, both dev and production. H2 has been removed entirely. The connection is built from `ServerConfig.kt`'s `DATABASE_HOST`/`DATABASE_PORT`/`DATABASE_USER`/`DATABASE_PASSWORD`/`DATABASE_NAME` env vars — host and password are required explicitly when `APP_ENV=production` (no silent fallback), while the database name defaults per environment (`squadify_dev` / `squadify_production`), so dev and production stay isolated even against the same Postgres server. `docker-compose.yml` at the repo root provides a local Postgres matching the dev defaults.
-- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, and `V4__match_player_stats.sql`. An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
+- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, and `V5__match_reports.sql`. An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
 - **Legacy backfill**: right after Flyway, `DatabaseFactory.init()` still runs a raw, idempotent SQL block that backfills `age_groups.start_year`/`end_year` from the old single `birth_year` column (if it still exists) and then drops that column (§4.3/§5.3). It's a no-op once `birth_year` is gone. It was deliberately left outside the migration chain because there's no way to confirm every environment has already run it.
 - **Connection pool**: HikariCP, `maximumPoolSize = 3` in dev / `10` in production, `autoCommit = false`, isolation level `TRANSACTION_REPEATABLE_READ`.
 

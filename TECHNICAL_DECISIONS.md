@@ -2138,5 +2138,16 @@ Closes Phase 5's last open item, "Historical match statistics (post-match analys
 
 **Matches finished before this shipped** have no `full_time_minute` and no stats rows. Nothing is backfilled.
 
+**The match report.** After full time the coach fills in:
+- **Our team (free text):** tactic (e.g. "4-4-2"), positive aspects, less positive aspects, aspects to improve, team notes.
+- **The opponent (free text):** strengths, weaknesses, best players, additional information.
+- **Ratings:** 0-10 per called-up player.
+
+Per the developer: no "player of the match", and no attendance.
+- **Storage:** the text lives in `match_reports` (one row per match, `V5`). Ratings live on `match_player_stats.rating`, so each player's evaluation sits next to their stats line, and a season query can average ratings without a join. A DB `CHECK` enforces 0-10 as well as the use case.
+- **Permissions:** writing uses `MANAGE_MATCH`, the same configurable permission as scheduling and editing the match (Coach by default), rather than a new one. Reading is limited to coordinators and the age group's staff. Unlike the rest of the match, players and parents can't read it, because of the ratings and notes.
+- **Drafts:** a report can be saved as a draft (`complete = false`). It shows in the Home tab's "Needs you" section until it's completed. Once completed it stays completed, and stays editable.
+- **Screens:** the report and the stats have no client screens yet. Those will be designed separately.
+
 **Verified:** `:server:test` (new `MatchPlayerStatsCalculatorTest`, 11 cases, plus updated `UpdateMatchStatusUseCaseTest`, `AddMatchEventUseCaseTest`, `DeleteMatchEventUseCaseTest`, `DeleteMatchUseCaseTest`). `V1`–`V4` were applied in order to a throwaway local Postgres database. **Not verified:** a real match played to full time on a device, and the resulting rows checked in the database.
 
