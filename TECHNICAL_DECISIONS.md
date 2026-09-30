@@ -50,7 +50,7 @@ We use **Exposed** as our SQL ORM.
 
 ## 5. Security & Authentication
 - **JWT (JSON Web Tokens)**: Used for stateless authentication.
-    - **Access Tokens**: Short-lived (1 hour) for regular requests.
+    - **Access Tokens**: 48 hours (raised from 1 hour, see §38), with automatic refresh-and-retry on a 401 client-side.
     - **Refresh Tokens**: Long-lived (30 days) stored in the database for session renewal. `RefreshTokenUseCase` treats "not past its stored expiry" as a business rule it owns: the repository (`findRefreshToken`) just returns the row, and the use case rejects (and deletes) a token whose `expires_at` has passed, the same way it rejects an unknown one. Each successful refresh rotates the token (old row deleted, new 30-day row saved).
     - **Signing Secret**: The HMAC signing key is **not** in source. `JwtConfig` reads it from `ServerConfig.jwtSecret` (see *Environment Configuration* below), which sources the `JWT_SECRET` environment variable. In `PRODUCTION` the server refuses to start if it is unset; in `DEV` it falls back to a clearly-labelled placeholder so a plain `./gradlew run` works with no setup. The `issuer` and `audience` claims remain compile-time constants in `JwtConfig` — they are not secret and do not vary by environment.
 - **BCrypt**: Used for hashing passwords before storage.
@@ -67,7 +67,7 @@ We use **Exposed** as our SQL ORM.
 - **Resource Management**: Support for partial updates (PATCH) to manage resource states (e.g., active/inactive status for teams, seasons and players).
 - **Match-Opponent Relationship**: Matches are linked to a dedicated `Opponents` table rather than using simple strings. This ensures data consistency across the club and allows for richer opponent data (e.g., logos).
 - **Pagination**: To ensure scalability and performance as data grows (e.g., hundreds of players or matches), list-based endpoints (GET) will implement a standard pagination strategy using `limit` and `offset` (or `page`) query parameters. This prevents excessive memory consumption and slow response times.
-- **Email System (Pending)**: While the Invitation logic is fully implemented at the database and domain levels, the physical sending of emails (SMTP/API integration) is currently not implemented. Invocations to the email service should be treated as placeholders until a provider (e.g., SendGrid, Mailjet) is selected.
+- **Email System**: Sent via Resend for club and age-group association notifications (see §14). Parent/player invites (`PARENT_PLAYER`) still only write an `Invites` row with no email, since parents/players are out of scope for now.
 
 ## 6. Real-Time Communication: WebSockets
 We use **WebSockets** for delivering instantaneous updates during live matches (Live Score).
@@ -469,13 +469,14 @@ from `implementation` to `api` -- `initKoin()`'s return type (`KoinApplication`)
 public surface, so consumers need the class on their own compile classpath; this was only ever masked
 before because nothing outside Android actually called `initKoin()`.
 
-**A second, separate pre-existing bug found while verifying this (out of scope, not fixed here)**: running
-the Desktop app for the first time (via `./gradlew :app:desktopApp:run`) crashes with
+**A second, separate pre-existing bug found while verifying this (out of scope at the time, since fixed)**:
+running the Desktop app for the first time (via `./gradlew :app:desktopApp:run`) crashed with
 `IllegalArgumentException: Route ... CreateAgeGroups could not find any NavType for argument sport of
-type SportType` -- a missing `NavType` registration for `SportType` in Navigation 3's type-safe routes,
-unrelated to Koin/AppConfig (confirmed: no Koin-related errors precede it; the crash happens well into
-Compose Navigation setup). Never surfaced before because Desktop never got far enough to reach navigation
-at all.
+type SportType` -- Navigation-Compose's (2.x) type-safe routes have no built-in `NavType` for an enum
+argument. Unrelated to Koin/AppConfig; it never surfaced before because Desktop never got far enough to
+reach navigation at all. Fixed since: `Screen.CreateAgeGroups`/`Screen.CreateTeams` now carry `sport` as
+`SportType.name` (a plain `String`), converted back with `SportType.valueOf()` at the destination in
+`AppNavigation.kt`.
 
 ## 17. CI/CD: Staging Auto-Deploy, Manual Production Deploy
 

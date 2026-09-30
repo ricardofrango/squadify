@@ -20,6 +20,7 @@ import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
@@ -147,5 +148,27 @@ class CreateAgeGroupsUseCaseTest {
             )
         }
         Unit
+    }
+
+    @Test
+    fun rejectsTheSameRangeTwiceInOneRequest() = runBlocking {
+        val coord = coordinator()
+        coEvery { clubRepository.getClubById(clubId) } returns club
+        coEvery { ageGroupRepository.findByClubAndSeason(clubId, seasonId) } returns emptyList()
+
+        assertFailsWith<ConflictException> {
+            useCase(
+                coord.id,
+                CreateAgeGroupsRequest(
+                    clubId = clubId,
+                    seasonId = seasonId,
+                    items = listOf(
+                        AgeGroupItemRequest(name = "Benjamins A", startYear = 2017, endYear = 2016),
+                        AgeGroupItemRequest(name = "Benjamins B", startYear = 2017, endYear = 2016)
+                    )
+                )
+            )
+        }
+        coVerify(exactly = 0) { ageGroupRepository.createAgeGroups(any()) }
     }
 }

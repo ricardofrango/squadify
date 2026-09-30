@@ -18,6 +18,7 @@ import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.insertIgnore
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import kotlin.uuid.Uuid
@@ -81,8 +82,11 @@ class ExposedClubRepository : ClubRepository {
             it[status] = club.status
         } > 0
 
+    // Both add-member methods skip a (club_id, user_id) pair that already has a membership
+    // (ON CONFLICT DO NOTHING on unique_club_member) rather than failing or duplicating it. The existing
+    // row, and its role, is left untouched, so re-adding someone never downgrades them.
     override suspend fun addMember(clubId: String, userId: String, role: ClubRole): Boolean =
-        ClubMembers.insert {
+        ClubMembers.insertIgnore {
             it[id] = Uuid.random()
             it[this.clubId] = clubId.toUuid()
             it[this.userId] = userId.toUuid()
@@ -90,14 +94,17 @@ class ExposedClubRepository : ClubRepository {
             it[active] = true
         }.insertedCount > 0
 
-    override suspend fun addMembers(clubId: String, userIds: List<Pair<String, ClubRole>>): Boolean =
-        ClubMembers.batchInsert(userIds) { (uId, role) ->
+    override suspend fun addMembers(clubId: String, userIds: List<Pair<String, ClubRole>>): Boolean {
+        ClubMembers.batchInsert(userIds, ignore = true) { (uId, role) ->
             this[ClubMembers.id] = Uuid.random()
             this[ClubMembers.clubId] = clubId.toUuid()
             this[ClubMembers.userId] = uId.toUuid()
             this[ClubMembers.role] = role
             this[ClubMembers.active] = true
-        }.size == userIds.size
+        }
+        // Skipped pairs aren't failures -- every requested user ends up a member either way.
+        return true
+    }
 
     override suspend fun getClubMembers(clubId: String): List<ClubMemberSummary> =
         (ClubMembers innerJoin Users).selectAll()

@@ -68,6 +68,11 @@ object ClubMembers : Table("club_members") {
     val active = bool("active").default(true)
 
     override val primaryKey = PrimaryKey(id)
+
+    init {
+        // One membership per user per club -- see V3__unique_club_members.sql.
+        uniqueIndex("unique_club_member", clubId, userId)
+    }
 }
 
 object Seasons : Table("seasons") {
