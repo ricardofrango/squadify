@@ -31,6 +31,7 @@ import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import squadify.app.shared.generated.resources.*
 import kotlinx.coroutines.delay
 import kotlinx.datetime.TimeZone
@@ -360,14 +361,18 @@ private fun CallUpToggleRow(player: Player, selected: Boolean, onClick: (() -> U
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier.width(28.dp)
             )
-            Text(
-                "${player.firstName} ${player.lastName}",
-                color = Color.White,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                modifier = Modifier.weight(1f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "${player.firstName} ${player.lastName}",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                player.position?.let {
+                    Text(stringResource(it.labelRes()), color = Color.White.copy(alpha = 0.55f), style = MaterialTheme.typography.bodySmall)
+                }
+            }
             if (selected) {
                 Box(Modifier.size(22.dp).background(PitchGreen, CircleShape), contentAlignment = Alignment.Center) {
                     Text("✓", color = Color.White, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
@@ -855,17 +860,21 @@ private fun SquadRow(row: SquadPlayerRow, style: SquadRowStyle, onClick: (() -> 
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier.width(28.dp)
             )
-            Text(
-                "${row.player.firstName} ${row.player.lastName}",
-                color = if (style == SquadRowStyle.SENT_OFF) Color.White.copy(alpha = 0.5f) else Color.White,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    textDecoration = if (style == SquadRowStyle.SENT_OFF) TextDecoration.LineThrough else TextDecoration.None
-                ),
-                modifier = Modifier.weight(1f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "${row.player.firstName} ${row.player.lastName}",
+                    color = if (style == SquadRowStyle.SENT_OFF) Color.White.copy(alpha = 0.5f) else Color.White,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        textDecoration = if (style == SquadRowStyle.SENT_OFF) TextDecoration.LineThrough else TextDecoration.None
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                row.player.position?.let {
+                    Text(stringResource(it.labelRes()), color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.bodySmall)
+                }
+            }
             if (row.goals > 0) {
                 Surface(shape = RoundedCornerShape(6.dp), color = PitchGreen.copy(alpha = 0.2f)) {
                     Text(

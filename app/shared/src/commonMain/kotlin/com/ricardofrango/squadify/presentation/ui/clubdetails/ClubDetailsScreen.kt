@@ -61,6 +61,7 @@ import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.btn_retry
 import squadify.app.shared.generated.resources.ic_account
@@ -899,9 +900,13 @@ private fun PlayerCard(player: Player, onClick: () -> Unit) {
                     fontWeight = FontWeight.Bold,
                     color = DeepCarbon
                 )
-                player.shirtNumber?.let {
+                val caption = listOfNotNull(
+                    player.shirtNumber?.let { stringResource(Res.string.label_number_prefix, it.toString()) },
+                    player.position?.let { stringResource(it.labelRes()) }
+                ).joinToString(" · ")
+                if (caption.isNotEmpty()) {
                     Text(
-                        text = stringResource(Res.string.label_number_prefix, it.toString()),
+                        text = caption,
                         style = MaterialTheme.typography.bodySmall,
                         color = DeepCarbon.copy(alpha = 0.7f)
                     )

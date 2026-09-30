@@ -20,6 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Player
+import com.ricardofrango.squadify.model.PlayerPosition
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
@@ -28,6 +29,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.painterResource
@@ -360,7 +362,10 @@ private fun PlayerRow(
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = player.birthDate.year.toString(),
+                        text = listOfNotNull(
+                            player.birthDate.year.toString(),
+                            player.position?.let { stringResource(it.labelRes()) }
+                        ).joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall,
                         color = DeepCarbon.copy(alpha = 0.55f)
                     )
@@ -444,9 +449,9 @@ private fun previewAgeGroup(id: String, name: String, seasonId: String, birthYea
     id = id, clubId = "c1", name = name, seasonId = seasonId, startYear = birthYear, endYear = birthYear
 )
 
-private fun previewPlayer(id: String, first: String, last: String, birthYear: Int) = Player(
+private fun previewPlayer(id: String, first: String, last: String, birthYear: Int, position: PlayerPosition? = null) = Player(
     id = id, clubId = "c1", firstName = first, lastName = last,
-    birthDate = LocalDate(birthYear, 3, 14), shirtNumber = null, photoUrl = null, active = true
+    birthDate = LocalDate(birthYear, 3, 14), shirtNumber = null, photoUrl = null, active = true, position = position
 )
 
 @Preview
@@ -459,8 +464,8 @@ private fun AddPlayersToAgeGroupContentPreview() {
                 seasons = listOf(previewSeason("s1", "26/27")),
                 selectedAgeGroupId = "a1",
                 eligiblePlayers = listOf(
-                    previewPlayer("p1", "Afonso", "Rebelo", 2015),
-                    previewPlayer("p2", "Bruno", "Costa", 2016),
+                    previewPlayer("p1", "Afonso", "Rebelo", 2015, PlayerPosition.GOALKEEPER),
+                    previewPlayer("p2", "Bruno", "Costa", 2016, PlayerPosition.WINGER),
                     previewPlayer("p3", "Carlos", "Dias", 2015)
                 ),
                 selectedPlayerIds = setOf("p1")

@@ -30,6 +30,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
+import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -392,6 +393,9 @@ private fun CallUpRow(cu: MatchCallUpWithPlayer, onRemove: (() -> Unit)? = null)
             Spacer(Modifier.width(8.dp))
             Column(Modifier.weight(1f)) {
                 Text("${cu.player.firstName} ${cu.player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                cu.player.position?.let {
+                    Text(stringResource(it.labelRes()), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.55f))
+                }
                 cu.callUp.notes?.takeIf { it.isNotBlank() }?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -413,7 +417,12 @@ private fun PoolRow(player: Player, onAdd: () -> Unit) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(player.shirtNumber?.toString() ?: "—", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = PitchGreen, modifier = Modifier.width(28.dp))
             Spacer(Modifier.width(8.dp))
-            Text("${player.firstName} ${player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Column(Modifier.weight(1f)) {
+                Text("${player.firstName} ${player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                player.position?.let {
+                    Text(stringResource(it.labelRes()), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.55f))
+                }
+            }
             Box(
                 modifier = Modifier.size(28.dp).background(PitchGreen.copy(alpha = 0.15f), CircleShape).clickable(onClick = onAdd),
                 contentAlignment = Alignment.Center
