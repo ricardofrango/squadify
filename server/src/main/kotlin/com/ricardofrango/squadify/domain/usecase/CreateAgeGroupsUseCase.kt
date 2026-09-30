@@ -34,7 +34,9 @@ class CreateAgeGroupsUseCase(
 
         // Get existing age groups for this club and season to check for duplicates
         val existingAgeGroups = ageGroupRepository.findByClubAndSeason(request.clubId, request.seasonId)
-        val existingRanges = existingAgeGroups.map { it.startYear to it.endYear }.toSet()
+        // Grows as items are accepted, so two items in this same request sharing a range are caught
+        // too -- not just a clash with an age group already in the database.
+        val takenRanges = existingAgeGroups.map { it.startYear to it.endYear }.toMutableSet()
 
         val newAgeGroups = request.items.map { item ->
             if (item.name.isBlank()) {
@@ -43,7 +45,7 @@ class CreateAgeGroupsUseCase(
             if (item.startYear < item.endYear) {
                 throw ValidationException("Start year cannot be before end year")
             }
-            if (existingRanges.contains(item.startYear to item.endYear)) {
+            if (!takenRanges.add(item.startYear to item.endYear)) {
                 throw ConflictException("An age group for ${item.startYear}-${item.endYear} already exists in this season")
             }
             if (item.teamSize != null && item.teamSize !in club.sport.teamSizes) {

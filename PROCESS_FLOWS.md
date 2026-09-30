@@ -456,13 +456,13 @@ graph TD
     C -- No --> D[Load existing age groups for this club + season]
     D --> D2[Load club — for its sport's allowed team sizes]
     D2 -- not found --> V2b(["Throw ValidationException"])
-    D2 --> E[Collect existing startYear/endYear pairs as a Set]
+    D2 --> E[Collect existing startYear/endYear pairs as a Set of taken ranges]
     E --> G{For each item}
     G -- name blank --> V2(["Throw ValidationException"])
     G -- startYear < endYear --> V2c(["Throw ValidationException: inverted range"])
     G -- teamSize set AND not in club.sport.teamSizes --> V2(["Throw ValidationException"])
-    G -- startYear/endYear pair already in set --> CN(["Throw ConflictException: duplicate range"])
-    G -- valid --> H[Build AgeGroup entity — teamSize nullable]
+    G -- "startYear/endYear pair already taken (in the DB, or by an earlier item in this request)" --> CN(["Throw ConflictException: duplicate range"])
+    G -- valid --> H[Mark range as taken; build AgeGroup entity — teamSize nullable]
     H --> I[Batch insert all AgeGroups]
     I --> Z(["Return created AgeGroups"])
 ```
