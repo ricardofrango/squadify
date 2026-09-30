@@ -109,6 +109,7 @@ fun HomeTab(
                     AlertRow(
                         alert = alert,
                         onClick = alert.ageGroupId?.let { id -> { onNavigateToAgeGroup(id) } }
+                            ?: alert.matchId?.let { id -> { onNavigateToMatch(id) } }
                     )
                 }
             }
@@ -223,6 +224,8 @@ private fun AlertRow(alert: ClubHomeAlert, onClick: (() -> Unit)?) {
                 alert.count,
                 alert.date?.let { stringResource(weekdayLabel(it.dayOfWeek)) } ?: ""
             )
+        ClubHomeAlertType.MATCH_REPORT_PENDING ->
+            stringResource(Res.string.msg_home_match_report_pending, alert.teamName ?: "", alert.opponentName ?: "")
     }
     Surface(
         modifier = Modifier
@@ -316,7 +319,11 @@ private fun HomeTabPreview() {
                 ),
                 alerts = listOf(
                     ClubHomeAlert(ClubHomeAlertType.CALLUPS_UNSENT, count = 2, date = kotlinx.datetime.LocalDate(2026, 9, 12)),
-                    ClubHomeAlert(ClubHomeAlertType.AGE_GROUP_NEEDS_COACH, count = 1, ageGroupId = "ag-x", ageGroupName = "Sub-11")
+                    ClubHomeAlert(ClubHomeAlertType.AGE_GROUP_NEEDS_COACH, count = 1, ageGroupId = "ag-x", ageGroupName = "Sub-11"),
+                    ClubHomeAlert(
+                        ClubHomeAlertType.MATCH_REPORT_PENDING, count = 1, date = kotlinx.datetime.LocalDate(2026, 9, 27),
+                        matchId = "m-x", teamName = "Sub-15 A", opponentName = "AD Fontelas"
+                    )
                 )
             ),
             onRetry = {},

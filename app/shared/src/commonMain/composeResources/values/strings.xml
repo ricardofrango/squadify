@@ -352,6 +352,7 @@
     <string name="msg_home_no_next_up">No matches scheduled</string>
     <string name="msg_home_needs_coach">%1$s has no coach assigned</string>
     <string name="msg_home_callups_unsent">%1$d call-ups unsent for %2$s</string>
+    <string name="msg_home_match_report_pending">Match report to fill: %1$s vs %2$s</string>
     <string name="msg_failed_to_load_home">Couldn\'t load the home view. Please try again.</string>
     <string name="weekday_monday">Monday</string>
     <string name="weekday_tuesday">Tuesday</string>

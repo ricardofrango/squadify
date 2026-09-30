@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
+import com.ricardofrango.squadify.domain.repository.MatchReportRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
@@ -30,7 +31,8 @@ import kotlin.time.Duration.Companion.days
  * The aggregate behind the club Home tab: stat-grid counts, one "Next up" row per team that has an
  * upcoming match, and the role-scoped "Needs you" alerts. Readable by any club member; the alert set
  * depends on the caller's roles (COORDINATOR+ -> age groups with no coach; a coach of an age group ->
- * that age group's matches inside 5 days with no call-ups; both roles -> both).
+ * that age group's matches inside 5 days with no call-ups, and its finished matches whose report
+ * isn't completed yet; both roles -> all of them).
  */
 class GetClubHomeUseCase(
     private val clubRepository: ClubRepository,
@@ -39,6 +41,7 @@ class GetClubHomeUseCase(
     private val seasonRepository: SeasonRepository,
     private val ageGroupRepository: AgeGroupRepository,
     private val matchRepository: MatchRepository,
+    private val matchReportRepository: MatchReportRepository,
     private val opponentRepository: OpponentRepository,
     private val userRepository: UserRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
@@ -135,6 +138,28 @@ class GetClubHomeUseCase(
                         type = ClubHomeAlertType.CALLUPS_UNSENT,
                         count = matches.size,
                         date = date
+                    )
+                }
+
+            // Finished matches still waiting on their report, most recent first. Only matches with a
+            // full-time minute: those finished before post-match stats existed have no stats to rate,
+            // and shouldn't flood the list.
+            val finished = allMatches.filter {
+                it.teamId in coachedTeamIds && it.status == MatchStatus.FINISHED && it.fullTimeMinute != null
+            }
+            val completed = matchReportRepository.getCompletedMatchIds(finished.map { it.id })
+            val teamNames = teams.associate { it.id to it.name }
+            finished
+                .filter { it.id !in completed }
+                .sortedByDescending { it.dateTime }
+                .forEach { match ->
+                    alerts += ClubHomeAlert(
+                        type = ClubHomeAlertType.MATCH_REPORT_PENDING,
+                        count = 1,
+                        date = match.dateTime.toLocalDateTime(tz).date,
+                        matchId = match.id,
+                        teamName = teamNames[match.teamId],
+                        opponentName = opponentsById[match.opponentId]?.let { it.shortName ?: it.name }
                     )
                 }
         }

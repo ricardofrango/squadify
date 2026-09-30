@@ -2147,7 +2147,10 @@ Per the developer: no "player of the match", and no attendance.
 - **Storage:** the text lives in `match_reports` (one row per match, `V5`). Ratings live on `match_player_stats.rating`, so each player's evaluation sits next to their stats line, and a season query can average ratings without a join. A DB `CHECK` enforces 0-10 as well as the use case.
 - **Permissions:** writing uses `MANAGE_MATCH`, the same configurable permission as scheduling and editing the match (Coach by default), rather than a new one. Reading is limited to coordinators and the age group's staff. Unlike the rest of the match, players and parents can't read it, because of the ratings and notes.
 - **Drafts:** a report can be saved as a draft (`complete = false`). It shows in the Home tab's "Needs you" section until it's completed. Once completed it stays completed, and stays editable.
-- **Screens:** the report and the stats have no client screens yet. Those will be designed separately.
+- **The Home tab to-do:** the "Needs you" section gets a `MATCH_REPORT_PENDING` row per finished match whose report isn't completed. It's shown to the coaches of the match's age group, like the existing call-ups alert, and tapping it opens the match.
+  - Matches finished before this shipped are excluded (no `full_time_minute`).
+  - Completed report ids come from one batched query (`getCompletedMatchIds`), not one lookup per match.
+- **Screens:** the report and the stats have no client screens yet. Those will be designed separately, so for now the to-do lands on the existing match details screen.
 
 **Verified:** `:server:test` (new `MatchPlayerStatsCalculatorTest`, 11 cases, plus updated `UpdateMatchStatusUseCaseTest`, `AddMatchEventUseCaseTest`, `DeleteMatchEventUseCaseTest`, `DeleteMatchUseCaseTest`). `V1`–`V4` were applied in order to a throwaway local Postgres database. **Not verified:** a real match played to full time on a device, and the resulting rows checked in the database.
 

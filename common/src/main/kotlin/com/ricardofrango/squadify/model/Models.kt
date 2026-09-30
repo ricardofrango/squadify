@@ -1023,7 +1023,9 @@ enum class ClubHomeAlertType {
     /** A coordinator alert: an age group in the current season has no coach in `age_group_staff`. */
     AGE_GROUP_NEEDS_COACH,
     /** A coach alert: matches within 5 days for age groups they coach that have no call-ups yet. */
-    CALLUPS_UNSENT
+    CALLUPS_UNSENT,
+    /** A coach alert: a finished match of an age group they coach whose report isn't completed yet. */
+    MATCH_REPORT_PENDING
 }
 
 /** One "Needs you" row. The client formats the copy from these parts so it stays localized. */
@@ -1034,14 +1036,18 @@ data class ClubHomeAlert(
     // AGE_GROUP_NEEDS_COACH only:
     val ageGroupId: String? = null,
     val ageGroupName: String? = null,
-    // CALLUPS_UNSENT only -- the day those matches fall on:
-    val date: LocalDate? = null
+    // CALLUPS_UNSENT: the day those matches fall on. MATCH_REPORT_PENDING: the day the match was played.
+    val date: LocalDate? = null,
+    // MATCH_REPORT_PENDING only -- the match to open, and the names to show:
+    val matchId: String? = null,
+    val teamName: String? = null,
+    val opponentName: String? = null
 )
 
 /**
  * Everything behind the club Home tab. Counts for the stat grid, one [nextUp] row per team with an
  * upcoming match, and role-scoped [alerts] ("Needs you"): coordinators get AGE_GROUP_NEEDS_COACH,
- * coaches get CALLUPS_UNSENT, someone who is both gets both.
+ * coaches get CALLUPS_UNSENT and MATCH_REPORT_PENDING, someone who is both gets all of them.
  */
 @Serializable
 data class ClubHome(

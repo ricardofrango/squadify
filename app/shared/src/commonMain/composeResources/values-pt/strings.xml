@@ -350,6 +350,7 @@
     <string name="msg_home_no_next_up">Nenhum jogo agendado</string>
     <string name="msg_home_needs_coach">%1$s não tem treinador atribuído</string>
     <string name="msg_home_callups_unsent">%1$d convocatórias por enviar para %2$s</string>
+    <string name="msg_home_match_report_pending">Relatório do jogo por preencher: %1$s vs %2$s</string>
     <string name="msg_failed_to_load_home">Não foi possível carregar o início. Por favor, tente novamente.</string>
     <string name="weekday_monday">segunda-feira</string>
     <string name="weekday_tuesday">terça-feira</string>

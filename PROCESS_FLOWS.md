@@ -323,11 +323,18 @@ graph TD
     G -- No --> I
     H --> I{coaches any season age group?}
     I -- Yes --> J["group that age group's SCHEDULED matches within 5 days that have zero call-ups, one CALLUPS_UNSENT alert per day"]
+    J --> K["one MATCH_REPORT_PENDING alert per FINISHED match of those age groups with a fullTimeMinute and no completed report (one batched report lookup), newest first"]
     I -- No --> Z
-    J --> Z(["Return ClubHome — club, seasonName, role, counts, nextUp, alerts"])
+    K --> Z(["Return ClubHome — club, seasonName, role, counts, nextUp, alerts"])
 ```
 
-Alerts carry structured parts (`ageGroupName`, `date`, `count`) rather than rendered strings, so the client formats them in the user's language. Someone who is both a coordinator and an age-group coach gets both alert types.
+Alerts carry structured parts (`ageGroupName`, `date`, `count`, and for a pending report `matchId`/`teamName`/`opponentName`) rather than rendered strings, so the client formats them in the user's language. Someone who is both a coordinator and an age-group coach gets every alert type.
+
+`MATCH_REPORT_PENDING` is the post-match report to-do (§8.6).
+- **Who sees it:** coaches of the match's age group, like `CALLUPS_UNSENT`.
+- **When it clears:** once the report is completed.
+- **Tapping it:** opens that match.
+- **Older matches:** matches finished before post-match stats existed (no `fullTimeMinute`) never show up, so the list isn't flooded with old fixtures.
 
 ### 3.4 Update Club (`UpdateClubUseCase`)
 

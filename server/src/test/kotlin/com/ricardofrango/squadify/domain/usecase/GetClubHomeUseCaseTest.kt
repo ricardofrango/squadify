@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
+import com.ricardofrango.squadify.domain.repository.MatchReportRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
@@ -45,6 +46,8 @@ class GetClubHomeUseCaseTest {
     private val seasonRepository = mockk<SeasonRepository>()
     private val ageGroupRepository = mockk<AgeGroupRepository>()
     private val matchRepository = mockk<MatchRepository>()
+    private val matchReportRepository = mockk<MatchReportRepository>()
+    init { coEvery { matchReportRepository.getCompletedMatchIds(any()) } returns emptySet() }
     private val opponentRepository = mockk<OpponentRepository>()
     private val userRepository = mockk<UserRepository>()
     private val transactionManager = object : TransactionManager {
@@ -57,7 +60,7 @@ class GetClubHomeUseCaseTest {
     )
     private val useCase = GetClubHomeUseCase(
         clubRepository, teamRepository, playerRepository, seasonRepository, ageGroupRepository,
-        matchRepository, opponentRepository, userRepository, checkUserPermissionUseCase, transactionManager
+        matchRepository, matchReportRepository, opponentRepository, userRepository, checkUserPermissionUseCase, transactionManager
     )
 
     private val clubId = "club-1"
@@ -163,5 +166,40 @@ class GetClubHomeUseCaseTest {
         assertEquals(1, alerts.size)
         assertEquals(ClubHomeAlertType.CALLUPS_UNSENT, alerts.first().type)
         assertEquals(1, alerts.first().count)
+    }
+
+    @Test
+    fun coachSeesFinishedMatchesWhoseReportIsNotCompleted() = runBlocking {
+        val u = "coach"
+        baseStubs(u, ClubRole.MEMBER)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns TeamRole.COACH
+        val pending = match("m-pending", teamA.id, (-2).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 92)
+        val done = match("m-done", teamA.id, (-9).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
+        // Finished before post-match stats existed: no full-time minute, no to-do.
+        val legacy = match("m-legacy", teamA.id, (-30).days).copy(status = MatchStatus.FINISHED)
+        // Another age group's match: not this coach's to-do.
+        val otherTeam = match("m-other", teamB.id, (-1).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
+        coEvery { matchRepository.getMatchesByClub(clubId) } returns listOf(pending, done, legacy, otherTeam)
+        coEvery { matchRepository.getMatchesByTeam(any()) } returns emptyList()
+        coEvery { matchReportRepository.getCompletedMatchIds(listOf("m-pending", "m-done")) } returns setOf("m-done")
+
+        val alerts = useCase(u, clubId).alerts.filter { it.type == ClubHomeAlertType.MATCH_REPORT_PENDING }
+
+        assertEquals(listOf("m-pending"), alerts.map { it.matchId })
+        assertEquals("Sub-15 A", alerts.single().teamName)
+        assertEquals("AD Fontelas", alerts.single().opponentName)
+    }
+
+    @Test
+    fun aCoordinatorWhoCoachesNothingGetsNoReportToDo() = runBlocking {
+        val u = "coord"
+        baseStubs(u, ClubRole.COORDINATOR)
+        coEvery { ageGroupRepository.getAgeGroupStaff(any()) } returns
+            listOf(AgeGroupStaffMember("c1", "Nuno", "F", TeamRole.COACH))
+        val pending = match("m-pending", teamA.id, (-2).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 92)
+        coEvery { matchRepository.getMatchesByClub(clubId) } returns listOf(pending)
+        coEvery { matchRepository.getMatchesByTeam(any()) } returns emptyList()
+
+        assertTrue(useCase(u, clubId).alerts.none { it.type == ClubHomeAlertType.MATCH_REPORT_PENDING })
     }
 }
