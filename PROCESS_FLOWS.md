@@ -1030,7 +1030,14 @@ graph TD
     E -- No --> R1(["Return false — no broadcast"])
     E -- Yes --> F{"newStatus == LIVE and previous status == HALF_TIME?"}
     F -- Yes --> F2["Set Match.secondHalfStartedAt = now"]
-    F -- No --> G
+    F -- No --> HT{"newStatus == HALF_TIME?"}
+    HT -- Yes --> HT2["Set Match.firstHalfEndMinute = elapsedMatchSeconds / 60"]
+    HT -- No --> FT{"newStatus == FINISHED?"}
+    FT -- Yes --> FT2["Set Match.fullTimeMinute (from the break: firstHalfEndMinute; else elapsedMatchSeconds / 60)"]
+    FT2 --> FT3["MatchPlayerStatsCalculator over call-ups + events; replace match_player_stats rows (§8.2f)"]
+    FT -- No --> G
+    HT2 --> G
+    FT3 --> G
     F2 --> G[Recalculate current score]
     G --> H["Publish LiveMatchUpdate(score, status) via LiveMatchBus"]
     H --> R2b["Transaction commits"]
@@ -1048,6 +1055,30 @@ graph TD
 Status values flow `SCHEDULED → LIVE → HALF_TIME → FINISHED` (or `CANCELLED`). The use case now validates the transition against `VALID_MATCH_STATUS_TRANSITIONS`: `SCHEDULED → CANCELLED` only (kickoff, i.e. `SCHEDULED → LIVE`, stays exclusive to `StartMatchUseCase`, §8.0 — this is a real HTTP route in its own right, `MatchRoutes.kt`, so without this guard a caller could set a match LIVE here directly and skip `StartMatchUseCase`'s starting-line-up/half-length validation entirely); `LIVE → {HALF_TIME, FINISHED, CANCELLED}`; `HALF_TIME → {LIVE, FINISHED, CANCELLED}`; `FINISHED`/`CANCELLED` are terminal. An invalid transition throws `ValidationException`. (Previously this list closed with "but the use case does not itself validate that the requested transition is legal — any status can currently be set from any other," per §11 — now fixed there too.)
 
 On the specific `HALF_TIME → LIVE` transition (resuming for the second half), this use case also stamps `Match.secondHalfStartedAt` with the wall-clock instant — so the client's running clock can pick up from the first half's nominal length instead of restarting at 0 (see §8.4). That same transition is also how it distinguishes a second-half restart from a first-ever kickoff notification (which never reaches this use case at all — see §8.0) when deciding which push to send, per §8.2b. `CANCELLED` (from either `SCHEDULED`, `LIVE`, or `HALF_TIME`) also notifies now, alongside the three live-match transitions — a cancelled fixture is arguably the most notification-worthy of all of them.
+
+The `→ HALF_TIME` and `→ FINISHED` transitions also record the match-clock minute each ended on (`Match.firstHalfEndMinute` / `fullTimeMinute`, the same floor(seconds / 60) unit as event minutes, so stoppage time is included). Finishing straight from the break (no second half) uses `firstHalfEndMinute` as full time, since the clock stopped when the first half did. `→ FINISHED` also freezes the per-player stats (§8.2f) in the same transaction.
+
+### 8.2f Post-Match Player Stats (`MatchPlayerStatsCalculator`)
+
+Not a route. It's a pure calculator run by `UpdateMatchStatusUseCase` on the `→ FINISHED` transition. It writes one `match_player_stats` row per called-up player:
+
+```mermaid
+graph TD
+    A["Start: finished match, call-ups, events"] --> B["Halves as match-clock ranges: 1st = 0..firstHalfEndMinute; 2nd = halfLengthMinutes..fullTimeMinute (only if the 2nd half started)"]
+    B --> C{For each called-up player}
+    C --> D["onPitch = isStarting"]
+    D --> E["For each half: walk the player's SUBSTITUTION_IN / SUBSTITUTION_OUT / RED_CARD events, in minute order, clamped into the half"]
+    E --> F["IN while off: start counting at that minute. OUT or RED while on: add minute - start, stop counting"]
+    F --> G["At the half's end, still on: add end - start. State carries over the break"]
+    G --> H["goals / assists / ownGoals / yellowCards / redCards = counts of the player's own (non-opponent) events"]
+    H --> Z(["MatchPlayerStats: started, minutesPlayed, counts; rating = null"])
+```
+
+- **Which half an event belongs to** is decided by when it was logged (`createdAt` before or after `secondHalfStartedAt`), not by its minute. First-half stoppage minutes (46', 47') overlap second-half ones. A substitution logged during the break therefore counts at the end of the first half, and the player coming on gets the whole second half.
+- **Worked example:** 45-minute halves, the first ending at 47' and the second at 93'. A player who plays the whole match gets 47 + 48 = 95 minutes.
+- **Fallbacks:** if either end minute is missing, it falls back to the nominal half length.
+- **Why storing a snapshot is safe:** it is computed once and never goes stale. A finished match's events can't change (§8.1/§8.1b), and a finished match can't be deleted (§7.2b). `rating` is the only column written afterwards, by the match report (§8.6).
+- **Tests:** covered by `MatchPlayerStatsCalculatorTest` and `UpdateMatchStatusUseCaseTest`.
 
 ### 8.2b Notify Match Event (`NotifyMatchEventUseCase`)
 
@@ -1290,7 +1321,7 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
 
 ## 12. Database Schema: Current State of the Art
 
-Source of truth: `server/src/main/kotlin/.../data/database/Tables.kt` (18 Exposed `Table` objects, describing the schema for query-building) **and** the versioned SQL files under `server/src/main/resources/db/migration/` (which actually create/alter it — see `TECHNICAL_DECISIONS.md` §34). `DatabaseFactory.init()` runs Flyway against those files on every boot, so the diagram below and the real Postgres tables are guaranteed to match *as long as every `Tables.kt` change ships with a matching new migration file* — unlike the old `SchemaUtils.createMissingTablesAndColumns` approach, Flyway does not infer schema changes from `Tables.kt` automatically.
+Source of truth: `server/src/main/kotlin/.../data/database/Tables.kt` (19 Exposed `Table` objects, describing the schema for query-building) **and** the versioned SQL files under `server/src/main/resources/db/migration/` (which actually create/alter it — see `TECHNICAL_DECISIONS.md` §34). `DatabaseFactory.init()` runs Flyway against those files on every boot, so the diagram below and the real Postgres tables are guaranteed to match *as long as every `Tables.kt` change ships with a matching new migration file* — unlike the old `SchemaUtils.createMissingTablesAndColumns` approach, Flyway does not infer schema changes from `Tables.kt` automatically.
 
 ### 12.1 Entity-Relationship Diagram
 
@@ -1323,6 +1354,8 @@ erDiagram
     MATCHES ||--o{ MATCH_CALL_UPS : calls_up_for
     PLAYERS ||--o{ MATCH_CALL_UPS : called_up_in
     MATCHES ||--o{ MATCH_EVENTS : logs
+    MATCHES ||--o{ MATCH_PLAYER_STATS : summarizes
+    PLAYERS ||--o{ MATCH_PLAYER_STATS : played_in
     PLAYERS ||--o{ MATCH_EVENTS : optionally_involved
 
     USERS {
@@ -1464,6 +1497,8 @@ erDiagram
         timestamp kickoff_at "nullable -- wall-clock instant of kickoff, set by StartMatchUseCase"
         timestamp second_half_started_at "nullable -- wall-clock instant the 2nd half resumed, set by UpdateMatchStatusUseCase on HALF_TIME -> LIVE"
         timestamp paused_at "nullable -- wall-clock instant the clock was frozen, set by PauseMatchUseCase, cleared by ResumeMatchUseCase"
+        integer first_half_end_minute "nullable -- match-clock minute the first half ended, set on LIVE -> HALF_TIME"
+        integer full_time_minute "nullable -- match-clock minute at full time, set on -> FINISHED; its presence marks a match with stored player stats"
     }
     MATCH_CALL_UPS {
         uuid id PK
@@ -1483,11 +1518,24 @@ erDiagram
         boolean is_opponent "default false"
         timestamp created_at
     }
+    MATCH_PLAYER_STATS {
+        uuid id PK
+        uuid match_id FK
+        uuid player_id FK
+        boolean started
+        integer minutes_played
+        integer goals "default 0"
+        integer assists "default 0"
+        integer own_goals "default 0"
+        integer yellow_cards "default 0"
+        integer red_cards "default 0"
+        integer rating "nullable -- 0-10, set by the coach's match report"
+    }
 ```
 
 ### 12.2 Constraints & defaults worth knowing
 
-- **Unique indexes**: `users.email`; `refresh_tokens.token`; `club_members(club_id, user_id)` — one membership per user per club (`V3__unique_club_members.sql`); both add-member repository methods insert with `ON CONFLICT DO NOTHING`, so re-adding an existing member keeps their current row and role rather than duplicating or downgrading it; `fcm_tokens.token` — deliberately on the token alone rather than `(user_id, token)`, since a token identifies one app install, not one user; a registration endpoint that gets the same token again (shared device, or a re-login without reinstalling) should reassign the existing row's `user_id` rather than insert a duplicate; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list.
+- **Unique indexes**: `users.email`; `refresh_tokens.token`; `club_members(club_id, user_id)` — one membership per user per club (`V3__unique_club_members.sql`); both add-member repository methods insert with `ON CONFLICT DO NOTHING`, so re-adding an existing member keeps their current row and role rather than duplicating or downgrading it; `fcm_tokens.token` — deliberately on the token alone rather than `(user_id, token)`, since a token identifies one app install, not one user; a registration endpoint that gets the same token again (shared device, or a re-login without reinstalling) should reassign the existing row's `user_id` rather than insert a duplicate; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list; `match_player_stats(match_id, player_id)` — one stats line per player per match. A `CHECK` keeps `match_player_stats.rating` NULL or between 0 and 10.
 - **Nullable foreign keys**: `invites.player_id` (only set for `PARENT_PLAYER` invites) and `match_events.player_id` (null when `is_opponent = true`, since the event belongs to a player on the opposing team who isn't in the `players` table).
 - **No `onDelete` behavior is configured on any foreign key** — every `.references(...)` call in `Tables.kt` uses the Exposed default (`NO ACTION`). Deleting a row that still has children (e.g. a `Club` with existing `Teams`) will fail at the database level rather than cascading, nulling out, or being blocked at the application layer with a friendlier error.
 - Several `enum` columns are nullable independently of their parent row's lifecycle: `club_members.role`/`age_group_staff.role`/`user_players.relationship` are all non-null (required at creation), while `invites.role` and `invites.relationship` are nullable because a single `Invite` row is reused for both invite shapes (see §10) and only one of the two is populated depending on `type`.
@@ -1514,7 +1562,7 @@ erDiagram
 ### 12.4 Current persistence setup
 
 - **Engine**: PostgreSQL, both dev and production. H2 has been removed entirely. The connection is built from `ServerConfig.kt`'s `DATABASE_HOST`/`DATABASE_PORT`/`DATABASE_USER`/`DATABASE_PASSWORD`/`DATABASE_NAME` env vars — host and password are required explicitly when `APP_ENV=production` (no silent fallback), while the database name defaults per environment (`squadify_dev` / `squadify_production`), so dev and production stay isolated even against the same Postgres server. `docker-compose.yml` at the repo root provides a local Postgres matching the dev defaults.
-- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, and `V3__unique_club_members.sql`. An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
+- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, and `V4__match_player_stats.sql`. An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
 - **Legacy backfill**: right after Flyway, `DatabaseFactory.init()` still runs a raw, idempotent SQL block that backfills `age_groups.start_year`/`end_year` from the old single `birth_year` column (if it still exists) and then drops that column (§4.3/§5.3). It's a no-op once `birth_year` is gone. It was deliberately left outside the migration chain because there's no way to confirm every environment has already run it.
 - **Connection pool**: HikariCP, `maximumPoolSize = 3` in dev / `10` in production, `autoCommit = false`, isolation level `TRANSACTION_REPEATABLE_READ`.
 

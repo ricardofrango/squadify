@@ -214,6 +214,10 @@ object Matches : Table("matches") {
     // resume, whichever of kickoffAt/secondHalfStartedAt is currently driving the clock shifts forward
     // by the paused duration and this clears back to null (see Match.pausedAt's own doc comment).
     val pausedAt = timestamp("paused_at").nullable()
+    // Match-clock minutes at the end of the first half / at full time (see Match.firstHalfEndMinute /
+    // fullTimeMinute). Used to compute minutes played, including stoppage time.
+    val firstHalfEndMinute = integer("first_half_end_minute").nullable()
+    val fullTimeMinute = integer("full_time_minute").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -246,6 +250,28 @@ object MatchEvents : Table("match_events") {
     val createdAt = timestamp("created_at")
 
     override val primaryKey = PrimaryKey(id)
+}
+
+// Per-player stats for a FINISHED match, computed once at full time (see MatchPlayerStats in
+// Models.kt). One row per called-up player; `rating` is set later by the coach's match report.
+object MatchPlayerStatsTable : Table("match_player_stats") {
+    val id = uuid("id")
+    val matchId = uuid("match_id").references(Matches.id)
+    val playerId = uuid("player_id").references(Players.id)
+    val started = bool("started")
+    val minutesPlayed = integer("minutes_played")
+    val goals = integer("goals").default(0)
+    val assists = integer("assists").default(0)
+    val ownGoals = integer("own_goals").default(0)
+    val yellowCards = integer("yellow_cards").default(0)
+    val redCards = integer("red_cards").default(0)
+    val rating = integer("rating").nullable()
+
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex("unique_match_player_stats", matchId, playerId)
+    }
 }
 
 // A club's overrides for `ConfigurablePermission` (see Models.kt). No row for a given

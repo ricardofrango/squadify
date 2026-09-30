@@ -26,6 +26,7 @@ val appModule = module {
     single<InviteRepository> { ExposedInviteRepository() }
     single<MatchRepository> { ExposedMatchRepository() }
     single<MatchEventRepository> { ExposedMatchEventRepository() }
+    single<MatchPlayerStatsRepository> { ExposedMatchPlayerStatsRepository() }
     single<OpponentRepository> { ExposedOpponentRepository() }
     single<FcmTokenRepository> { ExposedFcmTokenRepository() }
     single<ClubPermissionRepository> { ExposedClubPermissionRepository() }
@@ -97,7 +98,7 @@ val appModule = module {
     factory { GetMatchDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { UpdateMatchUseCase(get(), get(), get(), get(), get(), get()) }
     factory { DeleteMatchUseCase(get(), get(), get(), get(), get()) }
-    factory { UpdateMatchStatusUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { UpdateMatchStatusUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { StartMatchUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { PauseMatchUseCase(get(), get(), get(), get(), get(), get()) }
     factory { ResumeMatchUseCase(get(), get(), get(), get(), get(), get()) }

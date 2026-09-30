@@ -737,7 +737,14 @@ data class Match(
     // resume (ResumeMatchUseCase), the server shifts whichever of [kickoffAt]/[secondHalfStartedAt] is
     // currently driving the clock forward by the paused duration and clears this back to null, so
     // [elapsedMatchSeconds] needs no separate "total paused time" bookkeeping.
-    val pausedAt: Instant? = null
+    val pausedAt: Instant? = null,
+    // Match-clock minute (same floor(elapsedMatchSeconds / 60) unit as MatchEvent.minute) at which the
+    // first half ended -- set on the LIVE -> HALF_TIME transition, so first-half stoppage time is
+    // captured. Null until then, and for matches played before this existed.
+    val firstHalfEndMinute: Int? = null,
+    // Match-clock minute at full time -- set on the -> FINISHED transition. Its presence also marks a
+    // match whose MatchPlayerStats were computed (matches finished before this existed have neither).
+    val fullTimeMinute: Int? = null
 )
 
 /**
@@ -755,6 +762,26 @@ fun elapsedMatchSeconds(match: Match, now: Instant): Int {
     val clockAt = match.pausedAt ?: now
     return baseSeconds + (clockAt - referenceInstant).inWholeSeconds.toInt()
 }
+
+/**
+ * One called-up player's line for a FINISHED match, computed once at full time from the call-ups
+ * (who started) and the match's events, then stored -- a finished match's events can't change after
+ * that (see AddMatchEventUseCase/DeleteMatchEventUseCase), so the snapshot never goes stale.
+ * [rating] (0-10) is the one field set afterwards, by the coach, as part of the match report.
+ */
+@Serializable
+data class MatchPlayerStats(
+    val matchId: String,
+    val playerId: String,
+    val started: Boolean,
+    val minutesPlayed: Int,
+    val goals: Int,
+    val assists: Int,
+    val ownGoals: Int,
+    val yellowCards: Int,
+    val redCards: Int,
+    val rating: Int? = null
+)
 
 @Serializable
 data class MatchCallUp(

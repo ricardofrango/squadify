@@ -2113,3 +2113,30 @@ session check correctly returned `false` on the run that nonetheless left the st
 **Not attempted**: a full authenticated deep-link round trip against a live backend (no server was running
 for this verification pass -- the unauthenticated safety path was the one that actually needed proving);
 resuming a deep link *after* a fresh login rather than dropping it.
+
+## 41. Post-Match Stats and Match Report
+
+Closes Phase 5's last open item, "Historical match statistics (post-match analysis)". Designed with the developer: how the stats are presented is deliberately left for later. This section covers what gets stored and the rules that keep it correct.
+
+**A played match is a permanent record.** Two rules make it safe to store per-player stats instead of recomputing them on every read:
+- **No deleting a played match:** a `FINISHED` match can't be deleted (`DeleteMatchUseCase` returns 409). A match that never ended stays deletable, whether it's scheduled (even past its date), cancelled, or live. The developer's rule: *"if the game was ended, it was done. if it was not ended, it can be deleted."*
+- **No editing events after full time:** events can only be added or removed while the match is `LIVE`/`HALF_TIME`. Before this, both use cases accepted events at any status.
+
+**Stats are a snapshot, taken once at full time.** `match_player_stats` has one row per called-up player: started, minutes played, goals, assists, own goals, yellow and red cards, plus a nullable 0-10 `rating` (see the match report below).
+- **When it's written:** `UpdateMatchStatusUseCase` computes the rows on `→ FINISHED`, in the same transaction as the status change.
+- **How it's computed:** by `MatchPlayerStatsCalculator`, which is pure and unit-tested on its own.
+- **Why a snapshot:** the two rules above mean the inputs can never change afterwards, so the snapshot can't go stale. Queries across many matches (season totals and so on) become plain sums, with no replay of event logs per request.
+
+**Minutes played needed two new facts.** Nothing recorded when a half actually ended, so stoppage time was invisible.
+- **The new columns:** `matches.first_half_end_minute` (set on `LIVE → HALF_TIME`) and `full_time_minute` (set on `→ FINISHED`).
+- **Unit:** both hold the match-clock minute, the same floor(`elapsedMatchSeconds` / 60) unit the live console writes into `MatchEvent.minute`. So pauses and "Set minute" corrections are already accounted for.
+- **Finishing from the break:** a match finished straight from the break (no second half) takes its full-time minute from `first_half_end_minute`. Otherwise the break would count as playing time.
+
+**Deciding which half an event belongs to uses when it was logged, not its minute.** The match clock restarts at the nominal half length for the second half (see §29). So a 46' event can be first-half stoppage time or the second half's first minute. `createdAt` compared with `secondHalfStartedAt` settles it. A substitution logged during the break falls in the first half, so the incoming player is credited with the whole second half.
+
+**Considered and dropped: linking related events** (an assist to its goal, a substitution's IN to its OUT, via a `related_event_id` column). Minutes played only needs each player's own IN/OUT events, not the pairing. Linking an assist to a goal needs a UI change in the live console to pick the goal. Either can be added later without touching the stats snapshot.
+
+**Matches finished before this shipped** have no `full_time_minute` and no stats rows. Nothing is backfilled.
+
+**Verified:** `:server:test` (new `MatchPlayerStatsCalculatorTest`, 11 cases, plus updated `UpdateMatchStatusUseCaseTest`, `AddMatchEventUseCaseTest`, `DeleteMatchEventUseCaseTest`, `DeleteMatchUseCaseTest`). `V1`–`V4` were applied in order to a throwaway local Postgres database. **Not verified:** a real match played to full time on a device, and the resulting rows checked in the database.
+

@@ -19,6 +19,10 @@ interface MatchRepository {
     // Records the wall-clock instant the second half resumed -- see UpdateMatchStatusUseCase, which
     // calls this on a HALF_TIME -> LIVE transition so the client can derive the running clock from it.
     suspend fun markSecondHalfStarted(matchId: String, at: kotlin.time.Instant): Boolean
+    // Record the match-clock minute the first half / the match ended on (Match.firstHalfEndMinute /
+    // fullTimeMinute) -- see UpdateMatchStatusUseCase's HALF_TIME and FINISHED transitions.
+    suspend fun markFirstHalfEnded(matchId: String, minute: Int): Boolean
+    suspend fun markFullTime(matchId: String, minute: Int): Boolean
     // Freezes the running clock for a mid-half stoppage -- see PauseMatchUseCase/Match.pausedAt.
     suspend fun pauseMatch(matchId: String, at: kotlin.time.Instant): Boolean
     // Clears pausedAt and writes the caller's already-shifted kickoffAt/secondHalfStartedAt (whichever
