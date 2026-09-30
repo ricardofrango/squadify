@@ -66,11 +66,13 @@ class RegisterUseCase(
                 }
             }
 
-            if (clubMemberships.isNotEmpty()) {
-                clubMemberships.forEach { (clubId, role) ->
-                    clubRepository.addMember(clubId, createdUser.id, role)
+            // Several invites can target the same club (e.g. invited as a member, then separately as
+            // its director). A user holds one membership per club, so keep the highest role per club.
+            clubMemberships
+                .groupBy({ it.first }, { it.second })
+                .forEach { (clubId, roles) ->
+                    clubRepository.addMember(clubId, createdUser.id, roles.maxBy { it.level })
                 }
-            }
             if (parentLinks.isNotEmpty()) {
                 playerRepository.createUserPlayers(parentLinks)
             }
