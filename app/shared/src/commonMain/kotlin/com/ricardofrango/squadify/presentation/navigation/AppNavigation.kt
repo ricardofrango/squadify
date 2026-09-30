@@ -5,6 +5,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -58,7 +59,16 @@ private fun NavController.consumeAndCascadeStructureChanged(entry: NavBackStackE
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    // Read (and, on web, cleared from the visible URL) exactly once, during this first composition --
+    // strictly before the LaunchedEffect below runs, so bindToBrowserHistoryIfWeb's own default
+    // "navigate straight to the initial URL fragment" behavior finds nothing left to act on; the deep
+    // link is instead handled explicitly, and only once the session check confirms it's safe to, by
+    // SplashViewModel below. See WebDeepLinking.kt / TECHNICAL_DECISIONS.md.
+    val deepLinkRoute = remember { initialDeepLinkRouteOrNull() }
 
+    LaunchedEffect(navController) {
+        navController.bindToBrowserHistoryIfWeb()
+    }
     // Fires when the authenticated HTTP client (see Koin.kt) gives up on a request after its own
     // refresh-and-retry -- the session is truly dead, from wherever the user currently is in the app,
     // not just from Splash's own cold-start check or Account's manual logout button.
@@ -77,6 +87,7 @@ fun AppNavigation() {
     ) {
         composable<Screen.Splash> {
             SplashScreen(
+                deepLinkRoute = deepLinkRoute,
                 onNavigateToLogin = {
                     navController.navigate(Screen.Login) {
                         popUpTo(Screen.Splash) { inclusive = true }
@@ -89,6 +100,11 @@ fun AppNavigation() {
                 },
                 onNavigateToOnlyClub = { clubId ->
                     navController.navigate(Screen.ClubDetails(clubId, isRootClub = true)) {
+                        popUpTo(Screen.Splash) { inclusive = true }
+                    }
+                },
+                onNavigateToDeepLink = { route ->
+                    navController.navigate(route) {
                         popUpTo(Screen.Splash) { inclusive = true }
                     }
                 }
