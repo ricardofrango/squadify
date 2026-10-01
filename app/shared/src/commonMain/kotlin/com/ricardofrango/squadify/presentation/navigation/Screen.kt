@@ -145,7 +145,13 @@ sealed class Screen {
 
     @Serializable
     @SerialName("player")
-    data class PlayerDetails(val playerId: String) : Screen()
+    data class PlayerDetails(
+        val playerId: String,
+        // Opened from Team Details' leaders (design 31f): the team's season and the stats filter
+        // (a StatsFilter name) carry over. Null means the player's current season / All.
+        val seasonId: String? = null,
+        val statsFilter: String? = null
+    ) : Screen()
 
     @Serializable
     @SerialName("edit-player")

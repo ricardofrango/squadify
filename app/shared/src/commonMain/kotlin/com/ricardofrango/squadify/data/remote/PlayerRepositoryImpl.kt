@@ -5,6 +5,7 @@ import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.model.CreatePlayersRequest
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.PlayerProfile
+import com.ricardofrango.squadify.model.PlayerSeasonStats
 import com.ricardofrango.squadify.model.UpdatePlayerRequest
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -22,6 +23,9 @@ class PlayerRepositoryImpl(
 
     override suspend fun getPlayerById(playerId: String): PlayerProfile =
         httpClient.get("${appConfig.baseUrl}/players/$playerId").handleResponse()
+
+    override suspend fun getPlayerSeasonStats(playerId: String): PlayerSeasonStats =
+        httpClient.get("${appConfig.baseUrl}/players/$playerId/season-stats").handleResponse()
 
     override suspend fun createPlayers(request: CreatePlayersRequest): List<Player> =
         httpClient.post("${appConfig.baseUrl}/players") {

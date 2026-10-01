@@ -644,4 +644,70 @@
     <string name="label_type_row">Tipo</string>
     <string name="label_not_set">Não definido</string>
     <string name="label_set_type">Definir</string>
+
+    <!-- Season stats (Player Details, design 30) and season record (Team Details, design 31) -->
+    <string name="stats_season_stats">Estatísticas da época</string>
+    <string name="stats_filter_all">Todos</string>
+    <string name="stats_filter_competitive">Competitivos</string>
+    <string name="stats_filter_friendly">Amigáveis</string>
+    <string name="stats_apps">Jogos</string>
+    <string name="stats_goals">Golos</string>
+    <string name="stats_assists_short">Assist.</string>
+    <string name="stats_minutes">Minutos</string>
+    <string name="stats_avg_rating">Média</string>
+    <string name="stats_no_rated_matches">Ainda sem jogos avaliados</string>
+    <string name="stats_started_of">%1$d de %2$d como titular</string>
+    <string name="stats_minutes_value">%1$d min</string>
+    <string name="stats_cards">%1$d amarelos · %2$d vermelhos</string>
+    <string name="stats_matches">Jogos</string>
+    <string name="stats_empty_friendly">Sem jogos amigáveis nesta época</string>
+    <string name="stats_empty_competitive">Sem jogos competitivos nesta época</string>
+    <string name="stats_switch_to_all">Mude para Todos para ver todos os jogos.</string>
+    <string name="stats_no_matches_title">Ainda sem jogos</string>
+    <string name="stats_no_matches_body">As estatísticas aparecem aqui depois do primeiro jogo de %1$s com estatísticas registadas.</string>
+    <string name="stats_pre_stats_title">Sem estatísticas nesta época</string>
+    <string name="stats_pre_stats_option">jogado antes do registo de estatísticas</string>
+    <string name="stats_load_failed_title">Não foi possível carregar as estatísticas</string>
+    <string name="stats_load_failed_body">Verifique a ligação e tente novamente.</string>
+    <string name="stats_season">Época</string>
+    <string name="stats_close">Fechar</string>
+    <string name="record_season_record">Época</string>
+    <string name="record_won">Vitórias</string>
+    <string name="record_drawn">Empates</string>
+    <string name="record_lost">Derrotas</string>
+    <string name="record_played">%1$d jogos</string>
+    <string name="record_goals_for">Marcados</string>
+    <string name="record_goals_against">Sofridos</string>
+    <string name="record_goal_difference">Diferença</string>
+    <string name="record_form">Forma</string>
+    <string name="record_latest_first">mais recente à esquerda</string>
+    <string name="record_form_win">V</string>
+    <string name="record_form_draw">E</string>
+    <string name="record_form_loss">D</string>
+    <string name="record_result_win">Vitória</string>
+    <string name="record_result_draw">Empate</string>
+    <string name="record_result_loss">Derrota</string>
+    <string name="record_form_a11y">%1$s %2$d–%3$d vs %4$s</string>
+    <string name="record_team_leaders">Destaques</string>
+    <string name="record_leaders_goals">Golos</string>
+    <string name="record_leaders_assists">Assistências</string>
+    <string name="record_leaders_minutes">Minutos</string>
+    <string name="record_leaders_rating">Avaliação média</string>
+    <string name="record_leaders_not_enough_rated">Sem jogos avaliados suficientes</string>
+    <string name="record_no_results_title">Ainda sem resultados</string>
+    <string name="record_no_results_body">A época e os destaques aparecem depois do primeiro jogo terminado de %1$s.</string>
+    <string name="record_load_failed_title">Não foi possível carregar a época</string>
+    <string name="record_load_failed_body">O resto da página da equipa continua disponível.</string>
+    <plurals name="stats_avg_from_rated">
+        <item quantity="one">Média de %1$d jogo avaliado</item>
+        <item quantity="other">Média de %1$d jogos avaliados</item>
+    </plurals>
+    <plurals name="stats_untyped_note">
+        <item quantity="one">Inclui %1$d jogo antigo sem tipo — só aparece em Todos.</item>
+        <item quantity="other">Inclui %1$d jogos antigos sem tipo — só aparecem em Todos.</item>
+    </plurals>
+    <plurals name="stats_pre_stats_body">
+        <item quantity="one">%2$s jogou %1$d jogo em %3$s, antes de o Squadify registar minutos, golos ou avaliações.</item>
+        <item quantity="other">%2$s jogou %1$d jogos em %3$s, antes de o Squadify registar minutos, golos ou avaliações.</item>
+    </plurals>
 </resources>

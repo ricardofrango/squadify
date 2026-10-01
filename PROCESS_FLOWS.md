@@ -601,6 +601,34 @@ graph TD
 
 `poolSize` / `staff` come from the age group (players and staff belong to it, not the team); the screen links back to the age-group detail for both. `club` is carried so a screen opened from here (e.g. Schedule Match) has the club name without another call. `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canManageMatch` gates the schedule-match action ("Edit team" is a decorative, unwired menu item in `TeamDetailsScreen` -- no Edit Team screen exists yet). As with the age-group screen, a live match stays in `upcomingMatches` (it hasn't reached `recentResults` yet) and `upcomingMatchScores` carries its running score.
 
+### 4.6c Get Team Season Record (`GetTeamSeasonRecordUseCase`)
+
+`GET /teams/{teamId}/season-record`, behind Team Details' Season record and Team leaders cards (design 31). It's a separate call from §4.6b, so a failure stays inside those cards. A team belongs to one season, so this is that season's record.
+
+```mermaid
+graph TD
+    A[Start: userId, teamId] --> B[Fetch Team by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — same gate as §4.6b: MEMBER, minTeamRole=STAFF, teamId, allowPlayerOrParentAccess]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> R["canSeeRatings = non-throwing probe of the report's read gate: minClubRole=COORDINATOR, minTeamRole=STAFF, teamId"]
+    R --> M["matches = the team's FINISHED matches, newest first, each with its score (getScoreByMatch) and type"]
+    M --> L["playerLines = match_player_stats of those matches (getByMatches): minutes, goals, assists, rating"]
+    L --> K{"canSeeRatings AND the match's report is completed?"}
+    K -- Yes --> L2[keep the rating]
+    K -- No --> L3[rating = null]
+    L2 --> Z(["Return TeamSeasonRecord: teamId, seasonId, seasonName, matches, playerLines, players (id + name), canSeeRatings"])
+    L3 --> Z
+```
+
+The W/D/L record, form, goals and team leaders are all derived on the client from these rows by shared code (`SeasonStats.kt`: `totals(filter)`, `leaders(filter)`), so the All / Competitive / Friendly filter needs no round trip. The rules:
+- **Filter:** Competitive is Championship + Tournament. Matches with no type count only under All.
+- **Form:** the last five matches in the filter, most recent first.
+- **Leaders:** the top three per category (goals, assists, minutes, and average rating for staff only).
+  - Players on zero are left out.
+  - Ties share a rank (1, 1, 1, 4), ordered by name.
+  - The rating board needs at least two rated matches per player.
+
 ---
 
 ## 5. Player & Roster Management
@@ -672,6 +700,33 @@ fixed coordinator-only check (see TECHNICAL_DECISIONS.md §35).
 and `Player` also carries `heightCm`, `weightKg`, and a free-text `emergencyContact` -- all four are
 nullable and settable from Create Players (§5.1) and Update Player (§5.2); the profile screen omits
 any that are absent rather than showing a placeholder.
+
+### 5.1c Get Player Season Stats (`GetPlayerSeasonStatsUseCase`)
+
+`GET /players/{playerId}/season-stats`, behind Player Details' Season stats card and its Matches list (design 30). It replaces the profile's all-time Goals / Assists / Called up cards and Recent events list: the client no longer shows those §5.1b fields, though they're still in the payload. It's loaded separately from §5.1b, so a failure stays inside the card.
+
+```mermaid
+graph TD
+    A[Start: userId, playerId] --> B[Fetch Player by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER, as §5.1b]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D["Load the club's matches, teams, seasons, opponents; the player's stats lines (getByPlayer)"]
+    D --> R["canRate[team] = probe of the report's read gate (COORDINATOR / age-group STAFF) for each team he has lines in"]
+    R --> E["Each line → PlayerSeasonMatch, grouped by the season of the match's team; rating kept only if canRate[team] AND the report is completed"]
+    E --> P["preStats = FINISHED matches he was called up for with no full-time minute (before stats existed), counted per season"]
+    P --> S["seasons = the seasons of his age-group pools ∪ seasons with lines or preStats, newest first (by startDate)"]
+    S --> Z(["Return PlayerSeasonStats: seasons (seasonName, teamNames, matches newest first, preStatsMatchCount), currentSeasonId (the active season, else the newest), canSeeRatings"])
+```
+
+`canSeeRatings` is true when he has lines with a team whose ratings the caller may read, or when the caller is staff of one of his age groups. That way a coach gets the staff layout even before any match is rated. Players and parents get no ratings at all, and their card shows Minutes where the average rating would be.
+
+Totals are derived on the client (`totals(filter)` in `SeasonStats.kt`). They are apps, starts, minutes, goals, assists, cards, an average rating to one decimal, and a count of untyped matches. The filter rules are the same as §4.6c.
+
+Season and filter selection:
+- The season and filter are switched locally. The filter persists across seasons.
+- A season he played only before stats were recorded shows an explanation instead of zeros.
+- Team Details' leaders open a player on the team's season and the current filter (`Screen.PlayerDetails(seasonId, statsFilter)`).
 
 ### 5.2 Update Player (`UpdatePlayerUseCase`)
 

@@ -83,7 +83,7 @@ class SeasonStatsTest {
     @Test
     fun recordCountsResultsGoalsAndFormNewestFirst() {
         val record = TeamSeasonRecord(
-            teamId = "t", seasonName = "2026/27", canSeeRatings = true, playerLines = emptyList(), players = emptyList(),
+            teamId = "t", seasonId = "s", seasonName = "2026/27", canSeeRatings = true, playerLines = emptyList(), players = emptyList(),
             matches = listOf(
                 match("a", 1, MatchType.CHAMPIONSHIP, 3, 1),
                 match("b", 2, MatchType.FRIENDLY, 1, 1),
@@ -114,7 +114,7 @@ class SeasonStatsTest {
     @Test
     fun leadersShareRanksOnTiesSkipZerosAndCapAtThree() {
         val record = TeamSeasonRecord(
-            teamId = "t", seasonName = "2026/27", canSeeRatings = true,
+            teamId = "t", seasonId = "s", seasonName = "2026/27", canSeeRatings = true,
             matches = listOf(match("a", 1, MatchType.CHAMPIONSHIP, 4, 0), match("b", 2, MatchType.FRIENDLY, 3, 0)),
             players = listOf(
                 TeamSeasonPlayer("p1", "Tomás"), TeamSeasonPlayer("p2", "Gil"),
@@ -147,7 +147,7 @@ class SeasonStatsTest {
     @Test
     fun noRatingLeadersForCallersWhoCantSeeRatings() {
         val record = TeamSeasonRecord(
-            teamId = "t", seasonName = "2026/27", canSeeRatings = false,
+            teamId = "t", seasonId = "s", seasonName = "2026/27", canSeeRatings = false,
             matches = listOf(match("a", 1, MatchType.CHAMPIONSHIP, 1, 0), match("b", 2, MatchType.CHAMPIONSHIP, 1, 0)),
             players = listOf(TeamSeasonPlayer("p1", "Tomás")),
             playerLines = listOf(line("a", "p1", rating = 8), line("b", "p1", rating = 9))

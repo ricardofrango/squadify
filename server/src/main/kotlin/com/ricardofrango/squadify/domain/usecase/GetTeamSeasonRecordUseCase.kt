@@ -100,6 +100,7 @@ class GetTeamSeasonRecordUseCase(
 
         TeamSeasonRecord(
             teamId = teamId,
+            seasonId = season.id,
             seasonName = season.name,
             matches = matches,
             playerLines = lines,

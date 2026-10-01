@@ -18,11 +18,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.domain.AgeGroupDefaults
-import com.ricardofrango.squadify.model.EventType
+import com.ricardofrango.squadify.model.MatchType
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.PlayerPosition
 import com.ricardofrango.squadify.model.PlayerProfile
-import com.ricardofrango.squadify.model.PlayerProfileEvent
+import com.ricardofrango.squadify.model.PlayerSeason
+import com.ricardofrango.squadify.model.PlayerSeasonMatch
+import com.ricardofrango.squadify.model.PlayerSeasonStats
+import com.ricardofrango.squadify.model.StatsFilter
+import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
@@ -35,7 +39,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
 import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.char
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -44,18 +47,15 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 
 private val CardShape = RoundedCornerShape(16.dp)
-private val CardYellow = Color(0xFFF1C40F)
-private val LiveRed = Color(0xFFC0392B)
 
 private val DayMonthYear = LocalDate.Format { day(); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); year() }
-private val DayMonth = LocalDate.Format { day(); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED) }
 
 /**
  * The player profile screen (design canvas artboard "2C", see AI_GUIDELINES.md "UI Design
- * Reference"). One dark header (avatar, name, shirt number/position/age-group line) over a white
- * body: a fixed stat row (goals/assists/times called up -- all-time, no season/last-5/career split
- * yet), a Player Information card, and a Recent Events list. The overflow menu's "Edit player" (design
- * "17") is gated on [PlayerProfile.canEditPlayer].
+ * Reference"). One dark header (avatar, name, shirt number/position/age-group line) over the body:
+ * the Season stats card and its per-match list (design 30), then the Player Information card. The
+ * stats load separately, so their loading/error states stay inside the card. The overflow menu's
+ * "Edit player" (design "17") is gated on [PlayerProfile.canEditPlayer].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,13 +63,17 @@ fun PlayerDetailsScreen(
     playerId: String,
     onNavigateBack: () -> Unit,
     onEditPlayer: (String) -> Unit,
+    onOpenMatch: (String) -> Unit,
+    initialSeasonId: String? = null,
+    initialFilter: StatsFilter? = null,
     refreshOnReturn: Boolean = false,
     viewModel: PlayerDetailsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
+    val statsState by viewModel.stats.collectAsState()
 
     LaunchedEffect(playerId) {
-        viewModel.loadPlayerDetails(playerId)
+        viewModel.loadPlayerDetails(playerId, initialSeasonId, initialFilter)
     }
     LaunchedEffect(refreshOnReturn) {
         if (refreshOnReturn) viewModel.loadPlayerDetails(playerId)
@@ -77,9 +81,14 @@ fun PlayerDetailsScreen(
 
     PlayerDetailsContent(
         uiState = uiState,
+        statsState = statsState,
         onNavigateBack = onNavigateBack,
         onRetry = { viewModel.loadPlayerDetails(playerId) },
-        onEditPlayer = { onEditPlayer(playerId) }
+        onRetryStats = { viewModel.loadSeasonStats(playerId) },
+        onEditPlayer = { onEditPlayer(playerId) },
+        onSeasonSelected = viewModel::onSeasonSelected,
+        onFilterSelected = viewModel::onFilterSelected,
+        onOpenMatch = onOpenMatch
     )
 }
 
@@ -87,14 +96,19 @@ fun PlayerDetailsScreen(
 @Composable
 private fun PlayerDetailsContent(
     uiState: PlayerDetailsUiState,
+    statsState: SeasonStatsUiState,
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
-    onEditPlayer: () -> Unit
+    onRetryStats: () -> Unit,
+    onEditPlayer: () -> Unit,
+    onSeasonSelected: (String) -> Unit,
+    onFilterSelected: (StatsFilter) -> Unit,
+    onOpenMatch: (String) -> Unit
 ) {
     val profile = (uiState as? PlayerDetailsUiState.Idle)?.profile
 
     Scaffold(
-        containerColor = Color.White,
+        containerColor = WhiteSmoke,
         topBar = {
             Column(Modifier.background(CarbonGray)) {
                 FMTopBar(
@@ -125,7 +139,7 @@ private fun PlayerDetailsContent(
             }
         }
     ) { paddingValues ->
-        val boxModifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White)
+        val boxModifier = Modifier.fillMaxSize().padding(paddingValues).background(WhiteSmoke)
         when (uiState) {
             is PlayerDetailsUiState.Loading -> {
                 Box(boxModifier, contentAlignment = Alignment.Center) {
@@ -138,7 +152,15 @@ private fun PlayerDetailsContent(
                     Spacer(Modifier.height(16.dp))
                     Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
                 }
-            is PlayerDetailsUiState.Idle -> PlayerBody(uiState.profile, modifier = boxModifier)
+            is PlayerDetailsUiState.Idle -> PlayerBody(
+                profile = uiState.profile,
+                statsState = statsState,
+                modifier = boxModifier,
+                onRetryStats = onRetryStats,
+                onSeasonSelected = onSeasonSelected,
+                onFilterSelected = onFilterSelected,
+                onOpenMatch = onOpenMatch
+            )
         }
     }
 }
@@ -209,89 +231,96 @@ private fun subtitleLine(profile: PlayerProfile): String {
 
 
 // ---------------------------------------------------------------------------------------------
-// Body (white)
+// Body
 // ---------------------------------------------------------------------------------------------
 
-private const val MAX_RECENT_EVENTS_SHOWN = 5
-
 @Composable
-private fun PlayerBody(profile: PlayerProfile, modifier: Modifier = Modifier) {
-    val player = profile.player
-    val recentEvents = remember(profile.recentEvents) { profile.recentEvents.take(MAX_RECENT_EVENTS_SHOWN) }
+private fun PlayerBody(
+    profile: PlayerProfile,
+    statsState: SeasonStatsUiState,
+    modifier: Modifier = Modifier,
+    onRetryStats: () -> Unit,
+    onSeasonSelected: (String) -> Unit,
+    onFilterSelected: (StatsFilter) -> Unit,
+    onOpenMatch: (String) -> Unit
+) {
+    var showSeasons by remember { mutableStateOf(false) }
+    val loaded = statsState as? SeasonStatsUiState.Loaded
+    val matches = loaded?.visibleMatches().orEmpty()
+    val showRatings = loaded?.stats?.canSeeRatings == true
 
-    LazyColumn(
-        modifier = modifier,
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatCard(stringResource(Res.string.label_stat_goals), profile.goals, Modifier.weight(1f), accent = true)
-                StatCard(stringResource(Res.string.label_stat_assists), profile.assists, Modifier.weight(1f))
-                StatCard(stringResource(Res.string.label_stat_called_up), profile.timesCalledUp, Modifier.weight(1f))
-            }
-        }
+    val statsCard: @Composable () -> Unit = {
+        PlayerSeasonStatsCard(
+            state = statsState,
+            playerFirstName = profile.player.firstName,
+            onRetry = onRetryStats,
+            onOpenSeasons = { showSeasons = true },
+            onFilterSelected = onFilterSelected
+        )
+    }
+    val padding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 24.dp)
 
-        item {
-            Surface(shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f)), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(20.dp)) {
-                    Text(
-                        stringResource(Res.string.label_player_info),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = DeepCarbon
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    InfoRow(
-                        stringResource(Res.string.label_status),
-                        stringResource(if (player.active) Res.string.label_active else Res.string.label_inactive)
-                    )
-                    InfoRow(stringResource(Res.string.label_birth_date), player.birthDate.format(DayMonthYear))
-                    InfoRow(stringResource(Res.string.label_age_group_field), profile.ageGroupLabel ?: "—")
-                    player.heightCm?.let { InfoRow(stringResource(Res.string.label_height), stringResource(Res.string.label_height_value, it)) }
-                    player.weightKg?.let { InfoRow(stringResource(Res.string.label_weight), stringResource(Res.string.label_weight_value, it)) }
-                    InfoRow(stringResource(Res.string.label_guardians), stringResource(Res.string.label_guardians_linked, profile.guardiansLinked))
-                    player.emergencyContact?.takeIf { it.isNotBlank() }?.let {
-                        InfoRow(stringResource(Res.string.label_emergency_contact), it)
-                    }
+    // Landscape (30e): totals and Player info on the left, the match list beside them.
+    BoxWithConstraints(modifier) {
+        if (maxWidth > maxHeight && maxWidth >= 600.dp) {
+            Row(Modifier.fillMaxSize()) {
+                LazyColumn(Modifier.weight(1f), contentPadding = padding, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    item { statsCard() }
+                    item { PlayerInfoCard(profile) }
+                }
+                LazyColumn(Modifier.weight(1f), contentPadding = padding.copyStart(0.dp)) {
+                    if (matches.isNotEmpty()) item { PlayerMatchesList(matches, showRatings, onOpenMatch) }
                 }
             }
-        }
-
-        item {
-            Text(
-                stringResource(Res.string.label_recent_events),
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = DeepCarbon
-            )
-        }
-
-        if (recentEvents.isEmpty()) {
-            item {
-                Text(
-                    stringResource(Res.string.msg_no_recent_events),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = DeepCarbon.copy(alpha = 0.5f)
-                )
-            }
         } else {
-            items(recentEvents) { EventRow(it) }
+            LazyColumn(Modifier.fillMaxSize(), contentPadding = padding, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                item { statsCard() }
+                if (matches.isNotEmpty()) item { PlayerMatchesList(matches, showRatings, onOpenMatch) }
+                item { PlayerInfoCard(profile) }
+            }
         }
+    }
+
+    if (showSeasons && loaded != null) {
+        SeasonSheet(
+            seasons = loaded.stats.seasons,
+            selectedSeasonId = loaded.selectedSeasonId,
+            onSelect = { onSeasonSelected(it); showSeasons = false },
+            onDismiss = { showSeasons = false }
+        )
     }
 }
 
+private fun PaddingValues.copyStart(start: androidx.compose.ui.unit.Dp) = PaddingValues(
+    start = start,
+    end = calculateEndPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+    top = calculateTopPadding(),
+    bottom = calculateBottomPadding()
+)
+
 @Composable
-private fun StatCard(label: String, value: Int, modifier: Modifier = Modifier, accent: Boolean = false) {
-    Surface(modifier = modifier, shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))) {
-        Column(
-            modifier = Modifier.padding(vertical = 16.dp).fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+private fun PlayerInfoCard(profile: PlayerProfile) {
+    val player = profile.player
+    Surface(shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f)), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(20.dp)) {
             Text(
-                value.toString(),
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
-                color = if (accent) PitchGreen else DeepCarbon
+                stringResource(Res.string.label_player_info),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = DeepCarbon
             )
-            Text(label, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.6f))
+            Spacer(Modifier.height(12.dp))
+            InfoRow(
+                stringResource(Res.string.label_status),
+                stringResource(if (player.active) Res.string.label_active else Res.string.label_inactive)
+            )
+            InfoRow(stringResource(Res.string.label_birth_date), player.birthDate.format(DayMonthYear))
+            InfoRow(stringResource(Res.string.label_age_group_field), profile.ageGroupLabel ?: "—")
+            player.heightCm?.let { InfoRow(stringResource(Res.string.label_height), stringResource(Res.string.label_height_value, it)) }
+            player.weightKg?.let { InfoRow(stringResource(Res.string.label_weight), stringResource(Res.string.label_weight_value, it)) }
+            InfoRow(stringResource(Res.string.label_guardians), stringResource(Res.string.label_guardians_linked, profile.guardiansLinked))
+            player.emergencyContact?.takeIf { it.isNotBlank() }?.let {
+                InfoRow(stringResource(Res.string.label_emergency_contact), it)
+            }
         }
     }
 }
@@ -307,59 +336,11 @@ private fun InfoRow(label: String, value: String) {
     }
 }
 
-@Composable
-private fun EventRow(event: PlayerProfileEvent) {
-    val (glyph, glyphColor) = glyphFor(event.type)
-    Surface(modifier = Modifier.fillMaxWidth(), shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f))) {
-        Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(32.dp).background(glyphColor.copy(alpha = 0.18f), CircleShape), contentAlignment = Alignment.Center) {
-                Text(glyph, color = glyphColor, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    "${stringResource(labelFor(event.type))} · ${event.minute}'",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    color = DeepCarbon
-                )
-                Text(
-                    "v ${event.opponentName} · ${matchDateLabel(event.matchDate)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DeepCarbon.copy(alpha = 0.55f)
-                )
-            }
-        }
-    }
-}
-
-private fun glyphFor(type: EventType): Pair<String, Color> = when (type) {
-    EventType.GOAL -> "G" to PitchGreen
-    EventType.OWN_GOAL -> "OG" to CarbonGray
-    EventType.ASSIST -> "A" to PitchGreen
-    EventType.YELLOW_CARD -> "Y" to CardYellow
-    EventType.RED_CARD -> "R" to LiveRed
-    EventType.SUBSTITUTION_IN -> "⇄" to PitchGreen
-    EventType.SUBSTITUTION_OUT -> "⇄" to CarbonGray
-}
-
-private fun labelFor(type: EventType) = when (type) {
-    EventType.GOAL -> Res.string.label_event_type_goal
-    EventType.OWN_GOAL -> Res.string.label_event_type_own_goal
-    EventType.ASSIST -> Res.string.label_event_type_assist
-    EventType.YELLOW_CARD -> Res.string.label_event_type_yellow_card
-    EventType.RED_CARD -> Res.string.label_event_type_red_card
-    EventType.SUBSTITUTION_IN -> Res.string.label_event_type_substitution_in
-    EventType.SUBSTITUTION_OUT -> Res.string.label_event_type_substitution_out
-}
-
-private fun matchDateLabel(instant: Instant): String =
-    instant.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(DayMonth)
-
 // ---------------------------------------------------------------------------------------------
 // Previews
 // ---------------------------------------------------------------------------------------------
 
-private fun sampleProfile(withPosition: Boolean, withEvents: Boolean, canManage: Boolean = true): PlayerProfile = PlayerProfile(
+private fun sampleProfile(withPosition: Boolean, canManage: Boolean = true): PlayerProfile = PlayerProfile(
     player = Player(
         id = "p1", clubId = "c1", firstName = "Tomás", lastName = "Bragança",
         birthDate = LocalDate(2011, 3, 12), shirtNumber = 10, active = true,
@@ -376,73 +357,90 @@ private fun sampleProfile(withPosition: Boolean, withEvents: Boolean, canManage:
     timesCalledUp = 14,
     guardiansLinked = 2,
     canEditPlayer = canManage,
-    recentEvents = if (withEvents) {
-        listOf(
-            PlayerProfileEvent(EventType.GOAL, 63, "AD Fontelas", Instant.fromEpochMilliseconds(0)),
-            PlayerProfileEvent(EventType.ASSIST, 71, "AD Fontelas", Instant.fromEpochMilliseconds(0)),
-            PlayerProfileEvent(EventType.YELLOW_CARD, 44, "GD Marinhas", Instant.fromEpochMilliseconds(0))
-        )
-    } else {
-        emptyList()
-    }
+    recentEvents = emptyList()
 )
 
-@Preview
+private fun sampleMatch(id: String, day: Int, type: MatchType?, started: Boolean, minutes: Int, goals: Int = 0, assists: Int = 0, yellow: Int = 0, rating: Int? = null) =
+    PlayerSeasonMatch(
+        matchId = id, dateTime = Instant.fromEpochMilliseconds(1_790_000_000_000L - day * 86_400_000L), opponentName = "AD Fontelas",
+        matchType = type, started = started, minutesPlayed = minutes, goals = goals, assists = assists,
+        ownGoals = 0, yellowCards = yellow, redCards = 0, rating = rating
+    )
+
+private fun sampleSeasonStats(staff: Boolean) = SeasonStatsUiState.Loaded(
+    stats = PlayerSeasonStats(
+        playerId = "p1",
+        currentSeasonId = "s2",
+        canSeeRatings = staff,
+        seasons = listOf(
+            PlayerSeason(
+                "s2", "2026/27", listOf("Sub-15 A"),
+                listOf(
+                    sampleMatch("m1", 0, MatchType.CHAMPIONSHIP, true, 70, goals = 2, rating = if (staff) 9 else null),
+                    sampleMatch("m2", 7, MatchType.CHAMPIONSHIP, true, 70, assists = 1, yellow = 1, rating = if (staff) 7 else null),
+                    sampleMatch("m3", 13, MatchType.TOURNAMENT, true, 40, goals = 1, rating = if (staff) 8 else null),
+                    sampleMatch("m4", 13, MatchType.TOURNAMENT, false, 20),
+                    sampleMatch("m5", 28, MatchType.FRIENDLY, false, 35, goals = 1, rating = if (staff) 4 else null)
+                )
+            ),
+            PlayerSeason("s1", "2024/25", listOf("Sub-13 A"), emptyList(), preStatsMatchCount = 9)
+        )
+    ),
+    selectedSeasonId = "s2"
+)
+
 @Composable
-private fun PlayerDetailsPopulatedPreview() {
+private fun PreviewContent(uiState: PlayerDetailsUiState, statsState: SeasonStatsUiState) {
     SquadifyTheme {
         PlayerDetailsContent(
-            uiState = PlayerDetailsUiState.Idle(sampleProfile(withPosition = true, withEvents = true)),
-            onNavigateBack = {},
-            onRetry = {},
-            onEditPlayer = {}
+            uiState = uiState, statsState = statsState, onNavigateBack = {}, onRetry = {}, onRetryStats = {},
+            onEditPlayer = {}, onSeasonSelected = {}, onFilterSelected = {}, onOpenMatch = {}
         )
     }
 }
 
 @Preview
 @Composable
-private fun PlayerDetailsNoPositionNoEventsPreview() {
-    SquadifyTheme {
-        PlayerDetailsContent(
-            uiState = PlayerDetailsUiState.Idle(sampleProfile(withPosition = false, withEvents = false)),
-            onNavigateBack = {},
-            onRetry = {},
-            onEditPlayer = {}
-        )
-    }
-}
+private fun PlayerDetailsStaffPreview() =
+    PreviewContent(PlayerDetailsUiState.Idle(sampleProfile(withPosition = true)), sampleSeasonStats(staff = true))
 
 @Preview
 @Composable
-private fun PlayerDetailsCannotManagePreview() {
-    SquadifyTheme {
-        PlayerDetailsContent(
-            uiState = PlayerDetailsUiState.Idle(sampleProfile(withPosition = true, withEvents = true, canManage = false)),
-            onNavigateBack = {},
-            onRetry = {},
-            onEditPlayer = {}
-        )
-    }
-}
+private fun PlayerDetailsParentPreview() =
+    PreviewContent(PlayerDetailsUiState.Idle(sampleProfile(withPosition = true, canManage = false)), sampleSeasonStats(staff = false))
 
 @Preview
 @Composable
-private fun PlayerDetailsLoadingPreview() {
-    SquadifyTheme {
-        PlayerDetailsContent(uiState = PlayerDetailsUiState.Loading, onNavigateBack = {}, onRetry = {}, onEditPlayer = {})
-    }
-}
+private fun PlayerDetailsFilterEmptyPreview() =
+    PreviewContent(
+        PlayerDetailsUiState.Idle(sampleProfile(withPosition = true)),
+        sampleSeasonStats(staff = true).let { it.copy(stats = it.stats.copy(seasons = it.stats.seasons.map { s -> s.copy(matches = s.matches.filter { m -> m.matchType != MatchType.FRIENDLY }) })) }
+            .copy(filter = StatsFilter.FRIENDLY)
+    )
 
 @Preview
 @Composable
-private fun PlayerDetailsErrorPreview() {
-    SquadifyTheme {
-        PlayerDetailsContent(
-            uiState = PlayerDetailsUiState.Error("Couldn't load this player. Please try again."),
-            onNavigateBack = {},
-            onRetry = {},
-            onEditPlayer = {}
-        )
-    }
-}
+private fun PlayerDetailsNewPlayerPreview() =
+    PreviewContent(
+        PlayerDetailsUiState.Idle(sampleProfile(withPosition = false)),
+        SeasonStatsUiState.Loaded(PlayerSeasonStats("p1", listOf(PlayerSeason("s2", "2026/27", emptyList(), emptyList())), "s2", canSeeRatings = true), "s2")
+    )
+
+@Preview
+@Composable
+private fun PlayerDetailsPreStatsSeasonPreview() =
+    PreviewContent(PlayerDetailsUiState.Idle(sampleProfile(withPosition = true)), sampleSeasonStats(staff = true).copy(selectedSeasonId = "s1"))
+
+@Preview
+@Composable
+private fun PlayerDetailsStatsErrorPreview() =
+    PreviewContent(PlayerDetailsUiState.Idle(sampleProfile(withPosition = true)), SeasonStatsUiState.Error)
+
+@Preview
+@Composable
+private fun PlayerDetailsLoadingPreview() = PreviewContent(PlayerDetailsUiState.Loading, SeasonStatsUiState.Loading)
+
+@Preview
+@Composable
+private fun PlayerDetailsErrorPreview() =
+    PreviewContent(PlayerDetailsUiState.Error("Couldn't load this player. Please try again."), SeasonStatsUiState.Loading)

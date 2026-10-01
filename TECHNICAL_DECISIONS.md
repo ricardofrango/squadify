@@ -2243,3 +2243,45 @@ Every match is typified as **Friendly**, **Championship** or **Tournament** (`Ma
 - **Match lists (`MatchRow`):** only the exceptions get a small grey tag after the opponent, Friendly and Tournament. Championship is the bulk of a season and stays untagged, as do matches with no type.
 
 **Checked by rendering:** the selector's three states, the header chips and the list tags were rendered headlessly (`ImageComposeScene`, throwaway test, not committed) and compared with the design.
+
+## 43. Season Stats and Season Record
+
+Player Details shows a **Season stats** card with a per-match list (design 30), and Team Details a **Season record** and **Team leaders** cards (design 31). Both are fed by the per-player `match_player_stats` lines from §41.
+
+**Rows from the server, totals on the client.**
+- **Two read endpoints:**
+  - `GET /players/{id}/season-stats` returns every season the player was registered in, each with his per-match lines.
+  - `GET /teams/{id}/season-record` returns the team's finished matches with scores, plus every player's lines.
+- **Shared aggregation:** every number on screen is derived from those rows by pure functions in `common/.../model/SeasonStats.kt`. These cover totals, average rating, W/D/L, form and leaders. Because the server and every client share the same code, they can't disagree.
+- **No round trips:** switching the filter (or a player's season) needs no request.
+- **Payload size:** the payloads are season-sized (tens of matches), so shipping rows instead of pre-aggregated numbers is cheap.
+- **Tests:** `SeasonStatsTest` covers the rules.
+
+**The match-type filter** is All · Competitive · Friendly (`StatsFilter`).
+- **Competitive** merges Championship and Tournament. That's the question coaches ask, and splitting all three would leave tiny Tournament samples.
+- **Untyped matches** (older matches, §42) count only under All, signalled by one quiet line under the totals.
+
+**Ratings are staff-only, enforced on the server.**
+- **Who sees them:** a rating goes out only if the caller passes the match report's own read gate (coordinators/admins and the match's age-group staff, §41).
+- **Which ones:** only ratings of a *completed* report are sent, because a draft's ratings aren't final.
+- **What players and parents see:** a payload with every rating null and `canSeeRatings = false`. Their screen puts Minutes where the average rating would be, so nothing hints that ratings exist.
+
+**Leaders:**
+- **Top three:** each category shows its top three, and players on zero are left out.
+- **Ties:** tied players share a rank (1, 1, 1) and are listed by name.
+- **Average rating:** a player needs at least two rated matches to qualify, so a single 9 can't top the table.
+
+**Rating colours** reuse the report's bands (§41, `ratingBand`), banding an average by its rounded value. The canvas mock-up shaded one row differently, but its own notes say "coloured like the report badges".
+
+**Loading and errors:** the stats load separately from the screen's main data, so an error or empty state stays inside the card while the rest of the page still loads.
+
+**Where it deviates from the design:**
+- **Season pill on Team Details:** it's a label, not a switcher. A team belongs to one season in our model, so there's no other season of *this* team to switch to.
+- **Team Details landscape:** two columns (record + leaders beside the existing lists), not the design's three.
+- **Recent events:** the list on Player Details is dropped, as the design proposed. Every match row now carries its goals, assists and cards.
+
+**Checked by rendering:** every state was rendered headlessly (`ImageComposeScene`, throwaway test, not committed) and compared with the canvas, in EN/PT at 360dp and in landscape. That pass caught:
+- clipped segment labels: the segments now share the width in proportion to their labels, as the design's flex layout does
+- leader names that needed to wrap
+- dates that wrapped
+

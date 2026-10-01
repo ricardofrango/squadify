@@ -134,6 +134,7 @@ data class TeamSeasonPlayer(val id: String, val name: String)
 @Serializable
 data class TeamSeasonRecord(
     val teamId: String,
+    val seasonId: String,
     val seasonName: String,
     val matches: List<TeamSeasonMatch>,
     val playerLines: List<TeamSeasonPlayerLine>,

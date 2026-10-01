@@ -646,4 +646,70 @@
     <string name="label_type_row">Type</string>
     <string name="label_not_set">Not set</string>
     <string name="label_set_type">Set type</string>
+
+    <!-- Season stats (Player Details, design 30) and season record (Team Details, design 31) -->
+    <string name="stats_season_stats">Season stats</string>
+    <string name="stats_filter_all">All</string>
+    <string name="stats_filter_competitive">Competitive</string>
+    <string name="stats_filter_friendly">Friendly</string>
+    <string name="stats_apps">Apps</string>
+    <string name="stats_goals">Goals</string>
+    <string name="stats_assists_short">Assists</string>
+    <string name="stats_minutes">Minutes</string>
+    <string name="stats_avg_rating">Avg rating</string>
+    <string name="stats_no_rated_matches">No rated matches yet</string>
+    <string name="stats_started_of">%1$d of %2$d started</string>
+    <string name="stats_minutes_value">%1$d min</string>
+    <string name="stats_cards">%1$d yellow · %2$d red</string>
+    <string name="stats_matches">Matches</string>
+    <string name="stats_empty_friendly">No friendlies this season</string>
+    <string name="stats_empty_competitive">No competitive matches this season</string>
+    <string name="stats_switch_to_all">Switch to All to see every match.</string>
+    <string name="stats_no_matches_title">No matches yet</string>
+    <string name="stats_no_matches_body">Stats appear here after %1$s plays a first match with stats recorded.</string>
+    <string name="stats_pre_stats_title">No stats for this season</string>
+    <string name="stats_pre_stats_option">played before stats were recorded</string>
+    <string name="stats_load_failed_title">Couldn\'t load the stats</string>
+    <string name="stats_load_failed_body">Check your connection and try again.</string>
+    <string name="stats_season">Season</string>
+    <string name="stats_close">Close</string>
+    <string name="record_season_record">Season record</string>
+    <string name="record_won">Won</string>
+    <string name="record_drawn">Drawn</string>
+    <string name="record_lost">Lost</string>
+    <string name="record_played">%1$d played</string>
+    <string name="record_goals_for">Goals for</string>
+    <string name="record_goals_against">against</string>
+    <string name="record_goal_difference">GD</string>
+    <string name="record_form">Form</string>
+    <string name="record_latest_first">latest first</string>
+    <string name="record_form_win">W</string>
+    <string name="record_form_draw">D</string>
+    <string name="record_form_loss">L</string>
+    <string name="record_result_win">Won</string>
+    <string name="record_result_draw">Drawn</string>
+    <string name="record_result_loss">Lost</string>
+    <string name="record_form_a11y">%1$s %2$d–%3$d vs %4$s</string>
+    <string name="record_team_leaders">Team leaders</string>
+    <string name="record_leaders_goals">Goals</string>
+    <string name="record_leaders_assists">Assists</string>
+    <string name="record_leaders_minutes">Minutes</string>
+    <string name="record_leaders_rating">Avg rating</string>
+    <string name="record_leaders_not_enough_rated">Not enough rated matches</string>
+    <string name="record_no_results_title">No results yet</string>
+    <string name="record_no_results_body">The record and team leaders appear after %1$s\'s first finished match.</string>
+    <string name="record_load_failed_title">Couldn\'t load the season record</string>
+    <string name="record_load_failed_body">The rest of the team page is still available.</string>
+    <plurals name="stats_avg_from_rated">
+        <item quantity="one">Avg rating from %1$d rated match</item>
+        <item quantity="other">Avg rating from %1$d rated matches</item>
+    </plurals>
+    <plurals name="stats_untyped_note">
+        <item quantity="one">Includes %1$d older match with no type — shown only under All.</item>
+        <item quantity="other">Includes %1$d older matches with no type — shown only under All.</item>
+    </plurals>
+    <plurals name="stats_pre_stats_body">
+        <item quantity="one">%2$s played %1$d match in %3$s, before Squadify recorded minutes, goals or ratings.</item>
+        <item quantity="other">%2$s played %1$d matches in %3$s, before Squadify recorded minutes, goals or ratings.</item>
+    </plurals>
 </resources>

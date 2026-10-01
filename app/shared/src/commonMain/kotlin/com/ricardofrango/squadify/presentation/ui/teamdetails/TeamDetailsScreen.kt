@@ -6,7 +6,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -40,6 +43,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -61,8 +65,8 @@ fun TeamDetailsScreen(
     teamId: String,
     onNavigateBack: () -> Unit,
     onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
-    // Players are reached through the age group now, not from here -- kept for nav-graph compatibility.
-    @Suppress("UNUSED_PARAMETER") onNavigateToPlayer: (String) -> Unit,
+    // From the team leaders (design 31f): the player opens on this team's season and the current filter.
+    onNavigateToPlayer: (playerId: String, seasonId: String, filter: StatsFilter) -> Unit,
     onNavigateToMatch: (String) -> Unit,
     onScheduleMatch: () -> Unit,
     onEditTeam: () -> Unit,
@@ -70,15 +74,20 @@ fun TeamDetailsScreen(
     viewModel: TeamDetailsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
+    val recordState by viewModel.record.collectAsState()
 
     LaunchedEffect(teamId) { viewModel.load(teamId) }
     LaunchedEffect(refreshOnReturn) { if (refreshOnReturn) viewModel.load(teamId, forceReload = true) }
 
     TeamDetailsContent(
         uiState = uiState,
+        recordState = recordState,
         onNavigateBack = onNavigateBack,
         onRetry = { viewModel.load(teamId, forceReload = true) },
+        onRetryRecord = { viewModel.loadRecord(teamId) },
+        onFilterSelected = viewModel::onFilterSelected,
         onNavigateToAgeGroup = onNavigateToAgeGroup,
+        onNavigateToPlayer = onNavigateToPlayer,
         onScheduleMatch = onScheduleMatch,
         onEditTeam = onEditTeam,
         onMatchClick = onNavigateToMatch
@@ -89,9 +98,13 @@ fun TeamDetailsScreen(
 @Composable
 private fun TeamDetailsContent(
     uiState: TeamDetailsUiState,
+    recordState: TeamRecordUiState,
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
+    onRetryRecord: () -> Unit,
+    onFilterSelected: (StatsFilter) -> Unit,
     onNavigateToAgeGroup: (String) -> Unit,
+    onNavigateToPlayer: (String, String, StatsFilter) -> Unit,
     onScheduleMatch: () -> Unit,
     onEditTeam: () -> Unit,
     onMatchClick: (String) -> Unit
@@ -146,6 +159,8 @@ private fun TeamDetailsContent(
             is TeamDetailsUiState.Idle -> Column(Modifier.fillMaxSize().padding(paddingValues)) {
                 val d = uiState.details
                 val opponentsById = remember(d.opponents) { d.opponents.associateBy { it.id } }
+                val listState = rememberLazyListState()
+                val scope = rememberCoroutineScope()
                 TeamHeader(
                     poolSize = d.poolSize,
                     staffCount = d.staff.size,
@@ -153,11 +168,18 @@ private fun TeamDetailsContent(
                     played = d.recentResults.size,
                     nextMatch = d.upcomingMatches.firstOrNull(),
                     nextOpponentName = d.upcomingMatches.firstOrNull()
-                        ?.let { opponentName(opponentsById, it.opponentId) } ?: ""
+                        ?.let { opponentName(opponentsById, it.opponentId) } ?: "",
+                    // The Played count taps to the Season record, the first card (31a).
+                    onPlayedClick = { scope.launch { listState.animateScrollToItem(0) } }
                 )
                 TeamBody(
                     details = d,
+                    recordState = recordState,
+                    listState = listState,
                     opponentsById = opponentsById,
+                    onRetryRecord = onRetryRecord,
+                    onFilterSelected = onFilterSelected,
+                    onNavigateToPlayer = onNavigateToPlayer,
                     modifier = Modifier.fillMaxWidth().weight(1f).background(Color.White),
                     onNavigateToAgeGroup = onNavigateToAgeGroup,
                     onScheduleMatch = onScheduleMatch,
@@ -171,17 +193,72 @@ private fun TeamDetailsContent(
 @Composable
 private fun TeamBody(
     details: TeamDetails,
+    recordState: TeamRecordUiState,
+    listState: LazyListState,
     opponentsById: Map<String, Opponent>,
+    onRetryRecord: () -> Unit,
+    onFilterSelected: (StatsFilter) -> Unit,
+    onNavigateToPlayer: (String, String, StatsFilter) -> Unit,
     modifier: Modifier,
     onNavigateToAgeGroup: (String) -> Unit,
     onScheduleMatch: () -> Unit,
     onMatchClick: (String) -> Unit
 ) {
-    LazyColumn(
-        modifier = modifier,
-        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    // ---- Season record + team leaders (design 31), right after the Next card ----
+    val recordItems: LazyListScope.() -> Unit = {
+        item(key = "record") {
+            TeamRecordCard(
+                state = recordState,
+                teamName = details.team.name,
+                onRetry = onRetryRecord,
+                onFilterSelected = onFilterSelected,
+                onOpenMatch = onMatchClick
+            )
+        }
+        val loaded = recordState as? TeamRecordUiState.Loaded
+        if (loaded != null && loaded.hasLeaders()) {
+            item(key = "leaders") {
+                TeamLeadersCard(loaded) { playerId -> onNavigateToPlayer(playerId, loaded.record.seasonId, loaded.filter) }
+            }
+        }
+    }
+    val padding = PaddingValues(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 32.dp)
+
+    BoxWithConstraints(modifier) {
+        // Landscape (31e): record and leaders in their own column beside the existing lists.
+        if (maxWidth > maxHeight && maxWidth >= 600.dp) {
+            Row(Modifier.fillMaxSize()) {
+                LazyColumn(Modifier.weight(1f), state = listState, contentPadding = padding.copy(end = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    recordItems()
+                }
+                LazyColumn(Modifier.weight(1f), contentPadding = padding.copy(start = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    teamListItems(details, opponentsById, onNavigateToAgeGroup, onScheduleMatch, onMatchClick)
+                }
+            }
+        } else {
+            LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                recordItems()
+                teamListItems(details, opponentsById, onNavigateToAgeGroup, onScheduleMatch, onMatchClick)
+            }
+        }
+    }
+}
+
+private fun PaddingValues.copy(start: androidx.compose.ui.unit.Dp? = null, end: androidx.compose.ui.unit.Dp? = null) = PaddingValues(
+    start = start ?: calculateStartPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+    end = end ?: calculateEndPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
+    top = calculateTopPadding(),
+    bottom = calculateBottomPadding()
+)
+
+/** Upcoming, Recent results, Staff and Pool -- unchanged from 12a. */
+private fun LazyListScope.teamListItems(
+    details: TeamDetails,
+    opponentsById: Map<String, Opponent>,
+    onNavigateToAgeGroup: (String) -> Unit,
+    onScheduleMatch: () -> Unit,
+    onMatchClick: (String) -> Unit
+) {
         // ---- Upcoming matches ----
         item {
             SectionHeader(
@@ -220,7 +297,6 @@ private fun TeamBody(
         if (details.recentResults.isEmpty()) {
             item { EmptySectionCard(title = stringResource(Res.string.msg_no_results_yet), hint = null, action = null) }
         } else {
-            item { FormRow(details.recentResults.take(5)) }
             items(details.recentResults.take(5), key = { it.match.id }) { result ->
                 MatchRow(
                     match = result.match,
@@ -266,7 +342,6 @@ private fun TeamBody(
                 onClick = { onNavigateToAgeGroup(details.ageGroup.id) }
             )
         }
-    }
 }
 
 // ---- Header ----
@@ -279,7 +354,8 @@ private fun TeamHeader(
     upcoming: Int,
     played: Int,
     nextMatch: Match?,
-    nextOpponentName: String
+    nextOpponentName: String,
+    onPlayedClick: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth().background(CarbonGray)) {
         if (nextMatch != null) {
@@ -297,7 +373,7 @@ private fun TeamHeader(
             HeaderDivider()
             Stat(upcoming.toString(), stringResource(Res.string.label_upcoming), Modifier.weight(1f), highlight = upcoming > 0)
             HeaderDivider()
-            Stat(played.toString(), stringResource(Res.string.label_played), Modifier.weight(1f))
+            Stat(played.toString(), stringResource(Res.string.label_played), Modifier.weight(1f).clickable(onClick = onPlayedClick))
         }
     }
 }
@@ -367,30 +443,6 @@ private fun DateBlock(dateTime: Instant, onDark: Boolean) {
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             color = primary
         )
-    }
-}
-
-@Composable
-private fun FormRow(results: List<TeamMatchResult>) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            stringResource(Res.string.label_form),
-            style = MaterialTheme.typography.bodySmall,
-            color = DeepCarbon.copy(alpha = 0.5f)
-        )
-        Spacer(Modifier.width(2.dp))
-        results.forEach { r ->
-            Box(
-                modifier = Modifier.size(22.dp).background(outcomeColor(r.outcome), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    outcomeLetter(r.outcome),
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White
-                )
-            }
-        }
     }
 }
 
@@ -567,18 +619,6 @@ private fun MiniChip(text: String) {
 private fun opponentName(opponentsById: Map<String, Opponent>, opponentId: String): String =
     opponentsById[opponentId]?.let { it.shortName ?: it.name } ?: "—"
 
-private fun outcomeColor(outcome: MatchOutcome): Color = when (outcome) {
-    MatchOutcome.WIN -> PitchGreen
-    MatchOutcome.DRAW -> CarbonGray.copy(alpha = 0.45f)
-    MatchOutcome.LOSS -> LossRed
-}
-
-private fun outcomeLetter(outcome: MatchOutcome): String = when (outcome) {
-    MatchOutcome.WIN -> "W"
-    MatchOutcome.DRAW -> "D"
-    MatchOutcome.LOSS -> "L"
-}
-
 private fun timeLabel(instant: Instant): String {
     val dt = instant.toLocalDateTime(TimeZone.currentSystemDefault())
     return "${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}"
@@ -639,24 +679,65 @@ private fun sampleDetails(populated: Boolean, canManage: Boolean): TeamDetails {
     )
 }
 
-@Preview
+private fun sampleRecord(staff: Boolean, empty: Boolean = false): TeamSeasonRecord {
+    fun m(id: String, day: Int, type: MatchType?, us: Int, them: Int) =
+        TeamSeasonMatch(id, Instant.fromEpochMilliseconds(1_790_000_000_000L - day * 86_400_000L), "AD Fontelas", type, us, them)
+    val matches = if (empty) emptyList() else listOf(
+        m("r1", 0, MatchType.CHAMPIONSHIP, 3, 1), m("r2", 7, MatchType.CHAMPIONSHIP, 1, 1), m("r3", 13, MatchType.TOURNAMENT, 2, 0),
+        m("r4", 14, MatchType.TOURNAMENT, 0, 2), m("r5", 21, MatchType.CHAMPIONSHIP, 2, 1), m("r6", 28, MatchType.FRIENDLY, 3, 3),
+        m("r7", 35, null, 2, 2)
+    )
+    val players = listOf(
+        TeamSeasonPlayer("p1", "Tomás Bragança"), TeamSeasonPlayer("p2", "Gil Bettencourt"),
+        TeamSeasonPlayer("p3", "Francisco Nabais"), TeamSeasonPlayer("p4", "Bruno Tavares"), TeamSeasonPlayer("p5", "Rui Perestrelo")
+    )
+    val lines = matches.flatMapIndexed { i, match ->
+        players.mapIndexed { j, p ->
+            TeamSeasonPlayerLine(
+                match.matchId, p.id, minutesPlayed = 70 - j * 5 + (if (p.id == "p5") 10 else 0),
+                goals = if ((i + j) % 3 == 0) 1 else 0, assists = if ((i + j) % 4 == 1) 1 else 0,
+                rating = if (staff) 5 + (i + j) % 5 else null
+            )
+        }
+    }
+    return TeamSeasonRecord("t1", "s1", "2026/27", matches, lines, players, canSeeRatings = staff)
+}
+
 @Composable
-private fun TeamDetailsPopulatedPreview() {
-    SquadifyTheme {
+private fun TeamPreview(details: TeamDetails, record: TeamRecordUiState, dark: Boolean = false) {
+    SquadifyTheme(darkTheme = dark) {
         TeamDetailsContent(
-            uiState = TeamDetailsUiState.Idle(sampleDetails(populated = true, canManage = true)),
-            onNavigateBack = {}, onRetry = {}, onNavigateToAgeGroup = {}, onScheduleMatch = {}, onEditTeam = {}, onMatchClick = {}
+            uiState = TeamDetailsUiState.Idle(details), recordState = record,
+            onNavigateBack = {}, onRetry = {}, onRetryRecord = {}, onFilterSelected = {}, onNavigateToAgeGroup = {},
+            onNavigateToPlayer = { _, _, _ -> }, onScheduleMatch = {}, onEditTeam = {}, onMatchClick = {}
         )
     }
 }
 
 @Preview
 @Composable
-private fun TeamDetailsEmptyPreview() {
-    SquadifyTheme(darkTheme = true) {
-        TeamDetailsContent(
-            uiState = TeamDetailsUiState.Idle(sampleDetails(populated = false, canManage = true)),
-            onNavigateBack = {}, onRetry = {}, onNavigateToAgeGroup = {}, onScheduleMatch = {}, onEditTeam = {}, onMatchClick = {}
-        )
-    }
-}
+private fun TeamDetailsPopulatedPreview() =
+    TeamPreview(sampleDetails(populated = true, canManage = true), TeamRecordUiState.Loaded(sampleRecord(staff = true)))
+
+@Preview
+@Composable
+private fun TeamDetailsMemberPreview() =
+    TeamPreview(sampleDetails(populated = true, canManage = false), TeamRecordUiState.Loaded(sampleRecord(staff = false)))
+
+@Preview
+@Composable
+private fun TeamDetailsFilterEmptyPreview() =
+    TeamPreview(
+        sampleDetails(populated = true, canManage = true),
+        TeamRecordUiState.Loaded(sampleRecord(staff = true).let { r -> r.copy(matches = r.matches.filter { it.matchType != MatchType.FRIENDLY }) }, StatsFilter.FRIENDLY)
+    )
+
+@Preview
+@Composable
+private fun TeamDetailsRecordErrorPreview() =
+    TeamPreview(sampleDetails(populated = true, canManage = true), TeamRecordUiState.Error)
+
+@Preview
+@Composable
+private fun TeamDetailsEmptyPreview() =
+    TeamPreview(sampleDetails(populated = false, canManage = true), TeamRecordUiState.Loaded(sampleRecord(staff = true, empty = true)), dark = true)
