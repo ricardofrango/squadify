@@ -1050,9 +1050,9 @@ data class ClubHomeNextUp(
 enum class ClubHomeAlertType {
     /** A coordinator alert: an age group in the current season has no coach in `age_group_staff`. */
     AGE_GROUP_NEEDS_COACH,
-    /** A coach alert: matches within 5 days for age groups they coach that have no call-ups yet. */
+    /** Matches within 5 days with no call-ups yet. Admins/coordinators: the whole club; staff: their age groups, per MANAGE_CALL_UPS. */
     CALLUPS_UNSENT,
-    /** A coach alert: a finished match of an age group they coach whose report isn't completed yet. */
+    /** A finished match whose report isn't completed. Admins/coordinators: the whole club; staff: their age groups, per MANAGE_MATCH. */
     MATCH_REPORT_PENDING
 }
 
@@ -1074,8 +1074,8 @@ data class ClubHomeAlert(
 
 /**
  * Everything behind the club Home tab. Counts for the stat grid, one [nextUp] row per team with an
- * upcoming match, and role-scoped [alerts] ("Needs you"): coordinators get AGE_GROUP_NEEDS_COACH,
- * coaches get CALLUPS_UNSENT and MATCH_REPORT_PENDING, someone who is both gets all of them.
+ * upcoming match, and role-scoped [alerts] ("Needs you"): admins/coordinators see everything pending in
+ * the club; age-group staff see the call-up and report alerts their role can act on.
  */
 @Serializable
 data class ClubHome(

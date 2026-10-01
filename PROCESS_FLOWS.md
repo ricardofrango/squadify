@@ -321,17 +321,17 @@ graph TD
     E --> G{role >= COORDINATOR or platform admin?}
     G -- Yes --> H["alert per season age group with no COACH in age_group_staff (AGE_GROUP_NEEDS_COACH)"]
     G -- No --> I
-    H --> I{coaches any season age group?}
-    I -- Yes --> J["group that age group's SCHEDULED matches within 5 days that have zero call-ups, one CALLUPS_UNSENT alert per day"]
-    J --> K["one MATCH_REPORT_PENDING alert per FINISHED match of those age groups with a fullTimeMinute and no completed report (one batched report lookup), oldest first"]
-    I -- No --> Z
+    H --> I["Call-up teams: every season team for admins/coordinators/platform admins; otherwise the teams of age groups where the caller's staff role clears the club's MANAGE_CALL_UPS setting"]
+    I --> J["one CALLUPS_UNSENT alert per day for those teams' SCHEDULED matches within 5 days that have zero call-ups"]
+    J --> K2["Report teams: same rule with the club's MANAGE_MATCH setting"]
+    K2 --> K["one MATCH_REPORT_PENDING alert per FINISHED match of those teams with a fullTimeMinute and no completed report (one batched report lookup), oldest first"]
     K --> Z(["Return ClubHome — club, seasonName, role, counts, nextUp, alerts"])
 ```
 
 Alerts carry structured parts (`ageGroupName`, `date`, `count`, and for a pending report `matchId`/`teamName`/`opponentName`) rather than rendered strings, so the client formats them in the user's language. Someone who is both a coordinator and an age-group coach gets every alert type.
 
 `MATCH_REPORT_PENDING` is the post-match report to-do (§8.6).
-- **Who sees it:** coaches of the match's age group, like `CALLUPS_UNSENT`.
+- **Who sees it:** admins, coordinators and platform admins see every pending report in the club; they should know everything pending, per the developer. Age-group staff see their own age groups' reports when their role clears the club's `MANAGE_MATCH` setting, i.e. when they could fill the report in (Coach by default). `CALLUPS_UNSENT` follows the same rule with `MANAGE_CALL_UPS`.
 - **When it clears:** once the report is completed.
 - **Tapping it:** opens that match.
 - **Older matches:** matches finished before post-match stats existed (no `fullTimeMinute`) never show up, so the list isn't flooded with old fixtures.

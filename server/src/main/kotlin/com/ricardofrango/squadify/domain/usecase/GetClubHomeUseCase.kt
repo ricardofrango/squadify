@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
+import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchReportRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
@@ -16,8 +17,10 @@ import com.ricardofrango.squadify.model.ClubHomeAlert
 import com.ricardofrango.squadify.model.ClubHomeAlertType
 import com.ricardofrango.squadify.model.ClubHomeNextUp
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.defaultMinTeamRole
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
@@ -42,6 +45,7 @@ class GetClubHomeUseCase(
     private val ageGroupRepository: AgeGroupRepository,
     private val matchRepository: MatchRepository,
     private val matchReportRepository: MatchReportRepository,
+    private val clubPermissionRepository: ClubPermissionRepository,
     private val opponentRepository: OpponentRepository,
     private val userRepository: UserRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
@@ -117,16 +121,37 @@ class GetClubHomeUseCase(
             }
         }
 
-        val coachedTeamIds = ageGroups
-            .filter { ageGroupRepository.getUserRoleInAgeGroup(userId, it.id) == TeamRole.COACH }
-            .flatMap { ag -> teams.filter { it.ageGroupId == ag.id } }
-            .map { it.id }
-            .toSet()
-        if (coachedTeamIds.isNotEmpty()) {
+        // Who sees which alert. Admins/coordinators (and platform admins) see everything pending in
+        // the club. Age-group staff see their own age groups' alerts, but only for work their role is
+        // allowed to do under the club's permission settings: MANAGE_CALL_UPS for unsent call-ups,
+        // MANAGE_MATCH for pending reports (both Coach by default; see ConfigurablePermission).
+        val seesWholeClub = isAdmin || role.level >= ClubRole.COORDINATOR.level
+        val seasonTeams = teams.filter { team -> ageGroups.any { it.id == team.ageGroupId } }
+        val staffRoleByAgeGroup: Map<String, TeamRole?> =
+            if (seesWholeClub) emptyMap() else ageGroups.associate { it.id to ageGroupRepository.getUserRoleInAgeGroup(userId, it.id) }
+
+        // One lookup per setting. An override row with a null role means coordinator-only.
+        suspend fun minStaffRole(permission: ConfigurablePermission): TeamRole? {
+            val override = clubPermissionRepository.getOverride(clubId, permission)
+            return if (override != null) override.minTeamRole else permission.defaultMinTeamRole
+        }
+
+        suspend fun alertTeamIds(permission: ConfigurablePermission): Set<String> {
+            if (seesWholeClub) return seasonTeams.map { it.id }.toSet()
+            val min = minStaffRole(permission) ?: return emptySet()
+            return ageGroups
+                .filter { ag -> staffRoleByAgeGroup[ag.id]?.let { it.level >= min.level } == true }
+                .flatMap { ag -> teams.filter { it.ageGroupId == ag.id } }
+                .map { it.id }
+                .toSet()
+        }
+
+        val callUpTeamIds = alertTeamIds(ConfigurablePermission.MANAGE_CALL_UPS)
+        if (callUpTeamIds.isNotEmpty()) {
             val cutoff = now.plus(callUpWindow)
             allMatches
                 .filter {
-                    it.teamId in coachedTeamIds &&
+                    it.teamId in callUpTeamIds &&
                         it.status == MatchStatus.SCHEDULED &&
                         it.dateTime >= now && it.dateTime <= cutoff &&
                         matchRepository.getCallUpsForMatch(it.id).isEmpty()
@@ -140,13 +165,15 @@ class GetClubHomeUseCase(
                         date = date
                     )
                 }
+        }
 
-            // Finished matches still waiting on their report, oldest first (the longest-overdue on top,
-            // per the design). Only matches with a
-            // full-time minute: those finished before post-match stats existed have no stats to rate,
-            // and shouldn't flood the list.
+        // Finished matches still waiting on their report, oldest first (the longest-overdue on top,
+        // per the design). Only matches with a full-time minute: those finished before post-match stats
+        // existed have no stats to rate, and shouldn't flood the list.
+        val reportTeamIds = alertTeamIds(ConfigurablePermission.MANAGE_MATCH)
+        if (reportTeamIds.isNotEmpty()) {
             val finished = allMatches.filter {
-                it.teamId in coachedTeamIds && it.status == MatchStatus.FINISHED && it.fullTimeMinute != null
+                it.teamId in reportTeamIds && it.status == MatchStatus.FINISHED && it.fullTimeMinute != null
             }
             val completed = matchReportRepository.getCompletedMatchIds(finished.map { it.id })
             val teamNames = teams.associate { it.id to it.name }
