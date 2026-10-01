@@ -35,6 +35,8 @@ sealed class CreateMatchUiState {
         val newOpponentName: String = "",
         // No default: every new match has to be typified before it can be scheduled.
         val matchType: MatchType? = null,
+        // Set when Schedule is tapped with no type picked -- paints the type rows red until one is.
+        val matchTypeError: Boolean = false,
         val date: LocalDate,
         val time: LocalTime,
         val location: String = "",

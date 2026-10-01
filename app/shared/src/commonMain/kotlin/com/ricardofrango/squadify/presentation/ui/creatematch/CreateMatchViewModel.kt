@@ -120,7 +120,7 @@ class CreateMatchViewModel(
 
     fun onNewOpponentNameChange(name: String) = updateIdle { it.copy(newOpponentName = name, error = null) }
 
-    fun onMatchTypeSelected(type: MatchType) = updateIdle { it.copy(matchType = type, error = null) }
+    fun onMatchTypeSelected(type: MatchType) = updateIdle { it.copy(matchType = type, matchTypeError = false, error = null) }
 
     fun onDateChange(date: LocalDate) = updateIdle { it.copy(date = date) }
 
@@ -135,7 +135,10 @@ class CreateMatchViewModel(
     fun onSubmit() {
         val current = _state.value as? CreateMatchUiState.Idle ?: return
         val teamId = current.selectedTeamId ?: return
-        val matchType = current.matchType ?: return
+        val matchType = current.matchType ?: run {
+            updateIdle { it.copy(matchTypeError = true) }
+            return
+        }
         if (!current.canSubmit) return
 
         viewModelScope.launch {

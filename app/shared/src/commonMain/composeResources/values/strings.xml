@@ -638,4 +638,12 @@
     <string name="label_match_type_friendly">Friendly</string>
     <string name="label_match_type_championship">Championship</string>
     <string name="label_match_type_tournament">Tournament</string>
+    <string name="label_match_type_friendly_desc">Doesn\'t count towards any standings.</string>
+    <string name="label_match_type_championship_desc">A league fixture — counts in the table.</string>
+    <string name="label_match_type_tournament_desc">Part of a cup or a multi-team event.</string>
+    <string name="msg_match_type_hint">Pick one — it decides where the result counts.</string>
+    <string name="msg_match_type_required">Pick a match type.</string>
+    <string name="label_type_row">Type</string>
+    <string name="label_not_set">Not set</string>
+    <string name="label_set_type">Set type</string>
 </resources>

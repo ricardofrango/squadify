@@ -232,7 +232,7 @@ private fun CreateMatchForm(
 
             // ---- Match type (required, no default) ----
             FieldCard(label = stringResource(Res.string.label_match_type), required = true) {
-                MatchTypeSelector(selected = state.matchType, onSelected = onMatchTypeSelected)
+                MatchTypeSelector(selected = state.matchType, onSelected = onMatchTypeSelected, error = state.matchTypeError)
             }
 
             // ---- When ----
@@ -317,6 +317,15 @@ private fun CreateMatchForm(
                     enabled = state.canSubmit,
                     onClick = onSubmit
                 )
+                // The button stays disabled until a type is picked, but a tap on it still has to say
+                // why (design 28b): onSubmit flags the missing type instead of scheduling.
+                if (!state.canSubmit && state.matchType == null) {
+                    Box(
+                        Modifier
+                            .matchParentSize()
+                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onSubmit)
+                    )
+                }
             }
         }
     }

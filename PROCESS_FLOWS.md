@@ -852,9 +852,11 @@ graph TD
 
 **Match type.** Every new match is typified as Friendly, Championship or Tournament (`MatchType`):
 - **On the server:** `CreateMatchRequest.type` is required.
-- **On Schedule match:** a required three-way selector with no default, so "Schedule match" stays disabled until a type is picked.
+- **On Schedule match:** a required selector with no default, so "Schedule match" stays disabled until a type is picked. Tapping it anyway flags the missing type.
 - **Changing it:** the type can be changed later from the match's edit sheet (`UpdateMatchRequest.type`). That isn't a schedule change, so it sends no push.
-- **Older matches:** matches scheduled before this have no type (`matches.match_type` is nullable, `V9`) and show "—" until someone sets one.
+  - A finished match can still have its type corrected (and nothing else).
+  - A cancelled match can't be edited.
+- **Older matches:** matches scheduled before this have no type (`matches.match_type` is nullable, `V9`). Managers see "Not set" with a "Set type" link; everyone else sees "—".
 
 ### 7.1b Get Match Details (`GetMatchDetailsUseCase`)
 

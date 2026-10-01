@@ -3,6 +3,8 @@ package com.ricardofrango.squadify.presentation.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -65,6 +67,7 @@ import kotlin.time.Duration.Companion.minutes
  * TeamDetails.upcomingMatchScores) and pass null when there isn't one yet (e.g. a SCHEDULED match, or
  * a best-effort fetch that failed).
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MatchRow(
     match: Match,
@@ -98,16 +101,25 @@ fun MatchRow(
                         color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
                 }
-                Text(
-                    "vs $opponentName",
-                    style = if (teamName != null && teamName.isNotEmpty()) {
-                        MaterialTheme.typography.bodyMedium
-                    } else {
-                        MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-                    },
-                    color = if (teamName != null && teamName.isNotEmpty()) DeepCarbon.copy(alpha = 0.8f) else DeepCarbon,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis
-                )
+                // Friendlies and tournaments get a small tag after the opponent; it wraps under the
+                // name on narrow widths instead of squeezing it (design 29f).
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    itemVerticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "vs $opponentName",
+                        style = if (teamName != null && teamName.isNotEmpty()) {
+                            MaterialTheme.typography.bodyMedium
+                        } else {
+                            MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                        },
+                        color = if (teamName != null && teamName.isNotEmpty()) DeepCarbon.copy(alpha = 0.8f) else DeepCarbon,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
+                    match.type?.takeIf { it.isTaggedInLists }?.let { MatchTypeTag(it) }
+                }
                 Text(
                     subtitleFor(match, live, finished),
                     style = MaterialTheme.typography.bodySmall,
