@@ -4,18 +4,21 @@ import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.exception.ConflictException
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubMatchesUpdate
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.Match
+import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.UpdateMatchRequest
 
 /**
  * Partial update of a scheduled match's own data (opponent, kick-off, location, notes) -- not its
  * status or call-ups, which have their own use cases. Same gate as creating one: a club
- * admin/coordinator or a coach of the match's age group.
+ * admin/coordinator or a coach of the match's age group. A finished or cancelled match is a closed
+ * record and can't be edited at all (type included).
  */
 class UpdateMatchUseCase(
     private val matchRepository: MatchRepository,
@@ -44,6 +47,10 @@ class UpdateMatchUseCase(
                 teamId = match.teamId,
                 errorMessage = "Only admins, coordinators, or team coaches can edit a match"
             )
+
+            if (match.status == MatchStatus.FINISHED || match.status == MatchStatus.CANCELLED) {
+                throw ConflictException("A finished or cancelled match can't be edited")
+            }
 
             request.opponentId?.let { opponentId ->
                 val opponent = opponentRepository.getOpponentById(opponentId)

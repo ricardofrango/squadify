@@ -283,9 +283,8 @@ private fun MatchBody(
     // A finished match is a record, not something to keep editing -- call-ups, kickoff, location
     // etc. all freeze once the game is over, regardless of the viewer's role.
     val notFinished = details.match.status != MatchStatus.FINISHED
-    // The one exception is the match type: a wrong type affects standings later, so a finished match
-    // still opens the edit sheet, with just the type in it (design 29g). A cancelled match can't be edited.
-    val canEditMatch = details.canManageMatch && details.match.status != MatchStatus.CANCELLED
+    // Cancelled is closed too: neither can be edited, the type included (the server enforces the same).
+    val canEditMatch = details.canManageMatch && notFinished && details.match.status != MatchStatus.CANCELLED
     val canManageCallUps = details.canManageCallUps && notFinished
     var showEdit by remember { mutableStateOf(false) }
 
@@ -380,7 +379,6 @@ private fun MatchBody(
     if (showEdit) {
         EditMatchSheet(
             details = details,
-            typeOnly = !notFinished,
             submitting = state.isSubmitting,
             onSave = { onEditMatch(it); showEdit = false },
             onDismiss = { showEdit = false }
@@ -422,8 +420,8 @@ private fun DetailRow(label: String, value: String, trailing: Pair<String, () ->
 }
 
 /**
- * The match type as the record of it: icon + name. Older matches have none -- a manager sees "Not set"
- * with a "Set type" link that opens the edit sheet, a read-only viewer just "—" (design 29b).
+ * The match type as the record of it: icon + name. Older matches have none -- a manager of an editable match sees "Not set"
+ * with a "Set type" link that opens the edit sheet; otherwise (read-only, finished, cancelled) just "—".
  */
 @Composable
 private fun TypeRow(type: MatchType?, onSetType: (() -> Unit)?) {
@@ -568,7 +566,7 @@ private fun BottomActionBar(state: MatchDetailsUiState.Idle, onEnterLiveMatch: (
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun EditMatchSheet(details: MatchDetails, typeOnly: Boolean, submitting: Boolean, onSave: (UpdateMatchRequest) -> Unit, onDismiss: () -> Unit) {
+private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (UpdateMatchRequest) -> Unit, onDismiss: () -> Unit) {
     val tz = TimeZone.currentSystemDefault()
     val initial = details.match.dateTime.toLocalDateTime(tz)
     var date by remember { mutableStateOf(initial.date) }
@@ -591,36 +589,29 @@ private fun EditMatchSheet(details: MatchDetails, typeOnly: Boolean, submitting:
                 Text("*", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.error)
             }
             MatchTypeSelector(selected = type, onSelected = { type = it }, showHint = false)
-            // A finished match is a record: only its type can still be corrected.
-            if (!typeOnly) {
-                ValueField(stringResource(Res.string.label_match_date), date.format(DayMonthYear)) { showDate = true }
-                ValueField(stringResource(Res.string.label_match_kickoff), timeOf(time)) { showTime = true }
-                OutlinedTextField(
-                    value = location, onValueChange = { location = it },
-                    label = { Text(stringResource(Res.string.label_match_location)) },
-                    placeholder = { Text(stringResource(Res.string.label_match_location_placeholder)) },
-                    singleLine = true, modifier = Modifier.fillMaxWidth(), shape = CardShape, colors = editFieldColors()
-                )
-                OutlinedTextField(
-                    value = notes, onValueChange = { notes = it },
-                    label = { Text(stringResource(Res.string.label_match_notes)) },
-                    placeholder = { Text(stringResource(Res.string.label_match_notes_placeholder)) },
-                    minLines = 2, modifier = Modifier.fillMaxWidth(), shape = CardShape, colors = editFieldColors()
-                )
-            }
+            ValueField(stringResource(Res.string.label_match_date), date.format(DayMonthYear)) { showDate = true }
+            ValueField(stringResource(Res.string.label_match_kickoff), timeOf(time)) { showTime = true }
+            OutlinedTextField(
+                value = location, onValueChange = { location = it },
+                label = { Text(stringResource(Res.string.label_match_location)) },
+                placeholder = { Text(stringResource(Res.string.label_match_location_placeholder)) },
+                singleLine = true, modifier = Modifier.fillMaxWidth(), shape = CardShape, colors = editFieldColors()
+            )
+            OutlinedTextField(
+                value = notes, onValueChange = { notes = it },
+                label = { Text(stringResource(Res.string.label_match_notes)) },
+                placeholder = { Text(stringResource(Res.string.label_match_notes_placeholder)) },
+                minLines = 2, modifier = Modifier.fillMaxWidth(), shape = CardShape, colors = editFieldColors()
+            )
             Button(
                 onClick = {
                     onSave(
-                        if (typeOnly) {
-                            UpdateMatchRequest(type = type)
-                        } else {
-                            UpdateMatchRequest(
-                                dateTime = date.atTime(time).toInstant(tz),
-                                location = location.trim().ifBlank { null },
-                                notes = notes.trim().ifBlank { null },
-                                type = type
-                            )
-                        }
+                        UpdateMatchRequest(
+                            dateTime = date.atTime(time).toInstant(tz),
+                            location = location.trim().ifBlank { null },
+                            notes = notes.trim().ifBlank { null },
+                            type = type
+                        )
                     )
                 },
                 enabled = !submitting,

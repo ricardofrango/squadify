@@ -2238,9 +2238,8 @@ Every match is typified as **Friendly**, **Championship** or **Tournament** (`Ma
 - **Match Details:** a chip leads the header status line (muted when the match is cancelled). The Details card has a "Type" row with the icon and name.
   - Older matches with no type show no chip. A manager sees "Not set" with a "Set type" link that opens the edit sheet; everyone else sees "—".
 - **Editing:** the type is the first thing in the edit sheet.
-  - A finished match still opens the sheet, with the type only, because a wrong type affects standings later. Its other fields stay frozen as a record.
-  - A cancelled match can't be edited.
-  - This is a client-side rule, like the existing freeze on finished matches; the server doesn't check the match status on update.
+  - A finished or cancelled match is a closed record and can't be edited at all, type included. The design proposed still letting a finished match correct its type; the product owner chose to close it entirely.
+  - The client hides Edit and "Set type" on those matches. `UpdateMatchUseCase` enforces the rule too, rejecting the update with 409 (`ConflictException`), so it doesn't depend on the client.
 - **Match lists (`MatchRow`):** only the exceptions get a small grey tag after the opponent, Friendly and Tournament. Championship is the bulk of a season and stays untagged, as do matches with no type.
 
 **Checked by rendering:** the selector's three states, the header chips and the list tags were rendered headlessly (`ImageComposeScene`, throwaway test, not committed) and compared with the design.

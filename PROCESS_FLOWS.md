@@ -854,9 +854,8 @@ graph TD
 - **On the server:** `CreateMatchRequest.type` is required.
 - **On Schedule match:** a required selector with no default, so "Schedule match" stays disabled until a type is picked. Tapping it anyway flags the missing type.
 - **Changing it:** the type can be changed later from the match's edit sheet (`UpdateMatchRequest.type`). That isn't a schedule change, so it sends no push.
-  - A finished match can still have its type corrected (and nothing else).
-  - A cancelled match can't be edited.
-- **Older matches:** matches scheduled before this have no type (`matches.match_type` is nullable, `V9`). Managers see "Not set" with a "Set type" link; everyone else sees "—".
+  - A finished or cancelled match can't be edited at all, type included (`UpdateMatchUseCase` → 409).
+- **Older matches:** matches scheduled before this have no type (`matches.match_type` is nullable, `V9`). Managers of a still-editable match see "Not set" with a "Set type" link; otherwise it shows "—".
 
 ### 7.1b Get Match Details (`GetMatchDetailsUseCase`)
 
@@ -889,11 +888,13 @@ The bottom button just opens the live match screen; starting the game and record
 
 ```mermaid
 graph TD
-    A[Start: userId, matchId, patch (opponentId?, dateTime?, location?, notes?)] --> B[Fetch Match by id]
+    A[Start: userId, matchId, patch (opponentId?, dateTime?, location?, notes?, type?)] --> B[Fetch Match by id]
     B -- not found --> N1(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D{patch.opponentId set?}
+    C -- allowed --> S{"status FINISHED or CANCELLED?"}
+    S -- Yes --> X(["Throw ConflictException (409) — a closed match can't be edited"])
+    S -- No --> D{patch.opponentId set?}
     D -- Yes --> E[Fetch Opponent; reject if it belongs to another club]
     D -- No --> G
     E --> G["Merge non-null patch fields onto the match"]
@@ -902,7 +903,7 @@ graph TD
     I --> J["Transaction commits"]
     J --> K{"Did a schedule field change?"}
     K -- Yes --> L["NotifyMatchEventUseCase(matchId, RESCHEDULED) — best-effort push to every club member (§8.2b)"]
-    K -- "No (notes-only edit)" --> Z
+    K -- "No (notes/type-only edit)" --> Z
     L --> Z(["Return success"])
 ```
 

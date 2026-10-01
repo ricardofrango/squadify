@@ -9,9 +9,11 @@ import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.exception.ConflictException
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Match
+import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.MatchType
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.TeamRole
@@ -145,6 +147,25 @@ class UpdateMatchUseCaseTest {
 
         assertEquals(MatchType.TOURNAMENT, updated.captured.type)
         // The type isn't a schedule change (opponent/date/location), so no push goes out.
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
+    }
+
+    @Test
+    fun finishedOrCancelledMatchesCannotBeEdited() = runBlocking {
+        val coach = user("coach")
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+        coEvery { teamRepository.getTeamById(teamId) } returns
+            com.ricardofrango.squadify.model.Team(teamId, clubId, ag1, "s-1", "Sub-15 A", "A", true)
+
+        for (status in listOf(MatchStatus.FINISHED, MatchStatus.CANCELLED)) {
+            coEvery { matchRepository.getMatchById(matchId) } returns match.copy(status = status)
+            assertFailsWith<ConflictException> {
+                useCase(coach.id, matchId, UpdateMatchRequest(type = MatchType.FRIENDLY))
+            }
+        }
+        coVerify(exactly = 0) { matchRepository.updateMatch(any()) }
         coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
     }
 }
