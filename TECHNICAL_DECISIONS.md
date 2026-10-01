@@ -426,6 +426,14 @@ build-variant system offers:
   -- flavors split it into `appDistributionUploadDevRelease`/`...StagingRelease`/`...ProdRelease`
   (verified: ran `./gradlew :app:androidApp:tasks --all`, confirmed all three exist). Use
   `appDistributionUploadStagingRelease` for tester builds, per the "staging first" rule above.
+  - **The `dev` host is resolved at build time, not hardcoded.** A physical device reaches the local
+    server via the dev machine's LAN IP, and a hardcoded `192.168.1.84` silently broke when DHCP moved
+    the machine to another address (`ConnectException` on Android while Web on `localhost` kept working).
+    `build.gradle.kts` now takes `squadify.devHost` from `local.properties` if set, otherwise the first
+    site-local IPv4 of an up, non-loopback interface, otherwise `10.0.2.2` (emulator). Since that address
+    isn't known up front, the dev flavor has its own `src/dev/res/xml/network_security_config.xml` allowing
+    cleartext; `src/main`'s (staging/prod) only allows it to `10.0.2.2`. After the IP changes, rebuild the
+    dev app to pick up the new address.
 - **Desktop & Web** (`app/desktopApp`, `app/webApp`): no OS/toolchain-level build-variant system, so both
   use the same pattern instead -- a `generateSquadifyConfig` Gradle task writes a small
   `internal object SquadifyBuildConfig { const val BASE_URL = ...; const val IS_DEBUG = ... }` file based

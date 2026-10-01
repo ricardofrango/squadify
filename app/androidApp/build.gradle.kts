@@ -1,5 +1,7 @@
 import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.net.Inet4Address
+import java.net.NetworkInterface
 import java.util.Properties
 
 plugins {
@@ -18,6 +20,25 @@ val keystoreProperties = Properties().apply {
     if (keystorePropertiesFile.exists()) {
         keystorePropertiesFile.inputStream().use { load(it) }
     }
+}
+
+// The dev flavor talks to a server on this machine, so it needs this machine's LAN address -- which
+// DHCP changes from time to time (a hardcoded 192.168.1.84 silently stopped working when it did).
+// Resolved at build time: `squadify.devHost` in local.properties wins (e.g. a different network
+// interface, or a server on another machine); otherwise the first site-local IPv4 address of an up,
+// non-loopback interface; otherwise the emulator's host loopback, 10.0.2.2.
+val devHost: String = run {
+    val localProps = Properties().apply {
+        rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+    }
+    localProps.getProperty("squadify.devHost")?.trim()?.takeIf { it.isNotEmpty() }
+        ?: NetworkInterface.getNetworkInterfaces().asSequence()
+            .filter { it.isUp && !it.isLoopback && !it.isVirtual }
+            .flatMap { it.inetAddresses.asSequence() }
+            .filterIsInstance<Inet4Address>()
+            .firstOrNull { it.isSiteLocalAddress }
+            ?.hostAddress
+        ?: "10.0.2.2"
 }
 
 kotlin {
@@ -89,7 +110,7 @@ android {
         create("dev") {
             dimension = "environment"
             applicationIdSuffix = ".dev"
-            buildConfigField("String", "BASE_URL", "\"http://192.168.1.84:8080/v1\"")
+            buildConfigField("String", "BASE_URL", "\"http://$devHost:8080/v1\"")
             resValue("string", "app_name", "Squadify Dev")
         }
         create("staging") {
