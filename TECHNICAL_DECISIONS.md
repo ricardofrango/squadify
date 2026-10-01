@@ -2176,6 +2176,21 @@ Per the developer: no "player of the match", and no attendance.
 - **Localized dates:** `shortDateLabel`/`daysAgoLabel` (`components/DateLabels.kt`) give "27 Sep" / "27 set." and "3 days ago" / "há 3 dias" from string resources. Existing screens still use English month names.
 - **Pure logic:** rating bands, the next-unrated jump, read ordering and the rating summary live in `MatchReportLogic.kt`, covered by `MatchReportLogicTest`.
 
+**Landscape layouts:**
+- **Match Details (23c):** the report card gets its own fixed left column while the rest scrolls beside it.
+- **Home (27d):** Next up and Needs you sit side by side. The design's side navigation rail isn't built: that's the app-wide adaptive-navigation item in §11.5, not part of this feature.
+
+**Aligned against the design's own screenshots.** A first pass built from the canvas markup alone drifted in a few places, fixed after comparing against screenshots of every artboard:
+- **Match report card:** document icon with the badge on the right, and a pencil on "Fill in report".
+- **Editor:** 56dp square rating buttons, "Optional" placeholders, a narrow tactic field, full-width tab underlines, and header tabs in landscape.
+- **Dialogs and toast:** dialogs with equal-width buttons, and a toast with a check.
+- **Read view:** the tactic chip in the "Our team" header, dividers between fields, the chip and status line in their own band, and a pencil "Edit".
+- **States:** a pulsing skeleton, and real cloud-off and lock icons.
+- **Home:** "Needs you" as one card with hairlines and chevrons.
+
+**Checked by rendering, not just compiling.** Every screen and state was rendered headlessly on the JVM with Compose's `ImageComposeScene`, in a throwaway test that isn't committed, and compared image by image with the design. The Home group was expanded by simulating a tap.
+- **What it caught:** green buttons were picking up the theme's content colour, which is dark under the dark palette. The label disappeared into the green. They now set white explicitly.
+
 **Not built from the design:** remembering the read-view sort per user (it resets to "by rating" on each visit), and autosave (the design lists it as later).
 
 **Verified:**

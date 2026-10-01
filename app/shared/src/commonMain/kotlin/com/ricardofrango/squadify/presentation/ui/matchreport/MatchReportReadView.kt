@@ -69,27 +69,27 @@ private fun TeamReadCard(state: MatchReportUiState.Idle) {
         Res.string.report_field_team_notes to f.teamNotes
     ).filter { it.second.isNotBlank() }
     ReportCard {
-        SectionLabel(stringResource(Res.string.report_section_our_team))
-        Spacer(Modifier.height(10.dp))
+        // Header: "OUR TEAM" on the left, the tactic at display size on the right (25a) -- the
+        // one-glance answer to "how did we set up".
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f)) { SectionLabel(stringResource(Res.string.report_section_our_team)) }
+            if (f.tactic.isNotBlank()) {
+                Text(stringResource(Res.string.report_field_tactic), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = SecondaryText)
+                Spacer(Modifier.width(10.dp))
+                Surface(shape = RoundedCornerShape(12.dp), color = CarbonGray) {
+                    Text(
+                        f.tactic,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black),
+                        color = Color.White
+                    )
+                }
+            }
+        }
         if (f.tactic.isBlank() && texts.isEmpty()) {
+            Spacer(Modifier.height(10.dp))
             Text(stringResource(Res.string.report_nothing_team), style = MaterialTheme.typography.bodyMedium, color = SecondaryText)
         } else {
-            // The tactic is the one value shown at display size: the one-glance "how did we set up".
-            if (f.tactic.isNotBlank()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(Res.string.report_field_tactic), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = SecondaryText)
-                    Spacer(Modifier.width(10.dp))
-                    Surface(shape = RoundedCornerShape(12.dp), color = CarbonGray) {
-                        Text(
-                            f.tactic,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black),
-                            color = Color.White
-                        )
-                    }
-                }
-                if (texts.isNotEmpty()) Spacer(Modifier.height(14.dp))
-            }
             ReadFields(texts)
         }
     }
@@ -106,8 +106,8 @@ private fun OpponentReadCard(state: MatchReportUiState.Idle) {
     ).filter { it.second.isNotBlank() }
     ReportCard {
         SectionLabel(state.details.opponentName)
-        Spacer(Modifier.height(10.dp))
         if (texts.isEmpty()) {
+            Spacer(Modifier.height(10.dp))
             Text(stringResource(Res.string.report_nothing_opponent), style = MaterialTheme.typography.bodyMedium, color = SecondaryText)
         } else {
             ReadFields(texts)
@@ -117,13 +117,15 @@ private fun OpponentReadCard(state: MatchReportUiState.Idle) {
 
 @Composable
 private fun ReadFields(texts: List<Pair<StringResource, String>>) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    // Each field sits under a hairline divider (25a).
+    Column {
         texts.forEach { (label, text) ->
-            Column {
-                Text(stringResource(label), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = SecondaryText)
-                Spacer(Modifier.height(3.dp))
-                Text(text, style = MaterialTheme.typography.bodyMedium, color = DeepCarbon)
-            }
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = CarbonGray.copy(alpha = 0.08f))
+            Spacer(Modifier.height(12.dp))
+            Text(stringResource(label), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = SecondaryText)
+            Spacer(Modifier.height(3.dp))
+            Text(text, style = MaterialTheme.typography.bodyLarge, color = DeepCarbon)
         }
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlowRowScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -75,17 +76,19 @@ internal fun RatingBadge(rating: Int?) {
         null -> Color.White to SecondaryText
     }
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.size(52.dp),
+        shape = RoundedCornerShape(14.dp),
         color = bg,
         border = if (rating == null) BorderStroke(1.5.dp, CarbonGray.copy(alpha = 0.2f)) else null
     ) {
-        Text(
-            rating?.toString() ?: "—",
-            modifier = Modifier.widthIn(min = 40.dp).padding(horizontal = 10.dp, vertical = 6.dp),
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
-            color = fg
-        )
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                rating?.toString() ?: "—",
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
+                color = fg
+            )
+        }
     }
 }
 
@@ -109,9 +112,18 @@ internal fun MiniPill(text: String, bg: Color, fg: Color, swatch: Color? = null)
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun PlayerStatsHeader(row: MatchPlayerStatsWithPlayer, modifier: Modifier = Modifier) {
+internal fun PlayerStatsHeader(row: MatchPlayerStatsWithPlayer, modifier: Modifier = Modifier, inline: Boolean = false) {
     val s = row.stats
     val p = row.player
+    if (inline) {
+        // Landscape editor (24c): number, name and stats on one line, the 0-10 row goes beneath.
+        FlowRow(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(p.shirtNumber?.toString() ?: "—", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black), color = PitchGreen, modifier = Modifier.align(Alignment.CenterVertically))
+            Text("${p.firstName} ${p.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, modifier = Modifier.align(Alignment.CenterVertically))
+            StatsChips(row)
+        }
+        return
+    }
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Text(
             p.shirtNumber?.toString() ?: "—",
@@ -127,6 +139,18 @@ internal fun PlayerStatsHeader(row: MatchPlayerStatsWithPlayer, modifier: Modifi
             )
             Spacer(Modifier.height(3.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                StatsChips(row)
+            }
+        }
+    }
+}
+
+/** Position, Started/Sub, minutes, and chips for the non-zero counts only. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FlowRowScope.StatsChips(row: MatchPlayerStatsWithPlayer) {
+    val s = row.stats
+    val p = row.player
                 Text(
                     p.position?.let { stringResource(it.labelRes()) } ?: stringResource(Res.string.report_no_position),
                     style = MaterialTheme.typography.bodySmall, color = SecondaryText,
@@ -143,14 +167,11 @@ internal fun PlayerStatsHeader(row: MatchPlayerStatsWithPlayer, modifier: Modifi
                 if (s.ownGoals > 0) MiniPill(stringResource(Res.string.report_chip_own_goals, s.ownGoals), AlertRed.copy(alpha = 0.1f), AlertRed)
                 if (s.yellowCards > 0) MiniPill(if (s.yellowCards > 1) "×${s.yellowCards}" else "", CarbonGray.copy(alpha = 0.05f), DeepCarbon, swatch = Amber)
                 if (s.redCards > 0) MiniPill("", CarbonGray.copy(alpha = 0.05f), DeepCarbon, swatch = AlertRed)
-            }
-        }
-    }
 }
 
 /** The status chip in the dark header (New / Draft / Completed / Not saved / Pending). */
 @Composable
-internal fun HeaderStatusChip(text: String, tone: ChipTone) {
+internal fun HeaderStatusChip(text: String, tone: ChipTone, showDot: Boolean = true) {
     val (bg, fg) = when (tone) {
         ChipTone.AMBER -> Amber.copy(alpha = 0.22f) to Color(0xFFFFC94D)
         ChipTone.GREEN -> Color(0xFF4CAF50).copy(alpha = 0.2f) to Color(0xFF4CAF50)
@@ -158,8 +179,10 @@ internal fun HeaderStatusChip(text: String, tone: ChipTone) {
     }
     Surface(shape = RoundedCornerShape(9.dp), color = bg) {
         Row(Modifier.padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(6.dp).background(fg, CircleShape))
-            Spacer(Modifier.width(5.dp))
+            if (showDot) {
+                Box(Modifier.size(6.dp).background(fg, CircleShape))
+                Spacer(Modifier.width(5.dp))
+            }
             Text(text, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = fg)
         }
     }

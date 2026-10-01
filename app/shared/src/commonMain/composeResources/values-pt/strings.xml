@@ -544,15 +544,8 @@
     <string name="report_field_weaknesses">Pontos fracos</string>
     <string name="report_field_best_players">Melhores jogadores</string>
     <string name="report_field_additional_info">Informação adicional</string>
+    <string name="report_hint_optional">Opcional</string>
     <string name="report_hint_tactic">ex.: 4-4-2</string>
-    <string name="report_hint_positive">O que funcionou? Pressão, bolas paradas, organização…</string>
-    <string name="report_hint_less_positive">O que não correu como planeado?</string>
-    <string name="report_hint_to_improve">O que trabalhar a seguir?</string>
-    <string name="report_hint_team_notes">Outras notas sobre a equipa</string>
-    <string name="report_hint_strengths">O que fizeram bem?</string>
-    <string name="report_hint_weaknesses">Onde foram vulneráveis?</string>
-    <string name="report_hint_best_players">Quem se destacou? Números ou nomes</string>
-    <string name="report_hint_additional_info">Algo a lembrar para a próxima vez</string>
     <string name="report_all_rated">Todos os jogadores avaliados</string>
     <string name="report_rate_next">Avaliar seguinte</string>
     <string name="report_rate">Avaliar</string>

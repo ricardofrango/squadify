@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,7 +43,9 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -97,50 +100,117 @@ fun HomeTab(
 
         StatGrid(home)
 
-        // ---- Next up ----
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            SectionTitle(stringResource(Res.string.label_home_next_up))
-            if (home.nextUp.isEmpty()) {
-                Text(
-                    stringResource(Res.string.msg_home_no_next_up),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = DeepCarbon.copy(alpha = 0.5f)
-                )
+        // Landscape: Next up and Needs you side by side (27d); portrait: stacked.
+        BoxWithConstraints {
+            val wide = maxWidth > 600.dp
+            if (wide) {
+                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    NextUpSection(home, onNavigateToMatch, Modifier.weight(1f))
+                    NeedsYouSection(home, onNavigateToAgeGroup, onNavigateToMatch, Modifier.weight(1f))
+                }
             } else {
-                home.nextUp.forEach { row -> NextUpRow(row, onClick = { onNavigateToMatch(row.matchId) }) }
+                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                    NextUpSection(home, onNavigateToMatch)
+                    NeedsYouSection(home, onNavigateToAgeGroup, onNavigateToMatch)
+                }
             }
         }
+    }
+}
 
-        // ---- Needs you ----
-        if (home.alerts.isNotEmpty()) {
-            // Design 27a: time-bound items first (call-ups), then pending reports oldest first (the
-            // server already sends them in that order), then configuration gaps.
-            val callUps = home.alerts.filter { it.type == ClubHomeAlertType.CALLUPS_UNSENT }
-            val reports = home.alerts.filter { it.type == ClubHomeAlertType.MATCH_REPORT_PENDING }
-            val gaps = home.alerts.filter { it.type == ClubHomeAlertType.AGE_GROUP_NEEDS_COACH }
-            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionTitle(stringResource(Res.string.label_home_needs_you))
-                callUps.forEach { AlertRow(it, dotColor = PitchGreen, onClick = null) }
-                // 1-2 pending reports are normal rows; from 3 up they collapse into one group (27b).
-                if (reports.size >= REPORT_GROUP_THRESHOLD) {
-                    PendingReportsGroup(reports, today, onNavigateToMatch)
-                } else {
-                    reports.forEach { alert ->
-                        AlertRow(
-                            alert,
-                            dotColor = reportDotColor(alert, today),
-                            subtitle = reportPlayedLine(alert, today),
-                            onClick = alert.matchId?.let { id -> { onNavigateToMatch(id) } }
+@Composable
+private fun NextUpSection(home: ClubHome, onNavigateToMatch: (String) -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SectionTitle(stringResource(Res.string.label_home_next_up))
+        if (home.nextUp.isEmpty()) {
+            Text(
+                stringResource(Res.string.msg_home_no_next_up),
+                style = MaterialTheme.typography.bodyMedium,
+                color = DeepCarbon.copy(alpha = 0.5f)
+            )
+        } else {
+            home.nextUp.forEach { row -> NextUpRow(row, onClick = { onNavigateToMatch(row.matchId) }) }
+        }
+    }
+}
+
+/**
+ * "Needs you" (design 27): one card, rows split by hairlines. Time-bound items first (call-ups), then
+ * pending reports oldest first (the server already sends them in that order), then configuration
+ * gaps. 1-2 pending reports are normal rows; from 3 up they collapse into one expandable group row.
+ */
+@Composable
+private fun NeedsYouSection(
+    home: ClubHome,
+    onNavigateToAgeGroup: (String) -> Unit,
+    onNavigateToMatch: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (home.alerts.isEmpty()) return
+    val callUps = home.alerts.filter { it.type == ClubHomeAlertType.CALLUPS_UNSENT }
+    val reports = home.alerts.filter { it.type == ClubHomeAlertType.MATCH_REPORT_PENDING }
+    val gaps = home.alerts.filter { it.type == ClubHomeAlertType.AGE_GROUP_NEEDS_COACH }
+    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    var expanded by rememberSaveable { mutableStateOf(false) }
+
+    // Each entry is one row of the card; dividers go between them.
+    val rows = buildList<@Composable () -> Unit> {
+        callUps.forEach { alert -> add { AlertRowContent(alertText(alert), null, PitchGreen, null, null) } }
+        if (reports.size >= REPORT_GROUP_THRESHOLD) {
+            val oldest = reports.mapNotNull { it.date }.minOrNull()
+            val anyOverdue = reports.any { reportDotColor(it, today) == Amber }
+            add {
+                AlertRowContent(
+                    title = stringResource(Res.string.msg_home_match_reports_pending, reports.size),
+                    subtitle = oldest?.let { stringResource(Res.string.home_reports_oldest, shortDateLabel(it), daysAgoLabel(it, today)) },
+                    dotColor = if (anyOverdue) Amber else PitchGreen,
+                    trailingIcon = if (expanded) Res.drawable.ic_expand_less else Res.drawable.ic_expand_more,
+                    onClick = { expanded = !expanded }
+                )
+            }
+            if (expanded) reports.forEach { alert ->
+                add {
+                    // Child rows are indented on a faint grey so they read as belonging to the group.
+                    Box(Modifier.background(Color(0xFFFAFAFA)).padding(start = 24.dp)) {
+                        AlertRowContent(
+                            alertText(alert), reportPlayedLine(alert, today), reportDotColor(alert, today),
+                            Res.drawable.ic_chevron_right, alert.matchId?.let { id -> { onNavigateToMatch(id) } }
                         )
                     }
                 }
-                gaps.forEach { alert ->
-                    AlertRow(
-                        alert,
-                        dotColor = DeepCarbon.copy(alpha = 0.25f),
-                        onClick = alert.ageGroupId?.let { id -> { onNavigateToAgeGroup(id) } }
+            }
+        } else {
+            reports.forEach { alert ->
+                add {
+                    AlertRowContent(
+                        alertText(alert), reportPlayedLine(alert, today), reportDotColor(alert, today),
+                        Res.drawable.ic_chevron_right, alert.matchId?.let { id -> { onNavigateToMatch(id) } }
                     )
+                }
+            }
+        }
+        gaps.forEach { alert ->
+            add {
+                AlertRowContent(
+                    alertText(alert), null, DeepCarbon.copy(alpha = 0.25f),
+                    Res.drawable.ic_chevron_right, alert.ageGroupId?.let { id -> { onNavigateToAgeGroup(id) } }
+                )
+            }
+        }
+    }
+
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SectionTitle(stringResource(Res.string.label_home_needs_you))
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = CardShape,
+            color = Color.White,
+            border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
+        ) {
+            Column {
+                rows.forEachIndexed { index, row ->
+                    if (index > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(CarbonGray.copy(alpha = 0.06f)))
+                    row()
                 }
             }
         }
@@ -257,48 +327,6 @@ private fun reportPlayedLine(alert: ClubHomeAlert, today: LocalDate): String? {
     return stringResource(Res.string.home_report_played, shortDateLabel(date), daysAgoLabel(date, today))
 }
 
-/**
- * Three or more pending reports: one row with the count and the oldest date, collapsed by default;
- * tapping expands the list inline, oldest first, each child opening its match (27b/27d). The
- * expanded state survives recomposition and rotation for this visit.
- */
-@Composable
-private fun PendingReportsGroup(reports: List<ClubHomeAlert>, today: LocalDate, onNavigateToMatch: (String) -> Unit) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    val oldest = reports.mapNotNull { it.date }.minOrNull()
-    val anyOverdue = reports.any { reportDotColor(it, today) == Amber }
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = CardShape,
-        color = Color.White,
-        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
-    ) {
-        Column {
-            AlertRowContent(
-                title = stringResource(Res.string.msg_home_match_reports_pending, reports.size),
-                subtitle = oldest?.let { stringResource(Res.string.home_reports_oldest, shortDateLabel(it), daysAgoLabel(it, today)) },
-                dotColor = if (anyOverdue) Amber else PitchGreen,
-                trailing = if (expanded) " ˄" else " ˅",
-                onClick = { expanded = !expanded }
-            )
-            if (expanded) {
-                reports.forEach { alert ->
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(CarbonGray.copy(alpha = 0.06f)))
-                    Box(Modifier.background(Color(0xFFFAFAFA)).padding(start = 16.dp)) {
-                        AlertRowContent(
-                            title = alertText(alert),
-                            subtitle = reportPlayedLine(alert, today),
-                            dotColor = reportDotColor(alert, today),
-                            trailing = " ›",
-                            onClick = alert.matchId?.let { id -> { onNavigateToMatch(id) } }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
 @Composable
 private fun alertText(alert: ClubHomeAlert): String = when (alert.type) {
     ClubHomeAlertType.AGE_GROUP_NEEDS_COACH ->
@@ -314,33 +342,27 @@ private fun alertText(alert: ClubHomeAlert): String = when (alert.type) {
 }
 
 @Composable
-private fun AlertRow(alert: ClubHomeAlert, dotColor: Color, subtitle: String? = null, onClick: (() -> Unit)?) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = CardShape,
-        color = Color.White,
-        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
-    ) {
-        AlertRowContent(alertText(alert), subtitle, dotColor, trailing = onClick?.let { " ›" }, onClick = onClick)
-    }
-}
-
-@Composable
-private fun AlertRowContent(title: String, subtitle: String?, dotColor: Color, trailing: String?, onClick: (() -> Unit)?) {
+private fun AlertRowContent(
+    title: String,
+    subtitle: String?,
+    dotColor: Color,
+    trailingIcon: DrawableResource?,
+    onClick: (() -> Unit)?
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .then(
-                if (onClick != null) Modifier.clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onClick
-                ) else Modifier
-            )
-            .padding(horizontal = 14.dp, vertical = 14.dp),
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(start = 16.dp, end = 14.dp, top = 14.dp, bottom = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(Modifier.align(if (subtitle != null) Alignment.Top else Alignment.CenterVertically).padding(top = if (subtitle != null) 6.dp else 0.dp).size(8.dp).background(dotColor, CircleShape))
+        Box(
+            Modifier
+                .align(if (subtitle != null) Alignment.Top else Alignment.CenterVertically)
+                .padding(top = if (subtitle != null) 6.dp else 0.dp)
+                .size(8.dp)
+                .background(dotColor, CircleShape)
+        )
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             // The title clamps at two lines; the date line never truncates (27c).
@@ -353,8 +375,9 @@ private fun AlertRowContent(title: String, subtitle: String?, dotColor: Color, t
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.62f))
             }
         }
-        if (trailing != null) {
-            Text(trailing, color = DeepCarbon.copy(alpha = 0.35f), fontWeight = FontWeight.Bold)
+        if (trailingIcon != null) {
+            Spacer(Modifier.width(8.dp))
+            Icon(painterResource(trailingIcon), contentDescription = null, tint = DeepCarbon.copy(alpha = 0.4f), modifier = Modifier.size(22.dp))
         }
     }
 }

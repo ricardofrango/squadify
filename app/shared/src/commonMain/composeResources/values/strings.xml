@@ -546,15 +546,8 @@
     <string name="report_field_weaknesses">Weaknesses</string>
     <string name="report_field_best_players">Best players</string>
     <string name="report_field_additional_info">Additional information</string>
+    <string name="report_hint_optional">Optional</string>
     <string name="report_hint_tactic">e.g. 4-4-2</string>
-    <string name="report_hint_positive">What worked? Pressing, set pieces, shape…</string>
-    <string name="report_hint_less_positive">What didn’t go to plan?</string>
-    <string name="report_hint_to_improve">What to work on next?</string>
-    <string name="report_hint_team_notes">Anything else about the team</string>
-    <string name="report_hint_strengths">What did they do well?</string>
-    <string name="report_hint_weaknesses">Where were they vulnerable?</string>
-    <string name="report_hint_best_players">Who stood out? Numbers or names</string>
-    <string name="report_hint_additional_info">Anything worth remembering for next time</string>
     <string name="report_all_rated">All players rated</string>
     <string name="report_rate_next">Rate next</string>
     <string name="report_rate">Rate</string>
@@ -574,7 +567,7 @@
     <string name="report_saving">Saving…</string>
     <string name="report_completing">Completing…</string>
     <string name="report_complete_dialog_title">Complete the report?</string>
-    <string name="report_complete_dialog_body">The report leaves your to-do list and you can keep editing it afterwards.</string>
+    <string name="report_complete_dialog_body">The report leaves your to-do list, and you can keep editing it afterwards.</string>
     <string name="report_keep_editing">Keep editing</string>
     <string name="report_complete_confirm">Complete</string>
     <string name="report_leave_dialog_title">Save your changes?</string>
@@ -630,8 +623,8 @@
         <item quantity="other">%1$d players unrated</item>
     </plurals>
     <plurals name="report_complete_dialog_body_unrated">
-        <item quantity="one">%1$d player is still unrated. The report leaves your to-do list and you can keep editing it afterwards.</item>
-        <item quantity="other">%1$d players are still unrated. The report leaves your to-do list and you can keep editing it afterwards.</item>
+        <item quantity="one">%1$d player is still unrated. The report leaves your to-do list, and you can keep editing it afterwards.</item>
+        <item quantity="other">%1$d players are still unrated. The report leaves your to-do list, and you can keep editing it afterwards.</item>
     </plurals>
     <plurals name="home_days_ago">
         <item quantity="one">%1$d day ago</item>

@@ -6,6 +6,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -58,16 +60,19 @@ import squadify.app.shared.generated.resources.*
 
 /** Tabs sit on the dark header: Team · Opponent · Players (the last carries an amber unrated count). */
 @Composable
-internal fun EditorTabs(state: MatchReportUiState.Idle, onTabSelected: (ReportTab) -> Unit) {
+internal fun EditorTabs(state: MatchReportUiState.Idle, onTabSelected: (ReportTab) -> Unit, compact: Boolean = false) {
     val tabs = buildList {
         add(ReportTab.TEAM); add(ReportTab.OPPONENT)
         if (state.hasStats) add(ReportTab.PLAYERS) // removed, not greyed, when there are no stats (26d)
     }
-    Row(Modifier.fillMaxWidth().background(CarbonGray).padding(horizontal = 8.dp)) {
+    // Portrait: three equal tabs under the title. Landscape (24c): compact tabs in the header row.
+    Row(if (compact) Modifier else Modifier.fillMaxWidth().background(CarbonGray)) {
         tabs.forEach { tab ->
             val selected = tab == state.tab
             Column(
-                Modifier.weight(1f).clickable { onTabSelected(tab) }.padding(top = 10.dp),
+                (if (compact) Modifier.width(IntrinsicSize.Max) else Modifier.weight(1f))
+                    .clickable { onTabSelected(tab) }
+                    .padding(top = 10.dp, start = if (compact) 12.dp else 0.dp, end = if (compact) 12.dp else 0.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -89,7 +94,7 @@ internal fun EditorTabs(state: MatchReportUiState.Idle, onTabSelected: (ReportTa
                     }
                 }
                 Spacer(Modifier.height(10.dp))
-                Box(Modifier.fillMaxWidth(0.7f).height(3.dp).background(if (selected) PitchGreen else Color.Transparent, RoundedCornerShape(2.dp)))
+                Box(Modifier.fillMaxWidth().height(3.dp).background(if (selected) PitchGreen else Color.Transparent))
             }
         }
     }
@@ -112,17 +117,17 @@ private data class FieldSpec(
 
 private val TeamFields = listOf(
     FieldSpec(Res.string.report_field_tactic, Res.string.report_hint_tactic, true, { it.tactic }, { f, v -> f.copy(tactic = v) }),
-    FieldSpec(Res.string.report_field_positive, Res.string.report_hint_positive, false, { it.positiveAspects }, { f, v -> f.copy(positiveAspects = v) }),
-    FieldSpec(Res.string.report_field_less_positive, Res.string.report_hint_less_positive, false, { it.lessPositiveAspects }, { f, v -> f.copy(lessPositiveAspects = v) }),
-    FieldSpec(Res.string.report_field_to_improve, Res.string.report_hint_to_improve, false, { it.aspectsToImprove }, { f, v -> f.copy(aspectsToImprove = v) }),
-    FieldSpec(Res.string.report_field_team_notes, Res.string.report_hint_team_notes, false, { it.teamNotes }, { f, v -> f.copy(teamNotes = v) })
+    FieldSpec(Res.string.report_field_positive, Res.string.report_hint_optional, false, { it.positiveAspects }, { f, v -> f.copy(positiveAspects = v) }),
+    FieldSpec(Res.string.report_field_less_positive, Res.string.report_hint_optional, false, { it.lessPositiveAspects }, { f, v -> f.copy(lessPositiveAspects = v) }),
+    FieldSpec(Res.string.report_field_to_improve, Res.string.report_hint_optional, false, { it.aspectsToImprove }, { f, v -> f.copy(aspectsToImprove = v) }),
+    FieldSpec(Res.string.report_field_team_notes, Res.string.report_hint_optional, false, { it.teamNotes }, { f, v -> f.copy(teamNotes = v) })
 )
 
 private val OpponentFields = listOf(
-    FieldSpec(Res.string.report_field_strengths, Res.string.report_hint_strengths, false, { it.opponentStrengths }, { f, v -> f.copy(opponentStrengths = v) }),
-    FieldSpec(Res.string.report_field_weaknesses, Res.string.report_hint_weaknesses, false, { it.opponentWeaknesses }, { f, v -> f.copy(opponentWeaknesses = v) }),
-    FieldSpec(Res.string.report_field_best_players, Res.string.report_hint_best_players, false, { it.opponentBestPlayers }, { f, v -> f.copy(opponentBestPlayers = v) }),
-    FieldSpec(Res.string.report_field_additional_info, Res.string.report_hint_additional_info, false, { it.opponentAdditionalInfo }, { f, v -> f.copy(opponentAdditionalInfo = v) })
+    FieldSpec(Res.string.report_field_strengths, Res.string.report_hint_optional, false, { it.opponentStrengths }, { f, v -> f.copy(opponentStrengths = v) }),
+    FieldSpec(Res.string.report_field_weaknesses, Res.string.report_hint_optional, false, { it.opponentWeaknesses }, { f, v -> f.copy(opponentWeaknesses = v) }),
+    FieldSpec(Res.string.report_field_best_players, Res.string.report_hint_optional, false, { it.opponentBestPlayers }, { f, v -> f.copy(opponentBestPlayers = v) }),
+    FieldSpec(Res.string.report_field_additional_info, Res.string.report_hint_optional, false, { it.opponentAdditionalInfo }, { f, v -> f.copy(opponentAdditionalInfo = v) })
 )
 
 @Composable
@@ -188,7 +193,8 @@ private fun FieldsTab(
                                     spec = spec,
                                     value = spec.get(fields),
                                     onValueChange = { v -> onFieldsChanged { spec.set(it, v) } },
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier.weight(1f),
+                                    narrow = spec.singleLine && !wide
                                 )
                             }
                             if (row.size == 1 && wide) Spacer(Modifier.weight(1f))
@@ -201,14 +207,16 @@ private fun FieldsTab(
 }
 
 @Composable
-private fun ReportTextField(spec: FieldSpec, value: String, onValueChange: (String) -> Unit, modifier: Modifier) {
+private fun ReportTextField(spec: FieldSpec, value: String, onValueChange: (String) -> Unit, modifier: Modifier, narrow: Boolean = false) {
     Column(modifier) {
         Text(stringResource(spec.label), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = SecondaryText)
         Spacer(Modifier.height(6.dp))
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
+            // The tactic is a short value ("4-3-3"): a narrow field in portrait (24a).
+            modifier = if (narrow) Modifier.widthIn(max = 220.dp).fillMaxWidth() else Modifier.fillMaxWidth(),
+            textStyle = if (narrow) MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.bodyLarge,
             placeholder = { Text(stringResource(spec.hint), color = DeepCarbon.copy(alpha = 0.45f)) },
             singleLine = spec.singleLine,
             minLines = if (spec.singleLine) 1 else 3,
@@ -345,7 +353,7 @@ private fun PlayerRatingRow(
 ) {
     Column(Modifier.background(if (open) PitchGreen.copy(alpha = 0.05f) else Color.White).padding(horizontal = 14.dp, vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            PlayerStatsHeader(row, Modifier.weight(1f))
+            PlayerStatsHeader(row, Modifier.weight(1f), inline = wide)
             if (!wide) {
                 Spacer(Modifier.width(8.dp))
                 RatingButton(rating, onToggle)
@@ -383,9 +391,10 @@ private fun PlayerRatingRow(
 /** Unrated: a dashed green "Rate" pill. Rated: the value on a dark pill. */
 @Composable
 private fun RatingButton(rating: Int?, onClick: () -> Unit) {
+    // Both states are the same 56dp square, so rows don't shift when a rating is picked (24a).
     if (rating == null) {
         Box(
-            Modifier.heightIn(min = 36.dp).clickable(onClick = onClick),
+            Modifier.size(56.dp).clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
             Canvas(Modifier.matchParentSize()) {
@@ -397,20 +406,20 @@ private fun RatingButton(rating: Int?, onClick: () -> Unit) {
             }
             Text(
                 stringResource(Res.string.report_rate),
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                color = PitchGreen
+                color = PitchGreen,
+                textAlign = TextAlign.Center
             )
         }
     } else {
-        Surface(onClick = onClick, shape = RoundedCornerShape(12.dp), color = CarbonGray) {
-            Text(
-                rating.toString(),
-                modifier = Modifier.width(44.dp).padding(vertical = 8.dp),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
-                color = Color.White
-            )
+        Surface(onClick = onClick, modifier = Modifier.size(56.dp), shape = RoundedCornerShape(14.dp), color = CarbonGray) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    rating.toString(),
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
+                    color = Color.White
+                )
+            }
         }
     }
 }
@@ -480,6 +489,7 @@ internal fun EditorActions(state: MatchReportUiState.Idle, wide: Boolean, onSave
         }
     }
     if (wide) {
+        Box(Modifier.fillMaxHeight().width(1.dp).background(CarbonGray.copy(alpha = 0.08f)))
         Column(
             Modifier.fillMaxHeight().width(240.dp).background(Color.White).navigationBarsPadding().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)

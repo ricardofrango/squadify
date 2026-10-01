@@ -279,76 +279,88 @@ private fun MatchBody(
 
     val sortedCallUps = details.callUps.sortedWith(callUpComparator(state.sort))
 
-    LazyColumn(
-        modifier = modifier,
-        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        state.transientError?.let {
-            item { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
-        }
-
-        // ---- Match report: the first card on a finished match, for staff only (design 23) ----
-        details.report?.let { report ->
-            item { MatchReportCard(report, onOpenReport) }
-        }
-
-        // ---- Details ----
-        item {
-            SectionHeader(
-                title = stringResource(Res.string.label_details_section),
-                trailing = if (canEditMatch) stringResource(Res.string.label_edit) to { showEdit = true } else null
-            )
-        }
-        item { DetailsCard(details) }
-
-        // ---- Call-up ----
-        item {
-            SectionHeader(
-                title = stringResource(Res.string.label_call_up),
-                pill = "${counts.calledUp}/${counts.total}"
-            )
-        }
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
-                SortChip(stringResource(Res.string.label_position_field), state.sort == CallUpSort.POSITION) { onSortSelected(CallUpSort.POSITION) }
-                SortChip(stringResource(Res.string.label_sort_name), state.sort == CallUpSort.NAME) { onSortSelected(CallUpSort.NAME) }
-                if (canManageCallUps) {
-                    Spacer(Modifier.weight(1f))
-                    // TODO: reminders aren't wired yet -- kept inert per the design.
-                    Text(stringResource(Res.string.label_remind), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = PitchGreen.copy(alpha = 0.5f))
+    // Landscape with a report card: the card gets its own fixed 320dp left column and stays in view
+    // while the rest scrolls beside it -- it's the pending task on a finished match (23c).
+    BoxWithConstraints(modifier) {
+        val sideCard = details.report != null && maxWidth > maxHeight && maxWidth >= 600.dp
+        Row(Modifier.fillMaxSize()) {
+            if (sideCard) {
+                Box(Modifier.width(344.dp).padding(start = 24.dp, top = 20.dp)) {
+                    MatchReportCard(details.report!!, onOpenReport)
                 }
             }
-        }
-        if (canManageCallUps && counts.calledUp < RECOMMENDED_SQUAD) {
-            item {
-                Text(
-                    stringResource(Res.string.msg_squad_hint, counts.calledUp, RECOMMENDED_SQUAD),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        }
-        if (details.callUps.isEmpty()) {
-            item { Text(stringResource(Res.string.msg_no_callups), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
-        } else {
-            items(sortedCallUps, key = { it.callUp.id }) { cu ->
-                CallUpRow(cu, onRemove = if (canManageCallUps) { { onRemoveFromCallUp(cu) } } else null)
-            }
-        }
-
-        // ---- Available ----
-        if (canManageCallUps && details.poolPlayers.isNotEmpty()) {
-            item {
-                Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 12.dp)) {
-                    Text(stringResource(Res.string.label_available), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
-                    Spacer(Modifier.width(6.dp))
-                    Text(stringResource(Res.string.label_available_from_pool, details.ageGroup.name), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                state.transientError?.let {
+                    item { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
                 }
-            }
-            items(details.poolPlayers.sortedWith(compareBy({ it.lastName.lowercase() }, { it.firstName.lowercase() })), key = { it.id }) { p ->
-                PoolRow(p, onAdd = { onAddToCallUp(p) })
+
+                // ---- Match report: the first card on a finished match, for staff only (design 23) ----
+                if (!sideCard) details.report?.let { report ->
+                    item { MatchReportCard(report, onOpenReport) }
+                }
+
+                // ---- Details ----
+                item {
+                    SectionHeader(
+                        title = stringResource(Res.string.label_details_section),
+                        trailing = if (canEditMatch) stringResource(Res.string.label_edit) to { showEdit = true } else null
+                    )
+                }
+                item { DetailsCard(details) }
+
+                // ---- Call-up ----
+                item {
+                    SectionHeader(
+                        title = stringResource(Res.string.label_call_up),
+                        pill = "${counts.calledUp}/${counts.total}"
+                    )
+                }
+                item {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
+                        SortChip(stringResource(Res.string.label_position_field), state.sort == CallUpSort.POSITION) { onSortSelected(CallUpSort.POSITION) }
+                        SortChip(stringResource(Res.string.label_sort_name), state.sort == CallUpSort.NAME) { onSortSelected(CallUpSort.NAME) }
+                        if (canManageCallUps) {
+                            Spacer(Modifier.weight(1f))
+                            // TODO: reminders aren't wired yet -- kept inert per the design.
+                            Text(stringResource(Res.string.label_remind), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = PitchGreen.copy(alpha = 0.5f))
+                        }
+                    }
+                }
+                if (canManageCallUps && counts.calledUp < RECOMMENDED_SQUAD) {
+                    item {
+                        Text(
+                            stringResource(Res.string.msg_squad_hint, counts.calledUp, RECOMMENDED_SQUAD),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+                if (details.callUps.isEmpty()) {
+                    item { Text(stringResource(Res.string.msg_no_callups), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
+                } else {
+                    items(sortedCallUps, key = { it.callUp.id }) { cu ->
+                        CallUpRow(cu, onRemove = if (canManageCallUps) { { onRemoveFromCallUp(cu) } } else null)
+                    }
+                }
+
+                // ---- Available ----
+                if (canManageCallUps && details.poolPlayers.isNotEmpty()) {
+                    item {
+                        Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 12.dp)) {
+                            Text(stringResource(Res.string.label_available), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(Res.string.label_available_from_pool, details.ageGroup.name), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
+                        }
+                    }
+                    items(details.poolPlayers.sortedWith(compareBy({ it.lastName.lowercase() }, { it.firstName.lowercase() })), key = { it.id }) { p ->
+                        PoolRow(p, onAdd = { onAddToCallUp(p) })
+                    }
+                }
             }
         }
     }

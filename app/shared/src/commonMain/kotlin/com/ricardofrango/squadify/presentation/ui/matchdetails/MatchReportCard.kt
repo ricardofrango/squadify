@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -44,6 +45,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.*
 
@@ -70,14 +72,22 @@ internal fun MatchReportCard(report: MatchReportSummary, onOpenReport: (edit: Bo
         border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f))
     ) {
         Column(Modifier.padding(16.dp)) {
-            // Wraps rather than truncates: a long title or a large system font drops the badge below.
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    stringResource(Res.string.report_title),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = DeepCarbon,
-                    modifier = Modifier.align(Alignment.CenterVertically)
-                )
+            // Icon + title on the left, badge on the right. Wraps rather than truncates: a long title
+            // or a large system font drops the badge onto its own line (23b).
+            FlowRow(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Row(Modifier.align(Alignment.CenterVertically), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(painterResource(Res.drawable.ic_document), contentDescription = null, tint = DeepCarbon, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        stringResource(Res.string.report_title),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = DeepCarbon
+                    )
+                }
                 StatusBadge(completed)
             }
             Spacer(Modifier.height(6.dp))
@@ -86,15 +96,20 @@ internal fun MatchReportCard(report: MatchReportSummary, onOpenReport: (edit: Bo
             if (report.canEdit && !completed) {
                 Button(
                     onClick = { onOpenReport(true) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PitchGreen),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
                     shape = RoundedCornerShape(14.dp)
-                ) { Text(stringResource(Res.string.report_card_fill), fontWeight = FontWeight.Black) }
+                ) {
+                    Icon(painterResource(Res.drawable.ic_edit), contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(Res.string.report_card_fill), fontWeight = FontWeight.Black)
+                }
             } else {
                 OutlinedButton(
                     onClick = { onOpenReport(false) },
                     enabled = completed,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                     shape = RoundedCornerShape(14.dp),
                     border = BorderStroke(1.5.dp, CarbonGray.copy(alpha = if (completed) 0.2f else 0.09f))
                 ) {

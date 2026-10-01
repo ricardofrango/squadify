@@ -1,6 +1,22 @@
 package com.ricardofrango.squadify.presentation.ui.matchreport
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,7 +33,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -28,7 +43,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -168,7 +182,15 @@ private fun MatchReportContent(
         val wide = maxWidth > maxHeight && maxWidth >= 600.dp
         Scaffold(
             containerColor = WhiteSmoke,
-            snackbarHost = { SnackbarHost(snackbarHostState) },
+            snackbarHost = {
+                SnackbarHost(snackbarHostState) { data ->
+                    ReportSnackbar(
+                        message = data.visuals.message,
+                        actionLabel = data.visuals.actionLabel,
+                        onAction = { data.performAction() }
+                    )
+                }
+            },
             topBar = {
                 Column(Modifier.background(CarbonGray)) {
                     FMTopBar(
@@ -177,23 +199,24 @@ private fun MatchReportContent(
                         subtitle = idle?.let { subtitle(it.details) },
                         onNavigateBack = requestBack,
                         actions = {
-                            if (idle != null) {
-                                StatusChip(idle)
-                                if (!idle.editing && idle.details.canEdit) {
-                                    Text(
-                                        stringResource(Res.string.label_edit),
-                                        modifier = Modifier.clickable(onClick = onStartEditing).padding(horizontal = 12.dp, vertical = 8.dp),
-                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                                        color = PitchGreenLight
-                                    )
-                                } else {
+                            when {
+                                idle == null -> Unit
+                                // Landscape editor: the tabs move into the header row (24c).
+                                idle.editing && wide -> EditorTabs(idle, onTabSelected, compact = true)
+                                idle.editing -> {
+                                    EditorStatusChip(idle)
                                     Spacer(Modifier.width(12.dp))
                                 }
+                                idle.details.canEdit -> EditAction(onStartEditing)
                             }
                         }
                     )
                     if (idle != null) {
-                        if (idle.editing) EditorTabs(idle, onTabSelected) else ReadStatusLine(idle)
+                        if (idle.editing) {
+                            if (!wide) EditorTabs(idle, onTabSelected)
+                        } else {
+                            ReadStatusBand(idle)
+                        }
                     }
                 }
             },
@@ -207,6 +230,7 @@ private fun MatchReportContent(
             when (uiState) {
                 is MatchReportUiState.Loading -> LoadingSkeleton(modifier)
                 is MatchReportUiState.Error -> FullScreenMessage(
+                    icon = Res.drawable.ic_cloud_off,
                     title = stringResource(Res.string.msg_report_load_failed_title),
                     body = stringResource(Res.string.msg_report_load_failed_body),
                     buttonLabel = stringResource(Res.string.btn_retry),
@@ -215,6 +239,7 @@ private fun MatchReportContent(
                     modifier = modifier
                 )
                 is MatchReportUiState.NoPermission -> FullScreenMessage(
+                    icon = Res.drawable.ic_lock,
                     title = stringResource(Res.string.msg_report_no_permission_title),
                     body = stringResource(Res.string.msg_report_no_permission_body),
                     buttonLabel = stringResource(Res.string.report_back_to_match),
@@ -235,63 +260,41 @@ private fun MatchReportContent(
     }
 
     if (showCompleteDialog && idle != null) {
-        AlertDialog(
-            onDismissRequest = { showCompleteDialog = false },
-            containerColor = Color.White,
-            title = { Text(stringResource(Res.string.report_complete_dialog_title), fontWeight = FontWeight.Black, color = DeepCarbon) },
-            text = {
-                Text(
-                    if (idle.unratedCount > 0) pluralStringResource(Res.plurals.report_complete_dialog_body_unrated, idle.unratedCount, idle.unratedCount)
-                    else stringResource(Res.string.report_complete_dialog_body),
-                    color = SecondaryText
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = { showCompleteDialog = false; onSave(SaveAction.COMPLETE) },
-                    colors = ButtonDefaults.buttonColors(containerColor = PitchGreen),
-                    shape = RoundedCornerShape(14.dp)
-                ) { Text(stringResource(Res.string.report_complete_confirm), fontWeight = FontWeight.Black) }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { showCompleteDialog = false }, shape = RoundedCornerShape(14.dp)) {
-                    Text(stringResource(Res.string.report_keep_editing), color = CarbonGray, fontWeight = FontWeight.Bold)
+        ReportDialog(
+            title = stringResource(Res.string.report_complete_dialog_title),
+            body = if (idle.unratedCount > 0) pluralStringResource(Res.plurals.report_complete_dialog_body_unrated, idle.unratedCount, idle.unratedCount)
+            else stringResource(Res.string.report_complete_dialog_body),
+            onDismiss = { showCompleteDialog = false }
+        ) {
+            // Two equal buttons side by side (24a).
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                DialogSecondaryButton(stringResource(Res.string.report_keep_editing), Modifier.weight(1f)) { showCompleteDialog = false }
+                DialogPrimaryButton(stringResource(Res.string.report_complete_confirm), Modifier.weight(1f)) {
+                    showCompleteDialog = false; onSave(SaveAction.COMPLETE)
                 }
             }
-        )
+        }
     }
 
     if (showLeaveDialog) {
-        AlertDialog(
-            onDismissRequest = { showLeaveDialog = false },
-            containerColor = Color.White,
-            title = { Text(stringResource(Res.string.report_leave_dialog_title), fontWeight = FontWeight.Black, color = DeepCarbon) },
-            text = { Text(stringResource(Res.string.report_leave_dialog_body), color = SecondaryText) },
-            // Three choices, stacked: Save draft (primary) / Discard / Keep editing.
-            confirmButton = {
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        onClick = { showLeaveDialog = false; leaveAfterSave = true; onSave(SaveAction.DRAFT) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = PitchGreen),
-                        shape = RoundedCornerShape(14.dp)
-                    ) { Text(stringResource(Res.string.report_save_draft), fontWeight = FontWeight.Black) }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
-                            onClick = { showLeaveDialog = false; onNavigateBack() },
-                            modifier = Modifier.weight(1f),
-                            border = BorderStroke(1.5.dp, AlertRed.copy(alpha = 0.4f)),
-                            shape = RoundedCornerShape(14.dp)
-                        ) { Text(stringResource(Res.string.report_discard), color = AlertRed, fontWeight = FontWeight.Bold) }
-                        OutlinedButton(
-                            onClick = { showLeaveDialog = false },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(14.dp)
-                        ) { Text(stringResource(Res.string.report_keep_editing), color = CarbonGray, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) }
+        ReportDialog(
+            title = stringResource(Res.string.report_leave_dialog_title),
+            body = stringResource(Res.string.report_leave_dialog_body),
+            onDismiss = { showLeaveDialog = false }
+        ) {
+            // Save draft full width, then Discard / Keep editing side by side (24a).
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                DialogPrimaryButton(stringResource(Res.string.report_save_draft), Modifier.fillMaxWidth()) {
+                    showLeaveDialog = false; leaveAfterSave = true; onSave(SaveAction.DRAFT)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    DialogSecondaryButton(stringResource(Res.string.report_discard), Modifier.weight(1f), destructive = true) {
+                        showLeaveDialog = false; onNavigateBack()
                     }
+                    DialogSecondaryButton(stringResource(Res.string.report_keep_editing), Modifier.weight(1f)) { showLeaveDialog = false }
                 }
             }
-        )
+        }
     }
 }
 
@@ -307,15 +310,27 @@ private fun subtitle(details: MatchReportDetails): String {
     return stringResource(Res.string.report_subtitle, details.teamName, details.opponentName, shortDateLabel(date))
 }
 
-/** Editor: Not saved / Completed / New / Draft. Read view: Completed / Pending. */
+/** The editor's text-only chip: Not saved / Completed / New / Draft (24a, 26c, 26e). */
 @Composable
-private fun StatusChip(state: MatchReportUiState.Idle) {
+private fun EditorStatusChip(state: MatchReportUiState.Idle) {
     when {
-        state.editing && state.failedAction != null -> HeaderStatusChip(stringResource(Res.string.report_status_not_saved), ChipTone.RED)
-        state.isCompleted -> HeaderStatusChip(stringResource(Res.string.report_status_completed), ChipTone.GREEN)
-        !state.editing -> HeaderStatusChip(stringResource(Res.string.report_status_pending), ChipTone.AMBER)
-        state.isBrandNew -> HeaderStatusChip(stringResource(Res.string.report_status_new), ChipTone.AMBER)
-        else -> HeaderStatusChip(stringResource(Res.string.report_status_draft), ChipTone.AMBER)
+        state.failedAction != null -> HeaderStatusChip(stringResource(Res.string.report_status_not_saved), ChipTone.RED, showDot = false)
+        state.isCompleted -> HeaderStatusChip(stringResource(Res.string.report_status_completed), ChipTone.GREEN, showDot = false)
+        state.isBrandNew -> HeaderStatusChip(stringResource(Res.string.report_status_new), ChipTone.AMBER, showDot = false)
+        else -> HeaderStatusChip(stringResource(Res.string.report_status_draft), ChipTone.AMBER, showDot = false)
+    }
+}
+
+/** Pencil + "Edit" in the read view's top bar, for whoever can edit (25a). */
+@Composable
+private fun EditAction(onClick: () -> Unit) {
+    Row(
+        Modifier.clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(painterResource(Res.drawable.ic_edit), contentDescription = null, tint = PitchGreenLight, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(stringResource(Res.string.label_edit), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = PitchGreenLight)
     }
 }
 
@@ -334,33 +349,127 @@ internal fun reportStatusLine(report: MatchReport?, updatedByName: String?, toda
     }
 }
 
+/** Read view: the Completed/Pending chip and "Last updated ..." on one row under the title (25a). */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ReadStatusLine(state: MatchReportUiState.Idle) {
+private fun ReadStatusBand(state: MatchReportUiState.Idle) {
     val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-    Text(
-        reportStatusLine(state.details.report, state.details.updatedByName, today),
-        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
-        style = MaterialTheme.typography.bodySmall,
-        color = Color.White.copy(alpha = 0.72f)
-    )
+    FlowRow(
+        Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        if (state.isCompleted) HeaderStatusChip(stringResource(Res.string.report_status_completed), ChipTone.GREEN)
+        else HeaderStatusChip(stringResource(Res.string.report_status_pending), ChipTone.AMBER)
+        // Wraps to a second line rather than truncating when it's long (25b).
+        Text(
+            reportStatusLine(state.details.report, state.details.updatedByName, today),
+            modifier = Modifier.align(Alignment.CenterVertically),
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White.copy(alpha = 0.72f)
+        )
+    }
 }
 
-/** Skeleton of the report while it loads (26a); only the content pulses, the header is real. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReportDialog(title: String, body: String, onDismiss: () -> Unit, buttons: @Composable () -> Unit) {
+    BasicAlertDialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(20.dp), color = Color.White) {
+            Column(Modifier.padding(24.dp)) {
+                Text(title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black), color = DeepCarbon)
+                Spacer(Modifier.height(10.dp))
+                Text(body, style = MaterialTheme.typography.bodyMedium, color = SecondaryText)
+                Spacer(Modifier.height(20.dp))
+                buttons()
+            }
+        }
+    }
+}
+
+@Composable
+private fun DialogPrimaryButton(label: String, modifier: Modifier, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 52.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White),
+        shape = RoundedCornerShape(14.dp)
+    ) { Text(label, fontWeight = FontWeight.Black, textAlign = TextAlign.Center) }
+}
+
+@Composable
+private fun DialogSecondaryButton(label: String, modifier: Modifier, destructive: Boolean = false, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 52.dp),
+        border = BorderStroke(1.5.dp, if (destructive) AlertRed.copy(alpha = 0.4f) else CarbonGray.copy(alpha = 0.2f)),
+        shape = RoundedCornerShape(14.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+    ) {
+        Text(label, color = if (destructive) AlertRed else CarbonGray, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+    }
+}
+
+/** Dark snackbar: a check for confirmations (24e toast), a green Retry for a failed save (26e). */
+@Composable
+private fun ReportSnackbar(message: String, actionLabel: String?, onAction: () -> Unit) {
+    Surface(Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth(), shape = RoundedCornerShape(14.dp), color = CarbonGray) {
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (actionLabel == null) {
+                Icon(painterResource(Res.drawable.ic_check), contentDescription = null, tint = PitchGreenLight, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(12.dp))
+            }
+            Text(message, style = MaterialTheme.typography.bodyMedium, color = Color.White, modifier = Modifier.weight(1f))
+            if (actionLabel != null) {
+                Text(
+                    actionLabel,
+                    modifier = Modifier.clickable(onClick = onAction).padding(start = 12.dp),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = PitchGreenLight
+                )
+            }
+        }
+    }
+}
+
+/** Skeleton of the report while it loads (26a): text lines, then player rows with a square rating. Pulses. */
 @Composable
 private fun LoadingSkeleton(modifier: Modifier) {
     val description = stringResource(Res.string.report_loading)
+    val pulse by rememberInfiniteTransition().animateFloat(
+        initialValue = 0.05f,
+        targetValue = 0.12f,
+        animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse)
+    )
+    val shade = CarbonGray.copy(alpha = pulse)
+    @Composable
+    fun Bar(width: Float, height: Int = 10) =
+        Box(Modifier.fillMaxWidth(width).height(height.dp).background(shade, RoundedCornerShape(5.dp)))
     Column(
         modifier.background(WhiteSmoke).padding(16.dp).semantics { contentDescription = description },
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        repeat(2) {
-            ReportCard {
-                Box(Modifier.fillMaxWidth(0.35f).height(12.dp).background(CarbonGray.copy(alpha = 0.09f), RoundedCornerShape(5.dp)))
-                repeat(3) {
-                    Spacer(Modifier.height(14.dp))
-                    Box(Modifier.fillMaxWidth(0.3f).height(10.dp).background(CarbonGray.copy(alpha = 0.09f), RoundedCornerShape(5.dp)))
-                    Spacer(Modifier.height(8.dp))
-                    Box(Modifier.fillMaxWidth().height(40.dp).background(CarbonGray.copy(alpha = 0.09f), RoundedCornerShape(12.dp)))
+        ReportCard {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) { Bar(0.4f, 12) }
+                Box(Modifier.size(width = 90.dp, height = 38.dp).background(shade, RoundedCornerShape(12.dp)))
+            }
+            repeat(2) {
+                Spacer(Modifier.height(20.dp)); Bar(0.4f)
+                Spacer(Modifier.height(10.dp)); Bar(1f); Spacer(Modifier.height(8.dp)); Bar(0.8f)
+            }
+        }
+        Surface(Modifier.fillMaxWidth(), shape = ReportCardShape, color = Color.White, border = ReportCardBorder) {
+            Column {
+                Column(Modifier.padding(16.dp)) { Bar(0.25f); Spacer(Modifier.height(8.dp)); Bar(0.4f) }
+                repeat(4) {
+                    HorizontalDivider(color = CarbonGray.copy(alpha = 0.06f))
+                    Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(width = 22.dp, height = 14.dp).background(shade, RoundedCornerShape(5.dp)))
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) { Bar(0.6f); Spacer(Modifier.height(8.dp)); Bar(0.35f) }
+                        Box(Modifier.size(52.dp).background(shade, RoundedCornerShape(14.dp)))
+                    }
                 }
             }
         }
@@ -370,6 +479,7 @@ private fun LoadingSkeleton(modifier: Modifier) {
 /** The app's full-screen empty-state pattern: icon in a grey circle, title, one line, a button (26b/26f). */
 @Composable
 private fun FullScreenMessage(
+    icon: DrawableResource,
     title: String,
     body: String,
     buttonLabel: String,
@@ -382,8 +492,8 @@ private fun FullScreenMessage(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Box(Modifier.size(64.dp).background(CarbonGray.copy(alpha = 0.06f), CircleShape), contentAlignment = Alignment.Center) {
-            Text("!", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black), color = SecondaryText)
+        Box(Modifier.size(84.dp).background(CarbonGray.copy(alpha = 0.06f), CircleShape), contentAlignment = Alignment.Center) {
+            Icon(painterResource(icon), contentDescription = null, tint = SecondaryText, modifier = Modifier.size(32.dp))
         }
         Spacer(Modifier.height(16.dp))
         Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, textAlign = TextAlign.Center)
@@ -391,7 +501,7 @@ private fun FullScreenMessage(
         Text(body, style = MaterialTheme.typography.bodyMedium, color = SecondaryText, textAlign = TextAlign.Center)
         Spacer(Modifier.height(20.dp))
         if (primary) {
-            Button(onClick = onClick, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen), shape = RoundedCornerShape(14.dp)) {
+            Button(onClick = onClick, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White), shape = RoundedCornerShape(14.dp)) {
                 Text(buttonLabel, fontWeight = FontWeight.Black)
             }
         } else {
