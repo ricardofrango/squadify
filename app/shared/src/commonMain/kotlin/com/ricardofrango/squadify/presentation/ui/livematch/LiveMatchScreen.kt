@@ -961,7 +961,7 @@ private fun PlayerActionSheet(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     squad.bench.forEach { row ->
-                        SheetAction("${row.player.shirtNumber ?: "-"} · ${row.player.firstName} ${row.player.lastName}", enabled = enabled) {
+                        SheetAction(pickerLabel(row.player), enabled = enabled) {
                             viewModel.onSubstitute(sheet.outgoingId, row.player.id, minute); onDismiss()
                         }
                     }
@@ -979,7 +979,7 @@ private fun PlayerActionSheet(
                         viewModel.onLogPlayerGoal(sheet.scorerId, assistPlayerId = null, minute = sheet.minute); onDismiss()
                     }
                     squad.onPitch.filter { it.player.id != sheet.scorerId }.forEach { row ->
-                        SheetAction("${row.player.shirtNumber ?: "-"} · ${row.player.firstName} ${row.player.lastName}", enabled = enabled) {
+                        SheetAction(pickerLabel(row.player), enabled = enabled) {
                             viewModel.onLogPlayerGoal(sheet.scorerId, assistPlayerId = row.player.id, minute = sheet.minute); onDismiss()
                         }
                     }
@@ -993,7 +993,7 @@ private fun PlayerActionSheet(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     squad.onPitch.forEach { row ->
-                        SheetAction("${row.player.shirtNumber ?: "-"} · ${row.player.firstName} ${row.player.lastName}", enabled = enabled) {
+                        SheetAction(pickerLabel(row.player), enabled = enabled) {
                             viewModel.onSubstitute(row.player.id, sheet.incomingId, minute); onDismiss()
                         }
                     }
@@ -1001,6 +1001,12 @@ private fun PlayerActionSheet(
             }
         }
     }
+}
+
+/** "10 · Tomás Bragança", or just the name when the player has no shirt number. */
+private fun pickerLabel(player: Player): String {
+    val name = "${player.firstName} ${player.lastName}"
+    return player.shirtNumber?.let { "$it · $name" } ?: name
 }
 
 @Composable
