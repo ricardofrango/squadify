@@ -214,6 +214,10 @@ object Matches : Table("matches") {
     // resume, whichever of kickoffAt/secondHalfStartedAt is currently driving the clock shifts forward
     // by the paused duration and this clears back to null (see Match.pausedAt's own doc comment).
     val pausedAt = timestamp("paused_at").nullable()
+    // Match-clock minutes at the end of the first half / at full time (see Match.firstHalfEndMinute /
+    // fullTimeMinute). Used to compute minutes played, including stoppage time.
+    val firstHalfEndMinute = integer("first_half_end_minute").nullable()
+    val fullTimeMinute = integer("full_time_minute").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -244,6 +248,54 @@ object MatchEvents : Table("match_events") {
     val opponentPlayerName = varchar("opponent_player_name", 255).nullable()
     val isOpponent = bool("is_opponent").default(false)
     val createdAt = timestamp("created_at")
+    // 1 or 2 -- the half the event happened in (see MatchEvent.period). Null for older events.
+    val period = integer("period").nullable()
+    // For an ASSIST, the GOAL it belongs to (see MatchEvent.relatedEventId). FK declared in V8.
+    val relatedEventId = uuid("related_event_id").nullable()
+
+    override val primaryKey = PrimaryKey(id)
+}
+
+// Per-player stats for a FINISHED match, computed once at full time (see MatchPlayerStats in
+// Models.kt). One row per called-up player; `rating` is set later by the coach's match report.
+object MatchPlayerStatsTable : Table("match_player_stats") {
+    val id = uuid("id")
+    val matchId = uuid("match_id").references(Matches.id)
+    val playerId = uuid("player_id").references(Players.id)
+    val started = bool("started")
+    val minutesPlayed = integer("minutes_played")
+    val goals = integer("goals").default(0)
+    val assists = integer("assists").default(0)
+    val ownGoals = integer("own_goals").default(0)
+    val yellowCards = integer("yellow_cards").default(0)
+    val redCards = integer("red_cards").default(0)
+    val rating = integer("rating").nullable()
+
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex("unique_match_player_stats", matchId, playerId)
+    }
+}
+
+// The coach's post-match report (see MatchReport in Models.kt). At most one per match; every text
+// column is optional free text. completed_at null means the report is still pending.
+object MatchReports : Table("match_reports") {
+    val id = uuid("id")
+    val matchId = uuid("match_id").references(Matches.id).uniqueIndex("unique_match_report")
+    val tactic = text("tactic").nullable()
+    val positiveAspects = text("positive_aspects").nullable()
+    val lessPositiveAspects = text("less_positive_aspects").nullable()
+    val aspectsToImprove = text("aspects_to_improve").nullable()
+    val teamNotes = text("team_notes").nullable()
+    val opponentTactic = text("opponent_tactic").nullable()
+    val opponentStrengths = text("opponent_strengths").nullable()
+    val opponentWeaknesses = text("opponent_weaknesses").nullable()
+    val opponentBestPlayers = text("opponent_best_players").nullable()
+    val opponentAdditionalInfo = text("opponent_additional_info").nullable()
+    val completedAt = timestamp("completed_at").nullable()
+    val updatedAt = timestamp("updated_at")
+    val updatedBy = uuid("updated_by").references(Users.id)
 
     override val primaryKey = PrimaryKey(id)
 }

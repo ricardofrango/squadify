@@ -137,6 +137,12 @@ sealed class Screen {
     @SerialName("live-match")
     data class LiveMatch(val matchId: String) : Screen()
 
+    // The post-match report of a FINISHED match. `edit` opens the editor straight away (Fill in
+    // report / Edit); otherwise it opens the read view.
+    @Serializable
+    @SerialName("match-report")
+    data class MatchReport(val matchId: String, val edit: Boolean = false) : Screen()
+
     @Serializable
     @SerialName("player")
     data class PlayerDetails(val playerId: String) : Screen()

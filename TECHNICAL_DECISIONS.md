@@ -2113,3 +2113,105 @@ session check correctly returned `false` on the run that nonetheless left the st
 **Not attempted**: a full authenticated deep-link round trip against a live backend (no server was running
 for this verification pass -- the unauthenticated safety path was the one that actually needed proving);
 resuming a deep link *after* a fresh login rather than dropping it.
+
+## 41. Post-Match Stats and Match Report
+
+Closes Phase 5's last open item, "Historical match statistics (post-match analysis)". Designed with the developer: how the stats are presented is deliberately left for later. This section covers what gets stored and the rules that keep it correct.
+
+**A played match is a permanent record.** Two rules make it safe to store per-player stats instead of recomputing them on every read:
+- **No deleting a played match:** a `FINISHED` match can't be deleted (`DeleteMatchUseCase` returns 409). A match that never ended stays deletable, whether it's scheduled (even past its date), cancelled, or live. The developer's rule: *"if the game was ended, it was done. if it was not ended, it can be deleted."*
+- **No editing events after full time:** events can only be added or removed while the match is `LIVE`/`HALF_TIME`. Before this, both use cases accepted events at any status.
+
+**Stats are a snapshot, taken once at full time.** `match_player_stats` has one row per called-up player: started, minutes played, goals, assists, own goals, yellow and red cards, plus a nullable 0-10 `rating` (see the match report below).
+- **When it's written:** `UpdateMatchStatusUseCase` computes the rows on `→ FINISHED`, in the same transaction as the status change.
+- **How it's computed:** by `MatchPlayerStatsCalculator`, which is pure and unit-tested on its own.
+- **Why a snapshot:** the two rules above mean the inputs can never change afterwards, so the snapshot can't go stale. Queries across many matches (season totals and so on) become plain sums, with no replay of event logs per request.
+
+**Minutes played needed two new facts.** Nothing recorded when a half actually ended, so stoppage time was invisible.
+- **The new columns:** `matches.first_half_end_minute` (set on `LIVE → HALF_TIME`) and `full_time_minute` (set on `→ FINISHED`).
+- **Unit:** both hold the match-clock minute, the same floor(`elapsedMatchSeconds` / 60) unit the live console writes into `MatchEvent.minute`. So pauses and "Set minute" corrections are already accounted for.
+- **Finishing from the break:** a match finished straight from the break (no second half) takes its full-time minute from `first_half_end_minute`. Otherwise the break would count as playing time.
+
+**Each event records which half it happened in.** The match clock restarts at the nominal half length for the second half (see §29), so a 46' event can be first-half stoppage time or the second half's first minute.
+- **How it works:** `AddMatchEventUseCase` stamps `MatchEvent.period` (`V6`) from the match state when the event is logged: 1 while the first half is live or during the break, 2 once the second half has started. A substitution logged during the break is period 1, so the incoming player is credited with the whole second half.
+- **The first version got this wrong, and an end-to-end run caught it:** it compared `createdAt` with `secondHalfStartedAt` instead. That field is the clock's reference point, not the real restart time: resume and "Set minute" shift it. One clock correction after the restart moved it to before the half-time substitution, which was then credited to the second half.
+- **Older events:** events logged before `period` existed still fall back to that comparison. It's approximate, but the best available.
+- **Why a separate migration:** `period` is in `V6` rather than folded into `V4`. The server test suite's `ApplicationTest` boots against the local `squadify_dev` database, so `V4` had already been applied there, and editing it would break Flyway's checksum validation.
+
+**An assist is attached to its goal** (added after the first version, at the developer's request). In the live console, logging a goal goes straight to an optional "Who assisted {scorer}?" step: "No assist" first, then the scorer's teammates on the pitch. The separate "Assist" action was removed, so assists are only logged through their goal.
+- **One request:** `CreateMatchEventRequest.assistPlayerId` carries the assist, and `AddMatchEventUseCase` saves the goal and the ASSIST event in the same transaction. The assist gets the same minute and half as the goal, and points at it through `MatchEvent.relatedEventId` (`V8`).
+- **Why one request:** two requests could leave a goal saved without the assist the coach picked.
+- **Validation:** the assist must be on one of our goals, by a different player, who was called up.
+- **Deleting:** deleting the goal deletes its assist first. The new foreign key uses the default NO ACTION, not RESTRICT, so deleting all of a match's events in one statement still works.
+- **Timeline:** shows "Goal · Tomás Bragança (assist Gil Bettencourt)" on one line.
+- **Effect on stats:** none. Assists still count per player by event type, linked or not. Assists logged on their own before this stay unlinked and show as their own row.
+- **Still separate events:** substitution IN/OUT pairs are still logged as two events and paired by minute for display. Minutes played only needs each player's own events, not the pairing.
+
+**Matches finished before this shipped** have no `full_time_minute` and no stats rows. Nothing is backfilled.
+
+**The match report.** After full time the coach fills in:
+- **Our team (free text):** tactic (e.g. "4-4-2"), positive aspects, less positive aspects, aspects to improve, team notes.
+- **The opponent (free text):** tactic, strengths, weaknesses, best players, additional information. The opponent's tactic was added after the first version (`V7`, a new migration rather than an edit of `V5`). Like ours, it's shown at display size in the opponent card's header in the read view.
+- **Ratings:** 0-10 per called-up player.
+
+Per the developer: no "player of the match", and no attendance.
+- **Storage:** the text lives in `match_reports` (one row per match, `V5`). Ratings live on `match_player_stats.rating`, so each player's evaluation sits next to their stats line, and a season query can average ratings without a join. A DB `CHECK` enforces 0-10 as well as the use case.
+- **Permissions:** writing uses `MANAGE_MATCH`, the same configurable permission as scheduling and editing the match (Coach by default), rather than a new one. Reading is limited to coordinators and the age group's staff. Unlike the rest of the match, players and parents can't read it, because of the ratings and notes.
+- **Drafts:** a report can be saved as a draft (`complete = false`). It shows in the Home tab's "Needs you" section until it's completed. Once completed it stays completed, and stays editable.
+- **The Home tab to-do:** the "Needs you" section gets a `MATCH_REPORT_PENDING` row per finished match whose report isn't completed. Tapping it opens the match.
+  - **Admins, coordinators and platform admins see everything pending in the club:** every team's pending reports and unsent call-ups. The developer's rule: they "should be alert to everything that is happening and should know what is pending on the club". The first version showed both alerts to coaches only, which hid them from the people meant to oversee everything.
+  - **Age-group staff:** see their own age groups' alerts when their role clears the club's permission setting for the work, `MANAGE_MATCH` for reports and `MANAGE_CALL_UPS` for call-ups (both Coach by default). So the to-do follows who can actually act on it, including a club that opens it to staff or restricts it to coordinators. Each setting is read once per request, not per age group.
+  - Matches finished before this shipped are excluded (no `full_time_minute`).
+  - Completed report ids come from one batched query (`getCompletedMatchIds`), not one lookup per match.
+- **Screens:** built from the design canvas (sections 23–27), described below.
+
+**Client screens (design 23–27).**
+- **Match report card:** the first card on a finished match's Match Details, whose body switches to WhiteSmoke so the card reads as one. It's driven by `MatchDetails.report` (a `MatchReportSummary`), so there's no second request, and is shown to staff only. It has three states:
+  - pending and editable: "Fill in report", or "3 of 12 players rated" once a draft has ratings
+  - completed: "View report" and a "Last updated … by …" line
+  - read-only: "View report", disabled while pending since there's nothing to read yet
+- **Report editor:** `MatchReportScreen` in edit mode. Tabs (Players · Team · Opponent, Players moved first at the developer's request) sit in the dark header, and the Players tab shows an amber count of unrated players.
+  - **Why tabs:** the design chose tabs over one long scroll so the pitch-side part, rating players, isn't buried under nine text fields. The Players tab is removed (not greyed) for a match without stats.
+  - **Rating:** a compact value button opens a 6×2 grid of 44dp targets (0–10 plus Clear). Picking a value auto-advances to the next unrated player, wrapping around (`nextUnrated`). "Rate next" jumps to the first gap. The design compared this against a chip row, a slider and a stepper.
+  - **Saving:** "Save draft" and "Complete report" ("Update report" once completed). Completing asks for confirmation and mentions unrated players only if there are any. Both buttons are disabled until there's something to save.
+  - **Leaving with unsaved changes:** back asks "Save your changes?" with Save draft / Discard / Keep editing. This uses `NavigationBackHandler` from `navigationevent-compose` (new dependency), because Compose's `BackHandler` is deprecated.
+  - **Failed saves:** a failed save keeps everything on screen, turns the header chip to "Not saved", and shows a Retry snackbar until it succeeds.
+- **Read view:** one scroll rather than tabs. Empty fields are left out, and an empty section collapses to one "nothing written" line. The tactic is shown at display size.
+  - **Players:** each rating is a badge in one of four colour bands (0–4 red, 5–6 amber, 7–8 green, 9–10 deep green, unrated an outlined "—"). A "{rated} of {total} rated · avg x.x" summary sits above the list, which can be sorted by rating (unrated last) or by shirt number.
+  - **Editing:** the author gets an Edit action.
+- **Landscape:** the editor puts its fields in two columns, shows the full 0–10 row inline (one tap per rating, no grid), and moves the actions into a right rail. The read view splits into analysis on the left and players on the right.
+- **States:** a loading skeleton; an error with Retry; and a no-permission screen that drops the match subtitle, so nothing about the match is revealed.
+- **Home "Needs you":** pending reports show "Played 27 Sep · 3 days ago". A report older than 7 days gets an amber dot. Three or more collapse into one expandable "{n} match reports to fill" row. Order is call-ups, then reports oldest first, then configuration gaps (grey dot).
+- **Localized dates:** `shortDateLabel`/`daysAgoLabel` (`components/DateLabels.kt`) give "27 Sep" / "27 set." and "3 days ago" / "há 3 dias" from string resources. Existing screens still use English month names.
+- **Pure logic:** rating bands, the next-unrated jump, read ordering and the rating summary live in `MatchReportLogic.kt`, covered by `MatchReportLogicTest`.
+
+**Landscape layouts:**
+- **Match Details (23c):** the report card gets its own fixed left column while the rest scrolls beside it.
+- **Home (27d):** Next up and Needs you sit side by side. The design's side navigation rail isn't built: that's the app-wide adaptive-navigation item in §11.5, not part of this feature.
+
+**Aligned against the design's own screenshots.** A first pass built from the canvas markup alone drifted in a few places, fixed after comparing against screenshots of every artboard:
+- **Match report card:** document icon with the badge on the right, and a pencil on "Fill in report".
+- **Editor:** 56dp square rating buttons, "Optional" placeholders, a narrow tactic field, full-width tab underlines, and header tabs in landscape.
+- **Dialogs and toast:** dialogs with equal-width buttons, and a toast with a check.
+- **Read view:** the tactic chip in the "Our team" header, dividers between fields, the chip and status line in their own band, and a pencil "Edit".
+- **States:** a pulsing skeleton, and real cloud-off and lock icons.
+- **Home:** "Needs you" as one card with hairlines and chevrons.
+
+**Checked by rendering, not just compiling.** Every screen and state was rendered headlessly on the JVM with Compose's `ImageComposeScene`, in a throwaway test that isn't committed, and compared image by image with the design. The Home group was expanded by simulating a tap.
+- **What it caught:** green buttons were picking up the theme's content colour, which is dark under the dark palette. The label disappeared into the green. They now set white explicitly.
+
+**Not built from the design:** remembering the read-view sort per user (it resets to "by rating" on each visit), and autosave (the design lists it as later).
+
+**Verified:**
+- **Unit tests:** `:server:test`, including the new calculator, report and home tests.
+- **End to end:** a throwaway test (not committed) ran the real app module on a fresh Postgres database, with `V1`–`V6` applied, through the real HTTP routes. It covered:
+  - kickoff, goals, "Set minute" corrections
+  - a half-time substitution, second half, full time
+  - an event rejected before kickoff and after full time
+  - deleting the finished match rejected (409)
+  - the Home to-do appearing, staying for a draft, and clearing on completion
+  - an out-of-range rating rejected
+  - the stored minutes checked per player
+
+**Not verified:** a real match played on a device.
+

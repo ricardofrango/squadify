@@ -150,7 +150,15 @@ data class MatchEvent(
     val playerId: String? = null,
     val opponentPlayerName: String? = null,
     val isOpponent: Boolean = false,
-    val createdAt: Instant
+    val createdAt: Instant,
+    // Which half the event happened in (1 or 2), recorded by the server when it's logged: 1 while
+    // the first half is live or during the break, 2 once the second half has started. Minutes alone
+    // can't tell (first-half stoppage time overlaps the second half's first minutes). Null for events
+    // logged before this existed.
+    val period: Int? = null,
+    // For an ASSIST: the GOAL it set up (logged together, see CreateMatchEventRequest.assistPlayerId).
+    // Null for anything else, and for assists logged on their own before this existed.
+    val relatedEventId: String? = null
 )
 
 @Serializable
@@ -204,7 +212,10 @@ data class CreateMatchEventRequest(
     val minute: Int,
     val playerId: String? = null,
     val opponentPlayerName: String? = null,
-    val isOpponent: Boolean = false
+    val isOpponent: Boolean = false,
+    // GOAL only, optional: who assisted it. The goal and its ASSIST event are saved together, the
+    // assist linked to the goal through MatchEvent.relatedEventId.
+    val assistPlayerId: String? = null
 )
 
 @Serializable
@@ -737,7 +748,14 @@ data class Match(
     // resume (ResumeMatchUseCase), the server shifts whichever of [kickoffAt]/[secondHalfStartedAt] is
     // currently driving the clock forward by the paused duration and clears this back to null, so
     // [elapsedMatchSeconds] needs no separate "total paused time" bookkeeping.
-    val pausedAt: Instant? = null
+    val pausedAt: Instant? = null,
+    // Match-clock minute (same floor(elapsedMatchSeconds / 60) unit as MatchEvent.minute) at which the
+    // first half ended -- set on the LIVE -> HALF_TIME transition, so first-half stoppage time is
+    // captured. Null until then, and for matches played before this existed.
+    val firstHalfEndMinute: Int? = null,
+    // Match-clock minute at full time -- set on the -> FINISHED transition. Its presence also marks a
+    // match whose MatchPlayerStats were computed (matches finished before this existed have neither).
+    val fullTimeMinute: Int? = null
 )
 
 /**
@@ -755,6 +773,103 @@ fun elapsedMatchSeconds(match: Match, now: Instant): Int {
     val clockAt = match.pausedAt ?: now
     return baseSeconds + (clockAt - referenceInstant).inWholeSeconds.toInt()
 }
+
+/**
+ * One called-up player's line for a FINISHED match, computed once at full time from the call-ups
+ * (who started) and the match's events, then stored -- a finished match's events can't change after
+ * that (see AddMatchEventUseCase/DeleteMatchEventUseCase), so the snapshot never goes stale.
+ * [rating] (0-10) is the one field set afterwards, by the coach, as part of the match report.
+ */
+@Serializable
+data class MatchPlayerStats(
+    val matchId: String,
+    val playerId: String,
+    val started: Boolean,
+    val minutesPlayed: Int,
+    val goals: Int,
+    val assists: Int,
+    val ownGoals: Int,
+    val yellowCards: Int,
+    val redCards: Int,
+    val rating: Int? = null
+)
+
+/**
+ * The coach's post-match report for a FINISHED match. Every text field is free text and optional.
+ * The report is "pending" (listed in the Home tab's to-do) until [completedAt] is set; it stays
+ * editable after that.
+ */
+@Serializable
+data class MatchReport(
+    val matchId: String,
+    // Our team
+    val tactic: String? = null,
+    val positiveAspects: String? = null,
+    val lessPositiveAspects: String? = null,
+    val aspectsToImprove: String? = null,
+    val teamNotes: String? = null,
+    // The opponent
+    val opponentTactic: String? = null,
+    val opponentStrengths: String? = null,
+    val opponentWeaknesses: String? = null,
+    val opponentBestPlayers: String? = null,
+    val opponentAdditionalInfo: String? = null,
+    val completedAt: Instant? = null,
+    val updatedAt: Instant,
+    val updatedByUserId: String
+)
+
+/** One player's rating in a [SaveMatchReportRequest]. `null` clears it. */
+@Serializable
+data class MatchPlayerRatingInput(
+    val playerId: String,
+    val rating: Int?
+)
+
+/**
+ * Saves the report text and the per-player ratings (0-10) together. [complete] marks the report as
+ * done, which removes it from the Home tab's to-do; saving with `complete = false` keeps a draft.
+ * Once completed a report stays completed.
+ */
+@Serializable
+data class SaveMatchReportRequest(
+    val tactic: String? = null,
+    val positiveAspects: String? = null,
+    val lessPositiveAspects: String? = null,
+    val aspectsToImprove: String? = null,
+    val teamNotes: String? = null,
+    val opponentTactic: String? = null,
+    val opponentStrengths: String? = null,
+    val opponentWeaknesses: String? = null,
+    val opponentBestPlayers: String? = null,
+    val opponentAdditionalInfo: String? = null,
+    val ratings: List<MatchPlayerRatingInput> = emptyList(),
+    val complete: Boolean = false
+)
+
+@Serializable
+data class MatchPlayerStatsWithPlayer(
+    val stats: MatchPlayerStats,
+    val player: Player
+)
+
+/**
+ * Everything behind the match report screen: the finished match, its report (null until first
+ * saved), each called-up player's stats line (which carries their rating), and whether the caller
+ * may edit.
+ */
+@Serializable
+data class MatchReportDetails(
+    val match: Match,
+    // For the header ("Sub-15 A vs AD Fontelas · 27 Sep"); opponent is its short name when it has one.
+    val teamName: String,
+    val opponentName: String,
+    val report: MatchReport? = null,
+    // Full name of whoever last saved the report, for "Last updated 28 Sep by Nuno Ferreira".
+    val updatedByName: String? = null,
+    val playerStats: List<MatchPlayerStatsWithPlayer>,
+    val canEdit: Boolean
+)
 
 @Serializable
 data class MatchCallUp(
@@ -805,7 +920,25 @@ data class MatchDetails(
     val canManageCallUps: Boolean,
     val canManageLiveMatch: Boolean,
     // The running/final scoreline, rebuilt from match events -- 0-0 before any goals are logged.
-    val score: MatchScore
+    val score: MatchScore,
+    // The match report card's data. Null unless the match is FINISHED and the caller may read the
+    // report (club coordinators/admins and the age group's staff -- never players or parents).
+    val report: MatchReportSummary? = null
+)
+
+@Serializable
+enum class MatchReportStatus { NOT_STARTED, DRAFT, COMPLETED }
+
+/** What the Match Details report card needs, without loading the whole report. */
+@Serializable
+data class MatchReportSummary(
+    val status: MatchReportStatus,
+    val updatedAt: Instant? = null,
+    val updatedByName: String? = null,
+    val ratedPlayers: Int,
+    // Called-up players with a stats line; 0 for a match finished before post-match stats existed.
+    val ratablePlayers: Int,
+    val canEdit: Boolean
 )
 
 /** Body of `PATCH /matches/{matchId}`. Every field is optional; nulls are left untouched. */
@@ -925,8 +1058,10 @@ data class ClubHomeNextUp(
 enum class ClubHomeAlertType {
     /** A coordinator alert: an age group in the current season has no coach in `age_group_staff`. */
     AGE_GROUP_NEEDS_COACH,
-    /** A coach alert: matches within 5 days for age groups they coach that have no call-ups yet. */
-    CALLUPS_UNSENT
+    /** Matches within 5 days with no call-ups yet. Admins/coordinators: the whole club; staff: their age groups, per MANAGE_CALL_UPS. */
+    CALLUPS_UNSENT,
+    /** A finished match whose report isn't completed. Admins/coordinators: the whole club; staff: their age groups, per MANAGE_MATCH. */
+    MATCH_REPORT_PENDING
 }
 
 /** One "Needs you" row. The client formats the copy from these parts so it stays localized. */
@@ -937,14 +1072,18 @@ data class ClubHomeAlert(
     // AGE_GROUP_NEEDS_COACH only:
     val ageGroupId: String? = null,
     val ageGroupName: String? = null,
-    // CALLUPS_UNSENT only -- the day those matches fall on:
-    val date: LocalDate? = null
+    // CALLUPS_UNSENT: the day those matches fall on. MATCH_REPORT_PENDING: the day the match was played.
+    val date: LocalDate? = null,
+    // MATCH_REPORT_PENDING only -- the match to open, and the names to show:
+    val matchId: String? = null,
+    val teamName: String? = null,
+    val opponentName: String? = null
 )
 
 /**
  * Everything behind the club Home tab. Counts for the stat grid, one [nextUp] row per team with an
- * upcoming match, and role-scoped [alerts] ("Needs you"): coordinators get AGE_GROUP_NEEDS_COACH,
- * coaches get CALLUPS_UNSENT, someone who is both gets both.
+ * upcoming match, and role-scoped [alerts] ("Needs you"): admins/coordinators see everything pending in
+ * the club; age-group staff see the call-up and report alerts their role can act on.
  */
 @Serializable
 data class ClubHome(

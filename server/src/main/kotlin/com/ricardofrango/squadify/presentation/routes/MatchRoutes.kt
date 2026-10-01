@@ -30,6 +30,8 @@ fun Route.matchRoutes() {
     val pauseMatchUseCase by inject<PauseMatchUseCase>()
     val resumeMatchUseCase by inject<ResumeMatchUseCase>()
     val setMatchMinuteUseCase by inject<SetMatchMinuteUseCase>()
+    val getMatchReportUseCase by inject<GetMatchReportUseCase>()
+    val saveMatchReportUseCase by inject<SaveMatchReportUseCase>()
 
     authenticate("auth-jwt") {
         route("/matches") {
@@ -81,6 +83,21 @@ fun Route.matchRoutes() {
                         call.respond(HttpStatusCode.NoContent)
                     } else {
                         call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to delete match"))
+                    }
+                }
+
+                // The coach's post-match report and per-player ratings -- FINISHED matches only.
+                route("/report") {
+                    get {
+                        val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val matchId = call.parameters["matchId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                        call.respond(getMatchReportUseCase(currentUserId, matchId))
+                    }
+                    put {
+                        val currentUserId = call.userId ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        val matchId = call.parameters["matchId"] ?: return@put call.respond(HttpStatusCode.BadRequest)
+                        val request = call.receive<SaveMatchReportRequest>()
+                        call.respond(saveMatchReportUseCase(currentUserId, matchId, request))
                     }
                 }
 

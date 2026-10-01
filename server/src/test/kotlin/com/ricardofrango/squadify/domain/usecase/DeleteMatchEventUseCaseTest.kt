@@ -17,6 +17,7 @@ import com.ricardofrango.squadify.model.ClubMatchesUpdate
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.Match
+import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.Team
@@ -25,6 +26,7 @@ import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
@@ -59,12 +61,13 @@ class DeleteMatchEventUseCaseTest {
     private val teamId = "t-1"
     private val ag1 = "ag-1"
     private val eventId = "ev-1"
-    private val match = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1))
+    private val match = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.LIVE)
     private val event = MatchEvent(eventId, matchId, EventType.GOAL, minute = 10, playerId = "p1", createdAt = Instant.fromEpochMilliseconds(1))
 
     private fun coach() = User("coach", "coach@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
 
     private fun stubCoachPermission(coach: User) {
+        coEvery { matchEventRepository.getEventsByMatch(matchId) } returns listOf(event)
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
@@ -127,5 +130,35 @@ class DeleteMatchEventUseCaseTest {
             useCase(member.id, matchId, eventId)
         }
         Unit
+    }
+
+    @Test
+    fun eventsOfAFinishedMatchCannotBeRemoved() = runBlocking {
+        val coach = coach()
+        coEvery { matchRepository.getMatchById(matchId) } returns match.copy(status = MatchStatus.FINISHED)
+        stubCoachPermission(coach)
+
+        assertFailsWith<ValidationException> { useCase(coach.id, matchId, eventId) }
+        coVerify(exactly = 0) { matchEventRepository.deleteEvent(any()) }
+        Unit
+    }
+
+    @Test
+    fun deletingAGoalAlsoDeletesItsAssistFirst() = runBlocking {
+        val coach = coach()
+        coEvery { matchRepository.getMatchById(matchId) } returns match
+        stubCoachPermission(coach)
+        val assist = MatchEvent("ev-a", matchId, EventType.ASSIST, minute = 10, playerId = "p2", createdAt = Instant.fromEpochMilliseconds(1), relatedEventId = eventId)
+        coEvery { matchEventRepository.getEventsByMatch(matchId) } returns listOf(event, assist)
+        coEvery { matchEventRepository.getEventById(eventId) } returns event
+        coEvery { matchEventRepository.deleteEvent(any()) } returns true
+        coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 0, 0)
+
+        useCase(coach.id, matchId, eventId)
+
+        coVerifyOrder {
+            matchEventRepository.deleteEvent("ev-a")
+            matchEventRepository.deleteEvent(eventId)
+        }
     }
 }

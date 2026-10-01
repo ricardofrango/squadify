@@ -12,10 +12,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,16 +30,24 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.*
+import com.ricardofrango.squadify.presentation.ui.components.daysAgoLabel
+import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
+import com.ricardofrango.squadify.presentation.ui.theme.Amber
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.daysUntil
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 private val CardShape = RoundedCornerShape(16.dp)
@@ -87,29 +100,117 @@ fun HomeTab(
 
         StatGrid(home)
 
-        // ---- Next up ----
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            SectionTitle(stringResource(Res.string.label_home_next_up))
-            if (home.nextUp.isEmpty()) {
-                Text(
-                    stringResource(Res.string.msg_home_no_next_up),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = DeepCarbon.copy(alpha = 0.5f)
-                )
+        // Landscape: Next up and Needs you side by side (27d); portrait: stacked.
+        BoxWithConstraints {
+            val wide = maxWidth > 600.dp
+            if (wide) {
+                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    NextUpSection(home, onNavigateToMatch, Modifier.weight(1f))
+                    NeedsYouSection(home, onNavigateToAgeGroup, onNavigateToMatch, Modifier.weight(1f))
+                }
             } else {
-                home.nextUp.forEach { row -> NextUpRow(row, onClick = { onNavigateToMatch(row.matchId) }) }
+                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                    NextUpSection(home, onNavigateToMatch)
+                    NeedsYouSection(home, onNavigateToAgeGroup, onNavigateToMatch)
+                }
             }
         }
+    }
+}
 
-        // ---- Needs you ----
-        if (home.alerts.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionTitle(stringResource(Res.string.label_home_needs_you))
-                home.alerts.forEach { alert ->
-                    AlertRow(
-                        alert = alert,
-                        onClick = alert.ageGroupId?.let { id -> { onNavigateToAgeGroup(id) } }
+@Composable
+private fun NextUpSection(home: ClubHome, onNavigateToMatch: (String) -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SectionTitle(stringResource(Res.string.label_home_next_up))
+        if (home.nextUp.isEmpty()) {
+            Text(
+                stringResource(Res.string.msg_home_no_next_up),
+                style = MaterialTheme.typography.bodyMedium,
+                color = DeepCarbon.copy(alpha = 0.5f)
+            )
+        } else {
+            home.nextUp.forEach { row -> NextUpRow(row, onClick = { onNavigateToMatch(row.matchId) }) }
+        }
+    }
+}
+
+/**
+ * "Needs you" (design 27): one card, rows split by hairlines. Time-bound items first (call-ups), then
+ * pending reports oldest first (the server already sends them in that order), then configuration
+ * gaps. 1-2 pending reports are normal rows; from 3 up they collapse into one expandable group row.
+ */
+@Composable
+private fun NeedsYouSection(
+    home: ClubHome,
+    onNavigateToAgeGroup: (String) -> Unit,
+    onNavigateToMatch: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (home.alerts.isEmpty()) return
+    val callUps = home.alerts.filter { it.type == ClubHomeAlertType.CALLUPS_UNSENT }
+    val reports = home.alerts.filter { it.type == ClubHomeAlertType.MATCH_REPORT_PENDING }
+    val gaps = home.alerts.filter { it.type == ClubHomeAlertType.AGE_GROUP_NEEDS_COACH }
+    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    var expanded by rememberSaveable { mutableStateOf(false) }
+
+    // Each entry is one row of the card; dividers go between them.
+    val rows = buildList<@Composable () -> Unit> {
+        callUps.forEach { alert -> add { AlertRowContent(alertText(alert), null, PitchGreen, null, null) } }
+        if (reports.size >= REPORT_GROUP_THRESHOLD) {
+            val oldest = reports.mapNotNull { it.date }.minOrNull()
+            val anyOverdue = reports.any { reportDotColor(it, today) == Amber }
+            add {
+                AlertRowContent(
+                    title = stringResource(Res.string.msg_home_match_reports_pending, reports.size),
+                    subtitle = oldest?.let { stringResource(Res.string.home_reports_oldest, shortDateLabel(it), daysAgoLabel(it, today)) },
+                    dotColor = if (anyOverdue) Amber else PitchGreen,
+                    trailingIcon = if (expanded) Res.drawable.ic_expand_less else Res.drawable.ic_expand_more,
+                    onClick = { expanded = !expanded }
+                )
+            }
+            if (expanded) reports.forEach { alert ->
+                add {
+                    // Child rows are indented on a faint grey so they read as belonging to the group.
+                    Box(Modifier.background(Color(0xFFFAFAFA)).padding(start = 24.dp)) {
+                        AlertRowContent(
+                            alertText(alert), reportPlayedLine(alert, today), reportDotColor(alert, today),
+                            Res.drawable.ic_chevron_right, alert.matchId?.let { id -> { onNavigateToMatch(id) } }
+                        )
+                    }
+                }
+            }
+        } else {
+            reports.forEach { alert ->
+                add {
+                    AlertRowContent(
+                        alertText(alert), reportPlayedLine(alert, today), reportDotColor(alert, today),
+                        Res.drawable.ic_chevron_right, alert.matchId?.let { id -> { onNavigateToMatch(id) } }
                     )
+                }
+            }
+        }
+        gaps.forEach { alert ->
+            add {
+                AlertRowContent(
+                    alertText(alert), null, DeepCarbon.copy(alpha = 0.25f),
+                    Res.drawable.ic_chevron_right, alert.ageGroupId?.let { id -> { onNavigateToAgeGroup(id) } }
+                )
+            }
+        }
+    }
+
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SectionTitle(stringResource(Res.string.label_home_needs_you))
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = CardShape,
+            color = Color.White,
+            border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
+        ) {
+            Column {
+                rows.forEachIndexed { index, row ->
+                    if (index > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(CarbonGray.copy(alpha = 0.06f)))
+                    row()
                 }
             }
         }
@@ -212,47 +313,71 @@ private fun CallUpPill(calledUp: Int) {
     }
 }
 
+private const val REPORT_GROUP_THRESHOLD = 3
+// A pending report older than this gets an amber dot (27e).
+private const val REPORT_OVERDUE_DAYS = 7
+
+private fun reportDotColor(alert: ClubHomeAlert, today: LocalDate): Color =
+    if (alert.date != null && alert.date!!.daysUntil(today) > REPORT_OVERDUE_DAYS) Amber else PitchGreen
+
+/** "Played 27 Sep · 3 days ago" -- relative age matters more than the date, so both are shown. */
 @Composable
-private fun AlertRow(alert: ClubHomeAlert, onClick: (() -> Unit)?) {
-    val text = when (alert.type) {
-        ClubHomeAlertType.AGE_GROUP_NEEDS_COACH ->
-            stringResource(Res.string.msg_home_needs_coach, alert.ageGroupName ?: "")
-        ClubHomeAlertType.CALLUPS_UNSENT ->
-            stringResource(
-                Res.string.msg_home_callups_unsent,
-                alert.count,
-                alert.date?.let { stringResource(weekdayLabel(it.dayOfWeek)) } ?: ""
-            )
-    }
-    Surface(
+private fun reportPlayedLine(alert: ClubHomeAlert, today: LocalDate): String? {
+    val date = alert.date ?: return null
+    return stringResource(Res.string.home_report_played, shortDateLabel(date), daysAgoLabel(date, today))
+}
+
+@Composable
+private fun alertText(alert: ClubHomeAlert): String = when (alert.type) {
+    ClubHomeAlertType.AGE_GROUP_NEEDS_COACH ->
+        stringResource(Res.string.msg_home_needs_coach, alert.ageGroupName ?: "")
+    ClubHomeAlertType.CALLUPS_UNSENT ->
+        stringResource(
+            Res.string.msg_home_callups_unsent,
+            alert.count,
+            alert.date?.let { stringResource(weekdayLabel(it.dayOfWeek)) } ?: ""
+        )
+    ClubHomeAlertType.MATCH_REPORT_PENDING ->
+        stringResource(Res.string.msg_home_match_report_pending, alert.teamName ?: "", alert.opponentName ?: "")
+}
+
+@Composable
+private fun AlertRowContent(
+    title: String,
+    subtitle: String?,
+    dotColor: Color,
+    trailingIcon: DrawableResource?,
+    onClick: (() -> Unit)?
+) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .then(
-                if (onClick != null) Modifier.clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onClick
-                ) else Modifier
-            ),
-        shape = CardShape,
-        color = Color.White,
-        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(start = 16.dp, end = 14.dp, top = 14.dp, bottom = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 16.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(Modifier.size(8.dp).background(PitchGreen, CircleShape))
-            Spacer(Modifier.width(12.dp))
+        Box(
+            Modifier
+                .align(if (subtitle != null) Alignment.Top else Alignment.CenterVertically)
+                .padding(top = if (subtitle != null) 6.dp else 0.dp)
+                .size(8.dp)
+                .background(dotColor, CircleShape)
+        )
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            // The title clamps at two lines; the date line never truncates (27c).
             Text(
-                text,
+                title,
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                color = DeepCarbon, modifier = Modifier.weight(1f),
-                maxLines = 2, overflow = TextOverflow.Ellipsis
+                color = DeepCarbon, maxLines = 2, overflow = TextOverflow.Ellipsis
             )
-            if (onClick != null) {
-                Text(" ›", color = DeepCarbon.copy(alpha = 0.35f), fontWeight = FontWeight.Bold)
+            if (subtitle != null) {
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.62f))
             }
+        }
+        if (trailingIcon != null) {
+            Spacer(Modifier.width(8.dp))
+            Icon(painterResource(trailingIcon), contentDescription = null, tint = DeepCarbon.copy(alpha = 0.4f), modifier = Modifier.size(22.dp))
         }
     }
 }
@@ -316,7 +441,15 @@ private fun HomeTabPreview() {
                 ),
                 alerts = listOf(
                     ClubHomeAlert(ClubHomeAlertType.CALLUPS_UNSENT, count = 2, date = kotlinx.datetime.LocalDate(2026, 9, 12)),
-                    ClubHomeAlert(ClubHomeAlertType.AGE_GROUP_NEEDS_COACH, count = 1, ageGroupId = "ag-x", ageGroupName = "Sub-11")
+                    ClubHomeAlert(ClubHomeAlertType.AGE_GROUP_NEEDS_COACH, count = 1, ageGroupId = "ag-x", ageGroupName = "Sub-11"),
+                    ClubHomeAlert(
+                        ClubHomeAlertType.MATCH_REPORT_PENDING, count = 1, date = kotlinx.datetime.LocalDate(2026, 9, 14),
+                        matchId = "m-a", teamName = "Sub-15 C", opponentName = "SC Praia Norte"
+                    ),
+                    ClubHomeAlert(
+                        ClubHomeAlertType.MATCH_REPORT_PENDING, count = 1, date = kotlinx.datetime.LocalDate(2026, 9, 27),
+                        matchId = "m-x", teamName = "Sub-15 A", opponentName = "AD Fontelas"
+                    )
                 )
             ),
             onRetry = {},
@@ -325,3 +458,32 @@ private fun HomeTabPreview() {
         )
     }
 }
+
+@Preview
+@Composable
+private fun HomeTabManyPendingReportsPreview() {
+    val club = Club("c1", "CD Ribamar", status = ClubStatus.ACTIVE, sport = SportType.FOOTBALL, createdAt = Instant.fromEpochMilliseconds(0))
+    fun report(id: String, day: Int, team: String, opp: String) = ClubHomeAlert(
+        ClubHomeAlertType.MATCH_REPORT_PENDING, count = 1, date = kotlinx.datetime.LocalDate(2026, 9, day),
+        matchId = id, teamName = team, opponentName = opp
+    )
+    SquadifyTheme {
+        HomeTab(
+            home = ClubHome(
+                club = club, seasonName = "26/27", role = ClubRole.MEMBER,
+                teamCount = 3, playerCount = 40, coachCount = 3, matchesThisWeek = 2,
+                nextUp = emptyList(),
+                alerts = listOf(
+                    report("m1", 14, "Sub-15 C", "SC Praia Norte"),
+                    report("m2", 20, "Sub-15 A", "GD Marinhas"),
+                    report("m3", 21, "Sub-15 B", "CD Aveleda"),
+                    report("m4", 27, "Sub-15 A", "AD Fontelas")
+                )
+            ),
+            onRetry = {},
+            onNavigateToAgeGroup = {},
+            onNavigateToMatch = {}
+        )
+    }
+}
+

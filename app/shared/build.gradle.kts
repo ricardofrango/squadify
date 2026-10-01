@@ -86,6 +86,7 @@ kotlin {
             
             // Navigation
             implementation(libs.navigation)
+            implementation(libs.navigationevent.compose)
 
             // Koin -- koin-core is `api`, not `implementation`: initKoin()'s return type (KoinApplication)
             // is part of this module's public surface, so consumers need it on their own compile

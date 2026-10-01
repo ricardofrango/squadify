@@ -321,13 +321,20 @@ graph TD
     E --> G{role >= COORDINATOR or platform admin?}
     G -- Yes --> H["alert per season age group with no COACH in age_group_staff (AGE_GROUP_NEEDS_COACH)"]
     G -- No --> I
-    H --> I{coaches any season age group?}
-    I -- Yes --> J["group that age group's SCHEDULED matches within 5 days that have zero call-ups, one CALLUPS_UNSENT alert per day"]
-    I -- No --> Z
-    J --> Z(["Return ClubHome — club, seasonName, role, counts, nextUp, alerts"])
+    H --> I["Call-up teams: every season team for admins/coordinators/platform admins; otherwise the teams of age groups where the caller's staff role clears the club's MANAGE_CALL_UPS setting"]
+    I --> J["one CALLUPS_UNSENT alert per day for those teams' SCHEDULED matches within 5 days that have zero call-ups"]
+    J --> K2["Report teams: same rule with the club's MANAGE_MATCH setting"]
+    K2 --> K["one MATCH_REPORT_PENDING alert per FINISHED match of those teams with a fullTimeMinute and no completed report (one batched report lookup), oldest first"]
+    K --> Z(["Return ClubHome — club, seasonName, role, counts, nextUp, alerts"])
 ```
 
-Alerts carry structured parts (`ageGroupName`, `date`, `count`) rather than rendered strings, so the client formats them in the user's language. Someone who is both a coordinator and an age-group coach gets both alert types.
+Alerts carry structured parts (`ageGroupName`, `date`, `count`, and for a pending report `matchId`/`teamName`/`opponentName`) rather than rendered strings, so the client formats them in the user's language. Someone who is both a coordinator and an age-group coach gets every alert type.
+
+`MATCH_REPORT_PENDING` is the post-match report to-do (§8.6).
+- **Who sees it:** admins, coordinators and platform admins see every pending report in the club; they should know everything pending, per the developer. Age-group staff see their own age groups' reports when their role clears the club's `MANAGE_MATCH` setting, i.e. when they could fill the report in (Coach by default). `CALLUPS_UNSENT` follows the same rule with `MANAGE_CALL_UPS`.
+- **When it clears:** once the report is completed.
+- **Tapping it:** opens that match.
+- **Older matches:** matches finished before post-match stats existed (no `fullTimeMinute`) never show up, so the list isn't flooded with old fixtures.
 
 ### 3.4 Update Club (`UpdateClubUseCase`)
 
@@ -859,10 +866,14 @@ graph TD
     G --> G2["canManageCallUps = non-throwing probe of configurablePermission=MANAGE_CALL_UPS on the team"]
     G2 --> G3["canManageLiveMatch = non-throwing probe of configurablePermission=MANAGE_LIVE_MATCH on the team"]
     G3 --> H["score = matchEventRepository.getScoreByMatch(matchId) — 0-0 before any goals are logged"]
-    H --> Z(["Return MatchDetails: match, opponent, team, ageGroup, season, callUps, poolPlayers, canManageMatch, canManageCallUps, canManageLiveMatch, score"])
+    H --> R{"status == FINISHED and caller clears the report read gate (COORDINATOR, or age-group STAFF)?"}
+    R -- Yes --> R2["report = MatchReportSummary: status NOT_STARTED/DRAFT/COMPLETED, updatedAt, updatedByName, ratedPlayers / ratablePlayers, canEdit = canManageMatch"]
+    R -- No --> R3["report = null"]
+    R2 --> Z(["Return MatchDetails: match, opponent, team, ageGroup, season, callUps, poolPlayers, canManageMatch, canManageCallUps, canManageLiveMatch, score, report"])
+    R3 --> Z
 ```
 
-The use case composes `MatchDetails` itself now — the old `MatchRepository.getMatchDetails` (opponent + call-ups only) was removed. `poolPlayers` is the "Available" list on the call-up screen. `canManageMatch` gates just the edit sheet -- changing the match's own date/time/location/notes -- and the delete-match menu item. `canManageCallUps` gates managing the pre-match squad list. `canManageLiveMatch` gates entering the live match console and every action inside it (kickoff, clock, logging/deleting events, status changes) -- see §19 in `TECHNICAL_DECISIONS.md` for the original coach-vs-staff rationale and §35 for how all three are now independently club-configurable. All three are further gated client-side: the client forces the screen read-only once `match.status == FINISHED` regardless of any flag, so a finished match becomes a plain record (no editing call-ups, kickoff, location, etc.), and the live match console itself hides (not just disables) every action a viewer's `canManageLiveMatch` doesn't clear, showing a read-only notice instead. `score` feeds the FINISHED-state result banner (colored WIN/LOSS/DRAW + scoreline) on the details screen, the same rebuilt-from-events value `MatchRow` already showed in match lists.
+The use case composes `MatchDetails` itself now — the old `MatchRepository.getMatchDetails` (opponent + call-ups only) was removed. `poolPlayers` is the "Available" list on the call-up screen. `canManageMatch` gates just the edit sheet -- changing the match's own date/time/location/notes -- and the delete-match menu item. `canManageCallUps` gates managing the pre-match squad list. `canManageLiveMatch` gates entering the live match console and every action inside it (kickoff, clock, logging/deleting events, status changes) -- see §19 in `TECHNICAL_DECISIONS.md` for the original coach-vs-staff rationale and §35 for how all three are now independently club-configurable. All three are further gated client-side: the client forces the screen read-only once `match.status == FINISHED` regardless of any flag, so a finished match becomes a plain record (no editing call-ups, kickoff, location, etc.), and the live match console itself hides (not just disables) every action a viewer's `canManageLiveMatch` doesn't clear, showing a read-only notice instead. `report` drives the Match report card (§8.6), so the match screen needs no second request for it. It's null for players and parents, and for any match that hasn't finished. `score` feeds the FINISHED-state result banner (colored WIN/LOSS/DRAW + scoreline) on the details screen, the same rebuilt-from-events value `MatchRow` already showed in match lists.
 
 The bottom button just opens the live match screen; starting the game and recording events all live there. If the match is already LIVE/HALF_TIME when this screen loads (tapped in from a list, or discovered on a reload), the client redirects straight to the live match screen instead of rendering the details view -- see `MatchDetailsViewModel.load()` / `AppNavigation.kt`'s `Screen.MatchDetails` route, which pops this screen off the back stack when redirecting (rather than stacking under it) so back-navigation from the live screen doesn't bounce straight back into another redirect.
 
@@ -909,7 +920,9 @@ graph TD
     B -- not found --> N(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D["Delete all MatchEvents for this match"]
+    C -- allowed --> ST{match.status == FINISHED?}
+    ST -- Yes --> CF(["Throw ConflictException: a played match can't be deleted"])
+    ST -- No --> D["Delete all MatchEvents for this match"]
     D --> E["Clear all call-ups for this match (manageCallUps with an empty list)"]
     E --> G["Delete the Match row"]
     G --> Z(["Return success"])
@@ -924,6 +937,12 @@ cleared first because neither's `matchId` foreign key has `ON DELETE CASCADE`; d
 first would fail the constraint. Exposed via `DELETE /matches/{matchId}` (`MatchRoutes.kt`), reachable
 from `MatchDetailsScreen`'s top-right overflow menu (a `ConfirmDialog` -- see `presentation.ui.components`
 -- gates the actual call, since this is irreversible).
+
+**A played match can't be deleted.** Once a match is `FINISHED` it has happened: its events, player stats
+(§8.2f) and report (§8.6) hang off it, so the use case rejects the delete with `ConflictException` (409),
+and the client hides the overflow menu for a finished match. Any match that never ended stays deletable,
+whether it's still scheduled (even past its date), cancelled, or live/at half-time. Covered by
+`DeleteMatchUseCaseTest`.
 
 **Removed: `UpdateCallUpStatusUseCase`.** A call-up used to carry a 5-value attendance status
 (`CALLED_UP`/`CONFIRMED`/`DECLINED`/`NOT_AVAILABLE`/`STANDBY`), settable only by Coach-level staff (or
@@ -969,8 +988,14 @@ graph TD
     B -- not found --> V(["Throw ValidationException: Match not found"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_LIVE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D[Create MatchEvent record]
-    D --> E[Persist event]
+    C -- allowed --> LV{"match.status is LIVE or HALF_TIME?"}
+    LV -- No --> VL(["Throw ValidationException: events only while live"])
+    LV -- Yes --> AS{"assistPlayerId given?"}
+    AS -- Yes --> AV{"type == GOAL by one of our players, assister != scorer, assister called up?"}
+    AV -- No --> VA(["Throw ValidationException"])
+    AV -- Yes --> D
+    AS -- No --> D["Create MatchEvent record — period = 2 if LIVE with secondHalfStartedAt set, else 1"]
+    D --> E["Persist event; if an assist was given, also persist an ASSIST at the same minute/period with relatedEventId = the goal"]
     E --> G["Recalculate score from all events for this match"]
     G --> H["Publish LiveMatchUpdate(event, score) via LiveMatchBus for matchId"]
     H --> H2["Publish ClubMatchesUpdate(score) via ClubMatchesBus for match.clubId (§8.5)"]
@@ -989,15 +1014,19 @@ graph TD
     B -- not found --> N1(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_LIVE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D[Fetch Event by id]
+    C -- allowed --> LV{"match.status is LIVE or HALF_TIME?"}
+    LV -- No --> VL(["Throw ValidationException: events only while live"])
+    LV -- Yes --> D[Fetch Event by id]
     D -- not found --> N2(["Throw NotFoundException"])
     D -- event.matchId != matchId --> V(["Throw ValidationException"])
-    D -- ok --> E[Delete event]
+    D -- ok --> E["Delete any ASSIST linked to it (relatedEventId == eventId), then the event itself"]
     E --> G[Recalculate score]
     G --> H["Publish LiveMatchUpdate(score, deletedEventId) via LiveMatchBus"]
     H --> H2["Publish ClubMatchesUpdate(score) via ClubMatchesBus for match.clubId (§8.5)"]
     H2 --> Z(["Return success"])
 ```
+
+Events can only be added (§8.1) or removed (here) while the match is `LIVE` or `HALF_TIME`. Before kickoff there is nothing to log, and once the match is `FINISHED` its player stats are frozen from these events (§8.2f), so they can't change afterwards.
 
 Removes a mis-logged goal, card, or substitution row. The client always confirms with the user first (see below — "Confirms only on Full time and event deletion").
 
@@ -1016,7 +1045,14 @@ graph TD
     E -- No --> R1(["Return false — no broadcast"])
     E -- Yes --> F{"newStatus == LIVE and previous status == HALF_TIME?"}
     F -- Yes --> F2["Set Match.secondHalfStartedAt = now"]
-    F -- No --> G
+    F -- No --> HT{"newStatus == HALF_TIME?"}
+    HT -- Yes --> HT2["Set Match.firstHalfEndMinute = elapsedMatchSeconds / 60"]
+    HT -- No --> FT{"newStatus == FINISHED?"}
+    FT -- Yes --> FT2["Set Match.fullTimeMinute (from the break: firstHalfEndMinute; else elapsedMatchSeconds / 60)"]
+    FT2 --> FT3["MatchPlayerStatsCalculator over call-ups + events; replace match_player_stats rows (§8.2f)"]
+    FT -- No --> G
+    HT2 --> G
+    FT3 --> G
     F2 --> G[Recalculate current score]
     G --> H["Publish LiveMatchUpdate(score, status) via LiveMatchBus"]
     H --> R2b["Transaction commits"]
@@ -1034,6 +1070,32 @@ graph TD
 Status values flow `SCHEDULED → LIVE → HALF_TIME → FINISHED` (or `CANCELLED`). The use case now validates the transition against `VALID_MATCH_STATUS_TRANSITIONS`: `SCHEDULED → CANCELLED` only (kickoff, i.e. `SCHEDULED → LIVE`, stays exclusive to `StartMatchUseCase`, §8.0 — this is a real HTTP route in its own right, `MatchRoutes.kt`, so without this guard a caller could set a match LIVE here directly and skip `StartMatchUseCase`'s starting-line-up/half-length validation entirely); `LIVE → {HALF_TIME, FINISHED, CANCELLED}`; `HALF_TIME → {LIVE, FINISHED, CANCELLED}`; `FINISHED`/`CANCELLED` are terminal. An invalid transition throws `ValidationException`. (Previously this list closed with "but the use case does not itself validate that the requested transition is legal — any status can currently be set from any other," per §11 — now fixed there too.)
 
 On the specific `HALF_TIME → LIVE` transition (resuming for the second half), this use case also stamps `Match.secondHalfStartedAt` with the wall-clock instant — so the client's running clock can pick up from the first half's nominal length instead of restarting at 0 (see §8.4). That same transition is also how it distinguishes a second-half restart from a first-ever kickoff notification (which never reaches this use case at all — see §8.0) when deciding which push to send, per §8.2b. `CANCELLED` (from either `SCHEDULED`, `LIVE`, or `HALF_TIME`) also notifies now, alongside the three live-match transitions — a cancelled fixture is arguably the most notification-worthy of all of them.
+
+The `→ HALF_TIME` and `→ FINISHED` transitions also record the match-clock minute each ended on (`Match.firstHalfEndMinute` / `fullTimeMinute`, the same floor(seconds / 60) unit as event minutes, so stoppage time is included). Finishing straight from the break (no second half) uses `firstHalfEndMinute` as full time, since the clock stopped when the first half did. `→ FINISHED` also freezes the per-player stats (§8.2f) in the same transaction.
+
+### 8.2f Post-Match Player Stats (`MatchPlayerStatsCalculator`)
+
+Not a route. It's a pure calculator run by `UpdateMatchStatusUseCase` on the `→ FINISHED` transition. It writes one `match_player_stats` row per called-up player:
+
+```mermaid
+graph TD
+    A["Start: finished match, call-ups, events"] --> B["Halves as match-clock ranges: 1st = 0..firstHalfEndMinute; 2nd = halfLengthMinutes..fullTimeMinute (only if the 2nd half started)"]
+    B --> C{For each called-up player}
+    C --> D["onPitch = isStarting"]
+    D --> E["For each half: walk the player's SUBSTITUTION_IN / SUBSTITUTION_OUT / RED_CARD events, in minute order, clamped into the half"]
+    E --> F["IN while off: start counting at that minute. OUT or RED while on: add minute - start, stop counting"]
+    F --> G["At the half's end, still on: add end - start. State carries over the break"]
+    G --> H["goals / assists / ownGoals / yellowCards / redCards = counts of the player's own (non-opponent) events"]
+    H --> Z(["MatchPlayerStats: started, minutesPlayed, counts; rating = null"])
+```
+
+- **Which half an event belongs to** comes from `MatchEvent.period`, which `AddMatchEventUseCase` records when the event is logged: 1 while the first half is live or during the break, 2 once the second half has started. The minute alone can't tell, because first-half stoppage minutes (46', 47') overlap second-half ones. A substitution logged during the break is period 1, so it counts at the end of the first half and the player coming on gets the whole second half.
+  - **Why not timestamps:** comparing `createdAt` with `secondHalfStartedAt` would be wrong, because that field is the clock's reference point and moves with pause/resume and "Set minute". An end-to-end run caught a half-time substitution being credited to the second half that way.
+  - **Older events:** events logged before `period` existed still fall back to that timestamp comparison.
+- **Worked example:** 45-minute halves, the first ending at 47' and the second at 93'. A player who plays the whole match gets 47 + 48 = 95 minutes.
+- **Fallbacks:** if either end minute is missing, it falls back to the nominal half length.
+- **Why storing a snapshot is safe:** it is computed once and never goes stale. A finished match's events can't change (§8.1/§8.1b), and a finished match can't be deleted (§7.2b). `rating` is the only column written afterwards, by the match report (§8.6).
+- **Tests:** covered by `MatchPlayerStatsCalculatorTest` and `UpdateMatchStatusUseCaseTest`.
 
 ### 8.2b Notify Match Event (`NotifyMatchEventUseCase`)
 
@@ -1176,6 +1238,53 @@ The club-scoped counterpart to §8.3, mirroring it exactly but for the whole fix
 
 **Client**: `MatchesTab` opens this socket (via `ObserveClubMatchesUseCase` → `ClubDetailsViewModel.connectToClubMatchesUpdates`) for as long as it's on screen — a `DisposableEffect(details.club.id)` connects (and triggers a REST refresh via `refreshMatches`) when the composable enters composition, and disconnects when it leaves. Because `MatchesTab` is only composed while the Matches tab is selected, Navigation-Compose's normal dispose-on-navigate-away/recompose-on-return behavior doubles as the connect/disconnect trigger: switching to a different tab, or opening a match from the list into §8.4's live console, closes the socket; returning to the Matches tab (including back from that match screen) reopens it and re-fetches the list over REST first, since the socket carries no backlog for whatever changed while it was disconnected.
 
+### 8.6 Match Report (`GetMatchReportUseCase` / `SaveMatchReportUseCase`)
+
+The coach's post-match report for a `FINISHED` match. It has two parts:
+- **Free text:** tactic, positive aspects, less positive aspects, aspects to improve, and team notes for our team; tactic, strengths, weaknesses, best players, and additional info for the opponent.
+- **Ratings:** a 0-10 rating per called-up player, stored on that player's `match_player_stats` row (§8.2f).
+
+`GET` / `PUT /v1/matches/{matchId}/report`.
+
+```mermaid
+graph TD
+    A[Start: userId, matchId] --> B[Fetch Match by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C["CheckUserPermissionUseCase — minClubRole=COORDINATOR, minTeamRole=STAFF, teamId (no player/parent access)"]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D{status == FINISHED?}
+    D -- No --> V(["Throw ValidationException"])
+    D -- Yes --> E["playerStats = match_player_stats rows joined to the call-up's players"]
+    E --> G["canEdit = non-throwing probe of configurablePermission=MANAGE_MATCH on the team"]
+    G --> Z(["Return MatchReportDetails: match, report (null until first saved), updatedByName, playerStats, canEdit"])
+```
+
+```mermaid
+graph TD
+    A2[Start: userId, matchId, SaveMatchReportRequest] --> B2[Fetch Match by id]
+    B2 -- not found --> N2(["Throw NotFoundException"])
+    B2 -- found --> C2["CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_MATCH, teamId"]
+    C2 -- denied --> F2(["Throw ForbiddenException"])
+    C2 -- allowed --> D2{status == FINISHED?}
+    D2 -- No --> V2(["Throw ValidationException"])
+    D2 -- Yes --> E2{"ratings: each player once, each 0-10 or null, each player has a stats row?"}
+    E2 -- No --> V2
+    E2 -- Yes --> G2["Upsert match_reports (blank text becomes null). completedAt = existing ?: (complete ? now : null)"]
+    G2 --> H2["updateRatings on match_player_stats"]
+    H2 --> Z2(["Return MatchReport"])
+```
+
+- **Who can read it:** coordinators/admins and the match's age-group staff only. Players and parents can't, even though they can read the rest of the match, because the report holds ratings and the coach's notes.
+- **Who can write it:** anyone who clears `MANAGE_MATCH`, the same configurable permission as scheduling and editing the match (Coach by default).
+- **Drafts and completion:** saving with `complete = false` keeps a draft, and the report stays in the Home tab's to-do (§3.3b) until it's completed. Once completed it stays completed, and remains editable.
+- **Tests:** covered by `GetMatchReportUseCaseTest` and `SaveMatchReportUseCaseTest`.
+- **Response extras:** `MatchReportDetails` also carries `teamName`, `opponentName` and `updatedByName` for the screen header and its "Last updated … by …" line.
+
+**Client:** Match Details' report card opens `MatchReportScreen`:
+- **"Fill in report":** opens the editor.
+- **"View report":** opens the read view, with Edit available to whoever can edit.
+- **Returning:** the first successful save flags the screen that opened the report, so the card and Home's to-do update. It flags right away, not on exit, because the system back button leaves without going through the screen's back handler. See `TECHNICAL_DECISIONS.md` §41 for the screen design.
+
 ---
 
 ## 9. Dashboards
@@ -1276,7 +1385,7 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
 
 ## 12. Database Schema: Current State of the Art
 
-Source of truth: `server/src/main/kotlin/.../data/database/Tables.kt` (18 Exposed `Table` objects, describing the schema for query-building) **and** the versioned SQL files under `server/src/main/resources/db/migration/` (which actually create/alter it — see `TECHNICAL_DECISIONS.md` §34). `DatabaseFactory.init()` runs Flyway against those files on every boot, so the diagram below and the real Postgres tables are guaranteed to match *as long as every `Tables.kt` change ships with a matching new migration file* — unlike the old `SchemaUtils.createMissingTablesAndColumns` approach, Flyway does not infer schema changes from `Tables.kt` automatically.
+Source of truth: `server/src/main/kotlin/.../data/database/Tables.kt` (20 Exposed `Table` objects, describing the schema for query-building) **and** the versioned SQL files under `server/src/main/resources/db/migration/` (which actually create/alter it — see `TECHNICAL_DECISIONS.md` §34). `DatabaseFactory.init()` runs Flyway against those files on every boot, so the diagram below and the real Postgres tables are guaranteed to match *as long as every `Tables.kt` change ships with a matching new migration file* — unlike the old `SchemaUtils.createMissingTablesAndColumns` approach, Flyway does not infer schema changes from `Tables.kt` automatically.
 
 ### 12.1 Entity-Relationship Diagram
 
@@ -1309,6 +1418,10 @@ erDiagram
     MATCHES ||--o{ MATCH_CALL_UPS : calls_up_for
     PLAYERS ||--o{ MATCH_CALL_UPS : called_up_in
     MATCHES ||--o{ MATCH_EVENTS : logs
+    MATCHES ||--o{ MATCH_PLAYER_STATS : summarizes
+    PLAYERS ||--o{ MATCH_PLAYER_STATS : played_in
+    MATCHES ||--o| MATCH_REPORTS : reported_in
+    USERS ||--o{ MATCH_REPORTS : last_edited
     PLAYERS ||--o{ MATCH_EVENTS : optionally_involved
 
     USERS {
@@ -1450,6 +1563,8 @@ erDiagram
         timestamp kickoff_at "nullable -- wall-clock instant of kickoff, set by StartMatchUseCase"
         timestamp second_half_started_at "nullable -- wall-clock instant the 2nd half resumed, set by UpdateMatchStatusUseCase on HALF_TIME -> LIVE"
         timestamp paused_at "nullable -- wall-clock instant the clock was frozen, set by PauseMatchUseCase, cleared by ResumeMatchUseCase"
+        integer first_half_end_minute "nullable -- match-clock minute the first half ended, set on LIVE -> HALF_TIME"
+        integer full_time_minute "nullable -- match-clock minute at full time, set on -> FINISHED; its presence marks a match with stored player stats"
     }
     MATCH_CALL_UPS {
         uuid id PK
@@ -1468,12 +1583,44 @@ erDiagram
         varchar opponent_player_name "255 chars, nullable"
         boolean is_opponent "default false"
         timestamp created_at
+        integer period "nullable -- 1 or 2, the half it happened in, recorded when logged"
+        uuid related_event_id FK "nullable -- an ASSIST's GOAL (V8)"
+    }
+    MATCH_PLAYER_STATS {
+        uuid id PK
+        uuid match_id FK
+        uuid player_id FK
+        boolean started
+        integer minutes_played
+        integer goals "default 0"
+        integer assists "default 0"
+        integer own_goals "default 0"
+        integer yellow_cards "default 0"
+        integer red_cards "default 0"
+        integer rating "nullable -- 0-10, set by the coach's match report"
+    }
+    MATCH_REPORTS {
+        uuid id PK
+        uuid match_id FK "unique -- one report per match"
+        text tactic "nullable -- free text, e.g. 4-4-2"
+        text positive_aspects "nullable"
+        text less_positive_aspects "nullable"
+        text aspects_to_improve "nullable"
+        text team_notes "nullable"
+        text opponent_tactic "nullable -- free text, e.g. 3-5-2 (V7)"
+        text opponent_strengths "nullable"
+        text opponent_weaknesses "nullable"
+        text opponent_best_players "nullable"
+        text opponent_additional_info "nullable"
+        timestamp completed_at "nullable -- null while pending (Home tab to-do)"
+        timestamp updated_at
+        uuid updated_by FK
     }
 ```
 
 ### 12.2 Constraints & defaults worth knowing
 
-- **Unique indexes**: `users.email`; `refresh_tokens.token`; `club_members(club_id, user_id)` — one membership per user per club (`V3__unique_club_members.sql`); both add-member repository methods insert with `ON CONFLICT DO NOTHING`, so re-adding an existing member keeps their current row and role rather than duplicating or downgrading it; `fcm_tokens.token` — deliberately on the token alone rather than `(user_id, token)`, since a token identifies one app install, not one user; a registration endpoint that gets the same token again (shared device, or a re-login without reinstalling) should reassign the existing row's `user_id` rather than insert a duplicate; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list.
+- **Unique indexes**: `users.email`; `refresh_tokens.token`; `club_members(club_id, user_id)` — one membership per user per club (`V3__unique_club_members.sql`); both add-member repository methods insert with `ON CONFLICT DO NOTHING`, so re-adding an existing member keeps their current row and role rather than duplicating or downgrading it; `fcm_tokens.token` — deliberately on the token alone rather than `(user_id, token)`, since a token identifies one app install, not one user; a registration endpoint that gets the same token again (shared device, or a re-login without reinstalling) should reassign the existing row's `user_id` rather than insert a duplicate; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list; `match_player_stats(match_id, player_id)` — one stats line per player per match; `match_reports.match_id` — one report per match. A `CHECK` keeps `match_player_stats.rating` NULL or between 0 and 10.
 - **Nullable foreign keys**: `invites.player_id` (only set for `PARENT_PLAYER` invites) and `match_events.player_id` (null when `is_opponent = true`, since the event belongs to a player on the opposing team who isn't in the `players` table).
 - **No `onDelete` behavior is configured on any foreign key** — every `.references(...)` call in `Tables.kt` uses the Exposed default (`NO ACTION`). Deleting a row that still has children (e.g. a `Club` with existing `Teams`) will fail at the database level rather than cascading, nulling out, or being blocked at the application layer with a friendlier error.
 - Several `enum` columns are nullable independently of their parent row's lifecycle: `club_members.role`/`age_group_staff.role`/`user_players.relationship` are all non-null (required at creation), while `invites.role` and `invites.relationship` are nullable because a single `Invite` row is reused for both invite shapes (see §10) and only one of the two is populated depending on `type`.
@@ -1500,7 +1647,7 @@ erDiagram
 ### 12.4 Current persistence setup
 
 - **Engine**: PostgreSQL, both dev and production. H2 has been removed entirely. The connection is built from `ServerConfig.kt`'s `DATABASE_HOST`/`DATABASE_PORT`/`DATABASE_USER`/`DATABASE_PASSWORD`/`DATABASE_NAME` env vars — host and password are required explicitly when `APP_ENV=production` (no silent fallback), while the database name defaults per environment (`squadify_dev` / `squadify_production`), so dev and production stay isolated even against the same Postgres server. `docker-compose.yml` at the repo root provides a local Postgres matching the dev defaults.
-- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, and `V3__unique_club_members.sql`. An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
+- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, `V5__match_reports.sql`, `V6__match_event_period.sql`, `V7__match_report_opponent_tactic.sql`, and `V8__match_event_assist_link.sql`. An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
 - **Legacy backfill**: right after Flyway, `DatabaseFactory.init()` still runs a raw, idempotent SQL block that backfills `age_groups.start_year`/`end_year` from the old single `birth_year` column (if it still exists) and then drops that column (§4.3/§5.3). It's a no-op once `birth_year` is gone. It was deliberately left outside the migration chain because there's no way to confirm every environment has already run it.
 - **Connection pool**: HikariCP, `maximumPoolSize = 3` in dev / `10` in production, `autoCommit = false`, isolation level `TRANSACTION_REPEATABLE_READ`.
 

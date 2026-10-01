@@ -415,6 +415,8 @@ private sealed class ActionSheet {
     data class PlayerActions(val row: SquadPlayerRow, val onPitch: Boolean) : ActionSheet()
     data class PickComingOn(val outgoingId: String, val outgoingName: String) : ActionSheet()
     data class PickGoingOff(val incomingId: String, val incomingName: String) : ActionSheet()
+    // Step 2 of logging a goal: who assisted it (optional). [minute] is fixed when Goal was tapped.
+    data class PickAssist(val scorerId: String, val scorerName: String, val minute: Int) : ActionSheet()
 }
 
 @Composable
@@ -925,11 +927,10 @@ private fun PlayerActionSheet(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     if (sheet.onPitch) {
+                        // A goal goes on to an optional "who assisted?" step; assists are only logged
+                        // that way, attached to their goal.
                         SheetAction(stringResource(Res.string.action_log_goal), enabled = enabled) {
-                            viewModel.onLogEvent(EventType.GOAL, sheet.row.player.id, minute); onDismiss()
-                        }
-                        SheetAction(stringResource(Res.string.action_log_assist), enabled = enabled) {
-                            viewModel.onLogEvent(EventType.ASSIST, sheet.row.player.id, minute); onDismiss()
+                            onChangeSheet(ActionSheet.PickAssist(sheet.row.player.id, name, minute))
                         }
                         SheetAction(stringResource(Res.string.action_log_yellow_card), enabled = enabled) {
                             viewModel.onLogEvent(EventType.YELLOW_CARD, sheet.row.player.id, minute); onDismiss()
@@ -960,8 +961,26 @@ private fun PlayerActionSheet(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     squad.bench.forEach { row ->
-                        SheetAction("${row.player.shirtNumber ?: "-"} · ${row.player.firstName} ${row.player.lastName}", enabled = enabled) {
+                        SheetAction(pickerLabel(row.player), enabled = enabled) {
                             viewModel.onSubstitute(sheet.outgoingId, row.player.id, minute); onDismiss()
+                        }
+                    }
+                }
+
+                is ActionSheet.PickAssist -> {
+                    Text(
+                        stringResource(Res.string.title_pick_assist, sheet.scorerName),
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    // The assist is optional: "No assist" first, then the scorer's teammates on the pitch.
+                    SheetAction(stringResource(Res.string.action_no_assist), enabled = enabled) {
+                        viewModel.onLogPlayerGoal(sheet.scorerId, assistPlayerId = null, minute = sheet.minute); onDismiss()
+                    }
+                    squad.onPitch.filter { it.player.id != sheet.scorerId }.forEach { row ->
+                        SheetAction(pickerLabel(row.player), enabled = enabled) {
+                            viewModel.onLogPlayerGoal(sheet.scorerId, assistPlayerId = row.player.id, minute = sheet.minute); onDismiss()
                         }
                     }
                 }
@@ -974,7 +993,7 @@ private fun PlayerActionSheet(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     squad.onPitch.forEach { row ->
-                        SheetAction("${row.player.shirtNumber ?: "-"} · ${row.player.firstName} ${row.player.lastName}", enabled = enabled) {
+                        SheetAction(pickerLabel(row.player), enabled = enabled) {
                             viewModel.onSubstitute(row.player.id, sheet.incomingId, minute); onDismiss()
                         }
                     }
@@ -982,6 +1001,12 @@ private fun PlayerActionSheet(
             }
         }
     }
+}
+
+/** "- 10 · Tomás Bragança", or "- Tomás Bragança" when the player has no shirt number. */
+private fun pickerLabel(player: Player): String {
+    val name = "${player.firstName} ${player.lastName}"
+    return player.shirtNumber?.let { "- $it · $name" } ?: "- $name"
 }
 
 @Composable
@@ -1005,7 +1030,8 @@ private sealed class DisplayEvent {
     abstract val key: String
     abstract val createdAt: Instant
 
-    data class Simple(val event: MatchEvent) : DisplayEvent() {
+    // [assist]: for one of our goals, the ASSIST linked to it (MatchEvent.relatedEventId), shown on the same line.
+    data class Simple(val event: MatchEvent, val assist: MatchEvent? = null) : DisplayEvent() {
         override val minute get() = event.minute
         override val key get() = event.id
         override val createdAt get() = event.createdAt
@@ -1032,7 +1058,15 @@ private fun buildDisplayEvents(events: List<MatchEvent>): List<DisplayEvent> {
         }
     }
     val pairedIds = paired.flatMap { listOf(it.out.id, it.into.id) }.toSet()
-    val simples = events.filter { it.id !in pairedIds }.map { DisplayEvent.Simple(it) }
+    // A linked assist is shown on its goal's line, not as a row of its own.
+    val eventIds = events.map { it.id }.toSet()
+    val assistByGoal = events
+        .filter { it.type == EventType.ASSIST && it.relatedEventId != null && it.relatedEventId in eventIds }
+        .associateBy { it.relatedEventId!! }
+    val linkedAssistIds = assistByGoal.values.map { it.id }.toSet()
+    val simples = events
+        .filter { it.id !in pairedIds && it.id !in linkedAssistIds }
+        .map { DisplayEvent.Simple(it, assistByGoal[it.id]) }
     return (paired + simples).sortedWith(compareByDescending<DisplayEvent> { it.minute }.thenByDescending { it.createdAt })
 }
 
@@ -1062,7 +1096,7 @@ private fun EventRow(de: DisplayEvent, details: MatchDetails, onDelete: (() -> U
     fun nameFor(event: MatchEvent) = event.playerId?.let { playersById[it] }?.let { "${it.firstName} ${it.lastName}" } ?: "-"
 
     val (glyph, glyphColor, text) = when (de) {
-        is DisplayEvent.Simple -> eventLineFor(de.event, details, ::nameFor)
+        is DisplayEvent.Simple -> eventLineFor(de.event, details, ::nameFor, assistName = de.assist?.let(::nameFor))
         is DisplayEvent.Substitution -> Triple(
             "⇄",
             Color.White,
@@ -1102,12 +1136,13 @@ private fun EventRow(de: DisplayEvent, details: MatchDetails, onDelete: (() -> U
 }
 
 @Composable
-private fun eventLineFor(event: MatchEvent, details: MatchDetails, nameFor: (MatchEvent) -> String): Triple<String, Color, String> {
+private fun eventLineFor(event: MatchEvent, details: MatchDetails, nameFor: (MatchEvent) -> String, assistName: String? = null): Triple<String, Color, String> {
     val ourName = event.playerId?.let { nameFor(event) }
     val opponentName = details.opponent.shortName ?: details.opponent.name
     return when (event.type) {
         EventType.GOAL -> when {
             event.isOpponent -> Triple("•", Color.White.copy(alpha = 0.6f), stringResource(Res.string.label_event_goal, opponentName))
+            ourName != null && assistName != null -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal_with_assist, ourName, assistName))
             ourName != null -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal, ourName))
             else -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal_unattributed))
         }

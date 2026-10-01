@@ -3,6 +3,9 @@ package com.ricardofrango.squadify.domain.usecase
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
+import com.ricardofrango.squadify.domain.repository.UserRepository
+import com.ricardofrango.squadify.domain.repository.MatchReportRepository
+import com.ricardofrango.squadify.domain.repository.MatchPlayerStatsRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
@@ -13,6 +16,9 @@ import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchDetails
+import com.ricardofrango.squadify.model.MatchReportStatus
+import com.ricardofrango.squadify.model.MatchReportSummary
+import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.TeamRole
 
 class GetMatchDetailsUseCase(
@@ -23,6 +29,9 @@ class GetMatchDetailsUseCase(
     private val seasonRepository: SeasonRepository,
     private val playerRepository: PlayerRepository,
     private val matchEventRepository: MatchEventRepository,
+    private val matchReportRepository: MatchReportRepository,
+    private val matchPlayerStatsRepository: MatchPlayerStatsRepository,
+    private val userRepository: UserRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager
 ) {
@@ -73,6 +82,39 @@ class GetMatchDetailsUseCase(
             false
         }
 
+        val canManageMatch = canDo(ConfigurablePermission.MANAGE_MATCH)
+
+        // The report card: only for a finished match, and only for someone who may read the report
+        // (same gate as GetMatchReportUseCase -- coordinators/admins and the age group's staff).
+        val canReadReport = match.status == MatchStatus.FINISHED && try {
+            checkUserPermissionUseCase(
+                userId = userId,
+                clubId = match.clubId,
+                minClubRole = ClubRole.COORDINATOR,
+                minTeamRole = TeamRole.STAFF,
+                teamId = match.teamId
+            )
+            true
+        } catch (e: ForbiddenException) {
+            false
+        }
+        val report = if (canReadReport) {
+            val saved = matchReportRepository.getByMatch(matchId)
+            val stats = matchPlayerStatsRepository.getByMatch(matchId)
+            MatchReportSummary(
+                status = when {
+                    saved == null -> MatchReportStatus.NOT_STARTED
+                    saved.completedAt != null -> MatchReportStatus.COMPLETED
+                    else -> MatchReportStatus.DRAFT
+                },
+                updatedAt = saved?.updatedAt,
+                updatedByName = saved?.let { userRepository.findById(it.updatedByUserId) }?.let { "${it.firstName} ${it.lastName}" },
+                ratedPlayers = stats.count { it.rating != null },
+                ratablePlayers = stats.size,
+                canEdit = canManageMatch
+            )
+        } else null
+
         MatchDetails(
             match = match,
             opponent = opponent,
@@ -81,10 +123,11 @@ class GetMatchDetailsUseCase(
             season = season,
             callUps = callUps,
             poolPlayers = poolPlayers,
-            canManageMatch = canDo(ConfigurablePermission.MANAGE_MATCH),
+            canManageMatch = canManageMatch,
             canManageCallUps = canDo(ConfigurablePermission.MANAGE_CALL_UPS),
             canManageLiveMatch = canDo(ConfigurablePermission.MANAGE_LIVE_MATCH),
-            score = matchEventRepository.getScoreByMatch(matchId)
+            score = matchEventRepository.getScoreByMatch(matchId),
+            report = report
         )
     }
 }

@@ -26,6 +26,8 @@ val appModule = module {
     single<InviteRepository> { ExposedInviteRepository() }
     single<MatchRepository> { ExposedMatchRepository() }
     single<MatchEventRepository> { ExposedMatchEventRepository() }
+    single<MatchPlayerStatsRepository> { ExposedMatchPlayerStatsRepository() }
+    single<MatchReportRepository> { ExposedMatchReportRepository() }
     single<OpponentRepository> { ExposedOpponentRepository() }
     single<FcmTokenRepository> { ExposedFcmTokenRepository() }
     single<ClubPermissionRepository> { ExposedClubPermissionRepository() }
@@ -40,7 +42,7 @@ val appModule = module {
     // Use Cases
     factory { GetClubsUseCase(get(), get(), get()) }
     factory { GetClubDetailsUseCase(get(), get(), get()) }
-    factory { GetClubHomeUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { GetClubHomeUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { ProvisionClubUseCase(get(), get(), get(), get(), get(), get()) }
     factory { RegisterUseCase(get(), get(), get(), get(), get()) }
     factory {
@@ -94,10 +96,12 @@ val appModule = module {
     factory { GetTeamsUseCase(get(), get(), get(), get(), get(), get()) }
     factory { CreateMatchUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { GetMatchesUseCase(get(), get(), get(), get(), get(), get(), get()) }
-    factory { GetMatchDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { GetMatchDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { UpdateMatchUseCase(get(), get(), get(), get(), get(), get()) }
     factory { DeleteMatchUseCase(get(), get(), get(), get(), get()) }
-    factory { UpdateMatchStatusUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { GetMatchReportUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { SaveMatchReportUseCase(get(), get(), get(), get(), get()) }
+    factory { UpdateMatchStatusUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { StartMatchUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { PauseMatchUseCase(get(), get(), get(), get(), get(), get()) }
     factory { ResumeMatchUseCase(get(), get(), get(), get(), get(), get()) }

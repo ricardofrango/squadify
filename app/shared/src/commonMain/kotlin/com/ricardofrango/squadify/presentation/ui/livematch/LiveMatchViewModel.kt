@@ -186,6 +186,15 @@ class LiveMatchViewModel(
 
     fun onLogEvent(type: EventType, playerId: String, minute: Int) = addEvent(CreateMatchEventRequest(type, minute, playerId = playerId))
 
+    /** One of our players scored; [assistPlayerId] is optional. The server saves the goal and its assist
+     * together, so the event list is refetched to pick up the assist alongside the goal. */
+    fun onLogPlayerGoal(scorerId: String, assistPlayerId: String?, minute: Int) = runSubmitting { current ->
+        addMatchEventUseCase(matchId, CreateMatchEventRequest(EventType.GOAL, minute, playerId = scorerId, assistPlayerId = assistPlayerId))
+        val events = getMatchEventsUseCase(matchId)
+        val score = getMatchScoreUseCase(matchId)
+        current.copy(events = events.sortedBy { it.minute }, score = score, isSubmitting = false)
+    }
+
     fun onSubstitute(outPlayerId: String, inPlayerId: String, minute: Int) = runSubmitting { current ->
         val outEvent = addMatchEventUseCase(matchId, CreateMatchEventRequest(EventType.SUBSTITUTION_OUT, minute, playerId = outPlayerId))
         val inEvent = addMatchEventUseCase(matchId, CreateMatchEventRequest(EventType.SUBSTITUTION_IN, minute, playerId = inPlayerId))
@@ -195,7 +204,8 @@ class LiveMatchViewModel(
     fun onDeleteEvent(eventId: String) = runSubmitting { current ->
         deleteMatchEventUseCase(matchId, eventId)
         val score = getMatchScoreUseCase(matchId)
-        current.copy(events = current.events.filterNot { it.id == eventId }, score = score, isSubmitting = false)
+        // Deleting a goal also removes its linked assist on the server -- drop both here.
+        current.copy(events = current.events.filterNot { it.id == eventId || it.relatedEventId == eventId }, score = score, isSubmitting = false)
     }
 
     /** Deletes both halves of a logged substitution together -- see LiveMatchScreen's paired row. */

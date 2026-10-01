@@ -11,6 +11,7 @@ import com.ricardofrango.squadify.model.ClubMatchesUpdate
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.LiveMatchUpdate
+import com.ricardofrango.squadify.model.MatchStatus
 
 /**
  * Removes a logged event (a mis-tap goal, card, or substitution) and re-broadcasts the recomputed
@@ -41,14 +42,25 @@ class DeleteMatchEventUseCase(
             errorMessage = "Insufficient permissions to delete match events"
         )
 
+        // Same rule as AddMatchEventUseCase: a FINISHED match's events (and the player stats frozen
+        // from them) are final.
+        if (match.status != MatchStatus.LIVE && match.status != MatchStatus.HALF_TIME) {
+            throw ValidationException("Events can only be removed while the match is live")
+        }
+
         val event = matchEventRepository.getEventById(eventId) ?: throw NotFoundException("Event not found")
         if (event.matchId != matchId) {
             throw ValidationException("Event does not belong to this match")
         }
 
+        // A goal takes its assist with it (the assist points at the goal, so it goes first).
+        val linkedAssists = matchEventRepository.getEventsByMatch(matchId).filter { it.relatedEventId == eventId }
+        linkedAssists.forEach { matchEventRepository.deleteEvent(it.id) }
+
         val success = matchEventRepository.deleteEvent(eventId)
         if (success) {
             val score = matchEventRepository.getScoreByMatch(matchId)
+            linkedAssists.forEach { liveMatchBus.publish(matchId, LiveMatchUpdate(score = score, deletedEventId = it.id)) }
             liveMatchBus.publish(matchId, LiveMatchUpdate(score = score, deletedEventId = eventId))
             clubMatchesBus.publish(match.clubId, ClubMatchesUpdate(score = score))
         }

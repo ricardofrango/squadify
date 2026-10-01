@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
+import com.ricardofrango.squadify.domain.repository.MatchReportRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
@@ -16,6 +17,8 @@ import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.ClubHomeAlertType
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ConfigurablePermission
+import com.ricardofrango.squadify.model.ClubPermissionSetting
 import com.ricardofrango.squadify.model.ClubStatus
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchStatus
@@ -45,6 +48,8 @@ class GetClubHomeUseCaseTest {
     private val seasonRepository = mockk<SeasonRepository>()
     private val ageGroupRepository = mockk<AgeGroupRepository>()
     private val matchRepository = mockk<MatchRepository>()
+    private val matchReportRepository = mockk<MatchReportRepository>()
+    init { coEvery { matchReportRepository.getCompletedMatchIds(any()) } returns emptySet() }
     private val opponentRepository = mockk<OpponentRepository>()
     private val userRepository = mockk<UserRepository>()
     private val transactionManager = object : TransactionManager {
@@ -57,7 +62,7 @@ class GetClubHomeUseCaseTest {
     )
     private val useCase = GetClubHomeUseCase(
         clubRepository, teamRepository, playerRepository, seasonRepository, ageGroupRepository,
-        matchRepository, opponentRepository, userRepository, checkUserPermissionUseCase, transactionManager
+        matchRepository, matchReportRepository, clubPermissionRepository, opponentRepository, userRepository, checkUserPermissionUseCase, transactionManager
     )
 
     private val clubId = "club-1"
@@ -121,7 +126,8 @@ class GetClubHomeUseCaseTest {
         // Only teamA has an upcoming match -> exactly one Next up row, none for teamB.
         assertEquals(listOf("Sub-15 A"), home.nextUp.map { it.teamName })
         assertEquals("AD Fontelas", home.nextUp.first().opponentName)
-        assertTrue(home.alerts.isEmpty())
+        // Admins see everything pending in the club: the in-window match has no call-ups yet.
+        assertEquals(listOf(ClubHomeAlertType.CALLUPS_UNSENT), home.alerts.map { it.type })
     }
 
     @Test
@@ -163,5 +169,106 @@ class GetClubHomeUseCaseTest {
         assertEquals(1, alerts.size)
         assertEquals(ClubHomeAlertType.CALLUPS_UNSENT, alerts.first().type)
         assertEquals(1, alerts.first().count)
+    }
+
+    @Test
+    fun coachSeesFinishedMatchesWhoseReportIsNotCompleted() = runBlocking {
+        val u = "coach"
+        baseStubs(u, ClubRole.MEMBER)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns TeamRole.COACH
+        val pending = match("m-pending", teamA.id, (-2).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 92)
+        val done = match("m-done", teamA.id, (-9).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
+        // Finished before post-match stats existed: no full-time minute, no to-do.
+        val legacy = match("m-legacy", teamA.id, (-30).days).copy(status = MatchStatus.FINISHED)
+        // Another age group's match: not this coach's to-do.
+        val otherTeam = match("m-other", teamB.id, (-1).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
+        coEvery { matchRepository.getMatchesByClub(clubId) } returns listOf(pending, done, legacy, otherTeam)
+        coEvery { matchRepository.getMatchesByTeam(any()) } returns emptyList()
+        coEvery { matchReportRepository.getCompletedMatchIds(listOf("m-pending", "m-done")) } returns setOf("m-done")
+
+        val alerts = useCase(u, clubId).alerts.filter { it.type == ClubHomeAlertType.MATCH_REPORT_PENDING }
+
+        assertEquals(listOf("m-pending"), alerts.map { it.matchId })
+        assertEquals("Sub-15 A", alerts.single().teamName)
+        assertEquals("AD Fontelas", alerts.single().opponentName)
+    }
+
+    @Test
+    fun aCoordinatorSeesEveryPendingReportInTheClubWithoutCoachingAnything() = runBlocking {
+        val u = "coord"
+        baseStubs(u, ClubRole.COORDINATOR)
+        coEvery { ageGroupRepository.getAgeGroupStaff(any()) } returns
+            listOf(AgeGroupStaffMember("c1", "Nuno", "F", TeamRole.COACH))
+        val a = match("m-a", teamA.id, (-2).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 92)
+        val b = match("m-b", teamB.id, (-5).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
+        coEvery { matchRepository.getMatchesByClub(clubId) } returns listOf(a, b)
+        coEvery { matchRepository.getMatchesByTeam(any()) } returns emptyList()
+
+        val reports = useCase(u, clubId).alerts.filter { it.type == ClubHomeAlertType.MATCH_REPORT_PENDING }
+
+        // Both age groups, oldest first.
+        assertEquals(listOf("m-b", "m-a"), reports.map { it.matchId })
+    }
+
+    @Test
+    fun aPlatformAdminSeesEverythingPendingToo() = runBlocking {
+        val u = "platform"
+        baseStubs(u, null)
+        coEvery { userRepository.findById(u) } returns user(u, admin = true)
+        coEvery { ageGroupRepository.getAgeGroupStaff(any()) } returns
+            listOf(AgeGroupStaffMember("c1", "Nuno", "F", TeamRole.COACH))
+        val pending = match("m-p", teamB.id, (-1).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
+        val noCallUps = match("m-s", teamA.id, 2.days)
+        coEvery { matchRepository.getMatchesByClub(clubId) } returns listOf(pending, noCallUps)
+        coEvery { matchRepository.getMatchesByTeam(any()) } returns emptyList()
+        coEvery { matchRepository.getCallUpsForMatch("m-s") } returns emptyList()
+
+        val types = useCase(u, clubId).alerts.map { it.type }
+
+        assertEquals(listOf(ClubHomeAlertType.CALLUPS_UNSENT, ClubHomeAlertType.MATCH_REPORT_PENDING), types)
+    }
+
+    @Test
+    fun ageGroupStaffDontSeeReportsByDefault() = runBlocking {
+        // MANAGE_MATCH defaults to Coach, so a staff member can't fill the report and isn't nagged.
+        val u = "staff"
+        baseStubs(u, ClubRole.MEMBER)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns TeamRole.STAFF
+        val pending = match("m-p", teamA.id, (-1).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
+        coEvery { matchRepository.getMatchesByClub(clubId) } returns listOf(pending)
+        coEvery { matchRepository.getMatchesByTeam(any()) } returns emptyList()
+
+        assertTrue(useCase(u, clubId).alerts.none { it.type == ClubHomeAlertType.MATCH_REPORT_PENDING })
+    }
+
+    @Test
+    fun ageGroupStaffSeeReportsWhenTheClubOpensManageMatchToStaff() = runBlocking {
+        val u = "staff"
+        baseStubs(u, ClubRole.MEMBER)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns TeamRole.STAFF
+        coEvery { clubPermissionRepository.getOverride(clubId, ConfigurablePermission.MANAGE_MATCH) } returns
+            ClubPermissionSetting(ConfigurablePermission.MANAGE_MATCH, TeamRole.STAFF)
+        val mine = match("m-mine", teamA.id, (-1).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
+        val other = match("m-other", teamB.id, (-1).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
+        coEvery { matchRepository.getMatchesByClub(clubId) } returns listOf(mine, other)
+        coEvery { matchRepository.getMatchesByTeam(any()) } returns emptyList()
+
+        val reports = useCase(u, clubId).alerts.filter { it.type == ClubHomeAlertType.MATCH_REPORT_PENDING }
+
+        assertEquals(listOf("m-mine"), reports.map { it.matchId })
+    }
+
+    @Test
+    fun aCoachDoesntSeeReportsWhenTheClubMakesThemCoordinatorOnly() = runBlocking {
+        val u = "coach"
+        baseStubs(u, ClubRole.MEMBER)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns TeamRole.COACH
+        coEvery { clubPermissionRepository.getOverride(clubId, ConfigurablePermission.MANAGE_MATCH) } returns
+            ClubPermissionSetting(ConfigurablePermission.MANAGE_MATCH, null)
+        val pending = match("m-p", teamA.id, (-1).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
+        coEvery { matchRepository.getMatchesByClub(clubId) } returns listOf(pending)
+        coEvery { matchRepository.getMatchesByTeam(any()) } returns emptyList()
+
+        assertTrue(useCase(u, clubId).alerts.none { it.type == ClubHomeAlertType.MATCH_REPORT_PENDING })
     }
 }
