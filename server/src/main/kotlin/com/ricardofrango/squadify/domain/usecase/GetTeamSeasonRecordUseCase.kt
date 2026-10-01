@@ -92,11 +92,12 @@ class GetTeamSeasonRecordUseCase(
                 minutesPlayed = s.minutesPlayed,
                 goals = s.goals,
                 assists = s.assists,
-                rating = s.rating?.takeIf { s.matchId in completedReports }
+                rating = s.rating?.takeIf { s.matchId in completedReports },
+                started = s.started
             )
         }
         val players = playerRepository.getPlayersData(lines.map { it.playerId }.distinct())
-            .map { TeamSeasonPlayer(it.id, "${it.firstName} ${it.lastName}") }
+            .map { TeamSeasonPlayer(it.id, "${it.firstName} ${it.lastName}", it.shirtNumber, it.position) }
 
         TeamSeasonRecord(
             teamId = teamId,

@@ -114,12 +114,12 @@ fun StatsHeaderRow(title: String, pillText: String?, onPillClick: (() -> Unit)?)
 
 /** All · Competitive · Friendly, as one segmented control. */
 @Composable
-fun StatsFilterSegments(selected: StatsFilter, onSelected: (StatsFilter) -> Unit, modifier: Modifier = Modifier) {
+fun StatsFilterSegments(selected: StatsFilter, onSelected: (StatsFilter) -> Unit, modifier: Modifier = Modifier, bottomSpacing: Dp = 14.dp) {
     Row(
         modifier
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
-            .padding(bottom = 14.dp)
+            .padding(bottom = bottomSpacing)
             .clip(RoundedCornerShape(12.dp))
             .border(1.5.dp, CarbonGray.copy(alpha = 0.16f), RoundedCornerShape(12.dp))
     ) {

@@ -710,4 +710,37 @@
         <item quantity="one">%2$s jogou %1$d jogo em %3$s, antes de o Squadify registar minutos, golos ou avaliações.</item>
         <item quantity="other">%2$s jogou %1$d jogos em %3$s, antes de o Squadify registar minutos, golos ou avaliações.</item>
     </plurals>
+
+    <!-- Team Details tabs (design 32) -->
+    <string name="team_tab_stats">Estatísticas</string>
+    <string name="team_tab_matches">Jogos</string>
+    <string name="team_tab_players">Membros</string>
+    <string name="team_players_used">Utilizados</string>
+    <string name="squad_sort">Ordenar</string>
+    <string name="squad_sort_apps">Jogos</string>
+    <string name="squad_sort_minutes">Minutos</string>
+    <string name="squad_sort_goals">Golos</string>
+    <string name="squad_sort_rating">Avaliação</string>
+    <string name="squad_sort_name">Nome</string>
+    <string name="squad_bench_group">Convocados sem jogar · %1$d</string>
+    <string name="squad_bench_row">Convocado %1$d× · não jogou</string>
+    <string name="squad_staff_title">Equipa técnica do escalão</string>
+    <string name="squad_pool_title">Plantel %1$s · %2$d jogadores</string>
+    <string name="squad_pool_shared">Partilhado com %1$s</string>
+    <string name="squad_view_pool">Ver plantel</string>
+    <string name="squad_no_players_title">Ainda sem jogadores utilizados</string>
+    <string name="squad_empty_friendly">Ninguém jogou um amigável nesta época</string>
+    <string name="squad_empty_competitive">Ninguém jogou um jogo competitivo nesta época</string>
+    <string name="squad_switch_to_all">Mude para Todos para ver todos os jogadores utilizados.</string>
+    <string name="squad_load_failed_title">Não foi possível carregar os jogadores da equipa</string>
+    <string name="squad_load_failed_body">Estatísticas e Jogos continuam disponíveis. Verifique a ligação e tente novamente.</string>
+    <string name="team_first_match_hint">Aparece depois do primeiro jogo terminado. Próximo: %1$s vs %2$s.</string>
+    <string name="team_view_match">Ver jogo</string>
+    <string name="team_schedule_short">+ Agendar</string>
+    <string name="team_see_all">Ver todos os %1$d</string>
+    <string name="team_heading_count">%1$s · %2$d</string>
+    <plurals name="squad_apps">
+        <item quantity="one">%1$d jogo</item>
+        <item quantity="other">%1$d jogos</item>
+    </plurals>
 </resources>

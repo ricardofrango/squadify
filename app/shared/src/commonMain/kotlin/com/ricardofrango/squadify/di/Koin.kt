@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.di
 
 import com.ricardofrango.squadify.data.local.SessionRepositoryImpl
+import com.ricardofrango.squadify.data.local.UiPreferencesRepositoryImpl
 import com.ricardofrango.squadify.data.remote.*
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.*
@@ -114,6 +115,7 @@ val dataModule = module {
     single<OpponentRepository> { OpponentRepositoryImpl(get(), get()) }
     single<UserRepository> { UserRepositoryImpl(get(), get()) }
     single<SessionRepository> { SessionRepositoryImpl(get()) }
+    single<UiPreferencesRepository> { UiPreferencesRepositoryImpl(get()) }
     single<FcmTokenRepository> { FcmTokenRepositoryImpl(get(), get()) }
 }
 

@@ -16,3 +16,6 @@ sealed class TeamRecordUiState {
     data object Error : TeamRecordUiState()
     data class Loaded(val record: TeamSeasonRecord, val filter: StatsFilter = StatsFilter.ALL) : TeamRecordUiState()
 }
+
+/** Team Details' three tabs (design 32). The screen always opens on Matches. */
+enum class TeamTab { STATS, MATCHES, PLAYERS }

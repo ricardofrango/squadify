@@ -154,4 +154,49 @@ class SeasonStatsTest {
         )
         assertTrue(record.leaders(StatsFilter.ALL).averageRating.isEmpty())
     }
+
+    @Test
+    fun anUnusedSubstituteIsNotAnAppearance() {
+        val withBench = rows + row("m5", MatchType.CHAMPIONSHIP, started = false, minutes = 0)
+        val t = withBench.totals(StatsFilter.ALL)
+        assertEquals(4, t.apps) // m5 doesn't count
+        assertEquals(listOf("m1", "m2", "m3", "m4"), withBench.inFilter(StatsFilter.ALL).map { it.matchId })
+    }
+
+    @Test
+    fun squadListsOnlyPlayersWhoPlayedAndKeepsTheBenchApart() {
+        val record = TeamSeasonRecord(
+            teamId = "t", seasonId = "s", seasonName = "2026/27", canSeeRatings = true,
+            matches = listOf(match("a", 1, MatchType.CHAMPIONSHIP, 2, 0), match("b", 2, MatchType.FRIENDLY, 1, 1)),
+            players = listOf(
+                TeamSeasonPlayer("p1", "Tomás", 10, PlayerPosition.MIDFIELD), TeamSeasonPlayer("p2", "Gil", 6),
+                TeamSeasonPlayer("p3", "Caetano", 14), TeamSeasonPlayer("p4", "Bruno", 9)
+            ),
+            playerLines = listOf(
+                line("a", "p1", minutes = 70, goals = 2, rating = 8).copy(started = true),
+                line("b", "p1", minutes = 70, rating = 6).copy(started = true),
+                line("a", "p2", minutes = 20, assists = 1, rating = 7),
+                line("b", "p2", minutes = 0), // unused sub in b
+                line("a", "p3", minutes = 0), line("b", "p3", minutes = 0), // called up twice, never on
+                line("b", "p4", minutes = 35, goals = 1)
+            )
+        )
+        val all = record.squad(StatsFilter.ALL)
+        assertEquals(listOf("Tomás", "Bruno", "Gil"), all.used.map { it.player.name }) // apps 2, then 1s by name
+        val tomas = all.used.first()
+        assertEquals(2, tomas.apps)
+        assertEquals(140, tomas.minutes)
+        assertEquals(7.0, tomas.averageRating)
+        assertEquals(1, all.used.first { it.player.name == "Gil" }.apps) // the 0-minute line isn't an app
+        assertEquals(listOf("Caetano" to 2), all.benchOnly.map { it.player.name to it.calledUp })
+
+        assertEquals(listOf("Tomás", "Bruno", "Gil"), record.squad(StatsFilter.ALL, SquadSort.GOALS).used.map { it.player.name })
+        assertEquals(listOf("Gil", "Tomás", "Bruno"), record.squad(StatsFilter.ALL, SquadSort.RATING).used.map { it.player.name })
+        assertEquals(listOf("Bruno", "Gil", "Tomás"), record.squad(StatsFilter.ALL, SquadSort.NAME).used.map { it.player.name })
+
+        // Friendly only (match b): Gil sat on the bench there, so he moves to the bench group.
+        val friendly = record.squad(StatsFilter.FRIENDLY)
+        assertEquals(listOf("Bruno", "Tomás"), friendly.used.map { it.player.name }.sorted())
+        assertEquals(setOf("Caetano", "Gil"), friendly.benchOnly.map { it.player.name }.toSet())
+    }
 }

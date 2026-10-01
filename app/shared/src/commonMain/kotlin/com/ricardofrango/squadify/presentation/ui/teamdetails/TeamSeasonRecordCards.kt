@@ -66,6 +66,10 @@ import kotlin.math.roundToInt
 internal fun TeamRecordCard(
     state: TeamRecordUiState,
     teamName: String,
+    // "Shows up after the first finished match. Next up: …" and its View match button (32c); null
+    // without a scheduled fixture.
+    nextHint: String?,
+    onViewNext: (() -> Unit)?,
     onRetry: () -> Unit,
     onFilterSelected: (StatsFilter) -> Unit,
     onOpenMatch: (String) -> Unit
@@ -96,8 +100,9 @@ internal fun TeamRecordCard(
                     StatsHeading(title, Modifier.padding(bottom = 12.dp))
                     StatsMessage(
                         stringResource(Res.string.record_no_results_title),
-                        stringResource(Res.string.record_no_results_body, teamName)
+                        nextHint ?: stringResource(Res.string.record_no_results_body, teamName)
                     )
+                    if (onViewNext != null) ViewMatchButton(onViewNext)
                 }
                 return
             }

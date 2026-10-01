@@ -2280,6 +2280,20 @@ Player Details shows a **Season stats** card with a per-match list (design 30), 
 - **Team Details landscape:** two columns (record + leaders beside the existing lists), not the design's three.
 - **Recent events:** the list on Player Details is dropped, as the design proposed. Every match row now carries its goals, assists and cards.
 
+**Team Details tabs (design 32).** Team Details is now Stats · Matches · Members under a fixed header, in the club screen's dark bottom bar. In landscape the bar becomes a left `NavigationRail` and the Next fixture folds into the subtitle.
+- **Header:** the Next fixture plus a three-number strip, Upcoming · Played · Players used. Each number switches to its tab.
+- **Pool and Staff** left the strip: they belong to the age group, not the team, and "Pool" would contradict the Members tab. They're now a context card at the bottom of the Players tab.
+- **Members tab:** (named "Players" in design 32; renamed because it also holds the age-group staff) only the players who played for *this* team. A Sub-15 B-only player never appears on Sub-15 A. It's derived from the season-record rows (`squad()`), so there's no new endpoint. Players called up without coming on sit in a collapsed group.
+- **Filter:** shared by Stats and Players. Matches has none, because its rows already carry type tags.
+- **Starting tab:** the screen always opens on Matches, the most common reason to open a team. Design 32f remembered the last-used tab, but the developer chose a fixed starting tab. Only the Members sort is remembered on the device, in a small `UiPreferencesRepository` over multiplatform-settings.
+- **Scrolling:** each tab keeps its own scroll position, and tapping the active tab scrolls it to the top.
+- **Not built from 32:**
+  - the Matches tab keeps the existing separate `MatchRow` cards rather than one grouped card
+  - the landscape layout has no separate right column for the age-group card
+  - a Matches-only error state isn't possible, because the header and Matches share the Team Details call
+
+**Appearances.** Every called-up player gets a stats line at full time (§41), including unused substitutes with 0 minutes. An appearance is a start or at least one minute. Before this, a match on the bench counted as an app in the player totals.
+
 **Checked by rendering:** every state was rendered headlessly (`ImageComposeScene`, throwaway test, not committed) and compared with the canvas, in EN/PT at 360dp and in landscape. That pass caught:
 - clipped segment labels: the segments now share the width in proportion to their labels, as the design's flex layout does
 - leader names that needed to wrap

@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.GetTeamDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTeamSeasonRecordUseCase
+import com.ricardofrango.squadify.domain.repository.UiPreferencesRepository
+import com.ricardofrango.squadify.model.SquadSort
 import com.ricardofrango.squadify.model.StatsFilter
 import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
@@ -16,8 +18,28 @@ import kotlinx.coroutines.launch
 
 class TeamDetailsViewModel(
     private val getTeamDetailsUseCase: GetTeamDetailsUseCase,
-    private val getTeamSeasonRecordUseCase: GetTeamSeasonRecordUseCase
+    private val getTeamSeasonRecordUseCase: GetTeamSeasonRecordUseCase,
+    private val preferences: UiPreferencesRepository
 ) : ViewModel() {
+
+    // Always opens on Matches -- the most common reason to open a team. (Design 32f remembered the
+    // last-used tab; the developer chose a fixed starting tab instead.) Only the sort is remembered.
+    private val _tab = MutableStateFlow(TeamTab.MATCHES)
+    val tab: StateFlow<TeamTab> = _tab.asStateFlow()
+
+    private val _squadSort = MutableStateFlow(
+        preferences.get(KEY_SORT)?.let { name -> SquadSort.entries.firstOrNull { it.name == name } } ?: SquadSort.APPS
+    )
+    val squadSort: StateFlow<SquadSort> = _squadSort.asStateFlow()
+
+    fun onTabSelected(tab: TeamTab) {
+        _tab.value = tab
+    }
+
+    fun onSquadSortSelected(sort: SquadSort) {
+        _squadSort.value = sort
+        preferences.set(KEY_SORT, sort.name)
+    }
 
     private val _state = MutableStateFlow<TeamDetailsUiState>(TeamDetailsUiState.Loading)
     val state: StateFlow<TeamDetailsUiState> = _state.asStateFlow()
@@ -55,5 +77,9 @@ class TeamDetailsViewModel(
 
     fun onFilterSelected(filter: StatsFilter) = _record.update {
         (it as? TeamRecordUiState.Loaded)?.copy(filter = filter) ?: it
+    }
+
+    private companion object {
+        const val KEY_SORT = "team_details_squad_sort"
     }
 }

@@ -615,6 +615,7 @@ graph TD
     R --> M["matches = the team's FINISHED matches, newest first, each with its score (getScoreByMatch) and type"]
     M --> L["playerLines = match_player_stats of those matches (getByMatches): minutes, goals, assists, rating"]
     L --> K{"canSeeRatings AND the match's report is completed?"}
+    L -.-> L4["each line also carries started; players carry shirtNumber + position (for the Members tab)"]
     K -- Yes --> L2[keep the rating]
     K -- No --> L3[rating = null]
     L2 --> Z(["Return TeamSeasonRecord: teamId, seasonId, seasonName, matches, playerLines, players (id + name), canSeeRatings"])
@@ -624,6 +625,8 @@ graph TD
 The W/D/L record, form, goals and team leaders are all derived on the client from these rows by shared code (`SeasonStats.kt`: `totals(filter)`, `leaders(filter)`), so the All / Competitive / Friendly filter needs no round trip. The rules:
 - **Filter:** Competitive is Championship + Tournament. Matches with no type count only under All.
 - **Form:** the last five matches in the filter, most recent first.
+- **Appearances:** every called-up player has a stats line, so an unused substitute has a 0-minute line. An appearance is a start or at least one minute (`played`), and only appearances count toward apps (this applies to player totals too, §5.1c).
+- **Members tab (design 32):** `squad(filter, sort)` lists only the players who played for *this* team within the filter. Players called up without ever coming on go into a separate group with their call-up count. Sorting is by Apps, Minutes, Goals, Rating or Name, with ties broken by name.
 - **Leaders:** the top three per category (goals, assists, minutes, and average rating for staff only).
   - Players on zero are left out.
   - Ties share a rank (1, 1, 1, 4), ordered by name.

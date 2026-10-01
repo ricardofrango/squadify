@@ -84,6 +84,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [/] Historical match statistics (Post-match analysis): per-player stats (started, minutes played including stoppage time, goals, assists, own goals, cards) are stored for every finished match, and a played match can no longer be deleted or have its events changed. The coach's post-match report (analysis plus 0–10 player ratings) has its editor, read view, Match Details card and Home to-do, and ratings are shown next to each player's stats. See `TECHNICAL_DECISIONS.md` §41. Season stats are shown outside the report too:
       - Player Details has season totals and a per-match list, with a season switcher.
       - Team Details has a season record (W/D/L, goals, form) and team leaders.
+      - Team Details is split into Stats · Matches · Members tabs. The Members tab lists only the players who played for that team.
       - Both can be filtered by match type (All / Competitive / Friendly), and ratings are shown to staff only (see `TECHNICAL_DECISIONS.md` §43).
 
       Still pending: the live console's full-time "Minutes played" row is still a placeholder.

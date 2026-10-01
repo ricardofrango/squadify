@@ -84,7 +84,15 @@ data class PlayerSeasonTotals(
     val untypedMatches: Int
 )
 
-fun List<PlayerSeasonMatch>.inFilter(filter: StatsFilter): List<PlayerSeasonMatch> = filter { filter.includes(it.matchType) }
+/**
+ * An appearance: he started or got at least one minute. Every called-up player has a stats line, so an
+ * unused substitute has a 0-minute line that must not count as a match played (design 32a).
+ */
+val PlayerSeasonMatch.played: Boolean get() = started || minutesPlayed > 0
+
+/** His appearances within [filter] -- the rows behind the totals and the Matches list. */
+fun List<PlayerSeasonMatch>.inFilter(filter: StatsFilter): List<PlayerSeasonMatch> =
+    filter { it.played && filter.includes(it.matchType) }
 
 fun List<PlayerSeasonMatch>.totals(filter: StatsFilter): PlayerSeasonTotals {
     val rows = inFilter(filter)
@@ -116,7 +124,10 @@ data class TeamSeasonMatch(
     val opponentScore: Int
 )
 
-/** One player's line in one of the team's finished matches. [rating] as in [PlayerSeasonMatch]. */
+/**
+ * One called-up player's line in one of the team's finished matches. [rating] as in
+ * [PlayerSeasonMatch]. An unused substitute has a line with 0 minutes and [started] false.
+ */
 @Serializable
 data class TeamSeasonPlayerLine(
     val matchId: String,
@@ -124,11 +135,19 @@ data class TeamSeasonPlayerLine(
     val minutesPlayed: Int,
     val goals: Int,
     val assists: Int,
-    val rating: Int? = null
-)
+    val rating: Int? = null,
+    val started: Boolean = false
+) {
+    val played: Boolean get() = started || minutesPlayed > 0
+}
 
 @Serializable
-data class TeamSeasonPlayer(val id: String, val name: String)
+data class TeamSeasonPlayer(
+    val id: String,
+    val name: String,
+    val shirtNumber: Int? = null,
+    val position: PlayerPosition? = null
+)
 
 /** Everything behind Team Details' season record and team leaders cards. [matches] newest first. */
 @Serializable
@@ -226,6 +245,67 @@ fun TeamSeasonRecord.leaders(filter: StatsFilter): TeamLeaders {
             if (ratings.size < MIN_RATED_MATCHES_FOR_LEADERS) null else ratings.average().roundToOneDecimal()
         }
     )
+}
+
+// ---- Team squad (Players tab, design 32) ----
+
+/** A player who played for the team within the filter, with his totals there. */
+data class SquadEntry(
+    val player: TeamSeasonPlayer,
+    val apps: Int,
+    val minutes: Int,
+    val goals: Int,
+    val assists: Int,
+    val ratedMatches: Int,
+    val averageRating: Double?
+)
+
+/** Called up for the team within the filter but never on the pitch. */
+data class BenchEntry(val player: TeamSeasonPlayer, val calledUp: Int)
+
+data class TeamSquad(val used: List<SquadEntry>, val benchOnly: List<BenchEntry>)
+
+enum class SquadSort { APPS, MINUTES, GOALS, RATING, NAME }
+
+/**
+ * The Players tab: only the players who played for THIS team (at least one minute, or a start) within
+ * [filter], never the whole age-group pool. Players called up without ever coming on are kept apart in
+ * [TeamSquad.benchOnly]. Sorted by [sort], ties by name; the rating sort puts unrated players last.
+ */
+fun TeamSeasonRecord.squad(filter: StatsFilter, sort: SquadSort = SquadSort.APPS): TeamSquad {
+    val matchIds = matches.filter { filter.includes(it.matchType) }.map { it.matchId }.toSet()
+    val byPlayer = playerLines.filter { it.matchId in matchIds }.groupBy { it.playerId }
+    val playersById = players.associateBy { it.id }
+
+    val used = mutableListOf<SquadEntry>()
+    val bench = mutableListOf<BenchEntry>()
+    byPlayer.forEach { (playerId, lines) ->
+        val player = playersById[playerId] ?: return@forEach
+        val played = lines.filter { it.played }
+        if (played.isEmpty()) {
+            bench += BenchEntry(player, calledUp = lines.size)
+        } else {
+            val ratings = played.mapNotNull { it.rating }
+            used += SquadEntry(
+                player = player,
+                apps = played.size,
+                minutes = played.sumOf { it.minutesPlayed },
+                goals = played.sumOf { it.goals },
+                assists = played.sumOf { it.assists },
+                ratedMatches = ratings.size,
+                averageRating = ratings.takeIf { it.isNotEmpty() }?.average()?.roundToOneDecimal()
+            )
+        }
+    }
+    val byName = compareBy<SquadEntry> { it.player.name }
+    val sorted = when (sort) {
+        SquadSort.APPS -> used.sortedWith(compareByDescending<SquadEntry> { it.apps }.then(byName))
+        SquadSort.MINUTES -> used.sortedWith(compareByDescending<SquadEntry> { it.minutes }.then(byName))
+        SquadSort.GOALS -> used.sortedWith(compareByDescending<SquadEntry> { it.goals }.then(byName))
+        SquadSort.RATING -> used.sortedWith(compareByDescending<SquadEntry> { it.averageRating ?: -1.0 }.then(byName))
+        SquadSort.NAME -> used.sortedWith(byName)
+    }
+    return TeamSquad(sorted, bench.sortedWith(compareByDescending<BenchEntry> { it.calledUp }.thenBy { it.player.name }))
 }
 
 private fun Double.roundToOneDecimal(): Double = (this * 10).roundToInt() / 10.0
