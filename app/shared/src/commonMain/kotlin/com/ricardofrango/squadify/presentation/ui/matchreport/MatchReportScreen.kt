@@ -417,8 +417,13 @@ private fun ReportSnackbar(message: String, actionLabel: String?, onAction: () -
         Row(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             if (actionLabel == null) {
                 Icon(painterResource(Res.drawable.ic_check), contentDescription = null, tint = PitchGreenLight, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(12.dp))
+            } else {
+                // A failure: red circle with "!" (26e).
+                Box(Modifier.size(20.dp).background(Color(0xFFFF8A80), CircleShape), contentAlignment = Alignment.Center) {
+                    Text("!", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Black), color = CarbonGray)
+                }
             }
+            Spacer(Modifier.width(12.dp))
             Text(message, style = MaterialTheme.typography.bodyMedium, color = Color.White, modifier = Modifier.weight(1f))
             if (actionLabel != null) {
                 Text(

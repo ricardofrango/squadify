@@ -53,6 +53,11 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import androidx.compose.material3.Icon
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -180,9 +185,14 @@ private fun FieldsTab(
     LazyColumn(modifier.fillMaxSize().background(WhiteSmoke), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (showNoStatsNotice) item { NoStatsNotice() }
         item {
-            ReportCard {
-                SectionLabel(title, trailing = stringResource(Res.string.report_fields_filled, filled, specs.size))
-                Spacer(Modifier.height(12.dp))
+            // Portrait: the fields sit in a card. Landscape: straight on the background, in two columns (26h).
+            val container: @Composable (@Composable () -> Unit) -> Unit =
+                if (wide) { inner -> Column { inner() } } else { inner -> ReportCard { inner() } }
+            container {
+                if (!wide) {
+                    SectionLabel(title, trailing = stringResource(Res.string.report_fields_filled, filled, specs.size))
+                    Spacer(Modifier.height(12.dp))
+                }
                 // Landscape: two columns of fields (design 24c).
                 val rows = if (wide) specs.chunked(2) else specs.map { listOf(it) }
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -194,7 +204,9 @@ private fun FieldsTab(
                                     value = spec.get(fields),
                                     onValueChange = { v -> onFieldsChanged { spec.set(it, v) } },
                                     modifier = Modifier.weight(1f),
-                                    narrow = spec.singleLine && !wide
+                                    narrow = spec.singleLine && !wide,
+                                    // Landscape starts every field one line tall; they grow as you type (26h).
+                                    compact = wide
                                 )
                             }
                             if (row.size == 1 && wide) Spacer(Modifier.weight(1f))
@@ -207,7 +219,7 @@ private fun FieldsTab(
 }
 
 @Composable
-private fun ReportTextField(spec: FieldSpec, value: String, onValueChange: (String) -> Unit, modifier: Modifier, narrow: Boolean = false) {
+private fun ReportTextField(spec: FieldSpec, value: String, onValueChange: (String) -> Unit, modifier: Modifier, narrow: Boolean = false, compact: Boolean = false) {
     Column(modifier) {
         Text(stringResource(spec.label), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = SecondaryText)
         Spacer(Modifier.height(6.dp))
@@ -219,7 +231,7 @@ private fun ReportTextField(spec: FieldSpec, value: String, onValueChange: (Stri
             textStyle = if (narrow) MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.bodyLarge,
             placeholder = { Text(stringResource(spec.hint), color = DeepCarbon.copy(alpha = 0.45f)) },
             singleLine = spec.singleLine,
-            minLines = if (spec.singleLine) 1 else 3,
+            minLines = if (spec.singleLine || compact) 1 else 3,
             shape = RoundedCornerShape(14.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = PitchGreen,
@@ -234,12 +246,25 @@ private fun ReportTextField(spec: FieldSpec, value: String, onValueChange: (Stri
     }
 }
 
+/** One paragraph with an info icon, the lead sentence bold and inline (26d/26h). */
 @Composable
 internal fun NoStatsNotice() {
+    val title = stringResource(Res.string.report_no_stats_title)
+    val body = stringResource(Res.string.report_no_stats_body)
     ReportCard {
-        Text(stringResource(Res.string.report_no_stats_title), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
-        Spacer(Modifier.height(4.dp))
-        Text(stringResource(Res.string.report_no_stats_body), style = MaterialTheme.typography.bodySmall, color = SecondaryText)
+        Row {
+            Icon(painterResource(Res.drawable.ic_info), contentDescription = null, tint = SecondaryText, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(10.dp))
+            Text(
+                buildAnnotatedString {
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = DeepCarbon)) { append(title) }
+                    append(" ")
+                    append(body)
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = DeepCarbon.copy(alpha = 0.75f)
+            )
+        }
     }
 }
 
@@ -371,7 +396,8 @@ private fun PlayerRatingRow(
         } else if (open) {
             Spacer(Modifier.height(12.dp))
             val cells: List<Int?> = (0..10).toList() + listOf(null) // null = Clear
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Lines up under the name, past the shirt-number column (24d).
+            Column(Modifier.padding(start = 30.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 cells.chunked(6).forEach { line ->
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         line.forEach { value ->
