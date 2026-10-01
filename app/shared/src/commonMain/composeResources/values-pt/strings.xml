@@ -630,4 +630,18 @@
         <item quantity="one">há %1$d dia</item>
         <item quantity="other">há %1$d dias</item>
     </plurals>
+
+    <!-- Match type -->
+    <string name="label_match_type">Tipo de jogo</string>
+    <string name="label_match_type_friendly">Amigável</string>
+    <string name="label_match_type_championship">Campeonato</string>
+    <string name="label_match_type_tournament">Torneio</string>
+    <string name="label_match_type_friendly_desc">Não conta para nenhuma classificação.</string>
+    <string name="label_match_type_championship_desc">Jogo da liga — conta para a classificação.</string>
+    <string name="label_match_type_tournament_desc">Faz parte de uma taça ou de um torneio.</string>
+    <string name="msg_match_type_hint">Escolha um — decide onde o resultado conta.</string>
+    <string name="msg_match_type_required">Escolha o tipo de jogo.</string>
+    <string name="label_type_row">Tipo</string>
+    <string name="label_not_set">Não definido</string>
+    <string name="label_set_type">Definir</string>
 </resources>

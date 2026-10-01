@@ -21,6 +21,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.*
 import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
+import com.ricardofrango.squadify.presentation.ui.components.MatchTypeChip
+import com.ricardofrango.squadify.presentation.ui.components.MatchTypeSelector
+import com.ricardofrango.squadify.presentation.ui.components.iconRes
 import com.ricardofrango.squadify.presentation.ui.components.DatePickerSheet
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
@@ -201,19 +204,26 @@ private fun MatchDetailsContent(
 
 // ---- Header ----
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun StatusBand(details: MatchDetails) {
     val match = details.match
     val dt = match.dateTime.toLocalDateTime(TimeZone.currentSystemDefault())
     val counts = callUpCounts(details)
     Column(Modifier.background(CarbonGray).padding(start = 16.dp, end = 16.dp, bottom = 12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // The type chip leads the status line so it lines up across states (design 29a); the line
+        // wraps rather than truncating when a long type name and the date don't fit together.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            itemVerticalAlignment = Alignment.CenterVertically
+        ) {
+            match.type?.let { MatchTypeChip(it, muted = match.status == MatchStatus.CANCELLED) }
             Text(
                 "${dt.date.format(WeekdayDayMonth)} · ${timeLabel(match.dateTime)}",
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                 color = Color.White
             )
-            Spacer(Modifier.width(8.dp))
             if (match.status == MatchStatus.LIVE || match.status == MatchStatus.HALF_TIME) {
                 Pill(stringResource(Res.string.matches_live), LossRed, Color.White)
             } else if (match.status == MatchStatus.SCHEDULED) {
@@ -273,7 +283,8 @@ private fun MatchBody(
     // A finished match is a record, not something to keep editing -- call-ups, kickoff, location
     // etc. all freeze once the game is over, regardless of the viewer's role.
     val notFinished = details.match.status != MatchStatus.FINISHED
-    val canEditMatch = details.canManageMatch && notFinished
+    // Cancelled is closed too: neither can be edited, the type included (the server enforces the same).
+    val canEditMatch = details.canManageMatch && notFinished && details.match.status != MatchStatus.CANCELLED
     val canManageCallUps = details.canManageCallUps && notFinished
     var showEdit by remember { mutableStateOf(false) }
 
@@ -310,7 +321,7 @@ private fun MatchBody(
                         trailing = if (canEditMatch) stringResource(Res.string.label_edit) to { showEdit = true } else null
                     )
                 }
-                item { DetailsCard(details) }
+                item { DetailsCard(details, onSetType = if (canEditMatch) { { showEdit = true } } else null) }
 
                 // ---- Call-up ----
                 item {
@@ -376,12 +387,13 @@ private fun MatchBody(
 }
 
 @Composable
-private fun DetailsCard(details: MatchDetails) {
+private fun DetailsCard(details: MatchDetails, onSetType: (() -> Unit)?) {
     val m = details.match
     val uriHandler = LocalUriHandler.current
     Surface(modifier = Modifier.fillMaxWidth(), shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))) {
         Column(Modifier.padding(vertical = 4.dp)) {
             DetailRow(stringResource(Res.string.label_opponent_field), details.opponent.name)
+            TypeRow(m.type, onSetType)
             DetailRow(stringResource(Res.string.label_match_date), m.dateTime.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(DayMonthYear))
             DetailRow(stringResource(Res.string.label_match_kickoff), timeLabel(m.dateTime))
             DetailRow(
@@ -404,6 +416,29 @@ private fun DetailRow(label: String, value: String, trailing: Pair<String, () ->
         Text(label, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), modifier = Modifier.width(84.dp))
         Text(value, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, modifier = Modifier.weight(1f))
         if (trailing != null) LinkText(trailing.first, trailing.second)
+    }
+}
+
+/**
+ * The match type as the record of it: icon + name. Older matches have none -- a manager of an editable match sees "Not set"
+ * with a "Set type" link that opens the edit sheet; otherwise (read-only, finished, cancelled) just "—".
+ */
+@Composable
+private fun TypeRow(type: MatchType?, onSetType: (() -> Unit)?) {
+    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(stringResource(Res.string.label_type_row), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), modifier = Modifier.width(84.dp))
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            when {
+                type != null -> {
+                    Icon(painterResource(type.iconRes()), contentDescription = null, tint = PitchGreen, modifier = Modifier.size(15.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(type.labelRes()), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
+                }
+                onSetType != null -> Text(stringResource(Res.string.label_not_set), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.62f))
+                else -> Text("—", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
+            }
+        }
+        if (type == null && onSetType != null) LinkText(stringResource(Res.string.label_set_type), onSetType)
     }
 }
 
@@ -538,6 +573,7 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
     var time by remember { mutableStateOf(LocalTime(initial.hour, initial.minute)) }
     var location by remember { mutableStateOf(details.match.location.orEmpty()) }
     var notes by remember { mutableStateOf(details.match.notes.orEmpty()) }
+    var type by remember { mutableStateOf(details.match.type) }
     var showDate by remember { mutableStateOf(false) }
     var showTime by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -545,6 +581,14 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = Color.White) {
         Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(Res.string.title_edit_match), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
+            // The type comes first, in the same vertical rows as Schedule match (design 29c). An older
+            // match with no type has nothing preselected, and Save stays enabled for other edits.
+            Row {
+                Text(stringResource(Res.string.label_match_type).uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon.copy(alpha = 0.55f))
+                Spacer(Modifier.width(6.dp))
+                Text("*", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.error)
+            }
+            MatchTypeSelector(selected = type, onSelected = { type = it }, showHint = false)
             ValueField(stringResource(Res.string.label_match_date), date.format(DayMonthYear)) { showDate = true }
             ValueField(stringResource(Res.string.label_match_kickoff), timeOf(time)) { showTime = true }
             OutlinedTextField(
@@ -565,14 +609,15 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
                         UpdateMatchRequest(
                             dateTime = date.atTime(time).toInstant(tz),
                             location = location.trim().ifBlank { null },
-                            notes = notes.trim().ifBlank { null }
+                            notes = notes.trim().ifBlank { null },
+                            type = type
                         )
                     )
                 },
                 enabled = !submitting,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)
-            ) { Text(stringResource(Res.string.btn_save)) }
+            ) { Text(stringResource(Res.string.btn_save_changes)) }
         }
     }
 

@@ -53,7 +53,8 @@ class CreateMatchUseCase(
                 location = request.location,
                 dateTime = request.dateTime,
                 status = MatchStatus.SCHEDULED,
-                notes = request.notes
+                notes = request.notes,
+                type = request.type
             )
 
             matchRepository.createMatch(match)

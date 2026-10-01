@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.creatematch
 
+import com.ricardofrango.squadify.model.MatchType
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.Team
 import kotlinx.datetime.LocalDate
@@ -32,6 +33,10 @@ sealed class CreateMatchUiState {
         val selectedOpponentId: String? = null,
         val addingOpponent: Boolean = false,
         val newOpponentName: String = "",
+        // No default: every new match has to be typified before it can be scheduled.
+        val matchType: MatchType? = null,
+        // Set when Schedule is tapped with no type picked -- paints the type rows red until one is.
+        val matchTypeError: Boolean = false,
         val date: LocalDate,
         val time: LocalTime,
         val location: String = "",
@@ -45,7 +50,8 @@ sealed class CreateMatchUiState {
 
         val canSubmit: Boolean
             get() = selectedTeamId != null &&
-                (selectedOpponentId != null || (addingOpponent && newOpponentName.isNotBlank()))
+                (selectedOpponentId != null || (addingOpponent && newOpponentName.isNotBlank())) &&
+                matchType != null
     }
 }
 

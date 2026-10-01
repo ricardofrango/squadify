@@ -2223,3 +2223,23 @@ Per the developer: no "player of the match", and no attendance.
 
 **Not verified:** a real match played on a device.
 
+## 42. Match Type
+
+Every match is typified as **Friendly**, **Championship** or **Tournament** (`MatchType`, stored in `matches.match_type`, `V9`).
+
+**Model:**
+- `CreateMatchRequest.type` is required, so every new match has one.
+- `Match.type` is nullable only because matches scheduled before `V9` have none. There's no backfill: we can't guess the type of a past match.
+- Changing only the type through `UpdateMatchRequest.type` isn't a schedule change, so it sends no push.
+
+**UI (designs 28 and 29):**
+- **Picking it:** a vertical radio group (`MatchTypeSelector`). Each option is a full-width row with an icon, its name and a one-line description. The design chose this over a segmented row because a new coach can't tell "Championship" from "Tournament" by the name alone, and because long labels in any language only add height.
+- **Schedule match:** no default; "Schedule match" stays disabled until a type is picked. Tapping it anyway paints the rows red with "Pick a match type."
+- **Match Details:** a chip leads the header status line (muted when the match is cancelled). The Details card has a "Type" row with the icon and name.
+  - Older matches with no type show no chip. A manager sees "Not set" with a "Set type" link that opens the edit sheet; everyone else sees "—".
+- **Editing:** the type is the first thing in the edit sheet.
+  - A finished or cancelled match is a closed record and can't be edited at all, type included. The design proposed still letting a finished match correct its type; the product owner chose to close it entirely.
+  - The client hides Edit and "Set type" on those matches. `UpdateMatchUseCase` enforces the rule too, rejecting the update with 409 (`ConflictException`), so it doesn't depend on the client.
+- **Match lists (`MatchRow`):** only the exceptions get a small grey tag after the opponent, Friendly and Tournament. Championship is the bulk of a season and stays untagged, as do matches with no type.
+
+**Checked by rendering:** the selector's three states, the header chips and the list tags were rendered headlessly (`ImageComposeScene`, throwaway test, not committed) and compared with the design.

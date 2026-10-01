@@ -19,6 +19,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.Opponent
+import com.ricardofrango.squadify.presentation.ui.components.MatchTypeSelector
+import com.ricardofrango.squadify.model.MatchType
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.presentation.ui.components.DatePickerSheet
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
@@ -84,6 +86,7 @@ fun CreateMatchScreen(
         onTimeChange = viewModel::onTimeChange,
         onLocationChange = viewModel::onLocationChange,
         onNotesChange = viewModel::onNotesChange,
+        onMatchTypeSelected = viewModel::onMatchTypeSelected,
         onSubmit = viewModel::onSubmit
     )
 }
@@ -103,6 +106,7 @@ private fun CreateMatchContent(
     onTimeChange: (LocalTime) -> Unit,
     onLocationChange: (String) -> Unit,
     onNotesChange: (String) -> Unit,
+    onMatchTypeSelected: (MatchType) -> Unit,
     onSubmit: () -> Unit
 ) {
     val clubName = (uiState as? CreateMatchUiState.Idle)?.clubName
@@ -144,6 +148,7 @@ private fun CreateMatchContent(
                 onTimeChange = onTimeChange,
                 onLocationChange = onLocationChange,
                 onNotesChange = onNotesChange,
+                onMatchTypeSelected = onMatchTypeSelected,
                 onSubmit = onSubmit
             )
         }
@@ -163,6 +168,7 @@ private fun CreateMatchForm(
     onTimeChange: (LocalTime) -> Unit,
     onLocationChange: (String) -> Unit,
     onNotesChange: (String) -> Unit,
+    onMatchTypeSelected: (MatchType) -> Unit,
     onSubmit: () -> Unit
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
@@ -222,6 +228,11 @@ private fun CreateMatchForm(
                     Spacer(Modifier.height(8.dp))
                     LinkText("+ ${stringResource(Res.string.label_new_opponent)}", onClick = onStartAddOpponent)
                 }
+            }
+
+            // ---- Match type (required, no default) ----
+            FieldCard(label = stringResource(Res.string.label_match_type), required = true) {
+                MatchTypeSelector(selected = state.matchType, onSelected = onMatchTypeSelected, error = state.matchTypeError)
             }
 
             // ---- When ----
@@ -306,6 +317,15 @@ private fun CreateMatchForm(
                     enabled = state.canSubmit,
                     onClick = onSubmit
                 )
+                // The button stays disabled until a type is picked, but a tap on it still has to say
+                // why (design 28b): onSubmit flags the missing type instead of scheduling.
+                if (!state.canSubmit && state.matchType == null) {
+                    Box(
+                        Modifier
+                            .matchParentSize()
+                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onSubmit)
+                    )
+                }
             }
         }
     }
@@ -505,7 +525,7 @@ private fun CreateMatchFromAgeGroupPreview() {
             uiState = sampleIdle(teamFixed = false),
             onNavigateBack = {}, onRetry = {}, onTeamSelected = {}, onOpponentSelected = {},
             onStartAddOpponent = {}, onCancelAddOpponent = {}, onNewOpponentNameChange = {},
-            onDateChange = {}, onTimeChange = {}, onLocationChange = {}, onNotesChange = {}, onSubmit = {}
+            onDateChange = {}, onTimeChange = {}, onLocationChange = {}, onNotesChange = {}, onMatchTypeSelected = {}, onSubmit = {}
         )
     }
 }
@@ -518,7 +538,7 @@ private fun CreateMatchFromTeamPreview() {
             uiState = sampleIdle(teamFixed = true),
             onNavigateBack = {}, onRetry = {}, onTeamSelected = {}, onOpponentSelected = {},
             onStartAddOpponent = {}, onCancelAddOpponent = {}, onNewOpponentNameChange = {},
-            onDateChange = {}, onTimeChange = {}, onLocationChange = {}, onNotesChange = {}, onSubmit = {}
+            onDateChange = {}, onTimeChange = {}, onLocationChange = {}, onNotesChange = {}, onMatchTypeSelected = {}, onSubmit = {}
         )
     }
 }
