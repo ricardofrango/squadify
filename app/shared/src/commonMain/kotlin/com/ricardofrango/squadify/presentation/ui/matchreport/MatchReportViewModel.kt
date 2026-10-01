@@ -26,9 +26,10 @@ class MatchReportViewModel(
 
     private var matchId: String = ""
 
-    // Whether anything was saved during this visit -- the caller reloads Match Details / Home if so.
-    var savedSomething: Boolean = false
-        private set
+    // Flips to true on the first successful save of this visit, so the screen can tell Match Details /
+    // Home to reload straight away -- not only on the way out, since system back can leave without it.
+    private val _savedSomething = MutableStateFlow(false)
+    val savedSomething: StateFlow<Boolean> = _savedSomething.asStateFlow()
 
     fun load(matchId: String, startEditing: Boolean, force: Boolean = false) {
         this.matchId = matchId
@@ -101,7 +102,7 @@ class MatchReportViewModel(
         viewModelScope.launch {
             try {
                 val saved = saveMatchReportUseCase(matchId, current.toRequest(complete = action == SaveAction.COMPLETE))
-                savedSomething = true
+                _savedSomething.value = true
                 updateIdle { state ->
                     state.copy(
                         details = state.details.copy(

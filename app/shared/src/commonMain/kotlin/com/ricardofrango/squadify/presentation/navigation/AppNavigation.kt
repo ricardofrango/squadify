@@ -506,14 +506,16 @@ fun AppNavigation() {
 
         composable<Screen.MatchReport> { backStackEntry ->
             val screen: Screen.MatchReport = backStackEntry.toRoute()
+            // Captured while this entry is on top: the screen that opened the report (Match Details).
+            // Flagged as soon as a save succeeds rather than only from onNavigateBack, because the
+            // system/gesture back button pops this entry directly without calling it -- the same reason
+            // LiveMatch flags its caller in onDispose. Match Details then reloads and cascades to Home.
+            val openerEntry = remember { navController.previousBackStackEntry }
             MatchReportScreen(
                 matchId = screen.matchId,
                 startEditing = screen.edit,
-                onNavigateBack = { changed ->
-                    // A saved report changes Match Details' card and Home's to-do -- cascade a reload.
-                    if (changed) navController.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
-                }
+                onNavigateBack = { navController.popBackStack() },
+                onReportSaved = { openerEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true) }
             )
         }
 

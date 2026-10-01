@@ -94,21 +94,25 @@ import squadify.app.shared.generated.resources.*
 /**
  * The post-match report of a finished match (design 24-26): an editor with Team / Opponent / Players
  * tabs for whoever can edit, and a one-scroll read view for everyone else who may see it.
- * [onNavigateBack] gets whether anything was saved, so the screens behind can reload.
+ * [onReportSaved] fires on the first successful save, so the screens behind (Match Details, then Home)
+ * reload however this screen is left -- the system back button included.
  */
 @Composable
 fun MatchReportScreen(
     matchId: String,
     startEditing: Boolean,
-    onNavigateBack: (changed: Boolean) -> Unit,
+    onNavigateBack: () -> Unit,
+    onReportSaved: () -> Unit,
     viewModel: MatchReportViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+    val saved by viewModel.savedSomething.collectAsStateWithLifecycle()
     LaunchedEffect(matchId) { viewModel.load(matchId, startEditing) }
+    LaunchedEffect(saved) { if (saved) onReportSaved() }
 
     MatchReportContent(
         uiState = uiState,
-        onNavigateBack = { onNavigateBack(viewModel.savedSomething) },
+        onNavigateBack = onNavigateBack,
         onRetry = { viewModel.load(matchId, startEditing, force = true) },
         onStartEditing = viewModel::onStartEditing,
         onTabSelected = viewModel::onTabSelected,

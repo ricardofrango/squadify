@@ -1279,7 +1279,7 @@ graph TD
 **Client:** Match Details' report card opens `MatchReportScreen`:
 - **"Fill in report":** opens the editor.
 - **"View report":** opens the read view, with Edit available to whoever can edit.
-- **Returning:** saving anything flags the previous screen to reload, so the card and Home's to-do update. See `TECHNICAL_DECISIONS.md` §41 for the screen design.
+- **Returning:** the first successful save flags the screen that opened the report, so the card and Home's to-do update. It flags right away, not on exit, because the system back button leaves without going through the screen's back handler. See `TECHNICAL_DECISIONS.md` §41 for the screen design.
 
 ---
 
