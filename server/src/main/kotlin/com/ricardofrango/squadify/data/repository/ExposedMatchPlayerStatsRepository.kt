@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.util.toUuid
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -37,6 +38,18 @@ class ExposedMatchPlayerStatsRepository : MatchPlayerStatsRepository {
         MatchPlayerStatsTable.selectAll()
             .where { MatchPlayerStatsTable.matchId eq matchId.toUuid() }
             .map(::toStats)
+
+    override suspend fun getByPlayer(playerId: String): List<MatchPlayerStats> =
+        MatchPlayerStatsTable.selectAll()
+            .where { MatchPlayerStatsTable.playerId eq playerId.toUuid() }
+            .map(::toStats)
+
+    override suspend fun getByMatches(matchIds: List<String>): List<MatchPlayerStats> {
+        if (matchIds.isEmpty()) return emptyList()
+        return MatchPlayerStatsTable.selectAll()
+            .where { MatchPlayerStatsTable.matchId inList matchIds.map { it.toUuid() } }
+            .map(::toStats)
+    }
 
     // One UPDATE per rated player -- bounded by the squad size of a single match (a few dozen at most).
     override suspend fun updateRatings(matchId: String, ratings: Map<String, Int?>) {

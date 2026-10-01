@@ -36,6 +36,8 @@ interface MatchRepository {
 
     suspend fun getCallUpsForMatch(matchId: String): List<MatchCallUpWithPlayer>
     suspend fun countCallUpsByPlayer(playerId: String): Long
+    // Ids of every match the player was called up for.
+    suspend fun getCallUpMatchIdsByPlayer(playerId: String): List<String>
     suspend fun manageCallUps(matchId: String, playerIds: List<String>): Boolean
     suspend fun getCallUpByMatchAndPlayer(matchId: String, playerId: String): MatchCallUp?
     suspend fun getUpcomingMatchesByClub(clubId: String, limit: Int): List<Match>

@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.presentation.routes
 import com.ricardofrango.squadify.domain.usecase.CreateTeamUseCase
 import com.ricardofrango.squadify.domain.usecase.CreateTeamsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTeamDetailsUseCase
+import com.ricardofrango.squadify.domain.usecase.GetTeamSeasonRecordUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTeamPlayersUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTeamsUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateTeamUseCase
@@ -28,6 +29,7 @@ fun Route.teamRoutes() {
     val getTeamsUseCase by inject<GetTeamsUseCase>()
     val getTeamPlayersUseCase by inject<GetTeamPlayersUseCase>()
     val getTeamDetailsUseCase by inject<GetTeamDetailsUseCase>()
+    val getTeamSeasonRecordUseCase by inject<GetTeamSeasonRecordUseCase>()
     val updateTeamUseCase by inject<UpdateTeamUseCase>()
 
     authenticate("auth-jwt") {
@@ -71,6 +73,15 @@ fun Route.teamRoutes() {
                         call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
                     val players = getTeamPlayersUseCase(currentUserId, teamId)
                     call.respond(players)
+                }
+
+                // Finished matches + players' stats lines for the season record and leaders (design 31).
+                get("/season-record") {
+                    val teamId = call.parameters["teamId"]
+                        ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId =
+                        call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                    call.respond(getTeamSeasonRecordUseCase(currentUserId, teamId))
                 }
 
                 get("/details") {

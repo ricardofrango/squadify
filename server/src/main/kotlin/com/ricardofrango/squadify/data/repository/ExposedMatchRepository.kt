@@ -151,6 +151,10 @@ class ExposedMatchRepository : MatchRepository {
     override suspend fun countCallUpsByPlayer(playerId: String): Long =
         CallUpsTable.selectAll().where { CallUpsTable.playerId eq playerId.toUuid() }.count()
 
+    override suspend fun getCallUpMatchIdsByPlayer(playerId: String): List<String> =
+        CallUpsTable.selectAll().where { CallUpsTable.playerId eq playerId.toUuid() }
+            .map { it[CallUpsTable.matchId].toString() }
+
     override suspend fun manageCallUps(matchId: String, playerIds: List<String>): Boolean {
         val matchUuid = matchId.toUuid()
         val currentPlayerIds =
