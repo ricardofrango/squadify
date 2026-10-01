@@ -63,12 +63,13 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.*
 
-/** Tabs sit on the dark header: Team · Opponent · Players (the last carries an amber unrated count). */
+/** Tabs sit on the dark header: Players · Team · Opponent (the last carries an amber unrated count). */
 @Composable
 internal fun EditorTabs(state: MatchReportUiState.Idle, onTabSelected: (ReportTab) -> Unit, compact: Boolean = false) {
     val tabs = buildList {
-        add(ReportTab.TEAM); add(ReportTab.OPPONENT)
+        // Players first (the developer's call), then Team and Opponent.
         if (state.hasStats) add(ReportTab.PLAYERS) // removed, not greyed, when there are no stats (26d)
+        add(ReportTab.TEAM); add(ReportTab.OPPONENT)
     }
     // Portrait: three equal tabs under the title. Landscape (24c): compact tabs in the header row.
     Row(if (compact) Modifier else Modifier.fillMaxWidth().background(CarbonGray)) {

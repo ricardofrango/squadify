@@ -2163,7 +2163,7 @@ Per the developer: no "player of the match", and no attendance.
   - pending and editable: "Fill in report", or "3 of 12 players rated" once a draft has ratings
   - completed: "View report" and a "Last updated … by …" line
   - read-only: "View report", disabled while pending since there's nothing to read yet
-- **Report editor:** `MatchReportScreen` in edit mode. Tabs (Team · Opponent · Players) sit in the dark header, and the Players tab shows an amber count of unrated players.
+- **Report editor:** `MatchReportScreen` in edit mode. Tabs (Players · Team · Opponent, Players moved first at the developer's request) sit in the dark header, and the Players tab shows an amber count of unrated players.
   - **Why tabs:** the design chose tabs over one long scroll so the pitch-side part, rating players, isn't buried under nine text fields. The Players tab is removed (not greyed) for a match without stats.
   - **Rating:** a compact value button opens a 6×2 grid of 44dp targets (0–10 plus Clear). Picking a value auto-advances to the next unrated player, wrapping around (`nextUnrated`). "Rate next" jumps to the first gap. The design compared this against a chip row, a slider and a stepper.
   - **Saving:** "Save draft" and "Complete report" ("Update report" once completed). Completing asks for confirmation and mentions unrated players only if there are any. Both buttons are disabled until there's something to save.
