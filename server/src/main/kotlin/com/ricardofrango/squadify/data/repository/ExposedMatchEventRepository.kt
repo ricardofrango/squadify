@@ -30,6 +30,7 @@ class ExposedMatchEventRepository : MatchEventRepository {
             it[isOpponent] = event.isOpponent
             it[createdAt] = event.createdAt
             it[period] = event.period
+            it[relatedEventId] = event.relatedEventId?.toUuid()
         }.resultedValues
             ?.singleOrNull()
             ?.let(::toMatchEvent)
@@ -100,6 +101,7 @@ class ExposedMatchEventRepository : MatchEventRepository {
         opponentPlayerName = row[MatchEvents.opponentPlayerName],
         isOpponent = row[MatchEvents.isOpponent],
         createdAt = row[MatchEvents.createdAt],
-        period = row[MatchEvents.period]
+        period = row[MatchEvents.period],
+        relatedEventId = row[MatchEvents.relatedEventId]?.toString()
     )
 }

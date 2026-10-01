@@ -412,13 +412,14 @@
     <string name="msg_squad_tap_hint">Toque num jogador para registar um golo, cartão ou substituição.</string>
     <string name="title_log_event_for">Registar para %1$s</string>
     <string name="action_log_goal">Golo</string>
-    <string name="action_log_assist">Assistência</string>
     <string name="action_log_yellow_card">Cartão amarelo</string>
     <string name="action_log_red_card">Cartão vermelho</string>
     <string name="action_log_own_goal">Autogolo</string>
     <string name="action_substitute_off">Substituir</string>
     <string name="action_substitute_on">Fazer entrar</string>
     <string name="title_pick_player_coming_on">Quem entra por %1$s?</string>
+    <string name="title_pick_assist">Quem assistiu %1$s?</string>
+    <string name="action_no_assist">Sem assistência</string>
     <string name="title_pick_player_going_off">Quem sai por %1$s?</string>
     <string name="btn_half_time">Intervalo</string>
     <string name="btn_start_second_half">Iniciar 2ª parte</string>
@@ -428,6 +429,7 @@
     <string name="msg_confirm_full_time_title">Terminar o jogo?</string>
     <string name="msg_confirm_full_time_body">Isto termina o jogo. Ainda pode editar eventos depois.</string>
     <string name="label_event_goal">Golo · %1$s</string>
+    <string name="label_event_goal_with_assist">Golo · %1$s (assistência %2$s)</string>
     <string name="label_event_goal_unattributed">Golo</string>
     <string name="label_event_own_goal">Autogolo · %1$s</string>
     <string name="label_event_yellow_card">Amarelo · %1$s</string>

@@ -2138,7 +2138,14 @@ Closes Phase 5's last open item, "Historical match statistics (post-match analys
 - **Older events:** events logged before `period` existed still fall back to that comparison. It's approximate, but the best available.
 - **Why a separate migration:** `period` is in `V6` rather than folded into `V4`. The server test suite's `ApplicationTest` boots against the local `squadify_dev` database, so `V4` had already been applied there, and editing it would break Flyway's checksum validation.
 
-**Considered and dropped: linking related events** (an assist to its goal, a substitution's IN to its OUT, via a `related_event_id` column). Minutes played only needs each player's own IN/OUT events, not the pairing. Linking an assist to a goal needs a UI change in the live console to pick the goal. Either can be added later without touching the stats snapshot.
+**An assist is attached to its goal** (added after the first version, at the developer's request). In the live console, logging a goal goes straight to an optional "Who assisted {scorer}?" step: "No assist" first, then the scorer's teammates on the pitch. The separate "Assist" action was removed, so assists are only logged through their goal.
+- **One request:** `CreateMatchEventRequest.assistPlayerId` carries the assist, and `AddMatchEventUseCase` saves the goal and the ASSIST event in the same transaction. The assist gets the same minute and half as the goal, and points at it through `MatchEvent.relatedEventId` (`V8`).
+- **Why one request:** two requests could leave a goal saved without the assist the coach picked.
+- **Validation:** the assist must be on one of our goals, by a different player, who was called up.
+- **Deleting:** deleting the goal deletes its assist first. The new foreign key uses the default NO ACTION, not RESTRICT, so deleting all of a match's events in one statement still works.
+- **Timeline:** shows "Goal · Tomás Bragança (assist Gil Bettencourt)" on one line.
+- **Effect on stats:** none. Assists still count per player by event type, linked or not. Assists logged on their own before this stay unlinked and show as their own row.
+- **Still separate events:** substitution IN/OUT pairs are still logged as two events and paired by minute for display. Minutes played only needs each player's own events, not the pairing.
 
 **Matches finished before this shipped** have no `full_time_minute` and no stats rows. Nothing is backfilled.
 

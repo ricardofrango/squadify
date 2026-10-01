@@ -53,9 +53,14 @@ class DeleteMatchEventUseCase(
             throw ValidationException("Event does not belong to this match")
         }
 
+        // A goal takes its assist with it (the assist points at the goal, so it goes first).
+        val linkedAssists = matchEventRepository.getEventsByMatch(matchId).filter { it.relatedEventId == eventId }
+        linkedAssists.forEach { matchEventRepository.deleteEvent(it.id) }
+
         val success = matchEventRepository.deleteEvent(eventId)
         if (success) {
             val score = matchEventRepository.getScoreByMatch(matchId)
+            linkedAssists.forEach { liveMatchBus.publish(matchId, LiveMatchUpdate(score = score, deletedEventId = it.id)) }
             liveMatchBus.publish(matchId, LiveMatchUpdate(score = score, deletedEventId = eventId))
             clubMatchesBus.publish(match.clubId, ClubMatchesUpdate(score = score))
         }

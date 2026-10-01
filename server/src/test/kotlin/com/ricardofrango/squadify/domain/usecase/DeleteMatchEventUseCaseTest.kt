@@ -26,6 +26,7 @@ import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
@@ -66,6 +67,7 @@ class DeleteMatchEventUseCaseTest {
     private fun coach() = User("coach", "coach@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
 
     private fun stubCoachPermission(coach: User) {
+        coEvery { matchEventRepository.getEventsByMatch(matchId) } returns listOf(event)
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
@@ -139,5 +141,24 @@ class DeleteMatchEventUseCaseTest {
         assertFailsWith<ValidationException> { useCase(coach.id, matchId, eventId) }
         coVerify(exactly = 0) { matchEventRepository.deleteEvent(any()) }
         Unit
+    }
+
+    @Test
+    fun deletingAGoalAlsoDeletesItsAssistFirst() = runBlocking {
+        val coach = coach()
+        coEvery { matchRepository.getMatchById(matchId) } returns match
+        stubCoachPermission(coach)
+        val assist = MatchEvent("ev-a", matchId, EventType.ASSIST, minute = 10, playerId = "p2", createdAt = Instant.fromEpochMilliseconds(1), relatedEventId = eventId)
+        coEvery { matchEventRepository.getEventsByMatch(matchId) } returns listOf(event, assist)
+        coEvery { matchEventRepository.getEventById(eventId) } returns event
+        coEvery { matchEventRepository.deleteEvent(any()) } returns true
+        coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 0, 0)
+
+        useCase(coach.id, matchId, eventId)
+
+        coVerifyOrder {
+            matchEventRepository.deleteEvent("ev-a")
+            matchEventRepository.deleteEvent(eventId)
+        }
     }
 }

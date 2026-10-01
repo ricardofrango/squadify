@@ -250,6 +250,8 @@ object MatchEvents : Table("match_events") {
     val createdAt = timestamp("created_at")
     // 1 or 2 -- the half the event happened in (see MatchEvent.period). Null for older events.
     val period = integer("period").nullable()
+    // For an ASSIST, the GOAL it belongs to (see MatchEvent.relatedEventId). FK declared in V8.
+    val relatedEventId = uuid("related_event_id").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

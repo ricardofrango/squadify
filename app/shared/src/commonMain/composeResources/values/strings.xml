@@ -414,13 +414,14 @@
     <string name="msg_squad_tap_hint">Tap a player to log a goal, card, or substitution.</string>
     <string name="title_log_event_for">Log for %1$s</string>
     <string name="action_log_goal">Goal</string>
-    <string name="action_log_assist">Assist</string>
     <string name="action_log_yellow_card">Yellow card</string>
     <string name="action_log_red_card">Red card</string>
     <string name="action_log_own_goal">Own goal</string>
     <string name="action_substitute_off">Substitute off</string>
     <string name="action_substitute_on">Bring on</string>
     <string name="title_pick_player_coming_on">Who comes on for %1$s?</string>
+    <string name="title_pick_assist">Who assisted %1$s?</string>
+    <string name="action_no_assist">No assist</string>
     <string name="title_pick_player_going_off">Who comes off for %1$s?</string>
     <string name="btn_half_time">Half time</string>
     <string name="btn_start_second_half">Start 2nd half</string>
@@ -430,6 +431,7 @@
     <string name="msg_confirm_full_time_title">End the match?</string>
     <string name="msg_confirm_full_time_body">This finishes the match. You can still edit events afterwards.</string>
     <string name="label_event_goal">Goal · %1$s</string>
+    <string name="label_event_goal_with_assist">Goal · %1$s (assist %2$s)</string>
     <string name="label_event_goal_unattributed">Goal</string>
     <string name="label_event_own_goal">Own goal · %1$s</string>
     <string name="label_event_yellow_card">Yellow · %1$s</string>

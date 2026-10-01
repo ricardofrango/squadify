@@ -155,7 +155,10 @@ data class MatchEvent(
     // the first half is live or during the break, 2 once the second half has started. Minutes alone
     // can't tell (first-half stoppage time overlaps the second half's first minutes). Null for events
     // logged before this existed.
-    val period: Int? = null
+    val period: Int? = null,
+    // For an ASSIST: the GOAL it set up (logged together, see CreateMatchEventRequest.assistPlayerId).
+    // Null for anything else, and for assists logged on their own before this existed.
+    val relatedEventId: String? = null
 )
 
 @Serializable
@@ -209,7 +212,10 @@ data class CreateMatchEventRequest(
     val minute: Int,
     val playerId: String? = null,
     val opponentPlayerName: String? = null,
-    val isOpponent: Boolean = false
+    val isOpponent: Boolean = false,
+    // GOAL only, optional: who assisted it. The goal and its ASSIST event are saved together, the
+    // assist linked to the goal through MatchEvent.relatedEventId.
+    val assistPlayerId: String? = null
 )
 
 @Serializable

@@ -990,8 +990,12 @@ graph TD
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> LV{"match.status is LIVE or HALF_TIME?"}
     LV -- No --> VL(["Throw ValidationException: events only while live"])
-    LV -- Yes --> D["Create MatchEvent record — period = 2 if LIVE with secondHalfStartedAt set, else 1"]
-    D --> E[Persist event]
+    LV -- Yes --> AS{"assistPlayerId given?"}
+    AS -- Yes --> AV{"type == GOAL by one of our players, assister != scorer, assister called up?"}
+    AV -- No --> VA(["Throw ValidationException"])
+    AV -- Yes --> D
+    AS -- No --> D["Create MatchEvent record — period = 2 if LIVE with secondHalfStartedAt set, else 1"]
+    D --> E["Persist event; if an assist was given, also persist an ASSIST at the same minute/period with relatedEventId = the goal"]
     E --> G["Recalculate score from all events for this match"]
     G --> H["Publish LiveMatchUpdate(event, score) via LiveMatchBus for matchId"]
     H --> H2["Publish ClubMatchesUpdate(score) via ClubMatchesBus for match.clubId (§8.5)"]
@@ -1015,7 +1019,7 @@ graph TD
     LV -- Yes --> D[Fetch Event by id]
     D -- not found --> N2(["Throw NotFoundException"])
     D -- event.matchId != matchId --> V(["Throw ValidationException"])
-    D -- ok --> E[Delete event]
+    D -- ok --> E["Delete any ASSIST linked to it (relatedEventId == eventId), then the event itself"]
     E --> G[Recalculate score]
     G --> H["Publish LiveMatchUpdate(score, deletedEventId) via LiveMatchBus"]
     H --> H2["Publish ClubMatchesUpdate(score) via ClubMatchesBus for match.clubId (§8.5)"]
@@ -1580,6 +1584,7 @@ erDiagram
         boolean is_opponent "default false"
         timestamp created_at
         integer period "nullable -- 1 or 2, the half it happened in, recorded when logged"
+        uuid related_event_id FK "nullable -- an ASSIST's GOAL (V8)"
     }
     MATCH_PLAYER_STATS {
         uuid id PK
@@ -1642,7 +1647,7 @@ erDiagram
 ### 12.4 Current persistence setup
 
 - **Engine**: PostgreSQL, both dev and production. H2 has been removed entirely. The connection is built from `ServerConfig.kt`'s `DATABASE_HOST`/`DATABASE_PORT`/`DATABASE_USER`/`DATABASE_PASSWORD`/`DATABASE_NAME` env vars — host and password are required explicitly when `APP_ENV=production` (no silent fallback), while the database name defaults per environment (`squadify_dev` / `squadify_production`), so dev and production stay isolated even against the same Postgres server. `docker-compose.yml` at the repo root provides a local Postgres matching the dev defaults.
-- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, `V5__match_reports.sql`, `V6__match_event_period.sql`, and `V7__match_report_opponent_tactic.sql`. An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
+- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, `V5__match_reports.sql`, `V6__match_event_period.sql`, `V7__match_report_opponent_tactic.sql`, and `V8__match_event_assist_link.sql`. An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
 - **Legacy backfill**: right after Flyway, `DatabaseFactory.init()` still runs a raw, idempotent SQL block that backfills `age_groups.start_year`/`end_year` from the old single `birth_year` column (if it still exists) and then drops that column (§4.3/§5.3). It's a no-op once `birth_year` is gone. It was deliberately left outside the migration chain because there's no way to confirm every environment has already run it.
 - **Connection pool**: HikariCP, `maximumPoolSize = 3` in dev / `10` in production, `autoCommit = false`, isolation level `TRANSACTION_REPEATABLE_READ`.
 
