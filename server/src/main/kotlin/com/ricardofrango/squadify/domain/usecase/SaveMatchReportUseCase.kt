@@ -68,6 +68,7 @@ class SaveMatchReportUseCase(
                 lessPositiveAspects = request.lessPositiveAspects.clean(),
                 aspectsToImprove = request.aspectsToImprove.clean(),
                 teamNotes = request.teamNotes.clean(),
+                opponentTactic = request.opponentTactic.clean(),
                 opponentStrengths = request.opponentStrengths.clean(),
                 opponentWeaknesses = request.opponentWeaknesses.clean(),
                 opponentBestPlayers = request.opponentBestPlayers.clean(),

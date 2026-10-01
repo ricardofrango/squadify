@@ -129,6 +129,7 @@ private val TeamFields = listOf(
 )
 
 private val OpponentFields = listOf(
+    FieldSpec(Res.string.report_field_tactic, Res.string.report_hint_tactic, true, { it.opponentTactic }, { f, v -> f.copy(opponentTactic = v) }),
     FieldSpec(Res.string.report_field_strengths, Res.string.report_hint_optional, false, { it.opponentStrengths }, { f, v -> f.copy(opponentStrengths = v) }),
     FieldSpec(Res.string.report_field_weaknesses, Res.string.report_hint_optional, false, { it.opponentWeaknesses }, { f, v -> f.copy(opponentWeaknesses = v) }),
     FieldSpec(Res.string.report_field_best_players, Res.string.report_hint_optional, false, { it.opponentBestPlayers }, { f, v -> f.copy(opponentBestPlayers = v) }),

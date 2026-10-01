@@ -2144,7 +2144,7 @@ Closes Phase 5's last open item, "Historical match statistics (post-match analys
 
 **The match report.** After full time the coach fills in:
 - **Our team (free text):** tactic (e.g. "4-4-2"), positive aspects, less positive aspects, aspects to improve, team notes.
-- **The opponent (free text):** strengths, weaknesses, best players, additional information.
+- **The opponent (free text):** tactic, strengths, weaknesses, best players, additional information. The opponent's tactic was added after the first version (`V7`, a new migration rather than an edit of `V5`). Like ours, it's shown at display size in the opponent card's header in the read view.
 - **Ratings:** 0-10 per called-up player.
 
 Per the developer: no "player of the match", and no attendance.

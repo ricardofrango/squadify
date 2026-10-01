@@ -1237,7 +1237,7 @@ The club-scoped counterpart to §8.3, mirroring it exactly but for the whole fix
 ### 8.6 Match Report (`GetMatchReportUseCase` / `SaveMatchReportUseCase`)
 
 The coach's post-match report for a `FINISHED` match. It has two parts:
-- **Free text:** tactic, positive aspects, less positive aspects, aspects to improve, and team notes for our team; strengths, weaknesses, best players, and additional info for the opponent.
+- **Free text:** tactic, positive aspects, less positive aspects, aspects to improve, and team notes for our team; tactic, strengths, weaknesses, best players, and additional info for the opponent.
 - **Ratings:** a 0-10 rating per called-up player, stored on that player's `match_player_stats` row (§8.2f).
 
 `GET` / `PUT /v1/matches/{matchId}/report`.
@@ -1602,6 +1602,7 @@ erDiagram
         text less_positive_aspects "nullable"
         text aspects_to_improve "nullable"
         text team_notes "nullable"
+        text opponent_tactic "nullable -- free text, e.g. 3-5-2 (V7)"
         text opponent_strengths "nullable"
         text opponent_weaknesses "nullable"
         text opponent_best_players "nullable"
@@ -1641,7 +1642,7 @@ erDiagram
 ### 12.4 Current persistence setup
 
 - **Engine**: PostgreSQL, both dev and production. H2 has been removed entirely. The connection is built from `ServerConfig.kt`'s `DATABASE_HOST`/`DATABASE_PORT`/`DATABASE_USER`/`DATABASE_PASSWORD`/`DATABASE_NAME` env vars — host and password are required explicitly when `APP_ENV=production` (no silent fallback), while the database name defaults per environment (`squadify_dev` / `squadify_production`), so dev and production stay isolated even against the same Postgres server. `docker-compose.yml` at the repo root provides a local Postgres matching the dev defaults.
-- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, `V5__match_reports.sql`, and `V6__match_event_period.sql`. An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
+- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, `V5__match_reports.sql`, `V6__match_event_period.sql`, and `V7__match_report_opponent_tactic.sql`. An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
 - **Legacy backfill**: right after Flyway, `DatabaseFactory.init()` still runs a raw, idempotent SQL block that backfills `age_groups.start_year`/`end_year` from the old single `birth_year` column (if it still exists) and then drops that column (§4.3/§5.3). It's a no-op once `birth_year` is gone. It was deliberately left outside the migration chain because there's no way to confirm every environment has already run it.
 - **Connection pool**: HikariCP, `maximumPoolSize = 3` in dev / `10` in production, `autoCommit = false`, isolation level `TRANSACTION_REPEATABLE_READ`.
 

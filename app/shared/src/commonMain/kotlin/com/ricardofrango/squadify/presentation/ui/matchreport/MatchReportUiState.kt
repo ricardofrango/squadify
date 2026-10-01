@@ -13,6 +13,7 @@ data class ReportFields(
     val lessPositiveAspects: String = "",
     val aspectsToImprove: String = "",
     val teamNotes: String = "",
+    val opponentTactic: String = "",
     val opponentStrengths: String = "",
     val opponentWeaknesses: String = "",
     val opponentBestPlayers: String = "",
@@ -21,7 +22,7 @@ data class ReportFields(
     val teamFilled: Int
         get() = listOf(tactic, positiveAspects, lessPositiveAspects, aspectsToImprove, teamNotes).count { it.isNotBlank() }
     val opponentFilled: Int
-        get() = listOf(opponentStrengths, opponentWeaknesses, opponentBestPlayers, opponentAdditionalInfo).count { it.isNotBlank() }
+        get() = listOf(opponentTactic, opponentStrengths, opponentWeaknesses, opponentBestPlayers, opponentAdditionalInfo).count { it.isNotBlank() }
     val isEmpty: Boolean get() = teamFilled == 0 && opponentFilled == 0
 
     companion object {
@@ -31,6 +32,7 @@ data class ReportFields(
             lessPositiveAspects = report?.lessPositiveAspects.orEmpty(),
             aspectsToImprove = report?.aspectsToImprove.orEmpty(),
             teamNotes = report?.teamNotes.orEmpty(),
+            opponentTactic = report?.opponentTactic.orEmpty(),
             opponentStrengths = report?.opponentStrengths.orEmpty(),
             opponentWeaknesses = report?.opponentWeaknesses.orEmpty(),
             opponentBestPlayers = report?.opponentBestPlayers.orEmpty(),
@@ -89,6 +91,7 @@ sealed class MatchReportUiState {
             lessPositiveAspects = fields.lessPositiveAspects,
             aspectsToImprove = fields.aspectsToImprove,
             teamNotes = fields.teamNotes,
+            opponentTactic = fields.opponentTactic,
             opponentStrengths = fields.opponentStrengths,
             opponentWeaknesses = fields.opponentWeaknesses,
             opponentBestPlayers = fields.opponentBestPlayers,

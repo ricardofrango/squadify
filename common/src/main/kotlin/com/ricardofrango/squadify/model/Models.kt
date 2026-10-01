@@ -803,6 +803,7 @@ data class MatchReport(
     val aspectsToImprove: String? = null,
     val teamNotes: String? = null,
     // The opponent
+    val opponentTactic: String? = null,
     val opponentStrengths: String? = null,
     val opponentWeaknesses: String? = null,
     val opponentBestPlayers: String? = null,
@@ -831,6 +832,7 @@ data class SaveMatchReportRequest(
     val lessPositiveAspects: String? = null,
     val aspectsToImprove: String? = null,
     val teamNotes: String? = null,
+    val opponentTactic: String? = null,
     val opponentStrengths: String? = null,
     val opponentWeaknesses: String? = null,
     val opponentBestPlayers: String? = null,

@@ -546,6 +546,7 @@ private val previewReport = MatchReport(
     tactic = "4-3-3",
     positiveAspects = "Pressed high for the first 30 minutes and won the ball back in their half six times.",
     aspectsToImprove = "Communication at corners. Second balls in midfield.",
+    opponentTactic = "3-5-2",
     opponentBestPlayers = "Their #10, quick on the turn.",
     completedAt = Instant.parse("2026-09-28T09:00:00Z"),
     updatedAt = Instant.parse("2026-09-28T09:00:00Z"),

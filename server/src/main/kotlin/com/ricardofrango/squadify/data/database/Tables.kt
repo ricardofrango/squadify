@@ -286,6 +286,7 @@ object MatchReports : Table("match_reports") {
     val lessPositiveAspects = text("less_positive_aspects").nullable()
     val aspectsToImprove = text("aspects_to_improve").nullable()
     val teamNotes = text("team_notes").nullable()
+    val opponentTactic = text("opponent_tactic").nullable()
     val opponentStrengths = text("opponent_strengths").nullable()
     val opponentWeaknesses = text("opponent_weaknesses").nullable()
     val opponentBestPlayers = text("opponent_best_players").nullable()

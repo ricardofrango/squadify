@@ -69,23 +69,7 @@ private fun TeamReadCard(state: MatchReportUiState.Idle) {
         Res.string.report_field_team_notes to f.teamNotes
     ).filter { it.second.isNotBlank() }
     ReportCard {
-        // Header: "OUR TEAM" on the left, the tactic at display size on the right (25a) -- the
-        // one-glance answer to "how did we set up".
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f)) { SectionLabel(stringResource(Res.string.report_section_our_team)) }
-            if (f.tactic.isNotBlank()) {
-                Text(stringResource(Res.string.report_field_tactic), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = SecondaryText)
-                Spacer(Modifier.width(10.dp))
-                Surface(shape = RoundedCornerShape(12.dp), color = CarbonGray) {
-                    Text(
-                        f.tactic,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black),
-                        color = Color.White
-                    )
-                }
-            }
-        }
+        CardHeaderWithTactic(stringResource(Res.string.report_section_our_team), f.tactic)
         if (f.tactic.isBlank() && texts.isEmpty()) {
             Spacer(Modifier.height(10.dp))
             Text(stringResource(Res.string.report_nothing_team), style = MaterialTheme.typography.bodyMedium, color = SecondaryText)
@@ -105,12 +89,35 @@ private fun OpponentReadCard(state: MatchReportUiState.Idle) {
         Res.string.report_field_additional_info to f.opponentAdditionalInfo
     ).filter { it.second.isNotBlank() }
     ReportCard {
-        SectionLabel(state.details.opponentName)
-        if (texts.isEmpty()) {
+        CardHeaderWithTactic(state.details.opponentName, f.opponentTactic)
+        if (f.opponentTactic.isBlank() && texts.isEmpty()) {
             Spacer(Modifier.height(10.dp))
             Text(stringResource(Res.string.report_nothing_opponent), style = MaterialTheme.typography.bodyMedium, color = SecondaryText)
         } else {
             ReadFields(texts)
+        }
+    }
+}
+
+/**
+ * A section header with its tactic at display size on the right (25a): the one-glance answer to "how
+ * did they set up", for our team and the opponent alike. No chip when the tactic wasn't written.
+ */
+@Composable
+private fun CardHeaderWithTactic(title: String, tactic: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(1f)) { SectionLabel(title) }
+        if (tactic.isNotBlank()) {
+            Text(stringResource(Res.string.report_field_tactic), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = SecondaryText)
+            Spacer(Modifier.width(10.dp))
+            Surface(shape = RoundedCornerShape(12.dp), color = CarbonGray) {
+                Text(
+                    tactic,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black),
+                    color = Color.White
+                )
+            }
         }
     }
 }

@@ -87,6 +87,7 @@ class SaveMatchReportUseCaseTest {
 
         useCase(coach.id, matchId, SaveMatchReportRequest(
             tactic = " 4-4-2 ", positiveAspects = "Pressing", teamNotes = "   ",
+            opponentTactic = " 3-5-2 ",
             opponentBestPlayers = "Their #10",
             ratings = listOf(MatchPlayerRatingInput("p1", 8), MatchPlayerRatingInput("p2", null)),
             complete = true
@@ -96,6 +97,7 @@ class SaveMatchReportUseCaseTest {
         assertEquals("Pressing", saved.captured.positiveAspects)
         assertNull(saved.captured.teamNotes, "blank text is stored as null")
         assertEquals("Their #10", saved.captured.opponentBestPlayers)
+        assertEquals("3-5-2", saved.captured.opponentTactic)
         assertNotNull(saved.captured.completedAt)
         assertEquals(coach.id, saved.captured.updatedByUserId)
         coVerify { matchPlayerStatsRepository.updateRatings(matchId, mapOf("p1" to 8, "p2" to null)) }

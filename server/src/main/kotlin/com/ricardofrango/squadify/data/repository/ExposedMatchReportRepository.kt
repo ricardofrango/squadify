@@ -35,6 +35,7 @@ class ExposedMatchReportRepository : MatchReportRepository {
             it[lessPositiveAspects] = report.lessPositiveAspects
             it[aspectsToImprove] = report.aspectsToImprove
             it[teamNotes] = report.teamNotes
+            it[opponentTactic] = report.opponentTactic
             it[opponentStrengths] = report.opponentStrengths
             it[opponentWeaknesses] = report.opponentWeaknesses
             it[opponentBestPlayers] = report.opponentBestPlayers
@@ -60,6 +61,7 @@ class ExposedMatchReportRepository : MatchReportRepository {
         lessPositiveAspects = row[MatchReports.lessPositiveAspects],
         aspectsToImprove = row[MatchReports.aspectsToImprove],
         teamNotes = row[MatchReports.teamNotes],
+        opponentTactic = row[MatchReports.opponentTactic],
         opponentStrengths = row[MatchReports.opponentStrengths],
         opponentWeaknesses = row[MatchReports.opponentWeaknesses],
         opponentBestPlayers = row[MatchReports.opponentBestPlayers],
