@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.*
 import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
+import com.ricardofrango.squadify.presentation.ui.components.MatchTypeSelector
 import com.ricardofrango.squadify.presentation.ui.components.DatePickerSheet
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
@@ -382,6 +383,7 @@ private fun DetailsCard(details: MatchDetails) {
     Surface(modifier = Modifier.fillMaxWidth(), shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))) {
         Column(Modifier.padding(vertical = 4.dp)) {
             DetailRow(stringResource(Res.string.label_opponent_field), details.opponent.name)
+            DetailRow(stringResource(Res.string.label_match_type), m.type?.let { stringResource(it.labelRes()) } ?: "—")
             DetailRow(stringResource(Res.string.label_match_date), m.dateTime.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(DayMonthYear))
             DetailRow(stringResource(Res.string.label_match_kickoff), timeLabel(m.dateTime))
             DetailRow(
@@ -538,6 +540,7 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
     var time by remember { mutableStateOf(LocalTime(initial.hour, initial.minute)) }
     var location by remember { mutableStateOf(details.match.location.orEmpty()) }
     var notes by remember { mutableStateOf(details.match.notes.orEmpty()) }
+    var type by remember { mutableStateOf(details.match.type) }
     var showDate by remember { mutableStateOf(false) }
     var showTime by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -545,6 +548,8 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = Color.White) {
         Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(Res.string.title_edit_match), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
+            Text(stringResource(Res.string.label_match_type), style = MaterialTheme.typography.labelSmall, color = DeepCarbon.copy(alpha = 0.5f))
+            MatchTypeSelector(selected = type, onSelected = { type = it })
             ValueField(stringResource(Res.string.label_match_date), date.format(DayMonthYear)) { showDate = true }
             ValueField(stringResource(Res.string.label_match_kickoff), timeOf(time)) { showTime = true }
             OutlinedTextField(
@@ -565,7 +570,8 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
                         UpdateMatchRequest(
                             dateTime = date.atTime(time).toInstant(tz),
                             location = location.trim().ifBlank { null },
-                            notes = notes.trim().ifBlank { null }
+                            notes = notes.trim().ifBlank { null },
+                            type = type
                         )
                     )
                 },

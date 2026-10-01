@@ -632,4 +632,10 @@
         <item quantity="one">%1$d day ago</item>
         <item quantity="other">%1$d days ago</item>
     </plurals>
+
+    <!-- Match type -->
+    <string name="label_match_type">Match type</string>
+    <string name="label_match_type_friendly">Friendly</string>
+    <string name="label_match_type_championship">Championship</string>
+    <string name="label_match_type_tournament">Tournament</string>
 </resources>

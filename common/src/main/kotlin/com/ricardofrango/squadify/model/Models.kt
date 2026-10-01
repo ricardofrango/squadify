@@ -121,6 +121,10 @@ enum class SeasonType {
     EUROPEAN_YEAR  // Jul 1st - Jun 30th
 }
 
+/** What kind of fixture a match is -- chosen when scheduling it. */
+@Serializable
+enum class MatchType { FRIENDLY, CHAMPIONSHIP, TOURNAMENT }
+
 @Serializable
 enum class MatchStatus {
     SCHEDULED,
@@ -730,6 +734,8 @@ data class Match(
     val dateTime: Instant,
     val status: MatchStatus = MatchStatus.SCHEDULED,
     val notes: String? = null,
+    // Friendly / championship / tournament. Null only for matches scheduled before this existed.
+    val type: MatchType? = null,
     // Set by StartMatchUseCase at kickoff, alongside the starting XI (MatchCallUp.isStarting). Null
     // before kickoff and for matches recorded before this existed.
     val halfLengthMinutes: Int? = null,
@@ -947,7 +953,8 @@ data class UpdateMatchRequest(
     val opponentId: String? = null,
     val dateTime: Instant? = null,
     val location: String? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    val type: MatchType? = null
 )
 
 @Serializable
@@ -968,7 +975,9 @@ data class CreateMatchRequest(
     val opponentId: String,
     val location: String? = null,
     val dateTime: Instant,
-    val notes: String? = null
+    val notes: String? = null,
+    // Required: every new match is typified when it's scheduled.
+    val type: MatchType
 )
 
 @Serializable

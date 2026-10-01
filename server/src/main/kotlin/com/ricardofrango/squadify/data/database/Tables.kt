@@ -203,6 +203,8 @@ object Matches : Table("matches") {
     val dateTime = timestamp("date_time")
     val status = enumerationByName("status", 50, MatchStatus::class).default(MatchStatus.SCHEDULED)
     val notes = text("notes").nullable()
+    // Friendly / championship / tournament (MatchType). Null for matches scheduled before V9.
+    val matchType = enumerationByName("match_type", 50, MatchType::class).nullable()
     // Set at kickoff by StartMatchUseCase alongside MatchCallUps.isStarting. Null before kickoff.
     val halfLengthMinutes = integer("half_length_minutes").nullable()
     // Wall-clock instant of kickoff / second-half restart -- the client's live running clock is

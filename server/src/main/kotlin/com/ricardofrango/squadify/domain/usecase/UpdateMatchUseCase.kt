@@ -57,7 +57,8 @@ class UpdateMatchUseCase(
                 opponentId = request.opponentId ?: match.opponentId,
                 dateTime = request.dateTime ?: match.dateTime,
                 location = request.location ?: match.location,
-                notes = request.notes ?: match.notes
+                notes = request.notes ?: match.notes,
+                type = request.type ?: match.type
             )
 
             // Only the schedule-relevant fields warrant a "match updated" push -- a notes-only edit

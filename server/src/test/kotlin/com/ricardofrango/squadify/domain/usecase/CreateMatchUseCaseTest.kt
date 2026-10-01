@@ -14,6 +14,7 @@ import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.CreateMatchRequest
 import com.ricardofrango.squadify.model.Match
+import com.ricardofrango.squadify.model.MatchType
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.TeamRole
@@ -24,6 +25,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.time.Instant
 
@@ -67,7 +69,9 @@ class CreateMatchUseCaseTest {
         coEvery { opponentRepository.getOpponentById("opp-1") } returns opponent
         coEvery { matchRepository.createMatch(any()) } answers { firstArg() }
 
-        val result = useCase(coach.id, CreateMatchRequest(teamId = teamId, opponentId = "opp-1", dateTime = Instant.fromEpochMilliseconds(1)))
+        val result = useCase(coach.id, CreateMatchRequest(teamId = teamId, opponentId = "opp-1", dateTime = Instant.fromEpochMilliseconds(1), type = MatchType.CHAMPIONSHIP))
+
+        assertEquals(MatchType.CHAMPIONSHIP, result.type, "the chosen type is stored on the match")
 
         coVerify { notifyMatchEventUseCase(result.id, MatchNotificationEvent.SCHEDULED) }
         coVerify { clubMatchesBus.publish(clubId, com.ricardofrango.squadify.model.ClubMatchesUpdate(match = result)) }
@@ -83,7 +87,7 @@ class CreateMatchUseCaseTest {
         coEvery { opponentRepository.getOpponentById("opp-other") } returns Opponent("opp-other", "other-club", "X")
 
         assertFailsWith<ForbiddenException> {
-            useCase(coach.id, CreateMatchRequest(teamId = teamId, opponentId = "opp-other", dateTime = Instant.fromEpochMilliseconds(1)))
+            useCase(coach.id, CreateMatchRequest(teamId = teamId, opponentId = "opp-other", dateTime = Instant.fromEpochMilliseconds(1), type = MatchType.CHAMPIONSHIP))
         }
         coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
     }
@@ -93,7 +97,7 @@ class CreateMatchUseCaseTest {
         coEvery { teamRepository.getTeamById("no-such-team") } returns null
 
         assertFailsWith<NotFoundException> {
-            useCase("anyone", CreateMatchRequest(teamId = "no-such-team", opponentId = "opp-1", dateTime = Instant.fromEpochMilliseconds(1)))
+            useCase("anyone", CreateMatchRequest(teamId = "no-such-team", opponentId = "opp-1", dateTime = Instant.fromEpochMilliseconds(1), type = MatchType.CHAMPIONSHIP))
         }
         coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
     }

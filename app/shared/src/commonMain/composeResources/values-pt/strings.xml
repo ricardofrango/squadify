@@ -630,4 +630,10 @@
         <item quantity="one">há %1$d dia</item>
         <item quantity="other">há %1$d dias</item>
     </plurals>
+
+    <!-- Match type -->
+    <string name="label_match_type">Tipo de jogo</string>
+    <string name="label_match_type_friendly">Amigável</string>
+    <string name="label_match_type_championship">Campeonato</string>
+    <string name="label_match_type_tournament">Torneio</string>
 </resources>

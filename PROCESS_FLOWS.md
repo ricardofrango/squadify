@@ -835,7 +835,7 @@ coordinator-only, no staff path at all. Not yet reachable from the client — no
 
 ```mermaid
 graph TD
-    A[Start: userId, teamId, opponentId, location, dateTime, notes] --> B[Fetch Team by id]
+    A[Start: userId, teamId, opponentId, location, dateTime, notes, type] --> B[Fetch Team by id]
     B -- not found --> N1(["Throw NotFoundException: Team not found"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_MATCH, teamId]
     C -- denied --> F(["Throw ForbiddenException"])
@@ -843,12 +843,18 @@ graph TD
     D -- not found --> N2(["Throw NotFoundException: Opponent not found"])
     D -- found --> E{opponent.clubId != team.clubId?}
     E -- Yes --> FB(["Throw ForbiddenException: opponent belongs to another club"])
-    E -- No --> G[Create Match — status SCHEDULED]
+    E -- No --> G["Create Match — status SCHEDULED, type = request.type (FRIENDLY / CHAMPIONSHIP / TOURNAMENT)"]
     G --> H[Persist Match]
     H --> I["Transaction commits"]
     I --> J["NotifyMatchEventUseCase(match.id, SCHEDULED) — best-effort push to every club member (§8.2b)"]
     J --> Z(["Return created Match"])
 ```
+
+**Match type.** Every new match is typified as Friendly, Championship or Tournament (`MatchType`):
+- **On the server:** `CreateMatchRequest.type` is required.
+- **On Schedule match:** a required three-way selector with no default, so "Schedule match" stays disabled until a type is picked.
+- **Changing it:** the type can be changed later from the match's edit sheet (`UpdateMatchRequest.type`). That isn't a schedule change, so it sends no push.
+- **Older matches:** matches scheduled before this have no type (`matches.match_type` is nullable, `V9`) and show "—" until someone sets one.
 
 ### 7.1b Get Match Details (`GetMatchDetailsUseCase`)
 
