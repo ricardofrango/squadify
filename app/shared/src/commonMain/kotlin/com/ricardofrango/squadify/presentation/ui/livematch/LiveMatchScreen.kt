@@ -1003,10 +1003,10 @@ private fun PlayerActionSheet(
     }
 }
 
-/** "10 · Tomás Bragança", or just the name when the player has no shirt number. */
+/** "- 10 · Tomás Bragança", or "- Tomás Bragança" when the player has no shirt number. */
 private fun pickerLabel(player: Player): String {
     val name = "${player.firstName} ${player.lastName}"
-    return player.shirtNumber?.let { "$it · $name" } ?: name
+    return player.shirtNumber?.let { "- $it · $name" } ?: "- $name"
 }
 
 @Composable
