@@ -133,6 +133,11 @@ class ExposedPlayerRepository : PlayerRepository {
             .where { UserPlayers.userId eq userId.toUuid() }
             .map(::toPlayer)
 
+    override suspend fun getUserPlayerLinksByClub(clubId: String): List<Triple<String, Player, UserPlayerRelationship>> =
+        (Players innerJoin UserPlayers).selectAll()
+            .where { Players.clubId eq clubId.toUuid() }
+            .map { Triple(it[UserPlayers.userId].toString(), toPlayer(it), it[UserPlayers.relationship]) }
+
     override suspend fun getAgeGroupPlayersByClub(clubId: String): List<AgeGroupPlayer> =
         (AgeGroupPlayers innerJoin Players).selectAll()
             .where { Players.clubId eq clubId.toUuid() }

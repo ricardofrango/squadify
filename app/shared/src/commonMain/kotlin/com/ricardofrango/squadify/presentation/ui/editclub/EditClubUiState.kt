@@ -1,12 +1,25 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import com.ricardofrango.squadify.model.ClubMembersOverview
 import com.ricardofrango.squadify.model.ClubPermissionSetting
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.UpdateClubRequest
 
+// Club settings tabs (design 34): Details · Members · Permissions. Always opens on Details.
 const val EDIT_CLUB_TAB_DETAILS = 0
-const val EDIT_CLUB_TAB_PERMISSIONS = 1
+const val EDIT_CLUB_TAB_MEMBERS = 1
+const val EDIT_CLUB_TAB_PERMISSIONS = 2
+
+/** The Members tab's role filter (34a). */
+enum class MembersFilter { ALL, ADMINS, COORDINATORS, MEMBERS, PENDING }
+
+/** The Members tab loads on its own, so an error stays inside the tab (Details and Permissions still work). */
+sealed class MembersUiState {
+    data object Loading : MembersUiState()
+    data object Error : MembersUiState()
+    data class Loaded(val overview: ClubMembersOverview) : MembersUiState()
+}
 
 /** Everything `UpdateClubRequest` can carry, held as plain editable fields -- same "blank optional field
  * means null" trick as `ProfileFormFields`, so the request only ever overwrites a field with something

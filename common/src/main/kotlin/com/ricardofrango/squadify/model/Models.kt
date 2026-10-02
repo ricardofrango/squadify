@@ -509,7 +509,10 @@ data class CreatePlayer(
 
 @Serializable
 data class AddClubMembersRequest(
-    val emails: List<String>
+    val emails: List<String>,
+    // The club role they join with: Member or Coordinator. Admin can only be granted once they're in
+    // (design 34) -- the server rejects ADMIN here.
+    val role: ClubRole = ClubRole.MEMBER
 )
 
 @Serializable
@@ -667,7 +670,9 @@ data class TeamDetails(
     val upcomingMatchScores: Map<String, MatchScore> = emptyMap(),
     val recentResults: List<TeamMatchResult>,
     val opponents: List<Opponent>,
-    val canManageMatch: Boolean
+    val canManageMatch: Boolean,
+    // Coordinator+: the staff chips open Member details (design 35), which only they can read.
+    val canViewMembers: Boolean = false
 )
 
 /**
@@ -1118,3 +1123,64 @@ data class ClubHome(
     val nextUp: List<ClubHomeNextUp>,
     val alerts: List<ClubHomeAlert>
 )
+
+// ---- Club members (Club settings → Members, Member details: designs 34, 35) ----
+
+/** One age group a member is staff on. */
+@Serializable
+data class MemberAgeGroupRole(
+    val ageGroupId: String,
+    val ageGroupName: String,
+    val seasonName: String,
+    val role: TeamRole,
+    // The club's active season comes first in lists.
+    val currentSeason: Boolean = false
+)
+
+/** One player a member is linked to (a parent/guardian link). */
+@Serializable
+data class MemberLinkedPlayer(
+    val playerId: String,
+    val name: String,
+    val relationship: UserPlayerRelationship,
+    val ageGroupName: String? = null,
+    val shirtNumber: Int? = null
+)
+
+/** A registered club member with everything they do in the club. */
+@Serializable
+data class ClubMemberEntry(
+    val userId: String,
+    val firstName: String,
+    val lastName: String,
+    val email: String,
+    val phone: String? = null,
+    val role: ClubRole,
+    val ageGroupRoles: List<MemberAgeGroupRole> = emptyList(),
+    val linkedPlayers: List<MemberLinkedPlayer> = emptyList(),
+    val accountCreatedAt: Instant
+)
+
+/** An email invited to join the club as [role] that hasn't registered yet. */
+@Serializable
+data class PendingClubInvite(
+    val inviteId: String,
+    val email: String,
+    val role: ClubRole,
+    val invitedAt: Instant
+)
+
+/**
+ * Everything behind Club settings' Members tab and Member details. [viewerRole] drives what the viewer
+ * may change: only admins grant or remove Admin, and the club always keeps at least one admin.
+ */
+@Serializable
+data class ClubMembersOverview(
+    val members: List<ClubMemberEntry>,
+    val pendingInvites: List<PendingClubInvite>,
+    val viewerUserId: String,
+    val viewerRole: ClubRole
+) {
+    val adminCount: Int get() = members.count { it.role == ClubRole.CLUB_ADMIN }
+}
+

@@ -5,6 +5,10 @@ import com.ricardofrango.squadify.domain.usecase.GetClubDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubHomeUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubMatchesUpdatesUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubMembersUseCase
+import com.ricardofrango.squadify.domain.usecase.GetClubMembersOverviewUseCase
+import com.ricardofrango.squadify.domain.usecase.ManageClubInviteUseCase
+import com.ricardofrango.squadify.domain.usecase.UpdateClubMemberRoleUseCase
+import com.ricardofrango.squadify.model.UpdateClubMemberRoleRequest
 import com.ricardofrango.squadify.domain.usecase.GetClubPermissionsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
 import com.ricardofrango.squadify.domain.usecase.ProvisionClubUseCase
@@ -22,6 +26,7 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
@@ -37,6 +42,9 @@ fun Route.clubRoutes() {
     val provisionClubUseCase by inject<ProvisionClubUseCase>()
     val addClubMembersUseCase by inject<AddClubMembersUseCase>()
     val getClubMembersUseCase by inject<GetClubMembersUseCase>()
+    val getClubMembersOverviewUseCase by inject<GetClubMembersOverviewUseCase>()
+    val updateClubMemberRoleUseCase by inject<UpdateClubMemberRoleUseCase>()
+    val manageClubInviteUseCase by inject<ManageClubInviteUseCase>()
     val updateClubUseCase by inject<UpdateClubUseCase>()
     val getClubMatchesUpdatesUseCase by inject<GetClubMatchesUpdatesUseCase>()
     val getClubPermissionsUseCase by inject<GetClubPermissionsUseCase>()
@@ -127,6 +135,38 @@ fun Route.clubRoutes() {
                     val currentUserId =
                         call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
                     call.respond(getClubMembersUseCase(currentUserId, clubId))
+                }
+
+                // Members with their roles, age-group roles and linked players, plus pending invites
+                // (Club settings → Members, Member details: designs 34, 35).
+                get("/members/overview") {
+                    val clubId = call.parameters["clubId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                    call.respond(getClubMembersOverviewUseCase(currentUserId, clubId))
+                }
+
+                patch("/members/{memberUserId}") {
+                    val clubId = call.parameters["clubId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
+                    val memberUserId = call.parameters["memberUserId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
+                    updateClubMemberRoleUseCase(currentUserId, clubId, memberUserId, call.receive<UpdateClubMemberRoleRequest>())
+                    call.respond(HttpStatusCode.NoContent)
+                }
+
+                post("/invites/{inviteId}/resend") {
+                    val clubId = call.parameters["clubId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+                    val inviteId = call.parameters["inviteId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                    manageClubInviteUseCase.resend(currentUserId, clubId, inviteId)
+                    call.respond(HttpStatusCode.NoContent)
+                }
+
+                delete("/invites/{inviteId}") {
+                    val clubId = call.parameters["clubId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                    val inviteId = call.parameters["inviteId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                    manageClubInviteUseCase.cancel(currentUserId, clubId, inviteId)
+                    call.respond(HttpStatusCode.NoContent)
                 }
 
                 get("/permissions") {

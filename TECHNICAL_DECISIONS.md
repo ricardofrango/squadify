@@ -2317,3 +2317,36 @@ Player Details shows a **Season stats** card with a per-match list (design 30), 
 - leader names that needed to wrap
 - dates that wrapped
 
+## 44. Club Settings: Bottom Tabs and the Members List
+
+Club settings (design 34) moves from a top tab row to the same dark bottom bar as Team and Age Group Details (a rail in landscape): **Details · Members · Permissions**, always opening on Details.
+
+**Unsaved edits per tab.**
+- **Kept across tabs:** the Details form and the Permissions draft live in the view model, so switching tabs never loses them. A dirty tab shows an amber dot (`DetailTab.dot`).
+- **Save stays local:** the ✓ in the header only appears on Details, since it saves nothing else. Permissions keeps its own Save button.
+- **Leaving asks once:** back (button or system) with any dirty tab opens one dialog that names what would be lost: club details, permissions, or both.
+
+**One read for the Members tab.**
+- **`GET /clubs/{id}/members/overview`** returns members with their club role, contact details, age-group roles and linked players, plus the pending club invites. The tab's search, filter and grouping all run on the client from that one payload.
+- **Loads on its own:** a failure stays inside the Members tab while Details and Permissions keep working.
+- **Viewer role in the payload:** the client knows whether the viewer is an admin without a second request.
+
+**Role rules, enforced on the server** (`UpdateClubMemberRoleUseCase`).
+- **Coordinators** can change roles between Member and Coordinator. The old rule was admin-only for any change.
+- **Only admins** can grant or remove Admin, so a coordinator can't promote themselves.
+- **At least one admin:** demoting the last admin is a conflict (409). The client also locks the option and explains why.
+- **Invites carry a role** (Member or Coordinator), applied when the person registers. Admin can't be invited; it's granted once they've joined.
+
+**Pending invites** can be resent (the same email again) or cancelled (the invite row is deleted). Both are coordinator-gated and scoped to the club's own `CLUB_MEMBER` invites.
+
+**Member details** (design 35) is its own screen, `Screen.ClubMemberDetails(clubId, userId | inviteId)`, opened from a Members row.
+- **Same payload as the list:** it reads the members overview and picks out one member or one invite, so the list and the details can't disagree. There's no per-member endpoint.
+- **Role locks are a pure function** (`roleLock`, tested in `RoleLockTest`) that mirrors the server rules. A locked option is greyed out, and the amber reason is shown once under the options. When nothing else can be picked, the reason replaces the button.
+- **Granting Admin asks first**; other role changes save straight away and show a toast.
+- **Demoting yourself** shows "You're now {role}", then returns to Club details, past Club settings, since you may have lost access to it. There's no reload, because a Member can't read the list.
+- **Coming back to Club settings** refreshes only the Members list (a `savedStateHandle` flag, plus a message when an invite was cancelled). Club settings now loads once per club, so returning no longer wipes unsaved Details or Permissions edits.
+- **Contact:** tapping the email opens mail and tapping the phone opens the dialler, through `LocalUriHandler`. The copy icon uses the text clipboard manager, since `ClipEntry` has no common constructor yet.
+- **Remove from club** ships later.
+
+**Staff link to Member details** wherever they're listed: the age group's Members tab (staff rows) and Team Details' age-group card (staff chips). A link shows only where the page would open: coordinators and above, using `AgeGroupDetails.canAddStaff` and a new `TeamDetails.canViewMembers`. For anyone else the rows and chips stay inert. Player Details only shows a guardian count, not names, so there's nothing to link there yet.
+

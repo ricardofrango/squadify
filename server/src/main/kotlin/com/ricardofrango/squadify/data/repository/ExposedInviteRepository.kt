@@ -4,7 +4,9 @@ import com.ricardofrango.squadify.data.database.Invites
 import com.ricardofrango.squadify.domain.repository.InviteRepository
 import com.ricardofrango.squadify.exception.DatabaseException
 import com.ricardofrango.squadify.model.Invite
+import com.ricardofrango.squadify.model.InviteType
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -54,6 +56,15 @@ class ExposedInviteRepository : InviteRepository {
     override suspend fun findByEmail(email: String): List<Invite> =
         Invites.selectAll().where { Invites.email eq email }
             .map(::toInvite)
+
+    override suspend fun getById(inviteId: String): Invite? =
+        Invites.selectAll().where { Invites.id eq inviteId.toUuid() }.map(::toInvite).singleOrNull()
+
+    override suspend fun findClubMemberInvites(clubId: String): List<Invite> =
+        Invites.selectAll()
+            .where { (Invites.clubId eq clubId.toUuid()) and (Invites.type eq InviteType.CLUB_MEMBER) }
+            .map(::toInvite)
+            .sortedByDescending { it.createdAt }
 
     override suspend fun deleteByPlayer(playerId: String) {
         Invites.deleteWhere { Invites.playerId eq playerId.toUuid() }

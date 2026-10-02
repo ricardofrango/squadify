@@ -50,6 +50,11 @@ sealed class Screen {
     @SerialName("edit-club")
     data class EditClub(val clubId: String) : Screen()
 
+    // One club member (design 35), or one pending club invite: exactly one of [userId] / [inviteId] is set.
+    @Serializable
+    @SerialName("club-member")
+    data class ClubMemberDetails(val clubId: String, val userId: String? = null, val inviteId: String? = null) : Screen()
+
     @Serializable
     @SerialName("create-age-groups")
     data class CreateAgeGroups(

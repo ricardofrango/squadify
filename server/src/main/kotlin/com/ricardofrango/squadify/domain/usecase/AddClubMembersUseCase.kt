@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.FcmTokenRepository
 import com.ricardofrango.squadify.domain.repository.InviteRepository
@@ -44,6 +45,9 @@ class AddClubMembersUseCase(
             // not after the transaction closes, even though it's only used for the emails sent below.
             clubRepository.getClubById(clubId)?.let { clubName = it.name }
 
+            // Admin can only be granted once someone is in (design 34).
+            if (request.role == ClubRole.CLUB_ADMIN) throw ValidationException("Invite as Member or Coordinator; make admins once they've joined")
+
             val uniqueEmails = request.emails.distinct()
             val existingUsers = userRepository.findByEmails(uniqueEmails).associateBy { it.email }
             val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
@@ -59,7 +63,7 @@ class AddClubMembersUseCase(
                 if (user != null) {
                     // Check if already a member
                     if (userRolesMap[user.id] == null) {
-                        membersToCreate.add(user.id to ClubRole.MEMBER)
+                        membersToCreate.add(user.id to request.role)
                         membersAdded.add(user)
                     }
                 } else {
@@ -69,7 +73,7 @@ class AddClubMembersUseCase(
                             email = email,
                             clubId = clubId,
                             type = InviteType.CLUB_MEMBER,
-                            role = ClubRole.MEMBER,
+                            role = request.role,
                             createdAt = now
                         )
                     )

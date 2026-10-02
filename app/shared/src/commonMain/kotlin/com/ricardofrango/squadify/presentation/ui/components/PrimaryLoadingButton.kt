@@ -97,6 +97,8 @@ fun PrimaryLoadingButton(
         } else {
             Text(
                 text = text.uppercase(),
+                // A long label (e.g. in Portuguese) wraps centred rather than ragged-left.
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 1.sp

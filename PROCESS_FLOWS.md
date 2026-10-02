@@ -382,27 +382,44 @@ the settings.
 
 ### 3.5 Update Club Member Role (`UpdateClubMemberRoleUseCase`)
 
+`PATCH /v1/clubs/{clubId}/members/{memberUserId}` (body `UpdateClubMemberRoleRequest`, 204).
+
 ```mermaid
 graph TD
-    A[Start: userId, clubId, targetUserId, newRole] --> B[CheckUserPermissionUseCase — minClubRole=CLUB_ADMIN]
+    A[Start: userId, clubId, targetUserId, newRole] --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
     B -- denied --> F(["Throw ForbiddenException"])
-    B -- allowed --> C["Update role directly in club_members (no existence check on targetUserId)"]
-    C --> Z(["Return success"])
+    B -- allowed --> C[Load club members]
+    C -- target not a member --> NF(["Throw NotFoundException"])
+    C -- member --> D{"Touches Admin? (newRole or current role is CLUB_ADMIN)"}
+    D -- yes, caller not CLUB_ADMIN / platform admin --> F2(["Throw ForbiddenException — only admins grant or remove Admin"])
+    D -- no / caller is admin --> E{"Demoting the only CLUB_ADMIN?"}
+    E -- yes --> CF(["Throw ConflictException — the club needs at least one admin"])
+    E -- no --> G[Update role in club_members]
+    G --> Z(["Return success"])
 ```
+
+Coordinators can move people between Member and Coordinator; only admins can grant or remove Admin
+(design 34). An admin can demote themselves only while another admin exists.
 
 ### 3.6 Add Club Members (`AddClubMembersUseCase`)
 
+`AddClubMembersRequest.role` (default `MEMBER`) is the club role for every email in the batch: Member or
+Coordinator. Admin is rejected with `ValidationException` -- Admin is only granted to someone who has
+joined (§3.5).
+
 ```mermaid
 graph TD
-    A[Start: userId, clubId, emails list] --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    A[Start: userId, clubId, emails list, role] --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
     B -- denied --> F(["Throw ForbiddenException"])
-    B -- allowed --> C[Dedupe emails]
+    B -- allowed --> R{role == CLUB_ADMIN?}
+    R -- yes --> V(["Throw ValidationException"])
+    R -- no --> C[Dedupe emails]
     C --> D[Batch find existing Users by email]
     D --> E[Batch fetch existing club roles for matched users]
     E --> G{For each email}
-    G -- user exists, not yet a member --> H[Queue new ClubMember, role MEMBER]
+    G -- user exists, not yet a member --> H[Queue new ClubMember with role]
     G -- user exists, already a member --> SKIP[Skip]
-    G -- user does not exist --> I[Queue CLUB_MEMBER Invite, role MEMBER]
+    G -- user does not exist --> I[Queue CLUB_MEMBER Invite with role]
     H --> J[Batch insert new members]
     I --> K[Batch insert invites]
     J --> L["After commit: EmailService.sendClubMembershipAdded per new member"]
@@ -412,6 +429,40 @@ graph TD
 ```
 
 Same after-commit timing as 3.1 above — see TECHNICAL_DECISIONS.md §14.
+
+### 3.7 Club Members Overview (`GetClubMembersOverviewUseCase`)
+
+`GET /v1/clubs/{clubId}/members/overview` -- the Club settings Members tab (design 34).
+
+```mermaid
+graph TD
+    A[Start: userId, clubId] --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    B -- denied --> F(["Throw ForbiddenException"])
+    B -- allowed --> C[Club members with name, email, phone, role, account created]
+    C --> D["Age-group staff roles across every season (current season first)"]
+    D --> E["User–player links in the club, with the player's age group in the active season"]
+    E --> G["Pending CLUB_MEMBER invites, newest first"]
+    G --> Z(["Return ClubMembersOverview — members, pendingInvites, viewerUserId, viewerRole"])
+```
+
+`viewerRole` is the caller's club role (a platform admin reads as `CLUB_ADMIN`), so the client can lock
+the Admin option for coordinators without a second request.
+
+### 3.8 Resend / Cancel Club Invite (`ManageClubInviteUseCase`)
+
+`POST /v1/clubs/{clubId}/invites/{inviteId}/resend` and `DELETE /v1/clubs/{clubId}/invites/{inviteId}`.
+
+```mermaid
+graph TD
+    A[Start: userId, clubId, inviteId] --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    B -- denied --> F(["Throw ForbiddenException"])
+    B -- allowed --> C{"Invite exists, CLUB_MEMBER, for this club?"}
+    C -- no --> NF(["Throw NotFoundException"])
+    C -- yes, resend --> R["After commit: EmailService.sendClubInvite"]
+    C -- yes, cancel --> D[Delete invite]
+    R --> Z(["Return success"])
+    D --> Z
+```
 
 ---
 
@@ -621,10 +672,10 @@ graph TD
     H --> J["recentResults = FINISHED, newest first, each paired with its scoreline from matchEventRepository.getScoreByMatch → WIN/DRAW/LOSS"]
     I2 --> K[siblingTeamNames = other teams in the same age group]
     J --> K
-    K --> Z(["Return TeamDetails: team, club, ageGroup, season, poolSize, siblingTeamNames, staff, upcomingMatches, upcomingMatchScores, recentResults, opponents, canManageMatch"])
+    K --> Z(["Return TeamDetails: team, club, ageGroup, season, poolSize, siblingTeamNames, staff, upcomingMatches, upcomingMatchScores, recentResults, opponents, canManageMatch, canViewMembers"])
 ```
 
-`poolSize` / `staff` come from the age group (players and staff belong to it, not the team); the screen links back to the age-group detail for both. `club` is carried so a screen opened from here (e.g. Schedule Match) has the club name without another call. `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canManageMatch` gates the schedule-match action ("Edit team" is a decorative, unwired menu item in `TeamDetailsScreen` -- no Edit Team screen exists yet). As with the age-group screen, a live match stays in `upcomingMatches` (it hasn't reached `recentResults` yet) and `upcomingMatchScores` carries its running score.
+`poolSize` / `staff` come from the age group (players and staff belong to it, not the team); the screen links back to the age-group detail for both. `club` is carried so a screen opened from here (e.g. Schedule Match) has the club name without another call. `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canViewMembers` (a non-throwing `minClubRole=COORDINATOR` probe, the members overview's own gate, §3.7) makes the staff chips open Member details. `canManageMatch` gates the schedule-match action ("Edit team" is a decorative, unwired menu item in `TeamDetailsScreen` -- no Edit Team screen exists yet). As with the age-group screen, a live match stays in `upcomingMatches` (it hasn't reached `recentResults` yet) and `upcomingMatchScores` carries its running score.
 
 ### 4.6c Get Team Season Record (`GetTeamSeasonRecordUseCase`)
 

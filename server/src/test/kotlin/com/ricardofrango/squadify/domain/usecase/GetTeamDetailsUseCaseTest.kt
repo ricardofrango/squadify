@@ -123,6 +123,7 @@ class GetTeamDetailsUseCaseTest {
         assertEquals("Sub-15", result.ageGroup.name)
         assertEquals("26/27", result.season.name)
         assertTrue(result.canManageMatch)
+        assertTrue(result.canViewMembers)
     }
 
     @Test
@@ -134,6 +135,8 @@ class GetTeamDetailsUseCaseTest {
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
 
         assertTrue(useCase(coach.id, teamId).canManageMatch)
+        // A coach isn't a coordinator, so the staff chips don't open Member details.
+        assertFalse(useCase(coach.id, teamId).canViewMembers)
     }
 
     @Test
@@ -165,6 +168,7 @@ class GetTeamDetailsUseCaseTest {
 
         assertEquals(1, result.poolSize)
         assertFalse(result.canManageMatch)
+        assertFalse(result.canViewMembers)
     }
 
     @Test

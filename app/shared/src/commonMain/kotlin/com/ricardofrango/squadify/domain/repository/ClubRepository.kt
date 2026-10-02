@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.repository
 
+import com.ricardofrango.squadify.model.ClubMembersOverview
+import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.AddClubMembersRequest
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubDetailsResponse
@@ -15,6 +17,10 @@ interface ClubRepository {
     suspend fun getClubHome(clubId: String): ClubHome
     suspend fun getClubMembers(clubId: String): List<ClubMemberSummary>
     suspend fun addClubMembers(clubId: String, request: AddClubMembersRequest)
+    suspend fun getClubMembersOverview(clubId: String): ClubMembersOverview
+    suspend fun updateClubMemberRole(clubId: String, userId: String, role: ClubRole)
+    suspend fun resendClubInvite(clubId: String, inviteId: String)
+    suspend fun cancelClubInvite(clubId: String, inviteId: String)
     suspend fun updateClub(clubId: String, request: UpdateClubRequest)
     suspend fun getClubPermissions(clubId: String): ClubPermissionsResponse
     suspend fun updateClubPermissions(clubId: String, request: UpdateClubPermissionsRequest)
