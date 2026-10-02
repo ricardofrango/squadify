@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.*
 import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.components.MatchTypeChip
+import com.ricardofrango.squadify.presentation.ui.components.HalvesSelector
 import com.ricardofrango.squadify.presentation.ui.components.MatchTypeSelector
 import com.ricardofrango.squadify.presentation.ui.components.iconRes
 import com.ricardofrango.squadify.presentation.ui.components.DatePickerSheet
@@ -224,6 +225,10 @@ private fun StatusBand(details: MatchDetails) {
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                 color = Color.White
             )
+            // Two halves is the norm and goes unsaid; a single-period match says so.
+            if (match.halves == 1) {
+                Text(stringResource(Res.string.halves_one), style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f))
+            }
             if (match.status == MatchStatus.LIVE || match.status == MatchStatus.HALF_TIME) {
                 Pill(stringResource(Res.string.matches_live), LossRed, Color.White)
             } else if (match.status == MatchStatus.SCHEDULED) {
@@ -574,6 +579,9 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
     var location by remember { mutableStateOf(details.match.location.orEmpty()) }
     var notes by remember { mutableStateOf(details.match.notes.orEmpty()) }
     var type by remember { mutableStateOf(details.match.type) }
+    var halves by remember { mutableStateOf(details.match.halves) }
+    // The number of halves drives the live console, so it's only changeable before kickoff.
+    val canChangeHalves = details.match.status == MatchStatus.SCHEDULED
     var showDate by remember { mutableStateOf(false) }
     var showTime by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -589,6 +597,10 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
                 Text("*", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.error)
             }
             MatchTypeSelector(selected = type, onSelected = { type = it }, showHint = false)
+            if (canChangeHalves) {
+                Text(stringResource(Res.string.label_halves).uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon.copy(alpha = 0.55f))
+                HalvesSelector(halves = halves, onSelected = { halves = it })
+            }
             ValueField(stringResource(Res.string.label_match_date), date.format(DayMonthYear)) { showDate = true }
             ValueField(stringResource(Res.string.label_match_kickoff), timeOf(time)) { showTime = true }
             OutlinedTextField(
@@ -610,7 +622,8 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
                             dateTime = date.atTime(time).toInstant(tz),
                             location = location.trim().ifBlank { null },
                             notes = notes.trim().ifBlank { null },
-                            type = type
+                            type = type,
+                            halves = halves.takeIf { canChangeHalves }
                         )
                     )
                 },

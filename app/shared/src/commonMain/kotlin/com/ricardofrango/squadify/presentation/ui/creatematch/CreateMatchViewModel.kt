@@ -122,6 +122,8 @@ class CreateMatchViewModel(
 
     fun onMatchTypeSelected(type: MatchType) = updateIdle { it.copy(matchType = type, matchTypeError = false, error = null) }
 
+    fun onHalvesSelected(halves: Int) = updateIdle { it.copy(halves = halves) }
+
     fun onDateChange(date: LocalDate) = updateIdle { it.copy(date = date) }
 
     fun onTimeChange(time: LocalTime) = updateIdle { it.copy(time = time) }
@@ -161,7 +163,8 @@ class CreateMatchViewModel(
                         location = current.location.trim().ifBlank { null },
                         dateTime = dateTime,
                         notes = current.notes.trim().ifBlank { null },
-                        type = matchType
+                        type = matchType,
+                        halves = current.halves
                     )
                 )
                 _navigationEvent.emit(CreateMatchNavigationEvent.NavigateBackWithMatchCreated)

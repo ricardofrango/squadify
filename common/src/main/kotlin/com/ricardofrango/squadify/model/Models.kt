@@ -760,6 +760,8 @@ data class Match(
     val notes: String? = null,
     // Friendly / championship / tournament. Null only for matches scheduled before this existed.
     val type: MatchType? = null,
+    // 2 (the default) or 1: a single-period match has no half time -- only full time.
+    val halves: Int = 2,
     // Set by StartMatchUseCase at kickoff, alongside the starting XI (MatchCallUp.isStarting). Null
     // before kickoff and for matches recorded before this existed.
     val halfLengthMinutes: Int? = null,
@@ -991,7 +993,9 @@ data class UpdateMatchRequest(
     val dateTime: Instant? = null,
     val location: String? = null,
     val notes: String? = null,
-    val type: MatchType? = null
+    val type: MatchType? = null,
+    // 1 or 2 (see Match.halves). Only changeable before kickoff.
+    val halves: Int? = null
 )
 
 @Serializable
@@ -1014,7 +1018,9 @@ data class CreateMatchRequest(
     val dateTime: Instant,
     val notes: String? = null,
     // Required: every new match is typified when it's scheduled.
-    val type: MatchType
+    val type: MatchType,
+    // 2 halves unless the match is a single period (Match.halves).
+    val halves: Int = 2
 )
 
 @Serializable

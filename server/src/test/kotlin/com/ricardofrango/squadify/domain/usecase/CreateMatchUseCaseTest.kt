@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
@@ -100,5 +101,25 @@ class CreateMatchUseCaseTest {
             useCase("anyone", CreateMatchRequest(teamId = "no-such-team", opponentId = "opp-1", dateTime = Instant.fromEpochMilliseconds(1), type = MatchType.CHAMPIONSHIP))
         }
         coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
+    }
+
+    @Test
+    fun aMatchIsTwoHalvesByDefaultOrOneWhenChosen() = runBlocking {
+        val coach = coach()
+        coEvery { teamRepository.getTeamById(teamId) } returns team
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+        coEvery { opponentRepository.getOpponentById("opp-1") } returns opponent
+        coEvery { matchRepository.createMatch(any()) } answers { firstArg() }
+
+        val twoHalves = useCase(coach.id, CreateMatchRequest(teamId = teamId, opponentId = "opp-1", dateTime = Instant.fromEpochMilliseconds(1), type = MatchType.FRIENDLY))
+        assertEquals(2, twoHalves.halves)
+        val oneHalf = useCase(coach.id, CreateMatchRequest(teamId = teamId, opponentId = "opp-1", dateTime = Instant.fromEpochMilliseconds(1), type = MatchType.FRIENDLY, halves = 1))
+        assertEquals(1, oneHalf.halves)
+        assertFailsWith<ValidationException> {
+            useCase(coach.id, CreateMatchRequest(teamId = teamId, opponentId = "opp-1", dateTime = Instant.fromEpochMilliseconds(1), type = MatchType.FRIENDLY, halves = 3))
+        }
+        Unit
     }
 }

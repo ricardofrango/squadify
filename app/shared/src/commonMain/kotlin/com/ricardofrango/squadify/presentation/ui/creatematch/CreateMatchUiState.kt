@@ -37,6 +37,8 @@ sealed class CreateMatchUiState {
         val matchType: MatchType? = null,
         // Set when Schedule is tapped with no type picked -- paints the type rows red until one is.
         val matchTypeError: Boolean = false,
+        // 2 halves unless switched to a single period (no half time).
+        val halves: Int = 2,
         val date: LocalDate,
         val time: LocalTime,
         val location: String = "",

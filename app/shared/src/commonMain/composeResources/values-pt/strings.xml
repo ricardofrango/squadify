@@ -943,4 +943,11 @@
         <item quantity="one">%1$d abaixo da média</item>
         <item quantity="other">%1$d abaixo da média</item>
     </plurals>
+    <!-- One- or two-half matches -->
+    <string name="label_halves">Partes</string>
+    <string name="halves_two">2 partes</string>
+    <string name="halves_one">1 parte</string>
+    <string name="halves_one_hint">Um só período, sem intervalo.</string>
+    <string name="label_match_length">Duração do jogo</string>
+    <string name="lm_one_period">JOGO</string>
 </resources>
