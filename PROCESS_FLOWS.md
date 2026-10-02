@@ -538,12 +538,12 @@ graph TD
     C -- No --> D[Load existing age groups for this club + season]
     D --> D2[Load club — for its sport's allowed team sizes]
     D2 -- not found --> V2b(["Throw ValidationException"])
-    D2 --> E[Collect existing startYear/endYear pairs as a Set of taken ranges]
+    D2 --> E[Collect existing startYear/endYear spans as the taken ranges]
     E --> G{For each item}
     G -- name blank --> V2(["Throw ValidationException"])
     G -- startYear < endYear --> V2c(["Throw ValidationException: inverted range"])
     G -- teamSize set AND not in club.sport.teamSizes --> V2(["Throw ValidationException"])
-    G -- "startYear/endYear pair already taken (in the DB, or by an earlier item in this request)" --> CN(["Throw ConflictException: duplicate range"])
+    G -- "shares any birth year with a taken span (in the DB, or an earlier item in this request) — birthYearsOverlap" --> CN(["Throw ConflictException: overlapping range"])
     G -- valid --> H[Mark range as taken; build AgeGroup entity — teamSize nullable]
     H --> I[Batch insert all AgeGroups]
     I --> Z(["Return created AgeGroups"])
@@ -568,14 +568,17 @@ graph TD
     TS -- yes --> V2(["Throw ValidationException"])
     TS -- no --> S{Span changed?}
     S -- no --> Z(["Persist updated AgeGroup"])
-    S -- yes --> DUP{"Another age group in the season has this exact span?"}
+    S -- yes --> DUP{"Shares any birth year with another age group in the season? (birthYearsOverlap)"}
     DUP -- yes --> C1(["Throw ConflictException"])
     DUP -- no --> OUT{"endYear raised and a pool player born before it?"}
     OUT -- yes --> C2(["Throw ConflictException: remove them from the pool first"])
     OUT -- no --> Z
 ```
 
-The same rules as creating (§4.3) apply, plus one of its own: since eligibility is
+The same rules as creating (§4.3) apply -- including that no birth year may sit in two age groups of the
+same season: any overlap collides, not only an identical span (a single-year 2011 group and a 2011-2010
+group both claim 2011). `birthYearsOverlap` in `common/.../Models.kt` is that rule, shared by create,
+update and the client. Plus one rule of its own: since eligibility is
 `birthDate.year >= endYear`, raising `endYear` could silently shut out players already in the pool, so
 that's refused with the count. `teamSize` here is only the default for teams created from now on --
 existing teams keep their own (edit those in §4.6). The client's **Edit age group** screen (Age Group
