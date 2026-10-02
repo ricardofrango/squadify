@@ -745,4 +745,44 @@
         <item quantity="one">%1$d app</item>
         <item quantity="other">%1$d apps</item>
     </plurals>
+
+    <!-- Age Group Details tabs (design 33) -->
+    <string name="ag_born">Born %1$s · %2$s</string>
+    <string name="ag_results_by_team">Results by team</string>
+    <string name="ag_combined">Age group · %1$d played</string>
+    <string name="ag_goals">Goals %1$d–%2$d</string>
+    <string name="ag_minutes_title">Minutes across the pool</string>
+    <string name="ag_pool_players">%1$d players</string>
+    <string name="ag_band_lots">Lots of time</string>
+    <string name="ag_band_some">Some time</string>
+    <string name="ag_band_little">A little time</string>
+    <string name="ag_band_none">Still to play</string>
+    <string name="ag_played_both">Played for both %1$s and %2$s</string>
+    <string name="ag_played_several">Played for more than one team</string>
+    <string name="ag_band_hint">Tap a band to see who\'s in it.</string>
+    <string name="ag_players_used">%1$d players used</string>
+    <string name="ag_create_team_short">+ Create team</string>
+    <string name="ag_all_teams">All teams</string>
+    <string name="ag_staff_heading">Staff</string>
+    <string name="ag_pool_heading">Player pool</string>
+    <string name="ag_add_staff_short">+ Add staff</string>
+    <string name="ag_add_players_short">+ Add players</string>
+    <string name="ag_no_apps">No apps yet</string>
+    <string name="ag_no_teams_title">No teams yet</string>
+    <string name="ag_no_teams_body_teams">The player pool is ready. Create a team to start scheduling matches.</string>
+    <string name="ag_no_teams_body_stats">Results and minutes appear once a team plays its first match.</string>
+    <string name="ag_go_to_teams">Go to Teams</string>
+    <string name="ag_no_results_hint">Stats appear after the first finished match. Next up: %1$s, %2$s vs %3$s.</string>
+    <string name="ag_no_results_body">Stats appear after the first finished match.</string>
+    <string name="ag_no_staff_title">No coaches or staff assigned</string>
+    <string name="ag_no_staff_body">Add a coach so they can manage call-ups and reports.</string>
+    <string name="ag_no_players_title">No players in this age group yet</string>
+    <string name="ag_no_players_body">Players are registered on the club first, then added here.</string>
+    <string name="ag_no_matches_no_teams">No matches — create a team first.</string>
+    <string name="ag_stats_failed_body">Teams, Matches and Members still work.</string>
+    <string name="ag_members_failed_title">Couldn\'t load this season\'s appearances</string>
+    <plurals name="ag_member_apps">
+        <item quantity="one">%1$d app</item>
+        <item quantity="other">%1$d apps</item>
+    </plurals>
 </resources>

@@ -696,6 +696,8 @@ data class AgeGroupDetails(
     // Scores for any LIVE/HALF_TIME entry in [upcomingMatches], keyed by Match.id -- SCHEDULED
     // entries have none. Lets a live match in this list show its running score.
     val upcomingMatchScores: Map<String, MatchScore> = emptyMap(),
+    // Finished matches of all its teams, newest first, with their scores (Matches tab, design 33).
+    val recentResults: List<TeamMatchResult> = emptyList(),
     val opponents: List<Opponent>,
     val canAddStaff: Boolean,
     val canCreateTeam: Boolean,

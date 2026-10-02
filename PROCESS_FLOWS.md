@@ -504,14 +504,39 @@ graph TD
     D --> E[teams = club teams filtered to this age group]
     E --> G["upcomingMatches = each team's matches that are either SCHEDULED with dateTime >= now, or currently LIVE/HALF_TIME, sorted by dateTime"]
     G --> G2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
+    G2 -.-> G3["recentResults = each team's FINISHED matches, newest first, with scores (Matches tab)"]
     G2 --> H["canAddStaff = non-throwing probe: minClubRole=COORDINATOR only (no team-role path)"]
     H --> H1["canCreateTeam = non-throwing probe of configurablePermission=CREATE_TEAM on ageGroupId"]
     H1 --> H2["canManageMatch = non-throwing probe of configurablePermission=MANAGE_MATCH on ageGroupId -- schedule match"]
     H2 --> H3["canAssignPlayersToAgeGroup = non-throwing probe of configurablePermission=ASSIGN_PLAYERS_TO_AGE_GROUP on ageGroupId -- add players"]
-    H3 --> Z(["Return AgeGroupDetails: ageGroup, club, season, players (pool), staff, teams, upcomingMatches, upcomingMatchScores, opponents, canAddStaff, canCreateTeam, canManageMatch, canAssignPlayersToAgeGroup"])
+    H3 --> Z(["Return AgeGroupDetails: ageGroup, club, season, players (pool), staff, teams, upcomingMatches, upcomingMatchScores, recentResults, opponents, canAddStaff, canCreateTeam, canManageMatch, canAssignPlayersToAgeGroup"])
 ```
 
 `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canAddStaff` gates "Add staff" (permanently coordinator/admin-only, not club-configurable, the same way `ClubDetailsResponse.canEditClub` is); `canCreateTeam` gates "Create team" (`ConfigurablePermission.CREATE_TEAM`, defaults to Coach -- moved here from the fixed bucket in §37, since a coach who'd just set up an age group had no way to add a second team to it themselves); `canManageMatch` gates "Schedule match"; `canAssignPlayersToAgeGroup` gates "Add players" -- these last three are club-configurable and can each diverge from the coordinator-only default independently. A match in progress stays in `upcomingMatches` rather than disappearing between "scheduled" and "finished" -- `upcomingMatchScores` lets the client show its running score (see `MatchRow` in `TECHNICAL_DECISIONS.md`/the client's `presentation/ui/components` package).
+
+### 4.4c Get Age Group Season Record (`GetAgeGroupSeasonRecordUseCase`)
+
+`GET /age-groups/{ageGroupId}/season-record`, behind Age Group Details' Stats and Members tabs (design 33). It's a separate call from §4.4b, so a failure stays inside those tabs.
+
+```mermaid
+graph TD
+    A[Start: userId, ageGroupId] --> B[Fetch AgeGroup by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — same gate as §4.4b]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> R["canSeeRatings = non-throwing probe of the report's read gate: COORDINATOR / age-group STAFF"]
+    R --> T["teams = the age group's teams, by name; each built by buildTeamSeasonRecord (shared with §4.6c)"]
+    T --> Z(["Return AgeGroupSeasonRecord: ageGroupId, teams (TeamSeasonRecord each), pool (id, name, number, position), canSeeRatings"])
+```
+
+Everything on screen is derived on the client by shared code (`SeasonStats.kt`):
+- **`combined(filter)`:** every team's matches as one record ("Age group · 13 played").
+- **`poolMinutes(filter)`:** each pool player in one of four minute bands (300'+, 100–299', 1–99', none).
+  - A player used by two teams is counted once, with combined minutes.
+  - An unused substitute counts as 0.
+  - It also counts how many pool players played for more than one team.
+- **`memberSeasons()`:** each player's apps, minutes and the teams he played for (Members tab).
+- **`averageRating()` / `playersUsed()`:** per team, for the Teams tab cards.
 
 ### 4.5 Create Team (`CreateTeamUseCase`)
 

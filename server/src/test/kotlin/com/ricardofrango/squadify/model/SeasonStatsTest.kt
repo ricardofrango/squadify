@@ -199,4 +199,68 @@ class SeasonStatsTest {
         assertEquals(listOf("Bruno", "Tomás"), friendly.used.map { it.player.name }.sorted())
         assertEquals(setOf("Caetano", "Gil"), friendly.benchOnly.map { it.player.name }.toSet())
     }
+
+    // ---- Age group (design 33) ----
+
+    private fun team(id: String, matches: List<TeamSeasonMatch>, lines: List<TeamSeasonPlayerLine>) = TeamSeasonRecord(
+        teamId = id, seasonId = "s", seasonName = "2026/27", matches = matches, playerLines = lines,
+        players = emptyList(), canSeeRatings = true, teamName = "Sub-15 $id"
+    )
+
+    private val ageGroup = AgeGroupSeasonRecord(
+        ageGroupId = "ag",
+        canSeeRatings = true,
+        pool = listOf(
+            TeamSeasonPlayer("p1", "Ana"), TeamSeasonPlayer("p2", "Bia"), TeamSeasonPlayer("p3", "Caio"),
+            TeamSeasonPlayer("p4", "Duda"), TeamSeasonPlayer("p5", "Edu")
+        ),
+        teams = listOf(
+            team(
+                "A",
+                listOf(match("a1", 1, MatchType.CHAMPIONSHIP, 3, 1), match("a2", 2, MatchType.FRIENDLY, 0, 0)),
+                listOf(
+                    line("a1", "p1", minutes = 200, rating = 8).copy(started = true), line("a2", "p1", minutes = 150, rating = 6).copy(started = true),
+                    line("a1", "p2", minutes = 120), line("a2", "p4", minutes = 0) // p4 unused sub
+                )
+            ),
+            team(
+                "B",
+                listOf(match("b1", 3, MatchType.CHAMPIONSHIP, 1, 2)),
+                listOf(line("b1", "p2", minutes = 40), line("b1", "p3", minutes = 30), line("b1", "p9", minutes = 70)) // p9 not in the pool
+            )
+        )
+    )
+
+    @Test
+    fun combinedRecordMergesEveryTeam() {
+        val all = ageGroup.combined(StatsFilter.ALL)
+        assertEquals(3, all.played)
+        assertEquals(listOf(1, 1, 1), listOf(all.won, all.drawn, all.lost))
+        assertEquals(4, all.goalsFor)
+        assertEquals(3, all.goalsAgainst)
+        assertEquals(2, ageGroup.combined(StatsFilter.COMPETITIVE).played)
+    }
+
+    @Test
+    fun poolMinutesCountsEachPlayerOnceAcrossTeams() {
+        val m = ageGroup.poolMinutes(StatsFilter.ALL)
+        assertEquals(5, m.totalPlayers)
+        assertEquals(listOf("Ana"), m.bands.getValue(MinutesBand.LOTS).map { it.name })   // 350
+        assertEquals(listOf("Bia"), m.bands.getValue(MinutesBand.SOME).map { it.name })   // 120 + 40, both teams
+        assertEquals(listOf("Caio"), m.bands.getValue(MinutesBand.LITTLE).map { it.name }) // 30
+        assertEquals(listOf("Duda", "Edu"), m.bands.getValue(MinutesBand.NONE).map { it.name }) // unused sub, never called up
+        assertEquals(1, m.playedForSeveralTeams)
+        // Competitive only: Ana keeps just a1's 200.
+        assertEquals(listOf("Ana"), ageGroup.poolMinutes(StatsFilter.COMPETITIVE).bands.getValue(MinutesBand.SOME).map { it.name }.filter { it == "Ana" })
+    }
+
+    @Test
+    fun memberSeasonsAndTeamFiguresIgnoreUnusedSubstitutes() {
+        val members = ageGroup.memberSeasons()
+        assertEquals(MemberSeason(apps = 2, minutes = 160, teamIds = listOf("A", "B")), members["p2"])
+        assertNull(members["p4"])
+        val a = ageGroup.teams.first()
+        assertEquals(2, a.playersUsed())
+        assertEquals(7.0, a.averageRating())
+    }
 }

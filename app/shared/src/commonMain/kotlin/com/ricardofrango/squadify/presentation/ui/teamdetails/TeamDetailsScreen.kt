@@ -20,6 +20,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ricardofrango.squadify.model.*
+import com.ricardofrango.squadify.presentation.ui.components.DetailBottomBar
+import com.ricardofrango.squadify.presentation.ui.components.DetailRail
+import com.ricardofrango.squadify.presentation.ui.components.DetailTab
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.MatchRow
 import com.ricardofrango.squadify.presentation.ui.components.StatsFilterSegments
@@ -326,54 +329,16 @@ private val TeamTab.label
         TeamTab.PLAYERS -> Res.string.team_tab_players
     }
 
-/** The club screen's dark bottom bar, with the team's three tabs. */
-@Composable
-private fun TeamBottomBar(selected: TeamTab, onSelect: (TeamTab) -> Unit) {
-    NavigationBar(containerColor = CarbonGray, tonalElevation = 0.dp, windowInsets = NavigationBarDefaults.windowInsets) {
-        TeamTab.entries.forEach { t ->
-            NavigationBarItem(
-                selected = t == selected,
-                onClick = { onSelect(t) },
-                icon = { Icon(painterResource(t.icon), contentDescription = null, modifier = Modifier.size(24.dp)) },
-                label = { Text(stringResource(t.label), style = MaterialTheme.typography.labelMedium.copy(fontWeight = if (t == selected) FontWeight.Bold else FontWeight.Normal), maxLines = 1) },
-                colors = tabColors()
-            )
-        }
-    }
-}
-
-/** Landscape (32e): a bottom bar would cost too much of a short screen, so the tabs move to a left rail. */
-@Composable
-private fun TeamRail(selected: TeamTab, onSelect: (TeamTab) -> Unit) {
-    NavigationRail(containerColor = CarbonGray, modifier = Modifier.fillMaxHeight()) {
-        Spacer(Modifier.weight(1f))
-        TeamTab.entries.forEach { t ->
-            NavigationRailItem(
-                selected = t == selected,
-                onClick = { onSelect(t) },
-                icon = { Icon(painterResource(t.icon), contentDescription = null, modifier = Modifier.size(24.dp)) },
-                label = { Text(stringResource(t.label), style = MaterialTheme.typography.labelSmall.copy(fontWeight = if (t == selected) FontWeight.Bold else FontWeight.Normal), maxLines = 1) },
-                colors = NavigationRailItemDefaults.colors(
-                    selectedIconColor = PitchGreen,
-                    selectedTextColor = PitchGreen,
-                    unselectedIconColor = Color.White.copy(alpha = 0.5f),
-                    unselectedTextColor = Color.White.copy(alpha = 0.5f),
-                    indicatorColor = PitchGreen.copy(alpha = 0.15f)
-                )
-            )
-        }
-        Spacer(Modifier.weight(1f))
-    }
-}
+private val TeamTabs = TeamTab.entries
 
 @Composable
-private fun tabColors() = NavigationBarItemDefaults.colors(
-    selectedIconColor = PitchGreen,
-    selectedTextColor = PitchGreen,
-    unselectedIconColor = Color.White.copy(alpha = 0.5f),
-    unselectedTextColor = Color.White.copy(alpha = 0.5f),
-    indicatorColor = PitchGreen.copy(alpha = 0.15f)
-)
+private fun TeamBottomBar(selected: TeamTab, onSelect: (TeamTab) -> Unit) =
+    DetailBottomBar(TeamTabs.map { DetailTab(it.icon, it.label) }, TeamTabs.indexOf(selected)) { onSelect(TeamTabs[it]) }
+
+/** Landscape (32e): the tabs move to a left rail. */
+@Composable
+private fun TeamRail(selected: TeamTab, onSelect: (TeamTab) -> Unit) =
+    DetailRail(TeamTabs.map { DetailTab(it.icon, it.label) }, TeamTabs.indexOf(selected)) { onSelect(TeamTabs[it]) }
 
 // ---- Matches tab ----
 

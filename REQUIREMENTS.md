@@ -85,6 +85,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - Player Details has season totals and a per-match list, with a season switcher.
       - Team Details has a season record (W/D/L, goals, form) and team leaders.
       - Team Details is split into Stats · Matches · Members tabs. The Members tab lists only the players who played for that team.
+      - Age Group Details is split into Stats · Teams · Matches · Members tabs. Stats shows results by team and how minutes are spread across the pool.
       - Both can be filtered by match type (All / Competitive / Friendly), and ratings are shown to staff only (see `TECHNICAL_DECISIONS.md` §43).
 
       Still pending: the live console's full-time "Minutes played" row is still a placeholder.

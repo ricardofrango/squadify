@@ -188,7 +188,7 @@ private fun LabeledNumber(label: String, value: String, valueColor: Color = Deep
 }
 
 @Composable
-private fun FormSquare(entry: TeamFormEntry, onClick: () -> Unit) {
+internal fun FormSquare(entry: TeamFormEntry, onClick: () -> Unit) {
     val (bg, fg, letter, word) = when (entry.result) {
         FormResult.WIN -> Quad(PitchGreen, Color.White, Res.string.record_form_win, Res.string.record_result_win)
         FormResult.DRAW -> Quad(CarbonGray.copy(alpha = 0.12f), DeepCarbon, Res.string.record_form_draw, Res.string.record_result_draw)

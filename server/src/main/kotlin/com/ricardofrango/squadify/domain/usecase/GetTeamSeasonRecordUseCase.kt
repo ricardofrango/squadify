@@ -14,6 +14,10 @@ import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.Player
+import com.ricardofrango.squadify.model.Opponent
+import com.ricardofrango.squadify.model.Season
+import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.TeamSeasonMatch
 import com.ricardofrango.squadify.model.TeamSeasonPlayer
 import com.ricardofrango.squadify.model.TeamSeasonPlayerLine
@@ -66,47 +70,76 @@ class GetTeamSeasonRecordUseCase(
         }
 
         val season = seasonRepository.getSeasonById(team.seasonId) ?: throw NotFoundException("Season not found")
-        val opponentsById = opponentRepository.getOpponentsByClub(team.clubId).associateBy { it.id }
-
-        val finished = matchRepository.getMatchesByTeam(teamId)
-            .filter { it.status == MatchStatus.FINISHED }
-            .sortedByDescending { it.dateTime }
-        val matches = finished.map { match ->
-            val score = matchEventRepository.getScoreByMatch(match.id)
-            TeamSeasonMatch(
-                matchId = match.id,
-                dateTime = match.dateTime,
-                opponentName = opponentsById[match.opponentId]?.let { it.shortName ?: it.name } ?: "—",
-                matchType = match.type,
-                ourScore = score.ourScore,
-                opponentScore = score.opponentScore
-            )
-        }
-
-        val matchIds = finished.map { it.id }
-        val completedReports = if (canSeeRatings) matchReportRepository.getCompletedMatchIds(matchIds) else emptySet()
-        val lines = matchPlayerStatsRepository.getByMatches(matchIds).map { s ->
-            TeamSeasonPlayerLine(
-                matchId = s.matchId,
-                playerId = s.playerId,
-                minutesPlayed = s.minutesPlayed,
-                goals = s.goals,
-                assists = s.assists,
-                rating = s.rating?.takeIf { s.matchId in completedReports },
-                started = s.started
-            )
-        }
-        val players = playerRepository.getPlayersData(lines.map { it.playerId }.distinct())
-            .map { TeamSeasonPlayer(it.id, "${it.firstName} ${it.lastName}", it.shirtNumber, it.position) }
-
-        TeamSeasonRecord(
-            teamId = teamId,
-            seasonId = season.id,
-            seasonName = season.name,
-            matches = matches,
-            playerLines = lines,
-            players = players,
-            canSeeRatings = canSeeRatings
+        buildTeamSeasonRecord(
+            team = team,
+            season = season,
+            canSeeRatings = canSeeRatings,
+            opponentsById = opponentRepository.getOpponentsByClub(team.clubId).associateBy { it.id },
+            matchRepository = matchRepository,
+            matchEventRepository = matchEventRepository,
+            matchPlayerStatsRepository = matchPlayerStatsRepository,
+            matchReportRepository = matchReportRepository,
+            playerRepository = playerRepository
         )
     }
 }
+
+/**
+ * One team's season record -- its finished matches with scores, newest first, and every called-up
+ * player's line in them. Shared by Team Details (§4.6c) and Age Group Details (§4.3c). Ratings are
+ * kept only when [canSeeRatings] and the match's report is completed.
+ */
+internal suspend fun buildTeamSeasonRecord(
+    team: Team,
+    season: Season,
+    canSeeRatings: Boolean,
+    opponentsById: Map<String, Opponent>,
+    matchRepository: MatchRepository,
+    matchEventRepository: MatchEventRepository,
+    matchPlayerStatsRepository: MatchPlayerStatsRepository,
+    matchReportRepository: MatchReportRepository,
+    playerRepository: PlayerRepository
+): TeamSeasonRecord {
+    val finished = matchRepository.getMatchesByTeam(team.id)
+        .filter { it.status == MatchStatus.FINISHED }
+        .sortedByDescending { it.dateTime }
+    val matches = finished.map { match ->
+        val score = matchEventRepository.getScoreByMatch(match.id)
+        TeamSeasonMatch(
+            matchId = match.id,
+            dateTime = match.dateTime,
+            opponentName = opponentsById[match.opponentId]?.let { it.shortName ?: it.name } ?: "—",
+            matchType = match.type,
+            ourScore = score.ourScore,
+            opponentScore = score.opponentScore
+        )
+    }
+
+    val matchIds = finished.map { it.id }
+    val completedReports = if (canSeeRatings) matchReportRepository.getCompletedMatchIds(matchIds) else emptySet()
+    val lines = matchPlayerStatsRepository.getByMatches(matchIds).map { s ->
+        TeamSeasonPlayerLine(
+            matchId = s.matchId,
+            playerId = s.playerId,
+            minutesPlayed = s.minutesPlayed,
+            goals = s.goals,
+            assists = s.assists,
+            rating = s.rating?.takeIf { s.matchId in completedReports },
+            started = s.started
+        )
+    }
+    val players = playerRepository.getPlayersData(lines.map { it.playerId }.distinct()).map { it.toSeasonPlayer() }
+
+    return TeamSeasonRecord(
+        teamId = team.id,
+        seasonId = season.id,
+        seasonName = season.name,
+        matches = matches,
+        playerLines = lines,
+        players = players,
+        canSeeRatings = canSeeRatings,
+        teamName = team.name
+    )
+}
+
+internal fun Player.toSeasonPlayer() = TeamSeasonPlayer(id, "$firstName $lastName", shirtNumber, position)

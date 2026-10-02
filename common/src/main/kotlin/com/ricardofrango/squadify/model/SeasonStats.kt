@@ -158,7 +158,9 @@ data class TeamSeasonRecord(
     val matches: List<TeamSeasonMatch>,
     val playerLines: List<TeamSeasonPlayerLine>,
     val players: List<TeamSeasonPlayer>,
-    val canSeeRatings: Boolean
+    val canSeeRatings: Boolean,
+    // For the age group's per-team lists (design 33); Team Details already has it.
+    val teamName: String = ""
 )
 
 enum class FormResult { WIN, DRAW, LOSS }
@@ -306,6 +308,96 @@ fun TeamSeasonRecord.squad(filter: StatsFilter, sort: SquadSort = SquadSort.APPS
         SquadSort.NAME -> used.sortedWith(byName)
     }
     return TeamSquad(sorted, bench.sortedWith(compareByDescending<BenchEntry> { it.calledUp }.thenBy { it.player.name }))
+}
+
+/** The team's average rating over every rated appearance this season (staff only; null with none). */
+fun TeamSeasonRecord.averageRating(): Double? =
+    playerLines.filter { it.played }.mapNotNull { it.rating }.takeIf { it.isNotEmpty() }?.average()?.roundToOneDecimal()
+
+/** How many different players played for the team (a start or 1+ minute) this season. */
+fun TeamSeasonRecord.playersUsed(): Int = playerLines.filter { it.played }.map { it.playerId }.distinct().size
+
+// ---- Age group (design 33) ----
+
+/**
+ * Everything behind Age Group Details' Stats and Members tabs: one [TeamSeasonRecord] per team of the
+ * age group, plus the age group's pool. Every number is derived here, client-side.
+ */
+@Serializable
+data class AgeGroupSeasonRecord(
+    val ageGroupId: String,
+    val teams: List<TeamSeasonRecord>,
+    val pool: List<TeamSeasonPlayer>,
+    val canSeeRatings: Boolean
+)
+
+/** All the age group's finished matches as one record ("Age group · 13 played"). */
+fun AgeGroupSeasonRecord.combined(filter: StatsFilter): TeamRecordTotals =
+    TeamSeasonRecord(
+        teamId = ageGroupId, seasonId = "", seasonName = "",
+        matches = teams.flatMap { it.matches }, playerLines = emptyList(), players = emptyList(), canSeeRatings = false
+    ).totals(filter)
+
+/** A pool player's minutes band: neutral names, so it reads as a plan, not a verdict (design 33a). */
+enum class MinutesBand { LOTS, SOME, LITTLE, NONE }
+
+fun minutesBand(minutes: Int): MinutesBand = when {
+    minutes >= 300 -> MinutesBand.LOTS
+    minutes >= 100 -> MinutesBand.SOME
+    minutes >= 1 -> MinutesBand.LITTLE
+    else -> MinutesBand.NONE
+}
+
+data class PoolMinutes(
+    val totalPlayers: Int,
+    // Every pool player in exactly one band, least minutes first within a band, then by name.
+    val bands: Map<MinutesBand, List<TeamSeasonPlayer>>,
+    // Pool players who played for more than one of the age group's teams.
+    val playedForSeveralTeams: Int
+)
+
+/**
+ * Minutes across the pool within [filter]: a player who played for A and B is counted once, with
+ * combined minutes. Players who never came on (or were never called up) are in [MinutesBand.NONE].
+ */
+fun AgeGroupSeasonRecord.poolMinutes(filter: StatsFilter): PoolMinutes {
+    val minutes = mutableMapOf<String, Int>()
+    val teamsPlayed = mutableMapOf<String, MutableSet<String>>()
+    teams.forEach { team ->
+        val matchIds = team.matches.filter { filter.includes(it.matchType) }.map { it.matchId }.toSet()
+        team.playerLines.filter { it.matchId in matchIds && it.played }.forEach { line ->
+            minutes[line.playerId] = (minutes[line.playerId] ?: 0) + line.minutesPlayed
+            teamsPlayed.getOrPut(line.playerId) { mutableSetOf() } += team.teamId
+        }
+    }
+    val bands = pool
+        .sortedWith(compareBy<TeamSeasonPlayer> { minutes[it.id] ?: 0 }.thenBy { it.name })
+        .groupBy { minutesBand(minutes[it.id] ?: 0) }
+    val poolIds = pool.map { it.id }.toSet()
+    return PoolMinutes(
+        totalPlayers = pool.size,
+        bands = MinutesBand.entries.associateWith { bands[it].orEmpty() },
+        playedForSeveralTeams = teamsPlayed.count { (id, set) -> id in poolIds && set.size > 1 }
+    )
+}
+
+/** A pool member's season across the age group's teams (Members tab, design 33). */
+data class MemberSeason(val apps: Int, val minutes: Int, val teamIds: List<String>)
+
+/** Every player's season across all the age group's teams (All matches); absent = no apps yet. */
+fun AgeGroupSeasonRecord.memberSeasons(): Map<String, MemberSeason> {
+    val byPlayer = mutableMapOf<String, MemberSeason>()
+    teams.forEach { team ->
+        team.playerLines.filter { it.played }.groupBy { it.playerId }.forEach { (playerId, lines) ->
+            val previous = byPlayer[playerId]
+            byPlayer[playerId] = MemberSeason(
+                apps = (previous?.apps ?: 0) + lines.size,
+                minutes = (previous?.minutes ?: 0) + lines.sumOf { it.minutesPlayed },
+                teamIds = (previous?.teamIds.orEmpty() + team.teamId).distinct()
+            )
+        }
+    }
+    return byPlayer
 }
 
 private fun Double.roundToOneDecimal(): Double = (this * 10).roundToInt() / 10.0

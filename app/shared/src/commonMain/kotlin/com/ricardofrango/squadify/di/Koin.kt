@@ -144,6 +144,7 @@ val domainModule = module {
     factory { GetSeasonsUseCase(get()) }
     factory { GetAgeGroupsUseCase(get()) }
     factory { GetAgeGroupDetailsUseCase(get()) }
+    factory { GetAgeGroupSeasonRecordUseCase(get()) }
     factory { CreateSeasonUseCase(get()) }
     factory { CreateAgeGroupsUseCase(get()) }
     factory { CreateTeamsUseCase(get()) }

@@ -743,4 +743,44 @@
         <item quantity="one">%1$d jogo</item>
         <item quantity="other">%1$d jogos</item>
     </plurals>
+
+    <!-- Age Group Details tabs (design 33) -->
+    <string name="ag_born">Nascidos em %1$s · %2$s</string>
+    <string name="ag_results_by_team">Resultados por equipa</string>
+    <string name="ag_combined">Escalão · %1$d jogos</string>
+    <string name="ag_goals">Golos %1$d–%2$d</string>
+    <string name="ag_minutes_title">Minutos do plantel</string>
+    <string name="ag_pool_players">%1$d jogadores</string>
+    <string name="ag_band_lots">Muito tempo</string>
+    <string name="ag_band_some">Algum tempo</string>
+    <string name="ag_band_little">Pouco tempo</string>
+    <string name="ag_band_none">Ainda por jogar</string>
+    <string name="ag_played_both">Jogaram por %1$s e %2$s</string>
+    <string name="ag_played_several">Jogaram por mais de uma equipa</string>
+    <string name="ag_band_hint">Toque numa faixa para ver os jogadores.</string>
+    <string name="ag_players_used">%1$d jogadores usados</string>
+    <string name="ag_create_team_short">+ Criar equipa</string>
+    <string name="ag_all_teams">Todas as equipas</string>
+    <string name="ag_staff_heading">Equipa técnica</string>
+    <string name="ag_pool_heading">Plantel</string>
+    <string name="ag_add_staff_short">+ Adicionar</string>
+    <string name="ag_add_players_short">+ Adicionar</string>
+    <string name="ag_no_apps">Ainda sem jogos</string>
+    <string name="ag_no_teams_title">Ainda sem equipas</string>
+    <string name="ag_no_teams_body_teams">O plantel está pronto. Crie uma equipa para começar a agendar jogos.</string>
+    <string name="ag_no_teams_body_stats">Os resultados e os minutos aparecem quando uma equipa jogar o primeiro jogo.</string>
+    <string name="ag_go_to_teams">Ir para Equipas</string>
+    <string name="ag_no_results_hint">As estatísticas aparecem depois do primeiro jogo terminado. Próximo: %1$s, %2$s vs %3$s.</string>
+    <string name="ag_no_results_body">As estatísticas aparecem depois do primeiro jogo terminado.</string>
+    <string name="ag_no_staff_title">Sem treinadores nem equipa técnica</string>
+    <string name="ag_no_staff_body">Adicione um treinador para gerir convocatórias e relatórios.</string>
+    <string name="ag_no_players_title">Ainda não há jogadores neste escalão</string>
+    <string name="ag_no_players_body">Os jogadores são registados no clube e depois adicionados aqui.</string>
+    <string name="ag_no_matches_no_teams">Sem jogos — crie primeiro uma equipa.</string>
+    <string name="ag_stats_failed_body">Equipas, Jogos e Membros continuam disponíveis.</string>
+    <string name="ag_members_failed_title">Não foi possível carregar os jogos da época</string>
+    <plurals name="ag_member_apps">
+        <item quantity="one">%1$d jogo</item>
+        <item quantity="other">%1$d jogos</item>
+    </plurals>
 </resources>

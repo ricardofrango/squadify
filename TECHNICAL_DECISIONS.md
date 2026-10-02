@@ -2292,6 +2292,24 @@ Player Details shows a **Season stats** card with a per-match list (design 30), 
   - the landscape layout has no separate right column for the age-group card
   - a Matches-only error state isn't possible, because the header and Matches share the Team Details call
 
+**Age Group Details tabs (design 33).** Age Group Details is now Stats · Teams · Matches · Members, using the same header, tab bar and landscape rail as Team Details. Both screens share `components/DetailTabs.kt`.
+- **Starting tab:** it always opens on Stats. The developer chose this over 33f's "Teams, then last used".
+- **Header strip:** Teams · Players · Staff · Upcoming. Each number switches to its tab, with Players and Staff both opening Members.
+- **Stats:** two cards.
+  - *Results by team*, with a combined age-group line.
+  - *Minutes across the pool*, in four neutral bands (Lots of time / Some time / A little time / Still to play). Only the two lower bands list names, and tapping a band shows everyone in it.
+  - Age-group leaders are left out on purpose: they're a team story, already told on Team Details.
+- **Teams:** cards with the season record, players used, the next fixture, and the average rating for staff.
+- **Matches:** upcoming and recent results across all teams, with an All teams · A · B filter when there are 2+ teams.
+- **Members:** staff, then the pool with search. Each player shows apps · minutes and a chip per team he played for.
+- **Data:** one new endpoint (§4.4c) plus `AgeGroupDetails.recentResults`. Team-record building is shared with the team endpoint.
+- **Not built from 33**, because the data or flow doesn't exist yet:
+  - per-team coaches ("Coach · Sub-15 A", coach names on team cards): staff belong to the age group, not a team
+  - pending invites with Resend (the separate invite-visibility roadmap item)
+  - the "call up for the next match" shortcut on a minutes band
+  - "Remove from age group"
+  - a Matches-only error state, because Matches uses the same call as the header
+
 **Appearances.** Every called-up player gets a stats line at full time (§41), including unused substitutes with 0 minutes. An appearance is a start or at least one minute. Before this, a match on the bench counted as an app in the player totals.
 
 **Checked by rendering:** every state was rendered headlessly (`ImageComposeScene`, throwaway test, not committed) and compared with the canvas, in EN/PT at 360dp and in landscape. That pass caught:
