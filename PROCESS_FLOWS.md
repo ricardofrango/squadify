@@ -672,11 +672,19 @@ Whole batch runs in one transaction (all or nothing), mirroring `CreateAgeGroups
 graph TD
     A[Start: userId, teamId, patch] --> B[Fetch Team by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    B -- found --> C["CheckUserPermissionUseCase — minClubRole=COORDINATOR, minTeamRole=COACH (this team)"]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D["Merge patch fields (name, code, active)"]
+    C -- allowed --> V{"name blank, or teamSize not in club.sport.teamSizes?"}
+    V -- yes --> VE(["Throw ValidationException"])
+    V -- no --> D["Merge patch fields (name trimmed, code, active, teamSize)"]
     D --> Z(["Persist updated Team"])
 ```
+
+`teamSize` is the a-side format (how many players start a match), checked at kickoff by
+`StartMatchUseCase` -- not a squad size, which is never stored. Changing it doesn't touch matches
+already played. The client's **Edit team** screen (Team Details ⋮) edits the name and team size;
+`TeamDetails.canEditTeam` (§4.6b) is the same gate as a non-throwing probe, so the menu item only shows
+where saving would work.
 
 ### 4.6b Get Team Details (`GetTeamDetailsUseCase`)
 
@@ -696,10 +704,10 @@ graph TD
     H --> J["recentResults = FINISHED, newest first, each paired with its scoreline from matchEventRepository.getScoreByMatch → WIN/DRAW/LOSS"]
     I2 --> K[siblingTeamNames = other teams in the same age group]
     J --> K
-    K --> Z(["Return TeamDetails: team, club, ageGroup, season, poolSize, siblingTeamNames, staff, upcomingMatches, upcomingMatchScores, recentResults, opponents, canManageMatch, canViewMembers"])
+    K --> Z(["Return TeamDetails: team, club, ageGroup, season, poolSize, siblingTeamNames, staff, upcomingMatches, upcomingMatchScores, recentResults, opponents, canManageMatch, canViewMembers, canEditTeam"])
 ```
 
-`poolSize` / `staff` come from the age group (players and staff belong to it, not the team); the screen links back to the age-group detail for both. `club` is carried so a screen opened from here (e.g. Schedule Match) has the club name without another call. `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canViewMembers` (a non-throwing `minClubRole=COORDINATOR` probe, the members overview's own gate, §3.7) makes the staff chips open Member details. `canManageMatch` gates the schedule-match action ("Edit team" is a decorative, unwired menu item in `TeamDetailsScreen` -- no Edit Team screen exists yet). As with the age-group screen, a live match stays in `upcomingMatches` (it hasn't reached `recentResults` yet) and `upcomingMatchScores` carries its running score.
+`poolSize` / `staff` come from the age group (players and staff belong to it, not the team); the screen links back to the age-group detail for both. `club` is carried so a screen opened from here (e.g. Schedule Match) has the club name without another call. `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canEditTeam` mirrors §4.6's gate (coordinator+, or this team's coach) and shows "Edit team". `canViewMembers` (a non-throwing `minClubRole=COORDINATOR` probe, the members overview's own gate, §3.7) makes the staff chips open Member details. `canManageMatch` gates the schedule-match action. As with the age-group screen, a live match stays in `upcomingMatches` (it hasn't reached `recentResults` yet) and `upcomingMatchScores` carries its running score.
 
 ### 4.6c Get Team Season Record (`GetTeamSeasonRecordUseCase`)
 
@@ -1547,7 +1555,6 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
   **Fixed:** per-player stats lines are written for every finished match (`MatchPlayerStatsCalculator`, §8.2f), and are read back through the match report (§8.6), a player's season stats (`GetPlayerSeasonStatsUseCase`, §5.1c), a team's season record (`GetTeamSeasonRecordUseCase`, §4.6c) and an age group's season record (`GetAgeGroupSeasonRecordUseCase`, §4.4c). The only piece left on the Phase 5 roadmap item is the live console's full-time "Minutes played" row (see the next entry).
 - [ ] **Some client affordances are still inert.** These are shown on purpose, matching the designs, but do nothing yet:
   - **Login:** "Forgot password?" has no flow (no reset endpoint either).
-  - **Team Details:** ⋮ → "Edit team" has no Edit Team screen; its navigation callback is empty.
   - **Live match console:** the full-time "Minutes played" row has no destination, though the per-player minutes already exist in `match_player_stats`.
   - **Club settings:** "Add logo" does nothing, since there's no image upload anywhere in the app.
   - **Account:** "Change email" is likewise non-functional.

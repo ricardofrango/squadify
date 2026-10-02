@@ -1,12 +1,18 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
+import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
+import com.ricardofrango.squadify.exception.ValidationException
+import com.ricardofrango.squadify.model.Club
+import com.ricardofrango.squadify.model.ClubStatus
+import com.ricardofrango.squadify.model.SportType
+import io.mockk.coVerify
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.TeamRole
@@ -40,7 +46,8 @@ class UpdateTeamUseCaseTest {
     private val clubPermissionRepository = mockk<ClubPermissionRepository>(relaxed = true)
     init { coEvery { clubPermissionRepository.getOverride(any(), any()) } returns null }
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository)
-    private val useCase = UpdateTeamUseCase(teamRepository, checkUserPermissionUseCase, transactionManager)
+    private val clubRepository = mockk<ClubRepository>()
+    private val useCase = UpdateTeamUseCase(teamRepository, checkUserPermissionUseCase, transactionManager, clubRepository)
 
     private val clubIdA = "club-a"
     private val team1 = "team-1"
@@ -117,5 +124,38 @@ class UpdateTeamUseCaseTest {
             useCase(member.id, team1, UpdateTeamRequest(name = "New Name"))
         }
         Unit
+    }
+
+    private fun asAdmin(): String {
+        val admin = user("p2-club-admin")
+        coEvery { teamRepository.getTeamById(team1) } returns team
+        coEvery { userRepository.findById(admin.id) } returns admin
+        coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
+        coEvery { teamRepository.updateTeam(any()) } returns true
+        coEvery { clubRepository.getClubById(clubIdA) } returns Club(id = clubIdA, name = "Test FC", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FUTSAL)
+        return admin.id
+    }
+
+    @Test
+    fun theTeamSizeIsSavedWhenTheClubSportAllowsIt() = runBlocking {
+        val admin = asAdmin()
+        useCase(admin, team1, UpdateTeamRequest(teamSize = 5))
+        coVerify { teamRepository.updateTeam(match { it.teamSize == 5 && it.name == "Team 1" }) }
+    }
+
+    @Test
+    fun aTeamSizeTheSportDoesNotAllowIsRejected() = runBlocking {
+        val admin = asAdmin()
+        // Futsal plays 4- or 5-a-side.
+        assertFailsWith<ValidationException> { useCase(admin, team1, UpdateTeamRequest(teamSize = 11)) }
+        Unit
+    }
+
+    @Test
+    fun aBlankNameIsRejectedAndANameIsTrimmed() = runBlocking {
+        val admin = asAdmin()
+        assertFailsWith<ValidationException> { useCase(admin, team1, UpdateTeamRequest(name = "   ")) }
+        useCase(admin, team1, UpdateTeamRequest(name = "  Sub-15 B "))
+        coVerify { teamRepository.updateTeam(match { it.name == "Sub-15 B" }) }
     }
 }

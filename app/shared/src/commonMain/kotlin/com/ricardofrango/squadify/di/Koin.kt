@@ -16,6 +16,7 @@ import com.ricardofrango.squadify.presentation.ui.clubmember.ClubMemberDetailsVi
 import com.ricardofrango.squadify.presentation.ui.createseason.CreateSeasonViewModel
 import com.ricardofrango.squadify.presentation.ui.createagegroups.CreateAgeGroupsViewModel
 import com.ricardofrango.squadify.presentation.ui.createteams.CreateTeamsViewModel
+import com.ricardofrango.squadify.presentation.ui.editteam.EditTeamViewModel
 import com.ricardofrango.squadify.presentation.ui.addplayerstoagegroup.AddPlayersToAgeGroupViewModel
 import com.ricardofrango.squadify.presentation.ui.createplayers.CreatePlayersViewModel
 import com.ricardofrango.squadify.presentation.ui.agegroupdetails.AgeGroupDetailsViewModel
@@ -149,6 +150,7 @@ val domainModule = module {
     factory { CreateSeasonUseCase(get()) }
     factory { CreateAgeGroupsUseCase(get()) }
     factory { CreateTeamsUseCase(get()) }
+    factory { UpdateTeamUseCase(get()) }
     factory { GetEligiblePlayersForAgeGroupUseCase(get()) }
     factory { AddPlayersToAgeGroupUseCase(get()) }
     factory { CreatePlayersUseCase(get()) }
@@ -197,6 +199,7 @@ val presentationModule = module {
     viewModelOf(::CreateSeasonViewModel)
     viewModelOf(::CreateAgeGroupsViewModel)
     viewModelOf(::CreateTeamsViewModel)
+    viewModelOf(::EditTeamViewModel)
     viewModelOf(::AddPlayersToAgeGroupViewModel)
     viewModelOf(::CreatePlayersViewModel)
     viewModelOf(::AgeGroupDetailsViewModel)

@@ -123,6 +123,10 @@ sealed class Screen {
     @SerialName("team")
     data class TeamDetails(val teamId: String) : Screen()
 
+    @Serializable
+    @SerialName("edit-team")
+    data class EditTeam(val teamId: String) : Screen()
+
     // Schedule one fixture. Exactly one of [ageGroupId] / [teamId] is set: from an age group the
     // team is picked on the screen; from a team it's fixed. The screen loads the club / season /
     // teams context from whichever id it's given.

@@ -10,4 +10,5 @@ interface TeamRepository {
     suspend fun getTeamDetails(teamId: String): TeamDetails
     suspend fun getTeamSeasonRecord(teamId: String): TeamSeasonRecord
     suspend fun createTeams(request: CreateTeamsRequest): List<Team>
+    suspend fun updateTeam(teamId: String, request: com.ricardofrango.squadify.model.UpdateTeamRequest)
 }

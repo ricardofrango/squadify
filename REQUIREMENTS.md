@@ -70,6 +70,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Age Group management by birth-year span (single year, or two years for futsal-style groups).
     - [x] Player management (individual/batch) with eligibility checks.
     - [x] Team Staff management (Coaches/Staff assignment).
+    - [x] Edit team: name and team size (the a-side format), from Team Details, for coordinators and the team's own coach.
 - [x] **Phase 4: Match & Call-ups**: Calendar and attendance management.
     - [x] Opponent management (dedicated entity and table).
     - [x] Match creation and listing.

@@ -572,7 +572,9 @@ data class UpdateAgeGroupRequest(
 data class UpdateTeamRequest(
     val name: String? = null,
     val code: String? = null,
-    val active: Boolean? = null
+    val active: Boolean? = null,
+    // One of the club sport's `teamSizes`; null leaves it unchanged.
+    val teamSize: Int? = null
 )
 
 @Serializable
@@ -672,7 +674,9 @@ data class TeamDetails(
     val opponents: List<Opponent>,
     val canManageMatch: Boolean,
     // Coordinator+: the staff chips open Member details (design 35), which only they can read.
-    val canViewMembers: Boolean = false
+    val canViewMembers: Boolean = false,
+    // The same gate UpdateTeamUseCase enforces (coordinator+, or this team's coach): shows "Edit team".
+    val canEditTeam: Boolean = false
 )
 
 /**

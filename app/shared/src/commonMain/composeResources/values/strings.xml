@@ -890,4 +890,8 @@
         <item quantity="one">Invited %1$d day ago</item>
         <item quantity="other">Invited %1$d days ago</item>
     </plurals>
+    <!-- Edit team -->
+    <string name="edit_team_size_helper">How many players start each match (e.g. 7 for 7-a-side). Checked at kickoff; matches already played aren\'t affected.</string>
+    <string name="edit_team_failed">Couldn\'t save the team. Try again.</string>
+    <string name="edit_team_load_failed">Couldn\'t load this team.</string>
 </resources>

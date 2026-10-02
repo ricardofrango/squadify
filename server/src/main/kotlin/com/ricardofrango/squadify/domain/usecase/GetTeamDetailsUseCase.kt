@@ -81,6 +81,20 @@ class GetTeamDetailsUseCase(
             false
         }
 
+        // Mirrors UpdateTeamUseCase's gate, so "Edit team" only shows where saving would work.
+        val canEditTeam = try {
+            checkUserPermissionUseCase(
+                userId = userId,
+                clubId = team.clubId,
+                minClubRole = ClubRole.COORDINATOR,
+                minTeamRole = TeamRole.COACH,
+                teamId = teamId
+            )
+            true
+        } catch (e: ForbiddenException) {
+            false
+        }
+
         val now = Clock.System.now()
         val allMatches = matchRepository.getMatchesByTeam(teamId)
 
@@ -129,7 +143,8 @@ class GetTeamDetailsUseCase(
             recentResults = recentResults,
             opponents = opponentRepository.getOpponentsByClub(team.clubId),
             canManageMatch = canManageMatch,
-            canViewMembers = canViewMembers
+            canViewMembers = canViewMembers,
+            canEditTeam = canEditTeam
         )
     }
 }

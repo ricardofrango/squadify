@@ -544,7 +544,7 @@ private fun AgeGroupRowCard(
 }
 
 @Composable
-private fun TeamSizeField(
+internal fun TeamSizeField(
     label: String,
     selectedTeamSize: Int?,
     options: List<Int>,
