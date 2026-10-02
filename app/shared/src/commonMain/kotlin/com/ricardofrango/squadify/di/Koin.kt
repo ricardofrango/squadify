@@ -177,6 +177,10 @@ val domainModule = module {
     factory { GetAgeGroupStaffUseCase(get()) }
     factory { AddStaffToAgeGroupUseCase(get()) }
     factory { AddClubMembersUseCase(get()) }
+    factory { GetClubMembersOverviewUseCase(get()) }
+    factory { UpdateClubMemberRoleUseCase(get()) }
+    factory { ResendClubInviteUseCase(get()) }
+    factory { CancelClubInviteUseCase(get()) }
 }
 
 val presentationModule = module {

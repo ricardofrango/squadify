@@ -2317,3 +2317,25 @@ Player Details shows a **Season stats** card with a per-match list (design 30), 
 - leader names that needed to wrap
 - dates that wrapped
 
+## 44. Club Settings: Bottom Tabs and the Members List
+
+Club settings (design 34) moves from a top tab row to the same dark bottom bar as Team and Age Group Details (a rail in landscape): **Details · Members · Permissions**, always opening on Details.
+
+**Unsaved edits per tab.**
+- **Kept across tabs:** the Details form and the Permissions draft live in the view model, so switching tabs never loses them. A dirty tab shows an amber dot (`DetailTab.dot`).
+- **Save stays local:** the ✓ in the header only appears on Details, since it saves nothing else. Permissions keeps its own Save button.
+- **Leaving asks once:** back (button or system) with any dirty tab opens one dialog that names what would be lost: club details, permissions, or both.
+
+**One read for the Members tab.**
+- **`GET /clubs/{id}/members/overview`** returns members with their club role, contact details, age-group roles and linked players, plus the pending club invites. The tab's search, filter and grouping all run on the client from that one payload.
+- **Loads on its own:** a failure stays inside the Members tab while Details and Permissions keep working.
+- **Viewer role in the payload:** the client knows whether the viewer is an admin without a second request.
+
+**Role rules, enforced on the server** (`UpdateClubMemberRoleUseCase`).
+- **Coordinators** can change roles between Member and Coordinator. The old rule was admin-only for any change.
+- **Only admins** can grant or remove Admin, so a coordinator can't promote themselves.
+- **At least one admin:** demoting the last admin is a conflict (409). The client also locks the option and explains why.
+- **Invites carry a role** (Member or Coordinator), applied when the person registers. Admin can't be invited; it's granted once they've joined.
+
+**Pending invites** can be resent (the same email again) or cancelled (the invite row is deleted). Both are coordinator-gated and scoped to the club's own `CLUB_MEMBER` invites.
+

@@ -9,6 +9,8 @@ import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.exception.ConflictException
+import com.ricardofrango.squadify.model.ClubMemberSummary
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.UpdateClubMemberRoleRequest
 import com.ricardofrango.squadify.model.User
@@ -38,7 +40,11 @@ class UpdateClubMemberRoleUseCaseTest {
     private val clubPermissionRepository = mockk<ClubPermissionRepository>(relaxed = true)
     init { coEvery { clubPermissionRepository.getOverride(any(), any()) } returns null }
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository)
-    private val useCase = UpdateClubMemberRoleUseCase(clubRepository, checkUserPermissionUseCase, transactionManager)
+    private val useCase = UpdateClubMemberRoleUseCase(clubRepository, userRepository, checkUserPermissionUseCase, transactionManager)
+
+    private fun members(vararg pairs: Pair<String, ClubRole>) {
+        coEvery { clubRepository.getClubMembers(clubIdA) } returns pairs.map { (id, role) -> ClubMemberSummary(id, "F", "L", "$id@t.com", role) }
+    }
 
     private val clubIdA = "club-a"
     private val targetUserId = "target-user"
@@ -59,6 +65,7 @@ class UpdateClubMemberRoleUseCaseTest {
         coEvery { userRepository.findById(admin.id) } returns admin
         coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
         coEvery { clubRepository.updateMemberRole(clubIdA, targetUserId, ClubRole.COORDINATOR) } returns true
+        members(admin.id to ClubRole.CLUB_ADMIN, targetUserId to ClubRole.MEMBER)
 
         useCase(admin.id, clubIdA, targetUserId, UpdateClubMemberRoleRequest(role = ClubRole.COORDINATOR))
         Unit
@@ -84,6 +91,7 @@ class UpdateClubMemberRoleUseCaseTest {
         coEvery { userRepository.findById(coordinator.id) } returns coordinator
         coEvery { userRepository.getUserRoleInClub(coordinator.id, clubIdA) } returns ClubRole.COORDINATOR
         coEvery { clubRepository.updateMemberRole(clubIdA, targetUserId, ClubRole.COORDINATOR) } returns true
+        members(coordinator.id to ClubRole.COORDINATOR, targetUserId to ClubRole.MEMBER)
 
         useCase(coordinator.id, clubIdA, targetUserId, UpdateClubMemberRoleRequest(role = ClubRole.COORDINATOR))
         Unit
@@ -96,11 +104,52 @@ class UpdateClubMemberRoleUseCaseTest {
         val admin = user("p2-club-admin")
         coEvery { userRepository.findById(admin.id) } returns admin
         coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
-        coEvery { clubRepository.updateMemberRole(clubIdA, "not-a-member", ClubRole.COORDINATOR) } returns false
+        members(admin.id to ClubRole.CLUB_ADMIN)
 
         assertFailsWith<NotFoundException> {
             useCase(admin.id, clubIdA, "not-a-member", UpdateClubMemberRoleRequest(role = ClubRole.COORDINATOR))
         }
+        Unit
+    }
+
+    @Test
+    fun aCoordinatorCannotGrantOrRemoveAdmin() = runBlocking {
+        val coordinator = user("p3-coordinator")
+        coEvery { userRepository.findById(coordinator.id) } returns coordinator
+        coEvery { userRepository.getUserRoleInClub(coordinator.id, clubIdA) } returns ClubRole.COORDINATOR
+        members(coordinator.id to ClubRole.COORDINATOR, targetUserId to ClubRole.MEMBER, "admin-1" to ClubRole.CLUB_ADMIN, "admin-2" to ClubRole.CLUB_ADMIN)
+
+        assertFailsWith<ForbiddenException> {
+            useCase(coordinator.id, clubIdA, targetUserId, UpdateClubMemberRoleRequest(role = ClubRole.CLUB_ADMIN))
+        }
+        assertFailsWith<ForbiddenException> {
+            useCase(coordinator.id, clubIdA, "admin-1", UpdateClubMemberRoleRequest(role = ClubRole.MEMBER))
+        }
+        Unit
+    }
+
+    @Test
+    fun theLastAdminCannotBeDemotedEvenByThemselves() = runBlocking {
+        val admin = user("p2-club-admin")
+        coEvery { userRepository.findById(admin.id) } returns admin
+        coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
+        members(admin.id to ClubRole.CLUB_ADMIN, targetUserId to ClubRole.MEMBER)
+
+        assertFailsWith<ConflictException> {
+            useCase(admin.id, clubIdA, admin.id, UpdateClubMemberRoleRequest(role = ClubRole.COORDINATOR))
+        }
+        Unit
+    }
+
+    @Test
+    fun anAdminCanStepDownWhenAnotherAdminExists() = runBlocking {
+        val admin = user("p2-club-admin")
+        coEvery { userRepository.findById(admin.id) } returns admin
+        coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
+        members(admin.id to ClubRole.CLUB_ADMIN, "admin-2" to ClubRole.CLUB_ADMIN)
+        coEvery { clubRepository.updateMemberRole(clubIdA, admin.id, ClubRole.COORDINATOR) } returns true
+
+        useCase(admin.id, clubIdA, admin.id, UpdateClubMemberRoleRequest(role = ClubRole.COORDINATOR))
         Unit
     }
 }

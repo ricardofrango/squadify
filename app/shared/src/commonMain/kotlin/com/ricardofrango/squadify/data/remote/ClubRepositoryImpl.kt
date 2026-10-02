@@ -7,6 +7,9 @@ import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubDetailsResponse
 import com.ricardofrango.squadify.model.ClubHome
 import com.ricardofrango.squadify.model.ClubMemberSummary
+import com.ricardofrango.squadify.model.ClubMembersOverview
+import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.UpdateClubMemberRoleRequest
 import com.ricardofrango.squadify.model.ClubPermissionsResponse
 import com.ricardofrango.squadify.model.UpdateClubPermissionsRequest
 import com.ricardofrango.squadify.model.UpdateClubRequest
@@ -36,6 +39,24 @@ class ClubRepositoryImpl(
             contentType(ContentType.Application.Json)
             setBody(request)
         }.handleResponse<Unit>()
+    }
+
+    override suspend fun getClubMembersOverview(clubId: String): ClubMembersOverview =
+        httpClient.get("${appConfig.baseUrl}/clubs/$clubId/members/overview").handleResponse()
+
+    override suspend fun updateClubMemberRole(clubId: String, userId: String, role: ClubRole) {
+        httpClient.patch("${appConfig.baseUrl}/clubs/$clubId/members/$userId") {
+            contentType(ContentType.Application.Json)
+            setBody(UpdateClubMemberRoleRequest(role))
+        }.handleResponse<Unit>()
+    }
+
+    override suspend fun resendClubInvite(clubId: String, inviteId: String) {
+        httpClient.post("${appConfig.baseUrl}/clubs/$clubId/invites/$inviteId/resend").handleResponse<Unit>()
+    }
+
+    override suspend fun cancelClubInvite(clubId: String, inviteId: String) {
+        httpClient.delete("${appConfig.baseUrl}/clubs/$clubId/invites/$inviteId").handleResponse<Unit>()
     }
 
     override suspend fun updateClub(clubId: String, request: UpdateClubRequest) {

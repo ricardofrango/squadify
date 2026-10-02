@@ -1,6 +1,9 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -14,10 +17,12 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ricardofrango.squadify.presentation.ui.theme.Amber
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import org.jetbrains.compose.resources.DrawableResource
@@ -28,7 +33,16 @@ import org.jetbrains.compose.resources.stringResource
 // The tab bar of the Team and Age Group detail screens (designs 32, 33): the club screen's dark
 // bottom bar in portrait, a left rail in landscape (a bottom bar costs too much of a short screen).
 
-data class DetailTab(val icon: DrawableResource, val label: StringResource)
+/** [dot] marks the tab with a small amber dot, e.g. unsaved changes on it (design 34). */
+data class DetailTab(val icon: DrawableResource, val label: StringResource, val dot: Boolean = false)
+
+@Composable
+private fun TabIcon(tab: DetailTab) {
+    Box {
+        Icon(painterResource(tab.icon), contentDescription = null, modifier = Modifier.size(24.dp))
+        if (tab.dot) Box(Modifier.align(Alignment.TopEnd).size(8.dp).background(Amber, CircleShape))
+    }
+}
 
 @Composable
 fun DetailBottomBar(tabs: List<DetailTab>, selected: Int, onSelect: (Int) -> Unit) {
@@ -38,7 +52,7 @@ fun DetailBottomBar(tabs: List<DetailTab>, selected: Int, onSelect: (Int) -> Uni
             NavigationBarItem(
                 selected = isSelected,
                 onClick = { onSelect(i) },
-                icon = { Icon(painterResource(tab.icon), contentDescription = null, modifier = Modifier.size(24.dp)) },
+                icon = { TabIcon(tab) },
                 label = {
                     Text(
                         stringResource(tab.label),
@@ -67,7 +81,7 @@ fun DetailRail(tabs: List<DetailTab>, selected: Int, onSelect: (Int) -> Unit) {
             NavigationRailItem(
                 selected = isSelected,
                 onClick = { onSelect(i) },
-                icon = { Icon(painterResource(tab.icon), contentDescription = null, modifier = Modifier.size(24.dp)) },
+                icon = { TabIcon(tab) },
                 label = {
                     Text(
                         stringResource(tab.label),

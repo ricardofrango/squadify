@@ -785,4 +785,59 @@
         <item quantity="one">%1$d app</item>
         <item quantity="other">%1$d apps</item>
     </plurals>
+
+    <!-- Club settings tabs + Members (design 34) -->
+    <string name="club_settings">Club settings</string>
+    <string name="club_tab_details">Details</string>
+    <string name="club_tab_members">Members</string>
+    <string name="club_tab_permissions">Permissions</string>
+    <string name="members_invite_short">+ Invite</string>
+    <string name="members_search">Search name or email</string>
+    <string name="members_filter_all">All</string>
+    <string name="members_filter_admins">Admins</string>
+    <string name="members_filter_coordinators">Coordinators</string>
+    <string name="members_filter_members">Members</string>
+    <string name="members_filter_pending">Pending</string>
+    <string name="members_group_pending">Pending invites</string>
+    <string name="members_you">(you)</string>
+    <string name="members_line_coach">Coach · %1$s</string>
+    <string name="members_line_staff">Staff · %1$s</string>
+    <string name="members_line_parent">Parent of %1$s</string>
+    <string name="members_role_admin">Admin</string>
+    <string name="members_resend">Resend</string>
+    <string name="members_cancel_invite">Cancel invite</string>
+    <string name="members_invite_resent">Invite sent again to %1$s</string>
+    <string name="members_invite_cancelled">Invite to %1$s cancelled</string>
+    <string name="members_invited_today">Invited today · %1$s</string>
+    <string name="members_club_role">Club role</string>
+    <string name="members_role_admin_desc">Everything, including roles and club details.</string>
+    <string name="members_role_coordinator_desc">Manage age groups, teams, players and matches.</string>
+    <string name="members_role_member_desc">Sees their own teams and children.</string>
+    <string name="members_invite_title">Invite member</string>
+    <string name="members_send_invite">Send invite</string>
+    <string name="members_invite_helper">They get an email with a link. Age-group roles are added later from the age group.</string>
+    <string name="members_invite_sent">Invite sent to %1$s</string>
+    <string name="members_invite_failed">Couldn\'t send the invite. Try again.</string>
+    <string name="members_only_you_title">You\'re the only member so far</string>
+    <string name="members_only_you_body">Invite coordinators, coaches and parents by email. They join as soon as they register.</string>
+    <string name="members_no_match_title">No members match “%1$s”</string>
+    <string name="members_no_match_body">Check the spelling, or invite them by email.</string>
+    <string name="members_load_failed_title">Couldn\'t load members</string>
+    <string name="members_load_failed_body">Details and Permissions still work.</string>
+    <string name="members_action_failed">Couldn\'t complete that. Try again.</string>
+    <string name="members_line_coordinator_only">Coordinator only</string>
+    <string name="club_discard_confirm">Discard</string>
+    <string name="club_discard_title">Discard unsaved changes?</string>
+    <string name="club_discard_body">Unsaved changes to %1$s will be lost.</string>
+    <string name="club_discard_details">club details</string>
+    <string name="club_discard_permissions">permissions</string>
+    <string name="club_discard_both">club details and permissions</string>
+    <plurals name="members_count">
+        <item quantity="one">%1$d member</item>
+        <item quantity="other">%1$d members</item>
+    </plurals>
+    <plurals name="members_invited_days">
+        <item quantity="one">Invited %1$d day ago · %2$s</item>
+        <item quantity="other">Invited %1$d days ago · %2$s</item>
+    </plurals>
 </resources>

@@ -1,6 +1,57 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.draw.clip
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
+import com.ricardofrango.squadify.model.ClubMemberEntry
+import com.ricardofrango.squadify.model.ClubMembersOverview
+import com.ricardofrango.squadify.model.MemberAgeGroupRole
+import com.ricardofrango.squadify.model.MemberLinkedPlayer
+import com.ricardofrango.squadify.model.UserPlayerRelationship
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
+import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.PendingClubInvite
+import com.ricardofrango.squadify.presentation.ui.components.DetailBottomBar
+import com.ricardofrango.squadify.presentation.ui.components.DetailRail
+import com.ricardofrango.squadify.presentation.ui.components.DetailTab
+import com.ricardofrango.squadify.presentation.ui.theme.AmberText
+import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import org.jetbrains.compose.resources.StringResource
+import squadify.app.shared.generated.resources.btn_cancel
+import squadify.app.shared.generated.resources.club_discard_body
+import squadify.app.shared.generated.resources.club_discard_both
+import squadify.app.shared.generated.resources.club_discard_confirm
+import squadify.app.shared.generated.resources.club_discard_details
+import squadify.app.shared.generated.resources.club_discard_permissions
+import squadify.app.shared.generated.resources.club_discard_title
+import squadify.app.shared.generated.resources.club_settings
+import squadify.app.shared.generated.resources.club_tab_details
+import squadify.app.shared.generated.resources.club_tab_members
+import squadify.app.shared.generated.resources.club_tab_permissions
+import squadify.app.shared.generated.resources.ic_info
+import squadify.app.shared.generated.resources.ic_lock
+import squadify.app.shared.generated.resources.ic_player
+import squadify.app.shared.generated.resources.members_club_role
+import squadify.app.shared.generated.resources.members_invite_helper
+import squadify.app.shared.generated.resources.members_invite_title
+import squadify.app.shared.generated.resources.members_role_admin_desc
+import squadify.app.shared.generated.resources.members_role_coordinator_desc
+import squadify.app.shared.generated.resources.members_role_member_desc
+import squadify.app.shared.generated.resources.members_send_invite
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,9 +81,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -91,7 +140,6 @@ import squadify.app.shared.generated.resources.label_stadium_location_field
 import squadify.app.shared.generated.resources.label_stadium_location_placeholder
 import squadify.app.shared.generated.resources.label_where_section
 import squadify.app.shared.generated.resources.msg_club_address_helper
-import squadify.app.shared.generated.resources.msg_edit_club_details
 import squadify.app.shared.generated.resources.msg_no_club_changes
 import squadify.app.shared.generated.resources.msg_permission_assign_players_to_age_group_desc
 import squadify.app.shared.generated.resources.msg_permission_create_opponent_desc
@@ -106,40 +154,54 @@ import squadify.app.shared.generated.resources.msg_permissions_intro
 import squadify.app.shared.generated.resources.msg_short_name_helper
 import squadify.app.shared.generated.resources.msg_stadium_location_helper
 import squadify.app.shared.generated.resources.msg_unsaved_club_changes
-import squadify.app.shared.generated.resources.tab_club_details
-import squadify.app.shared.generated.resources.tab_permissions
 import squadify.app.shared.generated.resources.title_club_details
 
 private val FormRoundedShape = RoundedCornerShape(18.dp)
 
 /**
- * Tabbed club settings hub: "Club details" (dirty-tracked, checkmark-save-in-the-header, same pattern
- * as EditPlayerScreen/AccountScreen) and "Permissions" (each configurable action's minimum age-group-
- * staff role, with its own independent save action -- see TECHNICAL_DECISIONS.md on configurable
- * permissions). Reached from Club Details' bottom "More" menu. "Add logo" and "Stadium location" mirror
- * the design canvas artboard for this screen, with "Add logo" left non-functional (no image-upload
- * capability exists anywhere in the app yet, same reasoning as Account's "Change email").
+ * Club settings (design 34): Details · Members · Permissions in the dark bottom bar (a rail in
+ * landscape), always opening on Details. Details is dirty-tracked with the ✓ save in the header -- the
+ * ✓ only shows on Details, since it saves nothing else; Permissions keeps its own Save button. Edits on
+ * either survive tab switches and mark the tab with an amber dot; leaving with any of them unsaved asks
+ * once, naming what would be lost. Members lists everyone by club role with search, a role filter and
+ * the pending invites, and invites new members as Member or Coordinator. Reached from Club Details'
+ * bottom "More" menu. "Add logo" stays non-functional (no image upload anywhere in the app yet).
  */
 @Composable
 fun EditClubScreen(
     clubId: String,
     onNavigateBack: () -> Unit,
     onClubUpdated: () -> Unit,
+    onOpenMember: (userId: String) -> Unit = {},
+    onOpenInvite: (inviteId: String) -> Unit = {},
     viewModel: EditClubViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
+    val members by viewModel.members.collectAsState()
+    val inviting by viewModel.inviting.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(clubId) { viewModel.load(clubId) }
+    LaunchedEffect(Unit) { viewModel.messages.collect { snackbarHostState.showSnackbar(it) } }
 
     EditClubContent(
         uiState = uiState,
+        members = members,
+        inviting = inviting,
+        snackbarHostState = snackbarHostState,
         onNavigateBack = onNavigateBack,
         onRetry = { viewModel.load(clubId) },
         onTabSelected = { viewModel.onTabSelected(it) },
         onFormChange = { form -> viewModel.updateForm(form) },
         onSaveClick = { viewModel.onSaveClicked(clubId, onSaved = onClubUpdated) },
         onPermissionChanged = { action, minTeamRole -> viewModel.onPermissionChanged(action, minTeamRole) },
-        onSavePermissionsClick = { viewModel.onSavePermissionsClicked(clubId) }
+        onSavePermissionsClick = { viewModel.onSavePermissionsClicked(clubId) },
+        onRetryMembers = { viewModel.loadMembers(clubId) },
+        onInvite = { email, role, onDone -> viewModel.invite(clubId, email, role, onDone) },
+        onOpenMember = { onOpenMember(it.userId) },
+        onOpenInvite = { onOpenInvite(it.inviteId) },
+        onResend = { viewModel.resendInvite(clubId, it.inviteId, it.email) },
+        onCancelInvite = { viewModel.cancelInvite(clubId, it.inviteId, it.email) }
     )
 }
 
@@ -153,92 +215,230 @@ private fun EditClubContent(
     onFormChange: (ClubFormFields) -> Unit,
     onSaveClick: () -> Unit,
     onPermissionChanged: (ConfigurablePermission, TeamRole?) -> Unit,
-    onSavePermissionsClick: () -> Unit
+    onSavePermissionsClick: () -> Unit,
+    members: MembersUiState = MembersUiState.Loading,
+    inviting: Boolean = false,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    onRetryMembers: () -> Unit = {},
+    onInvite: (email: String, role: ClubRole, onDone: () -> Unit) -> Unit = { _, _, _ -> },
+    onOpenMember: (ClubMemberEntry) -> Unit = {},
+    onOpenInvite: (PendingClubInvite) -> Unit = {},
+    onResend: (PendingClubInvite) -> Unit = {},
+    onCancelInvite: (PendingClubInvite) -> Unit = {},
+    initialFilter: MembersFilter = MembersFilter.ALL
 ) {
     val idle = uiState as? EditClubUiState.Idle
+    // The Members tab's search and filter live with the screen, so they survive tab switches.
+    var filter by remember { mutableStateOf(initialFilter) }
+    var query by remember { mutableStateOf("") }
+    var showInvite by remember { mutableStateOf(false) }
+    var showDiscard by remember { mutableStateOf(false) }
 
-    Scaffold(
-        containerColor = Color.White,
-        topBar = {
-            Column(Modifier.background(CarbonGray)) {
-                FMTopBar(
-                    title = idle?.form?.name?.takeIf { it.isNotBlank() }
-                        ?: stringResource(Res.string.title_club_details),
-                    subtitle = stringResource(Res.string.msg_edit_club_details),
-                    onNavigateBack = onNavigateBack,
-                    actions = {
-                        IconButton(onClick = onSaveClick, enabled = idle?.canSave == true) {
-                            Icon(
-                                painter = painterResource(Res.drawable.ic_check),
-                                contentDescription = stringResource(Res.string.btn_save_changes),
-                                tint = if (idle?.canSave == true) PitchGreen else Color.White.copy(
-                                    alpha = 0.3f
-                                )
-                            )
+    val detailsDirty = idle?.isDirty == true
+    val permissionsDirty = idle?.permissionsDirty == true
+    val requestBack = { if (detailsDirty || permissionsDirty) showDiscard = true else onNavigateBack() }
+    NavigationBackHandler(
+        state = rememberNavigationEventState(NavigationEventInfo.None),
+        isBackEnabled = detailsDirty || permissionsDirty,
+        onBackCompleted = { showDiscard = true }
+    )
+
+    val tabs = listOf(
+        DetailTab(Res.drawable.ic_info, Res.string.club_tab_details, dot = detailsDirty),
+        DetailTab(Res.drawable.ic_player, Res.string.club_tab_members),
+        DetailTab(Res.drawable.ic_lock, Res.string.club_tab_permissions, dot = permissionsDirty)
+    )
+    val selectedTab = idle?.selectedTab ?: EDIT_CLUB_TAB_DETAILS
+
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
+        Row(Modifier.fillMaxSize()) {
+            if (landscape && idle != null) DetailRail(tabs, selectedTab, onTabSelected)
+            Scaffold(
+                modifier = Modifier.weight(1f),
+                containerColor = if (selectedTab == EDIT_CLUB_TAB_MEMBERS) WhiteSmoke else Color.White,
+                snackbarHost = { SnackbarHost(snackbarHostState) },
+                topBar = {
+                    FMTopBar(
+                        title = idle?.form?.name?.takeIf { it.isNotBlank() } ?: stringResource(Res.string.title_club_details),
+                        subtitle = stringResource(Res.string.club_settings),
+                        onNavigateBack = requestBack,
+                        actions = {
+                            if (idle != null && selectedTab == EDIT_CLUB_TAB_DETAILS) {
+                                IconButton(onClick = onSaveClick, enabled = idle.canSave) {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.ic_check),
+                                        contentDescription = stringResource(Res.string.btn_save_changes),
+                                        tint = if (idle.canSave) PitchGreen else Color.White.copy(alpha = 0.3f)
+                                    )
+                                }
+                            }
+                        }
+                    )
+                },
+                bottomBar = { if (!landscape && idle != null) DetailBottomBar(tabs, selectedTab, onTabSelected) }
+            ) { paddingValues ->
+                val boxModifier = Modifier.fillMaxSize().padding(paddingValues)
+                when (uiState) {
+                    is EditClubUiState.Loading -> {
+                        Box(boxModifier, contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = PitchGreen)
                         }
                     }
-                )
-                if (idle != null) {
-                    SecondaryTabRow(
-                        selectedTabIndex = idle.selectedTab,
-                        containerColor = CarbonGray,
-                        contentColor = Color.White
-                    ) {
-                        Tab(
-                            selected = idle.selectedTab == EDIT_CLUB_TAB_DETAILS,
-                            onClick = { onTabSelected(EDIT_CLUB_TAB_DETAILS) },
-                            text = { Text(stringResource(Res.string.tab_club_details)) },
-                            selectedContentColor = PitchGreen,
-                            unselectedContentColor = Color.White.copy(alpha = 0.6f)
+
+                    is EditClubUiState.Error -> {
+                        Column(
+                            modifier = boxModifier.padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = uiState.message,
+                                color = MaterialTheme.colorScheme.error,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
+                        }
+                    }
+
+                    is EditClubUiState.Idle -> when (uiState.selectedTab) {
+                        EDIT_CLUB_TAB_PERMISSIONS -> PermissionsForm(
+                            state = uiState,
+                            modifier = boxModifier,
+                            onPermissionChanged = onPermissionChanged,
+                            onSaveClick = onSavePermissionsClick
                         )
-                        Tab(
-                            selected = idle.selectedTab == EDIT_CLUB_TAB_PERMISSIONS,
-                            onClick = { onTabSelected(EDIT_CLUB_TAB_PERMISSIONS) },
-                            text = { Text(stringResource(Res.string.tab_permissions)) },
-                            selectedContentColor = PitchGreen,
-                            unselectedContentColor = Color.White.copy(alpha = 0.6f)
+                        EDIT_CLUB_TAB_MEMBERS -> ClubMembersTab(
+                            state = members,
+                            filter = filter,
+                            query = query,
+                            sideBySide = landscape,
+                            modifier = boxModifier,
+                            onFilterChange = { filter = it },
+                            onQueryChange = { query = it },
+                            onInvite = { showInvite = true },
+                            onRetry = onRetryMembers,
+                            onOpenMember = onOpenMember,
+                            onOpenInvite = onOpenInvite,
+                            onResend = onResend,
+                            onCancelInvite = onCancelInvite
+                        )
+                        else -> ClubDetailsForm(
+                            state = uiState,
+                            modifier = boxModifier,
+                            onFormChange = onFormChange
                         )
                     }
                 }
             }
         }
-    ) { paddingValues ->
-        val boxModifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White)
-        when (uiState) {
-            is EditClubUiState.Loading -> {
-                Box(boxModifier, contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = PitchGreen)
-                }
-            }
+    }
 
-            is EditClubUiState.Error -> {
-                Column(
-                    modifier = boxModifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = uiState.message,
-                        color = MaterialTheme.colorScheme.error,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
-                }
+    if (showInvite) {
+        InviteMemberSheet(
+            inviting = inviting,
+            onDismiss = { showInvite = false },
+            onSend = { email, role -> onInvite(email, role) { showInvite = false } }
+        )
+    }
+    if (showDiscard) {
+        val what = stringResource(
+            when {
+                detailsDirty && permissionsDirty -> Res.string.club_discard_both
+                permissionsDirty -> Res.string.club_discard_permissions
+                else -> Res.string.club_discard_details
             }
+        )
+        AlertDialog(
+            onDismissRequest = { showDiscard = false },
+            containerColor = Color.White,
+            title = { Text(stringResource(Res.string.club_discard_title)) },
+            text = { Text(stringResource(Res.string.club_discard_body, what)) },
+            confirmButton = {
+                TextButton(onClick = { showDiscard = false; onNavigateBack() }) {
+                    Text(stringResource(Res.string.club_discard_confirm), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = { showDiscard = false }) { Text(stringResource(Res.string.btn_cancel)) } }
+        )
+    }
+}
 
-            is EditClubUiState.Idle -> when (uiState.selectedTab) {
-                EDIT_CLUB_TAB_PERMISSIONS -> PermissionsForm(
-                    state = uiState,
-                    modifier = boxModifier,
-                    onPermissionChanged = onPermissionChanged,
-                    onSaveClick = onSavePermissionsClick
+/** "+ Invite": email and club role -- Member or Coordinator; Admin is only granted once they've joined (34b). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun InviteMemberSheet(inviting: Boolean, onDismiss: () -> Unit, onSend: (String, ClubRole) -> Unit) {
+    var email by remember { mutableStateOf("") }
+    var role by remember { mutableStateOf(ClubRole.MEMBER) }
+    val valid = email.trim().let { it.contains('@') && it.substringAfter('@').contains('.') && !it.contains(' ') }
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Color.White) {
+        Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text(stringResource(Res.string.members_invite_title), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
+            FormField(
+                value = email,
+                onValueChange = { email = it },
+                label = "${stringResource(Res.string.label_email)} *",
+                keyboardType = KeyboardType.Email
+            )
+            Text(
+                stringResource(Res.string.members_club_role).uppercase(),
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                color = DeepCarbon.copy(alpha = 0.55f)
+            )
+            listOf(ClubRole.MEMBER, ClubRole.COORDINATOR).forEach { option ->
+                RoleOption(option, selected = option == role, enabled = true, reason = null) { role = option }
+            }
+            Text(stringResource(Res.string.members_invite_helper), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.55f))
+            PrimaryLoadingButton(
+                text = stringResource(Res.string.members_send_invite),
+                submittingText = stringResource(Res.string.members_send_invite),
+                isLoading = inviting,
+                enabled = valid && !inviting,
+                onClick = { onSend(email.trim(), role) }
+            )
+        }
+    }
+}
+
+fun ClubRole.descriptionRes(): StringResource = when (this) {
+    ClubRole.CLUB_ADMIN -> Res.string.members_role_admin_desc
+    ClubRole.COORDINATOR -> Res.string.members_role_coordinator_desc
+    ClubRole.MEMBER -> Res.string.members_role_member_desc
+}
+
+/** A radio row for a club role with its one-line description, and an amber [reason] when it's locked. */
+@Composable
+internal fun RoleOption(role: ClubRole, selected: Boolean, enabled: Boolean, reason: String?, onClick: () -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = if (selected) PitchGreen.copy(alpha = 0.08f) else Color.White,
+        border = BorderStroke(1.5.dp, if (selected) PitchGreen else CarbonGray.copy(alpha = 0.16f)),
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(enabled = enabled, onClick = onClick)
+    ) {
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            RadioButton(
+                selected = selected,
+                onClick = null,
+                enabled = enabled,
+                colors = RadioButtonDefaults.colors(selectedColor = PitchGreen, unselectedColor = CarbonGray.copy(alpha = 0.4f))
+            )
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    stringResource(role.labelRes()),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = if (enabled) DeepCarbon else DeepCarbon.copy(alpha = 0.4f)
                 )
-                else -> ClubDetailsForm(
-                    state = uiState,
-                    modifier = boxModifier,
-                    onFormChange = onFormChange
+                Text(
+                    stringResource(role.descriptionRes()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DeepCarbon.copy(alpha = if (enabled) 0.6f else 0.35f)
                 )
+                if (reason != null) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(reason, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = AmberText)
+                }
             }
         }
     }
@@ -683,3 +883,65 @@ private fun EditClubErrorPreview() {
         )
     }
 }
+
+internal fun sampleMembersOverview(): ClubMembersOverview {
+    val joined = Instant.parse("2025-08-01T10:00:00Z")
+    fun member(id: String, first: String, last: String, role: ClubRole, roles: List<MemberAgeGroupRole> = emptyList(), linked: List<MemberLinkedPlayer> = emptyList()) =
+        ClubMemberEntry(id, first, last, "${first.lowercase()}.${last.lowercase()}@gmail.com", null, role, roles, linked, joined)
+    fun coach(name: String) = MemberAgeGroupRole("ag-$name", name, "2025/26", TeamRole.COACH, currentSeason = true)
+    return ClubMembersOverview(
+        members = listOf(
+            member("u1", "Ricardo", "Frango", ClubRole.CLUB_ADMIN, listOf(coach("Sub-15"))),
+            member("u2", "Marta", "Leal", ClubRole.COORDINATOR),
+            member("u3", "Rita", "Sá", ClubRole.COORDINATOR, listOf(coach("Sub-15"))),
+            member("u4", "João", "Camelo", ClubRole.MEMBER, listOf(coach("Sub-15"), coach("Sub-17"))),
+            member("u5", "Sofia", "Bragança", ClubRole.MEMBER, linked = listOf(MemberLinkedPlayer("p1", "Tomás Bragança", UserPlayerRelationship.MOTHER, "Sub-15", 7))),
+            member("u6", "Helena", "Vaz", ClubRole.MEMBER)
+        ),
+        pendingInvites = listOf(
+            PendingClubInvite("i1", "carla.sousa@gmail.com", ClubRole.MEMBER, Clock.System.now() - 3.days),
+            PendingClubInvite("i2", "nuno.ferreira@sapo.pt", ClubRole.COORDINATOR, Clock.System.now() - 9.days)
+        ),
+        viewerUserId = "u1",
+        viewerRole = ClubRole.CLUB_ADMIN
+    )
+}
+
+@Composable
+private fun MembersPreviewFrame(members: MembersUiState, filter: MembersFilter = MembersFilter.ALL) {
+    SquadifyTheme {
+        val fields = sampleFields()
+        val permissions = samplePermissions()
+        EditClubContent(
+            uiState = EditClubUiState.Idle(selectedTab = EDIT_CLUB_TAB_MEMBERS, original = fields, form = fields, originalPermissions = permissions, permissions = permissions),
+            onNavigateBack = {},
+            onRetry = {},
+            onTabSelected = {},
+            onFormChange = {},
+            onSaveClick = {},
+            onPermissionChanged = { _, _ -> },
+            onSavePermissionsClick = {},
+            members = members,
+            initialFilter = filter
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun EditClubMembersPreview() = MembersPreviewFrame(MembersUiState.Loaded(sampleMembersOverview()))
+
+@Preview
+@Composable
+private fun EditClubMembersOnlyYouPreview() {
+    val overview = sampleMembersOverview()
+    MembersPreviewFrame(MembersUiState.Loaded(overview.copy(members = overview.members.take(1), pendingInvites = emptyList())))
+}
+
+@Preview
+@Composable
+private fun EditClubMembersLoadingPreview() = MembersPreviewFrame(MembersUiState.Loading)
+
+@Preview
+@Composable
+private fun EditClubMembersErrorPreview() = MembersPreviewFrame(MembersUiState.Error)

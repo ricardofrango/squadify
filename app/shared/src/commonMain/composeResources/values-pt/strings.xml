@@ -783,4 +783,59 @@
         <item quantity="one">%1$d jogo</item>
         <item quantity="other">%1$d jogos</item>
     </plurals>
+
+    <!-- Club settings tabs + Members (design 34) -->
+    <string name="club_settings">Definições do clube</string>
+    <string name="club_tab_details">Detalhes</string>
+    <string name="club_tab_members">Membros</string>
+    <string name="club_tab_permissions">Permissões</string>
+    <string name="members_invite_short">+ Convidar</string>
+    <string name="members_search">Procurar nome ou email</string>
+    <string name="members_filter_all">Todos</string>
+    <string name="members_filter_admins">Admins</string>
+    <string name="members_filter_coordinators">Coordenadores</string>
+    <string name="members_filter_members">Membros</string>
+    <string name="members_filter_pending">Pendentes</string>
+    <string name="members_group_pending">Convites pendentes</string>
+    <string name="members_you">(você)</string>
+    <string name="members_line_coach">Treinador(a) · %1$s</string>
+    <string name="members_line_staff">Equipa técnica · %1$s</string>
+    <string name="members_line_parent">Pai/Mãe de %1$s</string>
+    <string name="members_role_admin">Admin</string>
+    <string name="members_resend">Reenviar</string>
+    <string name="members_cancel_invite">Cancelar convite</string>
+    <string name="members_invite_resent">Convite reenviado para %1$s</string>
+    <string name="members_invite_cancelled">Convite para %1$s cancelado</string>
+    <string name="members_invited_today">Convidado(a) hoje · %1$s</string>
+    <string name="members_club_role">Papel no clube</string>
+    <string name="members_role_admin_desc">Tudo, incluindo papéis e dados do clube.</string>
+    <string name="members_role_coordinator_desc">Gere escalões, equipas, jogadores e jogos.</string>
+    <string name="members_role_member_desc">Vê as suas equipas e os seus filhos.</string>
+    <string name="members_invite_title">Convidar membro</string>
+    <string name="members_send_invite">Enviar convite</string>
+    <string name="members_invite_helper">Recebem um email com um link. Os papéis nos escalões são atribuídos depois, no escalão.</string>
+    <string name="members_invite_sent">Convite enviado para %1$s</string>
+    <string name="members_invite_failed">Não foi possível enviar o convite. Tente novamente.</string>
+    <string name="members_only_you_title">Por agora, é o único membro</string>
+    <string name="members_only_you_body">Convide coordenadores, treinadores e pais por email. Entram assim que se registarem.</string>
+    <string name="members_no_match_title">Nenhum membro corresponde a “%1$s”</string>
+    <string name="members_no_match_body">Verifique a ortografia ou convide por email.</string>
+    <string name="members_load_failed_title">Não foi possível carregar os membros</string>
+    <string name="members_load_failed_body">Detalhes e Permissões continuam disponíveis.</string>
+    <string name="members_action_failed">Não foi possível concluir. Tente novamente.</string>
+    <string name="members_line_coordinator_only">Só coordenação</string>
+    <string name="club_discard_confirm">Descartar</string>
+    <string name="club_discard_title">Descartar as alterações por guardar?</string>
+    <string name="club_discard_body">As alterações a %1$s que não foram guardadas vão perder-se.</string>
+    <string name="club_discard_details">dados do clube</string>
+    <string name="club_discard_permissions">permissões</string>
+    <string name="club_discard_both">dados do clube e permissões</string>
+    <plurals name="members_count">
+        <item quantity="one">%1$d membro</item>
+        <item quantity="other">%1$d membros</item>
+    </plurals>
+    <plurals name="members_invited_days">
+        <item quantity="one">Convidado(a) há %1$d dia · %2$s</item>
+        <item quantity="other">Convidado(a) há %1$d dias · %2$s</item>
+    </plurals>
 </resources>
