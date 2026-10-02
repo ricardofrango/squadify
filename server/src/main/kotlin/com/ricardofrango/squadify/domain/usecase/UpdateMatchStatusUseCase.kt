@@ -67,14 +67,17 @@ class UpdateMatchStatusUseCase(
                 val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
                 var refetchedMatch = match.copy(status = status)
                 if (status == MatchStatus.LIVE && match.status == MatchStatus.HALF_TIME) {
+                    // Also clears any pause left over from the first half: the second half starts running
+                    // at once from the half length, without the coach having to resume the clock.
                     matchRepository.markSecondHalfStarted(matchId, now)
-                    refetchedMatch = refetchedMatch.copy(secondHalfStartedAt = now)
+                    refetchedMatch = refetchedMatch.copy(secondHalfStartedAt = now, pausedAt = null)
                     notificationEvent = MatchNotificationEvent.SECOND_HALF_STARTED
                 } else if (status == MatchStatus.HALF_TIME) {
-                    // Same floor(seconds / 60) unit as event minutes, so stoppage time is included.
+                    // Same floor(seconds / 60) unit as event minutes, so stoppage time is included. Read
+                    // while still paused if it was (the half ended where play stopped), then the pause ends.
                     val minute = elapsedMatchSeconds(match, now) / 60
                     matchRepository.markFirstHalfEnded(matchId, minute)
-                    refetchedMatch = refetchedMatch.copy(firstHalfEndMinute = minute)
+                    refetchedMatch = refetchedMatch.copy(firstHalfEndMinute = minute, pausedAt = null)
                     notificationEvent = MatchNotificationEvent.HALF_TIME
                 } else if (status == MatchStatus.FINISHED) {
                     // Ended from the break (no second half): the clock stopped when the first half did.
@@ -85,7 +88,7 @@ class UpdateMatchStatusUseCase(
                         elapsedMatchSeconds(match, now) / 60
                     }
                     matchRepository.markFullTime(matchId, minute)
-                    refetchedMatch = refetchedMatch.copy(fullTimeMinute = minute)
+                    refetchedMatch = refetchedMatch.copy(fullTimeMinute = minute, pausedAt = null)
                     // Freeze each called-up player's line now -- events can't change after full time.
                     val stats = MatchPlayerStatsCalculator.calculate(
                         match = refetchedMatch,

@@ -796,6 +796,14 @@ data class Match(
  * entirely). Returns 0 before kickoff. While [Match.pausedAt] is set, the clock is frozen at the
  * instant it paused rather than continuing to advance against [now].
  */
+/**
+ * How far the server's clock is ahead of this device's (negative if behind), from one request: the
+ * server stamped [serverNow] somewhere between [requestSent] and [responseReceived] (device times), so
+ * the midpoint of the two is the best guess for the device's time at that moment.
+ */
+fun estimateServerClockOffset(serverNow: Instant, requestSent: Instant, responseReceived: Instant): kotlin.time.Duration =
+    serverNow - (requestSent + (responseReceived - requestSent) / 2)
+
 fun elapsedMatchSeconds(match: Match, now: Instant): Int {
     val secondHalfStart = match.secondHalfStartedAt
     val referenceInstant = secondHalfStart ?: match.kickoffAt ?: return 0
@@ -953,7 +961,12 @@ data class MatchDetails(
     val score: MatchScore,
     // The match report card's data. Null unless the match is FINISHED and the caller may read the
     // report (club coordinators/admins and the age group's staff -- never players or parents).
-    val report: MatchReportSummary? = null
+    val report: MatchReportSummary? = null,
+    // The server's clock when this was built. Every match timestamp (kickoff, second half, pause, a
+    // clock correction) is the server's, so a device whose clock is a few seconds off would show the
+    // running clock off by that much (e.g. the second half starting at 29:4x instead of 30:00). The
+    // live console measures the difference with [estimateServerClockOffset] and counts with it.
+    val serverNow: Instant? = null
 )
 
 @Serializable

@@ -108,16 +108,19 @@ class ExposedMatchRepository : MatchRepository {
     override suspend fun markSecondHalfStarted(matchId: String, at: Instant): Boolean =
         MatchesTable.update({ MatchesTable.id eq matchId.toUuid() }) {
             it[secondHalfStartedAt] = at
+            it[pausedAt] = null
         } > 0
 
     override suspend fun markFirstHalfEnded(matchId: String, minute: Int): Boolean =
         MatchesTable.update({ MatchesTable.id eq matchId.toUuid() }) {
             it[firstHalfEndMinute] = minute
+            it[pausedAt] = null
         } > 0
 
     override suspend fun markFullTime(matchId: String, minute: Int): Boolean =
         MatchesTable.update({ MatchesTable.id eq matchId.toUuid() }) {
             it[fullTimeMinute] = minute
+            it[pausedAt] = null
         } > 0
 
     override suspend fun pauseMatch(matchId: String, at: Instant): Boolean =

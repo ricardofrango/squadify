@@ -6,6 +6,12 @@ import com.ricardofrango.squadify.model.MatchScore
 
 enum class LiveMatchTab { SQUAD, EVENTS }
 
+/** A one-line confirmation shown above the squad for a few seconds (design 36b/36c). */
+sealed class LiveFlash {
+    data class Substitution(val minute: Int, val inPlayerId: String, val outPlayerId: String) : LiveFlash()
+    data class ClockSet(val minute: Int) : LiveFlash()
+}
+
 /**
  * One [Idle] state covers every phase of the match (pre-kickoff, live, half-time, full-time) --
  * the screen branches on `details.match.status` to decide which layout to render, the same way
@@ -25,6 +31,7 @@ sealed class LiveMatchUiState {
         // In-flight kickoff / half-time / full-time / substitution calls -- disables the triggering
         // control so a slow connection can't be double-tapped.
         val isSubmitting: Boolean = false,
-        val error: String? = null
+        val error: String? = null,
+        val flash: LiveFlash? = null
     ) : LiveMatchUiState()
 }

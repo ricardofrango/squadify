@@ -13,6 +13,7 @@ import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Match
+import com.ricardofrango.squadify.model.elapsedMatchSeconds
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
@@ -284,5 +285,37 @@ class UpdateMatchStatusUseCaseTest {
 
         coVerify(exactly = 0) { matchPlayerStatsRepository.replaceForMatch(any(), any()) }
         coVerify(exactly = 0) { matchRepository.markFullTime(any(), any()) }
+    }
+
+    @Test
+    fun aClockLeftPausedAtTheBreakDoesNotCarryIntoTheSecondHalf() = runBlocking {
+        val coach = coach()
+        // Paused at 31' and never resumed before half time: the half ends at 31', and the pause ends with it.
+        val kickoff = kotlin.time.Clock.System.now() - 40.minutes
+        val pausedLive = Match(
+            matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.LIVE,
+            halfLengthMinutes = 30, kickoffAt = kickoff, pausedAt = kickoff + 31.minutes
+        )
+        coEvery { matchRepository.getMatchById(matchId) } returns pausedLive
+        stubCoachPermission(coach)
+        coEvery { matchRepository.updateMatchStatus(matchId, any()) } returns true
+        coEvery { matchRepository.markFirstHalfEnded(matchId, any()) } returns true
+        coEvery { matchRepository.markSecondHalfStarted(matchId, any()) } returns true
+        coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 0, 0)
+
+        useCase(coach.id, matchId, MatchStatus.HALF_TIME)
+        coVerify { matchRepository.markFirstHalfEnded(matchId, 31) }
+        coVerify { liveMatchBus.publish(matchId, match { it.match?.pausedAt == null && it.match?.firstHalfEndMinute == 31 }) }
+
+        // Even if the stored match still had a pause, starting the second half runs the clock at once from 30:00.
+        coEvery { matchRepository.getMatchById(matchId) } returns pausedLive.copy(status = MatchStatus.HALF_TIME, firstHalfEndMinute = 31)
+        useCase(coach.id, matchId, MatchStatus.LIVE)
+        coVerify {
+            liveMatchBus.publish(matchId, match {
+                val m = it.match
+                m != null && m.pausedAt == null && m.secondHalfStartedAt != null &&
+                    elapsedMatchSeconds(m, m.secondHalfStartedAt!!) == 30 * 60
+            })
+        }
     }
 }

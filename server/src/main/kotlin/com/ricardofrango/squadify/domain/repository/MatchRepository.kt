@@ -23,6 +23,8 @@ interface MatchRepository {
     // fullTimeMinute) -- see UpdateMatchStatusUseCase's HALF_TIME and FINISHED transitions.
     suspend fun markFirstHalfEnded(matchId: String, minute: Int): Boolean
     suspend fun markFullTime(matchId: String, minute: Int): Boolean
+    // markSecondHalfStarted / markFirstHalfEnded / markFullTime also clear pausedAt: ending or starting a
+    // half ends any stoppage, so a clock left paused at the whistle doesn't carry into the next half.
     // Freezes the running clock for a mid-half stoppage -- see PauseMatchUseCase/Match.pausedAt.
     suspend fun pauseMatch(matchId: String, at: kotlin.time.Instant): Boolean
     // Clears pausedAt and writes the caller's already-shifted kickoffAt/secondHalfStartedAt (whichever

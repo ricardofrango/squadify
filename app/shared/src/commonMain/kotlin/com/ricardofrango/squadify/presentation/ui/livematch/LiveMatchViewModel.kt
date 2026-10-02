@@ -15,7 +15,9 @@ import com.ricardofrango.squadify.domain.usecase.StartMatchUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateMatchStatusUseCase
 import com.ricardofrango.squadify.model.CreateMatchEventRequest
 import com.ricardofrango.squadify.model.EventType
+import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchScore
+import com.ricardofrango.squadify.model.estimateServerClockOffset
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.StartMatchRequest
 import com.ricardofrango.squadify.presentation.errorMessage
@@ -29,6 +31,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import kotlin.time.Clock
+import kotlin.time.Duration
 
 /**
  * Backs the whole live match console (LiveMatchScreen): pre-kickoff line-up picker, the live
@@ -61,12 +64,28 @@ class LiveMatchViewModel(
     private var matchId: String = ""
     private var subscribed = false
 
+    // How far the server's clock is ahead of this device's. Every match timestamp is the server's, so
+    // the running clock counts with `now + clockOffset` -- otherwise a device a few seconds behind the
+    // server shows the second half starting at 29:4x instead of 30:00. Re-measured on every fetch.
+    private val _clockOffset = MutableStateFlow(Duration.ZERO)
+    val clockOffset: StateFlow<Duration> = _clockOffset.asStateFlow()
+
+    /** The server's "now", as best this device can tell. */
+    private fun serverNow() = Clock.System.now() + _clockOffset.value
+
+    private suspend fun fetchDetails(): MatchDetails {
+        val sent = Clock.System.now()
+        val details = getMatchDetailsUseCase(matchId)
+        details.serverNow?.let { _clockOffset.value = estimateServerClockOffset(it, sent, Clock.System.now()) }
+        return details
+    }
+
     fun load(matchId: String) {
         this.matchId = matchId
         viewModelScope.launch {
             _state.update { LiveMatchUiState.Loading }
             try {
-                val details = getMatchDetailsUseCase(matchId)
+                val details = fetchDetails()
                 val started = details.match.status != MatchStatus.SCHEDULED
                 val events = if (started) getMatchEventsUseCase(matchId) else emptyList()
                 val score = if (started) getMatchScoreUseCase(matchId) else MatchScore(matchId, 0, 0)
@@ -119,17 +138,16 @@ class LiveMatchViewModel(
 
     fun onKickOff(startingPlayerIds: List<String>, halfLengthMinutes: Int) = runSubmitting { current ->
         startMatchUseCase(matchId, StartMatchRequest(startingPlayerIds, halfLengthMinutes))
-        val details = getMatchDetailsUseCase(matchId)
+        val details = fetchDetails()
         subscribeToLiveUpdates()
         current.copy(details = details, events = emptyList(), score = MatchScore(matchId, 0, 0), isSubmitting = false)
     }
 
+    // Refetched rather than patched locally: the server records where the first half ended
+    // (firstHalfEndMinute, including stoppage time), which the half-time minutes totals need.
     fun onHalfTime() = runSubmitting { current ->
         updateMatchStatusUseCase(matchId, MatchStatus.HALF_TIME)
-        current.copy(
-            details = current.details.copy(match = current.details.match.copy(status = MatchStatus.HALF_TIME)),
-            isSubmitting = false
-        )
+        current.copy(details = fetchDetails(), isSubmitting = false)
     }
 
     fun onResumeSecondHalf() = runSubmitting { current ->
@@ -139,18 +157,20 @@ class LiveMatchViewModel(
         // waiting on a refetch or the WebSocket echo.
         current.copy(
             details = current.details.copy(
-                match = current.details.match.copy(status = MatchStatus.LIVE, secondHalfStartedAt = Clock.System.now())
+                match = current.details.match.copy(status = MatchStatus.LIVE, secondHalfStartedAt = serverNow(), pausedAt = null)
             ),
             isSubmitting = false
         )
     }
 
+    // Refetched for the full-time minute and the match report card the summary links to.
     fun onFullTime() = runSubmitting { current ->
         updateMatchStatusUseCase(matchId, MatchStatus.FINISHED)
-        current.copy(
-            details = current.details.copy(match = current.details.match.copy(status = MatchStatus.FINISHED)),
-            isSubmitting = false
-        )
+        current.copy(details = fetchDetails(), isSubmitting = false)
+    }
+
+    fun clearFlash() {
+        _state.update { if (it is LiveMatchUiState.Idle) it.copy(flash = null) else it }
     }
 
     /**
@@ -162,12 +182,12 @@ class LiveMatchViewModel(
      */
     fun onPauseClock() = runSubmitting { current ->
         pauseMatchUseCase(matchId)
-        current.copy(details = getMatchDetailsUseCase(matchId), isSubmitting = false)
+        current.copy(details = fetchDetails(), isSubmitting = false)
     }
 
     fun onResumeClock() = runSubmitting { current ->
         resumeMatchUseCase(matchId)
-        current.copy(details = getMatchDetailsUseCase(matchId), isSubmitting = false)
+        current.copy(details = fetchDetails(), isSubmitting = false)
     }
 
     /**
@@ -178,7 +198,7 @@ class LiveMatchViewModel(
      */
     fun onSetMinute(minute: Int) = runSubmitting { current ->
         setMatchMinuteUseCase(matchId, minute)
-        current.copy(details = getMatchDetailsUseCase(matchId), isSubmitting = false)
+        current.copy(details = fetchDetails(), isSubmitting = false, flash = LiveFlash.ClockSet(minute))
     }
 
     /** Our score box (unattributed) or the opponent's -- see LiveMatchScreen's score row. */
@@ -198,7 +218,11 @@ class LiveMatchViewModel(
     fun onSubstitute(outPlayerId: String, inPlayerId: String, minute: Int) = runSubmitting { current ->
         val outEvent = addMatchEventUseCase(matchId, CreateMatchEventRequest(EventType.SUBSTITUTION_OUT, minute, playerId = outPlayerId))
         val inEvent = addMatchEventUseCase(matchId, CreateMatchEventRequest(EventType.SUBSTITUTION_IN, minute, playerId = inPlayerId))
-        current.copy(events = (current.events + outEvent + inEvent).sortedBy { it.minute }, isSubmitting = false)
+        current.copy(
+            events = (current.events + outEvent + inEvent).sortedBy { it.minute },
+            isSubmitting = false,
+            flash = LiveFlash.Substitution(minute, inPlayerId, outPlayerId)
+        )
     }
 
     fun onDeleteEvent(eventId: String) = runSubmitting { current ->

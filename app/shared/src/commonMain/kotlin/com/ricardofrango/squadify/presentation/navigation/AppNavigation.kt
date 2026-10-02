@@ -576,7 +576,8 @@ fun AppNavigation() {
             }
             LiveMatchScreen(
                 matchId = screen.matchId,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onOpenReport = { matchId, edit -> navController.navigate(Screen.MatchReport(matchId, edit)) }
             )
         }
 

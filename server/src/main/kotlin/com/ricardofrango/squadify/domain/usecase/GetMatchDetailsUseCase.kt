@@ -127,7 +127,8 @@ class GetMatchDetailsUseCase(
             canManageCallUps = canDo(ConfigurablePermission.MANAGE_CALL_UPS),
             canManageLiveMatch = canDo(ConfigurablePermission.MANAGE_LIVE_MATCH),
             score = matchEventRepository.getScoreByMatch(matchId),
-            report = report
+            report = report,
+            serverNow = kotlin.time.Clock.System.now()
         )
     }
 }
