@@ -122,6 +122,13 @@ import squadify.app.shared.generated.resources.member_rel_father
 import squadify.app.shared.generated.resources.member_rel_guardian
 import squadify.app.shared.generated.resources.member_rel_mother
 import squadify.app.shared.generated.resources.member_rel_other
+import squadify.app.shared.generated.resources.member_remove
+import squadify.app.shared.generated.resources.member_remove_body_account
+import squadify.app.shared.generated.resources.member_remove_body_links
+import squadify.app.shared.generated.resources.member_remove_body_role
+import squadify.app.shared.generated.resources.member_remove_body_roles
+import squadify.app.shared.generated.resources.member_remove_confirm
+import squadify.app.shared.generated.resources.member_remove_title
 import squadify.app.shared.generated.resources.member_resend_invite
 import squadify.app.shared.generated.resources.member_role_coach
 import squadify.app.shared.generated.resources.member_role_staff
@@ -187,6 +194,7 @@ fun ClubMemberDetailsScreen(
         onSaveRole = { viewModel.saveRole(clubId) },
         onResend = { viewModel.resendInvite(clubId) },
         onCancelInvite = { viewModel.cancelInvite(clubId) },
+        onRemove = { viewModel.removeMember(clubId) },
         onOpenAgeGroup = onOpenAgeGroup,
         onOpenPlayer = onOpenPlayer
     )
@@ -203,9 +211,11 @@ private fun ClubMemberDetailsContent(
     onResend: () -> Unit,
     onCancelInvite: () -> Unit,
     onOpenAgeGroup: (String) -> Unit,
-    onOpenPlayer: (String) -> Unit
+    onOpenPlayer: (String) -> Unit,
+    onRemove: () -> Unit = {}
 ) {
     var confirmAdmin by remember { mutableStateOf(false) }
+    var confirmRemove by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = WhiteSmoke,
@@ -241,7 +251,11 @@ private fun ClubMemberDetailsContent(
                             if (state.selectedRole == ClubRole.CLUB_ADMIN) confirmAdmin = true else onSaveRole()
                         })
                     }
-                    val inClub: @Composable ColumnScope.() -> Unit = { InClubCard(state.member, onOpenAgeGroup, onOpenPlayer) }
+                    val inClub: @Composable ColumnScope.() -> Unit = {
+                        InClubCard(state.member, onOpenAgeGroup, onOpenPlayer)
+                        // A red row at the bottom rather than a ⋮ item: the confirmation does the protecting.
+                        if (canRemove(state.overview, state.member)) RemoveRow(enabled = !state.saving) { confirmRemove = true }
+                    }
                     if (landscape) {
                         // Contact and role on the left, In the club on the right (35e).
                         Row(Modifier.fillMaxSize().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -267,14 +281,28 @@ private fun ClubMemberDetailsContent(
     }
 
     val member = state as? ClubMemberDetailsUiState.Member
+    if (confirmRemove && member != null) {
+        AlertDialog(
+            onDismissRequest = { confirmRemove = false },
+            containerColor = Color.White,
+            titleContentColor = DeepCarbon,
+            textContentColor = DeepCarbon.copy(alpha = 0.75f),
+            title = { Text(stringResource(Res.string.member_remove_title, member.member.fullName())) },
+            text = { Text(removeConsequences(member.member)) },
+            confirmButton = { TextButton(onClick = { confirmRemove = false; onRemove() }) { Text(stringResource(Res.string.member_remove_confirm), color = AlertRed) } },
+            dismissButton = { TextButton(onClick = { confirmRemove = false }) { Text(stringResource(Res.string.btn_cancel), color = CarbonGray) } }
+        )
+    }
     if (confirmAdmin && member != null) {
         AlertDialog(
             onDismissRequest = { confirmAdmin = false },
             containerColor = Color.White,
+            titleContentColor = DeepCarbon,
+            textContentColor = DeepCarbon.copy(alpha = 0.75f),
             title = { Text(stringResource(Res.string.member_make_admin_title, member.member.fullName())) },
             text = { Text(stringResource(Res.string.member_make_admin_body)) },
             confirmButton = { TextButton(onClick = { confirmAdmin = false; onSaveRole() }) { Text(stringResource(Res.string.member_make_admin_confirm), color = PitchGreen) } },
-            dismissButton = { TextButton(onClick = { confirmAdmin = false }) { Text(stringResource(Res.string.btn_cancel)) } }
+            dismissButton = { TextButton(onClick = { confirmAdmin = false }) { Text(stringResource(Res.string.btn_cancel), color = CarbonGray) } }
         )
     }
 }
@@ -463,6 +491,38 @@ private fun LinkRow(text: String, meta: String?, onClick: () -> Unit) {
             if (meta != null) Text(meta, style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText)
         }
         Icon(painterResource(Res.drawable.ic_chevron_right), contentDescription = null, tint = DeepCarbon.copy(alpha = 0.3f), modifier = Modifier.size(20.dp))
+    }
+}
+
+// ---- Remove from club ----
+
+/**
+ * What removing takes away, spelled out: the club role and the staff roles in the club's age groups.
+ * Parent links stay -- being a player's parent doesn't depend on a club role -- and the dialog says so.
+ */
+@Composable
+private fun removeConsequences(member: ClubMemberEntry): String {
+    val role = stringResource(member.role.labelRes())
+    val ageGroups = member.ageGroupRoles.map { it.ageGroupName }.distinct()
+    return buildList {
+        add(
+            if (ageGroups.isEmpty()) stringResource(Res.string.member_remove_body_role, role)
+            else stringResource(Res.string.member_remove_body_roles, role, ageGroups.joinToString(", "))
+        )
+        if (member.linkedPlayers.isNotEmpty()) add(stringResource(Res.string.member_remove_body_links, member.linkedPlayers.joinToString(", ") { it.name }))
+        add(stringResource(Res.string.member_remove_body_account))
+    }.joinToString(" ")
+}
+
+@Composable
+private fun RemoveRow(enabled: Boolean, onClick: () -> Unit) {
+    StatsCard(contentPadding = 0.dp) {
+        Text(
+            stringResource(Res.string.member_remove),
+            Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick).padding(horizontal = 14.dp, vertical = 15.dp),
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+            color = if (enabled) AlertRed else AlertRed.copy(alpha = 0.4f)
+        )
     }
 }
 

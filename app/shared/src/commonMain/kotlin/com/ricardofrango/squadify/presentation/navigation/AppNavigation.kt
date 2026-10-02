@@ -263,6 +263,8 @@ fun AppNavigation() {
                     navController.previousBackStackEntry?.savedStateHandle?.let {
                         it[KEY_MEMBERS_CHANGED] = true
                         if (message != null) it[KEY_MEMBERS_MESSAGE] = message
+                        // Opened from an age group's or team's staff: their staff list may be stale too.
+                        it[KEY_CLUB_STRUCTURE_CHANGED] = true
                     }
                 },
                 onReturnToClub = {

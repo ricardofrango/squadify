@@ -4,9 +4,12 @@ import com.ricardofrango.squadify.model.ClubMemberEntry
 import com.ricardofrango.squadify.model.ClubMembersOverview
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.presentation.ui.clubmember.RoleLock
+import com.ricardofrango.squadify.presentation.ui.clubmember.canRemove
 import com.ricardofrango.squadify.presentation.ui.clubmember.roleLock
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.test.assertNull
 import kotlin.time.Instant
 
@@ -49,5 +52,29 @@ class RoleLockTest {
         assertEquals(RoleLock.ADMIN_ONLY, roleLock(o, target, ClubRole.CLUB_ADMIN))
         assertEquals(RoleLock.ADMIN_ONLY, roleLock(o, admin, ClubRole.MEMBER))
         assertEquals(RoleLock.ADMIN_ONLY, roleLock(o, me, ClubRole.CLUB_ADMIN))
+    }
+
+    // "Remove from club" (design 35) shows only where RemoveClubMemberUseCase would allow it.
+    @Test
+    fun removeIsNeverOfferedOnYourself() {
+        val me = member("a", ClubRole.CLUB_ADMIN)
+        assertFalse(canRemove(overview(ClubRole.CLUB_ADMIN, me, member("b", ClubRole.CLUB_ADMIN)), me))
+    }
+
+    @Test
+    fun coordinatorsCanRemoveMembersButNotAdmins() {
+        val me = member("c", ClubRole.COORDINATOR)
+        val o = overview(ClubRole.COORDINATOR, me, member("m", ClubRole.MEMBER), member("a", ClubRole.CLUB_ADMIN), member("a2", ClubRole.CLUB_ADMIN))
+        assertTrue(canRemove(o, member("m", ClubRole.MEMBER)))
+        assertFalse(canRemove(o, member("a", ClubRole.CLUB_ADMIN)))
+    }
+
+    @Test
+    fun anAdminCanRemoveAnotherAdminButNeverTheLastOne() {
+        val me = member("a", ClubRole.CLUB_ADMIN)
+        assertTrue(canRemove(overview(ClubRole.CLUB_ADMIN, me, member("a2", ClubRole.CLUB_ADMIN)), member("a2", ClubRole.CLUB_ADMIN)))
+        // A platform admin viewing a club with one admin.
+        val o = ClubMembersOverview(listOf(member("a", ClubRole.CLUB_ADMIN)), emptyList(), viewerUserId = "p", viewerRole = ClubRole.CLUB_ADMIN)
+        assertFalse(canRemove(o, member("a", ClubRole.CLUB_ADMIN)))
     }
 }

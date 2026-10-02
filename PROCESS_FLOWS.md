@@ -448,6 +448,30 @@ graph TD
 `viewerRole` is the caller's club role (a platform admin reads as `CLUB_ADMIN`), so the client can lock
 the Admin option for coordinators without a second request.
 
+### 3.7b Remove Club Member (`RemoveClubMemberUseCase`)
+
+`DELETE /v1/clubs/{clubId}/members/{memberUserId}` (204).
+
+```mermaid
+graph TD
+    A[Start: userId, clubId, targetUserId] --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    B -- denied --> F(["Throw ForbiddenException"])
+    B -- allowed --> S{targetUserId == userId?}
+    S -- yes --> V(["Throw ValidationException — leaving is a different flow"])
+    S -- no --> C[Load club members]
+    C -- target not a member --> NF(["Throw NotFoundException"])
+    C -- member --> D{Target is CLUB_ADMIN?}
+    D -- yes, caller not CLUB_ADMIN / platform admin --> F2(["Throw ForbiddenException — only admins remove an admin"])
+    D -- yes, it's the only admin --> CF(["Throw ConflictException — the club needs at least one admin"])
+    D -- no / allowed --> E["Delete their age_group_staff rows in every age group of the club (all seasons)"]
+    E --> G[Delete the club_members row]
+    G --> Z(["Return success"])
+```
+
+Their account and their `user_players` parent/guardian links stay: being a player's parent doesn't depend
+on a club role. The membership row is deleted rather than deactivated, so the unique (club, user)
+constraint lets them be invited again later.
+
 ### 3.8 Resend / Cancel Club Invite (`ManageClubInviteUseCase`)
 
 `POST /v1/clubs/{clubId}/invites/{inviteId}/resend` and `DELETE /v1/clubs/{clubId}/invites/{inviteId}`.

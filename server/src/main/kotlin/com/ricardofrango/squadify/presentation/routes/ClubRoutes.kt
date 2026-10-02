@@ -8,6 +8,7 @@ import com.ricardofrango.squadify.domain.usecase.GetClubMembersUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubMembersOverviewUseCase
 import com.ricardofrango.squadify.domain.usecase.ManageClubInviteUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateClubMemberRoleUseCase
+import com.ricardofrango.squadify.domain.usecase.RemoveClubMemberUseCase
 import com.ricardofrango.squadify.model.UpdateClubMemberRoleRequest
 import com.ricardofrango.squadify.domain.usecase.GetClubPermissionsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
@@ -44,6 +45,7 @@ fun Route.clubRoutes() {
     val getClubMembersUseCase by inject<GetClubMembersUseCase>()
     val getClubMembersOverviewUseCase by inject<GetClubMembersOverviewUseCase>()
     val updateClubMemberRoleUseCase by inject<UpdateClubMemberRoleUseCase>()
+    val removeClubMemberUseCase by inject<RemoveClubMemberUseCase>()
     val manageClubInviteUseCase by inject<ManageClubInviteUseCase>()
     val updateClubUseCase by inject<UpdateClubUseCase>()
     val getClubMatchesUpdatesUseCase by inject<GetClubMatchesUpdatesUseCase>()
@@ -150,6 +152,14 @@ fun Route.clubRoutes() {
                     val memberUserId = call.parameters["memberUserId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
                     val currentUserId = call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)
                     updateClubMemberRoleUseCase(currentUserId, clubId, memberUserId, call.receive<UpdateClubMemberRoleRequest>())
+                    call.respond(HttpStatusCode.NoContent)
+                }
+
+                delete("/members/{memberUserId}") {
+                    val clubId = call.parameters["clubId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                    val memberUserId = call.parameters["memberUserId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                    removeClubMemberUseCase(currentUserId, clubId, memberUserId)
                     call.respond(HttpStatusCode.NoContent)
                 }
 

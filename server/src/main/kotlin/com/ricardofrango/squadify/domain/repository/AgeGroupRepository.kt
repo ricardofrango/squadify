@@ -18,5 +18,7 @@ interface AgeGroupRepository {
     suspend fun getUserRoleInAgeGroup(userId: String, ageGroupId: String): TeamRole?
     suspend fun addStaffToAgeGroup(staff: List<AgeGroupStaff>): Boolean
     suspend fun getAgeGroupStaff(ageGroupId: String): List<AgeGroupStaffMember>
+    /** Drops [userId] from the staff of every age group of [clubId], in every season; returns how many rows went. */
+    suspend fun removeStaffFromClub(clubId: String, userId: String): Int
     suspend fun countCoachesByClub(clubId: String): Long
 }

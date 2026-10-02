@@ -14,6 +14,8 @@ interface ClubRepository {
     suspend fun addMembers(clubId: String, userIds: List<Pair<String, ClubRole>>): Boolean
     suspend fun getClubMembers(clubId: String): List<ClubMemberSummary>
     suspend fun updateMemberRole(clubId: String, userId: String, role: ClubRole): Boolean
+    /** Deletes the membership row; returns whether there was one. */
+    suspend fun removeMember(clubId: String, userId: String): Boolean
     suspend fun countAllClubs(): Long
     suspend fun getRecentClubs(limit: Int): List<Club>
 }

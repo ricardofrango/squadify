@@ -182,6 +182,7 @@ val domainModule = module {
     factory { UpdateClubMemberRoleUseCase(get()) }
     factory { ResendClubInviteUseCase(get()) }
     factory { CancelClubInviteUseCase(get()) }
+    factory { RemoveClubMemberUseCase(get()) }
 }
 
 val presentationModule = module {

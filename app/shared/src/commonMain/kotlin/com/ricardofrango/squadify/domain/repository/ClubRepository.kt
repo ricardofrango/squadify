@@ -19,6 +19,7 @@ interface ClubRepository {
     suspend fun addClubMembers(clubId: String, request: AddClubMembersRequest)
     suspend fun getClubMembersOverview(clubId: String): ClubMembersOverview
     suspend fun updateClubMemberRole(clubId: String, userId: String, role: ClubRole)
+    suspend fun removeClubMember(clubId: String, userId: String)
     suspend fun resendClubInvite(clubId: String, inviteId: String)
     suspend fun cancelClubInvite(clubId: String, inviteId: String)
     suspend fun updateClub(clubId: String, request: UpdateClubRequest)
