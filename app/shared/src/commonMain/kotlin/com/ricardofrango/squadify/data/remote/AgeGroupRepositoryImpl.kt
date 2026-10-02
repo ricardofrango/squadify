@@ -8,6 +8,7 @@ import com.ricardofrango.squadify.model.AgeGroupDetails
 import com.ricardofrango.squadify.model.AgeGroupSeasonRecord
 import com.ricardofrango.squadify.model.AgeGroupStaffMember
 import com.ricardofrango.squadify.model.CreateAgeGroupsRequest
+import com.ricardofrango.squadify.model.UpdateAgeGroupRequest
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.http.*
@@ -39,6 +40,13 @@ class AgeGroupRepositoryImpl(
 
     override suspend fun addStaffToAgeGroup(ageGroupId: String, request: AddStaffToAgeGroupRequest) {
         httpClient.post("${appConfig.baseUrl}/age-groups/$ageGroupId/staff") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.handleResponse<Unit>()
+    }
+
+    override suspend fun updateAgeGroup(ageGroupId: String, request: UpdateAgeGroupRequest) {
+        httpClient.patch("${appConfig.baseUrl}/age-groups/$ageGroupId") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.handleResponse<Unit>()

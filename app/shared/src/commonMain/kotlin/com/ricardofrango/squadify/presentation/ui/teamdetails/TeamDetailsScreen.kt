@@ -157,7 +157,7 @@ private fun TeamDetailsContent(
                             },
                             onNavigateBack = onNavigateBack,
                             actions = {
-                                if (details != null && details.canManageMatch) {
+                                if (details != null && (details.canManageMatch || details.canEditTeam)) {
                                     var open by remember { mutableStateOf(false) }
                                     Box {
                                         IconButton(onClick = { open = true }) {
@@ -168,14 +168,18 @@ private fun TeamDetailsContent(
                                             )
                                         }
                                         DropdownMenu(open, onDismissRequest = { open = false }, modifier = Modifier.background(Color.White)) {
-                                            DropdownMenuItem(
-                                                text = { Text(stringResource(Res.string.label_schedule_match), color = DeepCarbon) },
-                                                onClick = { open = false; onScheduleMatch() }
-                                            )
-                                            DropdownMenuItem(
-                                                text = { Text(stringResource(Res.string.label_edit_team), color = DeepCarbon) },
-                                                onClick = { open = false; onEditTeam() }
-                                            )
+                                            if (details.canManageMatch) {
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(Res.string.label_schedule_match), color = DeepCarbon) },
+                                                    onClick = { open = false; onScheduleMatch() }
+                                                )
+                                            }
+                                            if (details.canEditTeam) {
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(Res.string.label_edit_team), color = DeepCarbon) },
+                                                    onClick = { open = false; onEditTeam() }
+                                                )
+                                            }
                                         }
                                     }
                                 }

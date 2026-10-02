@@ -23,6 +23,8 @@ import com.ricardofrango.squadify.presentation.ui.dashboard.DashboardScreen
 import com.ricardofrango.squadify.presentation.ui.account.AccountScreen
 import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.editclub.EditClubScreen
+import com.ricardofrango.squadify.presentation.ui.editteam.EditTeamScreen
+import com.ricardofrango.squadify.presentation.ui.editagegroup.EditAgeGroupScreen
 import com.ricardofrango.squadify.presentation.ui.clubmember.ClubMemberDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.createseason.CreateSeasonScreen
 import com.ricardofrango.squadify.presentation.ui.createteams.CreateTeamsScreen
@@ -252,6 +254,32 @@ fun AppNavigation() {
             )
         }
 
+        composable<Screen.EditAgeGroup> { backStackEntry ->
+            val screen: Screen.EditAgeGroup = backStackEntry.toRoute()
+            EditAgeGroupScreen(
+                ageGroupId = screen.ageGroupId,
+                onNavigateBack = { navController.popBackStack() },
+                onAgeGroupUpdated = {
+                    // Age Group Details (and the club below it) show the name and years: reload on return.
+                    navController.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable<Screen.EditTeam> { backStackEntry ->
+            val screen: Screen.EditTeam = backStackEntry.toRoute()
+            EditTeamScreen(
+                teamId = screen.teamId,
+                onNavigateBack = { navController.popBackStack() },
+                onTeamUpdated = {
+                    // Team Details (and the age group / club below it) show the name: reload on return.
+                    navController.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
+            )
+        }
+
         composable<Screen.ClubMemberDetails> { backStackEntry ->
             val screen: Screen.ClubMemberDetails = backStackEntry.toRoute()
             ClubMemberDetailsScreen(
@@ -375,6 +403,7 @@ fun AppNavigation() {
                 onNavigateToTeam = { teamId -> navController.navigate(Screen.TeamDetails(teamId)) },
                 onNavigateToPlayer = { playerId -> navController.navigate(Screen.PlayerDetails(playerId)) },
                 onNavigateToMember = { clubId, userId -> navController.navigate(Screen.ClubMemberDetails(clubId, userId = userId)) },
+                onNavigateToEditAgeGroup = { ageGroupId -> navController.navigate(Screen.EditAgeGroup(ageGroupId)) },
                 onNavigateToMatch = { matchId -> navController.navigate(Screen.MatchDetails(matchId)) },
                 onNavigateToAddPlayers = { clubId, clubName, ageGroupId ->
                     navController.navigate(Screen.AddPlayersToAgeGroup(clubId, clubName, ageGroupId))
@@ -485,7 +514,7 @@ fun AppNavigation() {
                     navController.navigate(Screen.CreateMatch(teamId = screen.teamId))
                 },
                 // The team-editing screen doesn't exist yet -- this affordance stays inert.
-                onEditTeam = {},
+                onEditTeam = { navController.navigate(Screen.EditTeam(screen.teamId)) },
                 refreshOnReturn = structureChanged
             )
         }

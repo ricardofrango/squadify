@@ -1,6 +1,13 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
+import com.ricardofrango.squadify.domain.repository.ClubRepository
+import com.ricardofrango.squadify.exception.ConflictException
+import com.ricardofrango.squadify.model.Club
+import com.ricardofrango.squadify.model.ClubStatus
+import com.ricardofrango.squadify.model.Player
+import com.ricardofrango.squadify.model.SportType
+import kotlinx.datetime.LocalDate
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
@@ -13,6 +20,7 @@ import com.ricardofrango.squadify.model.UpdateAgeGroupRequest
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.runBlocking
@@ -39,7 +47,8 @@ class UpdateAgeGroupUseCaseTest {
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
-    private val useCase = UpdateAgeGroupUseCase(ageGroupRepository, checkUserPermissionUseCase, transactionManager)
+    private val clubRepository = mockk<ClubRepository>()
+    private val useCase = UpdateAgeGroupUseCase(ageGroupRepository, checkUserPermissionUseCase, transactionManager, clubRepository, playerRepository)
 
     private val clubId = "club-a"
     private val ageGroupId = "age-group-1"
@@ -61,6 +70,8 @@ class UpdateAgeGroupUseCaseTest {
     fun updatesTheYearRange() = runBlocking {
         val coord = coordinator()
         coEvery { ageGroupRepository.getAgeGroupById(ageGroupId) } returns existing
+        coEvery { ageGroupRepository.findByClubAndSeason(clubId, "s1") } returns listOf(existing)
+        coEvery { playerRepository.getPlayersByAgeGroup(ageGroupId) } returns listOf(player(2017))
         val captured = slot<AgeGroup>()
         coEvery { ageGroupRepository.updateAgeGroup(capture(captured)) } returns true
 
@@ -80,5 +91,74 @@ class UpdateAgeGroupUseCaseTest {
             useCase(coord.id, ageGroupId, UpdateAgeGroupRequest(endYear = 2019))
         }
         Unit
+    }
+
+    private fun player(birthYear: Int) = Player(
+        id = "p$birthYear", clubId = clubId, firstName = "P", lastName = "$birthYear", birthDate = LocalDate(birthYear, 3, 1), active = true
+    )
+
+    private fun setUp(pool: List<Player> = emptyList(), others: List<AgeGroup> = emptyList()): String {
+        val coord = coordinator()
+        coEvery { ageGroupRepository.getAgeGroupById(ageGroupId) } returns existing
+        coEvery { ageGroupRepository.findByClubAndSeason(clubId, "s1") } returns listOf(existing) + others
+        coEvery { playerRepository.getPlayersByAgeGroup(ageGroupId) } returns pool
+        coEvery { ageGroupRepository.updateAgeGroup(any()) } returns true
+        coEvery { clubRepository.getClubById(clubId) } returns Club(id = clubId, name = "FC", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL)
+        return coord.id
+    }
+
+    @Test
+    fun rejectsASpanAnotherAgeGroupInTheSeasonAlreadyHas() = runBlocking {
+        val other = existing.copy(id = "age-group-2", name = "Sub 11", startYear = 2015, endYear = 2015)
+        val coord = setUp(others = listOf(other))
+        assertFailsWith<ConflictException> { useCase(coord, ageGroupId, UpdateAgeGroupRequest(startYear = 2015, endYear = 2015)) }
+        Unit
+    }
+
+    @Test
+    fun rejectsASpanThatWouldShutOutPlayersAlreadyInThePool() = runBlocking {
+        // Born 2016: eligible for 2017-2016, not for a single-year 2017 group.
+        val coord = setUp(pool = listOf(player(2016), player(2017)))
+        assertFailsWith<ConflictException> { useCase(coord, ageGroupId, UpdateAgeGroupRequest(startYear = 2017, endYear = 2017)) }
+        Unit
+    }
+
+    @Test
+    fun wideningTheSpanNeverShutsAnyoneOut() = runBlocking {
+        val coord = setUp(pool = listOf(player(2016), player(2017)))
+        useCase(coord, ageGroupId, UpdateAgeGroupRequest(startYear = 2017, endYear = 2015))
+        coVerify { ageGroupRepository.updateAgeGroup(match { it.endYear == 2015 }) }
+    }
+
+    @Test
+    fun savesAValidTeamSizeAndRejectsOneTheSportDoesNotHave() = runBlocking {
+        val coord = setUp()
+        useCase(coord, ageGroupId, UpdateAgeGroupRequest(teamSize = 7))
+        coVerify { ageGroupRepository.updateAgeGroup(match { it.teamSize == 7 }) }
+        assertFailsWith<ValidationException> { useCase(coord, ageGroupId, UpdateAgeGroupRequest(teamSize = 6)) }
+        Unit
+    }
+
+    @Test
+    fun rejectsABlankName() = runBlocking {
+        val coord = setUp()
+        assertFailsWith<ValidationException> { useCase(coord, ageGroupId, UpdateAgeGroupRequest(name = " ")) }
+        Unit
+    }
+
+    @Test
+    fun rejectsASpanThatOverlapsAnotherAgeGroupWithoutBeingIdentical() = runBlocking {
+        // Another group is single-year 2018; 2018-2017 shares 2018 with it.
+        val other = existing.copy(id = "age-group-2", name = "Sub 8", startYear = 2018, endYear = 2018)
+        val coord = setUp(others = listOf(other))
+        assertFailsWith<ConflictException> { useCase(coord, ageGroupId, UpdateAgeGroupRequest(startYear = 2018, endYear = 2017)) }
+        Unit
+    }
+
+    @Test
+    fun keepingItsOwnYearsIsNotACollisionWithItself() = runBlocking {
+        val coord = setUp()
+        useCase(coord, ageGroupId, UpdateAgeGroupRequest(startYear = 2017, endYear = 2016, name = "Sub 10 B"))
+        coVerify { ageGroupRepository.updateAgeGroup(match { it.name == "Sub 10 B" }) }
     }
 }

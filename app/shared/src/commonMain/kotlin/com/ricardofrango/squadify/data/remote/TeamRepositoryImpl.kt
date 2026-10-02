@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.model.CreateTeamsRequest
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.TeamDetails
 import com.ricardofrango.squadify.model.TeamSeasonRecord
+import com.ricardofrango.squadify.model.UpdateTeamRequest
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.http.*
@@ -31,4 +32,11 @@ class TeamRepositoryImpl(
             contentType(ContentType.Application.Json)
             setBody(request)
         }.handleResponse()
+
+    override suspend fun updateTeam(teamId: String, request: UpdateTeamRequest) {
+        httpClient.patch("${appConfig.baseUrl}/teams/$teamId") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.handleResponse<Unit>()
+    }
 }

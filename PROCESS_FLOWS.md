@@ -538,12 +538,12 @@ graph TD
     C -- No --> D[Load existing age groups for this club + season]
     D --> D2[Load club — for its sport's allowed team sizes]
     D2 -- not found --> V2b(["Throw ValidationException"])
-    D2 --> E[Collect existing startYear/endYear pairs as a Set of taken ranges]
+    D2 --> E[Collect existing startYear/endYear spans as the taken ranges]
     E --> G{For each item}
     G -- name blank --> V2(["Throw ValidationException"])
     G -- startYear < endYear --> V2c(["Throw ValidationException: inverted range"])
     G -- teamSize set AND not in club.sport.teamSizes --> V2(["Throw ValidationException"])
-    G -- "startYear/endYear pair already taken (in the DB, or by an earlier item in this request)" --> CN(["Throw ConflictException: duplicate range"])
+    G -- "shares any birth year with a taken span (in the DB, or an earlier item in this request) — birthYearsOverlap" --> CN(["Throw ConflictException: overlapping range"])
     G -- valid --> H[Mark range as taken; build AgeGroup entity — teamSize nullable]
     H --> I[Batch insert all AgeGroups]
     I --> Z(["Return created AgeGroups"])
@@ -559,11 +559,32 @@ graph TD
     B -- not found --> N(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D["Merge patch fields (name, startYear, endYear)"]
+    C -- allowed --> NB{name blank?}
+    NB -- yes --> V0(["Throw ValidationException"])
+    NB -- no --> D["Merge patch fields (name trimmed, startYear, endYear, teamSize)"]
     D --> E{Merged startYear < endYear?}
     E -- Yes --> V(["Throw ValidationException: inverted range"])
-    E -- No --> Z(["Persist updated AgeGroup"])
+    E -- No --> TS{"teamSize not in club.sport.teamSizes?"}
+    TS -- yes --> V2(["Throw ValidationException"])
+    TS -- no --> S{Span changed?}
+    S -- no --> Z(["Persist updated AgeGroup"])
+    S -- yes --> DUP{"Shares any birth year with another age group in the season? (birthYearsOverlap)"}
+    DUP -- yes --> C1(["Throw ConflictException"])
+    DUP -- no --> OUT{"endYear raised and a pool player born before it?"}
+    OUT -- yes --> C2(["Throw ConflictException: remove them from the pool first"])
+    OUT -- no --> Z
 ```
+
+The same rules as creating (§4.3) apply -- including that no birth year may sit in two age groups of the
+same season: any overlap collides, not only an identical span (a single-year 2011 group and a 2011-2010
+group both claim 2011). `birthYearsOverlap` in `common/.../Models.kt` is that rule, shared by create,
+update and the client. Plus one rule of its own: since eligibility is
+`birthDate.year >= endYear`, raising `endYear` could silently shut out players already in the pool, so
+that's refused with the count. `teamSize` here is only the default for teams created from now on --
+existing teams keep their own (edit those in §4.6). The client's **Edit age group** screen (Age Group
+Details ⋮, shown by `AgeGroupDetails.canEditAgeGroup`) applies the same checks before saving: years
+used by the season's other age groups are left out of the pickers, and a span that would shut players
+out is explained in amber and can't be saved.
 
 ### 4.4b Get Age Group Details (`GetAgeGroupDetailsUseCase`)
 
@@ -584,10 +605,10 @@ graph TD
     H --> H1["canCreateTeam = non-throwing probe of configurablePermission=CREATE_TEAM on ageGroupId"]
     H1 --> H2["canManageMatch = non-throwing probe of configurablePermission=MANAGE_MATCH on ageGroupId -- schedule match"]
     H2 --> H3["canAssignPlayersToAgeGroup = non-throwing probe of configurablePermission=ASSIGN_PLAYERS_TO_AGE_GROUP on ageGroupId -- add players"]
-    H3 --> Z(["Return AgeGroupDetails: ageGroup, club, season, players (pool), staff, teams, upcomingMatches, upcomingMatchScores, recentResults, opponents, canAddStaff, canCreateTeam, canManageMatch, canAssignPlayersToAgeGroup"])
+    H3 --> Z(["Return AgeGroupDetails: ageGroup, club, season, players (pool), staff, teams, upcomingMatches, upcomingMatchScores, recentResults, opponents, canAddStaff, canEditAgeGroup, canCreateTeam, canManageMatch, canAssignPlayersToAgeGroup"])
 ```
 
-`opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canAddStaff` gates "Add staff" (permanently coordinator/admin-only, not club-configurable, the same way `ClubDetailsResponse.canEditClub` is); `canCreateTeam` gates "Create team" (`ConfigurablePermission.CREATE_TEAM`, defaults to Coach -- moved here from the fixed bucket in §37, since a coach who'd just set up an age group had no way to add a second team to it themselves); `canManageMatch` gates "Schedule match"; `canAssignPlayersToAgeGroup` gates "Add players" -- these last three are club-configurable and can each diverge from the coordinator-only default independently. A match in progress stays in `upcomingMatches` rather than disappearing between "scheduled" and "finished" -- `upcomingMatchScores` lets the client show its running score (see `MatchRow` in `TECHNICAL_DECISIONS.md`/the client's `presentation/ui/components` package).
+`opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canAddStaff` gates "Add staff" (permanently coordinator/admin-only, not club-configurable, the same way `ClubDetailsResponse.canEditClub` is), and `canEditAgeGroup` (the same probe, §4.4's gate) gates "Edit age group"; `canCreateTeam` gates "Create team" (`ConfigurablePermission.CREATE_TEAM`, defaults to Coach -- moved here from the fixed bucket in §37, since a coach who'd just set up an age group had no way to add a second team to it themselves); `canManageMatch` gates "Schedule match"; `canAssignPlayersToAgeGroup` gates "Add players" -- these last three are club-configurable and can each diverge from the coordinator-only default independently. A match in progress stays in `upcomingMatches` rather than disappearing between "scheduled" and "finished" -- `upcomingMatchScores` lets the client show its running score (see `MatchRow` in `TECHNICAL_DECISIONS.md`/the client's `presentation/ui/components` package).
 
 ### 4.4c Get Age Group Season Record (`GetAgeGroupSeasonRecordUseCase`)
 
@@ -672,11 +693,19 @@ Whole batch runs in one transaction (all or nothing), mirroring `CreateAgeGroups
 graph TD
     A[Start: userId, teamId, patch] --> B[Fetch Team by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    B -- found --> C["CheckUserPermissionUseCase — minClubRole=COORDINATOR, minTeamRole=COACH (this team)"]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D["Merge patch fields (name, code, active)"]
+    C -- allowed --> V{"name blank, or teamSize not in club.sport.teamSizes?"}
+    V -- yes --> VE(["Throw ValidationException"])
+    V -- no --> D["Merge patch fields (name trimmed, code, active, teamSize)"]
     D --> Z(["Persist updated Team"])
 ```
+
+`teamSize` is the a-side format (how many players start a match), checked at kickoff by
+`StartMatchUseCase` -- not a squad size, which is never stored. Changing it doesn't touch matches
+already played. The client's **Edit team** screen (Team Details ⋮) edits the name and team size;
+`TeamDetails.canEditTeam` (§4.6b) is the same gate as a non-throwing probe, so the menu item only shows
+where saving would work.
 
 ### 4.6b Get Team Details (`GetTeamDetailsUseCase`)
 
@@ -696,10 +725,10 @@ graph TD
     H --> J["recentResults = FINISHED, newest first, each paired with its scoreline from matchEventRepository.getScoreByMatch → WIN/DRAW/LOSS"]
     I2 --> K[siblingTeamNames = other teams in the same age group]
     J --> K
-    K --> Z(["Return TeamDetails: team, club, ageGroup, season, poolSize, siblingTeamNames, staff, upcomingMatches, upcomingMatchScores, recentResults, opponents, canManageMatch, canViewMembers"])
+    K --> Z(["Return TeamDetails: team, club, ageGroup, season, poolSize, siblingTeamNames, staff, upcomingMatches, upcomingMatchScores, recentResults, opponents, canManageMatch, canViewMembers, canEditTeam"])
 ```
 
-`poolSize` / `staff` come from the age group (players and staff belong to it, not the team); the screen links back to the age-group detail for both. `club` is carried so a screen opened from here (e.g. Schedule Match) has the club name without another call. `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canViewMembers` (a non-throwing `minClubRole=COORDINATOR` probe, the members overview's own gate, §3.7) makes the staff chips open Member details. `canManageMatch` gates the schedule-match action ("Edit team" is a decorative, unwired menu item in `TeamDetailsScreen` -- no Edit Team screen exists yet). As with the age-group screen, a live match stays in `upcomingMatches` (it hasn't reached `recentResults` yet) and `upcomingMatchScores` carries its running score.
+`poolSize` / `staff` come from the age group (players and staff belong to it, not the team); the screen links back to the age-group detail for both. `club` is carried so a screen opened from here (e.g. Schedule Match) has the club name without another call. `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canEditTeam` mirrors §4.6's gate (coordinator+, or this team's coach) and shows "Edit team". `canViewMembers` (a non-throwing `minClubRole=COORDINATOR` probe, the members overview's own gate, §3.7) makes the staff chips open Member details. `canManageMatch` gates the schedule-match action. As with the age-group screen, a live match stays in `upcomingMatches` (it hasn't reached `recentResults` yet) and `upcomingMatchScores` carries its running score.
 
 ### 4.6c Get Team Season Record (`GetTeamSeasonRecordUseCase`)
 
@@ -1508,7 +1537,7 @@ Four different use cases can *create* an `Invite`; exactly one use case *resolve
 graph TD
     subgraph Creation points
     P1["ProvisionClubUseCase — unknown Director email"] --> INV[Create Invite row]
-    P2["AddClubMembersUseCase — unknown Member emails"] --> INV
+    P2["AddClubMembersUseCase — unknown emails, as Member or Coordinator"] --> INV
     P3["CreatePlayersUseCase — unknown Player / Parent emails"] --> INV
     P4["UpdatePlayerUseCase — unknown Player / Parent emails"] --> INV
     end
@@ -1523,7 +1552,7 @@ graph TD
     W --> Z(["User is fully onboarded into every club / player they were invited to"])
 ```
 
-The physical sending of the invite email is wired up for **P1/P2 only** (`ProvisionClubUseCase`, `AddClubMembersUseCase`) via `EmailService`/Resend, sent after the transaction commits — see `TECHNICAL_DECISIONS.md` §14. **P3/P4** (`CreatePlayersUseCase`, `UpdatePlayerUseCase` — the `PARENT_PLAYER` invite path) still only ever write a row to the `Invites` table with no email, since players/parents are explicitly out of scope for now (per the developer, v1.0.0 testing covers admin/coordinator/coach/staff only). `AddStaffToAgeGroupUseCase` (§5.4) also sends email but never creates an `Invite` — every age-group staff addition requires an existing club member, so that path is always the "already has an account" notification, never the registration-invite one.
+The physical sending of the invite email is wired up for **P1/P2 only** (`ProvisionClubUseCase`, `AddClubMembersUseCase`) via `EmailService`/Resend, sent after the transaction commits — see `TECHNICAL_DECISIONS.md` §14. **P3/P4** (`CreatePlayersUseCase`, `UpdatePlayerUseCase` — the `PARENT_PLAYER` invite path) still only ever write a row to the `Invites` table with no email, since players/parents are explicitly out of scope for now (per the developer, v1.0.0 testing covers admin/coordinator/coach/staff only). Pending `CLUB_MEMBER` invites are visible and manageable from Club settings → Members (§3.7): listed with their intended role, resendable (the same email again) and cancellable (§3.8). `PARENT_PLAYER` invites are still not shown anywhere. `AddStaffToAgeGroupUseCase` (§5.4) also sends email but never creates an `Invite` — every age-group staff addition requires an existing club member, so that path is always the "already has an account" notification, never the registration-invite one.
 
 ---
 
@@ -1543,7 +1572,13 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
   **Resolved by removing the feature, not building it:** since parents/players are out of scope for v1.0.0 and nothing had ever set a call-up to anything other than `CALLED_UP`, the whole attendance-status concept (`UpdateCallUpStatusUseCase`, its route, `CallUpStatus`'s other 4 values) was removed rather than kept as unreachable code waiting for a parent feature that doesn't exist yet. Being called up is now binary -- see §7.2, `TECHNICAL_DECISIONS.md`.
 - [x] **No match-status transition validation.** `UpdateMatchStatusUseCase` accepted any `MatchStatus` value from any current status — nothing stopped jumping straight from `SCHEDULED` to `FINISHED`, and (a sharper version of the same gap) a coach could set `SCHEDULED -> LIVE` through this use case directly, completely bypassing `StartMatchUseCase`'s starting-line-up/half-length validation, since it's a separately exposed route (`MatchRoutes.kt`), not something `StartMatchUseCase` delegates to.
   **Fixed:** added an explicit transition table (`VALID_MATCH_STATUS_TRANSITIONS`) -- `SCHEDULED -> CANCELLED` only (kickoff stays exclusive to `StartMatchUseCase`); `LIVE -> {HALF_TIME, FINISHED, CANCELLED}`; `HALF_TIME -> {LIVE, FINISHED, CANCELLED}`; `FINISHED`/`CANCELLED` are terminal. An invalid transition now throws `ValidationException`. See `UpdateMatchStatusUseCaseTest`.
-- [ ] **No historical/aggregated match statistics use case exists yet.** `GetMatchScoreUseCase`/`GetMatchEventsUseCase` only expose live/raw data — this matches the open `REQUIREMENTS.md` Phase 5 item "Historical match statistics (Post-match analysis)".
+- [x] **No historical/aggregated match statistics use case exists yet.** `GetMatchScoreUseCase`/`GetMatchEventsUseCase` only expose live/raw data — this matches the open `REQUIREMENTS.md` Phase 5 item "Historical match statistics (Post-match analysis)".
+  **Fixed:** per-player stats lines are written for every finished match (`MatchPlayerStatsCalculator`, §8.2f), and are read back through the match report (§8.6), a player's season stats (`GetPlayerSeasonStatsUseCase`, §5.1c), a team's season record (`GetTeamSeasonRecordUseCase`, §4.6c) and an age group's season record (`GetAgeGroupSeasonRecordUseCase`, §4.4c). The only piece left on the Phase 5 roadmap item is the live console's full-time "Minutes played" row (see the next entry).
+- [ ] **Some client affordances are still inert.** These are shown on purpose, matching the designs, but do nothing yet:
+  - **Login:** "Forgot password?" has no flow (no reset endpoint either).
+  - **Live match console:** the full-time "Minutes played" row has no destination, though the per-player minutes already exist in `match_player_stats`.
+  - **Club settings:** "Add logo" does nothing, since there's no image upload anywhere in the app.
+  - **Account:** "Change email" is likewise non-functional.
 - [x] **Invite emails are not sent.** Every invite-creation path used to only write to the `Invites` table (§10), with no email call anywhere.
   **Partly fixed:** `ProvisionClubUseCase`/`AddClubMembersUseCase` now send emails via Resend (`TECHNICAL_DECISIONS.md` §14). The `PARENT_PLAYER` paths (`CreatePlayersUseCase`/`UpdatePlayerUseCase`) still send nothing, on purpose, since parents/players are out of scope for now.
 

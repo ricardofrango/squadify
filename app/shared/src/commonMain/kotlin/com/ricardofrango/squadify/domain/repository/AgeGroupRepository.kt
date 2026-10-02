@@ -9,6 +9,7 @@ import com.ricardofrango.squadify.model.CreateAgeGroupsRequest
 interface AgeGroupRepository {
     suspend fun getAgeGroups(clubId: String): List<AgeGroup>
     suspend fun createAgeGroups(request: CreateAgeGroupsRequest): List<AgeGroup>
+    suspend fun updateAgeGroup(ageGroupId: String, request: com.ricardofrango.squadify.model.UpdateAgeGroupRequest)
     suspend fun getAgeGroupDetails(ageGroupId: String): AgeGroupDetails
     suspend fun getAgeGroupSeasonRecord(ageGroupId: String): com.ricardofrango.squadify.model.AgeGroupSeasonRecord
     suspend fun getAgeGroupStaff(ageGroupId: String): List<AgeGroupStaffMember>

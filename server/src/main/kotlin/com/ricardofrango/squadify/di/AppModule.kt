@@ -79,7 +79,7 @@ val appModule = module {
     factory { GetTeamDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetAgeGroupSeasonRecordUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetTeamSeasonRecordUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
-    factory { UpdateTeamUseCase(get(), get(), get()) }
+    factory { UpdateTeamUseCase(get(), get(), get(), get()) }
 
     factory { GetSeasonsUseCase(get(), get(), get(), get(), get(), get()) }
     factory { CreateSeasonUseCase(get(), get(), get()) }
@@ -87,7 +87,7 @@ val appModule = module {
 
     factory { GetAgeGroupsUseCase(get(), get(), get(), get(), get()) }
     factory { CreateAgeGroupsUseCase(get(), get(), get(), get()) }
-    factory { UpdateAgeGroupUseCase(get(), get(), get()) }
+    factory { UpdateAgeGroupUseCase(get(), get(), get(), get(), get()) }
     factory { GetAgeGroupDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     factory { GetPlayerUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }

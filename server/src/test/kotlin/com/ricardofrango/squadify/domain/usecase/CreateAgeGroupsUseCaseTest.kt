@@ -171,4 +171,59 @@ class CreateAgeGroupsUseCaseTest {
         }
         coVerify(exactly = 0) { ageGroupRepository.createAgeGroups(any()) }
     }
+
+    @Test
+    fun rejectsARangeThatOverlapsAnExistingOneWithoutBeingIdentical() = runBlocking {
+        val coord = coordinator()
+        coEvery { clubRepository.getClubById(clubId) } returns club
+        coEvery { ageGroupRepository.findByClubAndSeason(clubId, seasonId) } returns listOf(
+            AgeGroup(id = "existing", clubId = clubId, name = "Sub 8", seasonId = seasonId, startYear = 2018, endYear = 2018)
+        )
+
+        assertFailsWith<ConflictException> {
+            useCase(
+                coord.id,
+                // 2018-2017 shares 2018 with the existing single-year group.
+                CreateAgeGroupsRequest(clubId = clubId, seasonId = seasonId, items = listOf(AgeGroupItemRequest(name = "Overlap", startYear = 2018, endYear = 2017)))
+            )
+        }
+        Unit
+    }
+
+    @Test
+    fun rejectsTwoOverlappingRangesInOneRequest() = runBlocking {
+        val coord = coordinator()
+        coEvery { clubRepository.getClubById(clubId) } returns club
+        coEvery { ageGroupRepository.findByClubAndSeason(clubId, seasonId) } returns emptyList()
+
+        assertFailsWith<ConflictException> {
+            useCase(
+                coord.id,
+                CreateAgeGroupsRequest(
+                    clubId = clubId, seasonId = seasonId,
+                    items = listOf(
+                        AgeGroupItemRequest(name = "Benjamins", startYear = 2017, endYear = 2016),
+                        AgeGroupItemRequest(name = "Sub 9", startYear = 2016, endYear = 2016)
+                    )
+                )
+            )
+        }
+        Unit
+    }
+
+    @Test
+    fun adjacentRangesDoNotCollide() = runBlocking {
+        val coord = coordinator()
+        coEvery { clubRepository.getClubById(clubId) } returns club
+        coEvery { ageGroupRepository.findByClubAndSeason(clubId, seasonId) } returns listOf(
+            AgeGroup(id = "existing", clubId = clubId, name = "Benjamins", seasonId = seasonId, startYear = 2017, endYear = 2016)
+        )
+        coEvery { ageGroupRepository.createAgeGroups(any()) } answers { firstArg() }
+
+        val result = useCase(
+            coord.id,
+            CreateAgeGroupsRequest(clubId = clubId, seasonId = seasonId, items = listOf(AgeGroupItemRequest(name = "Traquinas", startYear = 2019, endYear = 2018)))
+        )
+        assertEquals(1, result.size)
+    }
 }

@@ -295,6 +295,14 @@ data class AgeGroup(
     val teamSize: Int? = null
 )
 
+/**
+ * Whether two birth-year spans (each `endYear..startYear`, oldest to youngest) share any year. Age
+ * groups in the same season must not: a player's birth year has to point to one age group, not two.
+ * Shared by the server's create/update checks and the client's Edit age group screen.
+ */
+fun birthYearsOverlap(startYear: Int, endYear: Int, otherStartYear: Int, otherEndYear: Int): Boolean =
+    endYear <= otherStartYear && otherEndYear <= startYear
+
 @Serializable
 data class Team(
     val id: String,
@@ -565,14 +573,19 @@ data class UpdateSeasonRequest(
 data class UpdateAgeGroupRequest(
     val name: String? = null,
     val startYear: Int? = null,
-    val endYear: Int? = null
+    val endYear: Int? = null,
+    // The default a-side format for teams created from now on (one of the club sport's teamSizes);
+    // existing teams keep their own. Null leaves it unchanged.
+    val teamSize: Int? = null
 )
 
 @Serializable
 data class UpdateTeamRequest(
     val name: String? = null,
     val code: String? = null,
-    val active: Boolean? = null
+    val active: Boolean? = null,
+    // One of the club sport's `teamSizes`; null leaves it unchanged.
+    val teamSize: Int? = null
 )
 
 @Serializable
@@ -672,7 +685,9 @@ data class TeamDetails(
     val opponents: List<Opponent>,
     val canManageMatch: Boolean,
     // Coordinator+: the staff chips open Member details (design 35), which only they can read.
-    val canViewMembers: Boolean = false
+    val canViewMembers: Boolean = false,
+    // The same gate UpdateTeamUseCase enforces (coordinator+, or this team's coach): shows "Edit team".
+    val canEditTeam: Boolean = false
 )
 
 /**
@@ -707,7 +722,9 @@ data class AgeGroupDetails(
     val canAddStaff: Boolean,
     val canCreateTeam: Boolean,
     val canManageMatch: Boolean,
-    val canAssignPlayersToAgeGroup: Boolean
+    val canAssignPlayersToAgeGroup: Boolean,
+    // Coordinator+, like Add staff (UpdateAgeGroupUseCase's gate): shows "Edit age group".
+    val canEditAgeGroup: Boolean = false
 )
 
 /**

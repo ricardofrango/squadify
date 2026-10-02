@@ -126,6 +126,8 @@ class GetAgeGroupDetailsUseCase(
             recentResults = recentResults,
             opponents = opponentRepository.getOpponentsByClub(ageGroup.clubId),
             canAddStaff = canAddStaff,
+            // Same fixed coordinator+ gate as UpdateAgeGroupUseCase.
+            canEditAgeGroup = canAddStaff,
             canCreateTeam = canDo(ConfigurablePermission.CREATE_TEAM),
             canManageMatch = canDo(ConfigurablePermission.MANAGE_MATCH),
             canAssignPlayersToAgeGroup = canDo(ConfigurablePermission.ASSIGN_PLAYERS_TO_AGE_GROUP)

@@ -65,6 +65,7 @@ fun AgeGroupDetailsScreen(
     onNavigateToCreateMatch: (ageGroupId: String) -> Unit,
     // A staff row opens Member details (design 35) -- coordinators only, who can read it.
     onNavigateToMember: (clubId: String, userId: String) -> Unit = { _, _ -> },
+    onNavigateToEditAgeGroup: (ageGroupId: String) -> Unit = {},
     refreshOnReturn: Boolean = false,
     viewModel: AgeGroupDetailsViewModel = koinViewModel()
 ) {
@@ -97,7 +98,8 @@ fun AgeGroupDetailsScreen(
         onAddStaff = { d -> onNavigateToAddStaff(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
         onCreateTeam = { d -> onNavigateToCreateTeams(d.ageGroup.clubId, d.club.name, d.club.sport) },
         onCreateMatch = { d -> onNavigateToCreateMatch(d.ageGroup.id) },
-        onStaffClick = { d, userId -> onNavigateToMember(d.ageGroup.clubId, userId) }
+        onStaffClick = { d, userId -> onNavigateToMember(d.ageGroup.clubId, userId) },
+        onEditAgeGroup = { d -> onNavigateToEditAgeGroup(d.ageGroup.id) }
     )
 }
 
@@ -141,7 +143,8 @@ private fun AgeGroupDetailsContent(
     onAddStaff: (AgeGroupDetails) -> Unit,
     onCreateTeam: (AgeGroupDetails) -> Unit,
     onCreateMatch: (AgeGroupDetails) -> Unit,
-    onStaffClick: (AgeGroupDetails, String) -> Unit = { _, _ -> }
+    onStaffClick: (AgeGroupDetails, String) -> Unit = { _, _ -> },
+    onEditAgeGroup: (AgeGroupDetails) -> Unit = {}
 ) {
     val details = (uiState as? AgeGroupDetailsUiState.Idle)?.details
     // Each tab keeps its own scroll; tapping the active tab scrolls it to the top (33f).
@@ -165,7 +168,7 @@ private fun AgeGroupDetailsContent(
                             title = details?.ageGroup?.name ?: stringResource(Res.string.tab_age_groups),
                             subtitle = details?.let { stringResource(Res.string.ag_born, bornLabel(it.ageGroup), it.season.name) },
                             onNavigateBack = onNavigateBack,
-                            actions = { if (details != null) OverflowMenu(details, onAddPlayers, onAddStaff, onCreateTeam, onCreateMatch) }
+                            actions = { if (details != null) OverflowMenu(details, onAddPlayers, onAddStaff, onCreateTeam, onCreateMatch, onEditAgeGroup) }
                         )
                         if (details != null) AgeGroupStrip(details, selectTab)
                     }
@@ -235,10 +238,11 @@ private fun OverflowMenu(
     onAddPlayers: (AgeGroupDetails) -> Unit,
     onAddStaff: (AgeGroupDetails) -> Unit,
     onCreateTeam: (AgeGroupDetails) -> Unit,
-    onCreateMatch: (AgeGroupDetails) -> Unit
+    onCreateMatch: (AgeGroupDetails) -> Unit,
+    onEditAgeGroup: (AgeGroupDetails) -> Unit
 ) {
     val canScheduleFromMenu = details.canManageMatch && details.teams.isNotEmpty()
-    if (!(details.canAssignPlayersToAgeGroup || details.canAddStaff || details.canCreateTeam || canScheduleFromMenu)) return
+    if (!(details.canAssignPlayersToAgeGroup || details.canAddStaff || details.canCreateTeam || canScheduleFromMenu || details.canEditAgeGroup)) return
     var open by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { open = true }) {
@@ -256,6 +260,9 @@ private fun OverflowMenu(
             }
             if (canScheduleFromMenu) {
                 DropdownMenuItem(text = { Text(stringResource(Res.string.label_schedule_match), color = DeepCarbon) }, onClick = { open = false; onCreateMatch(details) })
+            }
+            if (details.canEditAgeGroup) {
+                DropdownMenuItem(text = { Text(stringResource(Res.string.edit_age_group), color = DeepCarbon) }, onClick = { open = false; onEditAgeGroup(details) })
             }
         }
     }

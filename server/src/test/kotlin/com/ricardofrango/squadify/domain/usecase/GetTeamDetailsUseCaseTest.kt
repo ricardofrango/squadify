@@ -124,6 +124,7 @@ class GetTeamDetailsUseCaseTest {
         assertEquals("26/27", result.season.name)
         assertTrue(result.canManageMatch)
         assertTrue(result.canViewMembers)
+        assertTrue(result.canEditTeam)
     }
 
     @Test
@@ -137,6 +138,8 @@ class GetTeamDetailsUseCaseTest {
         assertTrue(useCase(coach.id, teamId).canManageMatch)
         // A coach isn't a coordinator, so the staff chips don't open Member details.
         assertFalse(useCase(coach.id, teamId).canViewMembers)
+        // The team's own coach can edit it.
+        assertTrue(useCase(coach.id, teamId).canEditTeam)
     }
 
     @Test
@@ -169,6 +172,7 @@ class GetTeamDetailsUseCaseTest {
         assertEquals(1, result.poolSize)
         assertFalse(result.canManageMatch)
         assertFalse(result.canViewMembers)
+        assertFalse(result.canEditTeam)
     }
 
     @Test

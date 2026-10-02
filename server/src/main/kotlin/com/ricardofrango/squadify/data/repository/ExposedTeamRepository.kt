@@ -58,6 +58,7 @@ class ExposedTeamRepository : TeamRepository {
             it[name] = team.name
             it[code] = team.code
             it[active] = team.active
+            it[teamSize] = team.teamSize
         } > 0
 
     override suspend fun updateActiveStatus(teamId: String, active: Boolean): Boolean =
