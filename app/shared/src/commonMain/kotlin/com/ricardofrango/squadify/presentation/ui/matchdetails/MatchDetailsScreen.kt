@@ -295,7 +295,10 @@ private fun MatchBody(
     val canManageCallUps = details.canManageCallUps && notFinished
     var showEdit by remember { mutableStateOf(false) }
 
-    val sortedCallUps = details.callUps.sortedWith(callUpComparator(state.sort))
+    // The Position / Name chips order both lists -- the call-up and the Available pool below it.
+    val playerOrder = playerComparator(state.sort)
+    val sortedCallUps = details.callUps.sortedWith(compareBy(playerOrder) { it.player })
+    val sortedPool = details.poolPlayers.sortedWith(playerOrder)
 
     // Landscape with a report card: the card gets its own fixed 320dp left column and stays in view
     // while the rest scrolls beside it -- it's the pending task on a finished match (23c).
@@ -375,7 +378,7 @@ private fun MatchBody(
                             Text(stringResource(Res.string.label_available_from_pool, details.ageGroup.name), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
                         }
                     }
-                    items(details.poolPlayers.sortedWith(compareBy({ it.lastName.lowercase() }, { it.firstName.lowercase() })), key = { it.id }) { p ->
+                    items(sortedPool, key = { it.id }) { p ->
                         PoolRow(p, onAdd = { onAddToCallUp(p) })
                     }
                 }
@@ -704,12 +707,12 @@ private fun callUpCounts(details: MatchDetails): CallUpCounts = CallUpCounts(
 // Bragança"), so the sort reads as working rather than seemingly-random. Sorting by last name
 // first would be the more familiar convention on a roster, but not when the row itself leads with
 // the first name.
-private fun callUpComparator(sort: CallUpSort): Comparator<MatchCallUpWithPlayer> = when (sort) {
-    CallUpSort.NAME -> compareBy({ it.player.firstName.lowercase() }, { it.player.lastName.lowercase() })
+internal fun playerComparator(sort: CallUpSort): Comparator<Player> = when (sort) {
+    CallUpSort.NAME -> compareBy({ it.firstName.lowercase() }, { it.lastName.lowercase() })
     CallUpSort.POSITION -> compareBy(
-        { it.player.position?.ordinal ?: Int.MAX_VALUE },
-        { it.player.firstName.lowercase() },
-        { it.player.lastName.lowercase() }
+        { it.position?.ordinal ?: Int.MAX_VALUE },
+        { it.firstName.lowercase() },
+        { it.lastName.lowercase() }
     )
 }
 
