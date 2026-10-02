@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -587,7 +589,12 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = Color.White) {
-        Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // The fields scroll; Save stays pinned to the bottom of the sheet, so it's always reachable
+        // on a short screen or with the keyboard up.
+        Column(
+            Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Text(stringResource(Res.string.title_edit_match), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
             // The type comes first, in the same vertical rows as Schedule match (design 29c). An older
             // match with no type has nothing preselected, and Save stays enabled for other edits.
@@ -615,6 +622,9 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
                 placeholder = { Text(stringResource(Res.string.label_match_notes_placeholder)) },
                 minLines = 2, modifier = Modifier.fillMaxWidth(), shape = CardShape, colors = editFieldColors()
             )
+        }
+        Column(Modifier.fillMaxWidth().background(Color.White)) {
+            HorizontalDivider(color = CarbonGray.copy(alpha = 0.1f))
             Button(
                 onClick = {
                     onSave(
@@ -628,9 +638,10 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
                     )
                 },
                 enabled = !submitting,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(horizontal = 24.dp, vertical = 12.dp).height(52.dp),
+                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)
-            ) { Text(stringResource(Res.string.btn_save_changes)) }
+            ) { Text(stringResource(Res.string.btn_save_changes), fontWeight = FontWeight.Bold) }
         }
     }
 
