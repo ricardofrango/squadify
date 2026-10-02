@@ -894,4 +894,13 @@
     <string name="edit_team_size_helper">How many players start each match (e.g. 7 for 7-a-side). Checked at kickoff; matches already played aren\'t affected.</string>
     <string name="edit_team_failed">Couldn\'t save the team. Try again.</string>
     <string name="edit_team_load_failed">Couldn\'t load this team.</string>
+    <!-- Edit age group -->
+    <string name="edit_age_group">Edit age group</string>
+    <string name="edit_age_group_size_helper">The default for teams created from now on. Existing teams keep theirs; change it in Edit team.</string>
+    <string name="edit_age_group_failed">Couldn\'t save the age group. Try again.</string>
+    <string name="edit_age_group_load_failed">Couldn\'t load this age group.</string>
+    <plurals name="edit_age_group_shut_out">
+        <item quantity="one">%1$d player in this age group was born before %2$d. Remove them from the pool first, or keep an older birth year.</item>
+        <item quantity="other">%1$d players in this age group were born before %2$d. Remove them from the pool first, or keep an older birth year.</item>
+    </plurals>
 </resources>

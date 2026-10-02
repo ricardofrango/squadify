@@ -124,6 +124,10 @@ sealed class Screen {
     data class TeamDetails(val teamId: String) : Screen()
 
     @Serializable
+    @SerialName("edit-age-group")
+    data class EditAgeGroup(val ageGroupId: String) : Screen()
+
+    @Serializable
     @SerialName("edit-team")
     data class EditTeam(val teamId: String) : Screen()
 

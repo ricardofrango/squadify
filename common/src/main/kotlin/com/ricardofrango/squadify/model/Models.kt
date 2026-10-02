@@ -565,7 +565,10 @@ data class UpdateSeasonRequest(
 data class UpdateAgeGroupRequest(
     val name: String? = null,
     val startYear: Int? = null,
-    val endYear: Int? = null
+    val endYear: Int? = null,
+    // The default a-side format for teams created from now on (one of the club sport's teamSizes);
+    // existing teams keep their own. Null leaves it unchanged.
+    val teamSize: Int? = null
 )
 
 @Serializable
@@ -711,7 +714,9 @@ data class AgeGroupDetails(
     val canAddStaff: Boolean,
     val canCreateTeam: Boolean,
     val canManageMatch: Boolean,
-    val canAssignPlayersToAgeGroup: Boolean
+    val canAssignPlayersToAgeGroup: Boolean,
+    // Coordinator+, like Add staff (UpdateAgeGroupUseCase's gate): shows "Edit age group".
+    val canEditAgeGroup: Boolean = false
 )
 
 /**

@@ -559,11 +559,29 @@ graph TD
     B -- not found --> N(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D["Merge patch fields (name, startYear, endYear)"]
+    C -- allowed --> NB{name blank?}
+    NB -- yes --> V0(["Throw ValidationException"])
+    NB -- no --> D["Merge patch fields (name trimmed, startYear, endYear, teamSize)"]
     D --> E{Merged startYear < endYear?}
     E -- Yes --> V(["Throw ValidationException: inverted range"])
-    E -- No --> Z(["Persist updated AgeGroup"])
+    E -- No --> TS{"teamSize not in club.sport.teamSizes?"}
+    TS -- yes --> V2(["Throw ValidationException"])
+    TS -- no --> S{Span changed?}
+    S -- no --> Z(["Persist updated AgeGroup"])
+    S -- yes --> DUP{"Another age group in the season has this exact span?"}
+    DUP -- yes --> C1(["Throw ConflictException"])
+    DUP -- no --> OUT{"endYear raised and a pool player born before it?"}
+    OUT -- yes --> C2(["Throw ConflictException: remove them from the pool first"])
+    OUT -- no --> Z
 ```
+
+The same rules as creating (§4.3) apply, plus one of its own: since eligibility is
+`birthDate.year >= endYear`, raising `endYear` could silently shut out players already in the pool, so
+that's refused with the count. `teamSize` here is only the default for teams created from now on --
+existing teams keep their own (edit those in §4.6). The client's **Edit age group** screen (Age Group
+Details ⋮, shown by `AgeGroupDetails.canEditAgeGroup`) applies the same checks before saving: years
+used by the season's other age groups are left out of the pickers, and a span that would shut players
+out is explained in amber and can't be saved.
 
 ### 4.4b Get Age Group Details (`GetAgeGroupDetailsUseCase`)
 
@@ -584,10 +602,10 @@ graph TD
     H --> H1["canCreateTeam = non-throwing probe of configurablePermission=CREATE_TEAM on ageGroupId"]
     H1 --> H2["canManageMatch = non-throwing probe of configurablePermission=MANAGE_MATCH on ageGroupId -- schedule match"]
     H2 --> H3["canAssignPlayersToAgeGroup = non-throwing probe of configurablePermission=ASSIGN_PLAYERS_TO_AGE_GROUP on ageGroupId -- add players"]
-    H3 --> Z(["Return AgeGroupDetails: ageGroup, club, season, players (pool), staff, teams, upcomingMatches, upcomingMatchScores, recentResults, opponents, canAddStaff, canCreateTeam, canManageMatch, canAssignPlayersToAgeGroup"])
+    H3 --> Z(["Return AgeGroupDetails: ageGroup, club, season, players (pool), staff, teams, upcomingMatches, upcomingMatchScores, recentResults, opponents, canAddStaff, canEditAgeGroup, canCreateTeam, canManageMatch, canAssignPlayersToAgeGroup"])
 ```
 
-`opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canAddStaff` gates "Add staff" (permanently coordinator/admin-only, not club-configurable, the same way `ClubDetailsResponse.canEditClub` is); `canCreateTeam` gates "Create team" (`ConfigurablePermission.CREATE_TEAM`, defaults to Coach -- moved here from the fixed bucket in §37, since a coach who'd just set up an age group had no way to add a second team to it themselves); `canManageMatch` gates "Schedule match"; `canAssignPlayersToAgeGroup` gates "Add players" -- these last three are club-configurable and can each diverge from the coordinator-only default independently. A match in progress stays in `upcomingMatches` rather than disappearing between "scheduled" and "finished" -- `upcomingMatchScores` lets the client show its running score (see `MatchRow` in `TECHNICAL_DECISIONS.md`/the client's `presentation/ui/components` package).
+`opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canAddStaff` gates "Add staff" (permanently coordinator/admin-only, not club-configurable, the same way `ClubDetailsResponse.canEditClub` is), and `canEditAgeGroup` (the same probe, §4.4's gate) gates "Edit age group"; `canCreateTeam` gates "Create team" (`ConfigurablePermission.CREATE_TEAM`, defaults to Coach -- moved here from the fixed bucket in §37, since a coach who'd just set up an age group had no way to add a second team to it themselves); `canManageMatch` gates "Schedule match"; `canAssignPlayersToAgeGroup` gates "Add players" -- these last three are club-configurable and can each diverge from the coordinator-only default independently. A match in progress stays in `upcomingMatches` rather than disappearing between "scheduled" and "finished" -- `upcomingMatchScores` lets the client show its running score (see `MatchRow` in `TECHNICAL_DECISIONS.md`/the client's `presentation/ui/components` package).
 
 ### 4.4c Get Age Group Season Record (`GetAgeGroupSeasonRecordUseCase`)
 

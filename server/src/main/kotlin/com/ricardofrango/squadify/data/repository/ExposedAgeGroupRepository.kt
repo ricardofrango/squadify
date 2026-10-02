@@ -68,6 +68,7 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
             it[name] = ageGroup.name
             it[startYear] = ageGroup.startYear
             it[endYear] = ageGroup.endYear
+            it[teamSize] = ageGroup.teamSize
         } > 0
     }
 

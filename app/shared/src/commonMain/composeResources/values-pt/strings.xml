@@ -892,4 +892,13 @@
     <string name="edit_team_size_helper">Quantos jogadores começam cada jogo (ex.: 7 no futebol de 7). Verificado no início do jogo; os jogos já disputados não mudam.</string>
     <string name="edit_team_failed">Não foi possível guardar a equipa. Tente novamente.</string>
     <string name="edit_team_load_failed">Não foi possível carregar esta equipa.</string>
+    <!-- Edit age group -->
+    <string name="edit_age_group">Editar escalão</string>
+    <string name="edit_age_group_size_helper">O valor por omissão para as novas equipas. As equipas existentes mantêm o seu; altere-o em Editar equipa.</string>
+    <string name="edit_age_group_failed">Não foi possível guardar o escalão. Tente novamente.</string>
+    <string name="edit_age_group_load_failed">Não foi possível carregar este escalão.</string>
+    <plurals name="edit_age_group_shut_out">
+        <item quantity="one">%1$d jogador deste escalão nasceu antes de %2$d. Retire-o primeiro do plantel ou mantenha um ano de nascimento mais antigo.</item>
+        <item quantity="other">%1$d jogadores deste escalão nasceram antes de %2$d. Retire-os primeiro do plantel ou mantenha um ano de nascimento mais antigo.</item>
+    </plurals>
 </resources>
