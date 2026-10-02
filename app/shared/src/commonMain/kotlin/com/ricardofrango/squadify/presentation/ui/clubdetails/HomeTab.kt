@@ -17,6 +17,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -152,10 +153,43 @@ private fun NeedsYouSection(
     val gaps = home.alerts.filter { it.type == ClubHomeAlertType.AGE_GROUP_NEEDS_COACH }
     val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     var expanded by rememberSaveable { mutableStateOf(false) }
+    // Which call-up days (by date) are expanded into their matches.
+    val expandedCallUps = remember { mutableStateListOf<String>() }
 
     // Each entry is one row of the card; dividers go between them.
     val rows = buildList<@Composable () -> Unit> {
-        callUps.forEach { alert -> add { AlertRowContent(alertText(alert), null, PitchGreen, null, null) } }
+        // A call-up to-do opens its match; a day with several matches expands into one row per match.
+        callUps.forEach { alert ->
+            val key = alert.date?.toString() ?: ""
+            val single = alert.matches.singleOrNull()
+            add {
+                AlertRowContent(
+                    title = alertText(alert),
+                    subtitle = null,
+                    dotColor = PitchGreen,
+                    trailingIcon = when {
+                        single != null -> Res.drawable.ic_chevron_right
+                        alert.matches.size > 1 -> if (key in expandedCallUps) Res.drawable.ic_expand_less else Res.drawable.ic_expand_more
+                        else -> null
+                    },
+                    onClick = when {
+                        single != null -> { { onNavigateToMatch(single.matchId) } }
+                        alert.matches.size > 1 -> { { if (!expandedCallUps.remove(key)) expandedCallUps.add(key) } }
+                        else -> null
+                    }
+                )
+            }
+            if (alert.matches.size > 1 && key in expandedCallUps) alert.matches.forEach { m ->
+                add {
+                    Box(Modifier.background(Color(0xFFFAFAFA)).padding(start = 24.dp)) {
+                        AlertRowContent(
+                            "${m.teamName} vs ${m.opponentName}", null, PitchGreen,
+                            Res.drawable.ic_chevron_right, { onNavigateToMatch(m.matchId) }
+                        )
+                    }
+                }
+            }
+        }
         if (reports.size >= REPORT_GROUP_THRESHOLD) {
             val oldest = reports.mapNotNull { it.date }.minOrNull()
             val anyOverdue = reports.any { reportDotColor(it, today) == Amber }
@@ -440,7 +474,10 @@ private fun HomeTabPreview() {
                     ClubHomeNextUp("m2", "t2", "Sub-17 A", "GD Marinhas", "Away", base, 0)
                 ),
                 alerts = listOf(
-                    ClubHomeAlert(ClubHomeAlertType.CALLUPS_UNSENT, count = 2, date = kotlinx.datetime.LocalDate(2026, 9, 12)),
+                    ClubHomeAlert(
+                        ClubHomeAlertType.CALLUPS_UNSENT, count = 2, date = kotlinx.datetime.LocalDate(2026, 9, 12),
+                        matches = listOf(ClubHomeAlertMatch("m1", "Sub-15 A", "AD Fontelas"), ClubHomeAlertMatch("m2", "Sub-13 A", "GD Marinhas"))
+                    ),
                     ClubHomeAlert(ClubHomeAlertType.AGE_GROUP_NEEDS_COACH, count = 1, ageGroupId = "ag-x", ageGroupName = "Sub-11"),
                     ClubHomeAlert(
                         ClubHomeAlertType.MATCH_REPORT_PENDING, count = 1, date = kotlinx.datetime.LocalDate(2026, 9, 14),

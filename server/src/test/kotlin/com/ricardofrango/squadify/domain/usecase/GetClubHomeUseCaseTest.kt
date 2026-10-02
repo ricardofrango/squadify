@@ -169,6 +169,9 @@ class GetClubHomeUseCaseTest {
         assertEquals(1, alerts.size)
         assertEquals(ClubHomeAlertType.CALLUPS_UNSENT, alerts.first().type)
         assertEquals(1, alerts.first().count)
+        // The match behind the to-do, so tapping it can open the match.
+        assertEquals(listOf("m-in"), alerts.first().matches.map { it.matchId })
+        assertEquals(teamA.name, alerts.first().matches.single().teamName)
     }
 
     @Test

@@ -14,6 +14,7 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubHome
 import com.ricardofrango.squadify.model.ClubHomeAlert
+import com.ricardofrango.squadify.model.ClubHomeAlertMatch
 import com.ricardofrango.squadify.model.ClubHomeAlertType
 import com.ricardofrango.squadify.model.ClubHomeNextUp
 import com.ricardofrango.squadify.model.ClubRole
@@ -146,6 +147,9 @@ class GetClubHomeUseCase(
                 .toSet()
         }
 
+        val teamNames = teams.associate { it.id to it.name }
+        fun opponentLabel(opponentId: String) = opponentsById[opponentId]?.let { it.shortName ?: it.name } ?: "—"
+
         val callUpTeamIds = alertTeamIds(ConfigurablePermission.MANAGE_CALL_UPS)
         if (callUpTeamIds.isNotEmpty()) {
             val cutoff = now.plus(callUpWindow)
@@ -162,7 +166,10 @@ class GetClubHomeUseCase(
                     alerts += ClubHomeAlert(
                         type = ClubHomeAlertType.CALLUPS_UNSENT,
                         count = matches.size,
-                        date = date
+                        date = date,
+                        matches = matches.sortedBy { it.dateTime }.map {
+                            ClubHomeAlertMatch(it.id, teamNames[it.teamId] ?: "—", opponentLabel(it.opponentId))
+                        }
                     )
                 }
         }
@@ -176,7 +183,6 @@ class GetClubHomeUseCase(
                 it.teamId in reportTeamIds && it.status == MatchStatus.FINISHED && it.fullTimeMinute != null
             }
             val completed = matchReportRepository.getCompletedMatchIds(finished.map { it.id })
-            val teamNames = teams.associate { it.id to it.name }
             finished
                 .filter { it.id !in completed }
                 .sortedBy { it.dateTime }
