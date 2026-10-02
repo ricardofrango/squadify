@@ -51,6 +51,10 @@ class ClubRepositoryImpl(
         }.handleResponse<Unit>()
     }
 
+    override suspend fun removeClubMember(clubId: String, userId: String) {
+        httpClient.delete("${appConfig.baseUrl}/clubs/$clubId/members/$userId").handleResponse<Unit>()
+    }
+
     override suspend fun resendClubInvite(clubId: String, inviteId: String) {
         httpClient.post("${appConfig.baseUrl}/clubs/$clubId/invites/$inviteId/resend").handleResponse<Unit>()
     }

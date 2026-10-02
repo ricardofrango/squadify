@@ -875,6 +875,15 @@
     <string name="member_load_failed_title">Não foi possível carregar este membro</string>
     <string name="member_load_failed_body">Verifique a ligação e tente novamente.</string>
     <string name="member_role_failed">Não foi possível alterar o papel. Tente novamente.</string>
+    <string name="member_remove">Remover do clube</string>
+    <string name="member_remove_title">Remover %1$s do clube?</string>
+    <string name="member_remove_body_role">Perde o papel de %1$s.</string>
+    <string name="member_remove_body_roles">Perde o papel de %1$s e os papéis de equipa técnica em %2$s.</string>
+    <string name="member_remove_body_links">Mantém a ligação a %1$s.</string>
+    <string name="member_remove_body_account">A conta mantém-se; pode convidá-lo(a) de novo mais tarde.</string>
+    <string name="member_remove_confirm">Remover</string>
+    <string name="member_removed">%1$s foi removido(a) do clube</string>
+    <string name="member_remove_failed">Não foi possível remover este membro. Tente novamente.</string>
     <plurals name="member_invited_ago">
         <item quantity="one">Convidado(a) há %1$d dia</item>
         <item quantity="other">Convidado(a) há %1$d dias</item>

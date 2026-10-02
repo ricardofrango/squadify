@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.CancelClubInviteUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubMembersOverviewUseCase
+import com.ricardofrango.squadify.domain.usecase.RemoveClubMemberUseCase
 import com.ricardofrango.squadify.domain.usecase.ResendClubInviteUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateClubMemberRoleUseCase
 import com.ricardofrango.squadify.model.ClubRole
@@ -20,6 +21,8 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.member_now_role
+import squadify.app.shared.generated.resources.member_remove_failed
+import squadify.app.shared.generated.resources.member_removed
 import squadify.app.shared.generated.resources.member_role_failed
 import squadify.app.shared.generated.resources.member_you_now_role
 import squadify.app.shared.generated.resources.members_action_failed
@@ -34,7 +37,8 @@ class ClubMemberDetailsViewModel(
     private val getClubMembersOverviewUseCase: GetClubMembersOverviewUseCase,
     private val updateClubMemberRoleUseCase: UpdateClubMemberRoleUseCase,
     private val resendClubInviteUseCase: ResendClubInviteUseCase,
-    private val cancelClubInviteUseCase: CancelClubInviteUseCase
+    private val cancelClubInviteUseCase: CancelClubInviteUseCase,
+    private val removeClubMemberUseCase: RemoveClubMemberUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<ClubMemberDetailsUiState>(ClubMemberDetailsUiState.Loading)
@@ -93,6 +97,22 @@ class ClubMemberDetailsViewModel(
             } catch (e: Exception) {
                 _state.value = current.copy(saving = false)
                 _events.emit(ClubMemberDetailsEvent.Message(errorMessage(e, Res.string.member_role_failed)))
+            }
+        }
+    }
+
+    /** Remove from club (design 35): back to the list, which says so. */
+    fun removeMember(clubId: String) {
+        val current = _state.value as? ClubMemberDetailsUiState.Member ?: return
+        if (!current.canRemove) return
+        _state.value = current.copy(saving = true)
+        viewModelScope.launch {
+            try {
+                removeClubMemberUseCase(clubId, current.member.userId)
+                _events.emit(ClubMemberDetailsEvent.Closed(getString(Res.string.member_removed, "${current.member.firstName} ${current.member.lastName}")))
+            } catch (e: Exception) {
+                _state.value = current.copy(saving = false)
+                _events.emit(ClubMemberDetailsEvent.Message(errorMessage(e, Res.string.member_remove_failed)))
             }
         }
     }

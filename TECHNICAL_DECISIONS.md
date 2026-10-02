@@ -2346,7 +2346,11 @@ Club settings (design 34) moves from a top tab row to the same dark bottom bar a
 - **Demoting yourself** shows "You're now {role}", then returns to Club details, past Club settings, since you may have lost access to it. There's no reload, because a Member can't read the list.
 - **Coming back to Club settings** refreshes only the Members list (a `savedStateHandle` flag, plus a message when an invite was cancelled). Club settings now loads once per club, so returning no longer wipes unsaved Details or Permissions edits.
 - **Contact:** tapping the email opens mail and tapping the phone opens the dialler, through `LocalUriHandler`. The copy icon uses the text clipboard manager, since `ClipEntry` has no common constructor yet.
-- **Remove from club** ships later.
+- **Remove from club** is a red row at the bottom of Member details, not a ⋮ item, so the screen's one destructive action is easy to find and the confirmation does the protecting.
+  - **What goes:** the club membership, and the person's staff roles in all of the club's age groups, across all seasons.
+  - **What stays:** their account and their links to players as a parent or guardian. Those don't depend on a club role, so removing someone from the club doesn't remove them as a parent. The confirmation says so.
+  - **Rules** (`canRemove` on the client, `RemoveClubMemberUseCase` on the server): never yourself, an admin only by an admin, and never the last admin.
+  - **Hard delete:** the membership row is deleted rather than flagged inactive, so the person can simply be invited again.
 
 **Staff link to Member details** wherever they're listed: the age group's Members tab (staff rows) and Team Details' age-group card (staff chips). A link shows only where the page would open: coordinators and above, using `AgeGroupDetails.canAddStaff` and a new `TeamDetails.canViewMembers`. For anyone else the rows and chips stay inert. Player Details only shows a guardian count, not names, so there's nothing to link there yet.
 

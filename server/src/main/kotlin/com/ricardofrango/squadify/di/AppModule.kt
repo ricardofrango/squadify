@@ -66,6 +66,7 @@ val appModule = module {
     factory { AddClubMembersUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetClubMembersUseCase(get(), get(), get()) }
     factory { UpdateClubMemberRoleUseCase(get(), get(), get(), get()) }
+    factory { RemoveClubMemberUseCase(get(), get(), get(), get(), get()) }
     factory { GetClubMembersOverviewUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { ManageClubInviteUseCase(get(), get(), get(), get(), get()) }
     factory { UpdateClubUseCase(get(), get(), get()) }

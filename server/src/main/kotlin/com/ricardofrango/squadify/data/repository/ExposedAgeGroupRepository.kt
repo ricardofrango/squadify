@@ -13,7 +13,10 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.batchInsert
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
@@ -105,6 +108,12 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
             this[AgeGroupStaff.userId] = s.userId.toUuid()
             this[AgeGroupStaff.role] = s.role
         }.size == staff.size
+
+    override suspend fun removeStaffFromClub(clubId: String, userId: String): Int {
+        val ageGroupIds = AgeGroups.select(AgeGroups.id).where { AgeGroups.clubId eq clubId.toUuid() }.map { it[AgeGroups.id] }
+        if (ageGroupIds.isEmpty()) return 0
+        return AgeGroupStaff.deleteWhere { (AgeGroupStaff.userId eq userId.toUuid()) and (AgeGroupStaff.ageGroupId inList ageGroupIds) }
+    }
 
     override suspend fun getAgeGroupStaff(ageGroupId: String): List<AgeGroupStaffMember> =
         (AgeGroupStaff innerJoin Users).selectAll()

@@ -366,6 +366,8 @@ private fun EditClubContent(
         AlertDialog(
             onDismissRequest = { showDiscard = false },
             containerColor = Color.White,
+            titleContentColor = DeepCarbon,
+            textContentColor = DeepCarbon.copy(alpha = 0.75f),
             title = { Text(stringResource(Res.string.club_discard_title)) },
             text = { Text(stringResource(Res.string.club_discard_body, what)) },
             confirmButton = {
@@ -373,7 +375,7 @@ private fun EditClubContent(
                     Text(stringResource(Res.string.club_discard_confirm), color = MaterialTheme.colorScheme.error)
                 }
             },
-            dismissButton = { TextButton(onClick = { showDiscard = false }) { Text(stringResource(Res.string.btn_cancel)) } }
+            dismissButton = { TextButton(onClick = { showDiscard = false }) { Text(stringResource(Res.string.btn_cancel), color = CarbonGray) } }
         )
     }
 }

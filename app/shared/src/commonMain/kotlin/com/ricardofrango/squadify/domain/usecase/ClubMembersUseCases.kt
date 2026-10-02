@@ -14,6 +14,10 @@ class UpdateClubMemberRoleUseCase(private val clubRepository: ClubRepository) {
     suspend operator fun invoke(clubId: String, userId: String, role: ClubRole) = clubRepository.updateClubMemberRole(clubId, userId, role)
 }
 
+class RemoveClubMemberUseCase(private val clubRepository: ClubRepository) {
+    suspend operator fun invoke(clubId: String, userId: String) = clubRepository.removeClubMember(clubId, userId)
+}
+
 class ResendClubInviteUseCase(private val clubRepository: ClubRepository) {
     suspend operator fun invoke(clubId: String, inviteId: String) = clubRepository.resendClubInvite(clubId, inviteId)
 }

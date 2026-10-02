@@ -18,6 +18,7 @@ sealed class ClubMemberDetailsUiState {
     ) : ClubMemberDetailsUiState() {
         val isYou: Boolean get() = member.userId == overview.viewerUserId
         val canSave: Boolean get() = selectedRole != member.role && !saving && roleLock(overview, member, selectedRole) == null
+        val canRemove: Boolean get() = canRemove(overview, member) && !saving
     }
 
     data class Invite(val overview: ClubMembersOverview, val invite: PendingClubInvite, val busy: Boolean = false) : ClubMemberDetailsUiState()
@@ -32,6 +33,16 @@ fun roleLock(overview: ClubMembersOverview, member: ClubMemberEntry, option: Clu
     if (touchesAdmin && overview.viewerRole != ClubRole.CLUB_ADMIN) return RoleLock.ADMIN_ONLY
     if (member.role == ClubRole.CLUB_ADMIN && overview.adminCount <= 1) return RoleLock.LAST_ADMIN
     return null
+}
+
+/**
+ * Whether "Remove from club" shows (design 35), mirroring `RemoveClubMemberUseCase`: never on yourself
+ * (that would be "Leave club"), an admin only by an admin, and never the club's last admin.
+ */
+fun canRemove(overview: ClubMembersOverview, member: ClubMemberEntry): Boolean {
+    if (member.userId == overview.viewerUserId) return false
+    if (member.role != ClubRole.CLUB_ADMIN) return true
+    return overview.viewerRole == ClubRole.CLUB_ADMIN && overview.adminCount > 1
 }
 
 /** One-off effects for the screen to act on. */

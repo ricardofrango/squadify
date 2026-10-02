@@ -11,6 +11,7 @@ import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubMemberSummary
 import com.ricardofrango.squadify.model.ClubRole
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.exists
@@ -124,6 +125,9 @@ class ExposedClubRepository : ClubRepository {
         ClubMembers.update({ (ClubMembers.clubId eq clubId.toUuid()) and (ClubMembers.userId eq userId.toUuid()) }) {
             it[this.role] = role
         } > 0
+
+    override suspend fun removeMember(clubId: String, userId: String): Boolean =
+        ClubMembers.deleteWhere { (ClubMembers.clubId eq clubId.toUuid()) and (ClubMembers.userId eq userId.toUuid()) } > 0
 
     override suspend fun countAllClubs(): Long =
         Clubs.selectAll().count()
