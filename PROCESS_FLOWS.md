@@ -1022,7 +1022,7 @@ coordinator-only, no staff path at all. Not yet reachable from the client — no
 
 ```mermaid
 graph TD
-    A[Start: userId, teamId, opponentId, location, dateTime, notes, type] --> B[Fetch Team by id]
+    A[Start: userId, teamId, opponentId, location, dateTime, notes, type, halves] --> B[Fetch Team by id]
     B -- not found --> N1(["Throw NotFoundException: Team not found"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_MATCH, teamId]
     C -- denied --> F(["Throw ForbiddenException"])
@@ -1030,7 +1030,9 @@ graph TD
     D -- not found --> N2(["Throw NotFoundException: Opponent not found"])
     D -- found --> E{opponent.clubId != team.clubId?}
     E -- Yes --> FB(["Throw ForbiddenException: opponent belongs to another club"])
-    E -- No --> G["Create Match — status SCHEDULED, type = request.type (FRIENDLY / CHAMPIONSHIP / TOURNAMENT)"]
+    E -- No --> HV{"halves not 1 or 2?"}
+    HV -- Yes --> VH(["Throw ValidationException"])
+    HV -- No --> G["Create Match — status SCHEDULED, type = request.type (FRIENDLY / CHAMPIONSHIP / TOURNAMENT), halves = request.halves (default 2)"]
     G --> H[Persist Match]
     H --> I["Transaction commits"]
     I --> J["NotifyMatchEventUseCase(match.id, SCHEDULED) — best-effort push to every club member (§8.2b)"]
@@ -1043,6 +1045,11 @@ graph TD
 - **Changing it:** the type can be changed later from the match's edit sheet (`UpdateMatchRequest.type`). That isn't a schedule change, so it sends no push.
   - A finished or cancelled match can't be edited at all, type included (`UpdateMatchUseCase` → 409).
 - **Older matches:** matches scheduled before this have no type (`matches.match_type` is nullable, `V9`). Managers of a still-editable match see "Not set" with a "Set type" link; otherwise it shows "—".
+
+**Halves.** A match is played in 2 halves (the default) or 1 -- some youth fixtures are a single 20/25/30-minute period with no interval (`Match.halves`, `V10`; every match recorded before it was backfilled to 2).
+- **Where it's set:** Schedule match has a "2 halves · 1 half" control, defaulting to 2 halves. The edit sheet offers it too, but only before kickoff, because the number of halves drives the live console. Changing it after kickoff is a 409.
+- **Shown on Match Details:** a single-period match shows "1 half" next to the date.
+- **On the live console:** a one-half match has no half time. The action bar only offers Full time, the clock reads "MATCH" instead of "1ST HALF", and pre-kickoff asks for the "Match length". The server refuses HALF_TIME for it (§8.2).
 
 ### 7.1b Get Match Details (`GetMatchDetailsUseCase`)
 
@@ -1075,13 +1082,16 @@ The bottom button just opens the live match screen; starting the game and record
 
 ```mermaid
 graph TD
-    A[Start: userId, matchId, patch (opponentId?, dateTime?, location?, notes?, type?)] --> B[Fetch Match by id]
+    A[Start: userId, matchId, patch (opponentId?, dateTime?, location?, notes?, type?, halves?)] --> B[Fetch Match by id]
     B -- not found --> N1(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> S{"status FINISHED or CANCELLED?"}
     S -- Yes --> X(["Throw ConflictException (409) — a closed match can't be edited"])
-    S -- No --> D{patch.opponentId set?}
+    S -- No --> HV{"patch.halves not 1 or 2? or changed after kickoff?"}
+    HV -- "not 1 or 2" --> VH(["Throw ValidationException"])
+    HV -- "changed, status != SCHEDULED" --> CH(["Throw ConflictException (409)"])
+    HV -- No --> D{patch.opponentId set?}
     D -- Yes --> E[Fetch Opponent; reject if it belongs to another club]
     D -- No --> G
     E --> G["Merge non-null patch fields onto the match"]
@@ -1236,7 +1246,9 @@ graph TD
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> T{"newStatus in VALID_MATCH_STATUS_TRANSITIONS[match.status]?"}
     T -- No --> V(["Throw ValidationException"])
-    T -- Yes --> D[Update Match.status in DB]
+    T -- Yes --> OH{"newStatus == HALF_TIME and match.halves == 1?"}
+    OH -- Yes --> VO(["Throw ValidationException — a one-half match has no half time"])
+    OH -- No --> D[Update Match.status in DB]
     D --> E{Update succeeded?}
     E -- No --> R1(["Return false — no broadcast"])
     E -- Yes --> F{"newStatus == LIVE and previous status == HALF_TIME?"}
@@ -1419,7 +1431,7 @@ Together, §8.0–§8.2 (the writers) and §8.3 (the reader) implement the hybri
 `LiveMatchScreen` (design canvas artboard "16") is one screen whose layout is entirely driven by `Match.status`:
 
 - **SCHEDULED** — pre-kickoff: a half-length picker (20 / 25 / 30 / 40 / 45 minutes, scrolling sideways if it doesn't fit; the second half restarts at that length) and a Starting XI/Bench picker built from the match's called-up/confirmed players, gated on picking exactly `Team.teamSize` (fallback 11) starters. "KICK OFF" calls §8.0.
-- **LIVE / HALF_TIME** — the console (design 36): a scoreline (tapping a score logs an unattributed/opponent goal via §8.1), the clock with a 48dp pause/resume button beside it (§8.2c/§8.2d; paused turns the clock and button amber, with "PAUSED" replacing the half label, and stoppage shows as "1ST HALF · +2"), and the clock itself tappable to correct it (§8.2e, a sheet with −1/+1 and direct entry). Neither pause nor the correction asks for confirmation (reversible); both only exist while `status == LIVE`. Squad and Events tabs, and the action bar: HALF TIME + FULL TIME in the first half, **only FULL TIME once the second half has started**, and only START 2ND HALF at half time (half time and full time still confirm). The Squad tab's On pitch / Bench / Sent off split and every player's minutes come from `playerMinutes` (§8.2f) over the Starting XI and the event log, with the running clock's minute as the end of the current half -- nothing extra is persisted. Each row shows minutes so far, a bar for the share of the match played (minutes ÷ match minutes so far: full for someone who's played every minute, grey for someone who hasn't played), the current spell ("on for 18'", amber past 15') or "off since 9'", and amber "below share" / "Not played yet" flags, against the fair share (elapsed match minutes × players on the pitch ÷ players called up; "below" is under 60% of it). No flags before 5', and no share line, flags or half-time plan when nobody is on the bench. The bench sorts fewest minutes first (or by shirt number). Substitutions are unlimited and in any direction: tapping a pitch player opens goal/assist/card/substitute; substitute (or tapping a bench player) lists the candidates with their minutes -- the bench fewest-first, or the pitch longest-on first -- and a pick swaps at once, confirmed by a line above the squad. At half time the counts are first-half totals including stoppage, with a card naming the three furthest below the share. In landscape the status block is a left column (larger clock, 56dp pause button, the action bar) and On pitch / Bench sit side by side. Deleting a logged event (§8.1b) asks for confirmation first.
+- **LIVE / HALF_TIME** — the console (design 36): a scoreline (tapping a score logs an unattributed/opponent goal via §8.1), the clock with a 48dp pause/resume button beside it (§8.2c/§8.2d; paused turns the clock and button amber, with "PAUSED" replacing the half label, and stoppage shows as "1ST HALF · +2"), and the clock itself tappable to correct it (§8.2e, a sheet with −1/+1 and direct entry). Neither pause nor the correction asks for confirmation (reversible); both only exist while `status == LIVE`. Squad and Events tabs, and the action bar: HALF TIME + FULL TIME in the first half, **only FULL TIME once the second half has started -- or from the start in a one-half match (`Match.halves == 1`, whose clock reads "MATCH")**, and only START 2ND HALF at half time (half time and full time still confirm). The Squad tab's On pitch / Bench / Sent off split and every player's minutes come from `playerMinutes` (§8.2f) over the Starting XI and the event log, with the running clock's minute as the end of the current half -- nothing extra is persisted. Each row shows minutes so far, a bar for the share of the match played (minutes ÷ match minutes so far: full for someone who's played every minute, grey for someone who hasn't played), the current spell ("on for 18'", amber past 15') or "off since 9'", and amber "below share" / "Not played yet" flags, against the fair share (elapsed match minutes × players on the pitch ÷ players called up; "below" is under 60% of it). No flags before 5', and no share line, flags or half-time plan when nobody is on the bench. The bench sorts fewest minutes first (or by shirt number). Substitutions are unlimited and in any direction: tapping a pitch player opens goal/assist/card/substitute; substitute (or tapping a bench player) lists the candidates with their minutes -- the bench fewest-first, or the pitch longest-on first -- and a pick swaps at once, confirmed by a line above the squad. At half time the counts are first-half totals including stoppage, with a card naming the three furthest below the share. In landscape the status block is a left column (larger clock, 56dp pause button, the action bar) and On pitch / Bench sit side by side. Deleting a logged event (§8.1b) asks for confirmation first.
 - **FINISHED / CANCELLED** — the full-time summary: final score, a WIN/LOSS/DRAW/CANCELLED badge, the goals in one line, a minutes table for every called-up player (longest first, same bar, with the share and match length), and "Fill in the match report" / "View the match report" when the report card is available (§8.6).
 
 Every mutating action applies its own REST response to local state immediately, so the coach driving the match never waits on the socket; `GetLiveMatchUpdatesUseCase`'s WebSocket (§8.3) is a second, best-effort listener that folds in changes from other devices watching the same match and is not retried if it drops. The one exception is Pause/Resume (§8.2c/§8.2d): rather than compute the new local state itself, the client refetches `MatchDetails` after either action, since the server is the sole time authority (both the pause instant and the resume-time shift math happen server-side, with no client clock trusted for either) — see `TECHNICAL_DECISIONS.md` §29.
@@ -1766,6 +1778,7 @@ erDiagram
         timestamp date_time
         enum status "MatchStatus, default SCHEDULED"
         text notes "nullable"
+        integer halves "1 or 2, default 2 (V10; existing matches backfilled to 2)"
         integer half_length_minutes "nullable -- set at kickoff by StartMatchUseCase"
         timestamp kickoff_at "nullable -- wall-clock instant of kickoff, set by StartMatchUseCase"
         timestamp second_half_started_at "nullable -- wall-clock instant the 2nd half resumed, set by UpdateMatchStatusUseCase on HALF_TIME -> LIVE"

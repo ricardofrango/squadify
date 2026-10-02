@@ -205,6 +205,8 @@ object Matches : Table("matches") {
     val notes = text("notes").nullable()
     // Friendly / championship / tournament (MatchType). Null for matches scheduled before V9.
     val matchType = enumerationByName("match_type", 50, MatchType::class).nullable()
+    // 2, or 1 for a single-period match (no half time) -- V10.
+    val halves = integer("halves").default(2)
     // Set at kickoff by StartMatchUseCase alongside MatchCallUps.isStarting. Null before kickoff.
     val halfLengthMinutes = integer("half_length_minutes").nullable()
     // Wall-clock instant of kickoff / second-half restart -- the client's live running clock is

@@ -2391,3 +2391,14 @@ In 7- and 9-a-side youth football substitutions are unlimited and players come o
 - **Reloading:** the console reloads the match after HALF TIME and FULL TIME, rather than patching the status locally. Half-time totals need the server's recorded end of the first half, and full time needs the report card.
 - **Full time:** the summary shows a minutes table and links to the match report, replacing the old dead "Minutes played" row.
 
+## 46. One- or Two-Half Matches
+
+Some youth fixtures are a single 20/25/30-minute period with no interval. `Match.halves` (1 or 2) records which.
+
+- **Set when scheduling:** Schedule match has a "2 halves · 1 half" control, defaulting to 2 halves.
+- **Fixed once play starts:** the edit sheet only offers it before kickoff, and the server returns a 409 for a change after kickoff. Switching the format mid-match would leave the clock, the half-time state and the minutes inconsistent.
+- **Stored as a plain integer, not an enum:** that keeps the minutes code simple, since a one-half match is just a match whose second half never starts.
+  - Everything built on the halves (the clock, `matchHalves`, the minutes, the stats calculator) already handles a match with no second half, because a match ended from the break works the same way. Nothing else needed changing.
+- **No half time:** the live console shows only Full time and labels the clock "MATCH", and the server refuses HALF_TIME for a one-half match.
+- **Migration (`V10`):** adds the column, sets every existing match to 2 halves explicitly, then makes 2 the default and the column NOT NULL.
+

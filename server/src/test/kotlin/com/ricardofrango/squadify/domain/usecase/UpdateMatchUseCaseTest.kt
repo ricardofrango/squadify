@@ -168,4 +168,33 @@ class UpdateMatchUseCaseTest {
         coVerify(exactly = 0) { matchRepository.updateMatch(any()) }
         coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
     }
+
+    private fun asCoach(m: Match): Unit = runBlocking {
+        val coach = user("coach")
+        coEvery { matchRepository.getMatchById(matchId) } returns m
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+        coEvery { teamRepository.getTeamById(teamId) } returns
+            com.ricardofrango.squadify.model.Team(teamId, clubId, ag1, "s-1", "Sub-15 A", "A", true)
+        coEvery { matchRepository.updateMatch(any()) } returns true
+    }
+
+    @Test
+    fun theHalvesCanBeChangedBeforeKickoff() = runBlocking {
+        asCoach(match)
+        val saved = slot<Match>()
+        coEvery { matchRepository.updateMatch(capture(saved)) } returns true
+        useCase("coach", matchId, UpdateMatchRequest(halves = 1))
+        assertEquals(1, saved.captured.halves)
+    }
+
+    @Test
+    fun theHalvesAreFixedOncePlayStarts() = runBlocking {
+        asCoach(match.copy(status = com.ricardofrango.squadify.model.MatchStatus.LIVE))
+        assertFailsWith<ConflictException> { useCase("coach", matchId, UpdateMatchRequest(halves = 1)) }
+        // Sending the unchanged value (the edit sheet always sends the whole form) is fine.
+        useCase("coach", matchId, UpdateMatchRequest(halves = 2, notes = "n"))
+        Unit
+    }
 }

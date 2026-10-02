@@ -59,6 +59,10 @@ class UpdateMatchStatusUseCase(
             if (status !in (VALID_MATCH_STATUS_TRANSITIONS[match.status] ?: emptySet())) {
                 throw ValidationException("Cannot change match status from ${match.status} to $status")
             }
+            // A single-period match goes straight from LIVE to FINISHED: there's no interval.
+            if (status == MatchStatus.HALF_TIME && match.halves == 1) {
+                throw ValidationException("A one-half match has no half time")
+            }
 
             val updated = matchRepository.updateMatchStatus(matchId, status)
             if (updated) {

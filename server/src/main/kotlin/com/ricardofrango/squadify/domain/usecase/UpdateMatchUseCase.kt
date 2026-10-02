@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ConflictException
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.ClubMatchesUpdate
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
@@ -52,6 +53,14 @@ class UpdateMatchUseCase(
                 throw ConflictException("A finished or cancelled match can't be edited")
             }
 
+            request.halves?.let { halves ->
+                if (halves !in 1..2) throw ValidationException("A match is played in 1 or 2 halves")
+                // The format drives the live console (half time or not), so it's fixed once play starts.
+                if (halves != match.halves && match.status != MatchStatus.SCHEDULED) {
+                    throw ConflictException("The number of halves can only be changed before kickoff")
+                }
+            }
+
             request.opponentId?.let { opponentId ->
                 val opponent = opponentRepository.getOpponentById(opponentId)
                     ?: throw NotFoundException("Opponent not found")
@@ -65,7 +74,8 @@ class UpdateMatchUseCase(
                 dateTime = request.dateTime ?: match.dateTime,
                 location = request.location ?: match.location,
                 notes = request.notes ?: match.notes,
-                type = request.type ?: match.type
+                type = request.type ?: match.type,
+                halves = request.halves ?: match.halves
             )
 
             // Only the schedule-relevant fields warrant a "match updated" push -- a notes-only edit

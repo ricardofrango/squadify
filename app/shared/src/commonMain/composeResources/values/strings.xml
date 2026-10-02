@@ -945,4 +945,11 @@
         <item quantity="one">%1$d below share</item>
         <item quantity="other">%1$d below share</item>
     </plurals>
+    <!-- One- or two-half matches -->
+    <string name="label_halves">Halves</string>
+    <string name="halves_two">2 halves</string>
+    <string name="halves_one">1 half</string>
+    <string name="halves_one_hint">One period, no half time.</string>
+    <string name="label_match_length">Match length</string>
+    <string name="lm_one_period">MATCH</string>
 </resources>

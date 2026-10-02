@@ -318,4 +318,14 @@ class UpdateMatchStatusUseCaseTest {
             })
         }
     }
+
+    @Test
+    fun aOneHalfMatchHasNoHalfTime() = runBlocking {
+        val coach = coach()
+        val oneHalf = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.LIVE, halves = 1)
+        coEvery { matchRepository.getMatchById(matchId) } returns oneHalf
+        stubCoachPermission(coach)
+        assertFailsWith<ValidationException> { useCase(coach.id, matchId, MatchStatus.HALF_TIME) }
+        coVerify(exactly = 0) { matchRepository.updateMatchStatus(any(), any()) }
+    }
 }

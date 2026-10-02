@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.*
 import kotlin.uuid.Uuid
 
@@ -44,6 +45,9 @@ class CreateMatchUseCase(
             if (opponent.clubId != team.clubId) {
                 throw ForbiddenException("Opponent does not belong to this club")
             }
+            if (request.halves !in 1..2) {
+                throw ValidationException("A match is played in 1 or 2 halves")
+            }
 
             val match = Match(
                 id = Uuid.random().toString(),
@@ -54,7 +58,8 @@ class CreateMatchUseCase(
                 dateTime = request.dateTime,
                 status = MatchStatus.SCHEDULED,
                 notes = request.notes,
-                type = request.type
+                type = request.type,
+                halves = request.halves
             )
 
             matchRepository.createMatch(match)

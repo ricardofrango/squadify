@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.Opponent
+import com.ricardofrango.squadify.presentation.ui.components.HalvesSelector
 import com.ricardofrango.squadify.presentation.ui.components.MatchTypeSelector
 import com.ricardofrango.squadify.model.MatchType
 import com.ricardofrango.squadify.model.Team
@@ -87,6 +88,7 @@ fun CreateMatchScreen(
         onLocationChange = viewModel::onLocationChange,
         onNotesChange = viewModel::onNotesChange,
         onMatchTypeSelected = viewModel::onMatchTypeSelected,
+        onHalvesSelected = viewModel::onHalvesSelected,
         onSubmit = viewModel::onSubmit
     )
 }
@@ -107,6 +109,7 @@ private fun CreateMatchContent(
     onLocationChange: (String) -> Unit,
     onNotesChange: (String) -> Unit,
     onMatchTypeSelected: (MatchType) -> Unit,
+    onHalvesSelected: (Int) -> Unit = {},
     onSubmit: () -> Unit
 ) {
     val clubName = (uiState as? CreateMatchUiState.Idle)?.clubName
@@ -149,6 +152,7 @@ private fun CreateMatchContent(
                 onLocationChange = onLocationChange,
                 onNotesChange = onNotesChange,
                 onMatchTypeSelected = onMatchTypeSelected,
+                onHalvesSelected = onHalvesSelected,
                 onSubmit = onSubmit
             )
         }
@@ -169,6 +173,7 @@ private fun CreateMatchForm(
     onLocationChange: (String) -> Unit,
     onNotesChange: (String) -> Unit,
     onMatchTypeSelected: (MatchType) -> Unit,
+    onHalvesSelected: (Int) -> Unit = {},
     onSubmit: () -> Unit
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
@@ -233,6 +238,11 @@ private fun CreateMatchForm(
             // ---- Match type (required, no default) ----
             FieldCard(label = stringResource(Res.string.label_match_type), required = true) {
                 MatchTypeSelector(selected = state.matchType, onSelected = onMatchTypeSelected, error = state.matchTypeError)
+            }
+
+            // ---- Halves (two by default; one is a single period with no half time) ----
+            FieldCard(label = stringResource(Res.string.label_halves), required = false) {
+                HalvesSelector(halves = state.halves, onSelected = onHalvesSelected)
             }
 
             // ---- When ----

@@ -208,7 +208,8 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, viewModel: LiveMatch
             item {
                 Column {
                     Text(
-                        stringResource(Res.string.label_half_length).uppercase(),
+                        // A one-half match is a single period: its "half length" is the match length.
+                        stringResource(if (state.details.match.halves == 1) Res.string.label_match_length else Res.string.label_half_length).uppercase(),
                         color = Color.White.copy(alpha = 0.5f),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
                     )
@@ -487,7 +488,12 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
     val displayEvents = remember(state.events) { buildDisplayEvents(state.events) }
     val playersById = remember(details) { details.callUps.associate { it.callUp.playerId to it.player } }
 
-    val halfLabel = stringResource(if (isSecondHalf) Res.string.label_second_half else Res.string.label_first_half).uppercase()
+    val oneHalf = details.match.halves == 1
+    val halfLabel = when {
+        oneHalf -> stringResource(Res.string.lm_one_period)
+        isSecondHalf -> stringResource(Res.string.label_second_half).uppercase()
+        else -> stringResource(Res.string.label_first_half).uppercase()
+    }
     // Stoppage time: how far the clock is past the end of the current half ("1ST HALF · +2").
     val stoppage = displayMinute - (if (isSecondHalf) halfLength * 2 else halfLength)
     val clockLabel = when {
@@ -590,7 +596,8 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
                         ) { Text(stringResource(Res.string.btn_start_second_half), fontWeight = FontWeight.Bold) }
                         else -> {
                             // There's no second interval: once the second half has started, only Full time.
-                            if (!isSecondHalf) {
+                            // One-half matches have no interval at all.
+                            if (!isSecondHalf && !oneHalf) {
                                 OutlinedButton(
                                     onClick = { showHalfTimeConfirm = true },
                                     enabled = !state.isSubmitting,
