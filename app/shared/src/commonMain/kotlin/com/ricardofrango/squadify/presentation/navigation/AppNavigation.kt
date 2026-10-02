@@ -23,6 +23,7 @@ import com.ricardofrango.squadify.presentation.ui.dashboard.DashboardScreen
 import com.ricardofrango.squadify.presentation.ui.account.AccountScreen
 import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.editclub.EditClubScreen
+import com.ricardofrango.squadify.presentation.ui.clubmember.ClubMemberDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.createseason.CreateSeasonScreen
 import com.ricardofrango.squadify.presentation.ui.createteams.CreateTeamsScreen
 import com.ricardofrango.squadify.presentation.ui.addplayerstoagegroup.AddPlayersToAgeGroupScreen
@@ -44,6 +45,11 @@ import com.ricardofrango.squadify.presentation.ui.editplayer.EditPlayerScreen
 // screen to return a result to the screen that pushed it. See ClubDetailsScreen's `refreshClubDetails`
 // doc.
 private const val KEY_CLUB_STRUCTURE_CHANGED = "clubStructureChanged"
+
+// Member details → Club settings: the members list is stale; an optional message to show there
+// ("Invite to … cancelled"), since the screen that did it has already closed.
+private const val KEY_MEMBERS_CHANGED = "clubMembersChanged"
+private const val KEY_MEMBERS_MESSAGE = "clubMembersMessage"
 
 /**
  * Consume the "structure changed" result on [entry] and cascade it one level further down the back
@@ -221,6 +227,12 @@ fun AppNavigation() {
 
         composable<Screen.EditClub> { backStackEntry ->
             val screen: Screen.EditClub = backStackEntry.toRoute()
+            val membersChanged by backStackEntry.savedStateHandle
+                .getStateFlow(KEY_MEMBERS_CHANGED, false)
+                .collectAsState()
+            val membersMessage by backStackEntry.savedStateHandle
+                .getStateFlow<String?>(KEY_MEMBERS_MESSAGE, null)
+                .collectAsState()
             EditClubScreen(
                 clubId = screen.clubId,
                 onNavigateBack = { navController.popBackStack() },
@@ -228,7 +240,37 @@ fun AppNavigation() {
                     navController.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                },
+                onOpenMember = { userId -> navController.navigate(Screen.ClubMemberDetails(screen.clubId, userId = userId)) },
+                onOpenInvite = { inviteId -> navController.navigate(Screen.ClubMemberDetails(screen.clubId, inviteId = inviteId)) },
+                refreshMembers = membersChanged,
+                membersMessage = membersMessage,
+                onMembersRefreshed = {
+                    backStackEntry.savedStateHandle[KEY_MEMBERS_CHANGED] = false
+                    backStackEntry.savedStateHandle[KEY_MEMBERS_MESSAGE] = null
                 }
+            )
+        }
+
+        composable<Screen.ClubMemberDetails> { backStackEntry ->
+            val screen: Screen.ClubMemberDetails = backStackEntry.toRoute()
+            ClubMemberDetailsScreen(
+                clubId = screen.clubId,
+                userId = screen.userId,
+                inviteId = screen.inviteId,
+                onNavigateBack = { navController.popBackStack() },
+                onMembersChanged = { message ->
+                    navController.previousBackStackEntry?.savedStateHandle?.let {
+                        it[KEY_MEMBERS_CHANGED] = true
+                        if (message != null) it[KEY_MEMBERS_MESSAGE] = message
+                    }
+                },
+                onReturnToClub = {
+                    // Past Club settings, which a demoted viewer may no longer be allowed to see.
+                    if (!navController.popBackStack<Screen.EditClub>(inclusive = true)) navController.popBackStack()
+                },
+                onOpenAgeGroup = { ageGroupId -> navController.navigate(Screen.AgeGroupDetails(ageGroupId)) },
+                onOpenPlayer = { playerId -> navController.navigate(Screen.PlayerDetails(playerId)) }
             )
         }
 

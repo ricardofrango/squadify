@@ -840,4 +840,45 @@
         <item quantity="one">Invited %1$d day ago · %2$s</item>
         <item quantity="other">Invited %1$d days ago · %2$s</item>
     </plurals>
+    <!-- Member details (design 35) -->
+    <string name="member_title">Club member</string>
+    <string name="member_contact">Contact</string>
+    <string name="member_no_phone">No phone number</string>
+    <string name="member_email_copied">Email copied</string>
+    <string name="member_phone_copied">Phone copied</string>
+    <string name="member_copy">Copy</string>
+    <string name="member_account_created">Account created %1$s</string>
+    <string name="member_current">Current</string>
+    <string name="member_choose_role">Choose a different role</string>
+    <string name="member_make_role">Make %1$s</string>
+    <string name="member_saving">Saving…</string>
+    <string name="member_now_role">%1$s is now %2$s</string>
+    <string name="member_you_now_role">You\'re now %1$s — returning to Club details</string>
+    <string name="member_make_admin_title">Make %1$s an admin?</string>
+    <string name="member_make_admin_body">Admins can change everyone\'s roles and the club details.</string>
+    <string name="member_make_admin_confirm">Make Admin</string>
+    <string name="member_lock_last_admin">The club needs at least one admin. Make someone else an admin first.</string>
+    <string name="member_lock_admin_only">Only admins can grant or remove Admin.</string>
+    <string name="member_in_club">In the club</string>
+    <string name="member_role_coach">Coach</string>
+    <string name="member_role_staff">Staff</string>
+    <string name="member_rel_father">Father of %1$s</string>
+    <string name="member_rel_mother">Mother of %1$s</string>
+    <string name="member_rel_guardian">Guardian of %1$s</string>
+    <string name="member_rel_other">Linked to %1$s</string>
+    <string name="member_empty_title">No age-group roles or linked players</string>
+    <string name="member_empty_body">%1$s takes part through their club role. Coach and staff roles are given from an age group; players are linked from Player details.</string>
+    <string name="member_invite_pending">Invite pending</string>
+    <string name="member_invite_heading">Invite</string>
+    <string name="member_will_join_as">Will join as</string>
+    <string name="member_invite_note">Name, phone, roles and linked players appear once %1$s registers.</string>
+    <string name="member_resend_invite">Resend invite</string>
+    <string name="member_invited_today">Invited today</string>
+    <string name="member_load_failed_title">Couldn\'t load this member</string>
+    <string name="member_load_failed_body">Check your connection and try again.</string>
+    <string name="member_role_failed">Couldn\'t change the role. Try again.</string>
+    <plurals name="member_invited_ago">
+        <item quantity="one">Invited %1$d day ago</item>
+        <item quantity="other">Invited %1$d days ago</item>
+    </plurals>
 </resources>

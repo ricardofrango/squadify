@@ -838,4 +838,45 @@
         <item quantity="one">Convidado(a) há %1$d dia · %2$s</item>
         <item quantity="other">Convidado(a) há %1$d dias · %2$s</item>
     </plurals>
+    <!-- Member details (design 35) -->
+    <string name="member_title">Membro do clube</string>
+    <string name="member_contact">Contacto</string>
+    <string name="member_no_phone">Sem número de telefone</string>
+    <string name="member_email_copied">Email copiado</string>
+    <string name="member_phone_copied">Telefone copiado</string>
+    <string name="member_copy">Copiar</string>
+    <string name="member_account_created">Conta criada a %1$s</string>
+    <string name="member_current">Atual</string>
+    <string name="member_choose_role">Escolha um papel diferente</string>
+    <string name="member_make_role">Tornar %1$s</string>
+    <string name="member_saving">A guardar…</string>
+    <string name="member_now_role">%1$s é agora %2$s</string>
+    <string name="member_you_now_role">É agora %1$s — a voltar aos dados do clube</string>
+    <string name="member_make_admin_title">Tornar %1$s admin?</string>
+    <string name="member_make_admin_body">Os admins podem alterar os papéis de todos e os dados do clube.</string>
+    <string name="member_make_admin_confirm">Tornar Admin</string>
+    <string name="member_lock_last_admin">O clube precisa de pelo menos um admin. Torne outra pessoa admin primeiro.</string>
+    <string name="member_lock_admin_only">Só os admins podem dar ou retirar o papel de Admin.</string>
+    <string name="member_in_club">No clube</string>
+    <string name="member_role_coach">Treinador(a)</string>
+    <string name="member_role_staff">Equipa técnica</string>
+    <string name="member_rel_father">Pai de %1$s</string>
+    <string name="member_rel_mother">Mãe de %1$s</string>
+    <string name="member_rel_guardian">Tutor(a) de %1$s</string>
+    <string name="member_rel_other">Associado(a) a %1$s</string>
+    <string name="member_empty_title">Sem papéis em escalões nem jogadores associados</string>
+    <string name="member_empty_body">%1$s participa através do papel no clube. Os papéis de treinador e equipa técnica são dados no escalão; os jogadores são associados nos detalhes do jogador.</string>
+    <string name="member_invite_pending">Convite pendente</string>
+    <string name="member_invite_heading">Convite</string>
+    <string name="member_will_join_as">Vai entrar como</string>
+    <string name="member_invite_note">O nome, o telefone, os papéis e os jogadores associados aparecem quando %1$s se registar.</string>
+    <string name="member_resend_invite">Reenviar convite</string>
+    <string name="member_invited_today">Convidado(a) hoje</string>
+    <string name="member_load_failed_title">Não foi possível carregar este membro</string>
+    <string name="member_load_failed_body">Verifique a ligação e tente novamente.</string>
+    <string name="member_role_failed">Não foi possível alterar o papel. Tente novamente.</string>
+    <plurals name="member_invited_ago">
+        <item quantity="one">Convidado(a) há %1$d dia</item>
+        <item quantity="other">Convidado(a) há %1$d dias</item>
+    </plurals>
 </resources>

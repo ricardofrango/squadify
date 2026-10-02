@@ -174,6 +174,10 @@ fun EditClubScreen(
     onClubUpdated: () -> Unit,
     onOpenMember: (userId: String) -> Unit = {},
     onOpenInvite: (inviteId: String) -> Unit = {},
+    // Set by Member details when the list underneath went stale, with an optional message to show.
+    refreshMembers: Boolean = false,
+    membersMessage: String? = null,
+    onMembersRefreshed: () -> Unit = {},
     viewModel: EditClubViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
@@ -181,8 +185,17 @@ fun EditClubScreen(
     val inviting by viewModel.inviting.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Loads once per club: coming back from Member details must not reset unsaved Details/Permissions edits.
     LaunchedEffect(clubId) { viewModel.load(clubId) }
     LaunchedEffect(Unit) { viewModel.messages.collect { snackbarHostState.showSnackbar(it) } }
+    LaunchedEffect(refreshMembers, membersMessage) {
+        if (refreshMembers) {
+            viewModel.loadMembers(clubId)
+            val message = membersMessage
+            onMembersRefreshed()
+            if (message != null) snackbarHostState.showSnackbar(message)
+        }
+    }
 
     EditClubContent(
         uiState = uiState,
@@ -190,7 +203,7 @@ fun EditClubScreen(
         inviting = inviting,
         snackbarHostState = snackbarHostState,
         onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.load(clubId) },
+        onRetry = { viewModel.load(clubId, force = true) },
         onTabSelected = { viewModel.onTabSelected(it) },
         onFormChange = { form -> viewModel.updateForm(form) },
         onSaveClick = { viewModel.onSaveClicked(clubId, onSaved = onClubUpdated) },

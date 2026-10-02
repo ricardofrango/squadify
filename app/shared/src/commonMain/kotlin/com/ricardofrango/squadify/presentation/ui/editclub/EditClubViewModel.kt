@@ -115,7 +115,11 @@ class EditClubViewModel(
     private val _state = MutableStateFlow<EditClubUiState>(EditClubUiState.Loading)
     val state: StateFlow<EditClubUiState> = _state.asStateFlow()
 
-    fun load(clubId: String) {
+    private var loadedClubId: String? = null
+
+    fun load(clubId: String, force: Boolean = false) {
+        if (!force && loadedClubId == clubId) return
+        loadedClubId = clubId
         viewModelScope.launch {
             _state.update { EditClubUiState.Loading }
             _state.update {

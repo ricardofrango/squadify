@@ -2339,3 +2339,12 @@ Club settings (design 34) moves from a top tab row to the same dark bottom bar a
 
 **Pending invites** can be resent (the same email again) or cancelled (the invite row is deleted). Both are coordinator-gated and scoped to the club's own `CLUB_MEMBER` invites.
 
+**Member details** (design 35) is its own screen, `Screen.ClubMemberDetails(clubId, userId | inviteId)`, opened from a Members row.
+- **Same payload as the list:** it reads the members overview and picks out one member or one invite, so the list and the details can't disagree. There's no per-member endpoint.
+- **Role locks are a pure function** (`roleLock`, tested in `RoleLockTest`) that mirrors the server rules. A locked option is greyed out, and the amber reason is shown once under the options. When nothing else can be picked, the reason replaces the button.
+- **Granting Admin asks first**; other role changes save straight away and show a toast.
+- **Demoting yourself** shows "You're now {role}", then returns to Club details, past Club settings, since you may have lost access to it. There's no reload, because a Member can't read the list.
+- **Coming back to Club settings** refreshes only the Members list (a `savedStateHandle` flag, plus a message when an invite was cancelled). Club settings now loads once per club, so returning no longer wipes unsaved Details or Permissions edits.
+- **Contact:** tapping the email opens mail and tapping the phone opens the dialler, through `LocalUriHandler`. The copy icon uses the text clipboard manager, since `ClipEntry` has no common constructor yet.
+- **Remove from club** ships later.
+
