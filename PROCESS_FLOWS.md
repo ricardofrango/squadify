@@ -1596,6 +1596,7 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
   - **Login:** "Forgot password?" has no flow (no reset endpoint either).
   - **Club settings:** "Add logo" does nothing, since there's no image upload anywhere in the app.
   - **Account:** "Change email" is likewise non-functional.
+- [ ] **The club Matches list's live badge uses the device clock.** The live console counts on the server's clock (`MatchDetails.serverNow`, §8.4), but `MatchRow`'s badge still uses `now` from the device. It only shows whole minutes, so a few seconds of drift rarely shows. Fixing it would need the server's time on the matches list too.
 - [x] **Invite emails are not sent.** Every invite-creation path used to only write to the `Invites` table (§10), with no email call anywhere.
   **Partly fixed:** `ProvisionClubUseCase`/`AddClubMembersUseCase` now send emails via Resend (`TECHNICAL_DECISIONS.md` §14). The `PARENT_PLAYER` paths (`CreatePlayersUseCase`/`UpdatePlayerUseCase`) still send nothing, on purpose, since parents/players are out of scope for now.
 

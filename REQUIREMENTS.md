@@ -34,6 +34,10 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 - **AgeGroupPlayer**: Links a Player to an Age Group pool (many-to-many; `(ageGroupId, playerId)` unique).
 - **AgeGroupStaff**: Links a User (coach/staff) to an Age Group with a role.
 - **UserPlayer**: Links Parents to Players (supports multiple guardians).
+- **TrainingSession** *(planned, Phase 8)*: A training session of an age group: date, time, location, duration, and its exercises.
+- **TrainingExercise** *(planned)*: One exercise within a session: name and description (optionally duration and objectives).
+- **TrainingEvaluation** *(planned)*: A player's rating for one session, 0–10 with decimals; 0 means the player didn't take part.
+- **Macrocycle / Mesocycle / Microcycle** *(planned)*: The age group's training plan at three levels: the year (macrocycle), each month (mesocycle) and each week (microcycle).
 
 ## 4. Authentication & Security
 - **Authentication**: JWT (JSON Web Tokens) with Refresh Token flow.
@@ -50,6 +54,24 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 - **MatchCallUp**: List of players called up for a match. Binary for now (called up or not) -- the richer attendance-status model (Confirmed/Declined/Not Available/Standby) was removed since it required a parent/player self-confirmation path that doesn't exist yet; see `PROCESS_FLOWS.md` §11.
 - **Live Match**: Real-time event logging by coaches (Goals, Assists, Substitutions, Cards).
 - **MatchStatus**: `SCHEDULED`, `LIVE`, `HALF_TIME`, `FINISHED`, `CANCELLED`.
+
+## 5b. Training & Periodization *(planned -- see Phase 8)*
+- **Training sessions** belong to an **age group** (like the player pool and the staff), not to a team. Each session has a date, time, location and duration.
+- **Exercises:** a session is made of exercises, each with a name and a description of what's done.
+- **Player evaluations:** after a session, each player in the age group's pool gets a rating from **0 to 10, with decimals** (e.g. 7.5).
+  - **0 means "did not take part"**, so the evaluation doubles as the attendance record. A player who trained always gets more than 0.
+  - **Who can evaluate:** any staff member of the age group, coach or staff.
+- **To-do:** once a session has ended, a to-do appears on the club Home ("Training of {date} needs player evaluations") until the evaluations are filled in, the same way a finished match asks for its report.
+- **Periodization (planning cycles):**
+  - **Macrocycle (year plan):** the season's plan for the age group: phases, main objectives and key dates.
+  - **Mesocycle (month plan):** each month's focus and objectives within the year plan.
+  - **Microcycle (week plan):** each week's plan, made of that week's sessions and their focus.
+- **Open questions** to settle before building:
+  - **Permissions:** who can create and edit sessions and plans: coach only, or staff too, and is it configurable like other actions (`ConfigurablePermission`)?
+  - **Exercise library:** are exercises reusable across sessions?
+  - **Visibility:** can players and parents see training ratings? Match ratings are staff-only.
+  - **Session vs. weekly plan:** is a session always tied to a microcycle, or can it stand alone?
+  - **Training stats:** should Player and Age Group Details show attendance and average rating?
 
 ## 6. Parent Features
 - **Dashboard**: Quick view of children's upcoming events.
@@ -110,7 +132,10 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Shared UI components & Themes.
     - [ ] Dynamic Club Theming (Adaptive UI based on club colors).
     - [/] Authentication flows (Login/Register): login, register, session check on launch, automatic token refresh on 401, and logout are done. Still pending: "Forgot password?" is shown but has no flow (and no reset endpoint).
-    - [x] Account Management: User profile viewing and editing. The Account screen edits name and phone and changes the password (`TECHNICAL_DECISIONS.md` §33); "Change email" is shown but not functional yet.
+    - [x] Account Management: User profile viewing and editing. The Account screen edits name and phone and changes the password (`TECHNICAL_DECISIONS.md` §33); "Change email" is shown but not functional yet (next item).
+    - [ ] **Change email**: change the account's email, confirmed through a link sent to the new address. It can reuse the Forgot-password token-and-email mechanism once that exists.
+    - [ ] **Leave club**: a member leaves a club themselves -- the counterpart of Remove from club, which never applies to yourself. Same rules: the last admin can't leave, and parent links to players stay.
+    - [ ] **Club logo upload**: "Add logo" in Club settings does nothing yet. This is the app's first image upload, so it needs storage, resizing and serving images. It goes together with Dynamic Club Theming.
     - [x] Client-side Architecture (MVVM, Koin, UseCases).
     - [x] API Integration (Ktor Client): every screen talks to the server through repositories over a shared authenticated Ktor client (bearer tokens, refresh on 401), plus WebSockets for the live match and the club's Matches tab.
     - [/] Role-specific Dashboards:
@@ -121,3 +146,10 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - **Match Details:** line-ups, call-ups, events and score.
       - **Live match console:** for coaches and staff.
       - **After the match:** finished results stay as history, with the post-match report and per-player stats. Season stats live on Player, Team and Age Group Details (see Phase 5).
+- [ ] **Phase 8: Training & Periodization** (see §5b).
+    - [ ] Training sessions per age group: create, edit, list and calendar (date, time, location, duration).
+    - [ ] Exercises with descriptions within a session.
+    - [ ] Player evaluations per session, 0–10 with decimals (0 = did not take part), by any staff member of the age group.
+    - [ ] Home to-do when an ended session has players still to evaluate.
+    - [ ] Macrocycle (year plan), mesocycles (month plans) and microcycles (week plans) for an age group.
+    - [ ] Training stats (attendance, average rating) on Player and Age Group Details, if wanted.
