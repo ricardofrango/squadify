@@ -4,6 +4,7 @@ import com.ricardofrango.squadify.domain.usecase.AddPlayersToAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.AddStaffToAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.CreateAgeGroupsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupDetailsUseCase
+import com.ricardofrango.squadify.domain.usecase.GetAgeGroupSeasonRecordUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupStaffUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetEligiblePlayersForAgeGroupUseCase
@@ -34,6 +35,7 @@ fun Route.ageGroupRoutes() {
     val addStaffToAgeGroupUseCase by inject<AddStaffToAgeGroupUseCase>()
     val getAgeGroupStaffUseCase by inject<GetAgeGroupStaffUseCase>()
     val getAgeGroupDetailsUseCase by inject<GetAgeGroupDetailsUseCase>()
+    val getAgeGroupSeasonRecordUseCase by inject<GetAgeGroupSeasonRecordUseCase>()
 
     authenticate("auth-jwt") {
         route("/age-groups") {
@@ -73,6 +75,15 @@ fun Route.ageGroupRoutes() {
                         ErrorResponse("Failed to update age group")
                     )
                 }
+            }
+
+            // Every team's season record + the pool, for the Stats and Members tabs (design 33).
+            get("/{ageGroupId}/season-record") {
+                val ageGroupId = call.parameters["ageGroupId"]
+                    ?: return@get call.respond(HttpStatusCode.BadRequest)
+                val currentUserId =
+                    call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                call.respond(getAgeGroupSeasonRecordUseCase(currentUserId, ageGroupId))
             }
 
             get("/{ageGroupId}/details") {

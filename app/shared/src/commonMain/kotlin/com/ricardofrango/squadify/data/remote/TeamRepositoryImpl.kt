@@ -5,6 +5,7 @@ import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.model.CreateTeamsRequest
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.TeamDetails
+import com.ricardofrango.squadify.model.TeamSeasonRecord
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.http.*
@@ -21,6 +22,9 @@ class TeamRepositoryImpl(
 
     override suspend fun getTeamDetails(teamId: String): TeamDetails =
         httpClient.get("${appConfig.baseUrl}/teams/$teamId/details").handleResponse()
+
+    override suspend fun getTeamSeasonRecord(teamId: String): TeamSeasonRecord =
+        httpClient.get("${appConfig.baseUrl}/teams/$teamId/season-record").handleResponse()
 
     override suspend fun createTeams(request: CreateTeamsRequest): List<Team> =
         httpClient.post("${appConfig.baseUrl}/teams/batch") {

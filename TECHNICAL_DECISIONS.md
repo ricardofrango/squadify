@@ -2243,3 +2243,77 @@ Every match is typified as **Friendly**, **Championship** or **Tournament** (`Ma
 - **Match lists (`MatchRow`):** only the exceptions get a small grey tag after the opponent, Friendly and Tournament. Championship is the bulk of a season and stays untagged, as do matches with no type.
 
 **Checked by rendering:** the selector's three states, the header chips and the list tags were rendered headlessly (`ImageComposeScene`, throwaway test, not committed) and compared with the design.
+
+## 43. Season Stats and Season Record
+
+Player Details shows a **Season stats** card with a per-match list (design 30), and Team Details a **Season record** and **Team leaders** cards (design 31). Both are fed by the per-player `match_player_stats` lines from §41.
+
+**Rows from the server, totals on the client.**
+- **Two read endpoints:**
+  - `GET /players/{id}/season-stats` returns every season the player was registered in, each with his per-match lines.
+  - `GET /teams/{id}/season-record` returns the team's finished matches with scores, plus every player's lines.
+- **Shared aggregation:** every number on screen is derived from those rows by pure functions in `common/.../model/SeasonStats.kt`. These cover totals, average rating, W/D/L, form and leaders. Because the server and every client share the same code, they can't disagree.
+- **No round trips:** switching the filter (or a player's season) needs no request.
+- **Payload size:** the payloads are season-sized (tens of matches), so shipping rows instead of pre-aggregated numbers is cheap.
+- **Tests:** `SeasonStatsTest` covers the rules.
+
+**The match-type filter** is All · Competitive · Friendly (`StatsFilter`).
+- **Competitive** merges Championship and Tournament. That's the question coaches ask, and splitting all three would leave tiny Tournament samples.
+- **Untyped matches** (older matches, §42) count only under All, signalled by one quiet line under the totals.
+
+**Ratings are staff-only, enforced on the server.**
+- **Who sees them:** a rating goes out only if the caller passes the match report's own read gate (coordinators/admins and the match's age-group staff, §41).
+- **Which ones:** only ratings of a *completed* report are sent, because a draft's ratings aren't final.
+- **What players and parents see:** a payload with every rating null and `canSeeRatings = false`. Their screen puts Minutes where the average rating would be, so nothing hints that ratings exist.
+
+**Leaders:**
+- **Top three:** each category shows its top three, and players on zero are left out.
+- **Ties:** tied players share a rank (1, 1, 1) and are listed by name.
+- **Average rating:** a player needs at least two rated matches to qualify, so a single 9 can't top the table.
+
+**Rating colours** reuse the report's bands (§41, `ratingBand`), banding an average by its rounded value. The canvas mock-up shaded one row differently, but its own notes say "coloured like the report badges".
+
+**Loading and errors:** the stats load separately from the screen's main data, so an error or empty state stays inside the card while the rest of the page still loads.
+
+**Where it deviates from the design:**
+- **Season pill on Team Details:** it's a label, not a switcher. A team belongs to one season in our model, so there's no other season of *this* team to switch to.
+- **Team Details landscape:** two columns (record + leaders beside the existing lists), not the design's three.
+- **Recent events:** the list on Player Details is dropped, as the design proposed. Every match row now carries its goals, assists and cards.
+
+**Team Details tabs (design 32).** Team Details is now Stats · Matches · Members under a fixed header, in the club screen's dark bottom bar. In landscape the bar becomes a left `NavigationRail` and the Next fixture folds into the subtitle.
+- **Header:** the Next fixture plus a three-number strip, Upcoming · Played · Players used. Each number switches to its tab.
+- **Pool and Staff** left the strip: they belong to the age group, not the team, and "Pool" would contradict the Members tab. They're now a context card at the bottom of the Players tab.
+- **Members tab:** (named "Players" in design 32; renamed because it also holds the age-group staff) only the players who played for *this* team. A Sub-15 B-only player never appears on Sub-15 A. It's derived from the season-record rows (`squad()`), so there's no new endpoint. Players called up without coming on sit in a collapsed group.
+- **Filter:** shared by Stats and Players. Matches has none, because its rows already carry type tags.
+- **Starting tab:** the screen always opens on Matches, the most common reason to open a team. Design 32f remembered the last-used tab, but the developer chose a fixed starting tab. Only the Members sort is remembered on the device, in a small `UiPreferencesRepository` over multiplatform-settings.
+- **Scrolling:** each tab keeps its own scroll position, and tapping the active tab scrolls it to the top.
+- **Not built from 32:**
+  - the Matches tab keeps the existing separate `MatchRow` cards rather than one grouped card
+  - the landscape layout has no separate right column for the age-group card
+  - a Matches-only error state isn't possible, because the header and Matches share the Team Details call
+
+**Age Group Details tabs (design 33).** Age Group Details is now Stats · Teams · Matches · Members, using the same header, tab bar and landscape rail as Team Details. Both screens share `components/DetailTabs.kt`.
+- **Starting tab:** it always opens on Stats. The developer chose this over 33f's "Teams, then last used".
+- **Header strip:** Teams · Players · Staff · Upcoming. Each number switches to its tab, with Players and Staff both opening Members.
+- **Stats:** two cards.
+  - *Results by team*, with a combined age-group line.
+  - *Minutes across the pool*, in four neutral bands (Lots of time / Some time / A little time / Still to play). Only the two lower bands list names, and tapping a band shows everyone in it.
+  - Age-group leaders are left out on purpose: they're a team story, already told on Team Details.
+- **Teams:** cards with the season record, players used, the next fixture, and the average rating for staff.
+- **Matches:** upcoming and recent results across all teams, with an All teams · A · B filter when there are 2+ teams.
+- **Members:** staff, then the pool with search. Each player shows apps · minutes and a chip per team he played for.
+- **Data:** one new endpoint (§4.4c) plus `AgeGroupDetails.recentResults`. Team-record building is shared with the team endpoint.
+- **Not built from 33**, because the data or flow doesn't exist yet:
+  - per-team coaches ("Coach · Sub-15 A", coach names on team cards): staff belong to the age group, not a team
+  - pending invites with Resend (the separate invite-visibility roadmap item)
+  - the "call up for the next match" shortcut on a minutes band
+  - "Remove from age group"
+  - a Matches-only error state, because Matches uses the same call as the header
+
+**Appearances.** Every called-up player gets a stats line at full time (§41), including unused substitutes with 0 minutes. An appearance is a start or at least one minute. Before this, a match on the bench counted as an app in the player totals.
+
+**Checked by rendering:** every state was rendered headlessly (`ImageComposeScene`, throwaway test, not committed) and compared with the canvas, in EN/PT at 360dp and in landscape. That pass caught:
+- clipped segment labels: the segments now share the width in proportion to their labels, as the design's flex layout does
+- leader names that needed to wrap
+- dates that wrapped
+

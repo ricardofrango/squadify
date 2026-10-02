@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.di
 
 import com.ricardofrango.squadify.data.local.SessionRepositoryImpl
+import com.ricardofrango.squadify.data.local.UiPreferencesRepositoryImpl
 import com.ricardofrango.squadify.data.remote.*
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.*
@@ -114,6 +115,7 @@ val dataModule = module {
     single<OpponentRepository> { OpponentRepositoryImpl(get(), get()) }
     single<UserRepository> { UserRepositoryImpl(get(), get()) }
     single<SessionRepository> { SessionRepositoryImpl(get()) }
+    single<UiPreferencesRepository> { UiPreferencesRepositoryImpl(get()) }
     single<FcmTokenRepository> { FcmTokenRepositoryImpl(get(), get()) }
 }
 
@@ -136,10 +138,13 @@ val domainModule = module {
     factory { UpdateClubPermissionsUseCase(get()) }
     factory { GetClubHomeUseCase(get()) }
     factory { GetTeamDetailsUseCase(get()) }
+    factory { GetTeamSeasonRecordUseCase(get()) }
     factory { GetPlayerDetailsUseCase(get()) }
+    factory { GetPlayerSeasonStatsUseCase(get()) }
     factory { GetSeasonsUseCase(get()) }
     factory { GetAgeGroupsUseCase(get()) }
     factory { GetAgeGroupDetailsUseCase(get()) }
+    factory { GetAgeGroupSeasonRecordUseCase(get()) }
     factory { CreateSeasonUseCase(get()) }
     factory { CreateAgeGroupsUseCase(get()) }
     factory { CreateTeamsUseCase(get()) }

@@ -15,6 +15,8 @@ import com.ricardofrango.squadify.model.AgeGroupDetails
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchStatus
+import com.ricardofrango.squadify.model.MatchOutcome
+import com.ricardofrango.squadify.model.TeamMatchResult
 import com.ricardofrango.squadify.model.TeamRole
 import kotlin.time.Clock
 
@@ -64,6 +66,23 @@ class GetAgeGroupDetailsUseCase(
                     it.status == MatchStatus.LIVE || it.status == MatchStatus.HALF_TIME
             }
             .sortedBy { it.dateTime }
+        val recentResults = teams
+            .flatMap { matchRepository.getMatchesByTeam(it.id) }
+            .filter { it.status == MatchStatus.FINISHED }
+            .sortedByDescending { it.dateTime }
+            .map { match ->
+                val score = matchEventRepository.getScoreByMatch(match.id)
+                TeamMatchResult(
+                    match = match,
+                    ourScore = score.ourScore,
+                    opponentScore = score.opponentScore,
+                    outcome = when {
+                        score.ourScore > score.opponentScore -> MatchOutcome.WIN
+                        score.ourScore < score.opponentScore -> MatchOutcome.LOSS
+                        else -> MatchOutcome.DRAW
+                    }
+                )
+            }
         val upcomingMatchScores = upcomingMatches
             .filter { it.status == MatchStatus.LIVE || it.status == MatchStatus.HALF_TIME }
             .associate { it.id to matchEventRepository.getScoreByMatch(it.id) }
@@ -104,6 +123,7 @@ class GetAgeGroupDetailsUseCase(
             teams = teams,
             upcomingMatches = upcomingMatches,
             upcomingMatchScores = upcomingMatchScores,
+            recentResults = recentResults,
             opponents = opponentRepository.getOpponentsByClub(ageGroup.clubId),
             canAddStaff = canAddStaff,
             canCreateTeam = canDo(ConfigurablePermission.CREATE_TEAM),

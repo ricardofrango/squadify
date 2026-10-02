@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.ricardofrango.squadify.domain.service.SessionEventBus
+import com.ricardofrango.squadify.model.StatsFilter
 import com.ricardofrango.squadify.model.SportType
 import org.koin.compose.koinInject
 import com.ricardofrango.squadify.presentation.ui.login.LoginScreen
@@ -428,8 +429,8 @@ fun AppNavigation() {
                 onNavigateToAgeGroup = { ageGroupId ->
                     navController.navigate(Screen.AgeGroupDetails(ageGroupId))
                 },
-                onNavigateToPlayer = { playerId ->
-                    navController.navigate(Screen.PlayerDetails(playerId))
+                onNavigateToPlayer = { playerId, seasonId, filter ->
+                    navController.navigate(Screen.PlayerDetails(playerId, seasonId = seasonId, statsFilter = filter.name))
                 },
                 onNavigateToMatch = { matchId ->
                     navController.navigate(Screen.MatchDetails(matchId))
@@ -535,6 +536,11 @@ fun AppNavigation() {
                 onEditPlayer = { playerId ->
                     navController.navigate(Screen.EditPlayer(playerId))
                 },
+                onOpenMatch = { matchId ->
+                    navController.navigate(Screen.MatchDetails(matchId))
+                },
+                initialSeasonId = screen.seasonId,
+                initialFilter = screen.statsFilter?.let { name -> StatsFilter.entries.firstOrNull { it.name == name } },
                 refreshOnReturn = structureChanged
             )
         }

@@ -696,6 +696,8 @@ data class AgeGroupDetails(
     // Scores for any LIVE/HALF_TIME entry in [upcomingMatches], keyed by Match.id -- SCHEDULED
     // entries have none. Lets a live match in this list show its running score.
     val upcomingMatchScores: Map<String, MatchScore> = emptyMap(),
+    // Finished matches of all its teams, newest first, with their scores (Matches tab, design 33).
+    val recentResults: List<TeamMatchResult> = emptyList(),
     val opponents: List<Opponent>,
     val canAddStaff: Boolean,
     val canCreateTeam: Boolean,
@@ -1086,7 +1088,17 @@ data class ClubHomeAlert(
     // MATCH_REPORT_PENDING only -- the match to open, and the names to show:
     val matchId: String? = null,
     val teamName: String? = null,
-    val opponentName: String? = null
+    val opponentName: String? = null,
+    // CALLUPS_UNSENT only -- the matches that day still without a call-up, so the to-do can open them.
+    val matches: List<ClubHomeAlertMatch> = emptyList()
+)
+
+/** One match behind a grouped Home to-do (a day's matches with no call-up yet). */
+@Serializable
+data class ClubHomeAlertMatch(
+    val matchId: String,
+    val teamName: String,
+    val opponentName: String
 )
 
 /**

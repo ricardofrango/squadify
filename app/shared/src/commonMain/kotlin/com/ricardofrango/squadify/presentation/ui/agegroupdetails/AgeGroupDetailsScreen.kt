@@ -1,14 +1,9 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,41 +11,46 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ricardofrango.squadify.model.*
+import com.ricardofrango.squadify.presentation.ui.components.DetailBottomBar
+import com.ricardofrango.squadify.presentation.ui.components.DetailRail
+import com.ricardofrango.squadify.presentation.ui.components.DetailTab
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
-import com.ricardofrango.squadify.presentation.ui.components.MatchRow
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
-import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
-import com.ricardofrango.squadify.presentation.ui.components.labelRes
-import squadify.app.shared.generated.resources.*
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
+import kotlinx.datetime.format.DayOfWeekNames
 import kotlinx.datetime.format.MonthNames
+import kotlinx.datetime.format.Padding
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import squadify.app.shared.generated.resources.*
 import kotlin.time.Instant
 
-private val CardShape = RoundedCornerShape(16.dp)
+private val LightGreen = Color(0xFF4CAF50)
 
-private val MonthYear = LocalDate.Format {
-    monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); year()
+private val WeekdayDayMonth = LocalDate.Format {
+    dayOfWeek(DayOfWeekNames.ENGLISH_ABBREVIATED); char(' '); day(Padding.NONE); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED)
 }
 
 /**
- * The hub for one age group: its eligibility rule, the counts, then Players / Staff / Teams /
- * Matches. Built to the "Age group details" artboard of the design canvas linked in AI_GUIDELINES.md
- * ("UI Design Reference"). Each add/manage affordance is gated on its own `AgeGroupDetails` flag --
- * `canAddStaff` (coordinator+ only), `canCreateTeam`, `canManageMatch` (schedule), or
- * `canAssignPlayersToAgeGroup` (add players) -- see that data class's doc comment.
+ * The hub for one age group (design 33): Stats · Teams · Matches · Members tabs under a fixed header
+ * (name, "Born 2012 · 26/27", and Teams · Players · Staff · Upcoming -- each number switches to its
+ * tab). Always opens on Stats. In landscape the bottom bar becomes a side rail (33e). Each add/manage
+ * affordance is gated on its own `AgeGroupDetails` flag -- `canAddStaff` (coordinator+ only),
+ * `canCreateTeam`, `canManageMatch` (schedule), or `canAssignPlayersToAgeGroup` (add players).
  */
 @Composable
 fun AgeGroupDetailsScreen(
@@ -67,7 +67,9 @@ fun AgeGroupDetailsScreen(
     viewModel: AgeGroupDetailsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
-    var playerSort by remember { mutableStateOf(PlayerSort.POSITION) }
+    val recordState by viewModel.record.collectAsState()
+    val tab by viewModel.tab.collectAsState()
+    val matchesTeamId by viewModel.matchesTeamId.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
@@ -75,12 +77,17 @@ fun AgeGroupDetailsScreen(
 
     AgeGroupDetailsContent(
         uiState = uiState,
-        playerSort = playerSort,
+        recordState = recordState,
+        tab = tab,
+        matchesTeamId = matchesTeamId,
         searchQuery = searchQuery,
+        onTabSelected = viewModel::onTabSelected,
+        onFilterSelected = viewModel::onFilterSelected,
+        onMatchesTeamSelected = viewModel::onMatchesTeamSelected,
+        onSearchChange = { searchQuery = it },
         onNavigateBack = onNavigateBack,
         onRetry = { viewModel.load(ageGroupId, forceReload = true) },
-        onPlayerSortChange = { playerSort = it },
-        onSearchChange = { searchQuery = it },
+        onRetryRecord = { viewModel.loadRecord(ageGroupId) },
         onPlayerClick = onNavigateToPlayer,
         onTeamClick = onNavigateToTeam,
         onMatchClick = onNavigateToMatch,
@@ -91,16 +98,39 @@ fun AgeGroupDetailsScreen(
     )
 }
 
+private val AgeGroupTab.icon
+    get() = when (this) {
+        AgeGroupTab.STATS -> Res.drawable.ic_stats
+        AgeGroupTab.TEAMS -> Res.drawable.ic_teams
+        AgeGroupTab.MATCHES -> Res.drawable.ic_calendar
+        AgeGroupTab.MEMBERS -> Res.drawable.ic_player
+    }
+
+private val AgeGroupTab.label
+    get() = when (this) {
+        AgeGroupTab.STATS -> Res.string.team_tab_stats
+        AgeGroupTab.TEAMS -> Res.string.tab_teams
+        AgeGroupTab.MATCHES -> Res.string.team_tab_matches
+        AgeGroupTab.MEMBERS -> Res.string.team_tab_players
+    }
+
+private val Tabs = AgeGroupTab.entries.map { DetailTab(it.icon, it.label) }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AgeGroupDetailsContent(
     uiState: AgeGroupDetailsUiState,
-    playerSort: PlayerSort,
+    recordState: AgeGroupRecordUiState,
+    tab: AgeGroupTab,
+    matchesTeamId: String?,
     searchQuery: String,
+    onTabSelected: (AgeGroupTab) -> Unit,
+    onFilterSelected: (StatsFilter) -> Unit,
+    onMatchesTeamSelected: (String?) -> Unit,
+    onSearchChange: (String) -> Unit,
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
-    onPlayerSortChange: (PlayerSort) -> Unit,
-    onSearchChange: (String) -> Unit,
+    onRetryRecord: () -> Unit,
     onPlayerClick: (String) -> Unit,
     onTeamClick: (String) -> Unit,
     onMatchClick: (String) -> Unit,
@@ -110,513 +140,159 @@ private fun AgeGroupDetailsContent(
     onCreateMatch: (AgeGroupDetails) -> Unit
 ) {
     val details = (uiState as? AgeGroupDetailsUiState.Idle)?.details
-    Scaffold(
-        containerColor = Color.White,
-        topBar = {
-            FMTopBar(
-                title = details?.ageGroup?.name ?: stringResource(Res.string.tab_age_groups),
-                subtitle = details?.let { d ->
-                    "${d.season.name} · ${d.season.startDate.format(MonthYear)} – ${d.season.endDate.format(MonthYear)}"
+    // Each tab keeps its own scroll; tapping the active tab scrolls it to the top (33f).
+    val listStates = AgeGroupTab.entries.associateWith { rememberLazyListState() }
+    val scope = rememberCoroutineScope()
+    val selectTab: (AgeGroupTab) -> Unit = { t ->
+        if (t == tab) scope.launch { listStates.getValue(t).animateScrollToItem(0) } else onTabSelected(t)
+    }
+    val selectIndex: (Int) -> Unit = { selectTab(AgeGroupTab.entries[it]) }
+
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
+        Row(Modifier.fillMaxSize()) {
+            if (landscape && details != null) DetailRail(Tabs, tab.ordinal, selectIndex)
+            Scaffold(
+                modifier = Modifier.weight(1f),
+                containerColor = WhiteSmoke,
+                topBar = {
+                    Column(Modifier.background(CarbonGray)) {
+                        FMTopBar(
+                            title = details?.ageGroup?.name ?: stringResource(Res.string.tab_age_groups),
+                            subtitle = details?.let { stringResource(Res.string.ag_born, bornLabel(it.ageGroup), it.season.name) },
+                            onNavigateBack = onNavigateBack,
+                            actions = { if (details != null) OverflowMenu(details, onAddPlayers, onAddStaff, onCreateTeam, onCreateMatch) }
+                        )
+                        if (details != null) AgeGroupStrip(details, selectTab)
+                    }
                 },
-                onNavigateBack = onNavigateBack,
-                actions = {
-                    val canScheduleFromMenu = details != null && details.canManageMatch && details.teams.isNotEmpty()
-                    if (details != null && (details.canAssignPlayersToAgeGroup || details.canAddStaff || details.canCreateTeam || canScheduleFromMenu)) {
-                        var open by remember { mutableStateOf(false) }
-                        Box {
-                            IconButton(onClick = { open = true }) {
-                                Icon(
-                                    painter = painterResource(Res.drawable.ic_more),
-                                    contentDescription = stringResource(Res.string.label_more_options),
-                                    tint = Color.White
-                                )
-                            }
-                            DropdownMenu(open, onDismissRequest = { open = false }, modifier = Modifier.background(Color.White)) {
-                                if (details.canAssignPlayersToAgeGroup) {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(Res.string.label_add_players_to_age_group), color = DeepCarbon) },
-                                        onClick = { open = false; onAddPlayers(details) }
-                                    )
-                                }
-                                if (details.canAddStaff) {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(Res.string.label_add_staff_to_age_group), color = DeepCarbon) },
-                                        onClick = { open = false; onAddStaff(details) }
-                                    )
-                                }
-                                if (details.canCreateTeam) {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(Res.string.label_create_team), color = DeepCarbon) },
-                                        onClick = { open = false; onCreateTeam(details) }
-                                    )
-                                }
-                                if (canScheduleFromMenu) {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(Res.string.label_schedule_match), color = DeepCarbon) },
-                                        onClick = { open = false; onCreateMatch(details) }
-                                    )
-                                }
-                            }
+                bottomBar = { if (!landscape && details != null) DetailBottomBar(Tabs, tab.ordinal, selectIndex) }
+            ) { paddingValues ->
+                val boxModifier = Modifier.fillMaxSize().padding(paddingValues)
+                when (uiState) {
+                    is AgeGroupDetailsUiState.Loading ->
+                        Box(boxModifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
+
+                    is AgeGroupDetailsUiState.Error ->
+                        Column(boxModifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                            Text(uiState.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+                            Spacer(Modifier.height(16.dp))
+                            Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
                         }
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        val boxModifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White)
-        when (uiState) {
-            is AgeGroupDetailsUiState.Loading ->
-                Box(boxModifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
 
-            is AgeGroupDetailsUiState.Error ->
-                Column(boxModifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Text(uiState.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(16.dp))
-                    Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
-                }
-
-            is AgeGroupDetailsUiState.Idle -> Column(Modifier.fillMaxSize().padding(paddingValues)) {
-                // The counts + eligibility rule sit in a dark block flush with the top bar (same
-                // CarbonGray), edge to edge; the white scrolling content starts below it.
-                AgeGroupHeader(
-                    endYear = uiState.details.ageGroup.endYear,
-                    players = uiState.details.players.size,
-                    staff = uiState.details.staff.size,
-                    teams = uiState.details.teams.size,
-                    upcoming = uiState.details.upcomingMatches.size
-                )
-                AgeGroupBody(
-                    details = uiState.details,
-                    playerSort = playerSort,
-                    searchQuery = searchQuery,
-                    modifier = Modifier.fillMaxWidth().weight(1f).background(Color.White),
-                    onPlayerSortChange = onPlayerSortChange,
-                    onSearchChange = onSearchChange,
-                    onPlayerClick = onPlayerClick,
-                    onTeamClick = onTeamClick,
-                    onMatchClick = onMatchClick,
-                    onAddPlayers = { onAddPlayers(uiState.details) },
-                    onAddStaff = { onAddStaff(uiState.details) },
-                    onCreateTeam = { onCreateTeam(uiState.details) },
-                    onCreateMatch = { onCreateMatch(uiState.details) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AgeGroupBody(
-    details: AgeGroupDetails,
-    playerSort: PlayerSort,
-    searchQuery: String,
-    modifier: Modifier,
-    onPlayerSortChange: (PlayerSort) -> Unit,
-    onSearchChange: (String) -> Unit,
-    onPlayerClick: (String) -> Unit,
-    onTeamClick: (String) -> Unit,
-    onMatchClick: (String) -> Unit,
-    onAddPlayers: () -> Unit,
-    onAddStaff: () -> Unit,
-    onCreateTeam: () -> Unit,
-    onCreateMatch: () -> Unit
-) {
-    val ag = details.ageGroup
-    val opponentsById = remember(details.opponents) { details.opponents.associateBy { it.id } }
-    val teamsById = remember(details.teams) { details.teams.associateBy { it.id } }
-
-    val visiblePlayers = remember(details.players, playerSort, searchQuery) {
-        val q = searchQuery.trim().lowercase()
-        details.players
-            .asSequence()
-            .filter { q.isEmpty() || "${it.firstName} ${it.lastName}".lowercase().contains(q) }
-            .sortedWith(
-                when (playerSort) {
-                    // Position order (Goalkeeper -> Striker) matches PlayerPosition's declared enum
-                    // order, so its ordinal doubles as the rank; no position set sorts last. Name
-                    // sorts first name then last name, matching PlayerRow's "First Last" display --
-                    // sorting last-name-first there would silently disagree with what's on screen.
-                    PlayerSort.POSITION -> compareBy(
-                        { it.position?.ordinal ?: Int.MAX_VALUE },
-                        { it.firstName.lowercase() },
-                        { it.lastName.lowercase() }
-                    )
-                    PlayerSort.NAME -> compareBy({ it.firstName.lowercase() }, { it.lastName.lowercase() })
-                }
-            )
-            .toList()
-    }
-
-    LazyColumn(
-        modifier = modifier,
-        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // ---- Staff ----
-        item {
-            SectionHeader(
-                title = stringResource(Res.string.label_age_group_staff),
-                count = details.staff.size,
-                onAdd = if (details.canAddStaff) onAddStaff else null
-            )
-        }
-        if (details.staff.isEmpty()) {
-            item {
-                EmptySectionCard(
-                    title = stringResource(Res.string.msg_no_staff_age_group),
-                    hint = null,
-                    action = if (details.canAddStaff) stringResource(Res.string.btn_add_staff) to onAddStaff else null
-                )
-            }
-        } else {
-            items(details.staff, key = { it.userId }) { member -> StaffRow(member) }
-        }
-
-        // ---- Teams ----
-        item {
-            SectionHeader(
-                title = stringResource(Res.string.tab_teams),
-                count = details.teams.size,
-                onAdd = if (details.canCreateTeam) onCreateTeam else null
-            )
-        }
-        if (details.teams.isEmpty()) {
-            item {
-                EmptySectionCard(
-                    title = stringResource(Res.string.msg_no_teams_in_age_group),
-                    hint = stringResource(Res.string.msg_no_teams_in_age_group_hint),
-                    action = if (details.canCreateTeam) stringResource(Res.string.label_create_team) to onCreateTeam else null
-                )
-            }
-        } else {
-            items(details.teams, key = { it.id }) { team ->
-                TeamRow(team = team, onClick = { onTeamClick(team.id) })
-            }
-        }
-
-        // ---- Upcoming matches ----
-        // A match belongs to a team, so scheduling is only offered once the age group has one.
-        val canSchedule = details.canManageMatch && details.teams.isNotEmpty()
-        item {
-            SectionHeader(
-                title = stringResource(Res.string.label_upcoming_matches),
-                count = details.upcomingMatches.size,
-                onAdd = if (canSchedule) onCreateMatch else null
-            )
-        }
-        if (details.upcomingMatches.isEmpty()) {
-            item {
-                EmptySectionCard(
-                    title = stringResource(Res.string.msg_no_upcoming_matches),
-                    hint = null,
-                    action = if (canSchedule) stringResource(Res.string.label_schedule_match) to onCreateMatch else null
-                )
-            }
-        } else {
-            items(details.upcomingMatches, key = { it.id }) { match ->
-                MatchRow(
-                    match = match,
-                    opponentName = opponentsById[match.opponentId]?.let { it.shortName ?: it.name } ?: "—",
-                    teamName = teamsById[match.teamId]?.name,
-                    score = details.upcomingMatchScores[match.id],
-                    onClick = { onMatchClick(match.id) }
-                )
-            }
-        }
-
-        // ---- Players ----
-        item {
-            SectionHeader(
-                title = stringResource(Res.string.tab_players),
-                count = details.players.size,
-                onAdd = if (details.canAssignPlayersToAgeGroup) onAddPlayers else null
-            )
-        }
-        if (details.players.isEmpty()) {
-            item {
-                EmptySectionCard(
-                    title = stringResource(Res.string.msg_no_players_in_age_group_title),
-                    hint = stringResource(Res.string.msg_no_players_in_age_group_hint),
-                    action = if (details.canAssignPlayersToAgeGroup) stringResource(Res.string.btn_add_players) to onAddPlayers else null
-                )
-            }
-        } else {
-            item {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
-                    SortChip(stringResource(Res.string.label_position_field), playerSort == PlayerSort.POSITION) { onPlayerSortChange(PlayerSort.POSITION) }
-                    SortChip(stringResource(Res.string.label_sort_name), playerSort == PlayerSort.NAME) { onPlayerSortChange(PlayerSort.NAME) }
-                }
-            }
-            item {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = onSearchChange,
-                    label = { Text(stringResource(Res.string.label_search_players)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = DeepCarbon,
-                        unfocusedTextColor = DeepCarbon,
-                        focusedBorderColor = PitchGreen,
-                        unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
-                        focusedLabelColor = PitchGreen,
-                        unfocusedLabelColor = CarbonGray
-                    )
-                )
-            }
-            items(visiblePlayers, key = { it.id }) { player ->
-                PlayerRow(
-                    player = player,
-                    playsUp = player.birthDate.year > ag.endYear,
-                    onClick = { onPlayerClick(player.id) }
-                )
-            }
-        }
-    }
-}
-
-/** The dark block directly under the top bar (same CarbonGray): eligibility rule + edge-to-edge counts. */
-@Composable
-private fun AgeGroupHeader(endYear: Int, players: Int, staff: Int, teams: Int, upcoming: Int) {
-    Column(modifier = Modifier.fillMaxWidth().background(CarbonGray)) {
-        EligibilityPill(
-            text = stringResource(Res.string.label_eligibility_rule, endYear),
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)
-        )
-        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.10f)))
-        Row(
-            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
-        ) {
-            Stat(players.toString(), stringResource(Res.string.tab_players), Modifier.weight(1f))
-            HeaderDivider()
-            Stat(staff.toString(), stringResource(Res.string.label_age_group_staff), Modifier.weight(1f))
-            HeaderDivider()
-            Stat(teams.toString(), stringResource(Res.string.tab_teams), Modifier.weight(1f))
-            HeaderDivider()
-            Stat(upcoming.toString(), stringResource(Res.string.label_upcoming), Modifier.weight(1f), highlight = upcoming > 0)
-        }
-    }
-}
-
-@Composable
-private fun EligibilityPill(text: String, modifier: Modifier = Modifier) {
-    Surface(shape = RoundedCornerShape(10.dp), color = Color.White.copy(alpha = 0.08f), modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(modifier = Modifier.size(16.dp).background(PitchGreen, CircleShape), contentAlignment = Alignment.Center) {
-                Text("i", color = Color.White, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
-            }
-            Spacer(Modifier.width(8.dp))
-            Text(text, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.9f))
-        }
-    }
-}
-
-@Composable
-private fun Stat(value: String, label: String, modifier: Modifier, highlight: Boolean = false) {
-    Column(modifier = modifier.padding(vertical = 14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            value,
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-            color = if (highlight) PitchGreen else Color.White
-        )
-        Text(label, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
-    }
-}
-
-@Composable
-private fun HeaderDivider() {
-    Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(Color.White.copy(alpha = 0.10f)))
-}
-
-@Composable
-private fun SectionHeader(title: String, count: Int, onAdd: (() -> Unit)?) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
-        Spacer(Modifier.width(6.dp))
-        Text(count.toString(), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.4f))
-        Spacer(Modifier.weight(1f))
-        if (onAdd != null) {
-            Text(
-                "+ ${stringResource(Res.string.label_add)}",
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                color = PitchGreen,
-                modifier = Modifier.clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onAdd
-                )
-            )
-        }
-    }
-}
-
-@Composable
-private fun SortChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
-        color = if (selected) DeepCarbon else CarbonGray.copy(alpha = 0.08f),
-        border = if (selected) null else BorderStroke(1.dp, CarbonGray.copy(alpha = 0.2f))
-    ) {
-        Text(
-            label,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-            color = if (selected) Color.White else DeepCarbon
-        )
-    }
-}
-
-@Composable
-private fun PlayerRow(player: Player, playsUp: Boolean, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = CardShape,
-        color = Color.White,
-        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
-    ) {
-        Row(modifier = Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            InitialsAvatar("${player.firstName.take(1)}${player.lastName.take(1)}")
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    "${player.firstName} ${player.lastName}",
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                    color = if (player.active) DeepCarbon else DeepCarbon.copy(alpha = 0.4f),
-                    maxLines = 1, overflow = TextOverflow.Ellipsis
-                )
-                if (player.position != null || playsUp) {
-                    Spacer(Modifier.height(2.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        player.position?.let {
-                            Text(
-                                stringResource(it.labelRes()),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = DeepCarbon.copy(alpha = 0.55f)
+                    is AgeGroupDetailsUiState.Idle -> {
+                        val d = uiState.details
+                        val opponentsById = remember(d.opponents) { d.opponents.associateBy { it.id } }
+                        val teamsById = remember(d.teams) { d.teams.associateBy { it.id } }
+                        val next = d.upcomingMatches.firstOrNull { it.status == MatchStatus.SCHEDULED }
+                        val nextHint = next?.let {
+                            stringResource(
+                                Res.string.ag_no_results_hint,
+                                teamsById[it.teamId]?.name ?: "—",
+                                dateLabel(it.dateTime),
+                                opponentsById[it.opponentId]?.let { o -> o.shortName ?: o.name } ?: "—"
                             )
-                            if (playsUp) Spacer(Modifier.width(8.dp))
                         }
-                        if (playsUp) MiniChip(stringResource(Res.string.label_plays_up))
+                        val padding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 20.dp)
+                        when (tab) {
+                            AgeGroupTab.STATS -> AgeGroupStatsTab(
+                                details = d, recordState = recordState, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,
+                                nextHint = nextHint, onViewNext = next?.let { { onMatchClick(it.id) } }, sideBySide = landscape,
+                                onGoToTeams = { onTabSelected(AgeGroupTab.TEAMS) }, onRetry = onRetryRecord,
+                                onFilterSelected = onFilterSelected, onOpenPlayer = onPlayerClick
+                            )
+                            AgeGroupTab.TEAMS -> AgeGroupTeamsTab(
+                                details = d, recordState = recordState, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,
+                                nextLabel = { m -> "${dateLabel(m.dateTime)} vs ${opponentsById[m.opponentId]?.let { o -> o.shortName ?: o.name } ?: "—"}" },
+                                onCreateTeam = { onCreateTeam(d) }, onOpenTeam = onTeamClick
+                            )
+                            AgeGroupTab.MATCHES -> AgeGroupMatchesTab(
+                                details = d, teamFilter = matchesTeamId, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,
+                                onTeamFilter = onMatchesTeamSelected, onSchedule = { onCreateMatch(d) }, onOpenMatch = onMatchClick
+                            )
+                            AgeGroupTab.MEMBERS -> AgeGroupMembersTab(
+                                details = d, recordState = recordState, searchQuery = searchQuery, listState = listStates.getValue(tab), padding = padding,
+                                modifier = boxModifier, onSearchChange = onSearchChange, onAddStaff = { onAddStaff(d) },
+                                onAddPlayers = { onAddPlayers(d) }, onOpenPlayer = onPlayerClick
+                            )
+                        }
                     }
                 }
             }
-            player.shirtNumber?.let {
-                Text(it.toString(), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f))
+        }
+    }
+}
+
+/** The manager actions, kept in ⋮ on every tab (the "+" links by each heading do the same). */
+@Composable
+private fun OverflowMenu(
+    details: AgeGroupDetails,
+    onAddPlayers: (AgeGroupDetails) -> Unit,
+    onAddStaff: (AgeGroupDetails) -> Unit,
+    onCreateTeam: (AgeGroupDetails) -> Unit,
+    onCreateMatch: (AgeGroupDetails) -> Unit
+) {
+    val canScheduleFromMenu = details.canManageMatch && details.teams.isNotEmpty()
+    if (!(details.canAssignPlayersToAgeGroup || details.canAddStaff || details.canCreateTeam || canScheduleFromMenu)) return
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }) {
+            Icon(painter = painterResource(Res.drawable.ic_more), contentDescription = stringResource(Res.string.label_more_options), tint = Color.White)
+        }
+        DropdownMenu(open, onDismissRequest = { open = false }, modifier = Modifier.background(Color.White)) {
+            if (details.canAssignPlayersToAgeGroup) {
+                DropdownMenuItem(text = { Text(stringResource(Res.string.label_add_players_to_age_group), color = DeepCarbon) }, onClick = { open = false; onAddPlayers(details) })
+            }
+            if (details.canAddStaff) {
+                DropdownMenuItem(text = { Text(stringResource(Res.string.label_add_staff_to_age_group), color = DeepCarbon) }, onClick = { open = false; onAddStaff(details) })
+            }
+            if (details.canCreateTeam) {
+                DropdownMenuItem(text = { Text(stringResource(Res.string.label_create_team), color = DeepCarbon) }, onClick = { open = false; onCreateTeam(details) })
+            }
+            if (canScheduleFromMenu) {
+                DropdownMenuItem(text = { Text(stringResource(Res.string.label_schedule_match), color = DeepCarbon) }, onClick = { open = false; onCreateMatch(details) })
             }
         }
     }
 }
 
+/** Teams · Players · Staff · Upcoming -- each switches to its tab (Players and Staff both open Members). */
 @Composable
-private fun StaffRow(member: AgeGroupStaffMember) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = CardShape,
-        color = Color.White,
-        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
-    ) {
-        Row(modifier = Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            InitialsAvatar("${member.firstName.take(1)}${member.lastName.take(1)}")
-            Spacer(Modifier.width(12.dp))
-            Text(
-                "${member.firstName} ${member.lastName}",
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                color = DeepCarbon, modifier = Modifier.weight(1f),
-                maxLines = 1, overflow = TextOverflow.Ellipsis
-            )
-            MiniChip(
-                stringResource(if (member.role == TeamRole.COACH) Res.string.label_role_coach else Res.string.label_role_staff)
-            )
+private fun AgeGroupStrip(details: AgeGroupDetails, onSelect: (AgeGroupTab) -> Unit) {
+    Column(Modifier.fillMaxWidth().background(CarbonGray).padding(start = 14.dp, end = 14.dp, bottom = 12.dp)) {
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.12f)))
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+            StripStat(details.teams.size.toString(), stringResource(Res.string.tab_teams), Modifier.weight(1f)) { onSelect(AgeGroupTab.TEAMS) }
+            StripDivider()
+            StripStat(details.players.size.toString(), stringResource(Res.string.tab_players), Modifier.weight(1f)) { onSelect(AgeGroupTab.MEMBERS) }
+            StripDivider()
+            StripStat(details.staff.size.toString(), stringResource(Res.string.label_age_group_staff), Modifier.weight(1f)) { onSelect(AgeGroupTab.MEMBERS) }
+            StripDivider()
+            StripStat(details.upcomingMatches.size.toString(), stringResource(Res.string.label_upcoming), Modifier.weight(1f), highlight = details.upcomingMatches.isNotEmpty()) { onSelect(AgeGroupTab.MATCHES) }
         }
     }
 }
 
 @Composable
-private fun TeamRow(team: Team, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = CardShape,
-        color = Color.White,
-        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
-    ) {
-        Row(modifier = Modifier.padding(14.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier.size(36.dp).background(PitchGreen, RoundedCornerShape(8.dp)),
-                contentAlignment = Alignment.Center
-            ) { Text(team.name.take(1), color = Color.White, fontWeight = FontWeight.Bold) }
-            Spacer(Modifier.width(12.dp))
-            Text(
-                team.name,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                color = if (team.active) DeepCarbon else DeepCarbon.copy(alpha = 0.4f),
-                modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis
-            )
-            team.code?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
-            }
-            Text(" ›", color = DeepCarbon.copy(alpha = 0.4f), fontWeight = FontWeight.Bold)
-        }
+private fun StripStat(value: String, label: String, modifier: Modifier, highlight: Boolean = false, onClick: () -> Unit) {
+    Column(modifier.clickable(onClick = onClick).padding(top = 9.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 17.sp), color = if (highlight) LightGreen else Color.White)
+        Text(label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp), color = Color.White.copy(alpha = 0.62f), textAlign = TextAlign.Center)
     }
 }
 
 @Composable
-private fun InitialsAvatar(initials: String) {
-    Box(
-        modifier = Modifier.size(40.dp).background(CarbonGray.copy(alpha = 0.1f), CircleShape),
-        contentAlignment = Alignment.Center
-    ) { Text(initials, color = DeepCarbon, fontWeight = FontWeight.Bold) }
+private fun StripDivider() {
+    Box(Modifier.width(1.dp).fillMaxHeight().background(Color.White.copy(alpha = 0.12f)))
 }
 
-@Composable
-private fun MiniChip(text: String) {
-    Surface(shape = RoundedCornerShape(6.dp), color = PitchGreen.copy(alpha = 0.15f)) {
-        Text(
-            text,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-            color = PitchGreen
-        )
-    }
-}
+/** "2012", or "2011–2012" for an age group spanning two birth years. */
+private fun bornLabel(ag: AgeGroup): String =
+    if (ag.startYear == ag.endYear) ag.endYear.toString() else "${minOf(ag.startYear, ag.endYear)}–${maxOf(ag.startYear, ag.endYear)}"
 
-@Composable
-private fun EmptySectionCard(title: String, hint: String?, action: Pair<String, () -> Unit>?) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = CardShape,
-        color = Color.White,
-        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.25f))
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp).fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, textAlign = TextAlign.Center)
-            if (hint != null) {
-                Spacer(Modifier.height(4.dp))
-                Text(hint, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.6f), textAlign = TextAlign.Center)
-            }
-            if (action != null) {
-                Spacer(Modifier.height(12.dp))
-                Button(
-                    onClick = action.second,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)
-                ) { Text(action.first) }
-            }
-        }
-    }
-}
+/** "Sat 4 Oct". */
+private fun dateLabel(instant: Instant): String =
+    instant.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(WeekdayDayMonth)
 
 // ---- Previews ----
 
@@ -650,41 +326,67 @@ private fun sampleDetails(populated: Boolean, canManage: Boolean): AgeGroupDetai
     )
 }
 
-@Preview
+
+private fun sampleRecord(details: AgeGroupDetails, staff: Boolean): AgeGroupSeasonRecord {
+    val pool = details.players.map { TeamSeasonPlayer(it.id, "${it.firstName} ${it.lastName}", it.shirtNumber, it.position) }
+    fun m(id: String, day: Int, type: MatchType?, us: Int, them: Int) =
+        TeamSeasonMatch(id, Instant.fromEpochMilliseconds(1_790_000_000_000L - day * 86_400_000L), "AD Fontelas", type, us, them)
+    val teams = details.teams.mapIndexed { t, team ->
+        val matches = listOf(m("${team.id}-1", 2 + t, MatchType.CHAMPIONSHIP, 3 - t, 1), m("${team.id}-2", 9 + t, MatchType.FRIENDLY, 1, 1 + t))
+        TeamSeasonRecord(
+            teamId = team.id, seasonId = "s1", seasonName = "26/27", matches = matches,
+            playerLines = matches.flatMap { match ->
+                pool.take(2 + t).mapIndexed { j, p -> TeamSeasonPlayerLine(match.matchId, p.id, 70 - 25 * j, if (j == 0) 1 else 0, 0, if (staff) 6 + j else null, started = j == 0) }
+            },
+            players = pool, canSeeRatings = staff, teamName = team.name
+        )
+    }
+    return AgeGroupSeasonRecord(details.ageGroup.id, teams, pool, staff)
+}
+
 @Composable
-private fun AgeGroupDetailsPopulatedPreview() {
-    SquadifyTheme {
+private fun AgeGroupPreview(details: AgeGroupDetails, record: AgeGroupRecordUiState, tab: AgeGroupTab, dark: Boolean = false) {
+    SquadifyTheme(darkTheme = dark) {
         AgeGroupDetailsContent(
-            uiState = AgeGroupDetailsUiState.Idle(sampleDetails(populated = true, canManage = true)),
-            playerSort = PlayerSort.NAME, searchQuery = "",
-            onNavigateBack = {}, onRetry = {}, onPlayerSortChange = {}, onSearchChange = {},
-            onPlayerClick = {}, onTeamClick = {}, onMatchClick = {}, onAddPlayers = {}, onAddStaff = {}, onCreateTeam = {}, onCreateMatch = {}
+            uiState = AgeGroupDetailsUiState.Idle(details), recordState = record, tab = tab, matchesTeamId = null, searchQuery = "",
+            onTabSelected = {}, onFilterSelected = {}, onMatchesTeamSelected = {}, onSearchChange = {},
+            onNavigateBack = {}, onRetry = {}, onRetryRecord = {}, onPlayerClick = {}, onTeamClick = {}, onMatchClick = {},
+            onAddPlayers = {}, onAddStaff = {}, onCreateTeam = {}, onCreateMatch = {}
         )
     }
 }
 
 @Preview
 @Composable
-private fun AgeGroupDetailsEmptyReadOnlyPreview() {
-    SquadifyTheme(darkTheme = true) {
-        AgeGroupDetailsContent(
-            uiState = AgeGroupDetailsUiState.Idle(sampleDetails(populated = false, canManage = false)),
-            playerSort = PlayerSort.NAME, searchQuery = "",
-            onNavigateBack = {}, onRetry = {}, onPlayerSortChange = {}, onSearchChange = {},
-            onPlayerClick = {}, onTeamClick = {}, onMatchClick = {}, onAddPlayers = {}, onAddStaff = {}, onCreateTeam = {}, onCreateMatch = {}
-        )
-    }
+private fun AgeGroupStatsPreview() {
+    val d = sampleDetails(populated = true, canManage = true)
+    AgeGroupPreview(d, AgeGroupRecordUiState.Loaded(sampleRecord(d, staff = true)), AgeGroupTab.STATS)
+}
+
+@Preview
+@Composable
+private fun AgeGroupTeamsPreview() {
+    val d = sampleDetails(populated = true, canManage = true)
+    AgeGroupPreview(d, AgeGroupRecordUiState.Loaded(sampleRecord(d, staff = true)), AgeGroupTab.TEAMS)
+}
+
+@Preview
+@Composable
+private fun AgeGroupMembersParentPreview() {
+    val d = sampleDetails(populated = true, canManage = false)
+    AgeGroupPreview(d, AgeGroupRecordUiState.Loaded(sampleRecord(d, staff = false)), AgeGroupTab.MEMBERS)
+}
+
+@Preview
+@Composable
+private fun AgeGroupEmptyPreview() {
+    val d = sampleDetails(populated = false, canManage = true)
+    AgeGroupPreview(d, AgeGroupRecordUiState.Loaded(AgeGroupSeasonRecord("ag1", emptyList(), emptyList(), true)), AgeGroupTab.STATS, dark = true)
 }
 
 @Preview(widthDp = 780, heightDp = 360)
 @Composable
-private fun AgeGroupDetailsLandscapePreview() {
-    SquadifyTheme {
-        AgeGroupDetailsContent(
-            uiState = AgeGroupDetailsUiState.Idle(sampleDetails(populated = true, canManage = true)),
-            playerSort = PlayerSort.NAME, searchQuery = "",
-            onNavigateBack = {}, onRetry = {}, onPlayerSortChange = {}, onSearchChange = {},
-            onPlayerClick = {}, onTeamClick = {}, onMatchClick = {}, onAddPlayers = {}, onAddStaff = {}, onCreateTeam = {}, onCreateMatch = {}
-        )
-    }
+private fun AgeGroupLandscapePreview() {
+    val d = sampleDetails(populated = true, canManage = true)
+    AgeGroupPreview(d, AgeGroupRecordUiState.Loaded(sampleRecord(d, staff = true)), AgeGroupTab.STATS)
 }

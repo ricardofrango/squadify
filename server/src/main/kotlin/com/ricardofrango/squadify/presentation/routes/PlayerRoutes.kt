@@ -12,6 +12,7 @@ import org.koin.ktor.ext.inject
 
 fun Route.playerRoutes() {
     val getPlayerUseCase by inject<GetPlayerUseCase>()
+    val getPlayerSeasonStatsUseCase by inject<GetPlayerSeasonStatsUseCase>()
     val getPlayersUseCase by inject<GetPlayersUseCase>()
     val getAgeGroupPlayersByClubUseCase by inject<GetAgeGroupPlayersByClubUseCase>()
     val createPlayersUseCase by inject<CreatePlayersUseCase>()
@@ -55,6 +56,15 @@ fun Route.playerRoutes() {
 
             // 3. ID-based paths last
             route("/{playerId}") {
+                // Every season's per-match stats lines (design 30); totals are derived client-side.
+                get("/season-stats") {
+                    val playerId =
+                        call.parameters["playerId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId =
+                        call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                    call.respond(getPlayerSeasonStatsUseCase(currentUserId, playerId))
+                }
+
                 get {
                     val playerId =
                         call.parameters["playerId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
