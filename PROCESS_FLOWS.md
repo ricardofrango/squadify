@@ -1508,7 +1508,7 @@ Four different use cases can *create* an `Invite`; exactly one use case *resolve
 graph TD
     subgraph Creation points
     P1["ProvisionClubUseCase — unknown Director email"] --> INV[Create Invite row]
-    P2["AddClubMembersUseCase — unknown Member emails"] --> INV
+    P2["AddClubMembersUseCase — unknown emails, as Member or Coordinator"] --> INV
     P3["CreatePlayersUseCase — unknown Player / Parent emails"] --> INV
     P4["UpdatePlayerUseCase — unknown Player / Parent emails"] --> INV
     end
@@ -1523,7 +1523,7 @@ graph TD
     W --> Z(["User is fully onboarded into every club / player they were invited to"])
 ```
 
-The physical sending of the invite email is wired up for **P1/P2 only** (`ProvisionClubUseCase`, `AddClubMembersUseCase`) via `EmailService`/Resend, sent after the transaction commits — see `TECHNICAL_DECISIONS.md` §14. **P3/P4** (`CreatePlayersUseCase`, `UpdatePlayerUseCase` — the `PARENT_PLAYER` invite path) still only ever write a row to the `Invites` table with no email, since players/parents are explicitly out of scope for now (per the developer, v1.0.0 testing covers admin/coordinator/coach/staff only). `AddStaffToAgeGroupUseCase` (§5.4) also sends email but never creates an `Invite` — every age-group staff addition requires an existing club member, so that path is always the "already has an account" notification, never the registration-invite one.
+The physical sending of the invite email is wired up for **P1/P2 only** (`ProvisionClubUseCase`, `AddClubMembersUseCase`) via `EmailService`/Resend, sent after the transaction commits — see `TECHNICAL_DECISIONS.md` §14. **P3/P4** (`CreatePlayersUseCase`, `UpdatePlayerUseCase` — the `PARENT_PLAYER` invite path) still only ever write a row to the `Invites` table with no email, since players/parents are explicitly out of scope for now (per the developer, v1.0.0 testing covers admin/coordinator/coach/staff only). Pending `CLUB_MEMBER` invites are visible and manageable from Club settings → Members (§3.7): listed with their intended role, resendable (the same email again) and cancellable (§3.8). `PARENT_PLAYER` invites are still not shown anywhere. `AddStaffToAgeGroupUseCase` (§5.4) also sends email but never creates an `Invite` — every age-group staff addition requires an existing club member, so that path is always the "already has an account" notification, never the registration-invite one.
 
 ---
 
@@ -1543,7 +1543,14 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
   **Resolved by removing the feature, not building it:** since parents/players are out of scope for v1.0.0 and nothing had ever set a call-up to anything other than `CALLED_UP`, the whole attendance-status concept (`UpdateCallUpStatusUseCase`, its route, `CallUpStatus`'s other 4 values) was removed rather than kept as unreachable code waiting for a parent feature that doesn't exist yet. Being called up is now binary -- see §7.2, `TECHNICAL_DECISIONS.md`.
 - [x] **No match-status transition validation.** `UpdateMatchStatusUseCase` accepted any `MatchStatus` value from any current status — nothing stopped jumping straight from `SCHEDULED` to `FINISHED`, and (a sharper version of the same gap) a coach could set `SCHEDULED -> LIVE` through this use case directly, completely bypassing `StartMatchUseCase`'s starting-line-up/half-length validation, since it's a separately exposed route (`MatchRoutes.kt`), not something `StartMatchUseCase` delegates to.
   **Fixed:** added an explicit transition table (`VALID_MATCH_STATUS_TRANSITIONS`) -- `SCHEDULED -> CANCELLED` only (kickoff stays exclusive to `StartMatchUseCase`); `LIVE -> {HALF_TIME, FINISHED, CANCELLED}`; `HALF_TIME -> {LIVE, FINISHED, CANCELLED}`; `FINISHED`/`CANCELLED` are terminal. An invalid transition now throws `ValidationException`. See `UpdateMatchStatusUseCaseTest`.
-- [ ] **No historical/aggregated match statistics use case exists yet.** `GetMatchScoreUseCase`/`GetMatchEventsUseCase` only expose live/raw data — this matches the open `REQUIREMENTS.md` Phase 5 item "Historical match statistics (Post-match analysis)".
+- [x] **No historical/aggregated match statistics use case exists yet.** `GetMatchScoreUseCase`/`GetMatchEventsUseCase` only expose live/raw data — this matches the open `REQUIREMENTS.md` Phase 5 item "Historical match statistics (Post-match analysis)".
+  **Fixed:** per-player stats lines are written for every finished match (`MatchPlayerStatsCalculator`, §8.2f), and are read back through the match report (§8.6), a player's season stats (`GetPlayerSeasonStatsUseCase`, §5.1c), a team's season record (`GetTeamSeasonRecordUseCase`, §4.6c) and an age group's season record (`GetAgeGroupSeasonRecordUseCase`, §4.4c). The only piece left on the Phase 5 roadmap item is the live console's full-time "Minutes played" row (see the next entry).
+- [ ] **Some client affordances are still inert.** These are shown on purpose, matching the designs, but do nothing yet:
+  - **Login:** "Forgot password?" has no flow (no reset endpoint either).
+  - **Team Details:** ⋮ → "Edit team" has no Edit Team screen; its navigation callback is empty.
+  - **Live match console:** the full-time "Minutes played" row has no destination, though the per-player minutes already exist in `match_player_stats`.
+  - **Club settings:** "Add logo" does nothing, since there's no image upload anywhere in the app.
+  - **Account:** "Change email" is likewise non-functional.
 - [x] **Invite emails are not sent.** Every invite-creation path used to only write to the `Invites` table (§10), with no email call anywhere.
   **Partly fixed:** `ProvisionClubUseCase`/`AddClubMembersUseCase` now send emails via Resend (`TECHNICAL_DECISIONS.md` §14). The `PARENT_PLAYER` paths (`CreatePlayersUseCase`/`UpdatePlayerUseCase`) still send nothing, on purpose, since parents/players are out of scope for now.
 
