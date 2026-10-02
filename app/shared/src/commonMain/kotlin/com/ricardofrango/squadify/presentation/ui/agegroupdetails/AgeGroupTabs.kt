@@ -638,7 +638,7 @@ internal fun AgeGroupMembersTab(
                                 season = members?.get(player.id),
                                 seasonKnown = members != null,
                                 playsUp = player.birthDate.year > details.ageGroup.endYear,
-                                teamLabels = members?.get(player.id)?.teamIds.orEmpty().mapNotNull { teamsById[it]?.shortLabel(details.ageGroup.name) },
+                                teamNames = members?.get(player.id)?.teamIds.orEmpty().mapNotNull { teamsById[it]?.name }.sorted(),
                                 onClick = { onOpenPlayer(player.id) }
                             )
                         }
@@ -649,18 +649,23 @@ internal fun AgeGroupMembersTab(
     }
 }
 
+/**
+ * A pool player: shirt number (centred in its column), name, position + this season's apps · minutes,
+ * then a full-name tag for each team he played for ("Sub-15 A"), so A and B are never ambiguous.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun MemberRow(player: Player, season: MemberSeason?, seasonKnown: Boolean, playsUp: Boolean, teamLabels: List<String>, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 14.dp, end = 12.dp, top = 11.dp, bottom = 11.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            player.shirtNumber?.toString() ?: "—",
-            modifier = Modifier.width(24.dp),
-            textAlign = TextAlign.End,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 16.sp),
-            color = if (player.shirtNumber != null) PitchGreen else DeepCarbon.copy(alpha = 0.35f)
-        )
-        Spacer(Modifier.width(11.dp))
+private fun MemberRow(player: Player, season: MemberSeason?, seasonKnown: Boolean, playsUp: Boolean, teamNames: List<String>, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 10.dp, end = 12.dp, top = 11.dp, bottom = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.width(32.dp), contentAlignment = Alignment.Center) {
+            Text(
+                player.shirtNumber?.toString() ?: "—",
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 16.sp),
+                color = if (player.shirtNumber != null) PitchGreen else DeepCarbon.copy(alpha = 0.35f)
+            )
+        }
+        Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Text("${player.firstName} ${player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.5.sp), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(3.dp))
@@ -684,13 +689,17 @@ private fun MemberRow(player: Player, season: MemberSeason?, seasonKnown: Boolea
                     }
                 }
             }
-        }
-        if (teamLabels.isNotEmpty()) {
-            Spacer(Modifier.width(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                teamLabels.forEach { label ->
-                    Box(Modifier.size(24.dp).background(CarbonGray.copy(alpha = 0.08f), RoundedCornerShape(6.dp)), contentAlignment = Alignment.Center) {
-                        Text(label, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Black, fontSize = 11.sp), color = DeepCarbon, maxLines = 1)
+            if (teamNames.isNotEmpty()) {
+                Spacer(Modifier.height(5.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    teamNames.forEach { name ->
+                        Text(
+                            name,
+                            modifier = Modifier.background(CarbonGray.copy(alpha = 0.07f), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 1.dp),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
+                            color = DeepCarbon,
+                            maxLines = 1
+                        )
                     }
                 }
             }
