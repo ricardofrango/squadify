@@ -63,6 +63,8 @@ fun AgeGroupDetailsScreen(
     onNavigateToAddStaff: (clubId: String, clubName: String, ageGroupId: String) -> Unit,
     onNavigateToCreateTeams: (clubId: String, clubName: String, sport: SportType) -> Unit,
     onNavigateToCreateMatch: (ageGroupId: String) -> Unit,
+    // A staff row opens Member details (design 35) -- coordinators only, who can read it.
+    onNavigateToMember: (clubId: String, userId: String) -> Unit = { _, _ -> },
     refreshOnReturn: Boolean = false,
     viewModel: AgeGroupDetailsViewModel = koinViewModel()
 ) {
@@ -94,7 +96,8 @@ fun AgeGroupDetailsScreen(
         onAddPlayers = { d -> onNavigateToAddPlayers(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
         onAddStaff = { d -> onNavigateToAddStaff(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
         onCreateTeam = { d -> onNavigateToCreateTeams(d.ageGroup.clubId, d.club.name, d.club.sport) },
-        onCreateMatch = { d -> onNavigateToCreateMatch(d.ageGroup.id) }
+        onCreateMatch = { d -> onNavigateToCreateMatch(d.ageGroup.id) },
+        onStaffClick = { d, userId -> onNavigateToMember(d.ageGroup.clubId, userId) }
     )
 }
 
@@ -137,7 +140,8 @@ private fun AgeGroupDetailsContent(
     onAddPlayers: (AgeGroupDetails) -> Unit,
     onAddStaff: (AgeGroupDetails) -> Unit,
     onCreateTeam: (AgeGroupDetails) -> Unit,
-    onCreateMatch: (AgeGroupDetails) -> Unit
+    onCreateMatch: (AgeGroupDetails) -> Unit,
+    onStaffClick: (AgeGroupDetails, String) -> Unit = { _, _ -> }
 ) {
     val details = (uiState as? AgeGroupDetailsUiState.Idle)?.details
     // Each tab keeps its own scroll; tapping the active tab scrolls it to the top (33f).
@@ -213,7 +217,8 @@ private fun AgeGroupDetailsContent(
                             AgeGroupTab.MEMBERS -> AgeGroupMembersTab(
                                 details = d, recordState = recordState, searchQuery = searchQuery, listState = listStates.getValue(tab), padding = padding,
                                 modifier = boxModifier, onSearchChange = onSearchChange, onAddStaff = { onAddStaff(d) },
-                                onAddPlayers = { onAddPlayers(d) }, onOpenPlayer = onPlayerClick
+                                onAddPlayers = { onAddPlayers(d) }, onOpenPlayer = onPlayerClick,
+                                onOpenStaff = if (d.canAddStaff) { userId -> onStaffClick(d, userId) } else null
                             )
                         }
                     }

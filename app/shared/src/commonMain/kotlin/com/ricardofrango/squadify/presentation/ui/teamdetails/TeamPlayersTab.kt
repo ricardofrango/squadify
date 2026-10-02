@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -234,7 +235,9 @@ internal fun AgeGroupContextCard(
     ageGroupName: String,
     poolSize: Int,
     siblingTeamNames: List<String>,
-    onViewPool: () -> Unit
+    onViewPool: () -> Unit,
+    // Null below coordinator: the chips stay inert, since Member details wouldn't open.
+    onOpenStaff: ((String) -> Unit)? = null
 ) {
     StatsCard(contentPadding = 0.dp) {
         if (staff.isNotEmpty()) {
@@ -243,7 +246,12 @@ internal fun AgeGroupContextCard(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     staff.forEach { member ->
                         val role = stringResource(if (member.role == TeamRole.COACH) Res.string.label_role_coach else Res.string.label_role_staff)
-                        Surface(shape = RoundedCornerShape(8.dp), color = CarbonGray.copy(alpha = 0.06f)) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = CarbonGray.copy(alpha = 0.06f),
+                            // clickable rather than Surface(onClick), which would force a 48dp-tall chip.
+                            modifier = if (onOpenStaff != null) Modifier.clip(RoundedCornerShape(8.dp)).clickable { onOpenStaff(member.userId) } else Modifier
+                        ) {
                             Text(
                                 "${member.firstName.take(1)}. ${member.lastName} · $role",
                                 modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),

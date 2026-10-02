@@ -75,6 +75,8 @@ fun TeamDetailsScreen(
     onNavigateToMatch: (String) -> Unit,
     onScheduleMatch: () -> Unit,
     onEditTeam: () -> Unit,
+    // A staff chip opens Member details (design 35) -- only for coordinators ([TeamDetails.canViewMembers]).
+    onNavigateToMember: (clubId: String, userId: String) -> Unit = { _, _ -> },
     refreshOnReturn: Boolean = false,
     viewModel: TeamDetailsViewModel = koinViewModel()
 ) {
@@ -101,7 +103,8 @@ fun TeamDetailsScreen(
         onNavigateToPlayer = onNavigateToPlayer,
         onScheduleMatch = onScheduleMatch,
         onEditTeam = onEditTeam,
-        onMatchClick = onNavigateToMatch
+        onMatchClick = onNavigateToMatch,
+        onNavigateToMember = onNavigateToMember
     )
 }
 
@@ -122,7 +125,8 @@ private fun TeamDetailsContent(
     onNavigateToPlayer: (String, String, StatsFilter) -> Unit,
     onScheduleMatch: () -> Unit,
     onEditTeam: () -> Unit,
-    onMatchClick: (String) -> Unit
+    onMatchClick: (String) -> Unit,
+    onNavigateToMember: (String, String) -> Unit = { _, _ -> }
 ) {
     val details = (uiState as? TeamDetailsUiState.Idle)?.details
     // Each tab keeps its own scroll position; tapping the active tab scrolls it to the top (32f).
@@ -251,7 +255,8 @@ private fun TeamDetailsContent(
                                 onSquadSortSelected = onSquadSortSelected,
                                 onRetry = onRetryRecord,
                                 onOpenPlayer = { playerId, seasonId, filter -> onNavigateToPlayer(playerId, seasonId, filter) },
-                                onViewPool = { onNavigateToAgeGroup(d.ageGroup.id) }
+                                onViewPool = { onNavigateToAgeGroup(d.ageGroup.id) },
+                                onOpenStaff = if (d.canViewMembers) { userId -> onNavigateToMember(d.team.clubId, userId) } else null
                             )
                         }
                     }
@@ -437,7 +442,8 @@ private fun PlayersTab(
     onSquadSortSelected: (SquadSort) -> Unit,
     onRetry: () -> Unit,
     onOpenPlayer: (String, String, StatsFilter) -> Unit,
-    onViewPool: () -> Unit
+    onViewPool: () -> Unit,
+    onOpenStaff: ((String) -> Unit)? = null
 ) {
     LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         when (recordState) {
@@ -500,7 +506,8 @@ private fun PlayersTab(
                 ageGroupName = details.ageGroup.name,
                 poolSize = details.poolSize,
                 siblingTeamNames = details.siblingTeamNames,
-                onViewPool = onViewPool
+                onViewPool = onViewPool,
+                onOpenStaff = onOpenStaff
             )
         }
     }

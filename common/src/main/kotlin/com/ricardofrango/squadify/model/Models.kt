@@ -670,7 +670,9 @@ data class TeamDetails(
     val upcomingMatchScores: Map<String, MatchScore> = emptyMap(),
     val recentResults: List<TeamMatchResult>,
     val opponents: List<Opponent>,
-    val canManageMatch: Boolean
+    val canManageMatch: Boolean,
+    // Coordinator+: the staff chips open Member details (design 35), which only they can read.
+    val canViewMembers: Boolean = false
 )
 
 /**

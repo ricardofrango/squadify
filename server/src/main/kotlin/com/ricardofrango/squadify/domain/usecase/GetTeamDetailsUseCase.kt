@@ -73,6 +73,14 @@ class GetTeamDetailsUseCase(
             false
         }
 
+        // Same gate as the members overview (coordinator+), so staff chips only link where Member details opens.
+        val canViewMembers = try {
+            checkUserPermissionUseCase(userId = userId, clubId = team.clubId, minClubRole = ClubRole.COORDINATOR)
+            true
+        } catch (e: ForbiddenException) {
+            false
+        }
+
         val now = Clock.System.now()
         val allMatches = matchRepository.getMatchesByTeam(teamId)
 
@@ -120,7 +128,8 @@ class GetTeamDetailsUseCase(
             upcomingMatchScores = upcomingMatchScores,
             recentResults = recentResults,
             opponents = opponentRepository.getOpponentsByClub(team.clubId),
-            canManageMatch = canManageMatch
+            canManageMatch = canManageMatch,
+            canViewMembers = canViewMembers
         )
     }
 }

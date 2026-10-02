@@ -546,7 +546,9 @@ internal fun AgeGroupMembersTab(
     onSearchChange: (String) -> Unit,
     onAddStaff: () -> Unit,
     onAddPlayers: () -> Unit,
-    onOpenPlayer: (String) -> Unit
+    onOpenPlayer: (String) -> Unit,
+    // Null for readers who can't open Member details (below coordinator): the rows stay inert.
+    onOpenStaff: ((String) -> Unit)? = null
 ) {
     val members = (recordState as? AgeGroupRecordUiState.Loaded)?.record?.memberSeasons()
     val teamsById = remember(details.teams) { details.teams.associateBy { it.id } }
@@ -579,7 +581,12 @@ internal fun AgeGroupMembersTab(
                 StatsCard(contentPadding = 0.dp) {
                     details.staff.forEachIndexed { i, member ->
                         if (i > 0) HorizontalDivider(color = CarbonGray.copy(alpha = 0.07f))
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            Modifier.fillMaxWidth()
+                                .then(if (onOpenStaff != null) Modifier.clickable { onOpenStaff(member.userId) } else Modifier)
+                                .padding(horizontal = 14.dp, vertical = 11.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Box(Modifier.size(36.dp).background(CarbonGray.copy(alpha = 0.08f), CircleShape), contentAlignment = Alignment.Center) {
                                 Text("${member.firstName.take(1)}${member.lastName.take(1)}", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
                             }
@@ -590,6 +597,9 @@ internal fun AgeGroupMembersTab(
                                     stringResource(if (member.role == TeamRole.COACH) Res.string.label_role_coach else Res.string.label_role_staff),
                                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp), color = StatsSecondaryText
                                 )
+                            }
+                            if (onOpenStaff != null) {
+                                Icon(painterResource(Res.drawable.ic_chevron_right), contentDescription = null, tint = DeepCarbon.copy(alpha = 0.3f), modifier = Modifier.size(20.dp))
                             }
                         }
                     }
