@@ -7,6 +7,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
@@ -47,7 +48,8 @@ import kotlin.time.Instant
 private val CardShape = RoundedCornerShape(16.dp)
 private val LiveRed = Color(0xFFC0392B)
 private val CardYellow = Color(0xFFF1C40F)
-private val HALF_LENGTH_OPTIONS = listOf(20, 25, 30, 40)
+// 45 is the standard 11-a-side half from the older age groups up.
+private val HALF_LENGTH_OPTIONS = listOf(20, 25, 30, 40, 45)
 
 /**
  * The touchline tool: pre-kickoff line-up picker, the live squad/events console, and the full-time
@@ -211,7 +213,8 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, viewModel: LiveMatch
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
                     )
                     Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // Scrolls sideways when the options don't fit (a narrow phone, a large font size).
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         HALF_LENGTH_OPTIONS.forEach { option ->
                             HalfLengthPill(option, option == halfLength) { halfLength = option }
                         }
@@ -330,9 +333,10 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, viewModel: LiveMatch
 }
 
 @Composable
-private fun HalfLengthPill(minutes: Int, selected: Boolean, onClick: () -> Unit) {
+private fun HalfLengthPill(minutes: Int, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
+        modifier = modifier,
         shape = RoundedCornerShape(10.dp),
         color = if (selected) PitchGreen else CarbonGray
     ) {
