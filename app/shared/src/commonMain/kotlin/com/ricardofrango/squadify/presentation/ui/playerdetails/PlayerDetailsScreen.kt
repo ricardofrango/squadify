@@ -364,7 +364,7 @@ private fun sampleMatch(id: String, day: Int, type: MatchType?, started: Boolean
     PlayerSeasonMatch(
         matchId = id, dateTime = Instant.fromEpochMilliseconds(1_790_000_000_000L - day * 86_400_000L), opponentName = "AD Fontelas",
         matchType = type, started = started, minutesPlayed = minutes, goals = goals, assists = assists,
-        ownGoals = 0, yellowCards = yellow, redCards = 0, rating = rating
+        ownGoals = 0, yellowCards = yellow, redCards = 0, rating = rating, teamName = "Sub-15 A"
     )
 
 private fun sampleSeasonStats(staff: Boolean) = SeasonStatsUiState.Loaded(

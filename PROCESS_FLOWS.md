@@ -741,7 +741,7 @@ graph TD
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D["Load the club's matches, teams, seasons, opponents; the player's stats lines (getByPlayer)"]
     D --> R["canRate[team] = probe of the report's read gate (COORDINATOR / age-group STAFF) for each team he has lines in"]
-    R --> E["Each line → PlayerSeasonMatch, grouped by the season of the match's team; rating kept only if canRate[team] AND the report is completed"]
+    R --> E["Each line → PlayerSeasonMatch (with the team's name, e.g. 'Sub-15 A'), grouped by the season of the match's team; rating kept only if canRate[team] AND the report is completed"]
     E --> P["preStats = FINISHED matches he was called up for with no full-time minute (before stats existed), counted per season"]
     P --> S["seasons = the seasons of his age-group pools ∪ seasons with lines or preStats, newest first (by startDate)"]
     S --> Z(["Return PlayerSeasonStats: seasons (seasonName, teamNames, matches newest first, preStatsMatchCount), currentSeasonId (the active season, else the newest), canSeeRatings"])

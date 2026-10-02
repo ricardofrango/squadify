@@ -87,7 +87,8 @@ class GetPlayerSeasonStatsUseCase(
                 ownGoals = line.ownGoals,
                 yellowCards = line.yellowCards,
                 redCards = line.redCards,
-                rating = rating
+                rating = rating,
+                teamName = team.name
             ))
         }.groupBy({ it.first }, { it.second })
 

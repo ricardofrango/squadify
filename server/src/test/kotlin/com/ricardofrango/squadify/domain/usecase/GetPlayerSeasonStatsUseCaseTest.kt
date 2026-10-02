@@ -120,6 +120,7 @@ class GetPlayerSeasonStatsUseCaseTest {
         assertEquals(listOf("Sub-15 A"), now.teamNames)
         assertEquals(listOf("m1", "m2"), now.matches.map { it.matchId })
         assertEquals("AD Fontelas", now.matches.first().opponentName)
+        assertEquals("Sub-15 A", now.matches.first().teamName)
         assertEquals(9, now.matches[0].rating)
         assertNull(now.matches[1].rating) // draft report
         assertEquals(0, now.preStatsMatchCount)

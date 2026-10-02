@@ -40,7 +40,9 @@ data class PlayerSeasonMatch(
     val ownGoals: Int,
     val yellowCards: Int,
     val redCards: Int,
-    val rating: Int? = null
+    val rating: Int? = null,
+    // The team he played for in that match ("Sub-15 A"), so A and B are never ambiguous.
+    val teamName: String = ""
 )
 
 /**

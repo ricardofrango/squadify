@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -234,19 +235,23 @@ internal fun PlayerMatchesList(matches: List<PlayerSeasonMatch>, showRatings: Bo
 @Composable
 private fun PlayerMatchRow(m: PlayerSeasonMatch, showRating: Boolean, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 14.dp, end = 12.dp, top = 11.dp, bottom = 11.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 8.dp, end = 12.dp, top = 11.dp, bottom = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            m.dateTime.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(DayMonth),
-            modifier = Modifier.width(46.dp),
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
-            maxLines = 1,
-            color = StatsSecondaryText
-        )
-        Spacer(Modifier.width(11.dp))
+        // The date is centred in its column, so the space after it matches the card's edge before it.
+        Box(Modifier.width(48.dp), contentAlignment = Alignment.Center) {
+            Text(
+                m.dateTime.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(DayMonth),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
+                maxLines = 1,
+                color = StatsSecondaryText
+            )
+        }
+        Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f)) {
-            Text("vs ${m.opponentName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp), color = DeepCarbon)
+            // "Sub-15 A vs AD Fontelas": which of the age group's teams he played for.
+            Text(if (m.teamName.isNotEmpty()) "${m.teamName} vs ${m.opponentName}" else "vs ${m.opponentName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp), color = DeepCarbon)
             Spacer(Modifier.height(4.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(4.dp), itemVerticalAlignment = Alignment.CenterVertically) {
                 m.matchType?.takeIf(MatchType::isTaggedInLists)?.let { MatchTypeTag(it) }
