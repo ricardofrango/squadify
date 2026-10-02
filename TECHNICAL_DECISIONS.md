@@ -2354,3 +2354,40 @@ Club settings (design 34) moves from a top tab row to the same dark bottom bar a
 
 **Staff link to Member details** wherever they're listed: the age group's Members tab (staff rows) and Team Details' age-group card (staff chips). A link shows only where the page would open: coordinators and above, using `AgeGroupDetails.canAddStaff` and a new `TeamDetails.canViewMembers`. For anyone else the rows and chips stay inert. Player Details only shows a guardian count, not names, so there's nothing to link there yet.
 
+## 45. Live Minutes Played
+
+In 7- and 9-a-side youth football substitutions are unlimited and players come off and back on many times, so the coach's main live job is sharing playing time fairly. The live console (design 36) shows it while the match runs.
+
+**One function for live and stored minutes.**
+- **Shared code:** the minutes rules moved from the server's `MatchPlayerStatsCalculator` to `playerMinutes` in `common/.../model/MatchMinutes.kt`. The calculator now calls it at full time, and the live console calls it with the running clock's minute as the end of the current half.
+- **No new data:** minutes are derived from the Starting XI and the substitution log, with the clock (pause, corrections and stoppage time included). Nothing is stored live, so a clock correction recalculates every number at once.
+- **Same answer everywhere:** what the coach sees at 18' is exactly what the full-time stats store. Tests: `MatchMinutesTest` (live: spells, rolling subs, across half time, red cards, fair share) plus the existing `MatchPlayerStatsCalculatorTest`.
+
+**What "fair" means.**
+- **Fair share** = elapsed match minutes × players on the pitch ÷ players called up.
+- **Below share** = under 60% of the share, flagged in amber.
+- **Not from the start:** nothing is flagged before 5', when shares are meaningless.
+- **The bar is the share of the match played so far:** minutes played ÷ match minutes. At 20', a player with 20' is full, one with 10' is half, and one who hasn't played is all grey. (The first version scaled the bar to 1.6× the fair share, so with no bench every bar sat at ~60% all match and looked wrong.)
+- **No bench, no share:** with nobody on the bench everyone is always exactly at the share, so the share line, the "below share" flags and the half-time plan are hidden. The minutes and the bars stay.
+- **Information, not enforcement:** there are no limits or rules, just numbers to help the coach decide.
+
+**Substituting with the numbers in view.**
+- Taking a player off lists the bench fewest-minutes-first; bringing one on lists the pitch longest-on-first, so the next fair choice is on top.
+- A bench player can only come on, so tapping one goes straight to "who goes off?".
+- The current spell ("on for 18'") turns amber past 15' so a tired player stands out.
+
+**Clock controls.**
+- **Pause:** the small "Pause" link became a 48dp button (56dp in landscape) beside the clock, amber ▶ while paused.
+- **Correction:** the "Set minute" link and the hint row under the clock are gone. Tapping the clock opens the correction sheet.
+- **No confirmation** on either: both are reversible.
+
+**On the server's clock.** Every match timestamp (kickoff, second half, pause, corrections) is stamped by the server, but the device counted with its own clock, so a phone a few seconds behind the server showed the second half starting at 29:4x. `MatchDetails.serverNow` carries the server's time, the console estimates the offset from the midpoint of each request (`estimateServerClockOffset`), and counts with `now + offset`. The second half therefore always restarts at exactly the half length (30:00 for 30-minute halves), however long the first half ran (`SecondHalfClockTest`). The club Matches list's live badge still uses the device clock; it shows whole minutes only, so a few seconds don't show.
+
+**A pause ends with its half.** A clock left paused at the half-time whistle used to carry into the second half: the new half's clock counted from the old pause instant (before the restart), so it showed under 30:00 and stood still until Resume. Ending the first half, starting the second and full time now all clear `pausedAt`, so the second half runs at once from the half length.
+
+**Action bar.** There's no second interval, so once the second half has started only FULL TIME is shown (HALF TIME was still offered before). At half time only START 2ND HALF.
+
+**Half and full time.**
+- **Reloading:** the console reloads the match after HALF TIME and FULL TIME, rather than patching the status locally. Half-time totals need the server's recorded end of the first half, and full time needs the report card.
+- **Full time:** the summary shows a minutes table and links to the match report, replacing the old dead "Minutes played" row.
+

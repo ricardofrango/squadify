@@ -901,4 +901,46 @@
         <item quantity="one">%1$d jogador deste escalão nasceu antes de %2$d. Retire-o primeiro do plantel ou mantenha um ano de nascimento mais antigo.</item>
         <item quantity="other">%1$d jogadores deste escalão nasceram antes de %2$d. Retire-os primeiro do plantel ou mantenha um ano de nascimento mais antigo.</item>
     </plurals>
+    <!-- Live match minutes (design 36) -->
+    <string name="lm_fair_share">Média justa até agora ≈ %1$s</string>
+    <string name="lm_share_from">A média aparece a partir dos %1$s</string>
+    <string name="lm_minutes_paused">minutos em pausa</string>
+    <string name="lm_on_for">em campo há %1$s</string>
+    <string name="lm_off_since">fora desde os %1$s</string>
+    <string name="lm_not_played">Ainda não jogou</string>
+    <string name="lm_below_share">abaixo da média</string>
+    <string name="lm_sort_fewest">Menos minutos primeiro</string>
+    <string name="lm_sort_shirt">Por número</string>
+    <string name="lm_pause_cd">Pausar o tempo de jogo</string>
+    <string name="lm_resume_cd">Retomar o tempo de jogo</string>
+    <string name="lm_correct_clock">Acertar o tempo</string>
+    <string name="lm_correct_running">O relógio continua a contar a partir do novo minuto.</string>
+    <string name="lm_correct_paused">O relógio fica em pausa depois de guardar.</string>
+    <string name="lm_clock_set">Tempo acertado para %1$d:00 — minutos recalculados</string>
+    <string name="lm_take_off">Tirar %1$s</string>
+    <string name="lm_bring_on">Fazer entrar %1$s</string>
+    <string name="lm_played">%1$s jogados</string>
+    <string name="lm_who_comes_on">Quem entra? Menos minutos primeiro</string>
+    <string name="lm_who_goes_off">Quem sai? Há mais tempo em campo primeiro</string>
+    <string name="lm_sub_done">%1$s — entra %2$s, sai %3$s</string>
+    <string name="lm_plan_title">Preparar a 2.ª parte</string>
+    <string name="lm_plan_below">Abaixo da média: %1$s</string>
+    <string name="lm_plan_none">Todos estão na média ou acima.</string>
+    <string name="lm_first_half_totals">Minutos da 1.ª parte (%1$s).</string>
+    <string name="lm_share_short">média ≈ %1$s</string>
+    <string name="lm_match_minutes">%1$s de jogo</string>
+    <string name="lm_fill_report">Preencher o relatório do jogo</string>
+    <string name="lm_view_report">Ver o relatório do jogo</string>
+    <string name="lm_events_heading">Eventos · %1$d</string>
+    <string name="lm_half_time_sub">1.ª parte · %1$s</string>
+    <string name="lm_tap_to_correct">toque para acertar</string>
+    <string name="lm_no_events">Sem eventos</string>
+    <plurals name="lm_summary_not_played">
+        <item quantity="one">%1$d ainda não jogou</item>
+        <item quantity="other">%1$d ainda não jogaram</item>
+    </plurals>
+    <plurals name="lm_summary_below">
+        <item quantity="one">%1$d abaixo da média</item>
+        <item quantity="other">%1$d abaixo da média</item>
+    </plurals>
 </resources>

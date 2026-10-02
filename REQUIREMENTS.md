@@ -76,21 +76,21 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Opponent management (dedicated entity and table).
     - [x] Match creation and listing.
     - [x] Call-up management (batch player assignment).
-- [/] **Phase 5: Live Match & Stats**: Real-time events and automated statistics calculation.
+- [x] **Phase 5: Live Match & Stats**: Real-time events and automated statistics calculation.
     - [x] Real-time broadcasting via **WebSockets**.
     - [x] Live Event logging (Goals, Assists, Cards, Subs).
     - [x] Live Score calculation.
     - [x] Live match console (client): kickoff line-up picker, live squad/events tabs, event logging & deletion, full-time summary. Pause/Resume freezes the running clock for a mid-half stoppage, and "Set minute" applies a manual correction -- both server-authoritative (persisted and broadcast), not client-clock-derived, and neither behind a confirmation dialog (lower-stakes, reversible). See `TECHNICAL_DECISIONS.md` §29.
     - [x] Club-wide Matches tab live-updates via a second, club-scoped WebSocket (`/clubs/{clubId}/matches/live`) — connects while the tab is on screen, disconnects on tab-switch or navigating into a match, reconnects + REST-refreshes on return. Fixture create/edit/delete/kickoff/status-change and per-goal score updates all broadcast live. See `TECHNICAL_DECISIONS.md` §28.
     - [x] The running clock formula is shared (`elapsedMatchSeconds` in `common/model/Models.kt`) between the live match console and the Matches list's live badge, so the two can never disagree, and both reflect a paused clock identically. See `TECHNICAL_DECISIONS.md` §29.
-    - [/] Historical match statistics (Post-match analysis): per-player stats (started, minutes played including stoppage time, goals, assists, own goals, cards) are stored for every finished match, and a played match can no longer be deleted or have its events changed. The coach's post-match report (analysis plus 0–10 player ratings) has its editor, read view, Match Details card and Home to-do, and ratings are shown next to each player's stats. See `TECHNICAL_DECISIONS.md` §41. Season stats are shown outside the report too:
+    - [x] Historical match statistics (Post-match analysis): per-player stats (started, minutes played including stoppage time, goals, assists, own goals, cards) are stored for every finished match, and a played match can no longer be deleted or have its events changed. The coach's post-match report (analysis plus 0–10 player ratings) has its editor, read view, Match Details card and Home to-do, and ratings are shown next to each player's stats. See `TECHNICAL_DECISIONS.md` §41. Season stats are shown outside the report too:
       - Player Details has season totals and a per-match list, with a season switcher.
       - Team Details has a season record (W/D/L, goals, form) and team leaders.
       - Team Details is split into Stats · Matches · Members tabs. The Members tab lists only the players who played for that team.
       - Age Group Details is split into Stats · Teams · Matches · Members tabs. Stats shows results by team and how minutes are spread across the pool.
       - Both can be filtered by match type (All / Competitive / Friendly), and ratings are shown to staff only (see `TECHNICAL_DECISIONS.md` §43).
 
-      Still pending: the live console's full-time "Minutes played" row is still a placeholder.
+    - [x] **Live minutes played** (design 36): the live console's Squad tab shows each player's minutes so far, live, with a bar against the fair share, the current spell ("on for 18'") or "off since", and amber flags for players below the share or not played yet; the bench sorts fewest minutes first. Substitutions are unlimited and in any direction (rolling subs in 7- and 9-a-side), and the substitution pickers list candidates with their minutes. Half time shows first-half totals and who's furthest below the share. The clock has a real pause button and is tapped to correct it. Full time shows a minutes table and links to the match report. See `TECHNICAL_DECISIONS.md` §45.
 - [ ] **Phase 6: Dashboards & Aggregated Summaries**: Role-specific overview endpoints.
     - [/] **Super Admin Summary**: Global platform health (Total clubs, active users, system logs).
     - [/] **Club Admin Summary**: Club overview (Total players/teams, financial status placeholder, upcoming matches).

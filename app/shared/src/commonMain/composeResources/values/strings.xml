@@ -903,4 +903,46 @@
         <item quantity="one">%1$d player in this age group was born before %2$d. Remove them from the pool first, or keep an older birth year.</item>
         <item quantity="other">%1$d players in this age group were born before %2$d. Remove them from the pool first, or keep an older birth year.</item>
     </plurals>
+    <!-- Live match minutes (design 36) -->
+    <string name="lm_fair_share">Fair share so far ≈ %1$s</string>
+    <string name="lm_share_from">Shares show from %1$s</string>
+    <string name="lm_minutes_paused">minutes paused</string>
+    <string name="lm_on_for">on for %1$s</string>
+    <string name="lm_off_since">off since %1$s</string>
+    <string name="lm_not_played">Not played yet</string>
+    <string name="lm_below_share">below share</string>
+    <string name="lm_sort_fewest">Fewest minutes first</string>
+    <string name="lm_sort_shirt">By shirt number</string>
+    <string name="lm_pause_cd">Pause match clock</string>
+    <string name="lm_resume_cd">Resume match clock</string>
+    <string name="lm_correct_clock">Correct the clock</string>
+    <string name="lm_correct_running">The clock keeps running from the new minute.</string>
+    <string name="lm_correct_paused">The clock stays paused after saving.</string>
+    <string name="lm_clock_set">Clock set to %1$d:00 — every minute recalculated</string>
+    <string name="lm_take_off">Take off %1$s</string>
+    <string name="lm_bring_on">Bring on %1$s</string>
+    <string name="lm_played">%1$s played</string>
+    <string name="lm_who_comes_on">Who comes on? Fewest minutes first</string>
+    <string name="lm_who_goes_off">Who goes off? Longest on first</string>
+    <string name="lm_sub_done">%1$s — %2$s on, %3$s off</string>
+    <string name="lm_plan_title">Planning the 2nd half</string>
+    <string name="lm_plan_below">Below the share: %1$s</string>
+    <string name="lm_plan_none">Everyone is at or above the share.</string>
+    <string name="lm_first_half_totals">Minutes are 1st-half totals (%1$s).</string>
+    <string name="lm_share_short">share ≈ %1$s</string>
+    <string name="lm_match_minutes">%1$s match</string>
+    <string name="lm_fill_report">Fill in the match report</string>
+    <string name="lm_view_report">View the match report</string>
+    <string name="lm_events_heading">Events · %1$d</string>
+    <string name="lm_half_time_sub">1st half · %1$s</string>
+    <string name="lm_tap_to_correct">tap to correct</string>
+    <string name="lm_no_events">No events</string>
+    <plurals name="lm_summary_not_played">
+        <item quantity="one">%1$d not played yet</item>
+        <item quantity="other">%1$d not played yet</item>
+    </plurals>
+    <plurals name="lm_summary_below">
+        <item quantity="one">%1$d below share</item>
+        <item quantity="other">%1$d below share</item>
+    </plurals>
 </resources>
