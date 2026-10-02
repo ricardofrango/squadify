@@ -65,13 +65,15 @@ import squadify.app.shared.generated.resources.label_team_size
 import squadify.app.shared.generated.resources.label_year_of_birth
 import squadify.app.shared.generated.resources.label_year_of_birth_end
 import squadify.app.shared.generated.resources.label_year_of_birth_start
+import squadify.app.shared.generated.resources.msg_age_group_conflict
 import squadify.app.shared.generated.resources.msg_age_group_range_inverted
 import kotlin.time.Clock
 
 /**
  * Edit age group, from Age Group Details' ⋮ (coordinators+): name, birth-year span (one year or two)
  * and the default team size for new teams -- the same fields as Create age groups. The season is fixed
- * (shown as the subtitle). Years used by the season's other age groups are left out of the pickers, and
+ * (shown as the subtitle). Years used by the season's other age groups are left out of the pickers (and an overlap, e.g. after
+ * switching to two years, is flagged and blocks saving), and
  * a span that would leave players already in the pool ineligible is explained in amber and can't be
  * saved (the server enforces both too).
  */
@@ -194,6 +196,9 @@ private fun EditAgeGroupForm(state: EditAgeGroupUiState.Idle, modifier: Modifier
             if (state.inverted) {
                 Text(stringResource(Res.string.msg_age_group_range_inverted), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
+        }
+        if (state.collides) {
+            Text(stringResource(Res.string.msg_age_group_conflict), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
         }
         if (state.shutOut > 0) {
             Text(

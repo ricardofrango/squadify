@@ -145,4 +145,20 @@ class UpdateAgeGroupUseCaseTest {
         assertFailsWith<ValidationException> { useCase(coord, ageGroupId, UpdateAgeGroupRequest(name = " ")) }
         Unit
     }
+
+    @Test
+    fun rejectsASpanThatOverlapsAnotherAgeGroupWithoutBeingIdentical() = runBlocking {
+        // Another group is single-year 2018; 2018-2017 shares 2018 with it.
+        val other = existing.copy(id = "age-group-2", name = "Sub 8", startYear = 2018, endYear = 2018)
+        val coord = setUp(others = listOf(other))
+        assertFailsWith<ConflictException> { useCase(coord, ageGroupId, UpdateAgeGroupRequest(startYear = 2018, endYear = 2017)) }
+        Unit
+    }
+
+    @Test
+    fun keepingItsOwnYearsIsNotACollisionWithItself() = runBlocking {
+        val coord = setUp()
+        useCase(coord, ageGroupId, UpdateAgeGroupRequest(startYear = 2017, endYear = 2016, name = "Sub 10 B"))
+        coVerify { ageGroupRepository.updateAgeGroup(match { it.name == "Sub 10 B" }) }
+    }
 }

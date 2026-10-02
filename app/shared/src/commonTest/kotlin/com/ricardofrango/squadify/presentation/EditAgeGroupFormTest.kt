@@ -42,4 +42,12 @@ class EditAgeGroupFormTest {
         assertNull(request.startYear)
         assertNull(request.endYear)
     }
+
+    @Test
+    fun aSpanSharingAYearWithAnotherAgeGroupBlocksSaving() {
+        // Another age group covers 2012: switching to 2012-2011 overlaps it, even though not identical.
+        val s = EditAgeGroupUiState.Idle("2025/26", listOf(11), setOf(2012), emptyList(), original, original.copy(startYear = 2012, endYear = 2011))
+        assertTrue(s.collides)
+        assertFalse(s.canSave)
+    }
 }

@@ -295,6 +295,14 @@ data class AgeGroup(
     val teamSize: Int? = null
 )
 
+/**
+ * Whether two birth-year spans (each `endYear..startYear`, oldest to youngest) share any year. Age
+ * groups in the same season must not: a player's birth year has to point to one age group, not two.
+ * Shared by the server's create/update checks and the client's Edit age group screen.
+ */
+fun birthYearsOverlap(startYear: Int, endYear: Int, otherStartYear: Int, otherEndYear: Int): Boolean =
+    endYear <= otherStartYear && otherEndYear <= startYear
+
 @Serializable
 data class Team(
     val id: String,

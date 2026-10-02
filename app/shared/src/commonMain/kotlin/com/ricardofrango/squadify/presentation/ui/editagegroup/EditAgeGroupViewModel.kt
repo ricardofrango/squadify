@@ -47,11 +47,14 @@ sealed class EditAgeGroupUiState {
     ) : EditAgeGroupUiState() {
         val inverted: Boolean get() = form.twoYears && form.startYear < form.endYear
 
+        /** The span shares a birth year with another age group of the season (e.g. after switching to two years). */
+        val collides: Boolean get() = (form.endYear..form.startYear).any { it in usedByOthers }
+
         /** Players the new span would leave ineligible (born before the new oldest year). */
         val shutOut: Int get() = poolBirthYears.count { it < form.endYear }
 
         val isDirty: Boolean get() = form.copy(name = form.name.trim()) != original
-        val canSave: Boolean get() = isDirty && form.name.isNotBlank() && !inverted && shutOut == 0 && !isSubmitting
+        val canSave: Boolean get() = isDirty && form.name.isNotBlank() && !inverted && !collides && shutOut == 0 && !isSubmitting
 
         fun toRequest(): UpdateAgeGroupRequest {
             val spanChanged = form.startYear != original.startYear || form.endYear != original.endYear

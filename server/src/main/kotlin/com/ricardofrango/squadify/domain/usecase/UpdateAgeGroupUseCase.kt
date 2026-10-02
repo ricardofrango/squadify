@@ -9,6 +9,7 @@ import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.UpdateAgeGroupRequest
+import com.ricardofrango.squadify.model.birthYearsOverlap
 
 /**
  * Edit an age group: name, birth-year span and default team size. The same rules as creating one
@@ -62,11 +63,12 @@ class UpdateAgeGroupUseCase(
 
         val spanChanged = updatedAgeGroup.startYear != existingAgeGroup.startYear || updatedAgeGroup.endYear != existingAgeGroup.endYear
         if (spanChanged) {
-            // Same uniqueness as creating: one age group per birth-year span per season.
+            // Same rule as creating: no birth year in two age groups of the same season -- any overlap
+            // collides, not only an identical span.
             val clash = ageGroupRepository.findByClubAndSeason(existingAgeGroup.clubId, existingAgeGroup.seasonId)
-                .any { it.id != ageGroupId && it.startYear == updatedAgeGroup.startYear && it.endYear == updatedAgeGroup.endYear }
+                .any { it.id != ageGroupId && birthYearsOverlap(updatedAgeGroup.startYear, updatedAgeGroup.endYear, it.startYear, it.endYear) }
             if (clash) {
-                throw ConflictException("An age group for ${updatedAgeGroup.startYear}-${updatedAgeGroup.endYear} already exists in this season")
+                throw ConflictException("Another age group already covers some of ${updatedAgeGroup.startYear}-${updatedAgeGroup.endYear} in this season")
             }
             // Eligibility is `birthDate.year >= endYear`: raising endYear can shut out players already in the pool.
             if (updatedAgeGroup.endYear > existingAgeGroup.endYear) {
