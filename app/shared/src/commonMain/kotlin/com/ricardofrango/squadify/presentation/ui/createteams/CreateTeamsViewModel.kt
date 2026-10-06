@@ -31,7 +31,7 @@ class CreateTeamsViewModel(
     private val _navigationEvent = MutableSharedFlow<CreateTeamsNavigationEvent>()
     val navigationEvent: SharedFlow<CreateTeamsNavigationEvent> = _navigationEvent.asSharedFlow()
 
-    fun load(clubId: String) {
+    fun load(clubId: String, initialAgeGroupId: String? = null) {
         if (_state.value is CreateTeamsUiState.Idle) return
 
         viewModelScope.launch {
@@ -47,12 +47,15 @@ class CreateTeamsViewModel(
             }
             // Default to the most recent season by end date -- the one a coordinator is most likely
             // setting teams up for. Still changeable via the picker.
-            val selectedSeasonId = seasons.maxByOrNull { it.endDate }?.id
+            // An age group passed in (a coach's scoped action) wins, along with its own season.
+            val initial = initialAgeGroupId?.let { id -> ageGroups.firstOrNull { it.id == id } }
+            val selectedSeasonId = initial?.seasonId ?: seasons.maxByOrNull { it.endDate }?.id
             _state.update {
                 CreateTeamsUiState.Idle(
                     seasons = seasons,
                     selectedSeasonId = selectedSeasonId,
-                    ageGroups = ageGroups
+                    ageGroups = ageGroups,
+                    selectedAgeGroupId = initial?.id
                 )
             }
         }

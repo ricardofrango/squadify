@@ -74,6 +74,7 @@ fun CreateTeamsScreen(
     sport: SportType,
     onNavigateBack: () -> Unit,
     onTeamsCreated: () -> Unit,
+    initialAgeGroupId: String? = null,
     viewModel: CreateTeamsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
@@ -91,7 +92,7 @@ fun CreateTeamsScreen(
     var showValidationErrors by remember { mutableStateOf(false) }
 
     LaunchedEffect(clubId) {
-        viewModel.load(clubId)
+        viewModel.load(clubId, initialAgeGroupId)
     }
 
     LaunchedEffect(viewModel.navigationEvent) {

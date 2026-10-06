@@ -302,8 +302,16 @@ graph TD
     B -- allowed --> C[Fetch Club by id]
     C -- not found --> N(["Throw NotFoundException"])
     C -- found --> D["Probe CheckUserPermissionUseCase — minClubRole=COORDINATOR (non-throwing: ForbiddenException caught to false)"]
-    D --> Z(["Return ClubDetailsResponse — club + canEditClub"])
+    D --> V["viewerRole = club role (platform admin → CLUB_ADMIN); viewerAgeGroups = the viewer's coach/staff age groups in the active season, youngest first"]
+    V --> P{"canEditClub?"}
+    P -- yes --> Z(["Return ClubDetailsResponse — club, canEditClub, viewerRole, viewerAgeGroups; scoped lists empty"])
+    P -- no --> S["For each viewer age group: non-throwing probes of CREATE_TEAM and CREATE_PLAYERS (configurablePermission + ageGroupId)"]
+    S --> Z2(["Return … + createTeamAgeGroupIds, createPlayersAgeGroupIds"])
 ```
+
+The viewer fields feed the club's **More** panel (design 37):
+- **Account header:** `viewerRole` and `viewerAgeGroups` give the role chip, e.g. "Coach · Sub-15, Sub-17".
+- **Scoped create actions:** the two id lists are where a non-coordinator may create teams or add players. They come from the same club-configurable permissions the create endpoints enforce (Coach level by default), so the panel only offers what the server will accept. It opens Create Teams / Create Players with that age group.
 
 `canEditClub` from the same single probe above — `CreateSeasonUseCase` and `CreateAgeGroupsUseCase` enforce the identical `minClubRole=COORDINATOR` gate, so one non-throwing check covers both response fields (they're separate fields, not one shared boolean, only so either could diverge later without an API shape change). The client uses them to distinguish, when a club has zero seasons or zero age groups, an admin/coordinator ("nothing here yet, create one") from a plain member ("nothing here yet") — see §4.1 and §4.3.
 

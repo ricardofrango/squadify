@@ -2402,3 +2402,19 @@ Some youth fixtures are a single 20/25/30-minute period with no interval. `Match
 - **No half time:** the live console shows only Full time and labels the clock "MATCH", and the server refuses HALF_TIME for a one-half match.
 - **Migration (`V10`):** adds the column, sets every existing match to 2 halves explicitly, then makes 2 the default and the column NOT NULL.
 
+## 47. The Club "More" Panel
+
+The club screen's "More" tab opened a plain dropdown, and Account sat behind a small icon in the header. Both are now one full-screen panel (design 37) that slides in from the right.
+
+**A custom panel, not the Material drawer.** `ModalNavigationDrawer` opens from the start (left) edge and caps its sheet at `DrawerDefaults.MaximumDrawerWidth` (~360dp), so it can't be full screen or come from the right without layout-direction tricks. The panel is a plain overlay:
+- **Motion:** `AnimatedVisibility` with `slideInHorizontally` (250ms, decelerating) / `slideOutHorizontally` (200ms, accelerating), and a 35% scrim behind.
+- **Closing:** a horizontal `draggable` for swipe-to-close (past 30% of the width or a flick), `NavigationBackHandler` for system back, and Esc on web/desktop.
+- **Platforms:** it behaves the same on Android, iOS, web and desktop.
+
+**Rows by permission, computed on the server.**
+- **What's added:** `ClubDetailsResponse` now carries the viewer's club role, their coach/staff age groups this season, and the age groups where a non-coordinator may create teams or add players.
+- **How:** these come from the same configurable-permission probes `CreateTeamsUseCase` / `CreatePlayersUseCase` enforce, so the panel only offers what will succeed. A club that makes an action coordinator-only simply removes that row.
+- **Coaches:** a coach's action goes through an age-group picker limited to those age groups (skipped with just one), and opens Create Teams (new `initialAgeGroupId`) or Create Players with it.
+
+**Account.** The header's account icon is removed; the panel's top block (name, email, role chip, club) opens Account, and the panel has Log out with a confirmation (it clears the whole back stack to Sign in) and Switch club for users in 2+ clubs. `AppConfig.appVersion` (Android fills it from the build) feeds the version line; platforms that don't provide it just omit it.
+

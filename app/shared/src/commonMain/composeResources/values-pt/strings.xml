@@ -950,4 +950,39 @@
     <string name="halves_one_hint">Um só período, sem intervalo.</string>
     <string name="label_match_length">Duração do jogo</string>
     <string name="lm_one_period">JOGO</string>
+    <!-- Club "More" panel (design 37) -->
+    <string name="more_close">Fechar</string>
+    <string name="more_group_club">Clube</string>
+    <string name="more_group_create">Adicionar / criar</string>
+    <string name="more_group_account">Conta</string>
+    <string name="more_players">Jogadores</string>
+    <string name="more_club_settings">Definições do clube</string>
+    <string name="more_club_settings_sub">Dados, membros, permissões</string>
+    <string name="more_add_season">Adicionar época</string>
+    <string name="more_create_age_group">Criar escalão</string>
+    <string name="more_create_team">Criar equipa</string>
+    <string name="more_add_players">Adicionar jogadores</string>
+    <string name="more_new_staff">Novo elemento da equipa técnica</string>
+    <string name="more_account_settings">Definições da conta</string>
+    <string name="more_account_settings_sub">Nome, telefone, palavra-passe</string>
+    <string name="more_switch_club">Mudar de clube</string>
+    <string name="more_log_out">Terminar sessão</string>
+    <string name="more_log_out_title">Terminar sessão no Squadify?</string>
+    <string name="more_log_out_body">Vai precisar do email e da palavra-passe para voltar a entrar neste dispositivo.</string>
+    <string name="more_role_admin">Admin</string>
+    <string name="more_role_coordinator">Coordenador(a)</string>
+    <string name="more_role_coach">Treinador(a)</string>
+    <string name="more_role_staff">Equipa técnica</string>
+    <string name="more_role_member">Membro</string>
+    <string name="more_pick_hint">Escolha um dos seus escalões.</string>
+    <string name="more_continue">Continuar</string>
+    <string name="more_version">Squadify %1$s</string>
+    <plurals name="more_clubs_count">
+        <item quantity="one">%1$d clube</item>
+        <item quantity="other">%1$d clubes</item>
+    </plurals>
+    <plurals name="more_age_group_teams">
+        <item quantity="one">%1$s · %2$d equipa</item>
+        <item quantity="other">%1$s · %2$d equipas</item>
+    </plurals>
 </resources>

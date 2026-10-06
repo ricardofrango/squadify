@@ -1,5 +1,14 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import kotlinx.datetime.LocalDate
+import com.ricardofrango.squadify.model.ClubPermissionSetting
+import com.ricardofrango.squadify.model.ConfigurablePermission
+import com.ricardofrango.squadify.model.ViewerAgeGroup
+import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroup
+import com.ricardofrango.squadify.model.SeasonType
+import com.ricardofrango.squadify.model.Season
+import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
@@ -45,7 +54,12 @@ class GetClubDetailsUseCaseTest {
     private val clubPermissionRepository = mockk<ClubPermissionRepository>(relaxed = true)
     init { coEvery { clubPermissionRepository.getOverride(any(), any()) } returns null }
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository)
-    private val useCase = GetClubDetailsUseCase(clubRepository, checkUserPermissionUseCase, transactionManager)
+    private val seasonRepository = mockk<SeasonRepository>()
+    init {
+        coEvery { seasonRepository.getSeasonsByClub(any()) } returns emptyList()
+        coEvery { ageGroupRepository.findByClubAndSeason(any(), any()) } returns emptyList()
+    }
+    private val useCase = GetClubDetailsUseCase(clubRepository, checkUserPermissionUseCase, transactionManager, userRepository, seasonRepository, ageGroupRepository)
 
     private val clubIdA = "club-a"
     private val club = Club(
@@ -94,12 +108,15 @@ class GetClubDetailsUseCaseTest {
     fun platformAdminCanCreateSeasons() = runBlocking {
         val platformAdmin = user("p1-platform-admin", isPlatformAdmin = true)
         coEvery { userRepository.findById(platformAdmin.id) } returns platformAdmin
-        // "God Mode" never even looks up a club role -- see CheckUserPermissionUseCase.
+        // Not a member: the permission check never needs a club role ("God Mode", see
+        // CheckUserPermissionUseCase); the More panel's viewerRole falls back to Admin.
+        coEvery { userRepository.getUserRoleInClub(platformAdmin.id, clubIdA) } returns null
         coEvery { clubRepository.getClubById(clubIdA) } returns club
 
         val result = useCase(platformAdmin.id, clubIdA)
 
         assertTrue(result.canEditClub)
+        assertEquals(ClubRole.CLUB_ADMIN, result.viewerRole)
     }
 
     @Test
@@ -139,5 +156,55 @@ class GetClubDetailsUseCaseTest {
             useCase(admin.id, clubIdA)
         }
         Unit
+    }
+
+    // ---- The "More" panel's viewer info and scoped create actions (design 37) ----
+
+    private val season = Season("s1", clubIdA, "2026/27", SeasonType.EUROPEAN_YEAR, LocalDate(2026, 7, 1), LocalDate(2027, 6, 30), active = true)
+    private val sub15 = AgeGroup("ag15", clubIdA, "Sub-15", "s1", 2012, 2012)
+    private val sub17 = AgeGroup("ag17", clubIdA, "Sub-17", "s1", 2010, 2010)
+
+    private fun coachOfSub15(): String {
+        val coach = user("coach")
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { clubRepository.getClubById(clubIdA) } returns club
+        coEvery { seasonRepository.getSeasonsByClub(clubIdA) } returns listOf(season)
+        coEvery { ageGroupRepository.findByClubAndSeason(clubIdA, "s1") } returns listOf(sub17, sub15)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag15") } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag17") } returns null
+        return coach.id
+    }
+
+    @Test
+    fun aCoachSeesTheirAgeGroupsAndMayCreateThereByDefault() = runBlocking {
+        val coach = coachOfSub15()
+        val result = useCase(coach, clubIdA)
+        assertEquals(ClubRole.MEMBER, result.viewerRole)
+        assertEquals(listOf(ViewerAgeGroup("ag15", "Sub-15", TeamRole.COACH)), result.viewerAgeGroups)
+        assertEquals(listOf("ag15"), result.createTeamAgeGroupIds)
+        assertEquals(listOf("ag15"), result.createPlayersAgeGroupIds)
+    }
+
+    @Test
+    fun aClubThatMakesCreateTeamCoordinatorOnlyHidesItFromCoaches() = runBlocking {
+        val coach = coachOfSub15()
+        coEvery { clubPermissionRepository.getOverride(clubIdA, ConfigurablePermission.CREATE_TEAM) } returns
+            ClubPermissionSetting(ConfigurablePermission.CREATE_TEAM, minTeamRole = null)
+        val result = useCase(coach, clubIdA)
+        assertEquals(emptyList(), result.createTeamAgeGroupIds)
+        assertEquals(listOf("ag15"), result.createPlayersAgeGroupIds)
+    }
+
+    @Test
+    fun coordinatorsGetNoScopedListsSinceTheyCanCreateAnywhere() = runBlocking {
+        val coord = user("coord")
+        coEvery { userRepository.findById(coord.id) } returns coord
+        coEvery { userRepository.getUserRoleInClub(coord.id, clubIdA) } returns ClubRole.COORDINATOR
+        coEvery { clubRepository.getClubById(clubIdA) } returns club
+        val result = useCase(coord.id, clubIdA)
+        assertEquals(true, result.canEditClub)
+        assertEquals(ClubRole.COORDINATOR, result.viewerRole)
+        assertEquals(emptyList(), result.createTeamAgeGroupIds)
     }
 }

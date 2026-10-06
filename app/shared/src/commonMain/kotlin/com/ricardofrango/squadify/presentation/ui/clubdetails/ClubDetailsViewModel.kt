@@ -2,7 +2,11 @@ package com.ricardofrango.squadify.presentation.ui.clubdetails
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.usecase.GetClubDetailsUseCase
+import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
+import com.ricardofrango.squadify.domain.usecase.GetCurrentUserUseCase
+import com.ricardofrango.squadify.domain.usecase.LogoutUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubHomeUseCase
 import com.ricardofrango.squadify.domain.usecase.GetMatchScoreUseCase
 import com.ricardofrango.squadify.domain.usecase.GetMatchesUseCase
@@ -29,8 +33,39 @@ class ClubDetailsViewModel(
     private val getMatchesUseCase: GetMatchesUseCase,
     private val getMatchScoreUseCase: GetMatchScoreUseCase,
     private val getOpponentsUseCase: GetOpponentsUseCase,
-    private val observeClubMatchesUseCase: ObserveClubMatchesUseCase
+    private val observeClubMatchesUseCase: ObserveClubMatchesUseCase,
+    private val getCurrentUserUseCase: GetCurrentUserUseCase,
+    private val getClubsUseCase: GetClubsUseCase,
+    private val logoutUseCase: LogoutUseCase,
+    private val appConfig: AppConfig
 ) : ViewModel() {
+
+    // ---- The "More" panel (design 37): who's signed in, how many clubs they're in, the app version ----
+
+    private val _moreAccount = MutableStateFlow<MoreAccount?>(null)
+    val moreAccount: StateFlow<MoreAccount?> = _moreAccount.asStateFlow()
+
+    /** Loads the panel's account header and club count, once; the panel shows its rows meanwhile. */
+    fun loadMoreAccount() {
+        if (_moreAccount.value != null) return
+        viewModelScope.launch {
+            try {
+                val user = getCurrentUserUseCase()
+                val clubs = try { getClubsUseCase().size } catch (e: Exception) { 1 }
+                _moreAccount.value = MoreAccount("${user.firstName} ${user.lastName}".trim(), user.email, clubs, appConfig.appVersion)
+            } catch (e: Exception) {
+                // Best-effort: the panel still works without the header details.
+            }
+        }
+    }
+
+    /** Signs out (as Account does) and then calls [onLoggedOut] to leave for Sign in. */
+    fun logout(onLoggedOut: () -> Unit) {
+        viewModelScope.launch {
+            try { logoutUseCase() } catch (e: Exception) { /* the session is cleared locally regardless */ }
+            onLoggedOut()
+        }
+    }
 
     // Collects the club-wide matches-list socket (see MatchesTab's DisposableEffect for the
     // connect-on-tab-enter/disconnect-on-tab-leave lifecycle this belongs to) -- an explicit Job so

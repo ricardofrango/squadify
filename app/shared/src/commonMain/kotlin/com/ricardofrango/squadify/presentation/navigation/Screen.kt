@@ -76,7 +76,9 @@ sealed class Screen {
     // sport is SportType's .name -- see CreateAgeGroups' doc above for why this isn't the enum itself.
     @Serializable
     @SerialName("create-teams")
-    data class CreateTeams(val clubId: String, val clubName: String, val sport: String) : Screen()
+    // [initialAgeGroupId] preselects the age group (and its season) -- a coach's "Create team" from the
+    // More panel is scoped to the age group they picked.
+    data class CreateTeams(val clubId: String, val clubName: String, val sport: String, val initialAgeGroupId: String? = null) : Screen()
 
     // The screen has its own age-group picker; [initialAgeGroupId] just pre-selects it when the caller
     // already knows which one (e.g. from the age-group detail screen). [clubName] is carried only so

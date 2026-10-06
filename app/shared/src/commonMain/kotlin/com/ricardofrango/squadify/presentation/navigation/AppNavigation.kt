@@ -213,14 +213,14 @@ fun AppNavigation() {
                         Screen.CreateAgeGroups(screen.clubId, clubName, sport.name, initialSeasonId)
                     )
                 },
-                onNavigateToCreateTeams = { clubName, sport ->
-                    navController.navigate(Screen.CreateTeams(screen.clubId, clubName, sport.name))
+                onNavigateToCreateTeams = { clubName, sport, ageGroupId ->
+                    navController.navigate(Screen.CreateTeams(screen.clubId, clubName, sport.name, ageGroupId))
                 },
                 onNavigateToAddPlayersToAgeGroup = { clubName ->
                     navController.navigate(Screen.AddPlayersToAgeGroup(screen.clubId, clubName))
                 },
-                onNavigateToCreatePlayers = { clubName ->
-                    navController.navigate(Screen.CreatePlayers(screen.clubId, clubName))
+                onNavigateToCreatePlayers = { clubName, ageGroupId ->
+                    navController.navigate(Screen.CreatePlayers(screen.clubId, clubName, ageGroupId))
                 },
                 onNavigateToCreateStaff = { clubName ->
                     navController.navigate(Screen.CreateStaff(screen.clubId, clubName))
@@ -236,6 +236,18 @@ fun AppNavigation() {
                 },
                 onNavigateToEditClub = {
                     navController.navigate(Screen.EditClub(screen.clubId))
+                },
+                // To the "My clubs" list, replacing this club so back doesn't bounce between them.
+                onSwitchClub = {
+                    navController.navigate(Screen.Dashboard) {
+                        popUpTo<Screen.ClubDetails> { inclusive = true }
+                    }
+                },
+                // Clear the whole back stack, so back from Sign in can't return into the club.
+                onLoggedOut = {
+                    navController.navigate(Screen.Login) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
                 },
                 refreshClubDetails = structureChanged
             )
@@ -360,6 +372,7 @@ fun AppNavigation() {
                 clubId = screen.clubId,
                 clubName = screen.clubName,
                 sport = SportType.valueOf(screen.sport),
+                initialAgeGroupId = screen.initialAgeGroupId,
                 onNavigateBack = {
                     navController.popBackStack()
                 },
