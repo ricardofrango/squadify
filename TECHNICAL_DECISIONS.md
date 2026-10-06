@@ -2422,3 +2422,9 @@ The club screen's "More" tab opened a plain dropdown, and Account sat behind a s
 
 **Account.** The header's account icon is removed; the panel's top block (name, email, role chip, club) opens Account, and the panel has Log out with a confirmation (it clears the whole back stack to Sign in) and Switch club for users in 2+ clubs. Switch club pops back to the existing "My clubs" list rather than pushing a new one, which had left two lists stacked so back from the list landed on the other list. Only a user who started straight in their only club, where the list was popped, gets the list in place of the club screen. `AppConfig.appVersion` (Android fills it from the build) feeds the version line; platforms that don't provide it just omit it.
 
+**Screen transitions, app-wide.** Navigation used the NavHost's default cross-fade, so tapping a panel row slid the panel out to the right while the new screen faded in: two motions in opposite directions.
+- **The push:** the `NavHost` now does a single horizontal push for every screen. Going forward, the new screen slides in from the right (300ms, `FastOutSlowInEasing`) while the one below drifts a quarter-width left and dims slightly. Back is the exact reverse.
+- **The splash is the exception:** leaving the splash screen is a plain fade, deliberately different from the rest of the app.
+- **The panel under a push:** a row that opens a screen doesn't animate the panel closed. The new screen slides in over the still-open panel. `moreOpen` is plain `remember` (not saved with the back-stack entry), so coming back shows the club screen with the panel already closed.
+- **Rows that don't navigate:** the age-group picker is a dialog over the club screen, so the panel closes (animated) before it shows. Log out keeps its confirmation.
+

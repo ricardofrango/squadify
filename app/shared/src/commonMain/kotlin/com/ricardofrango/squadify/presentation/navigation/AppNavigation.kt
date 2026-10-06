@@ -7,7 +7,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.Lifecycle
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -49,6 +57,9 @@ import com.ricardofrango.squadify.presentation.ui.editplayer.EditPlayerScreen
 // screen to return a result to the screen that pushed it. See ClubDetailsScreen's `refreshClubDetails`
 // doc.
 private const val KEY_CLUB_STRUCTURE_CHANGED = "clubStructureChanged"
+
+// Duration of the app-wide screen transition (see the NavHost below).
+private const val NAV_ANIM_MS = 300
 
 // Member details → Club settings: the members list is stale; an optional message to show there
 // ("Invite to … cancelled"), since the screen that did it has already closed.
@@ -106,9 +117,28 @@ fun AppNavigation() {
         }
     }
 
+    // One horizontal "push" for the whole app: forward, the new screen slides in from the right while
+    // the one below drifts a quarter-width left and dims slightly; back is the exact reverse. Leaving
+    // the splash screen stays a plain fade -- sliding in from a splash reads as odd.
+    val fromSplash: AnimatedContentTransitionScope<NavBackStackEntry>.() -> Boolean =
+        { initialState.destination.hasRoute<Screen.Splash>() }
     NavHost(
         navController = navController,
-        startDestination = Screen.Splash
+        startDestination = Screen.Splash,
+        enterTransition = {
+            if (fromSplash()) fadeIn(tween(NAV_ANIM_MS))
+            else slideInHorizontally(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { it }
+        },
+        exitTransition = {
+            if (fromSplash()) fadeOut(tween(NAV_ANIM_MS))
+            else slideOutHorizontally(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { -it / 4 } + fadeOut(tween(NAV_ANIM_MS), targetAlpha = 0.85f)
+        },
+        popEnterTransition = {
+            slideInHorizontally(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { -it / 4 } + fadeIn(tween(NAV_ANIM_MS), initialAlpha = 0.85f)
+        },
+        popExitTransition = {
+            slideOutHorizontally(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { it }
+        }
     ) {
         composable<Screen.Splash> {
             SplashScreen(

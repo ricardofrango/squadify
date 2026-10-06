@@ -166,7 +166,9 @@ fun ClubDetailsScreen(
         viewModel.loadClubDetails(clubId)
     }
 
-    var moreOpen by rememberSaveable { mutableStateOf(false) }
+    // Not saved with the back-stack entry on purpose: opening a screen from the panel leaves it open
+    // while that screen slides in over it, and coming back recreates this screen with the panel closed.
+    var moreOpen by remember { mutableStateOf(false) }
     // The coach's age-group picker: which action it's for (Create team / Add players), or null.
     var pickerFor by remember { mutableStateOf<StringResource?>(null) }
     val moreAccount by viewModel.moreAccount.collectAsState()
@@ -304,6 +306,7 @@ fun ClubDetailsScreen(
     if (details != null) {
         val groups = moreGroups(
             details = details,
+            // Players is its own screen now; it slides in over the open panel like the other rows.
             onPlayers = onNavigateToPlayers,
             onClubSettings = onNavigateToEditClub,
             onAddSeason = { onNavigateToCreateSeason(clubName) },
@@ -312,14 +315,15 @@ fun ClubDetailsScreen(
                 when {
                     !scoped -> onNavigateToCreateTeams(clubName, sport, null)
                     details.createTeamAgeGroupIds.size == 1 -> onNavigateToCreateTeams(clubName, sport, details.createTeamAgeGroupIds.single())
-                    else -> pickerFor = Res.string.more_create_team
+                    // The picker is a dialog over the club screen, so the panel closes first.
+                    else -> { moreOpen = false; pickerFor = Res.string.more_create_team }
                 }
             },
             onAddPlayers = { scoped ->
                 when {
                     !scoped -> onNavigateToCreatePlayers(clubName, null)
                     details.createPlayersAgeGroupIds.size == 1 -> onNavigateToCreatePlayers(clubName, details.createPlayersAgeGroupIds.single())
-                    else -> pickerFor = Res.string.more_add_players
+                    else -> { moreOpen = false; pickerFor = Res.string.more_add_players }
                 }
             },
             onNewStaff = { onNavigateToCreateStaff(clubName) },
@@ -332,7 +336,7 @@ fun ClubDetailsScreen(
             account = moreAccount,
             viewer = MoreViewer(details.viewerRole, details.viewerAgeGroups, details.club.name),
             groups = groups,
-            onOpenAccount = { moreOpen = false; onNavigateToAccount() },
+            onOpenAccount = onNavigateToAccount,
             onLogOut = { moreOpen = false; viewModel.logout(onLoggedOut) },
             onClose = { moreOpen = false }
         )

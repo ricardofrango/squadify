@@ -325,8 +325,10 @@ private fun GroupSection(group: MoreGroup, onClose: () -> Unit, onLogOut: () -> 
         modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 4.dp)
     )
     group.rows.forEach { row ->
+        // A row that opens a screen doesn't close the panel: the new screen slides in from the right
+        // over it, and the panel is gone when the user comes back (see ClubDetailsScreen's moreOpen).
         MoreRowItem(row) {
-            if (row.key == KEY_LOG_OUT) onLogOut() else { onClose(); row.onClick() }
+            if (row.key == KEY_LOG_OUT) onLogOut() else row.onClick()
         }
     }
 }
