@@ -6,6 +6,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -52,6 +53,19 @@ private const val KEY_CLUB_STRUCTURE_CHANGED = "clubStructureChanged"
 // ("Invite to … cancelled"), since the screen that did it has already closed.
 private const val KEY_MEMBERS_CHANGED = "clubMembersChanged"
 private const val KEY_MEMBERS_MESSAGE = "clubMembersMessage"
+
+/**
+ * Sets [key] on this entry's SavedStateHandle only while the entry is alive. Navigation throws if the
+ * handle is touched before the entry is attached or after it's destroyed -- and an entry captured
+ * earlier can be destroyed by the time it's used: when the activity is relaunched (a configuration
+ * change, e.g. unlocking the phone mid-match), the back stack is torn down before the composition's
+ * onDispose callbacks run. Skipping the flag then is safe: nothing is returning to that screen at
+ * that moment, and the relaunch recomposes the screen on top, which registers its onDispose again
+ * against the restored (alive) entry -- so the flag is still set when the user really leaves.
+ */
+private fun NavBackStackEntry.setIfAlive(key: String, value: Any?) {
+    if (lifecycle.currentState.isAtLeast(Lifecycle.State.CREATED)) savedStateHandle[key] = value
+}
 
 /**
  * Consume the "structure changed" result on [entry] and cascade it one level further down the back
@@ -571,7 +585,8 @@ fun AppNavigation() {
                     // there's no separate "nothing changed" exit -- always flag it so MatchDetails
                     // (and, cascading further, the screen that opened it) reload instead of showing a
                     // stale status/score, e.g. the "enter live match" button after full time.
-                    matchDetailsEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    // On an activity relaunch the entry is already destroyed here -- see setIfAlive.
+                    matchDetailsEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
                 }
             }
             LiveMatchScreen(
@@ -592,7 +607,7 @@ fun AppNavigation() {
                 matchId = screen.matchId,
                 startEditing = screen.edit,
                 onNavigateBack = { navController.popBackStack() },
-                onReportSaved = { openerEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true) }
+                onReportSaved = { openerEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true) }
             )
         }
 
