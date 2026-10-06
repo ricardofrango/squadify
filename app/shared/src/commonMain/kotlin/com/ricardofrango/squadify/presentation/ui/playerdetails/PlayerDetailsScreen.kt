@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -69,7 +70,7 @@ fun PlayerDetailsScreen(
     refreshOnReturn: Boolean = false,
     viewModel: PlayerDetailsViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState = viewModel.state.collectSettledState()
     val statsState by viewModel.stats.collectAsState()
 
     LaunchedEffect(playerId) {

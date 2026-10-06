@@ -264,7 +264,21 @@ data class Club(
 data class ClubDetailsResponse(
     val club: Club,
     val canEditClub: Boolean,
+    // The viewer, for the club's "More" panel (design 37): their club role (a platform admin reads as
+    // CLUB_ADMIN; null only for a player/parent without a membership) and their coach/staff age
+    // groups in the active season ("Coach · Sub-15, Sub-17").
+    val viewerRole: ClubRole? = null,
+    val viewerAgeGroups: List<ViewerAgeGroup> = emptyList(),
+    // For viewers below coordinator: the age groups where they may create teams / add players, from
+    // the same club-configurable permissions the create endpoints enforce (Coach level by default).
+    // Empty for coordinators and admins, who can do both anywhere (see canEditClub).
+    val createTeamAgeGroupIds: List<String> = emptyList(),
+    val createPlayersAgeGroupIds: List<String> = emptyList(),
 )
+
+/** One age group the viewer is staff on, in the active season. */
+@Serializable
+data class ViewerAgeGroup(val ageGroupId: String, val name: String, val role: TeamRole)
 
 @Serializable
 data class Season(

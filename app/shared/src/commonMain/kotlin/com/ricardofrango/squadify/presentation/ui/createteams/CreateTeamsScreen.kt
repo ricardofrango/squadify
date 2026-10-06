@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createteams
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -74,9 +75,10 @@ fun CreateTeamsScreen(
     sport: SportType,
     onNavigateBack: () -> Unit,
     onTeamsCreated: () -> Unit,
+    initialAgeGroupId: String? = null,
     viewModel: CreateTeamsViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState = viewModel.state.collectSettledState()
 
     // The team-size a new row starts on: the picked age group's default, or the sport's largest format
     // when no age group is picked yet / that age group predates team sizes.
@@ -91,7 +93,7 @@ fun CreateTeamsScreen(
     var showValidationErrors by remember { mutableStateOf(false) }
 
     LaunchedEffect(clubId) {
-        viewModel.load(clubId)
+        viewModel.load(clubId, initialAgeGroupId)
     }
 
     LaunchedEffect(viewModel.navigationEvent) {

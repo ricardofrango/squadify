@@ -2,7 +2,6 @@ package com.ricardofrango.squadify.presentation.ui.clubdetails
 
 import com.ricardofrango.squadify.domain.usecase.ClubDetails
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.ClubHome
 import com.ricardofrango.squadify.model.Match
@@ -12,14 +11,12 @@ import com.ricardofrango.squadify.model.Opponent
 /** Which slice of the club's fixtures the Matches tab shows. */
 enum class MatchesStatusFilter { UPCOMING, FINISHED, ALL }
 
-/** Club-screen tab indices. Bottom bar shows Home (default), Age groups, Teams, Matches, then a
- * "More" item; Players has no bottom-bar icon of its own -- it's reached from the More menu instead
- * (see ClubDetailsScreen), but still just sets `selectedTab` to this value like any other tab. */
+/** Club-screen tab indices. Bottom bar shows Home (default), Age groups, Teams, Matches, then "More",
+ * which opens the More panel; Players is its own screen (ClubPlayersScreen), reached from there. */
 const val CLUB_TAB_HOME = 0
 const val CLUB_TAB_AGE_GROUPS = 1
 const val CLUB_TAB_TEAMS = 2
 const val CLUB_TAB_MATCHES = 3
-const val CLUB_TAB_PLAYERS = 4
 
 sealed class ClubDetailsUiState {
     data class Idle(
@@ -28,7 +25,6 @@ sealed class ClubDetailsUiState {
         // (the Home tab then shows its own light empty/error state).
         val home: ClubHome? = null,
         val filteredTeams: List<Team> = emptyList(),
-        val filteredPlayers: List<Player> = emptyList(),
         val selectedTab: Int = CLUB_TAB_HOME,
         // Available Filter Options (Contextual)
         val availableAgeGroups: List<AgeGroup> = emptyList(),
@@ -36,10 +32,6 @@ sealed class ClubDetailsUiState {
         // Team Filters
         val selectedSeasonId: String? = null,
         val selectedAgeGroupId: String? = null,
-        // Player Filters
-        val selectedPlayerSeasonId: String? = null,
-        val selectedPlayerAgeGroupId: String? = null,
-        val playerSearchQuery: String = "",
         // Age Groups tab filter -- season only, and unlike the other tabs there's no "All seasons":
         // an age group only means something within one season. Defaults to the most recent season
         // (by end date) when details load.
@@ -71,3 +63,7 @@ sealed class ClubDetailsUiState {
     ) : ClubDetailsUiState()
     data object Loading : ClubDetailsUiState()
 }
+
+/** The More panel's account header: who's signed in, how many clubs they belong to, the app version. */
+data class MoreAccount(val name: String, val email: String, val clubCount: Int, val appVersion: String?)
+

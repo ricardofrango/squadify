@@ -17,6 +17,11 @@ data class ClubDetails(
     // one" apart from a plain member's "nothing here yet" when `seasons`/`ageGroups` is empty. See
     // PROCESS_FLOWS.md §3.3.
     val canEditClub: Boolean,
+    // The viewer, for the "More" panel (design 37) -- see ClubDetailsResponse.
+    val viewerRole: ClubRole? = null,
+    val viewerAgeGroups: List<ViewerAgeGroup> = emptyList(),
+    val createTeamAgeGroupIds: List<String> = emptyList(),
+    val createPlayersAgeGroupIds: List<String> = emptyList(),
 )
 
 class GetClubDetailsUseCase(
@@ -43,6 +48,10 @@ class GetClubDetailsUseCase(
             ageGroups = ageGroups,
             ageGroupPlayers = ageGroupPlayers,
             canEditClub = clubDetailsResponse.canEditClub,
+            viewerRole = clubDetailsResponse.viewerRole,
+            viewerAgeGroups = clubDetailsResponse.viewerAgeGroups,
+            createTeamAgeGroupIds = clubDetailsResponse.createTeamAgeGroupIds,
+            createPlayersAgeGroupIds = clubDetailsResponse.createPlayersAgeGroupIds,
         )
     }
 }

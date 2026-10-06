@@ -2402,3 +2402,33 @@ Some youth fixtures are a single 20/25/30-minute period with no interval. `Match
 - **No half time:** the live console shows only Full time and labels the clock "MATCH", and the server refuses HALF_TIME for a one-half match.
 - **Migration (`V10`):** adds the column, sets every existing match to 2 halves explicitly, then makes 2 the default and the column NOT NULL.
 
+## 47. The Club "More" Panel
+
+The club screen's "More" tab opened a plain dropdown, and Account sat behind a small icon in the header. Both are now one full-screen panel (design 37) that slides in from the right.
+
+**A custom panel, not the Material drawer.** `ModalNavigationDrawer` opens from the start (left) edge and caps its sheet at `DrawerDefaults.MaximumDrawerWidth` (~360dp), so it can't be full screen or come from the right without layout-direction tricks. The panel is a plain overlay:
+- **Motion:** `AnimatedVisibility` with `slideInHorizontally` (250ms, decelerating) / `slideOutHorizontally` (200ms, accelerating), and a 35% scrim behind.
+- **Closing:** a horizontal `draggable` for swipe-to-close (past 30% of the width or a flick), `NavigationBackHandler` for system back, and Esc on web/desktop.
+- **Platforms:** it behaves the same on Android, iOS, web and desktop.
+
+**Rows by permission, computed on the server.**
+- **What's added:** `ClubDetailsResponse` now carries the viewer's club role, their coach/staff age groups this season, and the age groups where a non-coordinator may create teams or add players.
+- **How:** these come from the same configurable-permission probes `CreateTeamsUseCase` / `CreatePlayersUseCase` enforce, so the panel only offers what will succeed. A club that makes an action coordinator-only simply removes that row.
+- **Coaches:** a coach's action goes through an age-group picker limited to those age groups (skipped with just one), and opens Create Teams (new `initialAgeGroupId`) or Create Players with it.
+
+**Players is its own screen.** It used to be a hidden fifth tab of Club details, so opening it from the panel kept the club's bottom bar underneath. It's now `ClubPlayersScreen` (`Screen.ClubPlayers`), pushed on top with a back arrow and no bottom bar, and with its own view model.
+- **Same filters:** season, age group and search, with the same rules (`filterClubPlayers`, tested in `ClubPlayersFilterTest`).
+- **Reload on return:** the list reloads when you come back from adding players.
+
+**Account.** The header's account icon is removed; the panel's top block (name, email, role chip, club) opens Account, and the panel has Log out with a confirmation (it clears the whole back stack to Sign in) and Switch club for users in 2+ clubs. Switch club pops back to the existing "My clubs" list rather than pushing a new one, which had left two lists stacked so back from the list landed on the other list. Only a user who started straight in their only club, where the list was popped, gets the list in place of the club screen. `AppConfig.appVersion` (Android fills it from the build) feeds the version line; platforms that don't provide it just omit it.
+
+**Screen transitions, app-wide.** Navigation used the NavHost's default cross-fade, so tapping a panel row slid the panel out to the right while the new screen faded in: two motions in opposite directions.
+- **The push:** the `NavHost` now does a single horizontal push for every screen. Going forward, the new screen slides in from the right (300ms, `FastOutSlowInEasing`) while the one below drifts a quarter-width left and dims slightly. Back is the exact reverse.
+- **The splash is the exception:** leaving the splash screen is a plain fade, deliberately different from the rest of the app.
+- **The panel under a push:** a row that opens a screen doesn't animate the panel closed. The new screen slides in over the still-open panel. `moreOpen` is plain `remember` (not saved with the back-stack entry), so coming back shows the club screen with the panel already closed.
+- **Rows that don't navigate:** the age-group picker is a dialog over the club screen, so the panel closes (animated) before it shows. Log out keeps its confirmation.
+- **No content swap mid-slide:** a screen usually starts in Loading and gets its data while it is still sliding in. Swapping the spinner for the full content composed and laid out the whole loaded tree in one frame, mid-animation, which showed as a hitch.
+  - **Fix:** destinations are registered with `screen<T>` (`navigation/NavTransition.kt`), a `composable<T>` wrapper that exposes whether the destination's transition has settled. Screens collect their main UI state with `collectSettledState()`, which holds the value from when the transition started and switches to the latest one when it settles.
+  - **Outside a transition:** it is a plain synchronous pass-through, so text fields bound to the state never lag.
+  - **Not applied:** Login and Register (form-only, nothing loads on entry).
+

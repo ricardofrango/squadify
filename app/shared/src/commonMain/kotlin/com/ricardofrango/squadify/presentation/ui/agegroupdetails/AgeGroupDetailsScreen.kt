@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -69,7 +70,7 @@ fun AgeGroupDetailsScreen(
     refreshOnReturn: Boolean = false,
     viewModel: AgeGroupDetailsViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState = viewModel.state.collectSettledState()
     val recordState by viewModel.record.collectAsState()
     val tab by viewModel.tab.collectAsState()
     val matchesTeamId by viewModel.matchesTeamId.collectAsState()

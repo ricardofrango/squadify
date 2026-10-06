@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editagegroup
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -84,7 +85,7 @@ fun EditAgeGroupScreen(
     onAgeGroupUpdated: () -> Unit,
     viewModel: EditAgeGroupViewModel = koinViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state = viewModel.state.collectSettledState()
     LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
     LaunchedEffect(Unit) { viewModel.saved.collect { onAgeGroupUpdated() } }
 

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubmember
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -161,7 +162,7 @@ fun ClubMemberDetailsScreen(
     onOpenPlayer: (String) -> Unit,
     viewModel: ClubMemberDetailsViewModel = koinViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state = viewModel.state.collectSettledState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(clubId, userId, inviteId) { viewModel.load(clubId, userId, inviteId) }

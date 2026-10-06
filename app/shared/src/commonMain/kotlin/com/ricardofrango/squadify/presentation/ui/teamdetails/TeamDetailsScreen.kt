@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -80,7 +81,7 @@ fun TeamDetailsScreen(
     refreshOnReturn: Boolean = false,
     viewModel: TeamDetailsViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState = viewModel.state.collectSettledState()
     val recordState by viewModel.record.collectAsState()
     val tab by viewModel.tab.collectAsState()
     val squadSort by viewModel.squadSort.collectAsState()

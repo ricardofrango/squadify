@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createplayers
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -85,7 +86,7 @@ fun CreatePlayersScreen(
     onPlayersCreated: () -> Unit,
     viewModel: CreatePlayersViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState = viewModel.state.collectSettledState()
     val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
 
     var nextRowKey by remember { mutableStateOf(1) }

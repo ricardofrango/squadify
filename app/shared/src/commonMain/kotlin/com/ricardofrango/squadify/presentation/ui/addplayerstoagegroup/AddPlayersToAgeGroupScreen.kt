@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.addplayerstoagegroup
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -60,7 +61,7 @@ fun AddPlayersToAgeGroupScreen(
     refreshOnReturn: Boolean = false,
     viewModel: AddPlayersToAgeGroupViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState = viewModel.state.collectSettledState()
     var searchQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(clubId) {

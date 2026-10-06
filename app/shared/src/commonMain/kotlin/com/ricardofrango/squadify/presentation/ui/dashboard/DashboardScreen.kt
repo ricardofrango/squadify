@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.dashboard
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,7 +38,7 @@ fun DashboardScreen(
     onNavigateToAccount: () -> Unit,
     viewModel: DashboardViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState = viewModel.state.collectSettledState()
     val isRefreshing = (uiState as? DashboardUiState.Idle)?.isRefreshing == true
 
     LaunchedEffect(viewModel.navigationEvent) {

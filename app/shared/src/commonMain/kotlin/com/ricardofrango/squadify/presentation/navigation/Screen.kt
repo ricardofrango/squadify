@@ -46,6 +46,11 @@ sealed class Screen {
 
     // Tabbed "Club Details" / "Permissions" (the latter empty for now -- see TECHNICAL_DECISIONS.md).
     // The screen loads the club itself from [clubId], so it needs nothing else from the caller.
+    // The club's player list (from the More panel) -- its own screen, without Club details' bottom bar.
+    @Serializable
+    @SerialName("club-players")
+    data class ClubPlayers(val clubId: String) : Screen()
+
     @Serializable
     @SerialName("edit-club")
     data class EditClub(val clubId: String) : Screen()
@@ -76,7 +81,9 @@ sealed class Screen {
     // sport is SportType's .name -- see CreateAgeGroups' doc above for why this isn't the enum itself.
     @Serializable
     @SerialName("create-teams")
-    data class CreateTeams(val clubId: String, val clubName: String, val sport: String) : Screen()
+    // [initialAgeGroupId] preselects the age group (and its season) -- a coach's "Create team" from the
+    // More panel is scoped to the age group they picked.
+    data class CreateTeams(val clubId: String, val clubName: String, val sport: String, val initialAgeGroupId: String? = null) : Screen()
 
     // The screen has its own age-group picker; [initialAgeGroupId] just pre-selects it when the caller
     // already knows which one (e.g. from the age-group detail screen). [clubName] is carried only so

@@ -1,0 +1,94 @@
+package com.ricardofrango.squadify.presentation.ui.clubdetails
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.ricardofrango.squadify.domain.usecase.ClubDetails
+import com.ricardofrango.squadify.domain.usecase.GetClubDetailsUseCase
+import com.ricardofrango.squadify.model.AgeGroup
+import com.ricardofrango.squadify.model.Player
+import com.ricardofrango.squadify.presentation.errorMessage
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import squadify.app.shared.generated.resources.Res
+import squadify.app.shared.generated.resources.msg_failed_to_load_club_details
+
+/** The club's player list, opened from the More panel as its own screen (no bottom bar). */
+sealed class ClubPlayersUiState {
+    data object Loading : ClubPlayersUiState()
+    data class Error(val message: String) : ClubPlayersUiState()
+
+    data class Idle(
+        val details: ClubDetails,
+        // Defaults to the most recent season (by end date), as the old Players tab did.
+        val seasonId: String? = null,
+        val ageGroupId: String? = null,
+        val query: String = ""
+    ) : ClubPlayersUiState() {
+        /** The age-group filter's options: those of the selected season (all, with no season). */
+        val availableAgeGroups: List<AgeGroup>
+            get() = details.ageGroups.filter { seasonId == null || it.seasonId == seasonId }
+
+        /** Players in the selected season / age group whose name matches the search. */
+        val players: List<Player>
+            get() = filterClubPlayers(details, seasonId, ageGroupId, query)
+    }
+}
+
+/**
+ * Players belong to age-group pools, so the season / age-group filters go through those pools. A
+ * player in no pool yet (just registered to the club) has no season context, so they still show under
+ * a season filter -- otherwise registering a player looks like it did nothing -- but not under a
+ * specific age group.
+ */
+internal fun filterClubPlayers(details: ClubDetails, seasonId: String?, ageGroupId: String?, query: String): List<Player> {
+    val q = query.trim().lowercase()
+    return details.players.filter { player ->
+        val pools = details.ageGroupPlayers.filter { it.playerId == player.id }.map { it.ageGroupId }.toSet()
+        val matchesAgeGroup = ageGroupId == null || ageGroupId in pools
+        val matchesSeason = when {
+            seasonId == null -> true
+            pools.isEmpty() -> true
+            else -> details.ageGroups.any { it.id in pools && it.seasonId == seasonId }
+        }
+        val matchesSearch = q.isEmpty() || "${player.firstName} ${player.lastName}".lowercase().contains(q)
+        matchesSeason && matchesAgeGroup && matchesSearch
+    }
+}
+
+class ClubPlayersViewModel(
+    private val getClubDetailsUseCase: GetClubDetailsUseCase
+) : ViewModel() {
+
+    private val _state = MutableStateFlow<ClubPlayersUiState>(ClubPlayersUiState.Loading)
+    val state: StateFlow<ClubPlayersUiState> = _state.asStateFlow()
+
+    private var loadedClubId: String? = null
+
+    /** Loads once per club; [force] reloads (e.g. back from adding players), keeping the filters. */
+    fun load(clubId: String, force: Boolean = false) {
+        if (!force && loadedClubId == clubId) return
+        loadedClubId = clubId
+        val previous = _state.value as? ClubPlayersUiState.Idle
+        viewModelScope.launch {
+            if (previous == null) _state.value = ClubPlayersUiState.Loading
+            _state.value = try {
+                val details = getClubDetailsUseCase(clubId)
+                previous?.copy(details = details)
+                    ?: ClubPlayersUiState.Idle(details, seasonId = details.seasons.maxByOrNull { it.endDate }?.id)
+            } catch (e: Exception) {
+                ClubPlayersUiState.Error(errorMessage(e, Res.string.msg_failed_to_load_club_details))
+            }
+        }
+    }
+
+    fun onSeasonSelected(seasonId: String?) = update { it.copy(seasonId = seasonId, ageGroupId = null) }
+    fun onAgeGroupSelected(ageGroupId: String?) = update { it.copy(ageGroupId = ageGroupId) }
+    fun onSearchChanged(query: String) = update { it.copy(query = query) }
+
+    private fun update(block: (ClubPlayersUiState.Idle) -> ClubPlayersUiState.Idle) {
+        _state.update { (it as? ClubPlayersUiState.Idle)?.let(block) ?: it }
+    }
+}

@@ -11,6 +11,7 @@ import com.ricardofrango.squadify.domain.service.SessionEventBus
 import com.ricardofrango.squadify.domain.usecase.*
 import com.ricardofrango.squadify.presentation.ui.account.AccountViewModel
 import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubDetailsViewModel
+import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubPlayersViewModel
 import com.ricardofrango.squadify.presentation.ui.editclub.EditClubViewModel
 import com.ricardofrango.squadify.presentation.ui.clubmember.ClubMemberDetailsViewModel
 import com.ricardofrango.squadify.presentation.ui.createseason.CreateSeasonViewModel
@@ -196,6 +197,7 @@ val presentationModule = module {
     viewModelOf(::DashboardViewModel)
     viewModelOf(::AccountViewModel)
     viewModelOf(::ClubDetailsViewModel)
+    viewModelOf(::ClubPlayersViewModel)
     viewModelOf(::EditClubViewModel)
     viewModelOf(::ClubMemberDetailsViewModel)
     viewModelOf(::CreateSeasonViewModel)

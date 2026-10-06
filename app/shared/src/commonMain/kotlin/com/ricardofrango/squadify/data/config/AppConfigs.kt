@@ -11,5 +11,6 @@ import com.ricardofrango.squadify.domain.config.AppConfig
  */
 data class DefaultAppConfig(
     override val baseUrl: String,
-    override val isDebug: Boolean
+    override val isDebug: Boolean,
+    override val appVersion: String? = null
 ) : AppConfig

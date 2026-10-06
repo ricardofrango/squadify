@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createseason
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -122,7 +123,7 @@ fun CreateSeasonScreen(
     onSeasonCreated: () -> Unit,
     viewModel: CreateSeasonViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState = viewModel.state.collectSettledState()
     val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
 
     var selectedTypeName by rememberSaveable { mutableStateOf(SeasonType.EUROPEAN_YEAR.name) }

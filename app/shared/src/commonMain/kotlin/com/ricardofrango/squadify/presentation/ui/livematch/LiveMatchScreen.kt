@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.livematch
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -71,7 +72,7 @@ fun LiveMatchScreen(
     onOpenReport: (matchId: String, edit: Boolean) -> Unit = { _, _ -> },
     viewModel: LiveMatchViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState = viewModel.state.collectSettledState()
 
     LaunchedEffect(matchId) { viewModel.load(matchId) }
 

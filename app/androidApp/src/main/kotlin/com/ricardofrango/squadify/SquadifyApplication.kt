@@ -12,7 +12,11 @@ import org.koin.android.ext.koin.androidContext
 class SquadifyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        val appConfig = DefaultAppConfig(baseUrl = BuildConfig.BASE_URL, isDebug = BuildConfig.DEBUG)
+        val appConfig = DefaultAppConfig(
+            baseUrl = BuildConfig.BASE_URL,
+            isDebug = BuildConfig.DEBUG,
+            appVersion = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
+        )
         initKoin(appConfig = appConfig, pushTokenProvider = FirebasePushTokenProvider()) {
             androidContext(this@SquadifyApplication)
         }

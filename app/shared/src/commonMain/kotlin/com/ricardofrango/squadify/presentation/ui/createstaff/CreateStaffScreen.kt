@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createstaff
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -60,7 +61,7 @@ fun CreateStaffScreen(
     onStaffCreated: () -> Unit,
     viewModel: CreateStaffViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState = viewModel.state.collectSettledState()
 
     var nextRowKey by remember { mutableStateOf(1) }
     val rows = remember { mutableStateListOf(StaffRow(key = 0)) }

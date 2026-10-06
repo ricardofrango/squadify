@@ -2,7 +2,11 @@ package com.ricardofrango.squadify.presentation.ui.clubdetails
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.usecase.GetClubDetailsUseCase
+import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
+import com.ricardofrango.squadify.domain.usecase.GetCurrentUserUseCase
+import com.ricardofrango.squadify.domain.usecase.LogoutUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubHomeUseCase
 import com.ricardofrango.squadify.domain.usecase.GetMatchScoreUseCase
 import com.ricardofrango.squadify.domain.usecase.GetMatchesUseCase
@@ -29,8 +33,39 @@ class ClubDetailsViewModel(
     private val getMatchesUseCase: GetMatchesUseCase,
     private val getMatchScoreUseCase: GetMatchScoreUseCase,
     private val getOpponentsUseCase: GetOpponentsUseCase,
-    private val observeClubMatchesUseCase: ObserveClubMatchesUseCase
+    private val observeClubMatchesUseCase: ObserveClubMatchesUseCase,
+    private val getCurrentUserUseCase: GetCurrentUserUseCase,
+    private val getClubsUseCase: GetClubsUseCase,
+    private val logoutUseCase: LogoutUseCase,
+    private val appConfig: AppConfig
 ) : ViewModel() {
+
+    // ---- The "More" panel (design 37): who's signed in, how many clubs they're in, the app version ----
+
+    private val _moreAccount = MutableStateFlow<MoreAccount?>(null)
+    val moreAccount: StateFlow<MoreAccount?> = _moreAccount.asStateFlow()
+
+    /** Loads the panel's account header and club count, once; the panel shows its rows meanwhile. */
+    fun loadMoreAccount() {
+        if (_moreAccount.value != null) return
+        viewModelScope.launch {
+            try {
+                val user = getCurrentUserUseCase()
+                val clubs = try { getClubsUseCase().size } catch (e: Exception) { 1 }
+                _moreAccount.value = MoreAccount("${user.firstName} ${user.lastName}".trim(), user.email, clubs, appConfig.appVersion)
+            } catch (e: Exception) {
+                // Best-effort: the panel still works without the header details.
+            }
+        }
+    }
+
+    /** Signs out (as Account does) and then calls [onLoggedOut] to leave for Sign in. */
+    fun logout(onLoggedOut: () -> Unit) {
+        viewModelScope.launch {
+            try { logoutUseCase() } catch (e: Exception) { /* the session is cleared locally regardless */ }
+            onLoggedOut()
+        }
+    }
 
     // Collects the club-wide matches-list socket (see MatchesTab's DisposableEffect for the
     // connect-on-tab-enter/disconnect-on-tab-leave lifecycle this belongs to) -- an explicit Job so
@@ -90,7 +125,6 @@ class ClubDetailsViewModel(
                             opponents = opponents,
                             selectedTab = currentTab, // Restore the captured tab
                             selectedSeasonId = mostRecentSeasonId,
-                            selectedPlayerSeasonId = mostRecentSeasonId,
                             selectedMatchesSeasonId = mostRecentSeasonId,
                             showNoSeasonsState = details.seasons.isEmpty(),
                             canEditClub = details.canEditClub,
@@ -217,33 +251,6 @@ class ClubDetailsViewModel(
         }
     }
 
-    fun onPlayerSeasonSelected(seasonId: String?) {
-        _state.update { state ->
-            if (state is ClubDetailsUiState.Idle) {
-                val newState = state.copy(selectedPlayerSeasonId = seasonId)
-                applyFilters(newState)
-            } else state
-        }
-    }
-
-    fun onPlayerAgeGroupSelected(ageGroupId: String?) {
-        _state.update { state ->
-            if (state is ClubDetailsUiState.Idle) {
-                val newState = state.copy(selectedPlayerAgeGroupId = ageGroupId)
-                applyFilters(newState)
-            } else state
-        }
-    }
-
-    fun onPlayerSearchChanged(query: String) {
-        _state.update { state ->
-            if (state is ClubDetailsUiState.Idle) {
-                val newState = state.copy(playerSearchQuery = query)
-                applyFilters(newState)
-            } else state
-        }
-    }
-
     fun onAgeGroupsSeasonSelected(seasonId: String) {
         _state.update { state ->
             if (state is ClubDetailsUiState.Idle) state.copy(selectedAgeGroupsSeasonId = seasonId) else state
@@ -290,39 +297,7 @@ class ClubDetailsViewModel(
             (state.selectedAgeGroupId == null || team.ageGroupId == state.selectedAgeGroupId)
         }
         
-        // Filter Players List by age-group membership (players belong to age-group pools, not teams).
-        val filteredPlayers = details.players.filter { player ->
-            val playerAgeGroupIds = details.ageGroupPlayers
-                .filter { it.playerId == player.id }
-                .map { it.ageGroupId }
-                .toSet()
-
-            val matchesAgeGroup = state.selectedPlayerAgeGroupId == null ||
-                playerAgeGroupIds.contains(state.selectedPlayerAgeGroupId)
-
-            val matchesSeason = when {
-                state.selectedPlayerSeasonId == null -> true
-                // A player who isn't in any age-group pool yet has no season context -- surface them
-                // (e.g. just registered to the club) instead of hiding them behind the season filter
-                // until someone assigns them, which otherwise makes registration look like it did
-                // nothing. A specific age-group filter still excludes them.
-                playerAgeGroupIds.isEmpty() -> true
-                else -> details.ageGroups.any {
-                    it.id in playerAgeGroupIds && it.seasonId == state.selectedPlayerSeasonId
-                }
-            }
-
-            val query = state.playerSearchQuery.trim().lowercase()
-            val matchesSearch = query.isEmpty() ||
-                "${player.firstName} ${player.lastName}".lowercase().contains(query)
-
-            matchesSeason && matchesAgeGroup && matchesSearch
-        }
-        
-        return state.copy(
-            filteredTeams = filteredTeams,
-            filteredPlayers = filteredPlayers
-        )
+        return state.copy(filteredTeams = filteredTeams)
     }
 
     // Helper functions to get contextual options for the UI
@@ -336,12 +311,6 @@ class ClubDetailsViewModel(
         return state.details?.teams?.filter { 
             (state.selectedSeasonId == null || it.seasonId == state.selectedSeasonId) &&
             (state.selectedAgeGroupId == null || it.ageGroupId == state.selectedAgeGroupId)
-        } ?: emptyList()
-    }
-
-    fun getAvailableAgeGroupsForPlayers(state: ClubDetailsUiState.Idle): List<AgeGroup> {
-        return state.details?.ageGroups?.filter { 
-            state.selectedPlayerSeasonId == null || it.seasonId == state.selectedPlayerSeasonId 
         } ?: emptyList()
     }
 
