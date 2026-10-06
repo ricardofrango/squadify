@@ -2420,5 +2420,5 @@ The club screen's "More" tab opened a plain dropdown, and Account sat behind a s
 - **Same filters:** season, age group and search, with the same rules (`filterClubPlayers`, tested in `ClubPlayersFilterTest`).
 - **Reload on return:** the list reloads when you come back from adding players.
 
-**Account.** The header's account icon is removed; the panel's top block (name, email, role chip, club) opens Account, and the panel has Log out with a confirmation (it clears the whole back stack to Sign in) and Switch club for users in 2+ clubs. `AppConfig.appVersion` (Android fills it from the build) feeds the version line; platforms that don't provide it just omit it.
+**Account.** The header's account icon is removed; the panel's top block (name, email, role chip, club) opens Account, and the panel has Log out with a confirmation (it clears the whole back stack to Sign in) and Switch club for users in 2+ clubs. Switch club pops back to the existing "My clubs" list rather than pushing a new one, which had left two lists stacked so back from the list landed on the other list. Only a user who started straight in their only club, where the list was popped, gets the list in place of the club screen. `AppConfig.appVersion` (Android fills it from the build) feeds the version line; platforms that don't provide it just omit it.
 

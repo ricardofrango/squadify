@@ -241,10 +241,15 @@ fun AppNavigation() {
                 onNavigateToPlayers = {
                     navController.navigate(Screen.ClubPlayers(screen.clubId))
                 },
-                // To the "My clubs" list, replacing this club so back doesn't bounce between them.
+                // Back to the "My clubs" list. Normally it's already underneath (the club was opened
+                // from it), so pop back to it -- pushing a new one left two lists stacked, and back
+                // from the list went to the other list. A user who started straight in their only
+                // club (isRootClub: the list was popped) gets the list in place of this screen.
                 onSwitchClub = {
-                    navController.navigate(Screen.Dashboard) {
-                        popUpTo<Screen.ClubDetails> { inclusive = true }
+                    if (!navController.popBackStack<Screen.Dashboard>(inclusive = false)) {
+                        navController.navigate(Screen.Dashboard) {
+                            popUpTo<Screen.ClubDetails> { inclusive = true }
+                        }
                     }
                 },
                 // Clear the whole back stack, so back from Sign in can't return into the club.
