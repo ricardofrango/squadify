@@ -953,16 +953,16 @@
     <!-- Club "More" panel (design 37) -->
     <string name="more_close">Fechar</string>
     <string name="more_group_club">Clube</string>
-    <string name="more_group_create">Adicionar / criar</string>
+    <string name="more_group_create">Criar</string>
     <string name="more_group_account">Conta</string>
     <string name="more_players">Jogadores</string>
     <string name="more_club_settings">Definições do clube</string>
     <string name="more_club_settings_sub">Dados, membros, permissões</string>
-    <string name="more_add_season">Adicionar época</string>
+    <string name="more_add_season">Criar época</string>
     <string name="more_create_age_group">Criar escalão</string>
     <string name="more_create_team">Criar equipa</string>
-    <string name="more_add_players">Adicionar jogadores</string>
-    <string name="more_new_staff">Novo elemento da equipa técnica</string>
+    <string name="more_add_players">Criar jogadores</string>
+    <string name="more_new_staff">Criar membro do clube</string>
     <string name="more_account_settings">Definições da conta</string>
     <string name="more_account_settings_sub">Nome, telefone, palavra-passe</string>
     <string name="more_switch_club">Mudar de clube</string>

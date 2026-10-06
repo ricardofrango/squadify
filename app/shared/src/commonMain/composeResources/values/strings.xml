@@ -955,16 +955,16 @@
     <!-- Club "More" panel (design 37) -->
     <string name="more_close">Close</string>
     <string name="more_group_club">Club</string>
-    <string name="more_group_create">Add / create</string>
+    <string name="more_group_create">Create</string>
     <string name="more_group_account">Account</string>
     <string name="more_players">Players</string>
     <string name="more_club_settings">Club settings</string>
     <string name="more_club_settings_sub">Details, members, permissions</string>
-    <string name="more_add_season">Add season</string>
+    <string name="more_add_season">Create season</string>
     <string name="more_create_age_group">Create age group</string>
     <string name="more_create_team">Create team</string>
-    <string name="more_add_players">Add players</string>
-    <string name="more_new_staff">New staff member</string>
+    <string name="more_add_players">Create players</string>
+    <string name="more_new_staff">Create club member</string>
     <string name="more_account_settings">Account settings</string>
     <string name="more_account_settings_sub">Name, phone, password</string>
     <string name="more_switch_club">Switch club</string>
