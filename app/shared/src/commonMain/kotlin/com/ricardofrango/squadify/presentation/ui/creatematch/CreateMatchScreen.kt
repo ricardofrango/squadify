@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.creatematch
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -63,7 +64,7 @@ fun CreateMatchScreen(
     onMatchCreated: () -> Unit,
     viewModel: CreateMatchViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState = viewModel.state.collectSettledState()
 
     LaunchedEffect(ageGroupId, teamId) { viewModel.load(ageGroupId, teamId) }
     LaunchedEffect(viewModel.navigationEvent) {

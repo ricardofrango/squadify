@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createagegroups
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -95,7 +96,7 @@ fun CreateAgeGroupsScreen(
     onAgeGroupsCreated: () -> Unit,
     viewModel: CreateAgeGroupsViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState = viewModel.state.collectSettledState()
     val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
 
     // Default a new age group to the sport's largest format (e.g. 11-a-side football); the coordinator

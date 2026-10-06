@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.account
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -58,7 +59,7 @@ fun AccountScreen(
     onNavigateToLogin: () -> Unit,
     viewModel: AccountViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState = viewModel.state.collectSettledState()
 
     LaunchedEffect(Unit) {
         viewModel.navigationEvent.collect { event ->

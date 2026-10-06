@@ -2427,4 +2427,8 @@ The club screen's "More" tab opened a plain dropdown, and Account sat behind a s
 - **The splash is the exception:** leaving the splash screen is a plain fade, deliberately different from the rest of the app.
 - **The panel under a push:** a row that opens a screen doesn't animate the panel closed. The new screen slides in over the still-open panel. `moreOpen` is plain `remember` (not saved with the back-stack entry), so coming back shows the club screen with the panel already closed.
 - **Rows that don't navigate:** the age-group picker is a dialog over the club screen, so the panel closes (animated) before it shows. Log out keeps its confirmation.
+- **No content swap mid-slide:** a screen usually starts in Loading and gets its data while it is still sliding in. Swapping the spinner for the full content composed and laid out the whole loaded tree in one frame, mid-animation, which showed as a hitch.
+  - **Fix:** destinations are registered with `screen<T>` (`navigation/NavTransition.kt`), a `composable<T>` wrapper that exposes whether the destination's transition has settled. Screens collect their main UI state with `collectSettledState()`, which holds the value from when the transition started and switches to the latest one when it settles.
+  - **Outside a transition:** it is a plain synchronous pass-through, so text fields bound to the state never lag.
+  - **Not applied:** Login and Register (form-only, nothing loads on entry).
 

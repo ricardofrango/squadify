@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,7 +59,7 @@ fun ClubPlayersScreen(
     refresh: Boolean = false,
     viewModel: ClubPlayersViewModel = koinViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state = viewModel.state.collectSettledState()
     LaunchedEffect(clubId) { viewModel.load(clubId) }
     LaunchedEffect(refresh) { if (refresh) viewModel.load(clubId, force = true) }
 

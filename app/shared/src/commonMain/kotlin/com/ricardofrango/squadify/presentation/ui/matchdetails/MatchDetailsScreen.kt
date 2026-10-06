@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.BorderStroke
@@ -80,7 +81,7 @@ fun MatchDetailsScreen(
     refreshOnReturn: Boolean = false,
     viewModel: MatchDetailsViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState = viewModel.state.collectSettledState()
 
     LaunchedEffect(matchId) { viewModel.load(matchId) }
     LaunchedEffect(refreshOnReturn) { if (refreshOnReturn) viewModel.load(matchId, forceReload = true) }

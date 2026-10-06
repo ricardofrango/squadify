@@ -18,7 +18,6 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.ricardofrango.squadify.domain.service.SessionEventBus
@@ -140,7 +139,7 @@ fun AppNavigation() {
             slideOutHorizontally(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { it }
         }
     ) {
-        composable<Screen.Splash> {
+        screen<Screen.Splash> {
             SplashScreen(
                 deepLinkRoute = deepLinkRoute,
                 onNavigateToLogin = {
@@ -166,7 +165,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.Login> {
+        screen<Screen.Login> {
             LoginScreen(
                 onNavigateToRegister = {
                     navController.navigate(Screen.Register)
@@ -184,7 +183,7 @@ fun AppNavigation() {
             )
         }
         
-        composable<Screen.Register> {
+        screen<Screen.Register> {
             RegisterScreen(
                 onNavigateBack = {
                     navController.popBackStack()
@@ -197,7 +196,7 @@ fun AppNavigation() {
             )
         }
         
-        composable<Screen.Dashboard> {
+        screen<Screen.Dashboard> {
             DashboardScreen(
                 onNavigateToClub = { clubId ->
                     navController.navigate(Screen.ClubDetails(clubId))
@@ -215,7 +214,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.ClubDetails> { backStackEntry ->
+        screen<Screen.ClubDetails> { backStackEntry ->
             val screen: Screen.ClubDetails = backStackEntry.toRoute()
             val structureChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
@@ -292,7 +291,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.ClubPlayers> { backStackEntry ->
+        screen<Screen.ClubPlayers> { backStackEntry ->
             val screen: Screen.ClubPlayers = backStackEntry.toRoute()
             // Set by the create / add-players screens opened from here, so the list reloads on return.
             val structureChanged by backStackEntry.savedStateHandle
@@ -314,7 +313,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.EditClub> { backStackEntry ->
+        screen<Screen.EditClub> { backStackEntry ->
             val screen: Screen.EditClub = backStackEntry.toRoute()
             val membersChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_MEMBERS_CHANGED, false)
@@ -341,7 +340,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.EditAgeGroup> { backStackEntry ->
+        screen<Screen.EditAgeGroup> { backStackEntry ->
             val screen: Screen.EditAgeGroup = backStackEntry.toRoute()
             EditAgeGroupScreen(
                 ageGroupId = screen.ageGroupId,
@@ -354,7 +353,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.EditTeam> { backStackEntry ->
+        screen<Screen.EditTeam> { backStackEntry ->
             val screen: Screen.EditTeam = backStackEntry.toRoute()
             EditTeamScreen(
                 teamId = screen.teamId,
@@ -367,7 +366,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.ClubMemberDetails> { backStackEntry ->
+        screen<Screen.ClubMemberDetails> { backStackEntry ->
             val screen: Screen.ClubMemberDetails = backStackEntry.toRoute()
             ClubMemberDetailsScreen(
                 clubId = screen.clubId,
@@ -391,7 +390,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.CreateSeason> { backStackEntry ->
+        screen<Screen.CreateSeason> { backStackEntry ->
             val screen: Screen.CreateSeason = backStackEntry.toRoute()
             CreateSeasonScreen(
                 clubId = screen.clubId,
@@ -408,7 +407,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.CreateAgeGroups> { backStackEntry ->
+        screen<Screen.CreateAgeGroups> { backStackEntry ->
             val screen: Screen.CreateAgeGroups = backStackEntry.toRoute()
             CreateAgeGroupsScreen(
                 clubId = screen.clubId,
@@ -427,7 +426,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.CreateTeams> { backStackEntry ->
+        screen<Screen.CreateTeams> { backStackEntry ->
             val screen: Screen.CreateTeams = backStackEntry.toRoute()
             CreateTeamsScreen(
                 clubId = screen.clubId,
@@ -446,7 +445,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.AddPlayersToAgeGroup> { backStackEntry ->
+        screen<Screen.AddPlayersToAgeGroup> { backStackEntry ->
             val screen: Screen.AddPlayersToAgeGroup = backStackEntry.toRoute()
             // Set by CreatePlayers when the "New player" shortcut is used -- reload the eligible list
             // so the just-registered players show up, and pass the signal on down (ClubDetails /
@@ -477,7 +476,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.AgeGroupDetails> { backStackEntry ->
+        screen<Screen.AgeGroupDetails> { backStackEntry ->
             val screen: Screen.AgeGroupDetails = backStackEntry.toRoute()
             val structureChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
@@ -509,7 +508,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.CreatePlayers> { backStackEntry ->
+        screen<Screen.CreatePlayers> { backStackEntry ->
             val screen: Screen.CreatePlayers = backStackEntry.toRoute()
             CreatePlayersScreen(
                 clubId = screen.clubId,
@@ -527,7 +526,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.CreateStaff> { backStackEntry ->
+        screen<Screen.CreateStaff> { backStackEntry ->
             val screen: Screen.CreateStaff = backStackEntry.toRoute()
             CreateStaffScreen(
                 clubId = screen.clubId,
@@ -544,7 +543,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.AddStaffToAgeGroup> { backStackEntry ->
+        screen<Screen.AddStaffToAgeGroup> { backStackEntry ->
             val screen: Screen.AddStaffToAgeGroup = backStackEntry.toRoute()
             // Set by CreateStaff when the "New staff member" shortcut is used -- reload the eligible
             // list so the just-registered members show up, and pass the signal on down (ClubDetails /
@@ -575,7 +574,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.TeamDetails> { backStackEntry ->
+        screen<Screen.TeamDetails> { backStackEntry ->
             val screen: Screen.TeamDetails = backStackEntry.toRoute()
             val structureChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
@@ -607,7 +606,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.CreateMatch> { backStackEntry ->
+        screen<Screen.CreateMatch> { backStackEntry ->
             val screen: Screen.CreateMatch = backStackEntry.toRoute()
             CreateMatchScreen(
                 ageGroupId = screen.ageGroupId,
@@ -622,7 +621,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.MatchDetails> { backStackEntry ->
+        screen<Screen.MatchDetails> { backStackEntry ->
             val screen: Screen.MatchDetails = backStackEntry.toRoute()
             val structureChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
@@ -646,7 +645,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.LiveMatch> { backStackEntry ->
+        screen<Screen.LiveMatch> { backStackEntry ->
             val screen: Screen.LiveMatch = backStackEntry.toRoute()
             // Captured once, while this entry is on top -- previousBackStackEntry at this point is
             // MatchDetails' entry. Flagging it in onDispose (rather than only from onNavigateBack)
@@ -670,7 +669,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.MatchReport> { backStackEntry ->
+        screen<Screen.MatchReport> { backStackEntry ->
             val screen: Screen.MatchReport = backStackEntry.toRoute()
             // Captured while this entry is on top: the screen that opened the report (Match Details).
             // Flagged as soon as a save succeeds rather than only from onNavigateBack, because the
@@ -685,7 +684,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.PlayerDetails> { backStackEntry ->
+        screen<Screen.PlayerDetails> { backStackEntry ->
             val screen: Screen.PlayerDetails = backStackEntry.toRoute()
             val structureChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
@@ -710,7 +709,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.EditPlayer> { backStackEntry ->
+        screen<Screen.EditPlayer> { backStackEntry ->
             val screen: Screen.EditPlayer = backStackEntry.toRoute()
             EditPlayerScreen(
                 playerId = screen.playerId,
@@ -724,7 +723,7 @@ fun AppNavigation() {
             )
         }
 
-        composable<Screen.Account> {
+        screen<Screen.Account> {
             AccountScreen(
                 onNavigateBack = {
                     navController.popBackStack()

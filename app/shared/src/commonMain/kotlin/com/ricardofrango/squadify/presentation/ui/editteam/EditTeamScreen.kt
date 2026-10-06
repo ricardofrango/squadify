@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editteam
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,7 +63,7 @@ fun EditTeamScreen(
     onTeamUpdated: () -> Unit,
     viewModel: EditTeamViewModel = koinViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state = viewModel.state.collectSettledState()
     LaunchedEffect(teamId) { viewModel.load(teamId) }
     LaunchedEffect(Unit) { viewModel.saved.collect { onTeamUpdated() } }
 

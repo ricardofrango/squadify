@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import org.jetbrains.compose.resources.StringResource
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.BorderStroke
@@ -156,7 +157,7 @@ fun ClubDetailsScreen(
     refreshClubDetails: Boolean = false,
     viewModel: ClubDetailsViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState = viewModel.state.collectSettledState()
     val selectedTab = (uiState as? ClubDetailsUiState.Idle)?.selectedTab ?: CLUB_TAB_HOME
     val clubName = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name ?: ""
     val sport = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.sport ?: SportType.FOOTBALL

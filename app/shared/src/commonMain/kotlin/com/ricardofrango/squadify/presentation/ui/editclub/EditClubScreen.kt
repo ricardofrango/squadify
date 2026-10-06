@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -180,7 +181,7 @@ fun EditClubScreen(
     onMembersRefreshed: () -> Unit = {},
     viewModel: EditClubViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState = viewModel.state.collectSettledState()
     val members by viewModel.members.collectAsState()
     val inviting by viewModel.inviting.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
