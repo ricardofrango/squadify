@@ -59,8 +59,9 @@ private const val KEY_MEMBERS_MESSAGE = "clubMembersMessage"
  * handle is touched before the entry is attached or after it's destroyed -- and an entry captured
  * earlier can be destroyed by the time it's used: when the activity is relaunched (a configuration
  * change, e.g. unlocking the phone mid-match), the back stack is torn down before the composition's
- * onDispose callbacks run. Skipping the flag then is safe: nothing is returning to that screen, and
- * the restored screens load fresh after the relaunch.
+ * onDispose callbacks run. Skipping the flag then is safe: nothing is returning to that screen at
+ * that moment, and the relaunch recomposes the screen on top, which registers its onDispose again
+ * against the restored (alive) entry -- so the flag is still set when the user really leaves.
  */
 private fun NavBackStackEntry.setIfAlive(key: String, value: Any?) {
     if (lifecycle.currentState.isAtLeast(Lifecycle.State.CREATED)) savedStateHandle[key] = value
