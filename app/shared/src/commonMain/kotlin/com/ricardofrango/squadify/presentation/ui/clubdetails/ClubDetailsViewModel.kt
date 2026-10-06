@@ -125,7 +125,6 @@ class ClubDetailsViewModel(
                             opponents = opponents,
                             selectedTab = currentTab, // Restore the captured tab
                             selectedSeasonId = mostRecentSeasonId,
-                            selectedPlayerSeasonId = mostRecentSeasonId,
                             selectedMatchesSeasonId = mostRecentSeasonId,
                             showNoSeasonsState = details.seasons.isEmpty(),
                             canEditClub = details.canEditClub,
@@ -252,33 +251,6 @@ class ClubDetailsViewModel(
         }
     }
 
-    fun onPlayerSeasonSelected(seasonId: String?) {
-        _state.update { state ->
-            if (state is ClubDetailsUiState.Idle) {
-                val newState = state.copy(selectedPlayerSeasonId = seasonId)
-                applyFilters(newState)
-            } else state
-        }
-    }
-
-    fun onPlayerAgeGroupSelected(ageGroupId: String?) {
-        _state.update { state ->
-            if (state is ClubDetailsUiState.Idle) {
-                val newState = state.copy(selectedPlayerAgeGroupId = ageGroupId)
-                applyFilters(newState)
-            } else state
-        }
-    }
-
-    fun onPlayerSearchChanged(query: String) {
-        _state.update { state ->
-            if (state is ClubDetailsUiState.Idle) {
-                val newState = state.copy(playerSearchQuery = query)
-                applyFilters(newState)
-            } else state
-        }
-    }
-
     fun onAgeGroupsSeasonSelected(seasonId: String) {
         _state.update { state ->
             if (state is ClubDetailsUiState.Idle) state.copy(selectedAgeGroupsSeasonId = seasonId) else state
@@ -325,39 +297,7 @@ class ClubDetailsViewModel(
             (state.selectedAgeGroupId == null || team.ageGroupId == state.selectedAgeGroupId)
         }
         
-        // Filter Players List by age-group membership (players belong to age-group pools, not teams).
-        val filteredPlayers = details.players.filter { player ->
-            val playerAgeGroupIds = details.ageGroupPlayers
-                .filter { it.playerId == player.id }
-                .map { it.ageGroupId }
-                .toSet()
-
-            val matchesAgeGroup = state.selectedPlayerAgeGroupId == null ||
-                playerAgeGroupIds.contains(state.selectedPlayerAgeGroupId)
-
-            val matchesSeason = when {
-                state.selectedPlayerSeasonId == null -> true
-                // A player who isn't in any age-group pool yet has no season context -- surface them
-                // (e.g. just registered to the club) instead of hiding them behind the season filter
-                // until someone assigns them, which otherwise makes registration look like it did
-                // nothing. A specific age-group filter still excludes them.
-                playerAgeGroupIds.isEmpty() -> true
-                else -> details.ageGroups.any {
-                    it.id in playerAgeGroupIds && it.seasonId == state.selectedPlayerSeasonId
-                }
-            }
-
-            val query = state.playerSearchQuery.trim().lowercase()
-            val matchesSearch = query.isEmpty() ||
-                "${player.firstName} ${player.lastName}".lowercase().contains(query)
-
-            matchesSeason && matchesAgeGroup && matchesSearch
-        }
-        
-        return state.copy(
-            filteredTeams = filteredTeams,
-            filteredPlayers = filteredPlayers
-        )
+        return state.copy(filteredTeams = filteredTeams)
     }
 
     // Helper functions to get contextual options for the UI
@@ -371,12 +311,6 @@ class ClubDetailsViewModel(
         return state.details?.teams?.filter { 
             (state.selectedSeasonId == null || it.seasonId == state.selectedSeasonId) &&
             (state.selectedAgeGroupId == null || it.ageGroupId == state.selectedAgeGroupId)
-        } ?: emptyList()
-    }
-
-    fun getAvailableAgeGroupsForPlayers(state: ClubDetailsUiState.Idle): List<AgeGroup> {
-        return state.details?.ageGroups?.filter { 
-            state.selectedPlayerSeasonId == null || it.seasonId == state.selectedPlayerSeasonId 
         } ?: emptyList()
     }
 

@@ -2416,5 +2416,9 @@ The club screen's "More" tab opened a plain dropdown, and Account sat behind a s
 - **How:** these come from the same configurable-permission probes `CreateTeamsUseCase` / `CreatePlayersUseCase` enforce, so the panel only offers what will succeed. A club that makes an action coordinator-only simply removes that row.
 - **Coaches:** a coach's action goes through an age-group picker limited to those age groups (skipped with just one), and opens Create Teams (new `initialAgeGroupId`) or Create Players with it.
 
+**Players is its own screen.** It used to be a hidden fifth tab of Club details, so opening it from the panel kept the club's bottom bar underneath. It's now `ClubPlayersScreen` (`Screen.ClubPlayers`), pushed on top with a back arrow and no bottom bar, and with its own view model.
+- **Same filters:** season, age group and search, with the same rules (`filterClubPlayers`, tested in `ClubPlayersFilterTest`).
+- **Reload on return:** the list reloads when you come back from adding players.
+
 **Account.** The header's account icon is removed; the panel's top block (name, email, role chip, club) opens Account, and the panel has Log out with a confirmation (it clears the whole back stack to Sign in) and Switch club for users in 2+ clubs. `AppConfig.appVersion` (Android fills it from the build) feeds the version line; platforms that don't provide it just omit it.
 

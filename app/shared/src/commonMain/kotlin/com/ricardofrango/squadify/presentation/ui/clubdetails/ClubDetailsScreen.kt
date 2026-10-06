@@ -145,6 +145,8 @@ fun ClubDetailsScreen(
     // only being reachable from Dashboard's top bar.
     onNavigateToAccount: () -> Unit,
     onNavigateToEditClub: () -> Unit,
+    // The club's player list -- its own screen, not a tab under this bottom bar.
+    onNavigateToPlayers: () -> Unit = {},
     // The More panel's "Switch club" (2+ clubs) and Log out.
     onSwitchClub: () -> Unit = {},
     onLoggedOut: () -> Unit = {},
@@ -222,10 +224,9 @@ fun ClubDetailsScreen(
                     )
 
                     // "More" opens the full-screen panel (design 37) -- Players, the create actions and
-                    // Account all live there. Shown as selected while the panel is open, and when
-                    // Players (which has no bottom-bar icon of its own) is the active tab.
+                    // Account all live there. Shown as selected while the panel is open.
                     ClubTabItem(
-                        selected = moreOpen || selectedTab == CLUB_TAB_PLAYERS,
+                        selected = moreOpen,
                         onClick = { moreOpen = !moreOpen },
                         icon = Res.drawable.ic_more,
                         label = stringResource(Res.string.tab_more)
@@ -303,7 +304,7 @@ fun ClubDetailsScreen(
     if (details != null) {
         val groups = moreGroups(
             details = details,
-            onPlayers = { viewModel.onTabSelected(CLUB_TAB_PLAYERS) },
+            onPlayers = onNavigateToPlayers,
             onClubSettings = onNavigateToEditClub,
             onAddSeason = { onNavigateToCreateSeason(clubName) },
             onCreateAgeGroup = { if (details.seasons.isNotEmpty()) onNavigateToCreateAgeGroups(clubName, sport, null) },
@@ -403,33 +404,6 @@ private fun ClubDetailsTabContent(
                         )
 
                     else -> TeamList(state.filteredTeams, onNavigateToTeam)
-                }
-            }
-
-            CLUB_TAB_PLAYERS -> {
-                PlayerFilterSection(state = state, viewModel = viewModel)
-                when {
-                    state.selectedPlayerSeasonId != null &&
-                        viewModel.getAvailableAgeGroupsForPlayers(state).isEmpty() ->
-                        NoAgeGroupsState(
-                            canEditClub = state.canEditClub,
-                            onCreateAgeGroupClick = {
-                                onNavigateToCreateAgeGroups(clubName, sport, state.selectedPlayerSeasonId)
-                            }
-                        )
-
-                    // No player matches the current filters. If the club has no players at all the
-                    // first step is to register them; otherwise it's assigning existing players to an
-                    // age group's pool (both require COORDINATOR+; an age-group coach can also assign).
-                    state.filteredPlayers.isEmpty() ->
-                        NoPlayersState(
-                            canEditClub = state.canEditClub,
-                            hasClubPlayers = state.details?.players?.isNotEmpty() == true,
-                            onAddPlayersToClub = { onNavigateToCreatePlayers(clubName, null) },
-                            onAddPlayersToAgeGroup = { onNavigateToAddPlayersToAgeGroup(clubName) }
-                        )
-
-                    else -> PlayerList(state.filteredPlayers, onNavigateToPlayer)
                 }
             }
 
@@ -636,56 +610,6 @@ private fun TeamFilterSection(
 }
 
 @Composable
-private fun PlayerFilterSection(
-    state: ClubDetailsUiState.Idle,
-    viewModel: ClubDetailsViewModel
-) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            item {
-                FilterSelector(
-                    selectedOption = state.details?.seasons?.find { it.id == state.selectedPlayerSeasonId }?.name
-                        ?: stringResource(Res.string.label_all_seasons),
-                    options = listOf(null to stringResource(Res.string.label_all_seasons)) +
-                            (state.details?.seasons?.map { it.id to it.name } ?: emptyList()),
-                    onOptionSelected = viewModel::onPlayerSeasonSelected
-                )
-            }
-            item {
-                FilterSelector(
-                    selectedOption = state.details?.ageGroups?.find { it.id == state.selectedPlayerAgeGroupId }?.name
-                        ?: stringResource(Res.string.label_all_ages),
-                    options = listOf(null to stringResource(Res.string.label_all_ages)) +
-                            viewModel.getAvailableAgeGroupsForPlayers(state).map { it.id to it.name },
-                    onOptionSelected = viewModel::onPlayerAgeGroupSelected
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        OutlinedTextField(
-            value = state.playerSearchQuery,
-            onValueChange = viewModel::onPlayerSearchChanged,
-            label = { Text(stringResource(Res.string.label_search_players)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = DeepCarbon,
-                unfocusedTextColor = DeepCarbon,
-                focusedBorderColor = PitchGreen,
-                unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
-                focusedLabelColor = PitchGreen,
-                unfocusedLabelColor = CarbonGray
-            )
-        )
-    }
-}
-
-@Composable
 internal fun <T> FilterSelector(
     selectedOption: String,
     options: List<Pair<T, String>>,
@@ -761,7 +685,7 @@ private fun TeamList(teams: List<Team>, onNavigateToTeam: (String) -> Unit) {
 }
 
 @Composable
-private fun PlayerList(players: List<Player>, onNavigateToPlayer: (String) -> Unit) {
+internal fun PlayerList(players: List<Player>, onNavigateToPlayer: (String) -> Unit) {
     // Callers only reach here with a non-empty list -- the empty case is handled one level up by
     // NoPlayersState (which also offers the right "add players" action).
     LazyColumn(
@@ -880,7 +804,7 @@ private fun NoSeasonsState(canEditClub: Boolean, onCreateSeasonClick: () -> Unit
 }
 
 @Composable
-private fun NoAgeGroupsState(canEditClub: Boolean, onCreateAgeGroupClick: () -> Unit) {
+internal fun NoAgeGroupsState(canEditClub: Boolean, onCreateAgeGroupClick: () -> Unit) {
     EmptyStateCallToAction(
         icon = Res.drawable.ic_age_group,
         title = stringResource(Res.string.msg_no_age_groups_title),
@@ -910,11 +834,11 @@ private fun NoTeamsState(canEditClub: Boolean, onCreateTeamClick: () -> Unit) {
     )
 }
 
-// Shown on the Players tab when no player matches the active filters. Two-step model: players are
+// Shown on the Players screen (ClubPlayersScreen) when no player matches the active filters. Two-step model: players are
 // registered on the club first, then added to age-group pools. [hasClubPlayers] picks which step the
 // button points at; a plain member with no edit rights just gets a "adjust the filters" nudge.
 @Composable
-private fun NoPlayersState(
+internal fun NoPlayersState(
     canEditClub: Boolean,
     hasClubPlayers: Boolean,
     onAddPlayersToClub: () -> Unit,

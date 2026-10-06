@@ -24,6 +24,7 @@ import com.ricardofrango.squadify.presentation.ui.dashboard.DashboardScreen
 import com.ricardofrango.squadify.presentation.ui.account.AccountScreen
 import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.editclub.EditClubScreen
+import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubPlayersScreen
 import com.ricardofrango.squadify.presentation.ui.editteam.EditTeamScreen
 import com.ricardofrango.squadify.presentation.ui.editagegroup.EditAgeGroupScreen
 import com.ricardofrango.squadify.presentation.ui.clubmember.ClubMemberDetailsScreen
@@ -237,6 +238,9 @@ fun AppNavigation() {
                 onNavigateToEditClub = {
                     navController.navigate(Screen.EditClub(screen.clubId))
                 },
+                onNavigateToPlayers = {
+                    navController.navigate(Screen.ClubPlayers(screen.clubId))
+                },
                 // To the "My clubs" list, replacing this club so back doesn't bounce between them.
                 onSwitchClub = {
                     navController.navigate(Screen.Dashboard) {
@@ -250,6 +254,28 @@ fun AppNavigation() {
                     }
                 },
                 refreshClubDetails = structureChanged
+            )
+        }
+
+        composable<Screen.ClubPlayers> { backStackEntry ->
+            val screen: Screen.ClubPlayers = backStackEntry.toRoute()
+            // Set by the create / add-players screens opened from here, so the list reloads on return.
+            val structureChanged by backStackEntry.savedStateHandle
+                .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
+                .collectAsState()
+            if (structureChanged) {
+                navController.consumeAndCascadeStructureChanged(backStackEntry)
+            }
+            ClubPlayersScreen(
+                clubId = screen.clubId,
+                onNavigateBack = { navController.popBackStack() },
+                onOpenPlayer = { playerId -> navController.navigate(Screen.PlayerDetails(playerId)) },
+                onCreateAgeGroups = { clubName, sport, seasonId ->
+                    navController.navigate(Screen.CreateAgeGroups(screen.clubId, clubName, sport.name, seasonId))
+                },
+                onCreatePlayers = { clubName -> navController.navigate(Screen.CreatePlayers(screen.clubId, clubName)) },
+                onAddPlayersToAgeGroup = { clubName -> navController.navigate(Screen.AddPlayersToAgeGroup(screen.clubId, clubName)) },
+                refresh = structureChanged
             )
         }
 

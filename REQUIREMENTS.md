@@ -145,6 +145,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - **Account header:** avatar, name, email, role chip and club name; tapping it opens Account.
       - **Grouped rows by permission:** coordinators see every create action. A coach sees Create team and Add players for their own age groups, as far as the club's Permissions allow.
       - **Account rows:** Account settings, Switch club (2+ clubs) and Log out (with a confirmation).
+      - **Players:** the club's player list opens as its own screen, with season, age-group and search filters.
     - [x] Match center (Live updates & History):
       - **Matches tab:** the club's Matches tab updates live.
       - **Match Details:** line-ups, call-ups, events and score.

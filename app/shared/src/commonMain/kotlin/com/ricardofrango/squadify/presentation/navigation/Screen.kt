@@ -46,6 +46,11 @@ sealed class Screen {
 
     // Tabbed "Club Details" / "Permissions" (the latter empty for now -- see TECHNICAL_DECISIONS.md).
     // The screen loads the club itself from [clubId], so it needs nothing else from the caller.
+    // The club's player list (from the More panel) -- its own screen, without Club details' bottom bar.
+    @Serializable
+    @SerialName("club-players")
+    data class ClubPlayers(val clubId: String) : Screen()
+
     @Serializable
     @SerialName("edit-club")
     data class EditClub(val clubId: String) : Screen()
