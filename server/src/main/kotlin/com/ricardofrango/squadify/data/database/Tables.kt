@@ -29,6 +29,18 @@ object RefreshTokens : Table("refresh_tokens") {
     override val primaryKey = PrimaryKey(id)
 }
 
+// At most one pending Forgot-password code per user (requesting a new one replaces it). Only a BCrypt
+// hash of the code is stored. See RequestPasswordResetUseCase / ResetPasswordUseCase.
+object PasswordResetCodes : Table("password_reset_codes") {
+    val userId = uuid("user_id").references(Users.id)
+    val codeHash = varchar("code_hash", 255)
+    val expiresAt = timestamp("expires_at")
+    val attempts = integer("attempts").default(0)
+    val createdAt = timestamp("created_at")
+
+    override val primaryKey = PrimaryKey(userId)
+}
+
 object FcmTokens : Table("fcm_tokens") {
     val id = uuid("id")
     val userId = uuid("user_id").references(Users.id)

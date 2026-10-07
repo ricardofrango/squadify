@@ -24,6 +24,7 @@ import com.ricardofrango.squadify.domain.service.SessionEventBus
 import com.ricardofrango.squadify.model.StatsFilter
 import com.ricardofrango.squadify.model.SportType
 import org.koin.compose.koinInject
+import com.ricardofrango.squadify.presentation.ui.forgotpassword.ForgotPasswordScreen
 import com.ricardofrango.squadify.presentation.ui.login.LoginScreen
 import com.ricardofrango.squadify.presentation.ui.register.RegisterScreen
 import com.ricardofrango.squadify.presentation.ui.splash.SplashScreen
@@ -56,6 +57,9 @@ import com.ricardofrango.squadify.presentation.ui.editplayer.EditPlayerScreen
 // screen to return a result to the screen that pushed it. See ClubDetailsScreen's `refreshClubDetails`
 // doc.
 private const val KEY_CLUB_STRUCTURE_CHANGED = "clubStructureChanged"
+
+// Forgot password -> Login: the email whose password was just reset (prefilled, with a confirmation).
+private const val KEY_PASSWORD_RESET_EMAIL = "passwordResetEmail"
 
 // Duration of the app-wide screen transition (see the NavHost below).
 private const val NAV_ANIM_MS = 300
@@ -165,8 +169,11 @@ fun AppNavigation() {
             )
         }
 
-        screen<Screen.Login> {
+        screen<Screen.Login> { entry ->
+            val passwordResetEmail by entry.savedStateHandle.getStateFlow<String?>(KEY_PASSWORD_RESET_EMAIL, null).collectAsState()
             LoginScreen(
+                passwordResetEmail = passwordResetEmail,
+                onNavigateToForgotPassword = { email -> navController.navigate(Screen.ForgotPassword(email)) },
                 onNavigateToRegister = {
                     navController.navigate(Screen.Register)
                 },
@@ -183,6 +190,18 @@ fun AppNavigation() {
             )
         }
         
+        screen<Screen.ForgotPassword> { entry ->
+            val loginEntry = remember(entry) { navController.previousBackStackEntry }
+            ForgotPasswordScreen(
+                initialEmail = entry.toRoute<Screen.ForgotPassword>().email,
+                onNavigateBack = { navController.popBackStack() },
+                onPasswordReset = { email ->
+                    loginEntry?.setIfAlive(KEY_PASSWORD_RESET_EMAIL, email)
+                    navController.popBackStack()
+                }
+            )
+        }
+
         screen<Screen.Register> {
             RegisterScreen(
                 onNavigateBack = {

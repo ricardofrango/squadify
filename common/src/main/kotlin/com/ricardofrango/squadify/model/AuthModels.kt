@@ -56,6 +56,24 @@ data class ChangePasswordRequest(
 )
 
 /**
+ * Body of `POST /auth/password-reset/request` (Forgot password). 202 when the code was sent, 404
+ * when [email] has no active account.
+ */
+@Serializable
+data class PasswordResetRequest(val email: String)
+
+/**
+ * Body of `POST /auth/password-reset/confirm`: the 6-digit [code] emailed by the request above, and
+ * the [newPassword] (8+ characters, same rule as Change password).
+ */
+@Serializable
+data class PasswordResetConfirmRequest(
+    val email: String,
+    val code: String,
+    val newPassword: String
+)
+
+/**
  * A stored refresh-token record, as retrieved for validation. Server-internal (never returned to a
  * client) — carries just what `RefreshTokenUseCase` needs to decide whether the token is still usable.
  */

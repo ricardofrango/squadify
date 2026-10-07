@@ -987,4 +987,23 @@
         <item quantity="one">%1$s · %2$d team</item>
         <item quantity="other">%1$s · %2$d teams</item>
     </plurals>
+    <!-- Forgot password -->
+    <string name="title_forgot_password">Forgot password</string>
+    <string name="msg_forgot_email_intro">Enter your account\'s email and we\'ll send you a 6-digit code to set a new password.</string>
+    <string name="msg_enter_email">Enter your email address.</string>
+    <string name="btn_send_code">Send code</string>
+    <string name="btn_sending_code">Sending...</string>
+    <string name="msg_forgot_code_intro">We\'ve sent a code to %1$s. It expires in 15 minutes.</string>
+    <string name="label_reset_code">6-digit code</string>
+    <string name="btn_set_new_password">Set new password</string>
+    <string name="btn_setting_new_password">Saving...</string>
+    <string name="btn_resend_code">Send a new code</string>
+    <string name="btn_resend_code_in">Send a new code (%1$ds)</string>
+    <string name="btn_use_different_email">Use a different email</string>
+    <string name="msg_reset_code_format">Enter the 6-digit code from the email.</string>
+    <string name="msg_reset_code_invalid">This code is wrong or has expired. Check the email or send a new code.</string>
+    <string name="msg_reset_failed">Couldn\'t set your new password. Please try again.</string>
+    <string name="msg_reset_request_failed">Couldn\'t send the code. Please try again.</string>
+    <string name="msg_password_reset_done">Password changed. Sign in with your new password.</string>
+    <string name="msg_reset_no_account">There\'s no account with this email.</string>
 </resources>

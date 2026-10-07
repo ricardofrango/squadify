@@ -30,4 +30,9 @@ class ResendEmailServiceTest {
             clubName = "Test FC"
         )
     }
+
+    @Test
+    fun sendPasswordResetCodeNeverThrowsWithNoApiKeyConfigured() = runBlocking {
+        emailService.sendPasswordResetCode(to = "someone@example.com", firstName = "Alex", code = "123456", validMinutes = 15)
+    }
 }

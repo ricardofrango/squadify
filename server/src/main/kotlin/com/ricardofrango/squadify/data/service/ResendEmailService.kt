@@ -76,6 +76,19 @@ class ResendEmailService : EmailService {
         )
     }
 
+    override suspend fun sendPasswordResetCode(to: String, firstName: String, code: String, validMinutes: Int) {
+        send(
+            to = to,
+            subject = "Your Squadify password reset code: $code",
+            html = """
+                <p>Hi $firstName,</p>
+                <p>Use this code to set a new password for your Squadify account:</p>
+                <p style="font-size:28px;font-weight:bold;letter-spacing:6px">$code</p>
+                <p>It expires in $validMinutes minutes. If you didn't ask to reset your password, you can ignore this email -- your password hasn't changed.</p>
+            """.trimIndent()
+        )
+    }
+
     private suspend fun send(to: String, subject: String, html: String) {
         if (ServerConfig.resendApiKey.isBlank()) {
             logger.warn("RESEND_API_KEY not set -- skipping email to {} ({})", to, subject)

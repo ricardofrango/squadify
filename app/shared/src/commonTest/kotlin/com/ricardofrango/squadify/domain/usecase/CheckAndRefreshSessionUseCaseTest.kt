@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.model.PasswordResetConfirmRequest
+import com.ricardofrango.squadify.model.PasswordResetRequest
 import com.ricardofrango.squadify.data.remote.ApiException
 import com.ricardofrango.squadify.domain.repository.AuthRepository
 import com.ricardofrango.squadify.domain.repository.SessionRepository
@@ -37,6 +39,8 @@ class CheckAndRefreshSessionUseCaseTest {
         override suspend fun login(request: LoginRequest): LoginResponse = error("unused")
         override suspend fun register(request: RegisterRequest): User = error("unused")
         override suspend fun refreshToken(request: RefreshTokenRequest): TokenResponse = onRefresh()
+        override suspend fun requestPasswordReset(request: PasswordResetRequest) = Unit
+        override suspend fun confirmPasswordReset(request: PasswordResetConfirmRequest) = Unit
     }
 
     @Test

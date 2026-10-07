@@ -37,6 +37,9 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     onNavigateToDashboard: () -> Unit,
     onNavigateToOnlyClub: (String) -> Unit,
+    onNavigateToForgotPassword: (email: String) -> Unit,
+    // Set when coming back from Forgot password: the email is filled in and a confirmation shown.
+    passwordResetEmail: String? = null,
     viewModel: LoginViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
@@ -51,6 +54,9 @@ fun LoginScreen(
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
     val errorMessage = (uiState as? LoginUiState.Idle)?.error
+    LaunchedEffect(passwordResetEmail) {
+        if (passwordResetEmail != null) { email = passwordResetEmail; password = "" }
+    }
 
     // Observe Navigation Events
     LaunchedEffect(viewModel.navigationEvent) {
@@ -155,6 +161,12 @@ fun LoginScreen(
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall
                             )
+                        } else if (passwordResetEmail != null) {
+                            Text(
+                                text = stringResource(Res.string.msg_password_reset_done),
+                                color = PitchGreen,
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
                     }
 
@@ -172,6 +184,11 @@ fun LoginScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
+                            errorTextColor = DeepCarbon,
+                            disabledTextColor = DeepCarbon.copy(alpha = 0.6f),
+                            disabledBorderColor = Color.Gray.copy(alpha = 0.2f),
+                            disabledLabelColor = Color.Gray.copy(alpha = 0.8f),
+                            disabledTrailingIconColor = Color.Gray.copy(alpha = 0.6f),
                             focusedBorderColor = PitchGreen,
                             unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
                             focusedLabelColor = PitchGreen,
@@ -202,6 +219,11 @@ fun LoginScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
+                            errorTextColor = DeepCarbon,
+                            disabledTextColor = DeepCarbon.copy(alpha = 0.6f),
+                            disabledBorderColor = Color.Gray.copy(alpha = 0.2f),
+                            disabledLabelColor = Color.Gray.copy(alpha = 0.8f),
+                            disabledTrailingIconColor = Color.Gray.copy(alpha = 0.6f),
                             focusedBorderColor = PitchGreen,
                             unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
                             focusedLabelColor = PitchGreen,
@@ -210,7 +232,7 @@ fun LoginScreen(
                     )
 
                     TextButton(
-                        onClick = { /* Forgot Password */ },
+                        onClick = { onNavigateToForgotPassword(email) },
                         modifier = Modifier.align(Alignment.End),
                         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                         enabled = uiState !is LoginUiState.Loading
