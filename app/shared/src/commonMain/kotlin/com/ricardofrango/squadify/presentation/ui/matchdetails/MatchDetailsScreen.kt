@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardOptions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -618,6 +620,8 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
                 value = location, onValueChange = { location = it },
                 label = { Text(stringResource(Res.string.label_match_location)) },
                 placeholder = { Text(stringResource(Res.string.label_match_location_placeholder)) },
+                // Next moves to Notes (multi-line, so its Enter key adds a line).
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 singleLine = true, modifier = Modifier.fillMaxWidth(), shape = CardShape, colors = editFieldColors()
             )
             OutlinedTextField(

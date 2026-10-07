@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.editteam
 
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardOptions
+import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -128,6 +131,9 @@ private fun EditTeamContent(
                     label = { Text(stringResource(Res.string.label_team_name_field)) },
                     isError = state.form.name.isBlank(),
                     singleLine = true,
+                    // The only text field: the keyboard key saves, like the top bar's check.
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = submitKeyboardActions { if (state.canSave) onSave() },
                     enabled = !state.isSubmitting,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),

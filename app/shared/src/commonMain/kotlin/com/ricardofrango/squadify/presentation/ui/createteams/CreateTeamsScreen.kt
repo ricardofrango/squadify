@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.createteams
 
+import androidx.compose.foundation.text.KeyboardActions
+import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -276,7 +278,8 @@ private fun CreateTeamsContent(
                             canRemove = rows.size > 1,
                             onNameChanged = { onRowNameChanged(row.key, it) },
                             onTeamSizeSelected = { onRowTeamSizeSelected(row.key, it) },
-                            onRemove = { onRemoveRow(row.key) }
+                            onRemove = { onRemoveRow(row.key) },
+                            onSubmit = onCreateClick.takeIf { index == rows.lastIndex }
                         )
                     }
 
@@ -396,7 +399,10 @@ private fun TeamRowCard(
     canRemove: Boolean,
     onNameChanged: (String) -> Unit,
     onTeamSizeSelected: (Int) -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    // Only on the last row: its keyboard key creates them all, like the button. Earlier rows' Next
+    // moves on to the following row.
+    onSubmit: (() -> Unit)? = null
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -441,7 +447,8 @@ private fun TeamRowCard(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = FormRoundedShape,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardOptions = KeyboardOptions(imeAction = if (onSubmit != null) ImeAction.Done else ImeAction.Next),
+                keyboardActions = onSubmit?.let { submitKeyboardActions(it) } ?: KeyboardActions.Default,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = DeepCarbon,
                     unfocusedTextColor = DeepCarbon,

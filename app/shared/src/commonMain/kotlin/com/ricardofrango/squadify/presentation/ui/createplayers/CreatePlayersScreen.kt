@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createplayers
 
+import androidx.compose.foundation.text.KeyboardActions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -354,7 +355,10 @@ private fun PlayerRowCard(
                 value = row.lastName,
                 onValueChange = onLastNameChange,
                 label = stringResource(Res.string.label_last_name_field),
-                isError = lastNameError
+                isError = lastNameError,
+                // What follows the last name is the date-of-birth picker, not a text field: the
+                // keyboard's Next closes the keyboard and opens the picker.
+                onNext = onDateClick
             )
 
             Column {
@@ -400,7 +404,13 @@ private fun PlayerRowCard(
 }
 
 @Composable
-private fun NameField(value: String, onValueChange: (String) -> Unit, label: String, isError: Boolean) {
+private fun NameField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    isError: Boolean,
+    onNext: (() -> Unit)? = null
+) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -410,6 +420,8 @@ private fun NameField(value: String, onValueChange: (String) -> Unit, label: Str
         modifier = Modifier.fillMaxWidth(),
         shape = FormRoundedShape,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+        keyboardActions = onNext?.let { open -> KeyboardActions(onNext = { defaultKeyboardAction(ImeAction.Done); open() }) }
+            ?: KeyboardActions.Default,
         colors = fieldColors()
     )
 }

@@ -1,5 +1,10 @@
 package com.ricardofrango.squadify.presentation.ui.register
 
+import androidx.compose.foundation.text.KeyboardActions
+import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -128,14 +133,16 @@ fun RegisterScreen(
                         onValueChange = { email = it },
                         label = stringResource(Res.string.label_email),
                         isError = errorMessage != null,
-                        enabled = enabled
+                        enabled = enabled,
+                        keyboardType = KeyboardType.Email
                     )
                     FormField(
                         value = phone,
                         onValueChange = { phone = it },
                         label = stringResource(Res.string.label_phone),
                         isError = errorMessage != null,
-                        enabled = enabled
+                        enabled = enabled,
+                        keyboardType = KeyboardType.Phone
                     )
                 }
 
@@ -155,7 +162,8 @@ fun RegisterScreen(
                         label = stringResource(Res.string.label_confirm_password),
                         isError = errorMessage != null,
                         enabled = enabled,
-                        isPassword = true
+                        isPassword = true,
+                        onSubmit = { viewModel.onRegisterClicked(firstName, lastName, email, phone, password, confirmPassword) }
                     )
                 }
 
@@ -221,7 +229,11 @@ private fun FormField(
     isError: Boolean,
     enabled: Boolean,
     modifier: Modifier = Modifier,
-    isPassword: Boolean = false
+    isPassword: Boolean = false,
+    keyboardType: KeyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text,
+    // Set on the last field only: its keyboard key creates the account, like the button. Every other
+    // field's key moves to the next one.
+    onSubmit: (() -> Unit)? = null
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
     OutlinedTextField(
@@ -241,6 +253,8 @@ private fun FormField(
             null
         },
         singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = if (onSubmit != null) ImeAction.Done else ImeAction.Next),
+        keyboardActions = onSubmit?.let { submitKeyboardActions(it) } ?: KeyboardActions.Default,
         shape = FieldShape,
         isError = isError,
         enabled = enabled,

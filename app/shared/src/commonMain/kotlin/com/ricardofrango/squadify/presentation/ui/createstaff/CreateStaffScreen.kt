@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.createstaff
 
+import androidx.compose.foundation.text.KeyboardActions
+import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -175,7 +177,8 @@ private fun CreateStaffContent(
                         emailError = showValidationErrors && !isValidEmail(row.email),
                         canRemove = rows.size > 1,
                         onEmailChange = { onEmailChange(row.key, it) },
-                        onRemove = { onRemoveRow(row.key) }
+                        onRemove = { onRemoveRow(row.key) },
+                        onSubmit = onCreateClick.takeIf { index == rows.lastIndex }
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
@@ -232,7 +235,10 @@ private fun StaffRowCard(
     emailError: Boolean,
     canRemove: Boolean,
     onEmailChange: (String) -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    // Only on the last row: its keyboard key creates them all, like the button. Earlier rows' Next
+    // moves on to the following row.
+    onSubmit: (() -> Unit)? = null
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -276,7 +282,8 @@ private fun StaffRowCard(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = FormRoundedShape,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = if (onSubmit != null) ImeAction.Done else ImeAction.Next),
+                keyboardActions = onSubmit?.let { submitKeyboardActions(it) } ?: KeyboardActions.Default,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = DeepCarbon,
                     unfocusedTextColor = DeepCarbon,

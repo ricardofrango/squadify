@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.editagegroup
 
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardOptions
+import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -138,13 +141,18 @@ private fun EditAgeGroupContent(
                 Spacer(Modifier.height(16.dp))
                 Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
             }
-            is EditAgeGroupUiState.Idle -> EditAgeGroupForm(state, modifier, onChange)
+            is EditAgeGroupUiState.Idle -> EditAgeGroupForm(state, modifier, onChange, onSave)
         }
     }
 }
 
 @Composable
-private fun EditAgeGroupForm(state: EditAgeGroupUiState.Idle, modifier: Modifier, onChange: ((AgeGroupFormFields) -> AgeGroupFormFields) -> Unit) {
+private fun EditAgeGroupForm(
+    state: EditAgeGroupUiState.Idle,
+    modifier: Modifier,
+    onChange: ((AgeGroupFormFields) -> AgeGroupFormFields) -> Unit,
+    onSave: () -> Unit
+) {
     val form = state.form
     val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
     // The usual birth-year range, plus this group's own years in case they fall outside it.
@@ -215,6 +223,9 @@ private fun EditAgeGroupForm(state: EditAgeGroupUiState.Idle, modifier: Modifier
             label = { Text(stringResource(Res.string.label_age_group_name_field)) },
             isError = form.name.isBlank(),
             singleLine = true,
+            // The only text field: the keyboard key saves, like the top bar's check.
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = submitKeyboardActions { if (state.canSave) onSave() },
             enabled = !state.isSubmitting,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),

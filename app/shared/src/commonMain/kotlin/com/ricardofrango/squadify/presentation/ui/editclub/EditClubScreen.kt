@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
+import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -341,7 +344,8 @@ private fun EditClubContent(
                         else -> ClubDetailsForm(
                             state = uiState,
                             modifier = boxModifier,
-                            onFormChange = onFormChange
+                            onFormChange = onFormChange,
+                            onSubmit = { if (uiState.canSave) onSaveClick() }
                         )
                     }
                 }
@@ -395,7 +399,9 @@ private fun InviteMemberSheet(inviting: Boolean, onDismiss: () -> Unit, onSend: 
                 value = email,
                 onValueChange = { email = it },
                 label = "${stringResource(Res.string.label_email)} *",
-                keyboardType = KeyboardType.Email
+                keyboardType = KeyboardType.Email,
+                // A role is picked below the email, so the keyboard key only closes the keyboard.
+                imeAction = ImeAction.Done
             )
             Text(
                 stringResource(Res.string.members_club_role).uppercase(),
@@ -603,7 +609,8 @@ private fun PermissionRow(
 private fun ClubDetailsForm(
     state: EditClubUiState.Idle,
     modifier: Modifier,
-    onFormChange: (ClubFormFields) -> Unit
+    onFormChange: (ClubFormFields) -> Unit,
+    onSubmit: () -> Unit
 ) {
     val form = state.form
 
@@ -670,7 +677,8 @@ private fun ClubDetailsForm(
             onValueChange = { onFormChange(form.copy(stadiumLocation = it)) },
             label = stringResource(Res.string.label_stadium_location_field),
             placeholder = stringResource(Res.string.label_stadium_location_placeholder),
-            infoText = stringResource(Res.string.msg_stadium_location_helper)
+            infoText = stringResource(Res.string.msg_stadium_location_helper),
+            onSubmit = onSubmit
         )
 
         if (state.submitError != null) {
@@ -723,6 +731,9 @@ private fun FormField(
     placeholder: String? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
     infoText: String? = null,
+    imeAction: ImeAction = ImeAction.Next,
+    // Set on the last field: its keyboard key saves, like the top bar's check.
+    onSubmit: (() -> Unit)? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         OutlinedTextField(
@@ -733,7 +744,8 @@ private fun FormField(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = FormRoundedShape,
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = if (onSubmit != null) ImeAction.Done else imeAction),
+            keyboardActions = onSubmit?.let { submitKeyboardActions(it) } ?: KeyboardActions.Default,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = DeepCarbon,
                 unfocusedTextColor = DeepCarbon,
