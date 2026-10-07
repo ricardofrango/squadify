@@ -2408,7 +2408,7 @@ The club screen's "More" tab opened a plain dropdown, and Account sat behind a s
 
 **A custom panel, not the Material drawer.** `ModalNavigationDrawer` opens from the start (left) edge and caps its sheet at `DrawerDefaults.MaximumDrawerWidth` (~360dp), so it can't be full screen or come from the right without layout-direction tricks. The panel is a plain overlay:
 - **Motion:** `AnimatedVisibility` with `slideInHorizontally` (250ms, decelerating) / `slideOutHorizontally` (200ms, accelerating), and a 35% scrim behind.
-- **Closing:** a horizontal `draggable` for swipe-to-close (past 30% of the width or a flick), `NavigationBackHandler` for system back, and Esc on web/desktop.
+- **Closing:** a horizontal `draggable` for swipe-to-close (past 30% of the width or a flick). On release, one offset carries on from the finger at the release velocity (a non-bouncy spring) to fully out, or back to 0, and the scrim fades with it. A swipe-close then skips the `AnimatedVisibility` exit, which would otherwise restart the slide from 0 and look like a jump back. Also `NavigationBackHandler` for system back, and Esc on web/desktop.
 - **Platforms:** it behaves the same on Android, iOS, web and desktop.
 
 **Rows by permission, computed on the server.**
