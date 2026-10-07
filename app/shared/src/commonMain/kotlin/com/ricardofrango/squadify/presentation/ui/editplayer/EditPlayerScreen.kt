@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.editplayer
 
+import androidx.compose.foundation.text.KeyboardActions
+import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -267,7 +269,8 @@ private fun EditPlayerForm(
                     onValueChange = onEmergencyContactChange,
                     label = stringResource(Res.string.label_emergency_contact_field),
                     placeholder = stringResource(Res.string.label_emergency_contact_placeholder),
-                    imeAction = ImeAction.Done
+                    imeAction = ImeAction.Done,
+                    onSubmit = { if (state.canSave) onSaveClick() }
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
@@ -410,7 +413,9 @@ private fun FormField(
     placeholder: String? = null,
     suffix: String? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
-    imeAction: ImeAction = ImeAction.Next
+    imeAction: ImeAction = ImeAction.Next,
+    // Set on the last field: its keyboard key saves, like the button.
+    onSubmit: (() -> Unit)? = null
 ) {
     OutlinedTextField(
         value = value,
@@ -422,6 +427,7 @@ private fun FormField(
         modifier = modifier.fillMaxWidth(),
         shape = FormRoundedShape,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
+        keyboardActions = onSubmit?.let { submitKeyboardActions(it) } ?: KeyboardActions.Default,
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = DeepCarbon,
             unfocusedTextColor = DeepCarbon,

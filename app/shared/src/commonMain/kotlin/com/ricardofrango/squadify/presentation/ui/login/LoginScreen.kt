@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.presentation.ui.login
 
+import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -166,6 +170,7 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .semantics { contentType = ContentType.Username + ContentType.EmailAddress },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                         shape = RoundedCornerShape(16.dp),
                         isError = errorMessage != null,
                         enabled = uiState !is LoginUiState.Loading,
@@ -189,6 +194,8 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .semantics { contentType = ContentType.Password },
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                        keyboardActions = submitKeyboardActions { viewModel.onLoginClicked(email, password) },
                         trailingIcon = {
                             PasswordVisibilityToggle(
                                 visible = passwordVisible,

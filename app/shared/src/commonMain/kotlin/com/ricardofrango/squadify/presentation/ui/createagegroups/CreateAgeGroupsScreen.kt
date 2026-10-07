@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.presentation.ui.createagegroups
 
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -315,7 +319,8 @@ private fun CreateAgeGroupsContent(
                             onEndYearSelected = { onRowEndYearSelected(row.key, it) },
                             onNameChanged = { onRowNameChanged(row.key, it) },
                             onTeamSizeSelected = { onRowTeamSizeSelected(row.key, it) },
-                            onRemove = { onRemoveRow(row.key) }
+                            onRemove = { onRemoveRow(row.key) },
+                            onSubmit = onCreateClick.takeIf { index == rows.lastIndex }
                         )
                     }
 
@@ -430,7 +435,10 @@ private fun AgeGroupRowCard(
     onEndYearSelected: (Int) -> Unit,
     onNameChanged: (String) -> Unit,
     onTeamSizeSelected: (Int) -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    // Only on the last row: its keyboard key creates them all, like the button. Earlier rows' Next
+    // moves on to the following row.
+    onSubmit: (() -> Unit)? = null
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -523,6 +531,8 @@ private fun AgeGroupRowCard(
                 enabled = row.endYear != null,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = if (onSubmit != null) ImeAction.Done else ImeAction.Next),
+                keyboardActions = onSubmit?.let { submitKeyboardActions(it) } ?: KeyboardActions.Default,
                 shape = FormRoundedShape,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = DeepCarbon,

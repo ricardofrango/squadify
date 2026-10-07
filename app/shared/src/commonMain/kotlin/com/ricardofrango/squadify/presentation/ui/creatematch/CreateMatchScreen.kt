@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.creatematch
 
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardOptions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -284,6 +286,8 @@ private fun CreateMatchForm(
                     label = { Text(stringResource(Res.string.label_match_location)) },
                     placeholder = { Text(stringResource(Res.string.label_match_location_placeholder)) },
                     singleLine = true,
+                    // Next moves to Notes. Notes is multi-line, so its Enter key adds a line rather than submitting.
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth(),
                     shape = CardShape,
                     colors = fieldColors()

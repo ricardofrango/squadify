@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.account
 
+import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
+import androidx.compose.foundation.text.KeyboardActions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -151,6 +153,7 @@ private fun AccountContent(
                     onPhoneChange = onPhoneChange,
                     onPasswordFormChange = onPasswordFormChange,
                     onChangePasswordClick = onChangePasswordClick,
+                    onSaveProfileClick = onSaveProfileClick,
                     onLogoutClick = onLogoutClick
                 )
             }
@@ -177,6 +180,7 @@ private fun AccountForm(
     onPhoneChange: (String) -> Unit,
     onPasswordFormChange: (PasswordFormFields) -> Unit,
     onChangePasswordClick: () -> Unit,
+    onSaveProfileClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     val form = state.form
@@ -204,7 +208,10 @@ private fun AccountForm(
             value = form.phone,
             onValueChange = onPhoneChange,
             label = stringResource(Res.string.label_phone_field),
-            keyboardType = KeyboardType.Phone
+            keyboardType = KeyboardType.Phone,
+            // Last profile field: the keyboard key saves, like the top bar's check (when it's enabled).
+            imeAction = ImeAction.Done,
+            onSubmit = { if (state.canSaveProfile) onSaveProfileClick() }
         )
 
         ReadOnlyEmailField(email = state.email)
@@ -380,7 +387,8 @@ private fun ChangePasswordCard(
                     label = stringResource(Res.string.label_confirm_new_password_field),
                     visible = form.confirmVisible,
                     onVisibilityToggle = { onFormChange(form.copy(confirmVisible = !form.confirmVisible)) },
-                    isError = form.confirmMismatch
+                    isError = form.confirmMismatch,
+                    onSubmit = { if (canSubmit && !isSubmitting) onSubmit() }
                 )
                 if (form.confirmMismatch) {
                     Spacer(Modifier.height(4.dp))
@@ -425,7 +433,8 @@ private fun FormField(
     label: String,
     modifier: Modifier = Modifier,
     keyboardType: KeyboardType = KeyboardType.Text,
-    imeAction: ImeAction = ImeAction.Next
+    imeAction: ImeAction = ImeAction.Next,
+    onSubmit: (() -> Unit)? = null
 ) {
     OutlinedTextField(
         value = value,
@@ -435,6 +444,7 @@ private fun FormField(
         modifier = modifier.fillMaxWidth(),
         shape = FormRoundedShape,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
+        keyboardActions = onSubmit?.let { submitKeyboardActions(it) } ?: KeyboardActions.Default,
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = DeepCarbon,
             unfocusedTextColor = DeepCarbon,
@@ -453,7 +463,9 @@ private fun PasswordField(
     label: String,
     visible: Boolean,
     onVisibilityToggle: () -> Unit,
-    isError: Boolean = false
+    isError: Boolean = false,
+    // Set on the last field (confirm): its keyboard key changes the password, like the button.
+    onSubmit: (() -> Unit)? = null
 ) {
     OutlinedTextField(
         value = value,
@@ -465,7 +477,8 @@ private fun PasswordField(
         trailingIcon = { PasswordVisibilityToggle(visible = visible, onToggle = onVisibilityToggle, tint = CarbonGray) },
         modifier = Modifier.fillMaxWidth(),
         shape = FormRoundedShape,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = if (onSubmit != null) ImeAction.Done else ImeAction.Next),
+        keyboardActions = onSubmit?.let { submitKeyboardActions(it) } ?: KeyboardActions.Default,
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = DeepCarbon,
             unfocusedTextColor = DeepCarbon,

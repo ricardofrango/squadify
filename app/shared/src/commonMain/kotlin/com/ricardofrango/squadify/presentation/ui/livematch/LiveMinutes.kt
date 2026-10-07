@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.livematch
 
+import androidx.compose.ui.text.input.ImeAction
+import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -243,7 +245,9 @@ internal fun ClockCorrectionSheet(initialMinute: Int, isPaused: Boolean, onSave:
                     value = text,
                     onValueChange = { new -> if (new.length <= 3 && new.all { it.isDigit() }) text = new },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                    // The keyboard key saves the corrected minute, like the Save button.
+                    keyboardActions = submitKeyboardActions { value?.let(onSave) },
                     textStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black, color = Color.White, textAlign = TextAlign.End),
                     modifier = Modifier.width(96.dp),
                     colors = OutlinedTextFieldDefaults.colors(

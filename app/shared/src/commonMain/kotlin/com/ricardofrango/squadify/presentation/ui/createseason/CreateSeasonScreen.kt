@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createseason
 
+import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -374,6 +375,7 @@ private fun CreateSeasonContent(
                         singleLine = true,
                         shape = FormRoundedShape,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = submitKeyboardActions { if (!uiState.isSubmitting) onCreateClick() },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,

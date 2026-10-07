@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.matchreport
 
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -233,6 +235,9 @@ private fun ReportTextField(spec: FieldSpec, value: String, onValueChange: (Stri
             textStyle = if (narrow) MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.bodyLarge,
             placeholder = { Text(stringResource(spec.hint), color = DeepCarbon.copy(alpha = 0.45f)) },
             singleLine = spec.singleLine,
+            // The single-line tactic's keyboard key moves to the next field; the others are
+            // multi-line, so Enter adds a line.
+            keyboardOptions = if (spec.singleLine) KeyboardOptions(imeAction = ImeAction.Next) else KeyboardOptions.Default,
             minLines = if (spec.singleLine || compact) 1 else 3,
             shape = RoundedCornerShape(14.dp),
             colors = OutlinedTextFieldDefaults.colors(
