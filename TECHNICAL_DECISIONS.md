@@ -2434,3 +2434,34 @@ The club screen's "More" tab opened a plain dropdown, and Account sat behind a s
   - **Outside a transition:** it is a plain synchronous pass-through, so text fields bound to the state never lag.
   - **Not applied:** Login and Register (form-only, nothing loads on entry).
 
+## 48. Forgot Password
+
+"Forgot password?" on Login was inert, so a user who forgot their password was locked out, and only a database edit could fix it.
+
+**A 6-digit code by email, not a link.** The app runs on Android, iOS, web and desktop, and a reset link would need deep links (app links, universal links, a web route) on each of them. A code typed into the app works the same everywhere, and the mail clients' "copy code" and Android/iOS one-time-code autofill (`ContentType.SmsOtpCode`) make it quick.
+
+**Server** (`RequestPasswordResetUseCase`, `ResetPasswordUseCase`; flows in `PROCESS_FLOWS.md` §2.9 / §2.10):
+- **Endpoints:** `POST /auth/password-reset/request` {email} answers 202, or 404 when the email has no active account; and `POST /auth/password-reset/confirm` {email, code, newPassword} answers 204. Both are public, under `/auth`.
+- **Storage:** `password_reset_codes` (`V11`), one row per user keyed by `user_id`, so a new request replaces the pending code. Only a BCrypt hash of the code is stored, never the code itself.
+- **Limits:**
+  - **Expiry:** a code expires after 15 minutes.
+  - **Attempts:** it dies after 5 wrong attempts, which gives a 1 in 200,000 chance of guessing a 6-digit code.
+  - **Cooldown:** a new code can't be requested within 60 seconds of the last one.
+  - **Single use:** a code works only once.
+  - **Counting wrong guesses:** the attempt count is committed before the error is thrown, since a throw inside the transaction would roll it back.
+- **Unknown emails are reported:** an email with no active account gets a 404, "There's no account with this email", so a typo can be fixed straight away.
+  - **Why not hide it:** this was first built to always answer 202, so the endpoint couldn't be used to find out which emails have accounts. It was changed because Register already reveals that ("User with this email already exists"), so hiding it protected nothing and left users waiting for an email that never came.
+  - **Cooldown:** a request inside the cooldown still answers 202 and sends nothing; the code already sent is still valid.
+  - **On confirm:** every failure (no code, wrong, expired or used-up code) is the same 400 with the same message.
+- **On success:** the password hash is replaced, the code is deleted, and every refresh token of the user is deleted (`deleteRefreshTokensForUser`). Any other signed-in device has to sign in again. Access tokens already issued stay valid until they expire, as with logout.
+- **Email:** `EmailService.sendPasswordResetCode` is sent after the transaction commits and is best effort, like the other emails (§14).
+- **Tests:** `PasswordResetUseCasesTest`.
+
+**Client** (`ForgotPasswordScreen` / `ForgotPasswordViewModel`, route `Screen.ForgotPassword(email)`):
+- **Step 1, email:** prefilled with whatever was typed on Login. An unknown email stays on this step with "There's no account with this email". Otherwise the screen moves on with "We've sent a code to ...".
+- **Step 2, code and new password:** the code field (digits only), the new password twice, and "Set new password".
+  - **Validation:** `resetFormError` checks the form before calling the server; it's tested in `ResetFormTest`.
+  - **Under the button:** "Send a new code", counting down the server's 60-second cooldown, and "Use a different email".
+  - **Errors:** a 400 shows "This code is wrong or has expired"; anything else shows a generic retry message.
+- **On success:** it pops back to Login through the `passwordResetEmail` saved-state key. Login fills in the email, clears the password, and shows "Password changed. Sign in with your new password." It doesn't sign in automatically, so the password manager can offer to save the new password on the normal sign-in.
+

@@ -109,6 +109,10 @@ class ExposedUserRepository : UserRepository {
         RefreshTokens.deleteWhere { RefreshTokens.token eq token }
     }
 
+    override suspend fun deleteRefreshTokensForUser(userId: String) {
+        RefreshTokens.deleteWhere { RefreshTokens.userId eq userId.toUuid() }
+    }
+
     override suspend fun countAllUsers(): Long =
         Users.selectAll().count()
 

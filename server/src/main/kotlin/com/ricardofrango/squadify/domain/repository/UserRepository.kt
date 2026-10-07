@@ -20,5 +20,7 @@ interface UserRepository {
     /** Retrieves the stored record for [token] as-is (no expiry check) — validation is the caller's job. */
     suspend fun findRefreshToken(token: String): RefreshToken?
     suspend fun deleteRefreshToken(token: String)
+    /** Signs the user out everywhere (used after a password reset). */
+    suspend fun deleteRefreshTokensForUser(userId: String)
     suspend fun countAllUsers(): Long
 }

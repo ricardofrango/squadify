@@ -15,4 +15,7 @@ interface EmailService {
 
     /** Sent when an existing user is added as staff/coach to an age group. */
     suspend fun sendAgeGroupStaffAdded(to: String, firstName: String, ageGroupName: String, clubName: String)
+
+    /** Forgot password: the 6-digit code to set a new password, valid for [validMinutes]. */
+    suspend fun sendPasswordResetCode(to: String, firstName: String, code: String, validMinutes: Int)
 }

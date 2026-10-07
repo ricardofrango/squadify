@@ -24,6 +24,11 @@ sealed class Screen {
     @SerialName("register")
     data object Register : Screen()
 
+    // Forgot password; [email] is prefilled from what was typed on Login.
+    @Serializable
+    @SerialName("forgot-password")
+    data class ForgotPassword(val email: String = "") : Screen()
+
     @Serializable
     @SerialName("dashboard")
     data object Dashboard : Screen()

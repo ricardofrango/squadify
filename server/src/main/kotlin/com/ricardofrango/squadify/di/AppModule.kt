@@ -19,6 +19,7 @@ import org.koin.dsl.module
 val appModule = module {
     single<ClubRepository> { ExposedClubRepository() }
     single<UserRepository> { ExposedUserRepository() }
+    single<PasswordResetRepository> { ExposedPasswordResetRepository() }
     single<TeamRepository> { ExposedTeamRepository() }
     single<SeasonRepository> { ExposedSeasonRepository() }
     single<AgeGroupRepository> { ExposedAgeGroupRepository() }
@@ -58,6 +59,8 @@ val appModule = module {
     factory { GetCurrentUserUseCase(get(), get()) }
     factory { UpdateProfileUseCase(get(), get()) }
     factory { ChangePasswordUseCase(get(), get()) }
+    factory { RequestPasswordResetUseCase(get(), get(), get(), get()) }
+    factory { ResetPasswordUseCase(get(), get(), get()) }
     factory { RefreshTokenUseCase(get(), get()) }
     factory { CheckUserPermissionUseCase(get(), get(), get(), get(), get(), get()) }
     factory { GetClubPermissionsUseCase(get(), get(), get()) }

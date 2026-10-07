@@ -262,6 +262,49 @@ graph TD
 
 Same `BCrypt.checkpw` gate `LoginUseCase` uses for the current-password check, so a stolen access token alone can't be used to lock the real account owner out. Both use cases covered by `UpdateProfileUseCaseTest`/`ChangePasswordUseCaseTest`. See `TECHNICAL_DECISIONS.md` §33.
 
+### 2.9 Forgot Password: Request a Code (`RequestPasswordResetUseCase`)
+
+`POST /auth/password-reset/request` (public). **202** when a code was sent (or one from the last minute is still pending), **404** when the email has no active account.
+
+```mermaid
+graph TD
+    A[Start: email] --> B{email blank after trim?}
+    B -- Yes --> NF(["Throw NotFoundException: no account with this email"])
+    B -- No --> C[Find user by email]
+    C -- not found / not ACTIVE --> NF
+    C -- found --> D{Pending code created under 60 s ago?}
+    D -- Yes --> Z(["Return, nothing sent: the pending code is still valid"])
+    D -- No --> E[Generate 6-digit code with SecureRandom]
+    E --> F["Replace the user's password_reset_codes row: BCrypt hash, expires in 15 min, attempts 0"]
+    F --> G[Commit]
+    G --> H["Email the code (best effort, after commit)"]
+    H --> Z2(["Return"])
+```
+
+### 2.10 Forgot Password: Set a New Password (`ResetPasswordUseCase`)
+
+`POST /auth/password-reset/confirm` (public): email, code, newPassword. **204** on success.
+
+```mermaid
+graph TD
+    A[Start: email, code, newPassword] --> B{newPassword shorter than 8 chars?}
+    B -- Yes --> V(["Throw ValidationException: password too short"])
+    B -- No --> C[Find ACTIVE user by email]
+    C -- not found --> X(["Throw ValidationException: code invalid or expired"])
+    C -- found --> D[Find the user's pending code]
+    D -- none --> X
+    D -- found --> E{Expired, or 5 attempts used?}
+    E -- Yes --> X
+    E -- No --> F{BCrypt.checkpw code matches?}
+    F -- No --> G[attempts + 1, committed] --> X
+    F -- Yes --> H[Store BCrypt hash of newPassword]
+    H --> I[Delete the code: single use]
+    I --> J[Delete all of the user's refresh tokens: signed out everywhere]
+    J --> Z(["Return success"])
+```
+
+On confirm, every failure past the length check is the same 400 with the same message. The request step does say when an email has no account (404): Register already reveals that ("User with this email already exists"), so hiding it here protected nothing and only left users waiting for an email that never comes. Covered by `PasswordResetUseCasesTest`. See `TECHNICAL_DECISIONS.md` §48.
+
 ---
 
 ## 3. Platform & Club Administration
@@ -1601,7 +1644,7 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
 - [x] **No historical/aggregated match statistics use case exists yet.** `GetMatchScoreUseCase`/`GetMatchEventsUseCase` only expose live/raw data — this matches the open `REQUIREMENTS.md` Phase 5 item "Historical match statistics (Post-match analysis)".
   **Fixed:** per-player stats lines are written for every finished match (`MatchPlayerStatsCalculator`, §8.2f), and are read back through the match report (§8.6), a player's season stats (`GetPlayerSeasonStatsUseCase`, §5.1c), a team's season record (`GetTeamSeasonRecordUseCase`, §4.6c) and an age group's season record (`GetAgeGroupSeasonRecordUseCase`, §4.4c). The live console now shows the same minutes while the match runs and at full time (§8.4).
 - [ ] **Some client affordances are still inert.** These are shown on purpose, matching the designs, but do nothing yet:
-  - **Login:** "Forgot password?" has no flow (no reset endpoint either).
+  - ~~**Login:** "Forgot password?" has no flow.~~ Fixed: emailed 6-digit code (§2.9, §2.10).
   - **Club settings:** "Add logo" does nothing, since there's no image upload anywhere in the app.
   - **Account:** "Change email" is likewise non-functional.
 - [ ] **The club Matches list's live badge uses the device clock.** The live console counts on the server's clock (`MatchDetails.serverNow`, §8.4), but `MatchRow`'s badge still uses `now` from the device. It only shows whole minutes, so a few seconds of drift rarely shows. Fixing it would need the server's time on the matches list too.
@@ -1620,6 +1663,7 @@ Source of truth: `server/src/main/kotlin/.../data/database/Tables.kt` (20 Expose
 ```mermaid
 erDiagram
     USERS ||--o{ REFRESH_TOKENS : issues
+    USERS ||--o| PASSWORD_RESET_CODES : "pending reset"
     USERS ||--o{ FCM_TOKENS : registers
     USERS ||--o{ CLUB_MEMBERS : holds
     CLUBS ||--o{ CLUB_MEMBERS : has
@@ -1669,6 +1713,13 @@ erDiagram
         uuid user_id FK
         varchar token UK "500 chars"
         timestamp expires_at
+    }
+    PASSWORD_RESET_CODES {
+        uuid user_id PK "FK users; one pending code per user"
+        varchar code_hash "255 chars, BCrypt of the 6-digit code"
+        timestamp expires_at "created_at + 15 min"
+        int attempts "default 0; dead at 5"
+        timestamp created_at
     }
     FCM_TOKENS {
         uuid id PK
@@ -1849,7 +1900,7 @@ erDiagram
 
 ### 12.2 Constraints & defaults worth knowing
 
-- **Unique indexes**: `users.email`; `refresh_tokens.token`; `club_members(club_id, user_id)` — one membership per user per club (`V3__unique_club_members.sql`); both add-member repository methods insert with `ON CONFLICT DO NOTHING`, so re-adding an existing member keeps their current row and role rather than duplicating or downgrading it; `fcm_tokens.token` — deliberately on the token alone rather than `(user_id, token)`, since a token identifies one app install, not one user; a registration endpoint that gets the same token again (shared device, or a re-login without reinstalling) should reassign the existing row's `user_id` rather than insert a duplicate; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list; `match_player_stats(match_id, player_id)` — one stats line per player per match; `match_reports.match_id` — one report per match. A `CHECK` keeps `match_player_stats.rating` NULL or between 0 and 10.
+- **Unique indexes**: `users.email`; `refresh_tokens.token`; `password_reset_codes.user_id` (the primary key, so a new Forgot-password request replaces the pending code, `V11__password_reset_codes.sql`); `club_members(club_id, user_id)` — one membership per user per club (`V3__unique_club_members.sql`); both add-member repository methods insert with `ON CONFLICT DO NOTHING`, so re-adding an existing member keeps their current row and role rather than duplicating or downgrading it; `fcm_tokens.token` — deliberately on the token alone rather than `(user_id, token)`, since a token identifies one app install, not one user; a registration endpoint that gets the same token again (shared device, or a re-login without reinstalling) should reassign the existing row's `user_id` rather than insert a duplicate; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list; `match_player_stats(match_id, player_id)` — one stats line per player per match; `match_reports.match_id` — one report per match. A `CHECK` keeps `match_player_stats.rating` NULL or between 0 and 10.
 - **Nullable foreign keys**: `invites.player_id` (only set for `PARENT_PLAYER` invites) and `match_events.player_id` (null when `is_opponent = true`, since the event belongs to a player on the opposing team who isn't in the `players` table).
 - **No `onDelete` behavior is configured on any foreign key** — every `.references(...)` call in `Tables.kt` uses the Exposed default (`NO ACTION`). Deleting a row that still has children (e.g. a `Club` with existing `Teams`) will fail at the database level rather than cascading, nulling out, or being blocked at the application layer with a friendlier error.
 - Several `enum` columns are nullable independently of their parent row's lifecycle: `club_members.role`/`age_group_staff.role`/`user_players.relationship` are all non-null (required at creation), while `invites.role` and `invites.relationship` are nullable because a single `Invite` row is reused for both invite shapes (see §10) and only one of the two is populated depending on `type`.

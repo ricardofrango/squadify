@@ -34,4 +34,18 @@ class AuthRepositoryImpl(
             setBody(request)
         }.handleResponse()
     }
+
+    override suspend fun requestPasswordReset(request: PasswordResetRequest) {
+        httpClient.post("${appConfig.baseUrl}/auth/password-reset/request") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.handleResponse<Unit>()
+    }
+
+    override suspend fun confirmPasswordReset(request: PasswordResetConfirmRequest) {
+        httpClient.post("${appConfig.baseUrl}/auth/password-reset/confirm") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.handleResponse<Unit>()
+    }
 }

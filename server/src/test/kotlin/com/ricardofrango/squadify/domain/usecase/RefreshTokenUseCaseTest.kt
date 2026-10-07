@@ -115,6 +115,10 @@ private class FakeUserRepository : UserRepository {
         refreshTokens.remove(token)
     }
 
+    override suspend fun deleteRefreshTokensForUser(userId: String) {
+        refreshTokens.entries.removeIf { it.value.userId == userId }
+    }
+
     override suspend fun findById(id: String): User? = null
     override suspend fun findByEmail(email: String): User? = null
     override suspend fun findByEmails(emails: List<String>): List<User> = emptyList()
