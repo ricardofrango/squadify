@@ -178,8 +178,8 @@
 
     <!-- Add Players to Age Group -->
     <string name="title_add_players_to_age_group">Add players</string>
-    <string name="label_add_players_to_age_group">Create players</string>
-    <string name="label_add_staff_to_age_group">Create staff</string>
+    <string name="label_add_players_to_age_group">Add players</string>
+    <string name="label_add_staff_to_age_group">Add staff</string>
     <string name="label_search_players">Search players</string>
     <string name="btn_add_new_player">New player</string>
     <string name="label_players_selected">%1$d selected</string>
@@ -765,8 +765,8 @@
     <string name="ag_all_teams">All teams</string>
     <string name="ag_staff_heading">Staff</string>
     <string name="ag_pool_heading">Player pool</string>
-    <string name="ag_add_staff_short">+ Create staff</string>
-    <string name="ag_add_players_short">+ Create players</string>
+    <string name="ag_add_staff_short">+ Add staff</string>
+    <string name="ag_add_players_short">+ Add players</string>
     <string name="ag_no_apps">No apps yet</string>
     <string name="ag_no_teams_title">No teams yet</string>
     <string name="ag_no_teams_body_teams">The player pool is ready. Create a team to start scheduling matches.</string>

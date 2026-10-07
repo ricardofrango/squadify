@@ -176,8 +176,8 @@
 
     <!-- Add Players to Age Group -->
     <string name="title_add_players_to_age_group">Adicionar jogadores</string>
-    <string name="label_add_players_to_age_group">Criar jogadores</string>
-    <string name="label_add_staff_to_age_group">Criar staff</string>
+    <string name="label_add_players_to_age_group">Adicionar jogadores</string>
+    <string name="label_add_staff_to_age_group">Adicionar staff</string>
     <string name="label_search_players">Procurar jogadores</string>
     <string name="btn_add_new_player">Novo jogador</string>
     <string name="label_players_selected">%1$d selecionados</string>
@@ -763,8 +763,8 @@
     <string name="ag_all_teams">Todas as equipas</string>
     <string name="ag_staff_heading">Equipa técnica</string>
     <string name="ag_pool_heading">Plantel</string>
-    <string name="ag_add_staff_short">+ Criar staff</string>
-    <string name="ag_add_players_short">+ Criar jogadores</string>
+    <string name="ag_add_staff_short">+ Adicionar</string>
+    <string name="ag_add_players_short">+ Adicionar</string>
     <string name="ag_no_apps">Ainda sem jogos</string>
     <string name="ag_no_teams_title">Ainda sem equipas</string>
     <string name="ag_no_teams_body_teams">O plantel está pronto. Crie uma equipa para começar a agendar jogos.</string>
