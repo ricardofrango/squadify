@@ -1,6 +1,10 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -155,6 +159,12 @@ internal fun ClubMorePanel(
 ) {
     val scrim by animateFloatAsState(if (open) 0.35f else 0f, tween(if (open) 250 else 200), label = "scrim")
     var confirmLogout by remember { mutableStateOf(false) }
+    // Swipe-to-close: how far the panel has been dragged (0..1 of its width), so the scrim fades with
+    // the finger, and whether it was closed by a swipe -- then the panel has already slid all the way
+    // out and the exit animation is skipped (replaying it made the panel jump back and slide again).
+    var swipeProgress by remember { mutableFloatStateOf(0f) }
+    var swipeClosed by remember { mutableStateOf(false) }
+    LaunchedEffect(open) { if (open) { swipeClosed = false; swipeProgress = 0f } }
 
     NavigationBackHandler(
         state = rememberNavigationEventState(NavigationEventInfo.None),
@@ -166,7 +176,7 @@ internal fun ClubMorePanel(
         Box(
             Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = scrim))
+                .background(Color.Black.copy(alpha = scrim * (1f - swipeProgress)))
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = open, onClick = onClose)
         )
     }
@@ -174,30 +184,36 @@ internal fun ClubMorePanel(
     AnimatedVisibility(
         visible = open,
         enter = slideInHorizontally(tween(250, easing = CubicBezierEasing(0.2f, 0.8f, 0.2f, 1f))) { it } + fadeIn(tween(120)),
-        exit = slideOutHorizontally(tween(200, easing = FastOutLinearInEasing)) { it } + fadeOut(tween(200))
+        exit = if (swipeClosed) ExitTransition.None
+        else slideOutHorizontally(tween(200, easing = FastOutLinearInEasing)) { it } + fadeOut(tween(200))
     ) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val widthPx = with(LocalDensity.current) { maxWidth.toPx() }
             val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
-            // Swipe right to close: the panel follows the finger, and finishes closing when released
-            // past 30% of the width or with a quick flick; otherwise it snaps back.
+            // Swipe right to close: the panel follows the finger. Released past 30% of the width or with
+            // a quick flick, it carries on to the right from where it is, at the release velocity, and
+            // closes; otherwise it springs back. One offset drives both, so there's never a jump.
             var drag by remember { mutableFloatStateOf(0f) }
-            val settled by animateFloatAsState(drag, tween(150), label = "drag")
-            var dragging by remember { mutableStateOf(false) }
+            fun moveTo(x: Float) { drag = x; swipeProgress = (x / widthPx).coerceIn(0f, 1f) }
             val focus = remember { FocusRequester() }
             LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
 
             Box(
                 Modifier
                     .fillMaxSize()
-                    .offset { IntOffset((if (dragging) drag else settled).roundToInt(), 0) }
+                    .offset { IntOffset(drag.roundToInt(), 0) }
                     .draggable(
                         orientation = Orientation.Horizontal,
-                        state = rememberDraggableState { delta -> drag = (drag + delta).coerceAtLeast(0f) },
-                        onDragStarted = { dragging = true },
+                        state = rememberDraggableState { delta -> moveTo((drag + delta).coerceAtLeast(0f)) },
                         onDragStopped = { velocity ->
-                            dragging = false
-                            if (drag > widthPx * 0.3f || velocity > 1500f) onClose() else drag = 0f
+                            val close = drag > widthPx * 0.3f || velocity > 1500f
+                            animate(
+                                initialValue = drag,
+                                targetValue = if (close) widthPx else 0f,
+                                initialVelocity = velocity,
+                                animationSpec = spring(Spring.DampingRatioNoBouncy, Spring.StiffnessMediumLow, visibilityThreshold = 1f)
+                            ) { value, _ -> moveTo(value) }
+                            if (close) { swipeClosed = true; onClose() }
                         }
                     )
                     .focusRequester(focus)

@@ -2408,7 +2408,7 @@ The club screen's "More" tab opened a plain dropdown, and Account sat behind a s
 
 **A custom panel, not the Material drawer.** `ModalNavigationDrawer` opens from the start (left) edge and caps its sheet at `DrawerDefaults.MaximumDrawerWidth` (~360dp), so it can't be full screen or come from the right without layout-direction tricks. The panel is a plain overlay:
 - **Motion:** `AnimatedVisibility` with `slideInHorizontally` (250ms, decelerating) / `slideOutHorizontally` (200ms, accelerating), and a 35% scrim behind.
-- **Closing:** a horizontal `draggable` for swipe-to-close (past 30% of the width or a flick), `NavigationBackHandler` for system back, and Esc on web/desktop.
+- **Closing:** a horizontal `draggable` for swipe-to-close (past 30% of the width or a flick). On release, one offset carries on from the finger at the release velocity (a non-bouncy spring) to fully out, or back to 0, and the scrim fades with it. A swipe-close then skips the `AnimatedVisibility` exit, which would otherwise restart the slide from 0 and look like a jump back. Also `NavigationBackHandler` for system back, and Esc on web/desktop.
 - **Platforms:** it behaves the same on Android, iOS, web and desktop.
 
 **Rows by permission, computed on the server.**
@@ -2421,6 +2421,8 @@ The club screen's "More" tab opened a plain dropdown, and Account sat behind a s
 - **Reload on return:** the list reloads when you come back from adding players.
 
 **Account.** The header's account icon is removed; the panel's top block (name, email, role chip, club) opens Account, and the panel has Log out with a confirmation (it clears the whole back stack to Sign in) and Switch club for users in 2+ clubs. Switch club pops back to the existing "My clubs" list rather than pushing a new one, which had left two lists stacked so back from the list landed on the other list. Only a user who started straight in their only club, where the list was popped, gets the list in place of the club screen. `AppConfig.appVersion` (Android fills it from the build) feeds the version line; platforms that don't provide it just omit it.
+
+**"Create" for create actions, "Add" for assigning.** Actions that make something new say "Create" in the panel, the age-group and team ⋮ menus, and their in-tab "+" shortcuts: Create team, and Create match (was "Schedule match"). The Schedule match screen keeps its own title and button. An age group's "Add players" / "Add staff" keep "Add", because they assign existing club players and members rather than creating anyone.
 
 **Screen transitions, app-wide.** Navigation used the NavHost's default cross-fade, so tapping a panel row slid the panel out to the right while the new screen faded in: two motions in opposite directions.
 - **The push:** the `NavHost` now does a single horizontal push for every screen. Going forward, the new screen slides in from the right (300ms, `FastOutSlowInEasing`) while the one below drifts a quarter-width left and dims slightly. Back is the exact reverse.

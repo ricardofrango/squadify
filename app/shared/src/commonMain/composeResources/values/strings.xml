@@ -56,7 +56,7 @@
     <string name="msg_no_players_admin_subtitle">Add players to an age group, or adjust the filters above.</string>
     <string name="msg_no_players_admin_subtitle_no_club_players">Add players to the club first, then put them in age groups.</string>
     <string name="label_number_prefix">Number: %1$s</string>
-    <string name="label_create_team">Create Team</string>
+    <string name="label_create_team">Create team</string>
     <string name="label_create_age_group">Create Age Group</string>
     <string name="label_add_season">Create season</string>
     <string name="label_more_options">More options</string>
@@ -277,7 +277,7 @@
     <string name="label_pool">Pool</string>
     <string name="label_played">Played</string>
     <string name="label_next">Next</string>
-    <string name="label_schedule_match">Schedule match</string>
+    <string name="label_schedule_match">Create match</string>
     <string name="label_edit_team">Edit team</string>
     <string name="label_recent_results">Recent results</string>
     <string name="label_form">Form</string>
@@ -738,7 +738,7 @@
     <string name="squad_load_failed_body">Stats and Matches still work. Check your connection and try again.</string>
     <string name="team_first_match_hint">Shows up after the first finished match. Next up: %1$s vs %2$s.</string>
     <string name="team_view_match">View match</string>
-    <string name="team_schedule_short">+ Schedule</string>
+    <string name="team_schedule_short">+ Create match</string>
     <string name="team_see_all">See all %1$d</string>
     <string name="team_heading_count">%1$s · %2$d</string>
     <plurals name="squad_apps">

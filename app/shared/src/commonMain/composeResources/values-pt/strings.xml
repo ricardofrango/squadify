@@ -54,7 +54,7 @@
     <string name="msg_no_players_admin_subtitle">Adicione jogadores a um escalão ou ajuste os filtros acima.</string>
     <string name="msg_no_players_admin_subtitle_no_club_players">Adicione jogadores ao clube primeiro e depois coloque-os em escalões.</string>
     <string name="label_number_prefix">Número: %1$s</string>
-    <string name="label_create_team">Criar Equipa</string>
+    <string name="label_create_team">Criar equipa</string>
     <string name="label_create_age_group">Criar Escalão</string>
     <string name="label_add_season">Criar época</string>
     <string name="label_more_options">Mais opções</string>
@@ -275,7 +275,7 @@
     <string name="label_pool">Plantel</string>
     <string name="label_played">Jogados</string>
     <string name="label_next">Próximo</string>
-    <string name="label_schedule_match">Agendar jogo</string>
+    <string name="label_schedule_match">Criar jogo</string>
     <string name="label_edit_team">Editar equipa</string>
     <string name="label_recent_results">Resultados recentes</string>
     <string name="label_form">Forma</string>
@@ -736,7 +736,7 @@
     <string name="squad_load_failed_body">Estatísticas e Jogos continuam disponíveis. Verifique a ligação e tente novamente.</string>
     <string name="team_first_match_hint">Aparece depois do primeiro jogo terminado. Próximo: %1$s vs %2$s.</string>
     <string name="team_view_match">Ver jogo</string>
-    <string name="team_schedule_short">+ Agendar</string>
+    <string name="team_schedule_short">+ Criar jogo</string>
     <string name="team_see_all">Ver todos os %1$d</string>
     <string name="team_heading_count">%1$s · %2$d</string>
     <plurals name="squad_apps">
