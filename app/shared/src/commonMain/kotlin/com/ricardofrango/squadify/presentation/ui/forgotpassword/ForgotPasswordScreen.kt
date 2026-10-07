@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -114,6 +116,8 @@ fun ForgotPasswordScreen(
                         enabled = enabled,
                         isError = state.error != null,
                         keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Send,
+                        onImeAction = { viewModel.sendCode(email) },
                         modifier = Modifier.semantics { contentType = ContentType.Username + ContentType.EmailAddress }
                     )
                     PrimaryLoadingButton(
@@ -133,6 +137,7 @@ fun ForgotPasswordScreen(
                         enabled = enabled,
                         isError = state.error != null,
                         keyboardType = KeyboardType.NumberPassword,
+                        imeAction = ImeAction.Next,
                         modifier = Modifier.semantics { contentType = ContentType.SmsOtpCode }
                     )
                     Field(
@@ -144,6 +149,7 @@ fun ForgotPasswordScreen(
                         keyboardType = KeyboardType.Password,
                         hidden = !passwordVisible,
                         onToggleHidden = { passwordVisible = !passwordVisible },
+                        imeAction = ImeAction.Next,
                         modifier = Modifier.semantics { contentType = ContentType.NewPassword }
                     )
                     Field(
@@ -153,6 +159,8 @@ fun ForgotPasswordScreen(
                         enabled = enabled,
                         keyboardType = KeyboardType.Password,
                         hidden = !passwordVisible,
+                        imeAction = ImeAction.Done,
+                        onImeAction = { viewModel.setNewPassword(code, password, confirm) },
                         modifier = Modifier.semantics { contentType = ContentType.NewPassword }
                     )
                     PrimaryLoadingButton(
@@ -203,7 +211,11 @@ private fun Field(
     isError: Boolean = false,
     supporting: String? = null,
     hidden: Boolean = false,
-    onToggleHidden: (() -> Unit)? = null
+    onToggleHidden: (() -> Unit)? = null,
+    // Next moves to the following field (Compose's default for ImeAction.Next); the last field's
+    // action submits, like the button below it.
+    imeAction: ImeAction = ImeAction.Next,
+    onImeAction: (() -> Unit)? = null
 ) {
     OutlinedTextField(
         value = value,
@@ -214,7 +226,9 @@ private fun Field(
         singleLine = true,
         enabled = enabled,
         isError = isError,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
+        keyboardActions = onImeAction?.let { submit -> KeyboardActions(onDone = { submit() }, onSend = { submit() }, onGo = { submit() }) }
+            ?: KeyboardActions.Default,
         visualTransformation = if (hidden) PasswordVisualTransformation() else VisualTransformation.None,
         trailingIcon = onToggleHidden?.let { toggle -> { PasswordVisibilityToggle(visible = !hidden, onToggle = toggle) } },
         shape = RoundedCornerShape(16.dp),
