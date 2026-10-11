@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.account
 
+import com.ricardofrango.squadify.presentation.ui.components.SignedOutAlert
+import androidx.compose.foundation.clickable
 import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import androidx.compose.foundation.text.KeyboardActions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
@@ -59,6 +61,9 @@ private val MonthYearFormat = LocalDate.Format {
 fun AccountScreen(
     onNavigateBack: () -> Unit,
     onNavigateToLogin: () -> Unit,
+    onNavigateToChangeEmail: (currentEmail: String) -> Unit,
+    // Set when coming back from Change email with the new address.
+    changedEmail: String? = null,
     viewModel: AccountViewModel = koinViewModel()
 ) {
     val uiState = viewModel.state.collectSettledState()
@@ -69,6 +74,14 @@ fun AccountScreen(
                 AccountNavigationEvent.NavigateToLogin -> onNavigateToLogin()
             }
         }
+    }
+
+    LaunchedEffect(changedEmail, uiState is AccountUiState.Idle) {
+        if (changedEmail != null) viewModel.onEmailChanged(changedEmail)
+    }
+
+    if ((uiState as? AccountUiState.Idle)?.signedOut == true) {
+        SignedOutAlert(onConfirm = { viewModel.onLogoutClicked() })
     }
 
     fun currentForm() = (viewModel.state.value as? AccountUiState.Idle)?.form
@@ -83,6 +96,7 @@ fun AccountScreen(
         onSaveProfileClick = { viewModel.onSaveProfileClicked() },
         onPasswordFormChange = { form -> viewModel.updatePasswordForm(form) },
         onChangePasswordClick = { viewModel.onChangePasswordClicked() },
+        onChangeEmailClick = onNavigateToChangeEmail,
         onLogoutClick = { viewModel.onLogoutClicked() }
     )
 }
@@ -99,6 +113,7 @@ private fun AccountContent(
     onSaveProfileClick: () -> Unit,
     onPasswordFormChange: (PasswordFormFields) -> Unit,
     onChangePasswordClick: () -> Unit,
+    onChangeEmailClick: (String) -> Unit = {},
     onLogoutClick: () -> Unit
 ) {
     val idle = uiState as? AccountUiState.Idle
@@ -153,6 +168,7 @@ private fun AccountContent(
                     onPhoneChange = onPhoneChange,
                     onPasswordFormChange = onPasswordFormChange,
                     onChangePasswordClick = onChangePasswordClick,
+                    onChangeEmailClick = onChangeEmailClick,
                     onSaveProfileClick = onSaveProfileClick,
                     onLogoutClick = onLogoutClick
                 )
@@ -180,6 +196,7 @@ private fun AccountForm(
     onPhoneChange: (String) -> Unit,
     onPasswordFormChange: (PasswordFormFields) -> Unit,
     onChangePasswordClick: () -> Unit,
+    onChangeEmailClick: (String) -> Unit,
     onSaveProfileClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
@@ -214,7 +231,7 @@ private fun AccountForm(
             onSubmit = { if (state.canSaveProfile) onSaveProfileClick() }
         )
 
-        ReadOnlyEmailField(email = state.email)
+        ReadOnlyEmailField(email = state.email, changed = state.emailChanged, onChangeClick = { onChangeEmailClick(state.email) })
 
         if (state.profileSubmitError != null) {
             Text(
@@ -283,7 +300,7 @@ private fun ProfileHeader(state: AccountUiState.Idle) {
 }
 
 @Composable
-private fun ReadOnlyEmailField(email: String) {
+private fun ReadOnlyEmailField(email: String, changed: Boolean, onChangeClick: () -> Unit) {
     Column {
         Text(
             text = stringResource(Res.string.label_email),
@@ -320,12 +337,20 @@ private fun ReadOnlyEmailField(email: String) {
                 style = MaterialTheme.typography.bodySmall,
                 color = DeepCarbon.copy(alpha = 0.5f)
             )
-            /*
             Text(
                 text = stringResource(Res.string.btn_change_email),
                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                 color = PitchGreen,
-            )*/
+                modifier = Modifier.clickable(onClick = onChangeClick)
+            )
+        }
+        if (changed) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = stringResource(Res.string.msg_email_changed),
+                style = MaterialTheme.typography.bodySmall,
+                color = PitchGreen
+            )
         }
     }
 }

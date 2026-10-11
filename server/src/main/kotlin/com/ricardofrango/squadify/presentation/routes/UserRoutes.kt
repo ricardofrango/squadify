@@ -1,6 +1,10 @@
 package com.ricardofrango.squadify.presentation.routes
 
 import com.ricardofrango.squadify.domain.usecase.ChangePasswordUseCase
+import com.ricardofrango.squadify.domain.usecase.ConfirmEmailChangeUseCase
+import com.ricardofrango.squadify.domain.usecase.RequestEmailChangeUseCase
+import com.ricardofrango.squadify.model.EmailChangeConfirmRequest
+import com.ricardofrango.squadify.model.EmailChangeRequest
 import com.ricardofrango.squadify.domain.usecase.GetCurrentUserUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateProfileUseCase
 import com.ricardofrango.squadify.model.ChangePasswordRequest
@@ -20,6 +24,8 @@ fun Route.userRoutes() {
     val getCurrentUserUseCase by inject<GetCurrentUserUseCase>()
     val updateProfileUseCase by inject<UpdateProfileUseCase>()
     val changePasswordUseCase by inject<ChangePasswordUseCase>()
+    val requestEmailChangeUseCase by inject<RequestEmailChangeUseCase>()
+    val confirmEmailChangeUseCase by inject<ConfirmEmailChangeUseCase>()
 
     authenticate("auth-jwt") {
         route("/users/me") {
@@ -44,6 +50,19 @@ fun Route.userRoutes() {
                 } else {
                     call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to change password"))
                 }
+            }
+
+            // Change email: a code goes to the new address (202), then confirming it switches the
+            // account over and answers the updated user.
+            post("/email/request") {
+                val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                requestEmailChangeUseCase(currentUserId, call.receive<EmailChangeRequest>())
+                call.respond(HttpStatusCode.Accepted)
+            }
+
+            post("/email/confirm") {
+                val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                call.respond(confirmEmailChangeUseCase(currentUserId, call.receive<EmailChangeConfirmRequest>()))
             }
         }
     }

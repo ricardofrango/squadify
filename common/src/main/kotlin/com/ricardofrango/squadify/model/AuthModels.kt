@@ -63,6 +63,20 @@ data class ChangePasswordRequest(
 data class PasswordResetRequest(val email: String)
 
 /**
+ * Body of `POST /users/me/email/request` (Change email): the [newEmail] to switch to, confirmed with
+ * the caller's [currentPassword]. A 6-digit code is emailed to [newEmail].
+ */
+@Serializable
+data class EmailChangeRequest(val newEmail: String, val currentPassword: String)
+
+/**
+ * Body of `POST /users/me/email/confirm`: the [code] sent to the new address. [refreshToken] is the
+ * caller's own, kept when every other session is signed out. Answers the updated [User].
+ */
+@Serializable
+data class EmailChangeConfirmRequest(val code: String, val refreshToken: String? = null)
+
+/**
  * Body of `POST /auth/password-reset/confirm`: the 6-digit [code] emailed by the request above, and
  * the [newPassword] (8+ characters, same rule as Change password).
  */

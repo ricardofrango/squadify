@@ -22,5 +22,11 @@ interface UserRepository {
     suspend fun deleteRefreshToken(token: String)
     /** Signs the user out everywhere (used after a password reset). */
     suspend fun deleteRefreshTokensForUser(userId: String)
+    /** Signs the user out everywhere except the session holding [keepToken] (null keeps none). */
+    suspend fun deleteRefreshTokensForUserExcept(userId: String, keepToken: String?)
+    suspend fun updateEmail(userId: String, email: String): Boolean
+    /** Adds one wrong current-password attempt and returns the new count. */
+    suspend fun incrementPasswordCheckFailures(userId: String): Int
+    suspend fun resetPasswordCheckFailures(userId: String)
     suspend fun countAllUsers(): Long
 }

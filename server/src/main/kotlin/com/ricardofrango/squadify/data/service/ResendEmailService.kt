@@ -89,6 +89,31 @@ class ResendEmailService : EmailService {
         )
     }
 
+    override suspend fun sendEmailChangeCode(to: String, firstName: String, code: String, validMinutes: Int) {
+        send(
+            to = to,
+            subject = "Your Squadify email change code: $code",
+            html = """
+                <p>Hi $firstName,</p>
+                <p>Use this code in Squadify to confirm this address as your new sign-in email:</p>
+                <p style="font-size:28px;font-weight:bold;letter-spacing:6px">$code</p>
+                <p>It expires in $validMinutes minutes. If you didn't ask for this, you can ignore this email.</p>
+            """.trimIndent()
+        )
+    }
+
+    override suspend fun sendEmailChanged(to: String, firstName: String, newEmail: String) {
+        send(
+            to = to,
+            subject = "Your Squadify email was changed",
+            html = """
+                <p>Hi $firstName,</p>
+                <p>The email you sign in to Squadify with was changed to <strong>$newEmail</strong>. From now on, sign in with that address.</p>
+                <p>If you didn't make this change, reply to this email or contact your club straight away.</p>
+            """.trimIndent()
+        )
+    }
+
     private suspend fun send(to: String, subject: String, html: String) {
         if (ServerConfig.resendApiKey.isBlank()) {
             logger.warn("RESEND_API_KEY not set -- skipping email to {} ({})", to, subject)

@@ -41,6 +41,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
+import com.ricardofrango.squadify.presentation.ui.components.FormIntro
+import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.PasswordVisibilityToggle
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
@@ -107,9 +110,9 @@ fun ForgotPasswordScreen(
         ) {
             when (state.step) {
                 ForgotPasswordStep.EMAIL -> {
-                    Intro(stringResource(Res.string.msg_forgot_email_intro))
-                    ErrorLine(state.error)
-                    Field(
+                    FormIntro(stringResource(Res.string.msg_forgot_email_intro))
+                    FormErrorLine(state.error)
+                    FormTextField(
                         value = email,
                         onValueChange = { email = it; viewModel.clearError() },
                         label = stringResource(Res.string.label_email),
@@ -128,9 +131,9 @@ fun ForgotPasswordScreen(
                     )
                 }
                 ForgotPasswordStep.CODE -> {
-                    Intro(stringResource(Res.string.msg_forgot_code_intro, state.email))
-                    ErrorLine(state.error)
-                    Field(
+                    FormIntro(stringResource(Res.string.msg_forgot_code_intro, state.email))
+                    FormErrorLine(state.error)
+                    FormTextField(
                         value = code,
                         onValueChange = { new -> code = new.filter { it.isDigit() }.take(6); viewModel.clearError() },
                         label = stringResource(Res.string.label_reset_code),
@@ -140,7 +143,7 @@ fun ForgotPasswordScreen(
                         imeAction = ImeAction.Next,
                         modifier = Modifier.semantics { contentType = ContentType.SmsOtpCode }
                     )
-                    Field(
+                    FormTextField(
                         value = password,
                         onValueChange = { password = it; viewModel.clearError() },
                         label = stringResource(Res.string.label_new_password_field),
@@ -152,7 +155,7 @@ fun ForgotPasswordScreen(
                         imeAction = ImeAction.Next,
                         modifier = Modifier.semantics { contentType = ContentType.NewPassword }
                     )
-                    Field(
+                    FormTextField(
                         value = confirm,
                         onValueChange = { confirm = it; viewModel.clearError() },
                         label = stringResource(Res.string.label_confirm_new_password_field),
@@ -185,68 +188,4 @@ fun ForgotPasswordScreen(
             }
         }
     }
-}
-
-@Composable
-private fun Intro(text: String) {
-    Text(text, style = MaterialTheme.typography.bodyMedium, color = CarbonGray)
-}
-
-/** Reserved space, so an error doesn't push the fields down. */
-@Composable
-private fun ErrorLine(error: String?) {
-    Box(Modifier.fillMaxWidth().heightIn(min = 20.dp), contentAlignment = Alignment.CenterStart) {
-        if (error != null) Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-    }
-}
-
-@Composable
-private fun Field(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    enabled: Boolean,
-    keyboardType: KeyboardType,
-    modifier: Modifier = Modifier,
-    isError: Boolean = false,
-    supporting: String? = null,
-    hidden: Boolean = false,
-    onToggleHidden: (() -> Unit)? = null,
-    // Next moves to the following field (Compose's default for ImeAction.Next); the last field's
-    // action submits, like the button below it.
-    imeAction: ImeAction = ImeAction.Next,
-    onImeAction: (() -> Unit)? = null
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        supportingText = supporting?.let { { Text(it) } },
-        modifier = modifier.fillMaxWidth(),
-        singleLine = true,
-        enabled = enabled,
-        isError = isError,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
-        keyboardActions = onImeAction?.let { submit -> KeyboardActions(onDone = { submit() }, onSend = { submit() }, onGo = { submit() }) }
-            ?: KeyboardActions.Default,
-        visualTransformation = if (hidden) PasswordVisualTransformation() else VisualTransformation.None,
-        trailingIcon = onToggleHidden?.let { toggle -> { PasswordVisibilityToggle(visible = !hidden, onToggle = toggle) } },
-        shape = RoundedCornerShape(16.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = DeepCarbon,
-            unfocusedTextColor = DeepCarbon,
-            // The error state only changes the border and label: the typed text stays dark.
-            errorTextColor = DeepCarbon,
-            // Disabled while submitting: dimmed, but still readable.
-            disabledTextColor = DeepCarbon.copy(alpha = 0.6f),
-            disabledBorderColor = Color.Gray.copy(alpha = 0.2f),
-            disabledLabelColor = Color.Gray.copy(alpha = 0.8f),
-            disabledSupportingTextColor = Color.Gray.copy(alpha = 0.8f),
-            disabledTrailingIconColor = Color.Gray.copy(alpha = 0.6f),
-            focusedBorderColor = PitchGreen,
-            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
-            focusedLabelColor = PitchGreen,
-            unfocusedLabelColor = Color.Gray
-        )
-    )
 }

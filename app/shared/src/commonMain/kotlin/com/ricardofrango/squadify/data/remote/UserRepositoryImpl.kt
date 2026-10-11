@@ -3,6 +3,8 @@ package com.ricardofrango.squadify.data.remote
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.model.ChangePasswordRequest
+import com.ricardofrango.squadify.model.EmailChangeConfirmRequest
+import com.ricardofrango.squadify.model.EmailChangeRequest
 import com.ricardofrango.squadify.model.UpdateProfileRequest
 import com.ricardofrango.squadify.model.User
 import io.ktor.client.*
@@ -29,4 +31,17 @@ class UserRepositoryImpl(
             setBody(request)
         }.handleResponse<Unit>()
     }
+
+    override suspend fun requestEmailChange(request: EmailChangeRequest) {
+        httpClient.post("${appConfig.baseUrl}/users/me/email/request") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.handleResponse<Unit>()
+    }
+
+    override suspend fun confirmEmailChange(request: EmailChangeConfirmRequest): User =
+        httpClient.post("${appConfig.baseUrl}/users/me/email/confirm") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.handleResponse()
 }

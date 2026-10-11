@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.presentation.ui.account
 
+import squadify.app.shared.generated.resources.msg_password_change_wrong_password
+import org.jetbrains.compose.resources.getString
+import com.ricardofrango.squadify.presentation.ui.components.isWrongCurrentPassword
+import com.ricardofrango.squadify.presentation.ui.components.isSignedOutForWrongPasswords
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.ChangePasswordUseCase
@@ -44,6 +48,12 @@ class AccountViewModel(
                 AccountUiState.Error(errorMessage(e, Res.string.msg_failed_to_load_account))
             }
         }
+    }
+
+    /** Back from Change email: show the new address (already saved on the server) with a confirmation. */
+    fun onEmailChanged(email: String) {
+        val idle = _state.value as? AccountUiState.Idle ?: return
+        if (idle.email != email) _state.value = idle.copy(email = email, emailChanged = true)
     }
 
     private fun idleFor(user: User): AccountUiState.Idle {
@@ -112,7 +122,15 @@ class AccountViewModel(
                     )
                 }
             } catch (e: Exception) {
-                val message = errorMessage(e, Res.string.msg_password_change_failed)
+                if (e.isSignedOutForWrongPasswords()) {
+                    updateIdle { it.copy(isSubmittingPassword = false, signedOut = true) }
+                    return@launch
+                }
+                val message = if (e.isWrongCurrentPassword()) {
+                    getString(Res.string.msg_password_change_wrong_password)
+                } else {
+                    errorMessage(e, Res.string.msg_password_change_failed)
+                }
                 updateIdle { it.copy(isSubmittingPassword = false, passwordSubmitError = message) }
             }
         }

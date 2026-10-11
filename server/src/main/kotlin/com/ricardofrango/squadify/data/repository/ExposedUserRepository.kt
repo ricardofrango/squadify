@@ -12,6 +12,8 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.neq
+import org.jetbrains.exposed.v1.core.plus
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -111,6 +113,33 @@ class ExposedUserRepository : UserRepository {
 
     override suspend fun deleteRefreshTokensForUser(userId: String) {
         RefreshTokens.deleteWhere { RefreshTokens.userId eq userId.toUuid() }
+    }
+
+    override suspend fun deleteRefreshTokensForUserExcept(userId: String, keepToken: String?) {
+        RefreshTokens.deleteWhere {
+            if (keepToken == null) RefreshTokens.userId eq userId.toUuid()
+            else (RefreshTokens.userId eq userId.toUuid()) and (RefreshTokens.token neq keepToken)
+        }
+    }
+
+    override suspend fun updateEmail(userId: String, email: String): Boolean =
+        Users.update({ Users.id eq userId.toUuid() }) {
+            it[Users.email] = email
+        } > 0
+
+    override suspend fun incrementPasswordCheckFailures(userId: String): Int {
+        Users.update({ Users.id eq userId.toUuid() }) {
+            it[passwordCheckFailures] = passwordCheckFailures + 1
+        }
+        return Users.selectAll().where { Users.id eq userId.toUuid() }
+            .map { it[Users.passwordCheckFailures] }
+            .single()
+    }
+
+    override suspend fun resetPasswordCheckFailures(userId: String) {
+        Users.update({ Users.id eq userId.toUuid() }) {
+            it[passwordCheckFailures] = 0
+        }
     }
 
     override suspend fun countAllUsers(): Long =

@@ -11,6 +11,15 @@ class UnauthorizedException(message: String = "Unauthorized") :
 class ForbiddenException(message: String = "Access Denied") : 
     SquadifyException(message, "AUTH_002")
 
+/** The current password asked for by Change password / Change email is wrong. A 400, not a 401: the app
+ * treats any 401 as an expired session. See CurrentPasswordGuard. */
+class WrongPasswordException(message: String = "Current password is incorrect") :
+    SquadifyException(message, "AUTH_003")
+
+/** The third wrong current password in a row: the user has been signed out everywhere (403). */
+class TooManyPasswordAttemptsException(message: String = "Too many wrong passwords. You have been signed out.") :
+    SquadifyException(message, "AUTH_004")
+
 class ValidationException(message: String) :
     SquadifyException(message, "VAL_001")
 

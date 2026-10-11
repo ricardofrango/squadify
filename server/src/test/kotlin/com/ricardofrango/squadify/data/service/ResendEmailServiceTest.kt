@@ -35,4 +35,14 @@ class ResendEmailServiceTest {
     fun sendPasswordResetCodeNeverThrowsWithNoApiKeyConfigured() = runBlocking {
         emailService.sendPasswordResetCode(to = "someone@example.com", firstName = "Alex", code = "123456", validMinutes = 15)
     }
+
+    @Test
+    fun sendEmailChangeCodeNeverThrowsWithNoApiKeyConfigured() = runBlocking {
+        emailService.sendEmailChangeCode(to = "someone@example.com", firstName = "Alex", code = "123456", validMinutes = 15)
+    }
+
+    @Test
+    fun sendEmailChangedNeverThrowsWithNoApiKeyConfigured() = runBlocking {
+        emailService.sendEmailChanged(to = "old@example.com", firstName = "Alex", newEmail = "new@example.com")
+    }
 }
