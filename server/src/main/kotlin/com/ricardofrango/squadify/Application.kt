@@ -137,6 +137,8 @@ fun Application.module() {
             val status = when (cause) {
                 is UnauthorizedException -> HttpStatusCode.Unauthorized
                 is ForbiddenException -> HttpStatusCode.Forbidden
+                is WrongPasswordException -> HttpStatusCode.BadRequest
+                is TooManyPasswordAttemptsException -> HttpStatusCode.Forbidden
                 is NotFoundException -> HttpStatusCode.NotFound
                 is ConflictException -> HttpStatusCode.Conflict
                 is ValidationException -> HttpStatusCode.BadRequest

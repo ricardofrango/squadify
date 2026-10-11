@@ -53,7 +53,11 @@ sealed class AccountUiState {
         val passwordForm: PasswordFormFields = PasswordFormFields(),
         val isSubmittingPassword: Boolean = false,
         val passwordSubmitError: String? = null,
-        val passwordChanged: Boolean = false
+        val passwordChanged: Boolean = false,
+        // Just back from Change email: shows "Email changed" under the email.
+        val emailChanged: Boolean = false,
+        // Third wrong current password on Change password: signed out; the screen shows SignedOutAlert.
+        val signedOut: Boolean = false
     ) : AccountUiState() {
         val isDirty: Boolean get() = form != original
         val isValid: Boolean get() = form.firstName.isNotBlank() && form.lastName.isNotBlank()

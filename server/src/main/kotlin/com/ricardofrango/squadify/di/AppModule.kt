@@ -9,6 +9,7 @@ import com.ricardofrango.squadify.data.service.KotlinFlowMatchBus
 import com.ricardofrango.squadify.data.service.ResendEmailService
 import com.ricardofrango.squadify.domain.repository.*
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
+import com.ricardofrango.squadify.domain.service.CurrentPasswordGuard
 import com.ricardofrango.squadify.domain.service.EmailService
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.PushNotificationService
@@ -20,6 +21,7 @@ val appModule = module {
     single<ClubRepository> { ExposedClubRepository() }
     single<UserRepository> { ExposedUserRepository() }
     single<PasswordResetRepository> { ExposedPasswordResetRepository() }
+    single<EmailChangeRepository> { ExposedEmailChangeRepository() }
     single<TeamRepository> { ExposedTeamRepository() }
     single<SeasonRepository> { ExposedSeasonRepository() }
     single<AgeGroupRepository> { ExposedAgeGroupRepository() }
@@ -58,9 +60,12 @@ val appModule = module {
     factory { LoginUseCase(get(), get()) }
     factory { GetCurrentUserUseCase(get(), get()) }
     factory { UpdateProfileUseCase(get(), get()) }
-    factory { ChangePasswordUseCase(get(), get()) }
+    factory { CurrentPasswordGuard(get(), get()) }
+    factory { ChangePasswordUseCase(get(), get(), get()) }
     factory { RequestPasswordResetUseCase(get(), get(), get(), get()) }
     factory { ResetPasswordUseCase(get(), get(), get()) }
+    factory { RequestEmailChangeUseCase(get(), get(), get(), get(), get()) }
+    factory { ConfirmEmailChangeUseCase(get(), get(), get(), get()) }
     factory { RefreshTokenUseCase(get(), get()) }
     factory { CheckUserPermissionUseCase(get(), get(), get(), get(), get(), get()) }
     factory { GetClubPermissionsUseCase(get(), get(), get()) }

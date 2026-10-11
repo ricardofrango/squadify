@@ -16,6 +16,8 @@ object Users : Table("users") {
     val status = enumerationByName("status", 50, UserStatus::class).default(UserStatus.ACTIVE)
     val isPlatformAdmin = bool("is_platform_admin").default(false)
     val createdAt = timestamp("created_at")
+    // Wrong current passwords in a row (Change password / Change email); see CurrentPasswordGuard.
+    val passwordCheckFailures = integer("password_check_failures").default(0)
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -33,6 +35,19 @@ object RefreshTokens : Table("refresh_tokens") {
 // hash of the code is stored. See RequestPasswordResetUseCase / ResetPasswordUseCase.
 object PasswordResetCodes : Table("password_reset_codes") {
     val userId = uuid("user_id").references(Users.id)
+    val codeHash = varchar("code_hash", 255)
+    val expiresAt = timestamp("expires_at")
+    val attempts = integer("attempts").default(0)
+    val createdAt = timestamp("created_at")
+
+    override val primaryKey = PrimaryKey(userId)
+}
+
+// At most one pending Change-email request per user (a new one replaces it): the address it would
+// switch to and a BCrypt hash of the code sent there. See RequestEmailChangeUseCase.
+object EmailChangeCodes : Table("email_change_codes") {
+    val userId = uuid("user_id").references(Users.id)
+    val newEmail = varchar("new_email", 255)
     val codeHash = varchar("code_hash", 255)
     val expiresAt = timestamp("expires_at")
     val attempts = integer("attempts").default(0)

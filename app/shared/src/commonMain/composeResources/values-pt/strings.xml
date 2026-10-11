@@ -1004,4 +1004,19 @@
     <string name="msg_reset_request_failed">Não foi possível enviar o código. Tente novamente.</string>
     <string name="msg_password_reset_done">Senha alterada. Entre com a nova senha.</string>
     <string name="msg_reset_no_account">Não existe nenhuma conta com este email.</string>
+    <!-- Alterar email -->
+    <string name="msg_change_email_intro">Indique o novo email com que quer entrar e a sua senha atual. Enviamos um código de 6 dígitos para o novo endereço para o confirmar.</string>
+    <string name="label_new_email">Novo email</string>
+    <string name="msg_change_email_code_intro">Enviámos um código para %1$s. Expira em 15 minutos.</string>
+    <string name="btn_confirm_email_change">Confirmar novo email</string>
+    <string name="btn_confirming">A confirmar...</string>
+    <string name="msg_change_email_same">Este já é o seu email.</string>
+    <string name="msg_change_email_taken">Já existe uma conta com este email.</string>
+    <string name="msg_change_email_wrong_password">Não foi possível alterar o email: a senha atual está incorreta.</string>
+    <string name="msg_change_email_failed">Não foi possível alterar o seu email. Tente novamente.</string>
+    <string name="msg_email_changed">Email alterado. A partir de agora, entre com ele.</string>
+    <string name="msg_password_change_wrong_password">Não foi possível alterar a senha: a senha atual está incorreta.</string>
+    <string name="title_signed_out">Sessão terminada</string>
+    <string name="msg_signed_out_wrong_passwords">Introduziu uma senha errada 3 vezes, por isso terminámos a sua sessão por segurança. Entre novamente para continuar.</string>
+    <string name="btn_ok">OK</string>
 </resources>

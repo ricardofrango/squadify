@@ -119,6 +119,14 @@ private class FakeUserRepository : UserRepository {
         refreshTokens.entries.removeIf { it.value.userId == userId }
     }
 
+    override suspend fun deleteRefreshTokensForUserExcept(userId: String, keepToken: String?) {
+        refreshTokens.entries.removeIf { it.value.userId == userId && it.key != keepToken }
+    }
+
+    override suspend fun updateEmail(userId: String, email: String) = error("not used")
+    override suspend fun incrementPasswordCheckFailures(userId: String) = error("not used")
+    override suspend fun resetPasswordCheckFailures(userId: String) = error("not used")
+
     override suspend fun findById(id: String): User? = null
     override suspend fun findByEmail(email: String): User? = null
     override suspend fun findByEmails(emails: List<String>): List<User> = emptyList()

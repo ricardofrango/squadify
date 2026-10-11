@@ -29,6 +29,11 @@ sealed class Screen {
     @SerialName("forgot-password")
     data class ForgotPassword(val email: String = "") : Screen()
 
+    // Change email, from Account; [currentEmail] lets it say "this is already your email" up front.
+    @Serializable
+    @SerialName("change-email")
+    data class ChangeEmail(val currentEmail: String = "") : Screen()
+
     @Serializable
     @SerialName("dashboard")
     data object Dashboard : Screen()

@@ -34,6 +34,7 @@ import com.ricardofrango.squadify.presentation.ui.editplayer.EditPlayerViewModel
 import com.ricardofrango.squadify.presentation.ui.dashboard.DashboardViewModel
 import com.ricardofrango.squadify.presentation.ui.login.LoginViewModel
 import com.ricardofrango.squadify.presentation.ui.forgotpassword.ForgotPasswordViewModel
+import com.ricardofrango.squadify.presentation.ui.changeemail.ChangeEmailViewModel
 import com.ricardofrango.squadify.presentation.ui.register.RegisterViewModel
 import com.ricardofrango.squadify.presentation.ui.splash.SplashViewModel
 import com.russhwolf.settings.Settings
@@ -129,6 +130,8 @@ val domainModule = module {
     factory { RegisterUseCase(get()) }
     factory { RequestPasswordResetUseCase(get()) }
     factory { ResetPasswordUseCase(get()) }
+    factory { RequestEmailChangeUseCase(get()) }
+    factory { ConfirmEmailChangeUseCase(get(), get()) }
     factory { CheckAndRefreshSessionUseCase(get(), get()) }
     factory { GetClubsUseCase(get()) }
     factory { LogoutUseCase(get(), get(), get()) }
@@ -196,6 +199,7 @@ val domainModule = module {
 val presentationModule = module {
     viewModelOf(::LoginViewModel)
     viewModelOf(::ForgotPasswordViewModel)
+    viewModelOf(::ChangeEmailViewModel)
     viewModelOf(::RegisterViewModel)
     viewModelOf(::SplashViewModel)
     viewModelOf(::DashboardViewModel)

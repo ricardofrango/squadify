@@ -24,6 +24,7 @@ import com.ricardofrango.squadify.domain.service.SessionEventBus
 import com.ricardofrango.squadify.model.StatsFilter
 import com.ricardofrango.squadify.model.SportType
 import org.koin.compose.koinInject
+import com.ricardofrango.squadify.presentation.ui.changeemail.ChangeEmailScreen
 import com.ricardofrango.squadify.presentation.ui.forgotpassword.ForgotPasswordScreen
 import com.ricardofrango.squadify.presentation.ui.login.LoginScreen
 import com.ricardofrango.squadify.presentation.ui.register.RegisterScreen
@@ -60,6 +61,9 @@ private const val KEY_CLUB_STRUCTURE_CHANGED = "clubStructureChanged"
 
 // Forgot password -> Login: the email whose password was just reset (prefilled, with a confirmation).
 private const val KEY_PASSWORD_RESET_EMAIL = "passwordResetEmail"
+
+// Change email -> Account: the new address, shown with a confirmation.
+private const val KEY_EMAIL_CHANGED = "emailChanged"
 
 // Duration of the app-wide screen transition (see the NavHost below).
 private const val NAV_ANIM_MS = 300
@@ -198,6 +202,21 @@ fun AppNavigation() {
                 onPasswordReset = { email ->
                     loginEntry?.setIfAlive(KEY_PASSWORD_RESET_EMAIL, email)
                     navController.popBackStack()
+                }
+            )
+        }
+
+        screen<Screen.ChangeEmail> { entry ->
+            val accountEntry = remember(entry) { navController.previousBackStackEntry }
+            ChangeEmailScreen(
+                currentEmail = entry.toRoute<Screen.ChangeEmail>().currentEmail.ifEmpty { null },
+                onNavigateBack = { navController.popBackStack() },
+                onEmailChanged = { email ->
+                    accountEntry?.setIfAlive(KEY_EMAIL_CHANGED, email)
+                    navController.popBackStack()
+                },
+                onSignedOut = {
+                    navController.navigate(Screen.Login) { popUpTo(navController.graph.id) { inclusive = true } }
                 }
             )
         }
@@ -742,8 +761,11 @@ fun AppNavigation() {
             )
         }
 
-        screen<Screen.Account> {
+        screen<Screen.Account> { entry ->
+            val changedEmail by entry.savedStateHandle.getStateFlow<String?>(KEY_EMAIL_CHANGED, null).collectAsState()
             AccountScreen(
+                changedEmail = changedEmail,
+                onNavigateToChangeEmail = { email -> navController.navigate(Screen.ChangeEmail(email)) },
                 onNavigateBack = {
                     navController.popBackStack()
                 },

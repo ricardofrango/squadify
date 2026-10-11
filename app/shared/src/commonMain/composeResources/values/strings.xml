@@ -1006,4 +1006,19 @@
     <string name="msg_reset_request_failed">Couldn\'t send the code. Please try again.</string>
     <string name="msg_password_reset_done">Password changed. Sign in with your new password.</string>
     <string name="msg_reset_no_account">There\'s no account with this email.</string>
+    <!-- Change email -->
+    <string name="msg_change_email_intro">Enter the new email you want to sign in with, and your current password. We\'ll send a 6-digit code to the new address to confirm it.</string>
+    <string name="label_new_email">New email</string>
+    <string name="msg_change_email_code_intro">We\'ve sent a code to %1$s. It expires in 15 minutes.</string>
+    <string name="btn_confirm_email_change">Confirm new email</string>
+    <string name="btn_confirming">Confirming...</string>
+    <string name="msg_change_email_same">This is already your email.</string>
+    <string name="msg_change_email_taken">There\'s already an account with this email.</string>
+    <string name="msg_change_email_wrong_password">Couldn\'t change your email: the current password is incorrect.</string>
+    <string name="msg_change_email_failed">Couldn\'t change your email. Please try again.</string>
+    <string name="msg_email_changed">Email changed. Sign in with it from now on.</string>
+    <string name="msg_password_change_wrong_password">Couldn\'t change your password: the current password is incorrect.</string>
+    <string name="title_signed_out">Signed out</string>
+    <string name="msg_signed_out_wrong_passwords">You entered a wrong password 3 times, so you\'ve been signed out for your security. Sign in again to continue.</string>
+    <string name="btn_ok">OK</string>
 </resources>

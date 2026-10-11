@@ -34,6 +34,8 @@ We use **Exposed** as our SQL ORM.
     - **Exception Types**:
         - `UnauthorizedException` (AUTH_001 -> 401): Authentication failures.
         - `ForbiddenException` (AUTH_002 -> 403): RBAC/Permission violations.
+        - `WrongPasswordException` (AUTH_003 -> 400): the current password asked for by Change password / Change email is wrong. Deliberately not a 401, since the client treats any 401 as an expired session (§50).
+        - `TooManyPasswordAttemptsException` (AUTH_004 -> 403): the third wrong current password in a row; the user has been signed out everywhere (§50).
         - `ValidationException` (VAL_001 -> 400): Business rule or request format violations.
         - `ConflictException` (DATA_001 -> 409): Duplicate resources or state conflicts.
         - `DatabaseException` (DATA_002 -> 500): Persistence layer failures.
@@ -1489,8 +1491,8 @@ submitting/error/success state -- so one action's in-flight state never blocks o
 other. Password visibility uses the app's existing `PasswordVisibilityToggle` eye icon (already used on
 Login/Register) instead of the mockup's literal "Show"/"Hide" text links, to stay consistent with the
 app's established visual language. The mockup's "Reset demo" affordance was left out entirely -- it's a
-design-prototype-only convenience with no real counterpart. "Change email" is rendered as a static,
-non-interactive label (no backend support for changing a verified email exists yet); email itself is
+design-prototype-only convenience with no real counterpart. "Change email" was first rendered as a static,
+non-interactive label; it works now (§49); email itself is
 shown read-only with a "Verified" badge, since `LoginUseCase` denies non-`ACTIVE` accounts outright, so
 every session that can reach this screen is, by construction, already on an active, verified account.
 
@@ -2472,4 +2474,39 @@ The club screen's "More" tab opened a plain dropdown, and Account sat behind a s
   - **Under the button:** "Send a new code", counting down the server's 60-second cooldown, and "Use a different email".
   - **Errors:** a 400 shows "This code is wrong or has expired"; anything else shows a generic retry message.
 - **On success:** it pops back to Login through the `passwordResetEmail` saved-state key. Login fills in the email, clears the password, and shows "Password changed. Sign in with your new password." It doesn't sign in automatically, so the password manager can offer to save the new password on the normal sign-in.
+
+## 49. Change Email
+
+"Change email" on Account was a static label. It now opens a two-step screen that reuses the Forgot-password approach (§48): a 6-digit code typed into the app, so no deep links are needed on any platform.
+
+**Server** (`RequestEmailChangeUseCase`, `ConfirmEmailChangeUseCase`; flows in `PROCESS_FLOWS.md` §2.11 / §2.12):
+- **Request:** `POST /users/me/email/request` {newEmail, currentPassword} answers 202.
+  - **Password:** the current password is required, as in Change password (§33), so a stolen access token alone can't move the account to another address. It's checked by `CurrentPasswordGuard` (§50).
+  - **Errors:** an invalid address or the current one is a 400, another account's address is a 409, and a wrong password is a 400 (`AUTH_003`).
+  - **The code** goes to the new address, which proves it belongs to the user.
+- **Confirm:** `POST /users/me/email/confirm` {code, refreshToken} answers 200 with the updated `User`.
+  - **Taken meanwhile:** the address is checked again, in case someone registered with it in between (409).
+  - **On success:** `users.email` changes, and every refresh token except the caller's own is deleted (`deleteRefreshTokensForUserExcept`), so other devices have to sign in again with the new address. The old address gets a heads-up email (`sendEmailChanged`) in case the change wasn't theirs.
+- **Storage:** `email_change_codes` (`V12`), one pending request per user holding the new address and a BCrypt hash of the code. It follows the same rules as Forgot password: 15 minutes, 5 tries (wrong attempts committed before the error), single use, and a one-minute cooldown.
+  - **Cooldown:** it applies only to a repeat for the same address; a different address replaces the request immediately.
+- **Out of scope:** club invites pending for the new address aren't applied by the change. Those are matched to an account at registration.
+- **Tests:** `EmailChangeUseCasesTest`.
+
+**Client** (`ChangeEmailScreen` / `ChangeEmailViewModel`, route `Screen.ChangeEmail(currentEmail)`):
+- **Step 1:** the new email plus the current password, then "Send code". It's checked locally first (`changeEmailFormError`, tested in `ChangeEmailFormTest`): a valid address that isn't the current one.
+- **Step 2:** the code, then "Confirm new email", plus "Send a new code" (60-second countdown) and "Use a different email".
+- **Session:** the confirm request sends this device's refresh token, so this session survives.
+- **Back on Account:** it gets the new address through the `emailChanged` saved-state key and shows "Email changed. Sign in with it from now on."
+- **Shared fields:** the form pieces shared with Forgot password moved to `components/CodeFormFields.kt` (`FormIntro`, `FormErrorLine`, `FormTextField`).
+
+## 50. Wrong Current Password: An Error, Then Sign-Out on the Third
+
+Change password and Change email ask for the current password. A wrong one used to be a 401. The authenticated client reads any 401 as an expired session: it refreshes, retries, gets 401 again and clears the session. So a single typo signed the user out.
+
+**`CurrentPasswordGuard`** (`domain/service`) now checks the current password for both use cases.
+- **Wrong password:** `WrongPasswordException` (`AUTH_003`, **400**). The app shows "Couldn't change your email/password: the current password is incorrect" and the user stays signed in.
+- **Counting:** wrong attempts in a row are counted in `users.password_check_failures` (`V13`), and a correct password resets the count. The check runs in its own transaction before the use case's, so the count is committed even though an exception follows.
+- **Third wrong attempt:** the count resets, every refresh token of the user is deleted (signed out on every device), and the answer is `TooManyPasswordAttemptsException` (`AUTH_004`, **403**). The app shows a "Signed out" alert (`SignedOutAlert`, which can't be dismissed). OK clears the local session and goes to Sign in.
+- **Shared count:** one counter covers Change password and Change email together.
+- **Tests:** `CurrentPasswordGuardTest`; `ChangePasswordUseCaseTest` and `EmailChangeUseCasesTest` now expect `WrongPasswordException`.
 

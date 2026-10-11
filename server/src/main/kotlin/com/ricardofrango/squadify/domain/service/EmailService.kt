@@ -18,4 +18,10 @@ interface EmailService {
 
     /** Forgot password: the 6-digit code to set a new password, valid for [validMinutes]. */
     suspend fun sendPasswordResetCode(to: String, firstName: String, code: String, validMinutes: Int)
+
+    /** Change email: the 6-digit code, sent to the NEW address to prove it's the user's. */
+    suspend fun sendEmailChangeCode(to: String, firstName: String, code: String, validMinutes: Int)
+
+    /** Change email, done: a heads-up to the OLD address, in case the change wasn't theirs. */
+    suspend fun sendEmailChanged(to: String, firstName: String, newEmail: String)
 }

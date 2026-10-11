@@ -3,7 +3,8 @@ package com.ricardofrango.squadify.domain.usecase
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
-import com.ricardofrango.squadify.exception.UnauthorizedException
+import com.ricardofrango.squadify.domain.service.CurrentPasswordGuard
+import com.ricardofrango.squadify.exception.WrongPasswordException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.ChangePasswordRequest
 import com.ricardofrango.squadify.model.User
@@ -25,7 +26,12 @@ class ChangePasswordUseCaseTest {
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
-    private val useCase = ChangePasswordUseCase(userRepository, transactionManager)
+    private val useCase = ChangePasswordUseCase(userRepository, transactionManager, CurrentPasswordGuard(userRepository, transactionManager))
+
+    init {
+        coEvery { userRepository.incrementPasswordCheckFailures(any()) } returns 1
+        coEvery { userRepository.resetPasswordCheckFailures(any()) } returns Unit
+    }
 
     private val userId = "u1"
     private val email = "u1@t.com"
@@ -55,7 +61,7 @@ class ChangePasswordUseCaseTest {
         coEvery { userRepository.findById(userId) } returns user()
         coEvery { userRepository.findPasswordHashByEmail(email) } returns currentHash
 
-        assertFailsWith<UnauthorizedException> {
+        assertFailsWith<WrongPasswordException> {
             useCase(userId, ChangePasswordRequest("totally-wrong", "new-password-123"))
         }
         coVerify(exactly = 0) { userRepository.updatePasswordHash(any(), any()) }
