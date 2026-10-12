@@ -15,6 +15,11 @@ import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.UpdateOpponentRequest
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
+import com.ricardofrango.squadify.exception.ConflictException
+import com.ricardofrango.squadify.model.ClubRole
+import io.mockk.slot
+import kotlin.test.assertNull
+import kotlin.test.assertEquals
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
@@ -24,10 +29,9 @@ import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /**
- * First coverage for this previously-untested (and, as of this change, still client-unreachable -- no
- * screen calls it yet) use case -- focused on the age-group-scoped coach path added alongside the
- * pre-existing club-wide coordinator gate (see ConfigurablePermission.EDIT_OPPONENT), mirroring
- * CreateOpponentUseCaseTest's shape.
+ * The age-group-scoped coach path added alongside the club-wide coordinator gate (see
+ * ConfigurablePermission.EDIT_OPPONENT), mirroring CreateOpponentUseCaseTest's shape, and the edit
+ * rules of Edit opponent (design 38e): a unique name, null keeps a field, blank clears it.
  */
 class UpdateOpponentUseCaseTest {
 
@@ -107,5 +111,51 @@ class UpdateOpponentUseCaseTest {
             useCase(coach.id, opponentId, UpdateOpponentRequest(name = "New Name", ageGroupId = ag1))
         }
         Unit
+    }
+
+    private fun asCoordinator(): String {
+        val coordinator = User("coordinator", "c@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
+        coEvery { userRepository.findById(coordinator.id) } returns coordinator
+        coEvery { userRepository.getUserRoleInClub(coordinator.id, clubId) } returns ClubRole.COORDINATOR
+        return coordinator.id
+    }
+
+    @Test
+    fun renamingToAnotherOpponentsNameIsAConflict() = runBlocking<Unit> {
+        val userId = asCoordinator()
+        coEvery { opponentRepository.getOpponentById(opponentId) } returns existingOpponent()
+        coEvery { opponentRepository.getOpponentsByClub(clubId) } returns listOf(existingOpponent(), Opponent("opp-2", clubId, "CD Mafra"))
+
+        assertFailsWith<ConflictException> { useCase(userId, opponentId, UpdateOpponentRequest(name = "cd mafra")) }
+    }
+
+    @Test
+    fun changingOnlyTheCaseOfItsOwnNameIsAllowed() = runBlocking<Unit> {
+        val userId = asCoordinator()
+        coEvery { opponentRepository.getOpponentById(opponentId) } returns existingOpponent()
+        val saved = slot<Opponent>()
+        coEvery { opponentRepository.updateOpponent(capture(saved)) } returns true
+
+        useCase(userId, opponentId, UpdateOpponentRequest(name = "RIVALS FC"))
+
+        assertEquals("RIVALS FC", saved.captured.name)
+    }
+
+    @Test
+    fun nullKeepsAFieldAndBlankClearsIt() = runBlocking<Unit> {
+        val userId = asCoordinator()
+        coEvery { opponentRepository.getOpponentById(opponentId) } returns existingOpponent().copy(
+            stadiumName = "Campo", stadiumAddress = "Rua 1", notes = "Parking", shortName = "RFC"
+        )
+        val saved = slot<Opponent>()
+        coEvery { opponentRepository.updateOpponent(capture(saved)) } returns true
+
+        useCase(userId, opponentId, UpdateOpponentRequest(stadiumAddress = " ", notes = "Artificial pitch", shortName = "rfc2"))
+
+        assertEquals("Rivals FC", saved.captured.name)
+        assertEquals("Campo", saved.captured.stadiumName)
+        assertNull(saved.captured.stadiumAddress)
+        assertEquals("Artificial pitch", saved.captured.notes)
+        assertEquals("RFC2", saved.captured.shortName)
     }
 }

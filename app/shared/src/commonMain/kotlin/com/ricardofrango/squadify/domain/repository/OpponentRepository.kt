@@ -4,6 +4,7 @@ import com.ricardofrango.squadify.model.CreateOpponentRequest
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.OpponentDetails
 import com.ricardofrango.squadify.model.OpponentList
+import com.ricardofrango.squadify.model.UpdateOpponentRequest
 
 interface OpponentRepository {
     // ageGroupId: pass the age group this call is happening in (e.g. picking an opponent from the
@@ -15,4 +16,5 @@ interface OpponentRepository {
     suspend fun getOpponentList(clubId: String, ageGroupId: String? = null): OpponentList
     suspend fun getOpponentDetails(opponentId: String): OpponentDetails
     suspend fun createOpponent(clubId: String, request: CreateOpponentRequest): Opponent
+    suspend fun updateOpponent(opponentId: String, request: UpdateOpponentRequest)
 }

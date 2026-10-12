@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.model.CreateOpponentRequest
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.OpponentDetails
 import com.ricardofrango.squadify.model.OpponentList
+import com.ricardofrango.squadify.model.UpdateOpponentRequest
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.http.*
@@ -36,4 +37,10 @@ class OpponentRepositoryImpl(
             contentType(ContentType.Application.Json)
             setBody(request)
         }.handleResponse()
+
+    override suspend fun updateOpponent(opponentId: String, request: UpdateOpponentRequest) =
+        httpClient.patch("${appConfig.baseUrl}/opponents/$opponentId") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.handleResponse<Unit>()
 }

@@ -186,6 +186,10 @@ sealed class Screen {
     data class OpponentDetails(val opponentId: String) : Screen()
 
     @Serializable
+    @SerialName("edit-opponent")
+    data class EditOpponent(val opponentId: String) : Screen()
+
+    @Serializable
     @SerialName("match")
     data class MatchDetails(val matchId: String) : Screen()
 

@@ -22,6 +22,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -69,12 +71,15 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.btn_directions
 import squadify.app.shared.generated.resources.btn_retry
+import squadify.app.shared.generated.resources.cd_edit_opponent
+import squadify.app.shared.generated.resources.ic_edit
 import squadify.app.shared.generated.resources.h2h_goals
 import squadify.app.shared.generated.resources.h2h_last_5
 import squadify.app.shared.generated.resources.h2h_no_results_season
@@ -101,21 +106,27 @@ import kotlin.time.Instant
  * Opponent details (design 38f/g), opened from the Opponents list: the header (logo, name, short name,
  * all-time matches), the stadium with Directions, the head-to-head for one season (Played · W · D · L,
  * goals, the last five oldest first) with a season picker, every match against them (tap to open), then
- * contact and notes when filled. Two columns on a wide screen.
+ * contact and notes when filled. Two columns on a wide screen. The pencil (Edit opponent) shows only
+ * with permission.
  */
 @Composable
 fun OpponentDetailsScreen(
     opponentId: String,
     onNavigateBack: () -> Unit,
     onOpenMatch: (matchId: String) -> Unit,
+    onEdit: () -> Unit,
+    // True right after returning from Edit opponent: reload.
+    refresh: Boolean = false,
     viewModel: OpponentDetailsViewModel = koinViewModel()
 ) {
     val state = viewModel.state.collectSettledState()
     LaunchedEffect(opponentId) { viewModel.load(opponentId) }
+    LaunchedEffect(refresh) { if (refresh) viewModel.load(opponentId, force = true) }
 
     OpponentDetailsContent(
         state = state,
         onNavigateBack = onNavigateBack,
+        onEdit = onEdit,
         onRetry = { viewModel.load(opponentId, force = true) },
         onSeasonSelected = viewModel::onSeasonSelected,
         onOpenMatch = onOpenMatch
@@ -128,7 +139,8 @@ private fun OpponentDetailsContent(
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
     onSeasonSelected: (String) -> Unit,
-    onOpenMatch: (String) -> Unit
+    onOpenMatch: (String) -> Unit,
+    onEdit: () -> Unit = {}
 ) {
     val details = (state as? OpponentDetailsUiState.Idle)?.details
     Scaffold(
@@ -137,7 +149,15 @@ private fun OpponentDetailsContent(
             FMTopBar(
                 title = details?.opponent?.name ?: stringResource(Res.string.title_opponent),
                 subtitle = details?.clubName,
-                onNavigateBack = onNavigateBack
+                onNavigateBack = onNavigateBack,
+                actions = {
+                    // Only with EDIT_OPPONENT; no disabled version (design 38i).
+                    if (details?.canEdit == true) {
+                        IconButton(onClick = onEdit) {
+                            Icon(painterResource(Res.drawable.ic_edit), stringResource(Res.string.cd_edit_opponent), tint = Color.White)
+                        }
+                    }
+                }
             )
         }
     ) { padding ->

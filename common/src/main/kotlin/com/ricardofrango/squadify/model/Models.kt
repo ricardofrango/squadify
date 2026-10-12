@@ -604,9 +604,15 @@ data class UpdateTeamRequest(
 
 @Serializable
 data class UpdateOpponentRequest(
+    // Each field: null leaves it as it is; for the optional ones, a blank value clears it.
     val name: String? = null,
     val shortName: String? = null,
     val logoUrl: String? = null,
+    val stadiumName: String? = null,
+    val stadiumAddress: String? = null,
+    val contactEmail: String? = null,
+    val contactPhone: String? = null,
+    val notes: String? = null,
     // Same role as CreateOpponentRequest.ageGroupId -- see UpdatePlayerRequest.ageGroupId's doc for why
     // this is optional rather than required.
     val ageGroupId: String? = null

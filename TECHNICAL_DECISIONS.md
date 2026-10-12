@@ -2555,3 +2555,12 @@ Picking an opponent on Schedule match was a dropdown of every opponent plus an i
 - **Data:** one call, `GET /opponents/{opponentId}` (`GetOpponentDetailsUseCase`, `PROCESS_FLOWS.md` §6.4). It returns the opponent, the matches, the scores of the ones that started, their teams and the club's seasons, so changing season is worked out on the device (`OpponentHeadToHead.kt`, tested in `OpponentHeadToHeadTest`).
   - **Scores:** the new `MatchEventRepository.getScoresByMatches` reads them in one query.
   - **Readable by:** any club member. `canEdit` follows `EDIT_OPPONENT`.
+
+**Edit** (`OpponentEditScreen`, the same `OpponentFormViewModel`; route `Screen.EditOpponent(opponentId)`), opened from the pencil on Opponent details:
+- **Who sees the pencil:** only users with `EDIT_OPPONENT`. Everyone else gets no disabled pencil.
+- **Form:** the same as Create, prefilled. "Save changes" stays disabled until something changes.
+- **Duplicate names:** checked the same way, leaving out the opponent being edited. Changing only the case of its own name is allowed.
+- **Server:** `PATCH /opponents/{id}` now takes the new fields too. A null field is left as it is, and a blank optional one is cleared.
+  - **What the app sends:** every field as typed, so emptying a field clears it.
+  - **Rules:** the same as Create (`OpponentRules.kt`). Tested in `UpdateOpponentUseCaseTest` and `OpponentFormTest`.
+- **After saving:** the details reload, and so does the list underneath.

@@ -1113,14 +1113,18 @@ graph TD
     AGF -- found, right club --> C
     AG -- No --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=EDIT_OPPONENT, ageGroupId]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D["Merge patch fields (name, shortName, logoUrl)"]
+    C -- allowed --> V{name given and blank after trimming?}
+    V -- Yes --> VE(["Throw ValidationException"])
+    V -- No --> DUP{"name changed (ignoring case) and another opponent of the club has it?"}
+    DUP -- Yes --> CF(["Throw ConflictException (409)"])
+    DUP -- No --> D["Merge patch fields: null keeps a field, a blank optional field clears it; shortName uppercased, at most 5"]
     D --> Z(["Persist updated Opponent"])
 ```
 
 `ageGroupId`, added alongside making `EDIT_OPPONENT` configurable (`TECHNICAL_DECISIONS.md` §35), gives
 this the same age-group-coach path its sibling `CreateOpponentUseCase` already had — previously
-coordinator-only, no staff path at all. Not yet reachable from the client — no screen calls
-`UpdateOpponentUseCase` today.
+coordinator-only, no staff path at all. The client's Edit opponent screen (design 38e) sends every field,
+so a field the user emptied is cleared. It's opened from Opponent details, with no age-group context.
 
 ### 6.3 Get Opponent List (`GetOpponentListUseCase`)
 

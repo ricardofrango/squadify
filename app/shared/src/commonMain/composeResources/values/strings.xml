@@ -1059,6 +1059,9 @@
     <string name="msg_opponent_name_taken">An opponent with this name already exists</string>
     <string name="msg_create_opponent_failed">Couldn\'t create the opponent. Please try again.</string>
     <string name="msg_opponent_created_selected">%1$s created and selected</string>
+    <string name="title_edit_opponent">Edit opponent</string>
+    <string name="msg_opponent_save_failed">Couldn\'t save the opponent. Please try again.</string>
+    <string name="cd_edit_opponent">Edit opponent</string>
     <!-- Opponent details (design 38f) -->
     <string name="title_opponent">Opponent</string>
     <plurals name="opponent_matches_all_time">

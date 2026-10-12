@@ -40,10 +40,21 @@ class UpdateOpponentUseCase(
             errorMessage = "Only admins, coordinators, or this age group's coaches can update opponents"
         )
 
+        val name = request.name?.let { requireOpponentName(it) } ?: existingOpponent.name
+        if (!name.equals(existingOpponent.name, ignoreCase = true)) {
+            requireUniqueOpponentName(name, opponentRepository.getOpponentsByClub(existingOpponent.clubId), exceptId = opponentId)
+        }
+
+        // null keeps a field; a blank value clears it (cleaned() turns it into null).
         val updatedOpponent = existingOpponent.copy(
-            name = request.name ?: existingOpponent.name,
-            shortName = request.shortName ?: existingOpponent.shortName,
-            logoUrl = request.logoUrl ?: existingOpponent.logoUrl
+            name = name,
+            shortName = if (request.shortName != null) normalizeShortName(request.shortName) else existingOpponent.shortName,
+            logoUrl = if (request.logoUrl != null) request.logoUrl.cleaned() else existingOpponent.logoUrl,
+            stadiumName = if (request.stadiumName != null) request.stadiumName.cleaned() else existingOpponent.stadiumName,
+            stadiumAddress = if (request.stadiumAddress != null) request.stadiumAddress.cleaned() else existingOpponent.stadiumAddress,
+            contactEmail = if (request.contactEmail != null) request.contactEmail.cleaned() else existingOpponent.contactEmail,
+            contactPhone = if (request.contactPhone != null) request.contactPhone.cleaned() else existingOpponent.contactPhone,
+            notes = if (request.notes != null) request.notes.cleaned() else existingOpponent.notes
         )
 
         opponentRepository.updateOpponent(updatedOpponent)

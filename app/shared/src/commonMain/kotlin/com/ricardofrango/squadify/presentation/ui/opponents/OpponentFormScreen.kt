@@ -79,6 +79,17 @@ import squadify.app.shared.generated.resources.msg_opponent_name_taken
 import squadify.app.shared.generated.resources.msg_opponent_short_name_helper
 import squadify.app.shared.generated.resources.msg_stadium_address_helper
 import squadify.app.shared.generated.resources.title_create_opponent
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.text.style.TextAlign
+import squadify.app.shared.generated.resources.btn_retry
+import squadify.app.shared.generated.resources.btn_save_changes
+import squadify.app.shared.generated.resources.btn_saving_changes
+import squadify.app.shared.generated.resources.msg_check_connection
+import squadify.app.shared.generated.resources.msg_opponent_load_failed
+import squadify.app.shared.generated.resources.title_edit_opponent
 
 /**
  * Create opponent (design 38e): logo (upload not available yet), IDENTITY, STADIUM, CONTACT and NOTES,
@@ -98,7 +109,7 @@ fun OpponentFormScreen(
 ) {
     val state by viewModel.state.collectAsState()
     LaunchedEffect(clubId) { viewModel.start(clubId, ageGroupId, initialName) }
-    LaunchedEffect(viewModel) { viewModel.created.collect { onCreated(it) } }
+    LaunchedEffect(viewModel) { viewModel.done.collect { onCreated(it) } }
 
     OpponentFormContent(
         state = state,
@@ -106,6 +117,35 @@ fun OpponentFormScreen(
         submitText = Res.string.btn_create_opponent,
         submittingText = Res.string.btn_creating_opponent,
         onNavigateBack = onNavigateBack,
+        onRetry = {},
+        onFormChange = viewModel::onFormChange,
+        onNameFocusLost = viewModel::onNameFocusLost,
+        onSubmit = viewModel::onSubmit
+    )
+}
+
+/**
+ * Edit opponent (design 38e), from Opponent details: the same form, prefilled. "Save changes" is enabled
+ * only once something changed; emptying an optional field clears it. [onSaved] is called after saving.
+ */
+@Composable
+fun OpponentEditScreen(
+    opponentId: String,
+    onNavigateBack: () -> Unit,
+    onSaved: () -> Unit,
+    viewModel: OpponentFormViewModel = koinViewModel()
+) {
+    val state by viewModel.state.collectAsState()
+    LaunchedEffect(opponentId) { viewModel.startEdit(opponentId) }
+    LaunchedEffect(viewModel) { viewModel.done.collect { onSaved() } }
+
+    OpponentFormContent(
+        state = state,
+        title = Res.string.title_edit_opponent,
+        submitText = Res.string.btn_save_changes,
+        submittingText = Res.string.btn_saving_changes,
+        onNavigateBack = onNavigateBack,
+        onRetry = { viewModel.startEdit(opponentId, force = true) },
         onFormChange = viewModel::onFormChange,
         onNameFocusLost = viewModel::onNameFocusLost,
         onSubmit = viewModel::onSubmit
@@ -119,6 +159,7 @@ private fun OpponentFormContent(
     submitText: StringResource,
     submittingText: StringResource,
     onNavigateBack: () -> Unit,
+    onRetry: () -> Unit,
     onFormChange: (OpponentForm) -> Unit,
     onNameFocusLost: () -> Unit,
     onSubmit: () -> Unit
@@ -127,6 +168,24 @@ private fun OpponentFormContent(
         containerColor = Color.White,
         topBar = { FMTopBar(title = stringResource(title), subtitle = state.clubName, onNavigateBack = onNavigateBack) }
     ) { padding ->
+        if (state.loading || state.loadFailed) {
+            Column(
+                Modifier.fillMaxSize().padding(padding).padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                if (state.loading) {
+                    CircularProgressIndicator(color = PitchGreen)
+                } else {
+                    Text(stringResource(Res.string.msg_opponent_load_failed), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(8.dp))
+                    Text(stringResource(Res.string.msg_check_connection), color = DeepCarbon.copy(alpha = 0.6f), textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(16.dp))
+                    Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen)) { Text(stringResource(Res.string.btn_retry)) }
+                }
+            }
+            return@Scaffold
+        }
         BoxWithConstraints(
             Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding().background(Color.White)
         ) {
@@ -329,7 +388,7 @@ private fun PreviewForm(state: OpponentFormUiState) {
             title = Res.string.title_create_opponent,
             submitText = Res.string.btn_create_opponent,
             submittingText = Res.string.btn_creating_opponent,
-            onNavigateBack = {}, onFormChange = {}, onNameFocusLost = {}, onSubmit = {}
+            onNavigateBack = {}, onRetry = {}, onFormChange = {}, onNameFocusLost = {}, onSubmit = {}
         )
     }
 }
@@ -352,3 +411,18 @@ private fun CreateOpponentLandscapePreview() = PreviewForm(
         form = OpponentForm(name = "Sporting Lourel", stadiumAddress = "Rua do Campo 3, Mafra")
     )
 )
+
+@Preview
+@Composable
+private fun EditOpponentPreview() {
+    val form = OpponentForm(name = "AD Fontelas", shortName = "ADF", stadiumName = "Campo das Fontelas", stadiumAddress = "Rua do Campo 3, 2640-401 Mafra")
+    SquadifyTheme {
+        OpponentFormContent(
+            state = OpponentFormUiState(clubName = "CD Ribamar", form = form, original = form),
+            title = Res.string.title_edit_opponent,
+            submitText = Res.string.btn_save_changes,
+            submittingText = Res.string.btn_saving_changes,
+            onNavigateBack = {}, onRetry = {}, onFormChange = {}, onNameFocusLost = {}, onSubmit = {}
+        )
+    }
+}
