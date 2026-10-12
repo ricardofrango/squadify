@@ -2611,3 +2611,10 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
 - **Empty cards:** each has its own Plan button, or says who can add it.
 - **Data:** the plans load with the age group (`AgeGroupDetailsViewModel.loadPlans`). A 403 hides the cards, because players and parents don't see plans.
 - **Still to come:** the sessions list below the cards.
+
+**Home alerts for missing plans** (design 40g):
+- **What they say:** `GetClubHomeUseCase` adds `SEASON_PLAN_MISSING`, `MONTH_PLAN_MISSING` and `WEEK_PLAN_MISSING`: "Season 26/27 has no plan · Sub-17", "October has no plan · Sub-17", "Week of 12 Oct has no plan · Sub-15".
+- **When:** only for the period we're in. The season counts from its first day, the month from the 1st and the week from Monday. An alert clears once the plan is saved.
+- **Who sees them:** admins and coordinators see every age group of the season. Age-group staff see their own age groups, as far as `MANAGE_TRAINING` allows (coach by default).
+- **Data:** all the age groups' plans come in one query (`TrainingPlanRepository.getByAgeGroups`).
+- **In the app:** each row says since when, turns amber after 7 days, and opens that plan's editor. Tested in `GetClubHomeUseCaseTest`.

@@ -50,6 +50,8 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
 import kotlin.time.Instant
+import com.ricardofrango.squadify.presentation.ui.training.monthName
+import com.ricardofrango.squadify.model.TrainingPlanLevel
 
 private val CardShape = RoundedCornerShape(16.dp)
 
@@ -63,7 +65,9 @@ fun HomeTab(
     home: ClubHome?,
     onRetry: () -> Unit,
     onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
-    onNavigateToMatch: (matchId: String) -> Unit
+    onNavigateToMatch: (matchId: String) -> Unit,
+    // A missing-plan alert opens that plan's editor (design 40g).
+    onEditPlan: (ageGroupId: String, level: TrainingPlanLevel, periodStart: LocalDate) -> Unit = { _, _, _ -> }
 ) {
     if (home == null) {
         Column(
@@ -107,12 +111,12 @@ fun HomeTab(
             if (wide) {
                 Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     NextUpSection(home, onNavigateToMatch, Modifier.weight(1f))
-                    NeedsYouSection(home, onNavigateToAgeGroup, onNavigateToMatch, Modifier.weight(1f))
+                    NeedsYouSection(home, onNavigateToAgeGroup, onNavigateToMatch, onEditPlan, Modifier.weight(1f))
                 }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                     NextUpSection(home, onNavigateToMatch)
-                    NeedsYouSection(home, onNavigateToAgeGroup, onNavigateToMatch)
+                    NeedsYouSection(home, onNavigateToAgeGroup, onNavigateToMatch, onEditPlan)
                 }
             }
         }
@@ -145,12 +149,14 @@ private fun NeedsYouSection(
     home: ClubHome,
     onNavigateToAgeGroup: (String) -> Unit,
     onNavigateToMatch: (String) -> Unit,
+    onEditPlan: (String, TrainingPlanLevel, LocalDate) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (home.alerts.isEmpty()) return
     val callUps = home.alerts.filter { it.type == ClubHomeAlertType.CALLUPS_UNSENT }
     val reports = home.alerts.filter { it.type == ClubHomeAlertType.MATCH_REPORT_PENDING }
     val gaps = home.alerts.filter { it.type == ClubHomeAlertType.AGE_GROUP_NEEDS_COACH }
+    val missingPlans = home.alerts.filter { it.type.planLevel() != null }
     val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     var expanded by rememberSaveable { mutableStateOf(false) }
     // Which call-up days (by date) are expanded into their matches.
@@ -221,6 +227,20 @@ private fun NeedsYouSection(
                         Res.drawable.ic_chevron_right, alert.matchId?.let { id -> { onNavigateToMatch(id) } }
                     )
                 }
+            }
+        }
+        // Missing plans open their editor; amber once a week has passed since the period started.
+        missingPlans.forEach { alert ->
+            add {
+                val level = alert.type.planLevel()
+                val start = alert.date
+                AlertRowContent(
+                    alertText(alert, home.seasonName),
+                    start?.let { stringResource(Res.string.home_plan_since, shortDateLabel(it)) },
+                    if (start != null && start.daysUntil(today) >= REPORT_OVERDUE_DAYS) Amber else PitchGreen,
+                    Res.drawable.ic_chevron_right,
+                    if (level != null && start != null && alert.ageGroupId != null) { { onEditPlan(alert.ageGroupId!!, level, start) } } else null
+                )
             }
         }
         gaps.forEach { alert ->
@@ -361,8 +381,16 @@ private fun reportPlayedLine(alert: ClubHomeAlert, today: LocalDate): String? {
     return stringResource(Res.string.home_report_played, shortDateLabel(date), daysAgoLabel(date, today))
 }
 
+/** The plan level a missing-plan alert is about, or null for the other alerts. */
+private fun ClubHomeAlertType.planLevel(): TrainingPlanLevel? = when (this) {
+    ClubHomeAlertType.SEASON_PLAN_MISSING -> TrainingPlanLevel.SEASON
+    ClubHomeAlertType.MONTH_PLAN_MISSING -> TrainingPlanLevel.MONTH
+    ClubHomeAlertType.WEEK_PLAN_MISSING -> TrainingPlanLevel.WEEK
+    else -> null
+}
+
 @Composable
-private fun alertText(alert: ClubHomeAlert): String = when (alert.type) {
+private fun alertText(alert: ClubHomeAlert, seasonName: String? = null): String = when (alert.type) {
     ClubHomeAlertType.AGE_GROUP_NEEDS_COACH ->
         stringResource(Res.string.msg_home_needs_coach, alert.ageGroupName ?: "")
     ClubHomeAlertType.CALLUPS_UNSENT ->
@@ -373,6 +401,12 @@ private fun alertText(alert: ClubHomeAlert): String = when (alert.type) {
         )
     ClubHomeAlertType.MATCH_REPORT_PENDING ->
         stringResource(Res.string.msg_home_match_report_pending, alert.teamName ?: "", alert.opponentName ?: "")
+    ClubHomeAlertType.SEASON_PLAN_MISSING ->
+        stringResource(Res.string.home_season_no_plan, seasonName ?: "", alert.ageGroupName ?: "")
+    ClubHomeAlertType.MONTH_PLAN_MISSING ->
+        stringResource(Res.string.home_month_no_plan, alert.date?.let { monthName(it) } ?: "", alert.ageGroupName ?: "")
+    ClubHomeAlertType.WEEK_PLAN_MISSING ->
+        stringResource(Res.string.home_week_no_plan, alert.date?.let { shortDateLabel(it) } ?: "", alert.ageGroupName ?: "")
 }
 
 @Composable

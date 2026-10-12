@@ -1169,4 +1169,8 @@
     <string name="label_this_month">THIS MONTH · %1$s</string>
     <string name="label_this_week">THIS WEEK · %1$s</string>
     <string name="btn_open">Open</string>
+    <string name="home_season_no_plan">Season %1$s has no plan · %2$s</string>
+    <string name="home_month_no_plan">%1$s has no plan · %2$s</string>
+    <string name="home_week_no_plan">Week of %1$s has no plan · %2$s</string>
+    <string name="home_plan_since">Since %1$s</string>
 </resources>

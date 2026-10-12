@@ -1180,7 +1180,15 @@ enum class ClubHomeAlertType {
     /** Matches within 5 days with no call-ups yet. Admins/coordinators: the whole club; staff: their age groups, per MANAGE_CALL_UPS. */
     CALLUPS_UNSENT,
     /** A finished match whose report isn't completed. Admins/coordinators: the whole club; staff: their age groups, per MANAGE_MATCH. */
-    MATCH_REPORT_PENDING
+    MATCH_REPORT_PENDING,
+    /**
+     * Training plans (design 40g): the season, the current month or the current week of an age group has
+     * started without its plan. Shown to whoever may edit its training (MANAGE_TRAINING). [ClubHomeAlert.date]
+     * is when the period started, so the client turns it amber a week later.
+     */
+    SEASON_PLAN_MISSING,
+    MONTH_PLAN_MISSING,
+    WEEK_PLAN_MISSING
 }
 
 /** One "Needs you" row. The client formats the copy from these parts so it stays localized. */
@@ -1188,10 +1196,11 @@ enum class ClubHomeAlertType {
 data class ClubHomeAlert(
     val type: ClubHomeAlertType,
     val count: Int,
-    // AGE_GROUP_NEEDS_COACH only:
+    // AGE_GROUP_NEEDS_COACH and the *_PLAN_MISSING alerts:
     val ageGroupId: String? = null,
     val ageGroupName: String? = null,
     // CALLUPS_UNSENT: the day those matches fall on. MATCH_REPORT_PENDING: the day the match was played.
+    // *_PLAN_MISSING: the first day of the period (season start, the 1st of the month, the week's Monday).
     val date: LocalDate? = null,
     // MATCH_REPORT_PENDING only -- the match to open, and the names to show:
     val matchId: String? = null,

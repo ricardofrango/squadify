@@ -1167,4 +1167,8 @@
     <string name="label_this_month">ESTE MÊS · %1$s</string>
     <string name="label_this_week">ESTA SEMANA · %1$s</string>
     <string name="btn_open">Abrir</string>
+    <string name="home_season_no_plan">A época %1$s não tem plano · %2$s</string>
+    <string name="home_month_no_plan">%1$s não tem plano · %2$s</string>
+    <string name="home_week_no_plan">A semana de %1$s não tem plano · %2$s</string>
+    <string name="home_plan_since">Desde %1$s</string>
 </resources>

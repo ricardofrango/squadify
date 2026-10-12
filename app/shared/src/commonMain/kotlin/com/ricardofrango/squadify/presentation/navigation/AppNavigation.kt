@@ -328,6 +328,15 @@ fun AppNavigation() {
                 onNavigateToOpponents = {
                     navController.navigate(Screen.Opponents(screen.clubId))
                 },
+                onNavigateToEditPlan = { ageGroupId, level, start ->
+                    navController.navigate(
+                        when (level) {
+                            TrainingPlanLevel.SEASON -> Screen.EditSeasonPlan(ageGroupId)
+                            TrainingPlanLevel.MONTH -> Screen.EditMonthPlan(ageGroupId, start.toString())
+                            TrainingPlanLevel.WEEK -> Screen.EditWeekPlan(ageGroupId, start.toString())
+                        }
+                    )
+                },
                 // Back to the "My clubs" list. Normally it's already underneath (the club was opened
                 // from it), so pop back to it -- pushing a new one left two lists stacked, and back
                 // from the list went to the other list. A user who started straight in their only

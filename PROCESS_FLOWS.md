@@ -1736,6 +1736,10 @@ graph TD
     T --> Z(["Return the saved TrainingPlan"])
 ```
 
+Missing plans also surface on the club Home (`GetClubHomeUseCase`): for each age group of the current season
+the user may plan (`MANAGE_TRAINING`), one alert per missing season / current-month / current-week plan, dated
+from the period's start.
+
 `PUT /age-groups/{ageGroupId}/training-plans`. The period rules live in `common/model/TrainingPlans.kt`
 (`monthStarts`, `weekStarts`, `isPeriodStart`), shared with the app. Weeks run Monday–Sunday, and a week that
 crosses two months belongs to the month of its Monday.

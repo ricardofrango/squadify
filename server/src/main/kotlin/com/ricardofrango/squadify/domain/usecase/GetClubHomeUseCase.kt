@@ -9,6 +9,7 @@ import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
+import com.ricardofrango.squadify.domain.repository.TrainingPlanRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
@@ -21,6 +22,10 @@ import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.TrainingPlanLevel
+import com.ricardofrango.squadify.model.monthStartOf
+import com.ricardofrango.squadify.model.mondayOf
+import com.ricardofrango.squadify.model.planFor
 import com.ricardofrango.squadify.model.defaultMinTeamRole
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
@@ -50,7 +55,8 @@ class GetClubHomeUseCase(
     private val opponentRepository: OpponentRepository,
     private val userRepository: UserRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
-    private val transactionManager: TransactionManager
+    private val transactionManager: TransactionManager,
+    private val trainingPlanRepository: TrainingPlanRepository
 ) {
     private val callUpWindow = 5.days
 
@@ -196,6 +202,30 @@ class GetClubHomeUseCase(
                         opponentName = opponentsById[match.opponentId]?.let { it.shortName ?: it.name }
                     )
                 }
+        }
+
+        // Training plans missing for the period we're in (design 40g): the season from its first day, the
+        // month from the 1st, the week from Monday -- for the age groups whose training this user may edit.
+        if (season != null && today >= season.startDate && today <= season.endDate) {
+            val planAgeGroups = if (seesWholeClub) ageGroups else {
+                val min = minStaffRole(ConfigurablePermission.MANAGE_TRAINING)
+                if (min == null) emptyList() else ageGroups.filter { ag -> staffRoleByAgeGroup[ag.id]?.let { it.level >= min.level } == true }
+            }
+            val plans = trainingPlanRepository.getByAgeGroups(planAgeGroups.map { it.id }).groupBy { it.ageGroupId }
+            val periods = listOf(
+                ClubHomeAlertType.SEASON_PLAN_MISSING to (TrainingPlanLevel.SEASON to season.startDate),
+                ClubHomeAlertType.MONTH_PLAN_MISSING to (TrainingPlanLevel.MONTH to monthStartOf(today)),
+                ClubHomeAlertType.WEEK_PLAN_MISSING to (TrainingPlanLevel.WEEK to mondayOf(today))
+            )
+            planAgeGroups.forEach { ag ->
+                val agPlans = plans[ag.id].orEmpty()
+                periods.forEach { (type, period) ->
+                    val (level, start) = period
+                    if (agPlans.planFor(level, start) == null) {
+                        alerts += ClubHomeAlert(type = type, count = 1, ageGroupId = ag.id, ageGroupName = ag.name, date = start)
+                    }
+                }
+            }
         }
 
         ClubHome(
