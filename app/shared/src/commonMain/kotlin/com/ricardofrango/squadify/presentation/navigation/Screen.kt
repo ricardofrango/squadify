@@ -198,6 +198,15 @@ sealed class Screen {
     @SerialName("edit-season-plan")
     data class EditSeasonPlan(val ageGroupId: String) : Screen()
 
+    // A month plan; [month] is its 1st day, ISO ("2026-10-01").
+    @Serializable
+    @SerialName("month-plan")
+    data class MonthPlan(val ageGroupId: String, val month: String) : Screen()
+
+    @Serializable
+    @SerialName("edit-month-plan")
+    data class EditMonthPlan(val ageGroupId: String, val month: String) : Screen()
+
     @Serializable
     @SerialName("match")
     data class MatchDetails(val matchId: String) : Screen()

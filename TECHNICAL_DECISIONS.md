@@ -2586,3 +2586,15 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
   - **Leaving:** unsaved changes ask before leaving (`PlanEditorFrame`).
   - **Reordering:** objectives and phases reorder with up / down buttons, not dragging as the design shows.
 - **Shared editor:** every level uses `PlanEditViewModel` with a `PlanForm` (`PlanForm.kt`, tested in `PlanFormTest`).
+
+**Month plan** (`MonthPlanScreen`, design 40d):
+- **Context strip:** the phase the month falls in and its focus, with the season objectives collapsed under it.
+- **Body:** the month's focus, objectives and notes. Empty, it says "{month} has no plan", with "Plan {month}" for those who can edit.
+- **Weeks:** "WEEKS · 3 OF 5 PLANNED", each with its range, its focus or "No focus yet", and its status. Tapping one opens the week.
+- **Wide screens:** the plan on the left, the weeks on the right.
+
+**Month and week editor** (`PeriodPlanEditScreen`, one editor for both levels):
+- **Fields:** Focus (required), notes and objectives. The week adds intensity, which is optional: tapping the selected chip clears it.
+- **Prev / Next:** moves to the previous or next period without leaving. Unsaved changes ask first.
+- **Copy from:** copies the previous period's focus, objectives, notes and intensity. If something is already typed, it asks before replacing it (design 40i says "fills empty fields only and asks before overwriting"; this asks, then copies everything).
+- **Context strip:** the phase for a month, and the month and its focus for a week.
