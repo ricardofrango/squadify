@@ -30,6 +30,8 @@ import com.ricardofrango.squadify.presentation.ui.components.DatePickerSheet
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.TimePickerSheet
+import com.ricardofrango.squadify.presentation.ui.opponents.OpponentLogo
+import com.ricardofrango.squadify.presentation.ui.opponents.opponentSubline
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
@@ -64,11 +66,22 @@ fun CreateMatchScreen(
     teamId: String?,
     onNavigateBack: () -> Unit,
     onMatchCreated: () -> Unit,
+    // Opens the Opponents screen to pick one (clubId, ageGroupId, the current pick).
+    onChooseOpponent: (clubId: String, ageGroupId: String, selectedOpponentId: String?) -> Unit,
+    // The opponent just picked there, handed back once; [onPickedOpponentConsumed] clears it.
+    pickedOpponentId: String? = null,
+    onPickedOpponentConsumed: () -> Unit = {},
     viewModel: CreateMatchViewModel = koinViewModel()
 ) {
     val uiState = viewModel.state.collectSettledState()
 
     LaunchedEffect(ageGroupId, teamId) { viewModel.load(ageGroupId, teamId) }
+    LaunchedEffect(pickedOpponentId) {
+        if (pickedOpponentId != null) {
+            viewModel.onOpponentPicked(pickedOpponentId)
+            onPickedOpponentConsumed()
+        }
+    }
     LaunchedEffect(viewModel.navigationEvent) {
         viewModel.navigationEvent.collect { event ->
             when (event) {
@@ -82,10 +95,7 @@ fun CreateMatchScreen(
         onNavigateBack = onNavigateBack,
         onRetry = { viewModel.load(ageGroupId, teamId) },
         onTeamSelected = viewModel::onTeamSelected,
-        onOpponentSelected = viewModel::onOpponentSelected,
-        onStartAddOpponent = viewModel::onStartAddOpponent,
-        onCancelAddOpponent = viewModel::onCancelAddOpponent,
-        onNewOpponentNameChange = viewModel::onNewOpponentNameChange,
+        onChooseOpponent = { state -> onChooseOpponent(state.clubId, state.ageGroupId, state.selectedOpponentId) },
         onDateChange = viewModel::onDateChange,
         onTimeChange = viewModel::onTimeChange,
         onLocationChange = viewModel::onLocationChange,
@@ -103,10 +113,7 @@ private fun CreateMatchContent(
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
     onTeamSelected: (String) -> Unit,
-    onOpponentSelected: (String) -> Unit,
-    onStartAddOpponent: () -> Unit,
-    onCancelAddOpponent: () -> Unit,
-    onNewOpponentNameChange: (String) -> Unit,
+    onChooseOpponent: (CreateMatchUiState.Idle) -> Unit,
     onDateChange: (LocalDate) -> Unit,
     onTimeChange: (LocalTime) -> Unit,
     onLocationChange: (String) -> Unit,
@@ -146,10 +153,7 @@ private fun CreateMatchContent(
                 state = uiState,
                 modifier = Modifier.fillMaxSize().padding(paddingValues),
                 onTeamSelected = onTeamSelected,
-                onOpponentSelected = onOpponentSelected,
-                onStartAddOpponent = onStartAddOpponent,
-                onCancelAddOpponent = onCancelAddOpponent,
-                onNewOpponentNameChange = onNewOpponentNameChange,
+                onChooseOpponent = { onChooseOpponent(uiState) },
                 onDateChange = onDateChange,
                 onTimeChange = onTimeChange,
                 onLocationChange = onLocationChange,
@@ -167,10 +171,7 @@ private fun CreateMatchForm(
     state: CreateMatchUiState.Idle,
     modifier: Modifier,
     onTeamSelected: (String) -> Unit,
-    onOpponentSelected: (String) -> Unit,
-    onStartAddOpponent: () -> Unit,
-    onCancelAddOpponent: () -> Unit,
-    onNewOpponentNameChange: (String) -> Unit,
+    onChooseOpponent: () -> Unit,
     onDateChange: (LocalDate) -> Unit,
     onTimeChange: (LocalTime) -> Unit,
     onLocationChange: (String) -> Unit,
@@ -213,29 +214,9 @@ private fun CreateMatchForm(
             }
 
             // ---- Opponent ----
+            // Opens the searchable Opponents list (design 38h); creating one happens there.
             FieldCard(label = stringResource(Res.string.label_opponent_field), required = true) {
-                if (state.addingOpponent) {
-                    OutlinedTextField(
-                        value = state.newOpponentName,
-                        onValueChange = onNewOpponentNameChange,
-                        label = { Text(stringResource(Res.string.label_new_opponent_name)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = CardShape,
-                        colors = fieldColors()
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    LinkText(stringResource(Res.string.btn_cancel), onClick = onCancelAddOpponent)
-                } else {
-                    Picker(
-                        selectedText = state.opponents.find { it.id == state.selectedOpponentId }?.let { it.shortName ?: it.name },
-                        placeholder = stringResource(Res.string.label_choose_opponent),
-                        options = state.opponents.map { it.id to (it.shortName ?: it.name) },
-                        onOptionSelected = onOpponentSelected
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    LinkText("+ ${stringResource(Res.string.label_new_opponent)}", onClick = onStartAddOpponent)
-                }
+                OpponentField(opponent = state.selectedOpponent, onClick = onChooseOpponent)
             }
 
             // ---- Match type (required, no default) ----
@@ -462,6 +443,49 @@ private fun Picker(
 }
 
 @Composable
+private fun OpponentField(opponent: Opponent?, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+        shape = CardShape,
+        color = Color.White,
+        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.3f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (opponent != null) {
+                OpponentLogo(opponent.name, opponent.shortName, size = 36.dp)
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        opponent.name,
+                        color = DeepCarbon, fontWeight = FontWeight.Bold,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
+                    opponentSubline(opponent)?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.55f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            } else {
+                Text(
+                    stringResource(Res.string.title_choose_opponent),
+                    color = DeepCarbon.copy(alpha = 0.4f),
+                    modifier = Modifier.weight(1f).padding(start = 4.dp)
+                )
+            }
+            Icon(
+                painter = painterResource(Res.drawable.ic_chevron_right),
+                contentDescription = null,
+                tint = DeepCarbon.copy(alpha = 0.35f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
 private fun ValueField(label: String, value: String, onClick: () -> Unit, trailing: @Composable () -> Unit) {
     Surface(
         onClick = onClick,
@@ -482,20 +506,6 @@ private fun ValueField(label: String, value: String, onClick: () -> Unit, traili
             trailing()
         }
     }
-}
-
-@Composable
-private fun LinkText(text: String, onClick: () -> Unit) {
-    Text(
-        text,
-        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-        color = PitchGreen,
-        modifier = Modifier.clickable(
-            interactionSource = remember { MutableInteractionSource() },
-            indication = null,
-            onClick = onClick
-        )
-    )
 }
 
 @Composable
@@ -525,7 +535,7 @@ private fun sampleIdle(teamFixed: Boolean) = CreateMatchUiState.Idle(
         Team("t2", "c1", "ag1", "s1", "Sub-15 B", "B", true)
     ),
     selectedTeamId = if (teamFixed) "t1" else null,
-    opponents = listOf(Opponent("o1", "c1", "AD Fontelas", "AD Fontelas", null)),
+    opponents = listOf(Opponent("o1", "c1", "AD Fontelas", "ADF", null)),
     selectedOpponentId = if (teamFixed) "o1" else null,
     date = LocalDate(2026, 9, 12),
     time = LocalTime(10, 30),
@@ -538,8 +548,7 @@ private fun CreateMatchFromAgeGroupPreview() {
     SquadifyTheme {
         CreateMatchContent(
             uiState = sampleIdle(teamFixed = false),
-            onNavigateBack = {}, onRetry = {}, onTeamSelected = {}, onOpponentSelected = {},
-            onStartAddOpponent = {}, onCancelAddOpponent = {}, onNewOpponentNameChange = {},
+            onNavigateBack = {}, onRetry = {}, onTeamSelected = {}, onChooseOpponent = {},
             onDateChange = {}, onTimeChange = {}, onLocationChange = {}, onNotesChange = {}, onMatchTypeSelected = {}, onSubmit = {}
         )
     }
@@ -551,8 +560,7 @@ private fun CreateMatchFromTeamPreview() {
     SquadifyTheme {
         CreateMatchContent(
             uiState = sampleIdle(teamFixed = true),
-            onNavigateBack = {}, onRetry = {}, onTeamSelected = {}, onOpponentSelected = {},
-            onStartAddOpponent = {}, onCancelAddOpponent = {}, onNewOpponentNameChange = {},
+            onNavigateBack = {}, onRetry = {}, onTeamSelected = {}, onChooseOpponent = {},
             onDateChange = {}, onTimeChange = {}, onLocationChange = {}, onNotesChange = {}, onMatchTypeSelected = {}, onSubmit = {}
         )
     }

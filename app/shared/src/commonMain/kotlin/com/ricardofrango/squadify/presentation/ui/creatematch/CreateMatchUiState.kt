@@ -21,8 +21,8 @@ sealed class CreateMatchUiState {
         val clubName: String,
         // The concrete age group this screen is scoped to -- resolved whether the screen was opened
         // from an age group directly or from one of its teams (see CreateMatchViewModel.load). Passed
-        // to GetOpponentsUseCase/CreateOpponentUseCase so a coach of specifically this age group can
-        // view/add opponents, not just a club admin/coordinator.
+        // to the Opponents screen so a coach of specifically this age group can view/add opponents,
+        // not just a club admin/coordinator.
         val ageGroupId: String,
         val ageGroupName: String,
         val seasonName: String,
@@ -31,8 +31,6 @@ sealed class CreateMatchUiState {
         val selectedTeamId: String? = null,
         val opponents: List<Opponent> = emptyList(),
         val selectedOpponentId: String? = null,
-        val addingOpponent: Boolean = false,
-        val newOpponentName: String = "",
         // No default: every new match has to be typified before it can be scheduled.
         val matchType: MatchType? = null,
         // Set when Schedule is tapped with no type picked -- paints the type rows red until one is.
@@ -50,10 +48,10 @@ sealed class CreateMatchUiState {
 
         val selectedTeam: Team? get() = teams.find { it.id == selectedTeamId }
 
+        val selectedOpponent: Opponent? get() = opponents.find { it.id == selectedOpponentId }
+
         val canSubmit: Boolean
-            get() = selectedTeamId != null &&
-                (selectedOpponentId != null || (addingOpponent && newOpponentName.isNotBlank())) &&
-                matchType != null
+            get() = selectedTeamId != null && selectedOpponentId != null && matchType != null
     }
 }
 

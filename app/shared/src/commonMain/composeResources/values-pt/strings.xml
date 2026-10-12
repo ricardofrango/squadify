@@ -297,9 +297,6 @@
     <string name="label_team_field">Equipa</string>
     <string name="label_choose_team">Escolher uma equipa</string>
     <string name="label_opponent_field">Adversário</string>
-    <string name="label_choose_opponent">Escolher um adversário</string>
-    <string name="label_new_opponent">Novo adversário</string>
-    <string name="label_new_opponent_name">Nome do adversário</string>
     <string name="btn_cancel">Cancelar</string>
     <string name="label_when_field">Quando</string>
     <string name="label_match_date">Data</string>
@@ -1019,4 +1016,20 @@
     <string name="title_signed_out">Sessão terminada</string>
     <string name="msg_signed_out_wrong_passwords">Introduziu uma senha errada 3 vezes, por isso terminámos a sua sessão por segurança. Entre novamente para continuar.</string>
     <string name="btn_ok">OK</string>
+    <!-- Opponents list (design 38) -->
+    <string name="title_opponents">Adversários</string>
+    <string name="title_choose_opponent">Escolher adversário</string>
+    <string name="label_search_opponents">Procurar adversários</string>
+    <string name="cd_clear_search">Limpar pesquisa</string>
+    <string name="label_recent_opponents">Recentes</string>
+    <string name="btn_create_opponent">Criar adversário</string>
+    <string name="btn_create_typed_opponent">Criar “%1$s”</string>
+    <string name="msg_no_opponents_title">Ainda sem adversários</string>
+    <string name="msg_no_opponents_body">Adicione os clubes contra quem joga, com estádio e contacto, para agendar um jogo num toque.</string>
+    <string name="msg_no_opponents_match">Nenhum adversário corresponde a “%1$s”</string>
+    <string name="msg_no_opponents_match_hint">Verifique a ortografia ou procure pela sigla.</string>
+    <string name="msg_ask_coordinator_opponent">Peça a um coordenador para o adicionar.</string>
+    <string name="msg_opponents_load_failed">Não foi possível carregar os adversários</string>
+    <string name="msg_check_connection">Verifique a sua ligação e tente novamente.</string>
+    <string name="more_opponents">Adversários</string>
 </resources>

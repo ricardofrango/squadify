@@ -44,4 +44,6 @@ interface MatchRepository {
     suspend fun getCallUpByMatchAndPlayer(matchId: String, playerId: String): MatchCallUp?
     suspend fun getUpcomingMatchesByClub(clubId: String, limit: Int): List<Match>
     suspend fun getUpcomingMatchesByPlayer(playerId: String, limit: Int): List<Match>
+    // The opponents of the club's matches, by each one's latest match, newest first -- at most [limit].
+    suspend fun getRecentOpponentIds(clubId: String, limit: Int): List<String>
 }

@@ -140,6 +140,11 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [/] Role-specific Dashboards:
       - **Done:** "My clubs" lists the user's clubs (opening straight into the only one when there's just one). Each club opens on a Home tab with the season's headline numbers (teams, players, coaches, matches this week), what's next up, and alerts for the people who manage it (e.g. a match missing call-ups or a report).
       - **Still pending:** the server's super-admin, club-admin and parent dashboard endpoints (Phase 6) have no client screens yet.
+    - [/] **Opponents** (design 38):
+      - [x] **List:** a searchable list (name or short name, ignoring accents) used to pick an opponent on Schedule match, with Recent on top, and to browse them from More → Opponents. See `TECHNICAL_DECISIONS.md` §51.
+      - [ ] **Create opponent:** from the list, with stadium, contact and notes.
+      - [ ] **Opponent details:** stadium with directions, head-to-head by season and every match against them.
+      - [ ] **Edit opponent:** from the details.
     - [x] Club "More" panel (design 37): a full-screen panel that slides in from the right, replacing the old "More" dropdown and the header's account icon.
       - **Account header:** avatar, name, email, role chip and club name; tapping it opens Account.
       - **Grouped rows by permission:** coordinators see every create action. A coach sees Create team and Create players for their own age groups, as far as the club's Permissions allow.

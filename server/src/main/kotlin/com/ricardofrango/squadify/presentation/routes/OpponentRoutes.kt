@@ -14,6 +14,7 @@ fun Route.opponentRoutes() {
     val createOpponentUseCase by inject<CreateOpponentUseCase>()
     val getOpponentsUseCase by inject<GetOpponentsUseCase>()
     val updateOpponentUseCase by inject<UpdateOpponentUseCase>()
+    val getOpponentListUseCase by inject<GetOpponentListUseCase>()
 
     authenticate("auth-jwt") {
         route("/opponents") {
@@ -26,6 +27,17 @@ fun Route.opponentRoutes() {
                 val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
                 val opponents = getOpponentsUseCase(currentUserId, clubId, ageGroupId)
                 call.respond(opponents)
+            }
+
+            // The Opponents screen: the list plus its Recent section and whether the caller can create.
+            get("/list") {
+                val clubId = call.request.queryParameters["clubId"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    ErrorResponse("clubId is required", "VAL_001")
+                )
+                val ageGroupId = call.request.queryParameters["ageGroupId"]
+                val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                call.respond(getOpponentListUseCase(currentUserId, clubId, ageGroupId))
             }
 
             post {

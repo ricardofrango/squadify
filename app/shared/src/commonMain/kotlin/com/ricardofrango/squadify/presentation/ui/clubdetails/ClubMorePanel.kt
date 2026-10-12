@@ -439,7 +439,7 @@ internal fun AgeGroupPickerDialog(
 
 /**
  * The panel's rows for this viewer (37a/c/d):
- * - CLUB: Players for everyone; Club settings for admins/coordinators.
+ * - CLUB: Players and Opponents for everyone; Club settings for admins/coordinators.
  * - ADD / CREATE: everything for admins/coordinators. For anyone else, only the actions the club's
  *   Permissions allow them in their own age groups (Create team / Add players, Coach level by
  *   default), each with its scope as a second line. Absent rows simply don't show.
@@ -450,6 +450,7 @@ internal fun AgeGroupPickerDialog(
 internal fun moreGroups(
     details: com.ricardofrango.squadify.domain.usecase.ClubDetails,
     onPlayers: () -> Unit,
+    onOpponents: () -> Unit,
     onClubSettings: () -> Unit,
     onAddSeason: () -> Unit,
     onCreateAgeGroup: () -> Unit,
@@ -464,6 +465,7 @@ internal fun moreGroups(
     fun scope(ids: List<String>) = details.ageGroups.filter { it.id in ids }.sortedByDescending { it.endYear }.joinToString(", ") { it.name }.ifEmpty { null }
     val club = buildList {
         add(MoreRow("players", Res.drawable.ic_player, Res.string.more_players, onClick = onPlayers))
+        add(MoreRow("opponents", Res.drawable.ic_teams, Res.string.more_opponents, onClick = onOpponents))
         if (details.canEditClub) add(MoreRow("settings", Res.drawable.ic_edit, Res.string.more_club_settings, stringResource(Res.string.more_club_settings_sub), onClick = onClubSettings))
     }
     val create = buildList {

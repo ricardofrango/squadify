@@ -1112,6 +1112,28 @@ this the same age-group-coach path its sibling `CreateOpponentUseCase` already h
 coordinator-only, no staff path at all. Not yet reachable from the client — no screen calls
 `UpdateOpponentUseCase` today.
 
+### 6.3 Get Opponent List (`GetOpponentListUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, clubId, ageGroupId?] --> AG{ageGroupId supplied?}
+    AG -- Yes --> AGF[Fetch AgeGroup by id]
+    AGF -- not found --> N(["Throw NotFoundException"])
+    AGF -- found, wrong club --> FB(["Throw ForbiddenException"])
+    AGF -- found, right club --> B
+    AG -- No --> B[CheckUserPermissionUseCase — minClubRole=MEMBER, minTeamRole=COACH, ageGroupId]
+    B -- denied --> F(["Throw ForbiddenException"])
+    B -- allowed --> C["Club name; the club's opponents sorted by name"]
+    C --> D["canCreate: non-throwing probe — minClubRole=COORDINATOR, configurablePermission=CREATE_OPPONENT, ageGroupId"]
+    D --> E["recentOpponentIds: the opponents of the club's matches by each one's latest match, newest first, at most 5 (one grouped query)"]
+    E --> Z(["Return OpponentList: clubName, opponents, recentOpponentIds, canCreate"])
+```
+
+`GET /opponents/list` feeds the Opponents screen (design 38) in both its modes: picking an opponent for a
+match, and browsing them from the More panel. Who may read it is the same as `GetOpponentsUseCase`, including
+the age-group coach path. The client searches and groups the list itself, so there's no paging: a club has
+dozens of opponents, not thousands.
+
 ---
 
 ## 7. Match Management & Call-ups

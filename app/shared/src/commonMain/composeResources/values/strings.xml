@@ -299,9 +299,6 @@
     <string name="label_team_field">Team</string>
     <string name="label_choose_team">Choose a team</string>
     <string name="label_opponent_field">Opponent</string>
-    <string name="label_choose_opponent">Choose an opponent</string>
-    <string name="label_new_opponent">New opponent</string>
-    <string name="label_new_opponent_name">Opponent name</string>
     <string name="btn_cancel">Cancel</string>
     <string name="label_when_field">When</string>
     <string name="label_match_date">Date</string>
@@ -1021,4 +1018,20 @@
     <string name="title_signed_out">Signed out</string>
     <string name="msg_signed_out_wrong_passwords">You entered a wrong password 3 times, so you\'ve been signed out for your security. Sign in again to continue.</string>
     <string name="btn_ok">OK</string>
+    <!-- Opponents list (design 38) -->
+    <string name="title_opponents">Opponents</string>
+    <string name="title_choose_opponent">Choose opponent</string>
+    <string name="label_search_opponents">Search opponents</string>
+    <string name="cd_clear_search">Clear search</string>
+    <string name="label_recent_opponents">Recent</string>
+    <string name="btn_create_opponent">Create opponent</string>
+    <string name="btn_create_typed_opponent">Create “%1$s”</string>
+    <string name="msg_no_opponents_title">No opponents yet</string>
+    <string name="msg_no_opponents_body">Add the clubs you play against, with their stadium and contact, so scheduling a match takes one tap.</string>
+    <string name="msg_no_opponents_match">No opponents match “%1$s”</string>
+    <string name="msg_no_opponents_match_hint">Check the spelling or search the short name.</string>
+    <string name="msg_ask_coordinator_opponent">Ask a coordinator to add it.</string>
+    <string name="msg_opponents_load_failed">Couldn\'t load opponents</string>
+    <string name="msg_check_connection">Check your connection and try again.</string>
+    <string name="more_opponents">Opponents</string>
 </resources>

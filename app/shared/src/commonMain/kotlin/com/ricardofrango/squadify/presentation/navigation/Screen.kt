@@ -158,6 +158,18 @@ sealed class Screen {
         val teamId: String? = null
     ) : Screen()
 
+    // The club's opponents (design 38). [select]: picked from Schedule match, which gets the choice back
+    // (with [ageGroupId] for a coach of that age group, and the current pick checked); otherwise browsed
+    // from the More panel.
+    @Serializable
+    @SerialName("opponents")
+    data class Opponents(
+        val clubId: String,
+        val select: Boolean = false,
+        val ageGroupId: String? = null,
+        val selectedOpponentId: String? = null
+    ) : Screen()
+
     @Serializable
     @SerialName("match")
     data class MatchDetails(val matchId: String) : Screen()

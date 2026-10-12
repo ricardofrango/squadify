@@ -148,6 +148,7 @@ fun ClubDetailsScreen(
     onNavigateToEditClub: () -> Unit,
     // The club's player list -- its own screen, not a tab under this bottom bar.
     onNavigateToPlayers: () -> Unit = {},
+    onNavigateToOpponents: () -> Unit = {},
     // The More panel's "Switch club" (2+ clubs) and Log out.
     onSwitchClub: () -> Unit = {},
     onLoggedOut: () -> Unit = {},
@@ -309,6 +310,7 @@ fun ClubDetailsScreen(
             details = details,
             // Players is its own screen now; it slides in over the open panel like the other rows.
             onPlayers = onNavigateToPlayers,
+            onOpponents = onNavigateToOpponents,
             onClubSettings = onNavigateToEditClub,
             onAddSeason = { onNavigateToCreateSeason(clubName) },
             onCreateAgeGroup = { if (details.seasons.isNotEmpty()) onNavigateToCreateAgeGroups(clubName, sport, null) },

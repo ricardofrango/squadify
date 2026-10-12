@@ -2510,3 +2510,18 @@ Change password and Change email ask for the current password. A wrong one used 
 - **Shared count:** one counter covers Change password and Change email together.
 - **Tests:** `CurrentPasswordGuardTest`; `ChangePasswordUseCaseTest` and `EmailChangeUseCasesTest` now expect `WrongPasswordException`.
 
+## 51. Opponents Screens
+
+Picking an opponent on Schedule match was a dropdown of every opponent plus an inline "+ New opponent" name field. With dozens of opponents that list has no search. Design 38 replaces it with an Opponents screen, a Create/Edit opponent form and Opponent details.
+
+**List** (`OpponentsScreen` / `OpponentsViewModel`, route `Screen.Opponents(clubId, select, ageGroupId, selectedOpponentId)`):
+- **Two modes, one screen:**
+  - **SELECT:** from the Opponent field on Schedule match. Title "Choose opponent", a Recent section on top and a check on the current pick. Tapping a row hands its id back through the `opponentPicked` saved-state key and closes the list.
+  - **BROWSE:** from More → Opponents (shown to everyone in the club).
+- **Search:** pinned under the bar. It filters as you type on name and short name, ignoring case and accents (`OpponentSearch.kt`, tested in `OpponentSearchTest`). Recent hides while searching.
+- **Sections:** sticky letter headers, accents folded, with anything that doesn't start with a letter under "#".
+- **Logo:** initials in a neutral grey circle (`OpponentLogo`), never green, which is kept for our own club. Logos can't be uploaded yet.
+- **No match counts on rows:** the design has "6 matches" on each row. It's left out because it would mean counting matches for every opponent just to draw the list.
+- **Data:** one call, `GET /opponents/list` (`GetOpponentListUseCase`, `PROCESS_FLOWS.md` §6.3), returns the club name, the opponents, the recent ids and `canCreate`. Recent is the opponents of the club's 5 latest matches, from one grouped query on `matches`.
+- **States:** skeleton rows while loading, "No opponents yet", "No opponents match …", and an error with Retry.
+- **Schedule match:** the Opponent field shows the pick with its logo, or "Choose opponent". The inline name field is gone; creating an opponent happens from the list. An opponent picked there that the form doesn't know yet (just created) makes it fetch the opponents again.
