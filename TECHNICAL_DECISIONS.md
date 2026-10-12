@@ -2537,7 +2537,7 @@ Picking an opponent on Schedule match was a dropdown of every opponent plus an i
 - **Duplicate names:** a name the club already has, ignoring case, is refused. The form checks it when Name loses focus, against the list it loads for the subtitle. The server checks it again (`ConflictException`, 409), and the form shows the same inline error under Name.
 - **Server rules:** `OpponentRules.kt`: a blank name, or a short name over 5 characters, is a 400. Optional fields are trimmed, and blank ones are stored as null. Tested in `CreateOpponentUseCaseTest` and, on the client, `OpponentFormTest`.
 - **Where it's opened:**
-  - **From picking:** the + in the bar, the "+ Create opponent" row, or "Create “typed text”" when a search finds nothing (the text prefills Name).
+  - **From picking:** the + in the bar, or "Create “typed text”" when a search finds nothing (the text prefills Name). There's no "+ Create opponent" row in the list, since it would only repeat the +.
   - **After creating while picking:** the app goes straight back to Schedule match, skipping the list, with the new opponent selected and "… created and selected" shown.
   - **From browsing:** it goes back to the list, which reloads.
 - **Row line:** list rows and the Schedule match field show the short name and the stadium under the name.

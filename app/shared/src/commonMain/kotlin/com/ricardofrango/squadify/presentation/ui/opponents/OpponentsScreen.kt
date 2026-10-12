@@ -86,7 +86,7 @@ import squadify.app.shared.generated.resources.title_opponents
  *   [selectedOpponentId]; tapping a row picks it.
  * - BROWSE, from More → Opponents: tapping a row opens it.
  * Search filters as you type, on name and short name, ignoring case and accents. The create actions
- * (the + in the bar, the top row in SELECT, the empty states' buttons) show only when the server says
+ * (the + in the bar, the empty states' buttons) show only when the server says
  * the user may create, and when [onCreateOpponent] is given; it gets the search text to prefill Name.
  */
 @Composable
@@ -220,7 +220,6 @@ private fun OpponentList(
     onOpponentClick: (Opponent) -> Unit,
     onCreateOpponent: ((name: String) -> Unit)?
 ) {
-    val searching = query.isNotBlank()
     val matches = filterOpponents(list.opponents, query)
     when {
         list.opponents.isEmpty() -> CenteredMessage(
@@ -242,9 +241,6 @@ private fun OpponentList(
         else -> {
             val groups = groupByLetter(matches)
             LazyColumn(Modifier.fillMaxSize()) {
-                if (selectMode && !searching && onCreateOpponent != null) {
-                    item(key = "create") { CreateRow { onCreateOpponent("") } }
-                }
                 letterGroups(groups, selectMode, selectedOpponentId, onOpponentClick)
             }
         }
@@ -313,20 +309,6 @@ private fun OpponentRow(opponent: Opponent, selectMode: Boolean, selected: Boole
             }
         }
         HorizontalDivider(color = CarbonGray.copy(alpha = 0.08f))
-    }
-}
-
-@Composable
-private fun CreateRow(onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(onClick = onClick).padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(Modifier.size(40.dp).background(PitchGreen.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-            Icon(painterResource(Res.drawable.ic_add), null, tint = PitchGreen, modifier = Modifier.size(20.dp))
-        }
-        Spacer(Modifier.width(12.dp))
-        Text(stringResource(Res.string.btn_create_opponent), color = PitchGreen, fontWeight = FontWeight.Bold)
     }
 }
 
