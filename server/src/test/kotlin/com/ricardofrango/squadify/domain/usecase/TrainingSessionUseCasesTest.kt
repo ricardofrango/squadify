@@ -73,8 +73,8 @@ class TrainingSessionUseCasesTest {
     private val clubPermissionRepository = mockk<ClubPermissionRepository>(relaxed = true)
     private val check = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository)
     private val repo = FakeSessions()
-    private val create = CreateTrainingSessionsUseCase(ageGroupRepository, seasonRepository, clubRepository, repo, check, transactionManager)
-    private val save = SaveTrainingSessionUseCase(ageGroupRepository, seasonRepository, repo, check, transactionManager)
+    private val create = CreateTrainingSessionsUseCase(ageGroupRepository, clubRepository, repo, check, transactionManager)
+    private val save = SaveTrainingSessionUseCase(ageGroupRepository, repo, check, transactionManager)
     private val change = ChangeTrainingSessionUseCase(ageGroupRepository, repo, check, transactionManager)
     private val planRepository = mockk<com.ricardofrango.squadify.domain.repository.TrainingPlanRepository>()
     private val exerciseRepository = mockk<com.ricardofrango.squadify.domain.repository.TrainingExerciseRepository>(relaxed = true)
@@ -161,12 +161,23 @@ class TrainingSessionUseCasesTest {
     }
 
     @Test
-    fun thePeriodMustFallInsideTheSeasonAndSlotsMustMakeSense() = runBlocking<Unit> {
+    fun thePeriodAndSlotsMustMakeSense() = runBlocking<Unit> {
         val coordinator = user(ClubRole.COORDINATOR)
-        assertFailsWith<ValidationException> { create.preview(coordinator, ag.id, design.copy(endDate = LocalDate(2027, 7, 31))) }
+        assertFailsWith<ValidationException> { create.preview(coordinator, ag.id, design.copy(startDate = LocalDate(2027, 1, 9))) }
         assertFailsWith<ValidationException> { create.preview(coordinator, ag.id, design.copy(slots = emptyList())) }
         assertFailsWith<ValidationException> { create.preview(coordinator, ag.id, design.copy(slots = listOf(tue.copy(weekdays = emptyList())))) }
         assertFailsWith<ValidationException> { create.preview(coordinator, ag.id, design.copy(slots = listOf(tue.copy(endTime = LocalTime(17, 0))))) }
+    }
+
+    @Test
+    fun sessionsCanRunPastTheSeasonsOfficialDates() = runBlocking<Unit> {
+        // The season (Sep 1 – Jun 30) is the association's calendar; the club still trains in July.
+        val coordinator = user(ClubRole.COORDINATOR)
+        val july = create.preview(coordinator, ag.id, design.copy(startDate = LocalDate(2027, 6, 28), endDate = LocalDate(2027, 7, 16)))
+        assertEquals(6, july.toCreate.size)
+        assertTrue(july.toCreate.any { it.date == LocalDate(2027, 7, 16) })
+        val added = save.add(coordinator, ag.id, SaveTrainingSessionRequest(LocalDate(2027, 7, 20), LocalTime(18, 0), LocalTime(19, 0)))
+        assertEquals(LocalDate(2027, 7, 20), added.date)
     }
 
     @Test

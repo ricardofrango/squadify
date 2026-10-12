@@ -2629,7 +2629,7 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
 **Training sessions** (`common/model/TrainingSessions.kt`, `PROCESS_FLOWS.md` §9b.3–9b.5):
 - **Storage:** one `training_sessions` row per session (`V17`), unique per age group, date and start time. A cancelled session keeps its row (`cancelled_at`, `cancelled_by`) and its content.
 - **Creating in bulk** (`CreateSessionsScreen`, design 39c/d):
-  - **Form:** weekly slots (weekdays sharing a start and an end), a period inside the season, the location (the club's stadium by default) and "Also on public holidays". Nothing is saved for next time.
+  - **Form:** weekly slots (weekdays sharing a start and an end), a period (not bound by the season's dates, which are the association's calendar, since clubs often train into July; the calendar's ‹ › widen to reach any session outside the season), the location (the club's stadium by default) and "Also on public holidays". Nothing is saved for next time.
   - **Preview count:** the button's "Preview N sessions" is worked out on the device with the same `plannedSessions` and holidays the server uses.
   - **Preview step:** the server lists every date by month. It names skipped holidays and flags each existing session at the same date and start time, in red when its exercises or ratings would be deleted.
   - **Creating:** if any replaced session has content, a dialog counts them before anything is created, and the server refuses (409) without that confirmation.

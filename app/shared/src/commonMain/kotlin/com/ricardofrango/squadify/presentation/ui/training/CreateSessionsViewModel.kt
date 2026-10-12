@@ -65,7 +65,6 @@ internal fun CreateSessionsForm.sessionCount(sessions: TrainingSessions): Int {
     val start = startDate ?: return 0
     val end = endDate ?: return 0
     if (slots.isEmpty() || !slots.all { it.valid } || end < start) return 0
-    if (start < sessions.season.startDate || end > sessions.season.endDate) return 0
     val holidays = publicHolidaysBetween(sessions.country, start, end)
     return plannedSessions(slots.map { TrainingSlot(it.weekdays.toList(), it.start, it.end) }, start, end, holidays, includeHolidays)
         .count { it.skippedHoliday == null }
@@ -100,7 +99,10 @@ class CreateSessionsViewModel(
 
     private var ageGroupId: String? = null
 
-    /** Loads the season and the stadium: the period opens on today (inside the season) to its end. */
+    /**
+     * Loads the season and the stadium: the period opens on today to the season's end. That end is only a
+     * starting point; the period can go past it (clubs often train into July), or before the season starts.
+     */
     fun start(ageGroupId: String, force: Boolean = false) {
         if (!force && this.ageGroupId != null) return
         this.ageGroupId = ageGroupId
@@ -109,12 +111,11 @@ class CreateSessionsViewModel(
             try {
                 val sessions = getTrainingSessionsUseCase(ageGroupId)
                 val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-                val start = today.coerceIn(sessions.season.startDate, sessions.season.endDate)
                 _state.update {
                     it.copy(
                         loading = false,
                         sessions = sessions,
-                        form = CreateSessionsForm(startDate = start, endDate = sessions.season.endDate, location = sessions.stadiumLocation.orEmpty())
+                        form = CreateSessionsForm(startDate = today, endDate = maxOf(today, sessions.season.endDate), location = sessions.stadiumLocation.orEmpty())
                     )
                 }
             } catch (e: Exception) {

@@ -2,7 +2,6 @@ package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
-import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ConflictException
@@ -19,7 +18,8 @@ import kotlin.uuid.Uuid
 
 /**
  * Creating an age group's sessions in bulk (design 39c/d), behind `MANAGE_TRAINING`:
- * - Every date in the period on a slot's weekdays, inside the age group's season, gets a session.
+ * - Every date in the period on a slot's weekdays gets a session. The period isn't bound by the season's
+ *   dates: those are the football association's calendar, and clubs often train past its end (or before it).
  * - The club country's national holidays are skipped unless [CreateTrainingSessionsRequest.includeHolidays].
  * - A session already at the same date and start time is replaced (deleted with its exercises and ratings).
  * [preview] shows all that without changing anything; [create] does it, and refuses (409) to replace a
@@ -27,7 +27,6 @@ import kotlin.uuid.Uuid
  */
 class CreateTrainingSessionsUseCase(
     private val ageGroupRepository: AgeGroupRepository,
-    private val seasonRepository: SeasonRepository,
     private val clubRepository: ClubRepository,
     private val trainingSessionRepository: TrainingSessionRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
@@ -54,7 +53,6 @@ class CreateTrainingSessionsUseCase(
     private suspend fun buildPreview(userId: String, ageGroupId: String, request: CreateTrainingSessionsRequest): TrainingSessionsPreview {
         val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId) ?: throw NotFoundException("Age group not found")
         checkUserPermissionUseCase.requireManageTraining(userId, ageGroup)
-        val season = seasonRepository.getSeasonById(ageGroup.seasonId) ?: throw NotFoundException("Season not found")
         val club = clubRepository.getClubById(ageGroup.clubId) ?: throw NotFoundException("Club not found")
 
         if (request.slots.isEmpty()) throw ValidationException("Add at least one training day")
@@ -63,9 +61,6 @@ class CreateTrainingSessionsUseCase(
             if (slot.endTime <= slot.startTime) throw ValidationException("A slot must end after it starts")
         }
         if (request.endDate < request.startDate) throw ValidationException("The period can't end before it starts")
-        if (request.startDate < season.startDate || request.endDate > season.endDate) {
-            throw ValidationException("The period must fall inside the season (${season.startDate} – ${season.endDate})")
-        }
 
         val holidays = publicHolidaysBetween(club.country, request.startDate, request.endDate)
         val planned = plannedSessions(request.slots, request.startDate, request.endDate, holidays, request.includeHolidays)

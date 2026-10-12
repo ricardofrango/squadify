@@ -60,6 +60,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 - **Creating sessions** (a generator, nothing about it is saved):
   - **Days and times:** the training days and hours, e.g. Monday 18:00–19:00 and Thursday 18:30–20:00. They aren't remembered, so the form starts empty each time.
   - **Period:** a start and an end date. Not saved either; it only says which dates to create sessions on.
+    - **Not bound by the season:** the season's dates are the football association's official calendar, but clubs set their own; training often runs into June or July past the season's end. So the period (and a one-off session's date) can fall outside the season. The form opens on today to the season's end, as a starting point.
   - **Location:** defaults to the club's stadium location.
   - **Holidays:** an option "Also on public holidays", off by default.
     - **Which holidays:** the national ones of the club's country (a new country field on the club, Portugal by default), worked out on the server, including the moving ones (Good Friday, Corpus Christi).

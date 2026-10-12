@@ -41,8 +41,14 @@ class TrainingSessionsTest {
     @Test
     fun anIncompleteFormCountsNothing() {
         assertEquals(0, form.copy(slots = listOf(SlotForm())).sessionCount(sessions))
-        assertEquals(0, form.copy(endDate = LocalDate(2027, 7, 31)).sessionCount(sessions))
+        assertEquals(0, form.copy(endDate = LocalDate(2026, 10, 5)).sessionCount(sessions))
         assertEquals(0, form.copy(slots = listOf(SlotForm(setOf(2), LocalTime(19, 0), LocalTime(18, 0)))).sessionCount(sessions))
+    }
+
+    @Test
+    fun thePeriodCanGoPastTheSeasonsEnd() {
+        // The season ends Jun 30 (the association's calendar); Tue/Fri from Jun 28 to Jul 16 2027 is 6 sessions.
+        assertEquals(6, form.copy(startDate = LocalDate(2027, 6, 28), endDate = LocalDate(2027, 7, 16)).sessionCount(sessions))
     }
 
     @Test

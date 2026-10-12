@@ -103,8 +103,8 @@ val appModule = module {
     factory { GetTrainingPlansUseCase(get(), get(), get(), get(), get(), get()) }
     factory { SaveTrainingPlanUseCase(get(), get(), get(), get(), get()) }
     factory { GetTrainingSessionsUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
-    factory { CreateTrainingSessionsUseCase(get(), get(), get(), get(), get(), get()) }
-    factory { SaveTrainingSessionUseCase(get(), get(), get(), get(), get()) }
+    factory { CreateTrainingSessionsUseCase(get(), get(), get(), get(), get()) }
+    factory { SaveTrainingSessionUseCase(get(), get(), get(), get()) }
     factory { ChangeTrainingSessionUseCase(get(), get(), get(), get()) }
     factory { GetTrainingSessionUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { TrainingRatingsUseCase(get(), get(), get(), get(), get(), get(), get()) }

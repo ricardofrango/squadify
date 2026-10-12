@@ -1765,7 +1765,7 @@ Players and parents of the age group see sessions; the rating fields are staff-o
 graph TD
     A[Start: userId, ageGroupId, slots, startDate, endDate, location, includeHolidays, confirmReplacingContent] --> B[Fetch AgeGroup, check MANAGE_TRAINING]
     B -- denied --> F(["Throw ForbiddenException"])
-    B -- allowed --> V{"no slot, a slot without weekdays or ending before it starts, the period backwards or outside the season?"}
+    B -- allowed --> V{"no slot, a slot without weekdays or ending before it starts, or the period backwards?"}
     V -- Yes --> VE(["Throw ValidationException"])
     V -- No --> G["Every date in the period on a slot's weekday (plannedSessions); the club country's national holidays kept as skipped unless includeHolidays"]
     G --> M{"more than 400 sessions?"}
@@ -1824,7 +1824,8 @@ the session, its age group, season, pool size, and the week and month plans it f
 rate, since plans are staff-only).
 
 Adding or editing one session (`POST /age-groups/{id}/training-sessions`, `PATCH /training-sessions/{id}`)
-checks `MANAGE_TRAINING`, that the date falls inside the season and that it ends after it starts. A session at
+checks `MANAGE_TRAINING` and that it ends after it starts. The date isn't bound by the season (its dates are
+the association's calendar; clubs often train past its end), nor is a bulk period. A session at
 the same date and start time is replaced, as in bulk creation. Cancelling (`POST .../cancel`) keeps the session
 and its content and records who and when; restoring clears that; deleting removes it with its content. All
 behind `MANAGE_TRAINING`.

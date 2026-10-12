@@ -120,8 +120,7 @@ private fun SessionEditContent(
                         wide = wide,
                         left = {
                             StatsHeading(stringResource(Res.string.label_when))
-                            val dateError = form.date?.let { rangeError(it, it, sessions.season) }
-                            PlanDateField(stringResource(Res.string.label_date_required), form.date, sessions.season, enabled, dateError) { onFormChange(form.copy(date = it)) }
+                            PlanDateField(stringResource(Res.string.label_date_required), form.date, sessions.season, enabled, error = null) { onFormChange(form.copy(date = it)) }
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 TimeField(stringResource(Res.string.label_start_required), form.start, enabled, Modifier.weight(1f)) { onFormChange(form.copy(start = it)) }
                                 TimeField(stringResource(Res.string.label_end_required), form.end, enabled, Modifier.weight(1f)) { onFormChange(form.copy(end = it)) }

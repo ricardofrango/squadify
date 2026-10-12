@@ -891,13 +891,16 @@ private fun LazyListScope.sessionItems(
                 return
             }
             if (view.calendar) {
+                // The season's months, widened to any sessions outside them (clubs train past the season's end).
                 val season = data.season
+                val firstMonth = minOf(season.startDate, data.sessions.minOfOrNull { it.date } ?: season.startDate).let { LocalDate(it.year, it.month, 1) }
+                val lastMonth = maxOf(season.endDate, data.sessions.maxOfOrNull { it.date } ?: season.endDate).let { LocalDate(it.year, it.month, 1) }
                 item(key = "calendar") {
                     SessionsCalendar(
                         month = view.month, sessions = data.sessions, country = data.country, selected = view.selectedDay, now = now,
                         poolSize = poolSize, canRate = data.canRate,
-                        canGoBack = view.month > LocalDate(season.startDate.year, season.startDate.month, 1),
-                        canGoForward = view.month < LocalDate(season.endDate.year, season.endDate.month, 1),
+                        canGoBack = view.month > firstMonth,
+                        canGoForward = view.month < lastMonth,
                         onMonthChange = view.onMonth, onSelect = view.onSelectDay
                     )
                 }

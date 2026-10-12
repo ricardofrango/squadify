@@ -52,8 +52,8 @@ data class SessionEditUiState(
     val valid: Boolean
         get() {
             val date = form.date ?: return false
-            val season = sessions?.season ?: return false
-            return form.end > form.start && date >= season.startDate && date <= season.endDate
+            if (sessions == null) return false
+            return form.end > form.start
         }
     // Edit: Save waits for a change.
     val canSave: Boolean get() = valid && !saving && form != original
@@ -72,7 +72,7 @@ class SessionEditViewModel(
 
     private var ageGroupId: String? = null
 
-    /** [sessionId] null adds one, on [date] (or today inside the season), at the club's stadium. */
+    /** [sessionId] null adds one, on [date] (or today; any day, not bound by the season), at the club's stadium. */
     fun start(ageGroupId: String, sessionId: String?, date: LocalDate?, force: Boolean = false) {
         if (!force && this.ageGroupId != null) return
         this.ageGroupId = ageGroupId
@@ -83,7 +83,7 @@ class SessionEditViewModel(
                 val editing = sessionId?.let { id -> sessions.sessions.firstOrNull { it.id == id } }
                 val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
                 val form = editing?.toForm() ?: SessionForm(
-                    date = (date ?: today).coerceIn(sessions.season.startDate, sessions.season.endDate),
+                    date = date ?: today,
                     location = sessions.stadiumLocation.orEmpty()
                 )
                 _state.update { SessionEditUiState(loading = false, sessions = sessions, editingId = editing?.id, form = form, original = if (editing != null) form else null) }

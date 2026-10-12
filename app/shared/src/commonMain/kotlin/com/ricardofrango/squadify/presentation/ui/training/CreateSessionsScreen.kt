@@ -315,16 +315,17 @@ fun TimeField(label: String, time: LocalTime, enabled: Boolean, modifier: Modifi
 
 @Composable
 private fun PeriodAndPlace(form: CreateSessionsForm, sessions: TrainingSessions, enabled: Boolean, onFormChange: (CreateSessionsForm) -> Unit) {
+    // Not bound by the season's dates: those are the association's calendar, and clubs often train past them.
     val season = sessions.season
     StatsHeading(stringResource(Res.string.label_period))
     val start = form.startDate
     val end = form.endDate
-    val error = if (start != null && end != null) rangeError(start, end, season) else null
+    val error = PlanDateError.END_BEFORE_START.takeIf { start != null && end != null && end < start }
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         PlanDateField(stringResource(Res.string.label_start_date_required), start, season, enabled,
-            error = error.takeIf { it == PlanDateError.BEFORE_SEASON }, modifier = Modifier.weight(1f)) { onFormChange(form.copy(startDate = it)) }
+            error = null, modifier = Modifier.weight(1f)) { onFormChange(form.copy(startDate = it)) }
         PlanDateField(stringResource(Res.string.label_end_date_required), end, season, enabled,
-            error = error.takeIf { it != PlanDateError.BEFORE_SEASON }, modifier = Modifier.weight(1f)) { onFormChange(form.copy(endDate = it)) }
+            error = error, modifier = Modifier.weight(1f)) { onFormChange(form.copy(endDate = it)) }
     }
     StatsHeading(stringResource(Res.string.label_location_section))
     FormTextField(
@@ -346,7 +347,14 @@ private fun PeriodAndPlace(form: CreateSessionsForm, sessions: TrainingSessions,
             checked = form.includeHolidays,
             onCheckedChange = { onFormChange(form.copy(includeHolidays = it)) },
             enabled = enabled,
-            colors = SwitchDefaults.colors(checkedTrackColor = PitchGreen)
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = PitchGreen,
+                checkedBorderColor = PitchGreen,
+                uncheckedThumbColor = CarbonGray.copy(alpha = 0.45f),
+                uncheckedTrackColor = Color.White,
+                uncheckedBorderColor = CarbonGray.copy(alpha = 0.3f)
+            )
         )
     }
 }
