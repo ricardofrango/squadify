@@ -44,6 +44,11 @@ class ExposedMatchRepository : MatchRepository {
             .orderBy(MatchesTable.dateTime)
             .map(::toMatch)
 
+    override suspend fun getMatchesByOpponent(opponentId: String): List<Match> =
+        MatchesTable.selectAll().where { MatchesTable.opponentId eq opponentId.toUuid() }
+            .orderBy(MatchesTable.dateTime, SortOrder.DESC)
+            .map(::toMatch)
+
     override suspend fun getMatchesByClub(clubId: String): List<Match> =
         MatchesTable.selectAll().where { MatchesTable.clubId eq clubId.toUuid() }
             .orderBy(MatchesTable.dateTime)

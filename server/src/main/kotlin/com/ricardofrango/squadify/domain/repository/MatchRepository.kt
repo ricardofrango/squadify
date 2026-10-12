@@ -6,6 +6,8 @@ interface MatchRepository {
     suspend fun getMatchById(id: String): Match?
     suspend fun getMatchesByTeam(teamId: String): List<Match>
     suspend fun getMatchesByClub(clubId: String): List<Match>
+    // Every match against one opponent, newest first.
+    suspend fun getMatchesByOpponent(opponentId: String): List<Match>
     suspend fun createMatch(match: Match): Match
     suspend fun updateMatch(match: Match): Boolean
     // Call-ups and events must be cleared first (DeleteMatchUseCase does this) -- there's no ON

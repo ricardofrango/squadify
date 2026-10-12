@@ -143,7 +143,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [/] **Opponents** (design 38):
       - [x] **List:** a searchable list (name or short name, ignoring accents) used to pick an opponent on Schedule match, with Recent on top, and to browse them from More → Opponents. See `TECHNICAL_DECISIONS.md` §51.
       - [x] **Create opponent:** from the list, with stadium, contact and notes. A name the club already has is refused. Created while picking for a match, it comes back selected. Logo upload is still pending.
-      - [ ] **Opponent details:** stadium with directions, head-to-head by season and every match against them.
+      - [x] **Opponent details:** stadium with directions, head-to-head by season (W/D/L, goals, last five) and every match against them, plus contact and notes.
       - [ ] **Edit opponent:** from the details.
     - [x] Club "More" panel (design 37): a full-screen panel that slides in from the right, replacing the old "More" dropdown and the header's account icon.
       - **Account header:** avatar, name, email, role chip and club name; tapping it opens Account.

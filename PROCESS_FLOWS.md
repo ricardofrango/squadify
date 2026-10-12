@@ -1144,6 +1144,25 @@ match, and browsing them from the More panel. Who may read it is the same as `Ge
 the age-group coach path. The client searches and groups the list itself, so there's no paging: a club has
 dozens of opponents, not thousands.
 
+### 6.4 Get Opponent Details (`GetOpponentDetailsUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, opponentId] --> B[Fetch Opponent by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D["canEdit: non-throwing probe — minClubRole=COORDINATOR, configurablePermission=EDIT_OPPONENT"]
+    D --> E["Club name; every match against them, newest first (getMatchesByOpponent)"]
+    E --> G["Scores of the LIVE / HALF_TIME / FINISHED ones, in one query (getScoresByMatches)"]
+    G --> H["The teams of those matches; the club's seasons"]
+    H --> Z(["Return OpponentDetails: opponent, clubName, matches, scores, teams, seasons, canEdit"])
+```
+
+`GET /opponents/{opponentId}` feeds Opponent details (design 38f). The client works out the head-to-head
+for whichever season is picked from `matches`, `scores` and each team's season, so changing season needs no
+request. `getScoresByMatches` reads the goal events of all the matches at once instead of one query per match.
+
 ---
 
 ## 7. Match Management & Call-ups

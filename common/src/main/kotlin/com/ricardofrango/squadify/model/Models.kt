@@ -786,6 +786,23 @@ data class OpponentList(
     val canCreate: Boolean = false
 )
 
+/**
+ * Response for `GET /opponents/{opponentId}` -- Opponent details (design 38f). [matches] is every match of
+ * the club against them, newest first; [scores] has the score of each one that has started; [teams] are
+ * those matches' teams (name, season) and [seasons] the club's seasons, so the client can work out the
+ * head-to-head for any season. [canEdit] shows the pencil (`EDIT_OPPONENT`).
+ */
+@Serializable
+data class OpponentDetails(
+    val opponent: Opponent,
+    val clubName: String,
+    val matches: List<Match>,
+    val scores: List<MatchScore>,
+    val teams: List<Team>,
+    val seasons: List<Season>,
+    val canEdit: Boolean = false
+)
+
 @Serializable
 data class Match(
     val id: String,

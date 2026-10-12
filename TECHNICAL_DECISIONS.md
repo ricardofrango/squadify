@@ -2541,3 +2541,17 @@ Picking an opponent on Schedule match was a dropdown of every opponent plus an i
   - **After creating while picking:** the app goes straight back to Schedule match, skipping the list, with the new opponent selected and "… created and selected" shown.
   - **From browsing:** it goes back to the list, which reloads.
 - **Row line:** list rows and the Schedule match field show the short name and the stadium under the name.
+
+**Details** (`OpponentDetailsScreen` / `OpponentDetailsViewModel`, route `Screen.OpponentDetails(opponentId)`), opened by tapping a row when browsing:
+- **Header:** logo, name, the short name as a badge, and "6 matches all-time" (every match against them but the cancelled ones). The design also shows a city, which opponents don't have.
+- **Stadium:** the name, the address (or "No address yet") and Directions, which opens a maps search for the address. Left out when neither is set.
+- **Head-to-head:** Played · Won · Drawn · Lost, goals for–against and the last five (oldest on the left), for one season across all our teams.
+  - **Season:** it opens on the season today falls in, or the latest one. The pill picks among the seasons that have a match against them.
+  - **Squares:** the same as Team Details' form. Tapping one opens the match.
+  - **Empty:** with no finished match at all, it says so.
+- **Matches:** every match against them, newest first, with the standard `MatchRow` (team, kick-off, LIVE, coloured score). Tap to open.
+- **Contact and Notes:** only when filled. The email and phone open mail and the dialer.
+- **Wide screens:** two columns, with identity, stadium, contact and notes on the left, and head-to-head and matches on the right.
+- **Data:** one call, `GET /opponents/{opponentId}` (`GetOpponentDetailsUseCase`, `PROCESS_FLOWS.md` §6.4). It returns the opponent, the matches, the scores of the ones that started, their teams and the club's seasons, so changing season is worked out on the device (`OpponentHeadToHead.kt`, tested in `OpponentHeadToHeadTest`).
+  - **Scores:** the new `MatchEventRepository.getScoresByMatches` reads them in one query.
+  - **Readable by:** any club member. `canEdit` follows `EDIT_OPPONENT`.

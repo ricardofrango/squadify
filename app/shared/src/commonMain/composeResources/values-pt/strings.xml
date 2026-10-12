@@ -1057,4 +1057,22 @@
     <string name="msg_opponent_name_taken">Já existe um adversário com este nome</string>
     <string name="msg_create_opponent_failed">Não foi possível criar o adversário. Tente novamente.</string>
     <string name="msg_opponent_created_selected">%1$s criado e selecionado</string>
+    <!-- Opponent details (design 38f) -->
+    <string name="title_opponent">Adversário</string>
+    <plurals name="opponent_matches_all_time">
+        <item quantity="one">%1$d jogo no total</item>
+        <item quantity="other">%1$d jogos no total</item>
+    </plurals>
+    <string name="msg_no_address">Ainda sem morada</string>
+    <string name="btn_directions">Direções</string>
+    <string name="label_head_to_head">Confrontos</string>
+    <string name="h2h_played">Jogos</string>
+    <string name="h2h_goals">Golos</string>
+    <string name="h2h_last_5">Últimos 5</string>
+    <string name="h2h_oldest_first">mais antigo primeiro</string>
+    <string name="h2h_no_results_season">Sem jogos terminados contra eles em %1$s.</string>
+    <string name="msg_no_matches_against">Ainda sem jogos contra %1$s</string>
+    <string name="msg_h2h_after_first_match">Os resultados e a forma dos últimos 5 aparecem depois do primeiro jogo terminado.</string>
+    <string name="label_matches_count">Jogos · %1$d</string>
+    <string name="msg_opponent_load_failed">Não foi possível carregar este adversário</string>
 </resources>

@@ -4,6 +4,7 @@ import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.model.CreateOpponentRequest
 import com.ricardofrango.squadify.model.Opponent
+import com.ricardofrango.squadify.model.OpponentDetails
 import com.ricardofrango.squadify.model.OpponentList
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -25,6 +26,9 @@ class OpponentRepositoryImpl(
             parameter("clubId", clubId)
             ageGroupId?.let { parameter("ageGroupId", it) }
         }.handleResponse()
+
+    override suspend fun getOpponentDetails(opponentId: String): OpponentDetails =
+        httpClient.get("${appConfig.baseUrl}/opponents/$opponentId").handleResponse()
 
     override suspend fun createOpponent(clubId: String, request: CreateOpponentRequest): Opponent =
         httpClient.post("${appConfig.baseUrl}/opponents") {

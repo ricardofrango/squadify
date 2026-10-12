@@ -124,6 +124,7 @@ val appModule = module {
     factory { CreateOpponentUseCase(get(), get(), get(), get()) }
     factory { GetOpponentsUseCase(get(), get(), get(), get()) }
     factory { GetOpponentListUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { GetOpponentDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { UpdateOpponentUseCase(get(), get(), get(), get()) }
     factory { RegisterFcmTokenUseCase(get(), get()) }
     factory { RemoveFcmTokenUseCase(get(), get()) }

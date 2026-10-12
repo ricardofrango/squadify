@@ -1059,4 +1059,22 @@
     <string name="msg_opponent_name_taken">An opponent with this name already exists</string>
     <string name="msg_create_opponent_failed">Couldn\'t create the opponent. Please try again.</string>
     <string name="msg_opponent_created_selected">%1$s created and selected</string>
+    <!-- Opponent details (design 38f) -->
+    <string name="title_opponent">Opponent</string>
+    <plurals name="opponent_matches_all_time">
+        <item quantity="one">%1$d match all-time</item>
+        <item quantity="other">%1$d matches all-time</item>
+    </plurals>
+    <string name="msg_no_address">No address yet</string>
+    <string name="btn_directions">Directions</string>
+    <string name="label_head_to_head">Head-to-head</string>
+    <string name="h2h_played">Played</string>
+    <string name="h2h_goals">Goals</string>
+    <string name="h2h_last_5">Last 5</string>
+    <string name="h2h_oldest_first">oldest first</string>
+    <string name="h2h_no_results_season">No finished matches against them in %1$s.</string>
+    <string name="msg_no_matches_against">No matches against %1$s yet</string>
+    <string name="msg_h2h_after_first_match">Results and the last-5 form appear after the first finished match.</string>
+    <string name="label_matches_count">Matches · %1$d</string>
+    <string name="msg_opponent_load_failed">Couldn\'t load this opponent</string>
 </resources>

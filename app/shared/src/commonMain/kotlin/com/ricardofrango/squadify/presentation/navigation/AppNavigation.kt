@@ -47,6 +47,7 @@ import com.ricardofrango.squadify.presentation.ui.agegroupdetails.AgeGroupDetail
 import com.ricardofrango.squadify.presentation.ui.createagegroups.CreateAgeGroupsScreen
 import com.ricardofrango.squadify.presentation.ui.teamdetails.TeamDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.creatematch.CreateMatchScreen
+import com.ricardofrango.squadify.presentation.ui.opponents.OpponentDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentFormScreen
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentsScreen
 import com.ricardofrango.squadify.presentation.ui.matchdetails.MatchDetailsScreen
@@ -702,12 +703,23 @@ fun AppNavigation() {
                     if (screen.select) {
                         navController.previousBackStackEntry?.setIfAlive(KEY_OPPONENT_PICKED, opponent.id)
                         navController.popBackStack()
+                    } else {
+                        navController.navigate(Screen.OpponentDetails(opponent.id))
                     }
                 },
                 onCreateOpponent = { name ->
                     navController.navigate(Screen.CreateOpponent(screen.clubId, screen.ageGroupId, name, select = screen.select))
                 },
                 refresh = opponentsChanged
+            )
+        }
+
+        screen<Screen.OpponentDetails> { backStackEntry ->
+            val screen: Screen.OpponentDetails = backStackEntry.toRoute()
+            OpponentDetailsScreen(
+                opponentId = screen.opponentId,
+                onNavigateBack = { navController.popBackStack() },
+                onOpenMatch = { matchId -> navController.navigate(Screen.MatchDetails(matchId)) }
             )
         }
 
