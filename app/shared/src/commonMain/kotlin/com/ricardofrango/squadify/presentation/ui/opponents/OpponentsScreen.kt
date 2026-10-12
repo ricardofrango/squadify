@@ -312,7 +312,7 @@ private fun OpponentRow(opponent: Opponent, selectMode: Boolean, selected: Boole
                 !selectMode -> Icon(painterResource(Res.drawable.ic_chevron_right), null, tint = DeepCarbon.copy(alpha = 0.3f), modifier = Modifier.size(22.dp))
             }
         }
-        HorizontalDivider(Modifier.padding(start = 68.dp), color = CarbonGray.copy(alpha = 0.08f))
+        HorizontalDivider(color = CarbonGray.copy(alpha = 0.08f))
     }
 }
 
