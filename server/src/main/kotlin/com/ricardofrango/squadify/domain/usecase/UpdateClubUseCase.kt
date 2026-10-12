@@ -39,6 +39,7 @@ class UpdateClubUseCase(
             phone = request.phone ?: existingClub.phone,
             address = request.address ?: existingClub.address,
             stadiumLocation = request.stadiumLocation ?: existingClub.stadiumLocation,
+            country = request.country ?: existingClub.country,
             status = request.status ?: existingClub.status
         )
 

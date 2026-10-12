@@ -2618,3 +2618,10 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
 - **Who sees them:** admins and coordinators see every age group of the season. Age-group staff see their own age groups, as far as `MANAGE_TRAINING` allows (coach by default).
 - **Data:** all the age groups' plans come in one query (`TrainingPlanRepository.getByAgeGroups`).
 - **In the app:** each row says since when, turns amber after 7 days, and opens that plan's editor. Tested in `GetClubHomeUseCaseTest`.
+
+**Club country and public holidays** (design 39k, `common/model/PublicHolidays.kt`):
+- **Country:** clubs have a country (`clubs.country`, an ISO code, `V16`; Portugal for every existing club). It's set under Where in Club settings.
+- **Holidays:** the national ones are computed in code, including those that move with Easter (Good Friday, Easter, Corpus Christi; Easter by the Gregorian algorithm). No library and no external service are involved. Municipal holidays are deliberately ignored.
+- **Supported countries:** only Portugal for now. Adding a country means adding its holiday list.
+- **Names:** a holiday travels as a key (`Holiday`), and the app shows its localized name.
+- **Tests:** `PublicHolidaysTest`.

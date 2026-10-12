@@ -1171,4 +1171,7 @@
     <string name="home_month_no_plan">%1$s não tem plano · %2$s</string>
     <string name="home_week_no_plan">A semana de %1$s não tem plano · %2$s</string>
     <string name="home_plan_since">Desde %1$s</string>
+    <string name="label_country_field">País</string>
+    <string name="msg_country_helper">Usado para os feriados ao criar sessões de treino.</string>
+    <string name="country_portugal">Portugal</string>
 </resources>

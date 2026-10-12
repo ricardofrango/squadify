@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.data.repository
 
+import com.ricardofrango.squadify.model.Country
 import com.ricardofrango.squadify.data.database.ClubMembers
 import com.ricardofrango.squadify.data.database.Clubs
 import com.ricardofrango.squadify.data.database.Players
@@ -60,6 +61,7 @@ class ExposedClubRepository : ClubRepository {
             it[phone] = club.phone
             it[address] = club.address
             it[stadiumLocation] = club.stadiumLocation
+            it[country] = club.country.code
             it[status] = club.status
             it[sport] = club.sport
             it[createdAt] = club.createdAt
@@ -80,6 +82,7 @@ class ExposedClubRepository : ClubRepository {
             it[phone] = club.phone
             it[address] = club.address
             it[stadiumLocation] = club.stadiumLocation
+            it[country] = club.country.code
             it[status] = club.status
         } > 0
 
@@ -147,6 +150,7 @@ class ExposedClubRepository : ClubRepository {
         phone = row[Clubs.phone],
         address = row[Clubs.address],
         stadiumLocation = row[Clubs.stadiumLocation],
+        country = Country.fromCode(row[Clubs.country]),
         status = row[Clubs.status],
         createdAt = row[Clubs.createdAt],
         sport = row[Clubs.sport]

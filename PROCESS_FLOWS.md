@@ -1896,6 +1896,7 @@ erDiagram
         varchar phone "50 chars, nullable"
         varchar address "500 chars, nullable"
         varchar stadium_location "500 chars, nullable -- where home matches are played, if different from address"
+        varchar country "2 chars, default PT -- ISO code, for public holidays (V16)"
         enum status "ClubStatus, default ACTIVE"
         enum sport "SportType, default FOOTBALL"
         timestamp created_at

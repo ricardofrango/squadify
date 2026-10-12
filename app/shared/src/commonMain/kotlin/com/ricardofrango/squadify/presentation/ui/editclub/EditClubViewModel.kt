@@ -151,7 +151,8 @@ class EditClubViewModel(
             email = club.email.orEmpty(),
             phone = club.phone.orEmpty(),
             address = club.address.orEmpty(),
-            stadiumLocation = club.stadiumLocation.orEmpty()
+            stadiumLocation = club.stadiumLocation.orEmpty(),
+            country = club.country
         )
         return EditClubUiState.Idle(
             original = fields,

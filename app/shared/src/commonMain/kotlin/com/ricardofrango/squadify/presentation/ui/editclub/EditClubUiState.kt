@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import com.ricardofrango.squadify.model.Country
 import com.ricardofrango.squadify.model.ClubMembersOverview
 import com.ricardofrango.squadify.model.ClubPermissionSetting
 import com.ricardofrango.squadify.model.ConfigurablePermission
@@ -30,7 +31,8 @@ data class ClubFormFields(
     val email: String,
     val phone: String,
     val address: String,
-    val stadiumLocation: String
+    val stadiumLocation: String,
+    val country: Country = Country.DEFAULT
 ) {
     fun trimmed(): ClubFormFields = ClubFormFields(
         name = name.trim(),
@@ -38,7 +40,8 @@ data class ClubFormFields(
         email = email.trim(),
         phone = phone.trim(),
         address = address.trim(),
-        stadiumLocation = stadiumLocation.trim()
+        stadiumLocation = stadiumLocation.trim(),
+        country = country
     )
 
     fun toRequest(): UpdateClubRequest = trimmed().let {
@@ -48,7 +51,8 @@ data class ClubFormFields(
             email = it.email.takeIf(String::isNotBlank),
             phone = it.phone.takeIf(String::isNotBlank),
             address = it.address.takeIf(String::isNotBlank),
-            stadiumLocation = it.stadiumLocation.takeIf(String::isNotBlank)
+            stadiumLocation = it.stadiumLocation.takeIf(String::isNotBlank),
+            country = it.country
         )
     }
 }

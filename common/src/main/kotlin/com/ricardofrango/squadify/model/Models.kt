@@ -251,6 +251,8 @@ data class Club(
     // administrative address) -- e.g. a club office address vs. a municipal stadium. Plain text, same
     // shape as `Match.location`, so a home match's location field can default to this verbatim.
     val stadiumLocation: String? = null,
+    // For its national public holidays (training sessions skip them). Portugal unless set.
+    val country: Country = Country.DEFAULT,
     val status: ClubStatus,
     val createdAt: Instant,
     // Defaulted so the many `Club(...)` test/preview constructions stay valid; the choice is forced
@@ -574,6 +576,7 @@ data class UpdateClubRequest(
     val phone: String? = null,
     val address: String? = null,
     val stadiumLocation: String? = null,
+    val country: Country? = null,
     val status: ClubStatus? = null
 )
 
