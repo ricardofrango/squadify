@@ -2584,7 +2584,7 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
 - **Below it:** the months with their status (tapping one opens the month plan), then the objectives, phases and key dates. Landscape uses three columns.
 - **Editor:** objectives, phases (name, start, end, focus) and key dates (a date or a range, and a label). Every date is checked against the season, with the error inline under the field ("Must end by 30 Jun 2027, the end of the season.").
   - **Leaving:** unsaved changes ask before leaving (`PlanEditorFrame`).
-  - **Reordering:** objectives and phases reorder with up / down buttons, not dragging as the design shows.
+  - **Reordering:** phases reorder with up / down buttons, not dragging as the design shows. Objectives don't reorder: each is a multi-line field (it grows as you type) with × to remove, in the order they were added.
 - **Shared editor:** every level uses `PlanEditViewModel` with a `PlanForm` (`PlanForm.kt`, tested in `PlanFormTest`).
 
 **Month plan** (`MonthPlanScreen`, design 40d):

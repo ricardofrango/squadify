@@ -72,9 +72,13 @@ fun PlanEditorFrame(
             contextStrip()
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
                 val wide = maxWidth >= 600.dp
-                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) { content(wide) }
+                // The error line sits inside the scroll, so its space scrolls with the form instead of
+                // staying fixed above Save.
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 12.dp)) {
+                    content(wide)
+                    FormErrorLine(state.error)
+                }
             }
-            FormErrorLine(state.error)
             Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
                 Box(Modifier.padding(horizontal = 20.dp, vertical = 14.dp), contentAlignment = Alignment.CenterEnd) {
                     PrimaryLoadingButton(

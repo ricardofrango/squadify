@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -193,7 +194,7 @@ fun PlanLoadingOrError(loading: Boolean, modifier: Modifier, onRetry: () -> Unit
     }
 }
 
-/** The objectives as editable lines: move up / down, remove, and "Add objective". */
+/** The objectives as editable multi-line fields: remove, and "Add objective". */
 @Composable
 fun ObjectivesEditor(objectives: List<String>, enabled: Boolean, onChange: (List<String>) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -205,9 +206,11 @@ fun ObjectivesEditor(objectives: List<String>, enabled: Boolean, onChange: (List
                     label = stringResource(Res.string.label_new_objective),
                     enabled = enabled,
                     keyboardType = KeyboardType.Text,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    singleLine = false,
+                    minLines = 1,
+                    imeAction = ImeAction.Default
                 )
-                ReorderButtons(i, objectives.size, enabled) { from, to -> onChange(objectives.moved(from, to)) }
                 IconButton(onClick = { onChange(objectives.filterIndexed { j, _ -> j != i }) }, enabled = enabled) {
                     Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.cd_remove), tint = DeepCarbon.copy(alpha = 0.5f))
                 }
@@ -289,6 +292,6 @@ fun DiscardChangesDialog(onDiscard: () -> Unit, onKeepEditing: () -> Unit) {
         title = { Text(stringResource(Res.string.title_discard_changes)) },
         text = { Text(stringResource(Res.string.msg_discard_plan_changes)) },
         confirmButton = { TextButton(onClick = onDiscard) { Text(stringResource(Res.string.btn_discard), color = AlertRed, fontWeight = FontWeight.Bold) } },
-        dismissButton = { TextButton(onClick = onKeepEditing) { Text(stringResource(Res.string.btn_keep_editing), color = CarbonGray) } }
+        dismissButton = { TextButton(onClick = onKeepEditing) { Text(stringResource(Res.string.btn_keep_editing), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
     )
 }

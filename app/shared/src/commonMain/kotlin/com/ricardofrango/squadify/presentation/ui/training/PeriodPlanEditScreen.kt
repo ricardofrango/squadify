@@ -1,11 +1,12 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -38,7 +39,6 @@ import com.ricardofrango.squadify.model.weekStarts
 import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
-import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
@@ -154,12 +154,13 @@ private fun PeriodPlanEditContent(
     ) { wide ->
         if (plans == null || start == null) return@PlanEditorFrame
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = { previous?.let(move) }, enabled = previous != null && enabled) {
+            // No side padding, so the arrows line up with the fields' edges.
+            TextButton(onClick = { previous?.let(move) }, enabled = previous != null && enabled, contentPadding = PaddingValues(vertical = 8.dp)) {
                 Icon(painterResource(Res.drawable.ic_chevron_left), null, modifier = Modifier.size(18.dp))
                 Text(previous?.let { periodLabel(level, it) }.orEmpty(), color = DeepCarbon)
             }
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = { next?.let(move) }, enabled = next != null && enabled) {
+            TextButton(onClick = { next?.let(move) }, enabled = next != null && enabled, contentPadding = PaddingValues(vertical = 8.dp)) {
                 Text(next?.let { periodLabel(level, it) }.orEmpty(), color = DeepCarbon)
                 Icon(painterResource(Res.drawable.ic_chevron_right), null, modifier = Modifier.size(18.dp))
             }
@@ -208,7 +209,7 @@ private fun PeriodPlanEditContent(
             title = { Text(stringResource(Res.string.title_replace_typed)) },
             text = { Text(stringResource(Res.string.msg_replace_typed)) },
             confirmButton = { TextButton(onClick = { askReplace = false; onFormChange(form.copiedFrom(previousPlan)) }) { Text(stringResource(Res.string.btn_replace), color = AlertRed, fontWeight = FontWeight.Bold) } },
-            dismissButton = { TextButton(onClick = { askReplace = false }) { Text(stringResource(Res.string.btn_keep_editing), color = CarbonGray) } }
+            dismissButton = { TextButton(onClick = { askReplace = false }) { Text(stringResource(Res.string.btn_keep_editing), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
         )
     }
 }
@@ -244,20 +245,22 @@ internal fun TrainingIntensity.labelRes(): StringResource = when (this) {
 
 @Composable
 private fun IntensityPicker(selected: TrainingIntensity?, enabled: Boolean, onSelected: (TrainingIntensity?) -> Unit) {
-    Text(stringResource(Res.string.label_intensity), style = MaterialTheme.typography.labelLarge, color = DeepCarbon.copy(alpha = 0.6f))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        TrainingIntensity.entries.forEach { intensity ->
-            FilterChip(
-                selected = selected == intensity,
-                // Tapping the selected one clears it: intensity is optional.
-                onClick = { onSelected(if (selected == intensity) null else intensity) },
-                enabled = enabled,
-                label = { Text(stringResource(intensity.labelRes())) },
-                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = PitchGreen, selectedLabelColor = Color.White)
-            )
+    // One child of the editor column, so it gets one gap above and below like the fields.
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(Res.string.label_intensity), style = MaterialTheme.typography.labelLarge, color = DeepCarbon.copy(alpha = 0.6f))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TrainingIntensity.entries.forEach { intensity ->
+                FilterChip(
+                    selected = selected == intensity,
+                    // Tapping the selected one clears it: intensity is optional.
+                    onClick = { onSelected(if (selected == intensity) null else intensity) },
+                    enabled = enabled,
+                    label = { Text(stringResource(intensity.labelRes())) },
+                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = PitchGreen, selectedLabelColor = Color.White)
+                )
+            }
         }
     }
-    Spacer(Modifier.width(0.dp))
 }
 
 @Preview

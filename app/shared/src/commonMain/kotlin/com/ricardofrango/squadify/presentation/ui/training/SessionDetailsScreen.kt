@@ -249,7 +249,7 @@ private fun SessionDetailsContent(
             title = { Text(stringResource(Res.string.title_cancel_session)) },
             text = { Text(stringResource(Res.string.msg_cancel_session, sessionTitle(details.session.date))) },
             confirmButton = { TextButton(onClick = { askCancel = false; onCancel() }) { Text(stringResource(Res.string.btn_cancel_session), color = AlertRed, fontWeight = FontWeight.Bold) } },
-            dismissButton = { TextButton(onClick = { askCancel = false }) { Text(stringResource(Res.string.btn_keep_it), color = CarbonGray) } }
+            dismissButton = { TextButton(onClick = { askCancel = false }) { Text(stringResource(Res.string.btn_keep_it), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
         )
     }
     if (askDelete) {
@@ -258,7 +258,7 @@ private fun SessionDetailsContent(
             title = { Text(stringResource(Res.string.title_delete_session)) },
             text = { Text(stringResource(Res.string.msg_delete_session)) },
             confirmButton = { TextButton(onClick = { askDelete = false; onDelete() }) { Text(stringResource(Res.string.btn_delete), color = AlertRed, fontWeight = FontWeight.Bold) } },
-            dismissButton = { TextButton(onClick = { askDelete = false }) { Text(stringResource(Res.string.btn_keep_it), color = CarbonGray) } }
+            dismissButton = { TextButton(onClick = { askDelete = false }) { Text(stringResource(Res.string.btn_keep_it), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
         )
     }
 }

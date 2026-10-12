@@ -155,9 +155,9 @@ private fun SessionEditContent(
                             )
                         }
                     )
+                    FormErrorLine(state.error)
                 }
             }
-            FormErrorLine(state.error)
             Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(horizontal = 20.dp, vertical = 14.dp)) {
                     PrimaryLoadingButton(

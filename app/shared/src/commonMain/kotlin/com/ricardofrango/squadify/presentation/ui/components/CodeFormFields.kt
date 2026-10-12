@@ -52,6 +52,8 @@ fun FormTextField(
     placeholder: String? = null,
     // False for a multi-line field (e.g. notes), whose Enter adds a line.
     singleLine: Boolean = true,
+    // The height of a multi-line field, in lines (it grows as text is typed).
+    minLines: Int = if (singleLine) 1 else 3,
     hidden: Boolean = false,
     onToggleHidden: (() -> Unit)? = null,
     // Next moves to the following field (Compose's default for ImeAction.Next); the last field's
@@ -67,7 +69,7 @@ fun FormTextField(
         placeholder = placeholder?.let { { Text(it, color = Color.Gray.copy(alpha = 0.7f)) } },
         modifier = modifier.fillMaxWidth(),
         singleLine = singleLine,
-        minLines = if (singleLine) 1 else 3,
+        minLines = minLines,
         enabled = enabled,
         isError = isError,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),

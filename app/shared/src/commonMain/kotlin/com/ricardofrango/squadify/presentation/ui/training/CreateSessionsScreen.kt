@@ -229,7 +229,7 @@ private fun CreateSessionsContent(
                     Text(stringResource(Res.string.btn_create_n_sessions, preview.toCreate.size), color = AlertRed, fontWeight = FontWeight.Bold)
                 }
             },
-            dismissButton = { TextButton(onClick = onDismissConfirm) { Text(stringResource(Res.string.btn_back_to_preview), color = CarbonGray) } }
+            dismissButton = { TextButton(onClick = onDismissConfirm) { Text(stringResource(Res.string.btn_back_to_preview), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
         )
     }
 }
