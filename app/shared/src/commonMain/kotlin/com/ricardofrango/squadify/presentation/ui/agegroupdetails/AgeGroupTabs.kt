@@ -55,6 +55,18 @@ import com.ricardofrango.squadify.presentation.ui.training.MonthPlanCard
 import com.ricardofrango.squadify.presentation.ui.training.WeekPlanCard
 import com.ricardofrango.squadify.presentation.ui.training.initialMonth
 import com.ricardofrango.squadify.presentation.ui.training.initialWeek
+import com.ricardofrango.squadify.presentation.ui.training.splitSessions
+import com.ricardofrango.squadify.presentation.ui.training.chipFor
+import com.ricardofrango.squadify.presentation.ui.training.SessionRow
+import squadify.app.shared.generated.resources.label_past_sessions
+import squadify.app.shared.generated.resources.label_upcoming_sessions
+import squadify.app.shared.generated.resources.msg_no_sessions_body
+import squadify.app.shared.generated.resources.msg_no_sessions_title
+import squadify.app.shared.generated.resources.btn_create_sessions
+import squadify.app.shared.generated.resources.label_sessions
+import squadify.app.shared.generated.resources.msg_sessions_load_failed
+import kotlinx.datetime.toLocalDateTime
+import androidx.compose.foundation.lazy.LazyListScope
 
 // The four tabs of Age Group Details (design 33). Every number is derived from AgeGroupDetails (teams,
 // fixtures, staff, pool) and AgeGroupSeasonRecord (each team's season) by the shared code in
@@ -736,6 +748,11 @@ private fun MemberRow(player: Player, season: MemberSeason?, seasonKnown: Boolea
 @Composable
 internal fun AgeGroupTrainingTab(
     plansState: AgeGroupPlansUiState,
+    sessionsState: AgeGroupSessionsUiState,
+    poolSize: Int,
+    onRetrySessions: () -> Unit,
+    onCreateSessions: () -> Unit,
+    onOpenSession: (sessionId: String) -> Unit,
     listState: LazyListState,
     padding: PaddingValues,
     modifier: Modifier,
@@ -767,6 +784,63 @@ internal fun AgeGroupTrainingTab(
                 item(key = "week") {
                     var week by remember(plans.season.id) { mutableStateOf(initialWeek(plans, today)) }
                     week?.let { w -> WeekPlanCard(plans, w, onMove = { week = it }, onOpen = { onOpenWeek(w) }, onEdit = { onEditWeek(w) }) }
+                }
+            }
+        }
+        sessionItems(sessionsState, poolSize, onRetrySessions, onCreateSessions, onOpenSession)
+    }
+}
+
+/** The sessions under the plan cards (design 39a/b): Upcoming, then Past, or the empty state. */
+private fun LazyListScope.sessionItems(
+    state: AgeGroupSessionsUiState,
+    poolSize: Int,
+    onRetry: () -> Unit,
+    onCreateSessions: () -> Unit,
+    onOpenSession: (String) -> Unit
+) {
+    when (state) {
+        AgeGroupSessionsUiState.Loading -> Unit
+        AgeGroupSessionsUiState.Error -> item {
+            StatsCard { StatsMessage(stringResource(Res.string.msg_sessions_load_failed), stringResource(Res.string.msg_check_connection), onRetry = onRetry) }
+        }
+        is AgeGroupSessionsUiState.Loaded -> {
+            val data = state.sessions
+            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            item(key = "sessions-header") {
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    StatsHeading(stringResource(Res.string.label_sessions), Modifier.weight(1f))
+                    if (data.canEdit && data.sessions.isNotEmpty()) {
+                        TextButton(onClick = onCreateSessions) { Text(stringResource(Res.string.btn_create_sessions), color = PitchGreen, fontWeight = FontWeight.Bold) }
+                    }
+                }
+            }
+            if (data.sessions.isEmpty()) {
+                item(key = "sessions-empty") {
+                    StatsCard {
+                        StatsMessage(stringResource(Res.string.msg_no_sessions_title), stringResource(Res.string.msg_no_sessions_body))
+                        if (data.canEdit) {
+                            Spacer(Modifier.height(12.dp))
+                            Button(onClick = onCreateSessions, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)) {
+                                Text(stringResource(Res.string.btn_create_sessions), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+                return
+            }
+            val (upcoming, past) = splitSessions(data.sessions, now)
+            val next = if (upcoming.any { it.date == now.date }) null else upcoming.firstOrNull { !it.cancelled }
+            if (upcoming.isNotEmpty()) {
+                item(key = "upcoming") { StatsHeading(stringResource(Res.string.label_upcoming_sessions)) }
+                items(upcoming, key = { it.id }) { session ->
+                    SessionRow(session, chipFor(session, now, next, poolSize, data.canRate)) { onOpenSession(session.id) }
+                }
+            }
+            if (past.isNotEmpty()) {
+                item(key = "past") { StatsHeading(stringResource(Res.string.label_past_sessions), Modifier.padding(top = 8.dp)) }
+                items(past, key = { it.id }) { session ->
+                    SessionRow(session, chipFor(session, now, next, poolSize, data.canRate)) { onOpenSession(session.id) }
                 }
             }
         }

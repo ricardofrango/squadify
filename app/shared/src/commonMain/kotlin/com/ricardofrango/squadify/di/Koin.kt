@@ -15,6 +15,7 @@ import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubPlayersViewMod
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentDetailsViewModel
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentFormViewModel
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentsViewModel
+import com.ricardofrango.squadify.presentation.ui.training.CreateSessionsViewModel
 import com.ricardofrango.squadify.presentation.ui.training.PlanEditViewModel
 import com.ricardofrango.squadify.presentation.ui.training.TrainingPlansViewModel
 import com.ricardofrango.squadify.presentation.ui.editclub.EditClubViewModel
@@ -125,6 +126,7 @@ val dataModule = module {
     single<MatchRepository> { MatchRepositoryImpl(get(), get(), get()) }
     single<OpponentRepository> { OpponentRepositoryImpl(get(), get()) }
     single<TrainingPlanRepository> { TrainingPlanRepositoryImpl(get(), get()) }
+    single<TrainingSessionRepository> { TrainingSessionRepositoryImpl(get(), get()) }
     single<UserRepository> { UserRepositoryImpl(get(), get()) }
     single<SessionRepository> { SessionRepositoryImpl(get()) }
     single<UiPreferencesRepository> { UiPreferencesRepositoryImpl(get()) }
@@ -173,6 +175,10 @@ val domainModule = module {
     factory { GetOpponentsUseCase(get()) }
     factory { GetOpponentListUseCase(get()) }
     factory { GetTrainingPlansUseCase(get()) }
+    factory { GetTrainingSessionsUseCase(get()) }
+    factory { CreateTrainingSessionsUseCase(get()) }
+    factory { SaveTrainingSessionUseCase(get()) }
+    factory { ChangeTrainingSessionUseCase(get()) }
     factory { SaveTrainingPlanUseCase(get()) }
     factory { GetOpponentDetailsUseCase(get()) }
     factory { CreateOpponentUseCase(get()) }
@@ -220,6 +226,7 @@ val presentationModule = module {
     viewModelOf(::OpponentDetailsViewModel)
     viewModelOf(::TrainingPlansViewModel)
     viewModelOf(::PlanEditViewModel)
+    viewModelOf(::CreateSessionsViewModel)
     viewModelOf(::ClubDetailsViewModel)
     viewModelOf(::ClubPlayersViewModel)
     viewModelOf(::EditClubViewModel)

@@ -1744,6 +1744,49 @@ from the period's start.
 (`monthStarts`, `weekStarts`, `isPeriodStart`), shared with the app. Weeks run Monday–Sunday, and a week that
 crosses two months belongs to the month of its Monday.
 
+### 9b.3 Get Training Sessions (`GetTrainingSessionsUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, ageGroupId] --> B[Fetch AgeGroup by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C["CheckUserPermissionUseCase — minClubRole=MEMBER, minTeamRole=STAFF, ageGroupId, allowPlayerOrParentAccess=true"]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D["canEdit (MANAGE_TRAINING) and canRate (coordinator, or coach/staff of the age group): non-throwing probes"]
+    D --> E["Every session of the age group by date; exercise counts in one query; the canceller's name for cancelled ones"]
+    E --> Z(["Return TrainingSessions: ageGroup, clubName, season, stadiumLocation, country, sessions, canEdit, canRate"])
+```
+
+Players and parents of the age group see sessions; the rating fields are staff-only.
+
+### 9b.4 Create Training Sessions in Bulk (`CreateTrainingSessionsUseCase.preview` / `.create`)
+
+```mermaid
+graph TD
+    A[Start: userId, ageGroupId, slots, startDate, endDate, location, includeHolidays, confirmReplacingContent] --> B[Fetch AgeGroup, check MANAGE_TRAINING]
+    B -- denied --> F(["Throw ForbiddenException"])
+    B -- allowed --> V{"no slot, a slot without weekdays or ending before it starts, the period backwards or outside the season?"}
+    V -- Yes --> VE(["Throw ValidationException"])
+    V -- No --> G["Every date in the period on a slot's weekday (plannedSessions); the club country's national holidays kept as skipped unless includeHolidays"]
+    G --> M{"more than 400 sessions?"}
+    M -- Yes --> VE2(["Throw ValidationException"])
+    M -- No --> R["Mark each one that lands on an existing session's date and start time, with that session's exercise and rating counts"]
+    R --> P{preview?}
+    P -- Yes --> Z1(["Return the preview, nothing changed"])
+    P -- No --> C{"a replaced session has content and not confirmReplacingContent?"}
+    C -- Yes --> CF(["Throw ConflictException (409)"])
+    C -- No --> D["Delete the replaced sessions (with their content), insert the new ones in one batch"]
+    D --> Z2(["Return how many were created"])
+```
+
+### 9b.5 One Session (`SaveTrainingSessionUseCase`, `ChangeTrainingSessionUseCase`)
+
+Adding or editing one session (`POST /age-groups/{id}/training-sessions`, `PATCH /training-sessions/{id}`)
+checks `MANAGE_TRAINING`, that the date falls inside the season and that it ends after it starts. A session at
+the same date and start time is replaced, as in bulk creation. Cancelling (`POST .../cancel`) keeps the session
+and its content and records who and when; restoring clears that; deleting removes it with its content. All
+behind `MANAGE_TRAINING`.
+
 ---
 
 ## 10. Cross-Cutting: The Invite System, End to End
@@ -1828,6 +1871,8 @@ erDiagram
     PLAYERS ||--o{ AGE_GROUP_PLAYERS : eligible_for
     AGE_GROUPS ||--o{ AGE_GROUP_STAFF : staffed_by
     AGE_GROUPS ||--o{ TRAINING_PLANS : plans
+    AGE_GROUPS ||--o{ TRAINING_SESSIONS : trains
+    USERS ||--o{ TRAINING_SESSIONS : cancels
     USERS ||--o{ TRAINING_PLANS : updates
     USERS ||--o{ AGE_GROUP_STAFF : serves_as
     USERS ||--o{ USER_PLAYERS : guardian_of
@@ -2076,11 +2121,23 @@ erDiagram
         timestamp updated_at
         uuid updated_by FK
     }
+    TRAINING_SESSIONS {
+        uuid id PK
+        uuid age_group_id FK
+        date date
+        time start_time
+        time end_time
+        varchar location "500 chars, nullable"
+        text notes "nullable"
+        timestamp cancelled_at "nullable -- set while cancelled"
+        uuid cancelled_by FK "nullable"
+        timestamp created_at
+    }
 ```
 
 ### 12.2 Constraints & defaults worth knowing
 
-- **Unique indexes**: `users.email`; `refresh_tokens.token`; `password_reset_codes.user_id` (the primary key, so a new Forgot-password request replaces the pending code, `V11__password_reset_codes.sql`); `email_change_codes.user_id` (likewise for Change email, `V12__email_change_codes.sql`); `club_members(club_id, user_id)` — one membership per user per club (`V3__unique_club_members.sql`); both add-member repository methods insert with `ON CONFLICT DO NOTHING`, so re-adding an existing member keeps their current row and role rather than duplicating or downgrading it; `fcm_tokens.token` — deliberately on the token alone rather than `(user_id, token)`, since a token identifies one app install, not one user; a registration endpoint that gets the same token again (shared device, or a re-login without reinstalling) should reassign the existing row's `user_id` rather than insert a duplicate; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list; `match_player_stats(match_id, player_id)` — one stats line per player per match; `match_reports.match_id` — one report per match; `training_plans(age_group_id, level, period_start)` — one plan per period (`V15__training_plans.sql`). A `CHECK` keeps `match_player_stats.rating` NULL or between 0 and 10.
+- **Unique indexes**: `users.email`; `refresh_tokens.token`; `password_reset_codes.user_id` (the primary key, so a new Forgot-password request replaces the pending code, `V11__password_reset_codes.sql`); `email_change_codes.user_id` (likewise for Change email, `V12__email_change_codes.sql`); `club_members(club_id, user_id)` — one membership per user per club (`V3__unique_club_members.sql`); both add-member repository methods insert with `ON CONFLICT DO NOTHING`, so re-adding an existing member keeps their current row and role rather than duplicating or downgrading it; `fcm_tokens.token` — deliberately on the token alone rather than `(user_id, token)`, since a token identifies one app install, not one user; a registration endpoint that gets the same token again (shared device, or a re-login without reinstalling) should reassign the existing row's `user_id` rather than insert a duplicate; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list; `match_player_stats(match_id, player_id)` — one stats line per player per match; `match_reports.match_id` — one report per match; `training_plans(age_group_id, level, period_start)` — one plan per period (`V15__training_plans.sql`); `training_sessions(age_group_id, date, start_time)` — one session per age group, date and start time, so creating another replaces it (`V17__training_sessions.sql`). A `CHECK` keeps `match_player_stats.rating` NULL or between 0 and 10.
 - **Nullable foreign keys**: `invites.player_id` (only set for `PARENT_PLAYER` invites) and `match_events.player_id` (null when `is_opponent = true`, since the event belongs to a player on the opposing team who isn't in the `players` table).
 - **No `onDelete` behavior is configured on any foreign key** — every `.references(...)` call in `Tables.kt` uses the Exposed default (`NO ACTION`). Deleting a row that still has children (e.g. a `Club` with existing `Teams`) will fail at the database level rather than cascading, nulling out, or being blocked at the application layer with a friendlier error.
 - Several `enum` columns are nullable independently of their parent row's lifecycle: `club_members.role`/`age_group_staff.role`/`user_players.relationship` are all non-null (required at creation), while `invites.role` and `invites.relationship` are nullable because a single `Invite` row is reused for both invite shapes (see §10) and only one of the two is populated depending on `type`.

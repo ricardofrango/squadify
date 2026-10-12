@@ -2577,7 +2577,7 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
 - **Shape:** every level has a focus, objectives and notes. The season adds phases and key dates, and the week adds intensity (Low / Medium / High).
 - **Storage:** one `training_plans` table (`V15`), unique per age group, level and period start. Objectives, phases and key dates are JSON text: small ordered lists that are only read and written with their plan.
 - **API:** `GET /age-groups/{id}/training-plans` returns every plan of the age group with the season and `canEdit`, and `PUT` saves (upserts) one. The period rules are in `common` (`monthStarts`, `weekStarts`, `isPeriodStart`), so the app and the server agree on which periods exist. Tested in `TrainingPeriodsTest` and `TrainingPlanUseCasesTest`.
-- **Visibility:** the club's people and the age group's staff can read plans. Players and parents can't.
+- **Visibility:** admins, coordinators and the age group's coaches and staff can read plans. Other club members, players and parents can't.
 
 **Season plan** (`SeasonPlanScreen`, `SeasonPlanEditScreen`, design 40c):
 - **Timeline:** the season with its phases as bands sized by length, key dates as flags and today as a red line, plus a legend.
@@ -2625,3 +2625,17 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
 - **Supported countries:** only Portugal for now. Adding a country means adding its holiday list.
 - **Names:** a holiday travels as a key (`Holiday`), and the app shows its localized name.
 - **Tests:** `PublicHolidaysTest`.
+
+**Training sessions** (`common/model/TrainingSessions.kt`, `PROCESS_FLOWS.md` §9b.3–9b.5):
+- **Storage:** one `training_sessions` row per session (`V17`), unique per age group, date and start time. A cancelled session keeps its row (`cancelled_at`, `cancelled_by`) and its content.
+- **Creating in bulk** (`CreateSessionsScreen`, design 39c/d):
+  - **Form:** weekly slots (weekdays sharing a start and an end), a period inside the season, the location (the club's stadium by default) and "Also on public holidays". Nothing is saved for next time.
+  - **Preview count:** the button's "Preview N sessions" is worked out on the device with the same `plannedSessions` and holidays the server uses.
+  - **Preview step:** the server lists every date by month. It names skipped holidays and flags each existing session at the same date and start time, in red when its exercises or ratings would be deleted.
+  - **Creating:** if any replaced session has content, a dialog counts them before anything is created, and the server refuses (409) without that confirmation.
+  - **Limits:** at most 400 sessions at once.
+- **Training tab:** the sessions follow the plan cards. Upcoming come soonest first and past newest first, using the match row's day block.
+  - **Chips:** TODAY, NEXT (only when nothing is today), CANCELLED (struck through), and "Needs ratings" for an ended session not fully rated (staff only).
+  - **Who sees them:** players and parents of the age group see sessions; only the ratings are staff-only.
+  - **After creating:** Age Group Details shows "{n} sessions created".
+- **Tests:** `TrainingSessionUseCasesTest` (server) and `TrainingSessionsTest` (app).

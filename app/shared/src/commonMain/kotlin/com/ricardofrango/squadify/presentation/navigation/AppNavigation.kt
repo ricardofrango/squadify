@@ -51,6 +51,7 @@ import com.ricardofrango.squadify.presentation.ui.opponents.OpponentDetailsScree
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentEditScreen
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentFormScreen
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentsScreen
+import com.ricardofrango.squadify.presentation.ui.training.CreateSessionsScreen
 import com.ricardofrango.squadify.presentation.ui.training.MonthPlanScreen
 import com.ricardofrango.squadify.presentation.ui.training.PeriodPlanEditScreen
 import com.ricardofrango.squadify.presentation.ui.training.SeasonPlanEditScreen
@@ -81,6 +82,9 @@ private const val KEY_OPPONENT_PICKED = "opponentPicked"
 
 // Create opponent (SELECT) -> Schedule match: the new opponent's name, for "… created and selected".
 private const val KEY_OPPONENT_CREATED = "opponentCreated"
+
+// Create sessions -> Age Group Details: how many were created, for "24 sessions created".
+private const val KEY_TRAINING_MESSAGE = "trainingMessage"
 
 // Duration of the app-wide screen transition (see the NavHost below).
 private const val NAV_ANIM_MS = 300
@@ -548,6 +552,9 @@ fun AppNavigation() {
             val structureChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
                 .collectAsState()
+            val sessionsCreated by backStackEntry.savedStateHandle
+                .getStateFlow<Int?>(KEY_TRAINING_MESSAGE, null)
+                .collectAsState()
             if (structureChanged) {
                 navController.consumeAndCascadeStructureChanged(backStackEntry)
             }
@@ -577,6 +584,9 @@ fun AppNavigation() {
                 onNavigateToMonthPlan = { ageGroupId, month, edit ->
                     navController.navigate(if (edit) Screen.EditMonthPlan(ageGroupId, month.toString()) else Screen.MonthPlan(ageGroupId, month.toString()))
                 },
+                onNavigateToCreateSessions = { ageGroupId -> navController.navigate(Screen.CreateTrainingSessions(ageGroupId)) },
+                sessionsCreated = sessionsCreated,
+                onMessageShown = { backStackEntry.savedStateHandle[KEY_TRAINING_MESSAGE] = null },
                 onNavigateToWeekPlan = { ageGroupId, monday, edit ->
                     navController.navigate(if (edit) Screen.EditWeekPlan(ageGroupId, monday.toString()) else Screen.WeekPlan(ageGroupId, monday.toString()))
                 },
@@ -875,6 +885,21 @@ fun AppNavigation() {
                 onNavigateBack = { navController.popBackStack() },
                 onSaved = {
                     navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        screen<Screen.CreateTrainingSessions> { backStackEntry ->
+            val screen: Screen.CreateTrainingSessions = backStackEntry.toRoute()
+            CreateSessionsScreen(
+                ageGroupId = screen.ageGroupId,
+                onNavigateBack = { navController.popBackStack() },
+                onCreated = { count ->
+                    navController.previousBackStackEntry?.let { previous ->
+                        previous.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
+                        previous.setIfAlive(KEY_TRAINING_MESSAGE, count)
+                    }
                     navController.popBackStack()
                 }
             )

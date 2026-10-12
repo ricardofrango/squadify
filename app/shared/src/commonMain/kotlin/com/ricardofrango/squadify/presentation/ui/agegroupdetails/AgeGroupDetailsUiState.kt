@@ -4,6 +4,7 @@ import com.ricardofrango.squadify.model.AgeGroupDetails
 import com.ricardofrango.squadify.model.AgeGroupSeasonRecord
 import com.ricardofrango.squadify.model.StatsFilter
 import com.ricardofrango.squadify.model.TrainingPlans
+import com.ricardofrango.squadify.model.TrainingSessions
 
 sealed class AgeGroupDetailsUiState {
     data object Loading : AgeGroupDetailsUiState()
@@ -23,6 +24,13 @@ sealed class AgeGroupPlansUiState {
     data object Error : AgeGroupPlansUiState()
     data object Hidden : AgeGroupPlansUiState()
     data class Loaded(val plans: TrainingPlans) : AgeGroupPlansUiState()
+}
+
+/** The Training tab's sessions (design 39a), visible to players and parents too. */
+sealed class AgeGroupSessionsUiState {
+    data object Loading : AgeGroupSessionsUiState()
+    data object Error : AgeGroupSessionsUiState()
+    data class Loaded(val sessions: TrainingSessions) : AgeGroupSessionsUiState()
 }
 
 /** Every team's season record + the pool (Stats and Members tabs); loads on its own so errors stay local. */

@@ -216,6 +216,11 @@ sealed class Screen {
     @SerialName("edit-week-plan")
     data class EditWeekPlan(val ageGroupId: String, val monday: String) : Screen()
 
+    // Create an age group's training sessions in bulk (design 39c/d).
+    @Serializable
+    @SerialName("create-training-sessions")
+    data class CreateTrainingSessions(val ageGroupId: String) : Screen()
+
     @Serializable
     @SerialName("match")
     data class MatchDetails(val matchId: String) : Screen()

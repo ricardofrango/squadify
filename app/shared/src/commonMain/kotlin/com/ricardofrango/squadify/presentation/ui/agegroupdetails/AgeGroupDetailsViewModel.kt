@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupSeasonRecordUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTrainingPlansUseCase
+import com.ricardofrango.squadify.domain.usecase.GetTrainingSessionsUseCase
 import com.ricardofrango.squadify.data.remote.ApiException
 import io.ktor.http.HttpStatusCode
 import com.ricardofrango.squadify.model.StatsFilter
@@ -20,7 +21,8 @@ import squadify.app.shared.generated.resources.msg_failed_to_load_age_group
 class AgeGroupDetailsViewModel(
     private val getAgeGroupDetailsUseCase: GetAgeGroupDetailsUseCase,
     private val getAgeGroupSeasonRecordUseCase: GetAgeGroupSeasonRecordUseCase,
-    private val getTrainingPlansUseCase: GetTrainingPlansUseCase
+    private val getTrainingPlansUseCase: GetTrainingPlansUseCase,
+    private val getTrainingSessionsUseCase: GetTrainingSessionsUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<AgeGroupDetailsUiState>(AgeGroupDetailsUiState.Loading)
@@ -28,6 +30,9 @@ class AgeGroupDetailsViewModel(
 
     private val _plans = MutableStateFlow<AgeGroupPlansUiState>(AgeGroupPlansUiState.Loading)
     val plans: StateFlow<AgeGroupPlansUiState> = _plans.asStateFlow()
+
+    private val _sessions = MutableStateFlow<AgeGroupSessionsUiState>(AgeGroupSessionsUiState.Loading)
+    val sessions: StateFlow<AgeGroupSessionsUiState> = _sessions.asStateFlow()
 
     private val _record = MutableStateFlow<AgeGroupRecordUiState>(AgeGroupRecordUiState.Loading)
     val record: StateFlow<AgeGroupRecordUiState> = _record.asStateFlow()
@@ -44,6 +49,7 @@ class AgeGroupDetailsViewModel(
         if (!forceReload && _state.value is AgeGroupDetailsUiState.Idle) return
         loadRecord(ageGroupId)
         loadPlans(ageGroupId)
+        loadSessions(ageGroupId)
 
         viewModelScope.launch {
             _state.update { AgeGroupDetailsUiState.Loading }
@@ -79,6 +85,19 @@ class AgeGroupDetailsViewModel(
                     if (e.statusCode == HttpStatusCode.Forbidden.value) AgeGroupPlansUiState.Hidden else AgeGroupPlansUiState.Error
                 } catch (e: Exception) {
                     AgeGroupPlansUiState.Error
+                }
+            }
+        }
+    }
+
+    fun loadSessions(ageGroupId: String) {
+        viewModelScope.launch {
+            if (_sessions.value !is AgeGroupSessionsUiState.Loaded) _sessions.update { AgeGroupSessionsUiState.Loading }
+            _sessions.update {
+                try {
+                    AgeGroupSessionsUiState.Loaded(getTrainingSessionsUseCase(ageGroupId))
+                } catch (e: Exception) {
+                    (it as? AgeGroupSessionsUiState.Loaded) ?: AgeGroupSessionsUiState.Error
                 }
             }
         }

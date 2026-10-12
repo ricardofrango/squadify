@@ -4,6 +4,7 @@ import com.ricardofrango.squadify.model.*
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.datetime.date
+import org.jetbrains.exposed.v1.datetime.time
 
 object Users : Table("users") {
     val id = uuid("id")
@@ -375,5 +376,25 @@ object TrainingPlansTable : Table("training_plans") {
 
     init {
         uniqueIndex("unique_training_plan_period", ageGroupId, level, periodStart)
+    }
+}
+
+// An age group's training sessions (design 39). See V17__training_sessions.sql.
+object TrainingSessionsTable : Table("training_sessions") {
+    val id = uuid("id")
+    val ageGroupId = uuid("age_group_id").references(AgeGroups.id)
+    val date = date("date")
+    val startTime = time("start_time")
+    val endTime = time("end_time")
+    val location = varchar("location", 500).nullable()
+    val notes = text("notes").nullable()
+    val cancelledAt = timestamp("cancelled_at").nullable()
+    val cancelledBy = uuid("cancelled_by").references(Users.id).nullable()
+    val createdAt = timestamp("created_at")
+
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex("unique_training_session_time", ageGroupId, date, startTime)
     }
 }
