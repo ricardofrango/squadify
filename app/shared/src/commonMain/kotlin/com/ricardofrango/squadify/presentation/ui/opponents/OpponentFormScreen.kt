@@ -181,7 +181,7 @@ private fun OpponentFormContent(
                     Spacer(Modifier.height(8.dp))
                     Text(stringResource(Res.string.msg_check_connection), color = DeepCarbon.copy(alpha = 0.6f), textAlign = TextAlign.Center)
                     Spacer(Modifier.height(16.dp))
-                    Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen)) { Text(stringResource(Res.string.btn_retry)) }
+                    Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)) { Text(stringResource(Res.string.btn_retry)) }
                 }
             }
             return@Scaffold

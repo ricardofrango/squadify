@@ -164,7 +164,7 @@ private fun OpponentsContent(
                         title = stringResource(Res.string.msg_opponents_load_failed),
                         body = stringResource(Res.string.msg_check_connection)
                     ) {
-                        Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen)) {
+                        Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)) {
                             Text(stringResource(Res.string.btn_retry))
                         }
                     }
@@ -314,7 +314,7 @@ private fun OpponentRow(opponent: Opponent, selectMode: Boolean, selected: Boole
 
 @Composable
 private fun CreateButton(text: String, onClick: () -> Unit) {
-    Button(onClick = onClick, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen), shape = RoundedCornerShape(14.dp)) {
+    Button(onClick = onClick, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White), shape = RoundedCornerShape(14.dp)) {
         Text(text, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
