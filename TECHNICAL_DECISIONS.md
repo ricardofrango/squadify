@@ -2598,3 +2598,9 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
 - **Prev / Next:** moves to the previous or next period without leaving. Unsaved changes ask first.
 - **Copy from:** copies the previous period's focus, objectives, notes and intensity. If something is already typed, it asks before replacing it (design 40i says "fills empty fields only and asks before overwriting"; this asks, then copies everything).
 - **Context strip:** the phase for a month, and the month and its focus for a week.
+
+**Week plan** (`WeekPlanScreen`, design 40e):
+- **Context strip:** the month the week belongs to and that month's focus, with the week's dates.
+- **Body:** the week's focus with its intensity chip ("Medium intensity", amber when high), objectives and notes. Empty, it says "This week has no plan" with "Plan this week".
+- **Editor:** the shared month/week editor, with Low / Medium / High.
+- **Still to come:** the week's sessions and "Add one session" arrive with the training sessions.

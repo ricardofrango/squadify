@@ -1162,4 +1162,6 @@
     <string name="intensity_chip_low">Low intensity</string>
     <string name="intensity_chip_medium">Medium intensity</string>
     <string name="intensity_chip_high">High intensity</string>
+    <string name="msg_week_no_plan">This week has no plan</string>
+    <string name="btn_plan_this_week">Plan this week</string>
 </resources>

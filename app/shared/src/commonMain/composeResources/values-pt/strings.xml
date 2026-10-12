@@ -1160,4 +1160,6 @@
     <string name="intensity_chip_low">Intensidade baixa</string>
     <string name="intensity_chip_medium">Intensidade média</string>
     <string name="intensity_chip_high">Intensidade alta</string>
+    <string name="msg_week_no_plan">Esta semana não tem plano</string>
+    <string name="btn_plan_this_week">Planear esta semana</string>
 </resources>
