@@ -23,7 +23,6 @@ import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.TrainingIntensity
-import com.ricardofrango.squadify.model.TrainingKeyDate
 import com.ricardofrango.squadify.model.TrainingPhase
 import com.ricardofrango.squadify.model.TrainingPlan
 import com.ricardofrango.squadify.model.TrainingPlanLevel
@@ -38,7 +37,6 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
@@ -146,9 +144,6 @@ class TrainingPlanUseCasesTest {
         assertFailsWith<ValidationException> {
             savePlan(id, ag.id, season.copy(phases = listOf(TrainingPhase("Backwards", LocalDate(2026, 12, 1), LocalDate(2026, 11, 1)))))
         }
-        savePlan(id, ag.id, season.copy(keyDates = listOf(TrainingKeyDate(LocalDate(2026, 10, 11), LocalDate(2026, 10, 11), "Autumn Cup"))))
-        // A one-day range is stored as a single date.
-        assertNull(saved.captured.keyDates.single().endDate)
     }
 
     @Test

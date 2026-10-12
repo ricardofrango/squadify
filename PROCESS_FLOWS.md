@@ -1721,15 +1721,15 @@ Players and parents never see plans.
 
 ```mermaid
 graph TD
-    A[Start: userId, ageGroupId, level, periodStart, focus, objectives, notes, intensity, phases, keyDates] --> B[Fetch AgeGroup by id]
+    A[Start: userId, ageGroupId, level, periodStart, focus, objectives, notes, intensity, phases] --> B[Fetch AgeGroup by id]
     B -- not found --> N(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_TRAINING, ageGroupId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> P{"periodStart is the season's start (SEASON), the 1st of a month it touches (MONTH), or the Monday of a week overlapping it (WEEK)?"}
     P -- No --> V1(["Throw ValidationException"])
-    P -- Yes --> Q{"month/week without a focus, intensity on a non-week, or phases/key dates on a non-season?"}
+    P -- Yes --> Q{"month/week without a focus, intensity on a non-week, or phases on a non-season?"}
     Q -- Yes --> V2(["Throw ValidationException"])
-    Q -- No --> R{"a phase or key date without a name/label, ending before it starts, or outside the season?"}
+    Q -- No --> R{"a phase without a name, ending before it starts, or outside the season?"}
     R -- Yes --> V3(["Throw ValidationException"])
     R -- No --> S["Trim the text, drop blank objectives; a one-day key-date range becomes a single date"]
     S --> T["Upsert by (age group, level, periodStart): keep the existing plan's id"]
@@ -2165,7 +2165,6 @@ erDiagram
         text notes "nullable"
         varchar intensity "nullable -- LOW / MEDIUM / HIGH, weeks only"
         text phases "JSON list -- season only"
-        text key_dates "JSON list -- season only"
         timestamp updated_at
         uuid updated_by FK
     }

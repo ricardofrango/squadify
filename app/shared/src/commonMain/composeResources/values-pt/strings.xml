@@ -1096,7 +1096,6 @@
     <string name="title_edit_season_plan">Editar plano da época</string>
     <string name="label_plan_objectives">OBJETIVOS</string>
     <string name="label_plan_phases">FASES</string>
-    <string name="label_plan_key_dates">DATAS-CHAVE</string>
     <string name="label_plan_months">MESES</string>
     <string name="label_plan_weeks">SEMANAS</string>
     <string name="label_plan_focus">FOCO</string>
@@ -1107,7 +1106,6 @@
     <string name="plan_no_focus">Ainda sem foco</string>
     <string name="btn_add_objective">Adicionar objetivo</string>
     <string name="btn_add_phase">Adicionar fase</string>
-    <string name="btn_add_key_date">Adicionar data-chave</string>
     <string name="label_new_objective">Novo objetivo</string>
     <string name="msg_season_range">Época %1$s – %2$s. Todas as datas têm de estar dentro dela.</string>
     <string name="msg_must_end_by">Tem de terminar até %1$s, o fim da época.</string>
@@ -1117,9 +1115,7 @@
     <string name="label_phase_name">Nome</string>
     <string name="label_plan_start">Início</string>
     <string name="label_plan_end">Fim</string>
-    <string name="label_plan_end_optional">Fim (opcional)</string>
     <string name="label_focus_field">Foco</string>
-    <string name="label_key_date_label">Descrição</string>
     <string name="label_pick_date">Escolha uma data</string>
     <string name="msg_no_season_plan">Ainda sem plano da época</string>
     <string name="btn_create_season_plan">Criar plano da época</string>

@@ -28,14 +28,6 @@ data class TrainingPhase(
     val focus: String? = null
 )
 
-/** A date (or a range, when [endDate] is set) worth planning around: a tournament, an assessment, a break. */
-@Serializable
-data class TrainingKeyDate(
-    val startDate: LocalDate,
-    val endDate: LocalDate? = null,
-    val label: String
-)
-
 /**
  * One plan. [periodStart] says which one: the season's start date (SEASON), the 1st of the month
  * (MONTH) or the week's Monday (WEEK). [focus] is required for months and weeks.
@@ -53,7 +45,6 @@ data class TrainingPlan(
     val intensity: TrainingIntensity? = null,
     // SEASON only.
     val phases: List<TrainingPhase> = emptyList(),
-    val keyDates: List<TrainingKeyDate> = emptyList(),
     val updatedAt: Instant? = null
 )
 
@@ -79,8 +70,7 @@ data class SaveTrainingPlanRequest(
     val objectives: List<String> = emptyList(),
     val notes: String? = null,
     val intensity: TrainingIntensity? = null,
-    val phases: List<TrainingPhase> = emptyList(),
-    val keyDates: List<TrainingKeyDate> = emptyList()
+    val phases: List<TrainingPhase> = emptyList()
 )
 
 // ---- Periods ----

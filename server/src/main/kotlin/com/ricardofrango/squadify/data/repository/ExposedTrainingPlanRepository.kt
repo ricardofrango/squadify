@@ -2,7 +2,6 @@ package com.ricardofrango.squadify.data.repository
 
 import com.ricardofrango.squadify.data.database.TrainingPlansTable
 import com.ricardofrango.squadify.domain.repository.TrainingPlanRepository
-import com.ricardofrango.squadify.model.TrainingKeyDate
 import com.ricardofrango.squadify.model.TrainingPhase
 import com.ricardofrango.squadify.model.TrainingPlan
 import com.ricardofrango.squadify.util.toUuid
@@ -49,7 +48,6 @@ class ExposedTrainingPlanRepository : TrainingPlanRepository {
                 it[notes] = plan.notes
                 it[intensity] = plan.intensity
                 it[phases] = json.encodeToString(plan.phases)
-                it[keyDates] = json.encodeToString(plan.keyDates)
                 it[updatedAt] = now
                 it[this.updatedBy] = updatedBy.toUuid()
             }
@@ -63,7 +61,6 @@ class ExposedTrainingPlanRepository : TrainingPlanRepository {
             it[notes] = plan.notes
             it[intensity] = plan.intensity
             it[phases] = json.encodeToString(plan.phases)
-            it[keyDates] = json.encodeToString(plan.keyDates)
             it[updatedAt] = now
             it[this.updatedBy] = updatedBy.toUuid()
         }
@@ -80,7 +77,6 @@ class ExposedTrainingPlanRepository : TrainingPlanRepository {
         notes = row[TrainingPlansTable.notes],
         intensity = row[TrainingPlansTable.intensity],
         phases = json.decodeFromString<List<TrainingPhase>>(row[TrainingPlansTable.phases]),
-        keyDates = json.decodeFromString<List<TrainingKeyDate>>(row[TrainingPlansTable.keyDates]),
         updatedAt = row[TrainingPlansTable.updatedAt]
     )
 }

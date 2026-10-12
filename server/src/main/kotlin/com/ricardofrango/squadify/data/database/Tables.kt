@@ -368,7 +368,6 @@ object TrainingPlansTable : Table("training_plans") {
     val notes = text("notes").nullable()
     val intensity = enumerationByName("intensity", 10, TrainingIntensity::class).nullable()
     val phases = text("phases")
-    val keyDates = text("key_dates")
     val updatedAt = timestamp("updated_at")
     val updatedBy = uuid("updated_by").references(Users.id)
 

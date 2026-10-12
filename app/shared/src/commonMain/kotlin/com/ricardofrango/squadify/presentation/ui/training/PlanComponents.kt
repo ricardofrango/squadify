@@ -211,12 +211,18 @@ fun ObjectivesEditor(objectives: List<String>, enabled: Boolean, onChange: (List
                     minLines = 1,
                     imeAction = ImeAction.Default
                 )
-                IconButton(onClick = { onChange(objectives.filterIndexed { j, _ -> j != i }) }, enabled = enabled) {
-                    Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.cd_remove), tint = DeepCarbon.copy(alpha = 0.5f))
-                }
+                RemoveRowButton(enabled) { onChange(objectives.filterIndexed { j, _ -> j != i }) }
             }
         }
         AddRowButton(stringResource(Res.string.btn_add_objective), enabled) { onChange(objectives + "") }
+    }
+}
+
+/** × to remove a row, compact so it sits close to the screen's edge (the 48dp default left a wide gap). */
+@Composable
+fun RemoveRowButton(enabled: Boolean, onRemove: () -> Unit) {
+    IconButton(onClick = onRemove, enabled = enabled, modifier = Modifier.padding(start = 4.dp).size(32.dp)) {
+        Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.cd_remove), tint = DeepCarbon.copy(alpha = 0.5f), modifier = Modifier.size(20.dp))
     }
 }
 

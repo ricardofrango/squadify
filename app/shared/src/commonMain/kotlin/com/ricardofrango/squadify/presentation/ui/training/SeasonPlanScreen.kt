@@ -37,7 +37,6 @@ import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
-import com.ricardofrango.squadify.model.TrainingKeyDate
 import com.ricardofrango.squadify.model.TrainingPhase
 import com.ricardofrango.squadify.model.TrainingPlan
 import com.ricardofrango.squadify.model.TrainingPlanLevel
@@ -65,7 +64,6 @@ import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.btn_create_season_plan
 import squadify.app.shared.generated.resources.cd_edit_plan
 import squadify.app.shared.generated.resources.ic_edit
-import squadify.app.shared.generated.resources.label_plan_key_dates
 import squadify.app.shared.generated.resources.label_plan_months
 import squadify.app.shared.generated.resources.label_plan_objectives
 import squadify.app.shared.generated.resources.label_plan_phases
@@ -130,7 +128,7 @@ private fun SeasonPlanContent(
         BoxWithConstraints(modifier) {
             val wide = maxWidth >= 600.dp
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatsCard { SeasonTimeline(plans.season, plan?.phases.orEmpty(), plan?.keyDates.orEmpty(), today) }
+                StatsCard { SeasonTimeline(plans.season, plan?.phases.orEmpty(), today) }
                 if (plan == null) {
                     StatsCard {
                         PlanEmpty(
@@ -144,7 +142,7 @@ private fun SeasonPlanContent(
                 if (wide) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) { if (plan != null) ObjectivesCard(plan) }
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) { if (plan != null) { PhasesCard(plan); KeyDatesCard(plan) } }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) { if (plan != null) PhasesCard(plan) }
                         Column(Modifier.weight(1f)) { MonthsCard(plans, plan, onOpenMonth) }
                     }
                 } else {
@@ -152,7 +150,6 @@ private fun SeasonPlanContent(
                     if (plan != null) {
                         ObjectivesCard(plan)
                         PhasesCard(plan)
-                        KeyDatesCard(plan)
                     }
                 }
             }
@@ -170,9 +167,9 @@ private fun fraction(season: Season, date: LocalDate): Float {
     return (season.startDate.daysUntil(date).toFloat() / total).coerceIn(0f, 1f)
 }
 
-/** The season from start to end: month initials, phase bands, key-date flags and today (design 40c). */
+/** The season from start to end: month initials, phase bands and today (design 40c). */
 @Composable
-private fun SeasonTimeline(season: Season, phases: List<TrainingPhase>, keyDates: List<TrainingKeyDate>, today: LocalDate) {
+private fun SeasonTimeline(season: Season, phases: List<TrainingPhase>, today: LocalDate) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val width = maxWidth
         Column {
@@ -195,9 +192,6 @@ private fun SeasonTimeline(season: Season, phases: List<TrainingPhase>, keyDates
                             .fillMaxHeight()
                             .background(PhaseColors[i % PhaseColors.size], RoundedCornerShape(4.dp))
                     )
-                }
-                keyDates.forEach { keyDate ->
-                    Box(Modifier.offset(x = width * fraction(season, keyDate.startDate)).width(3.dp).fillMaxHeight().background(DeepCarbon))
                 }
                 if (today >= season.startDate && today <= season.endDate) {
                     Box(Modifier.offset(x = width * fraction(season, today)).width(2.dp).fillMaxHeight().background(AlertRed))
@@ -278,22 +272,6 @@ private fun PhasesCard(plan: TrainingPlan) {
     }
 }
 
-@Composable
-private fun KeyDatesCard(plan: TrainingPlan) {
-    if (plan.keyDates.isEmpty()) return
-    StatsCard {
-        PlanSectionHeading(Res.string.label_plan_key_dates, plan.keyDates.size, Modifier.padding(bottom = 10.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            plan.keyDates.forEach { keyDate ->
-                Row {
-                    Text(rangeLabel(keyDate.startDate, keyDate.endDate), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, modifier = Modifier.width(120.dp))
-                    Text(keyDate.label, style = MaterialTheme.typography.bodyMedium, color = DeepCarbon)
-                }
-            }
-        }
-    }
-}
-
 // ---- Previews ----
 
 internal val previewSeason = Season("s1", "c1", "26/27", SeasonType.EUROPEAN_YEAR, LocalDate(2026, 9, 1), LocalDate(2027, 6, 30), true)
@@ -311,8 +289,7 @@ internal val previewPlans = TrainingPlans(
                 TrainingPhase("1st half", LocalDate(2026, 9, 28), LocalDate(2026, 12, 20), "Consolidate the 1-4-3-3"),
                 TrainingPhase("Break", LocalDate(2026, 12, 21), LocalDate(2027, 1, 4)),
                 TrainingPhase("2nd half", LocalDate(2027, 1, 5), LocalDate(2027, 4, 25), "Pressing and transitions")
-            ),
-            keyDates = listOf(TrainingKeyDate(LocalDate(2026, 10, 11), label = "Autumn Cup · Mafra"))
+            )
         ),
         TrainingPlan("p2", "ag1", TrainingPlanLevel.MONTH, LocalDate(2026, 10, 1), focus = "Building from the back")
     ),

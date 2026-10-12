@@ -83,7 +83,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
   - **Who can evaluate:** any staff member of the age group, coach or staff.
   - **Visibility:** training ratings are **staff-only**. Players and parents never see them, as with match ratings.
 - **Periodization (planning cycles):** each cycle covers a fixed period of the season. The plans come first: the coach sets the objectives of the year, the month and the week before preparing that week's sessions, so the plans are built before the sessions, and a session shows its week's and month's objectives.
-  - **Macrocycle (year plan):** the season's plan for the age group: phases, main objectives and key dates.
+  - **Macrocycle (year plan):** the season's plan for the age group: phases and main objectives.
   - **Mesocycle (month plan):** each month's focus and objectives within the year plan.
   - **Microcycle (week plan):** each week's plan, made of that week's sessions and their focus.
   - **Sessions don't depend on them:** a session exists whether or not its week has a plan.
@@ -181,7 +181,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - **Match Details:** line-ups, call-ups, events and score.
       - **Live match console:** for coaches and staff.
       - **After the match:** finished results stay as history, with the post-match report and per-player stats. Season stats live on Player, Team and Age Group Details (see Phase 5).
-- [x] **Phase 8: Training & Periodization** (see §5b). Not yet: drag-to-reorder (up/down buttons on phases and exercises; objectives keep the order they were added) and remembering List / Calendar.
+- [x] **Phase 8: Training & Periodization** (see §5b). Not yet: drag-to-reorder (up/down buttons on a session's exercises; objectives and phases keep the order they were added) and remembering List / Calendar.
     - [x] Training permission: a configurable club setting for sessions and plans.
     - [x] **First:** Macrocycle (year plan), mesocycles (month plans) and microcycles (week plans) for an age group, with a Home alert when a period starts without its plan. Built before the sessions, because a coach sets the year's, month's and week's objectives before preparing a session.
     - [x] Club country (Portugal by default), for public holidays.

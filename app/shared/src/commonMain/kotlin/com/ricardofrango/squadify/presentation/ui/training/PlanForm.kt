@@ -3,7 +3,6 @@ package com.ricardofrango.squadify.presentation.ui.training
 import com.ricardofrango.squadify.model.SaveTrainingPlanRequest
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.TrainingIntensity
-import com.ricardofrango.squadify.model.TrainingKeyDate
 import com.ricardofrango.squadify.model.TrainingPhase
 import com.ricardofrango.squadify.model.TrainingPlan
 import com.ricardofrango.squadify.model.TrainingPlanLevel
@@ -19,8 +18,7 @@ data class PlanForm(
     val objectives: List<String> = emptyList(),
     val notes: String = "",
     val intensity: TrainingIntensity? = null,
-    val phases: List<TrainingPhase> = emptyList(),
-    val keyDates: List<TrainingKeyDate> = emptyList()
+    val phases: List<TrainingPhase> = emptyList()
 )
 
 /** What a date of a phase or key date gets wrong, shown under it. */
@@ -32,8 +30,7 @@ internal fun TrainingPlan?.toForm(): PlanForm = if (this == null) PlanForm() els
     objectives = objectives,
     notes = notes.orEmpty(),
     intensity = intensity,
-    phases = phases,
-    keyDates = keyDates
+    phases = phases
 )
 
 internal fun PlanForm.toRequest(level: TrainingPlanLevel, periodStart: LocalDate) = SaveTrainingPlanRequest(
@@ -43,8 +40,7 @@ internal fun PlanForm.toRequest(level: TrainingPlanLevel, periodStart: LocalDate
     objectives = objectives.map { it.trim() }.filter { it.isNotEmpty() },
     notes = notes.trim().ifEmpty { null },
     intensity = intensity.takeIf { level == TrainingPlanLevel.WEEK },
-    phases = phases.takeIf { level == TrainingPlanLevel.SEASON }.orEmpty(),
-    keyDates = keyDates.takeIf { level == TrainingPlanLevel.SEASON }.orEmpty()
+    phases = phases.takeIf { level == TrainingPlanLevel.SEASON }.orEmpty()
 )
 
 /** The error of a start–end range in [season], if any (the start is checked first). */
@@ -58,8 +54,7 @@ internal fun rangeError(start: LocalDate, end: LocalDate, season: Season): PlanD
 /** Whether the form can be saved: months and weeks need a focus, and every date must be valid. */
 internal fun PlanForm.isValid(level: TrainingPlanLevel, season: Season): Boolean =
     (level == TrainingPlanLevel.SEASON || focus.isNotBlank()) &&
-        phases.all { it.name.isNotBlank() && rangeError(it.startDate, it.endDate, season) == null } &&
-        keyDates.all { it.label.isNotBlank() && rangeError(it.startDate, it.endDate ?: it.startDate, season) == null }
+        phases.all { it.name.isNotBlank() && rangeError(it.startDate, it.endDate, season) == null }
 
 /** A new phase starts the day after the last one ends (or with the season) and runs to the season's end. */
 internal fun PlanForm.withNewPhase(season: Season): PlanForm {

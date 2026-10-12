@@ -3,7 +3,6 @@ package com.ricardofrango.squadify.presentation
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.model.TrainingIntensity
-import com.ricardofrango.squadify.model.TrainingKeyDate
 import com.ricardofrango.squadify.model.TrainingPhase
 import com.ricardofrango.squadify.model.TrainingPlan
 import com.ricardofrango.squadify.model.TrainingPlanLevel
@@ -49,8 +48,6 @@ class PlanFormTest {
         assertFalse(late.isValid(TrainingPlanLevel.SEASON, season))
         val unnamed = PlanForm(phases = listOf(TrainingPhase(" ", LocalDate(2027, 1, 5), LocalDate(2027, 4, 25))))
         assertFalse(unnamed.isValid(TrainingPlanLevel.SEASON, season))
-        val unlabelled = PlanForm(keyDates = listOf(TrainingKeyDate(LocalDate(2026, 10, 11), label = "")))
-        assertFalse(unlabelled.isValid(TrainingPlanLevel.SEASON, season))
     }
 
     @Test

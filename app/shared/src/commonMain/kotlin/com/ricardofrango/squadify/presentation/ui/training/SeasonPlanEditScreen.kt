@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -23,7 +21,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.Season
-import com.ricardofrango.squadify.model.TrainingKeyDate
 import com.ricardofrango.squadify.model.TrainingPhase
 import com.ricardofrango.squadify.model.TrainingPlanLevel
 import com.ricardofrango.squadify.model.planFor
@@ -33,21 +30,14 @@ import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.shared.generated.resources.Res
-import squadify.app.shared.generated.resources.btn_add_key_date
 import squadify.app.shared.generated.resources.btn_add_phase
 import squadify.app.shared.generated.resources.btn_save_season_plan
-import squadify.app.shared.generated.resources.cd_remove
-import squadify.app.shared.generated.resources.ic_close
 import squadify.app.shared.generated.resources.label_focus_field
-import squadify.app.shared.generated.resources.label_key_date_label
 import squadify.app.shared.generated.resources.label_phase_name
 import squadify.app.shared.generated.resources.label_plan_end
-import squadify.app.shared.generated.resources.label_plan_end_optional
-import squadify.app.shared.generated.resources.label_plan_key_dates
 import squadify.app.shared.generated.resources.label_plan_objectives
 import squadify.app.shared.generated.resources.label_plan_phases
 import squadify.app.shared.generated.resources.label_plan_start
@@ -116,23 +106,12 @@ private fun SeasonPlanEditContent(
                 left = {
                     PlanSectionHeading(Res.string.label_plan_objectives)
                     ObjectivesEditor(form.objectives, enabled) { onFormChange(form.copy(objectives = it)) }
-                    PlanSectionHeading(Res.string.label_plan_key_dates)
-                    form.keyDates.forEachIndexed { i, keyDate ->
-                        KeyDateEditor(keyDate, season, enabled,
-                            onChange = { changed -> onFormChange(form.copy(keyDates = form.keyDates.toMutableList().also { it[i] = changed })) },
-                            onRemove = { onFormChange(form.copy(keyDates = form.keyDates.filterIndexed { j, _ -> j != i })) }
-                        )
-                    }
-                    AddRowButton(stringResource(Res.string.btn_add_key_date), enabled) {
-                        onFormChange(form.copy(keyDates = form.keyDates + TrainingKeyDate(season.startDate, label = "")))
-                    }
                 },
                 right = {
                     PlanSectionHeading(Res.string.label_plan_phases)
                     form.phases.forEachIndexed { i, phase ->
-                        PhaseEditor(phase, season, enabled, index = i, size = form.phases.size,
+                        PhaseEditor(phase, season, enabled,
                             onChange = { changed -> onFormChange(form.copy(phases = form.phases.toMutableList().also { it[i] = changed })) },
-                            onMove = { from, to -> onFormChange(form.copy(phases = form.phases.moved(from, to))) },
                             onRemove = { onFormChange(form.copy(phases = form.phases.filterIndexed { j, _ -> j != i })) }
                         )
                     }
@@ -155,10 +134,7 @@ private fun PhaseEditor(
     phase: TrainingPhase,
     season: Season,
     enabled: Boolean,
-    index: Int,
-    size: Int,
     onChange: (TrainingPhase) -> Unit,
-    onMove: (Int, Int) -> Unit,
     onRemove: () -> Unit
 ) {
     val error = rangeError(phase.startDate, phase.endDate, season)
@@ -172,10 +148,7 @@ private fun PhaseEditor(
                 keyboardType = KeyboardType.Text,
                 modifier = Modifier.weight(1f)
             )
-            ReorderButtons(index, size, enabled, onMove)
-            IconButton(onClick = onRemove, enabled = enabled) {
-                Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.cd_remove), tint = DeepCarbon.copy(alpha = 0.5f))
-            }
+            RemoveRowButton(enabled, onRemove)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             PlanDateField(stringResource(Res.string.label_plan_start), phase.startDate, season, enabled,
@@ -187,29 +160,6 @@ private fun PhaseEditor(
             value = phase.focus.orEmpty(),
             onValueChange = { onChange(phase.copy(focus = it)) },
             label = stringResource(Res.string.label_focus_field),
-            enabled = enabled,
-            keyboardType = KeyboardType.Text
-        )
-    }
-}
-
-@Composable
-private fun KeyDateEditor(keyDate: TrainingKeyDate, season: Season, enabled: Boolean, onChange: (TrainingKeyDate) -> Unit, onRemove: () -> Unit) {
-    val error = rangeError(keyDate.startDate, keyDate.endDate ?: keyDate.startDate, season)
-    EditorCard {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
-            PlanDateField(stringResource(Res.string.label_plan_start), keyDate.startDate, season, enabled,
-                error = error.takeIf { it == PlanDateError.BEFORE_SEASON }, modifier = Modifier.weight(1f)) { onChange(keyDate.copy(startDate = it)) }
-            PlanDateField(stringResource(Res.string.label_plan_end_optional), keyDate.endDate, season, enabled,
-                error = error.takeIf { it != PlanDateError.BEFORE_SEASON }, modifier = Modifier.weight(1f)) { onChange(keyDate.copy(endDate = it)) }
-            IconButton(onClick = onRemove, enabled = enabled) {
-                Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.cd_remove), tint = DeepCarbon.copy(alpha = 0.5f))
-            }
-        }
-        FormTextField(
-            value = keyDate.label,
-            onValueChange = { onChange(keyDate.copy(label = it)) },
-            label = stringResource(Res.string.label_key_date_label),
             enabled = enabled,
             keyboardType = KeyboardType.Text
         )

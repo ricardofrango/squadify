@@ -10,7 +10,6 @@ import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.SaveTrainingPlanRequest
 import com.ricardofrango.squadify.model.Season
-import com.ricardofrango.squadify.model.TrainingKeyDate
 import com.ricardofrango.squadify.model.TrainingPhase
 import com.ricardofrango.squadify.model.TrainingPlan
 import com.ricardofrango.squadify.model.TrainingPlanLevel
@@ -54,19 +53,14 @@ class SaveTrainingPlanUseCase(
         val focus = request.focus.cleaned()
         if (request.level != TrainingPlanLevel.SEASON && focus == null) throw ValidationException("A focus is required")
         if (request.level != TrainingPlanLevel.WEEK && request.intensity != null) throw ValidationException("Only a week has an intensity")
-        if (request.level != TrainingPlanLevel.SEASON && (request.phases.isNotEmpty() || request.keyDates.isNotEmpty())) {
-            throw ValidationException("Only the season plan has phases and key dates")
+        if (request.level != TrainingPlanLevel.SEASON && request.phases.isNotEmpty()) {
+            throw ValidationException("Only the season plan has phases")
         }
 
         val phases = request.phases.map { phase ->
             val name = phase.name.cleaned() ?: throw ValidationException("Every phase needs a name")
             requireRange(phase.startDate, phase.endDate, season)
             TrainingPhase(name, phase.startDate, phase.endDate, phase.focus.cleaned())
-        }
-        val keyDates = request.keyDates.map { keyDate ->
-            val label = keyDate.label.cleaned() ?: throw ValidationException("Every key date needs a label")
-            requireRange(keyDate.startDate, keyDate.endDate ?: keyDate.startDate, season)
-            TrainingKeyDate(keyDate.startDate, keyDate.endDate?.takeIf { it != keyDate.startDate }, label)
         }
 
         val existing = trainingPlanRepository.getByAgeGroup(ageGroupId).planFor(request.level, request.periodStart)
@@ -80,8 +74,7 @@ class SaveTrainingPlanUseCase(
                 objectives = request.objectives.mapNotNull { it.cleaned() },
                 notes = request.notes.cleaned(),
                 intensity = request.intensity,
-                phases = phases,
-                keyDates = keyDates
+                phases = phases
             ),
             updatedBy = userId
         )

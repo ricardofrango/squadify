@@ -1098,7 +1098,6 @@
     <string name="title_edit_season_plan">Edit season plan</string>
     <string name="label_plan_objectives">OBJECTIVES</string>
     <string name="label_plan_phases">PHASES</string>
-    <string name="label_plan_key_dates">KEY DATES</string>
     <string name="label_plan_months">MONTHS</string>
     <string name="label_plan_weeks">WEEKS</string>
     <string name="label_plan_focus">FOCUS</string>
@@ -1109,7 +1108,6 @@
     <string name="plan_no_focus">No focus yet</string>
     <string name="btn_add_objective">Add objective</string>
     <string name="btn_add_phase">Add phase</string>
-    <string name="btn_add_key_date">Add key date</string>
     <string name="label_new_objective">New objective</string>
     <string name="msg_season_range">Season %1$s – %2$s. Every date must fall inside it.</string>
     <string name="msg_must_end_by">Must end by %1$s, the end of the season.</string>
@@ -1119,9 +1117,7 @@
     <string name="label_phase_name">Name</string>
     <string name="label_plan_start">Start</string>
     <string name="label_plan_end">End</string>
-    <string name="label_plan_end_optional">End (optional)</string>
     <string name="label_focus_field">Focus</string>
-    <string name="label_key_date_label">Label</string>
     <string name="label_pick_date">Pick a date</string>
     <string name="msg_no_season_plan">No season plan yet</string>
     <string name="btn_create_season_plan">Create season plan</string>
