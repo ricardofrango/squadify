@@ -22,7 +22,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 
 ## 3. Core Entities
 - **User**: Account data (email, phone, name, avatar, status).
-- **Club**: Branding and contact info, plus a **sport** (`FOOTBALL` / `FUTSAL` for now) chosen when the club is provisioned. The sport also fixes the set of allowed **team sizes** (a-side counts) — football 4/5/7/9/11, futsal 4/5 — used by age groups and teams below. Everything else below the club is sport-agnostic.
+- **Club**: Branding and contact info, a **country** (for public holidays when creating training sessions; *planned*, Portugal by default), plus a **sport** (`FOOTBALL` / `FUTSAL` for now) chosen when the club is provisioned. The sport also fixes the set of allowed **team sizes** (a-side counts) — football 4/5/7/9/11, futsal 4/5 — used by age groups and teams below. Everything else below the club is sport-agnostic.
 - **Season**: Time-bound periods. Supports two types:
     - **Calendar Year**: January 1st to December 31st (e.g., Brazil).
     - **European Year**: July 1st to June 30th (e.g., Europe).
@@ -34,8 +34,8 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 - **AgeGroupPlayer**: Links a Player to an Age Group pool (many-to-many; `(ageGroupId, playerId)` unique).
 - **AgeGroupStaff**: Links a User (coach/staff) to an Age Group with a role.
 - **UserPlayer**: Links Parents to Players (supports multiple guardians).
-- **TrainingSession** *(planned, Phase 8)*: A training session of an age group: date, time, location, duration, and its exercises.
-- **TrainingExercise** *(planned)*: One exercise within a session: name and description (optionally duration and objectives).
+- **TrainingSession** *(planned, Phase 8)*: One training of an age group on a given date: time, location, duration, status (scheduled or cancelled) and its exercises.
+- **TrainingExercise** *(planned)*: An exercise in the age group's library: name and description (optionally duration and objectives). Reusable across sessions.
 - **TrainingEvaluation** *(planned)*: A player's rating for one session, 0–10 with decimals; 0 means the player didn't take part.
 - **Macrocycle / Mesocycle / Microcycle** *(planned)*: The age group's training plan at three levels: the year (macrocycle), each month (mesocycle) and each week (microcycle).
 
@@ -56,22 +56,47 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 - **MatchStatus**: `SCHEDULED`, `LIVE`, `HALF_TIME`, `FINISHED`, `CANCELLED`.
 
 ## 5b. Training & Periodization *(planned -- see Phase 8)*
-- **Training sessions** belong to an **age group** (like the player pool and the staff), not to a team. Each session has a date, time, location and duration.
-- **Exercises:** a session is made of exercises, each with a name and a description of what's done.
-- **Player evaluations:** after a session, each player in the age group's pool gets a rating from **0 to 10, with decimals** (e.g. 7.5).
+- **Training sessions** belong to an **age group** (like the player pool and the staff), never to a team.
+- **Creating sessions** (a generator, nothing about it is saved):
+  - **Days and times:** the training days and hours, e.g. Monday 18:00–19:00 and Thursday 18:30–20:00. They aren't remembered, so the form starts empty each time.
+  - **Period:** a start and an end date. Not saved either; it only says which dates to create sessions on.
+  - **Location:** defaults to the club's stadium location.
+  - **Holidays:** an option "Also on public holidays", off by default.
+    - **Which holidays:** the national ones of the club's country (a new country field on the club, Portugal by default), worked out on the server, including the moving ones (Good Friday, Corpus Christi).
+    - **Municipal holidays are ignored:** they're edge cases, and clubs usually train on those days.
+  - **Preview:** before creating, the app lists every date it will create, one session per matching day in the period.
+    - **Holidays:** when holidays are left out, they're shown as skipped.
+    - **Overlaps:** a date and time that already has a session gets a warning, because the new session overrides it entirely. The old session's exercises and player ratings are deleted. When it has any, the warning says what will be lost (e.g. "Has 4 exercises and 18 ratings, which will be deleted").
+    - **Confirmation:** if any session with exercises or ratings will be overridden, "Create" asks for confirmation first.
+  - **Create:** "Create N sessions" creates them all at once.
+- **Sessions:**
+  - **Contents:** each session has a date, time, location and duration.
+  - **One-off sessions:** a single extra session can be added outside the weekly days. It follows the same permission as creating sessions.
+  - **Cancelling:** a single session can be cancelled (rain, a holiday, etc.). It stays visible as cancelled and asks for no evaluations.
+- **Exercises:**
+  - **Contents:** a session is made of exercises, each with a name and a description of what's done.
+  - **Library:** exercises are reusable across sessions. Each one is written once and picked again in later sessions.
+- **Player evaluations:**
+  - **Rating:** after a session, each player in the age group's pool gets a rating from **0 to 10, with decimals** (e.g. 7.5).
   - **0 means "did not take part"**, so the evaluation doubles as the attendance record. A player who trained always gets more than 0.
   - **Who can evaluate:** any staff member of the age group, coach or staff.
-- **To-do:** once a session has ended, a to-do appears on the club Home ("Training of {date} needs player evaluations") until the evaluations are filled in, the same way a finished match asks for its report.
-- **Periodization (planning cycles):**
+  - **Visibility:** training ratings are **staff-only**. Players and parents never see them, as with match ratings.
+- **Periodization (planning cycles):** each cycle covers a fixed period of the season.
   - **Macrocycle (year plan):** the season's plan for the age group: phases, main objectives and key dates.
   - **Mesocycle (month plan):** each month's focus and objectives within the year plan.
   - **Microcycle (week plan):** each week's plan, made of that week's sessions and their focus.
-- **Open questions** to settle before building:
-  - **Permissions:** who can create and edit sessions and plans: coach only, or staff too, and is it configurable like other actions (`ConfigurablePermission`)?
-  - **Exercise library:** are exercises reusable across sessions?
-  - **Visibility:** can players and parents see training ratings? Match ratings are staff-only.
-  - **Session vs. weekly plan:** is a session always tied to a microcycle, or can it stand alone?
-  - **Training stats:** should Player and Age Group Details show attendance and average rating?
+  - **Sessions don't depend on them:** a session exists whether or not its week has a plan.
+- **Permissions:**
+  - **Configurable:** creating and editing training sessions (in bulk or one-off) and plans (macro, meso and micro cycles) is a club setting (`ConfigurablePermission`), like the other actions.
+  - **Who decides:** coordinators and admins can always do it. In Club settings → Permissions, the coordinator decides whether the age group's coaches, or coaches and staff, can do it too.
+  - **Evaluating players:** this isn't part of that setting. It's open to any coach or staff member of the age group (above).
+- **Home alerts and to-dos** (club Home tab, for the people who manage the age group):
+  - **Evaluations to-do:** when a session has ended (e.g. after 19:00 on a Monday 18:00–19:00), a to-do appears ("Training of {date} needs player evaluations") until its evaluations are filled in, the same way a finished match asks for its report. Cancelled sessions don't count.
+  - **Missing plan alerts:** when a cycle's period starts without its plan, an alert says so. A season starting with no macrocycle, a month with no mesocycle, and a week with no microcycle each raise one.
+- **Training stats:**
+  - **Age Group Details:** the Stats tab shows each player's attendance and average training rating.
+  - **Player Details:** shows the player's own attendance and average training rating.
+  - **Visibility:** staff only, like the ratings.
 
 ## 6. Parent Features
 - **Dashboard**: Quick view of children's upcoming events.
@@ -156,9 +181,11 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - **Live match console:** for coaches and staff.
       - **After the match:** finished results stay as history, with the post-match report and per-player stats. Season stats live on Player, Team and Age Group Details (see Phase 5).
 - [ ] **Phase 8: Training & Periodization** (see §5b).
-    - [ ] Training sessions per age group: create, edit, list and calendar (date, time, location, duration).
-    - [ ] Exercises with descriptions within a session.
-    - [ ] Player evaluations per session, 0–10 with decimals (0 = did not take part), by any staff member of the age group.
+    - [ ] Training permission: a configurable club setting for sessions and plans.
+    - [ ] Club country (Portugal by default), for public holidays.
+    - [ ] Create an age group's sessions in bulk: days and hours plus a period, with or without public holidays, and a preview that warns about sessions it will override. One-off sessions too. List and calendar. A single session can be cancelled.
+    - [ ] Exercise library, reusable across sessions.
+    - [ ] Player evaluations per session, 0–10 with decimals (0 = did not take part), by any staff member of the age group. Staff-only.
     - [ ] Home to-do when an ended session has players still to evaluate.
-    - [ ] Macrocycle (year plan), mesocycles (month plans) and microcycles (week plans) for an age group.
-    - [ ] Training stats (attendance, average rating) on Player and Age Group Details, if wanted.
+    - [ ] Macrocycle (year plan), mesocycles (month plans) and microcycles (week plans) for an age group, with a Home alert when a period starts without its plan.
+    - [ ] Training stats (attendance, average rating) on Age Group Details' Stats tab and on Player Details, staff-only.
