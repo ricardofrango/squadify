@@ -2,7 +2,6 @@ package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
-import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
@@ -13,14 +12,12 @@ import com.ricardofrango.squadify.model.OpponentList
 import com.ricardofrango.squadify.model.TeamRole
 
 /**
- * The Opponents screen (design 38): the club's opponents by name, the ones of its most recent matches
- * (the "Recent" section when picking one for a match) and whether the caller may create one.
+ * The Opponents screen (design 38): the club's opponents by name and whether the caller may create one.
  * Who may read it is the same as [GetOpponentsUseCase], including the [ageGroupId] path for a coach
  * picking an opponent for their own age group's match.
  */
 class GetOpponentListUseCase(
     private val opponentRepository: OpponentRepository,
-    private val matchRepository: MatchRepository,
     private val clubRepository: ClubRepository,
     private val ageGroupRepository: AgeGroupRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
@@ -61,12 +58,7 @@ class GetOpponentListUseCase(
         OpponentList(
             clubName = club.name,
             opponents = opponents,
-            recentOpponentIds = matchRepository.getRecentOpponentIds(clubId, RECENT_LIMIT),
             canCreate = canCreate
         )
-    }
-
-    companion object {
-        const val RECENT_LIMIT = 5
     }
 }

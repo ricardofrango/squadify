@@ -1023,7 +1023,6 @@
     <string name="title_choose_opponent">Choose opponent</string>
     <string name="label_search_opponents">Search opponents</string>
     <string name="cd_clear_search">Clear search</string>
-    <string name="label_recent_opponents">Recent</string>
     <string name="btn_create_opponent">Create opponent</string>
     <string name="btn_create_typed_opponent">Create “%1$s”</string>
     <string name="msg_no_opponents_title">No opponents yet</string>

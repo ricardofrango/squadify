@@ -781,14 +781,12 @@ const val OPPONENT_SHORT_NAME_MAX = 5
 /**
  * Response for `GET /opponents/list` -- the Opponents screen (design 38), in both its modes: picking
  * one for a match, and browsing them from the More panel. [opponents] are sorted by name.
- * [recentOpponentIds] are the opponents of this club's most recent matches, newest first (the
- * "Recent" section when picking). [canCreate] shows the create actions (`CREATE_OPPONENT`).
+ * [canCreate] shows the create actions (`CREATE_OPPONENT`).
  */
 @Serializable
 data class OpponentList(
     val clubName: String,
     val opponents: List<Opponent>,
-    val recentOpponentIds: List<String> = emptyList(),
     val canCreate: Boolean = false
 )
 

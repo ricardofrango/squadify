@@ -3,7 +3,6 @@ package com.ricardofrango.squadify.domain.usecase
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
-import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
@@ -32,7 +31,6 @@ import kotlin.time.Instant
 class GetOpponentListUseCaseTest {
 
     private val opponentRepository = mockk<OpponentRepository>()
-    private val matchRepository = mockk<MatchRepository>()
     private val clubRepository = mockk<ClubRepository>()
     private val ageGroupRepository = mockk<AgeGroupRepository>()
     private val teamRepository = mockk<TeamRepository>()
@@ -47,7 +45,7 @@ class GetOpponentListUseCaseTest {
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
     private val useCase = GetOpponentListUseCase(
-        opponentRepository, matchRepository, clubRepository, ageGroupRepository, checkUserPermissionUseCase, transactionManager
+        opponentRepository, clubRepository, ageGroupRepository, checkUserPermissionUseCase, transactionManager
     )
 
     private val clubId = "club-1"
@@ -63,11 +61,10 @@ class GetOpponentListUseCaseTest {
             Opponent("o1", clubId, "académica Foz do Vez"),
             Opponent("o3", clubId, "AD Fontelas")
         )
-        coEvery { matchRepository.getRecentOpponentIds(clubId, GetOpponentListUseCase.RECENT_LIMIT) } returns listOf("o2", "o3")
     }
 
     @Test
-    fun aCoordinatorGetsTheListByNameWithRecentAndCanCreate() = runBlocking<Unit> {
+    fun aCoordinatorGetsTheListByNameAndCanCreate() = runBlocking<Unit> {
         val coordinator = user("coordinator")
         coEvery { userRepository.findById(coordinator.id) } returns coordinator
         coEvery { userRepository.getUserRoleInClub(coordinator.id, clubId) } returns ClubRole.COORDINATOR
@@ -76,7 +73,6 @@ class GetOpponentListUseCaseTest {
 
         assertEquals("CD Ribamar", result.clubName)
         assertEquals(listOf("o1", "o3", "o2"), result.opponents.map { it.id })
-        assertEquals(listOf("o2", "o3"), result.recentOpponentIds)
         assertTrue(result.canCreate)
     }
 

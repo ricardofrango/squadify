@@ -69,7 +69,6 @@ import squadify.app.shared.generated.resources.ic_check
 import squadify.app.shared.generated.resources.ic_chevron_right
 import squadify.app.shared.generated.resources.ic_close
 import squadify.app.shared.generated.resources.ic_search
-import squadify.app.shared.generated.resources.label_recent_opponents
 import squadify.app.shared.generated.resources.label_search_opponents
 import squadify.app.shared.generated.resources.msg_ask_coordinator_opponent
 import squadify.app.shared.generated.resources.msg_check_connection
@@ -83,8 +82,8 @@ import squadify.app.shared.generated.resources.title_opponents
 
 /**
  * The club's opponents (design 38a–c), one screen in two modes:
- * - SELECT ([selectMode]), from Schedule match's Opponent field: "Choose opponent", a Recent section on
- *   top, a check on [selectedOpponentId]; tapping a row picks it.
+ * - SELECT ([selectMode]), from Schedule match's Opponent field: "Choose opponent", a check on
+ *   [selectedOpponentId]; tapping a row picks it.
  * - BROWSE, from More → Opponents: tapping a row opens it.
  * Search filters as you type, on name and short name, ignoring case and accents. The create actions
  * (the + in the bar, the top row in SELECT, the empty states' buttons) show only when the server says
@@ -241,18 +240,10 @@ private fun OpponentList(
         }
 
         else -> {
-            // Recent is a shortcut for picking, so it's only there in SELECT and hides while searching.
-            val recent = if (selectMode && !searching) recentOpponents(list.opponents, list.recentOpponentIds) else emptyList()
             val groups = groupByLetter(matches)
             LazyColumn(Modifier.fillMaxSize()) {
                 if (selectMode && !searching && onCreateOpponent != null) {
                     item(key = "create") { CreateRow { onCreateOpponent("") } }
-                }
-                if (recent.isNotEmpty()) {
-                    stickyHeader(key = "recent-header") { SectionHeader(stringResource(Res.string.label_recent_opponents).uppercase()) }
-                    items(recent, key = { "recent-${it.id}" }) {
-                        OpponentRow(it, selectMode, selected = it.id == selectedOpponentId, onClick = { onOpponentClick(it) })
-                    }
                 }
                 letterGroups(groups, selectMode, selectedOpponentId, onOpponentClick)
             }
@@ -387,7 +378,6 @@ private val previewList = OpponentList(
         Opponent("o4", "c1", "CF Os Malveirenses", "CFM"),
         Opponent("o5", "c1", "GD Sobreirense")
     ),
-    recentOpponentIds = listOf("o1", "o4"),
     canCreate = true
 )
 

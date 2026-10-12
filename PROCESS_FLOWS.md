@@ -1139,8 +1139,7 @@ graph TD
     B -- denied --> F(["Throw ForbiddenException"])
     B -- allowed --> C["Club name; the club's opponents sorted by name"]
     C --> D["canCreate: non-throwing probe — minClubRole=COORDINATOR, configurablePermission=CREATE_OPPONENT, ageGroupId"]
-    D --> E["recentOpponentIds: the opponents of the club's matches by each one's latest match, newest first, at most 5 (one grouped query)"]
-    E --> Z(["Return OpponentList: clubName, opponents, recentOpponentIds, canCreate"])
+    D --> Z(["Return OpponentList: clubName, opponents, canCreate"])
 ```
 
 `GET /opponents/list` feeds the Opponents screen (design 38) in both its modes: picking an opponent for a

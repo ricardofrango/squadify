@@ -32,12 +32,6 @@ internal fun groupByLetter(opponents: List<Opponent>): List<Pair<String, List<Op
         .toList()
         .sortedBy { (letter, _) -> if (letter == "#") "{" else letter }
 
-/** The opponents of [ids], in that order, skipping any that are gone. */
-internal fun recentOpponents(opponents: List<Opponent>, ids: List<String>): List<Opponent> {
-    val byId = opponents.associateBy { it.id }
-    return ids.mapNotNull { byId[it] }
-}
-
 /** What the grey logo placeholder shows: the short name, else the first letter of up to three words. */
 internal fun opponentInitials(name: String, shortName: String?): String =
     shortName?.trim()?.takeIf { it.isNotEmpty() }?.uppercase()

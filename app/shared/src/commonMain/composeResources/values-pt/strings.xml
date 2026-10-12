@@ -1021,7 +1021,6 @@
     <string name="title_choose_opponent">Escolher adversário</string>
     <string name="label_search_opponents">Procurar adversários</string>
     <string name="cd_clear_search">Limpar pesquisa</string>
-    <string name="label_recent_opponents">Recentes</string>
     <string name="btn_create_opponent">Criar adversário</string>
     <string name="btn_create_typed_opponent">Criar “%1$s”</string>
     <string name="msg_no_opponents_title">Ainda sem adversários</string>

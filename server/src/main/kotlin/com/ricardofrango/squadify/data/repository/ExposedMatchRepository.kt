@@ -16,12 +16,10 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greaterEq
 import org.jetbrains.exposed.v1.core.inList
-import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.core.notInList
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import kotlin.time.Instant
@@ -213,16 +211,6 @@ class ExposedMatchRepository : MatchRepository {
             .orderBy(MatchesTable.dateTime, SortOrder.ASC)
             .limit(limit)
             .map(::toMatch)
-    }
-
-    override suspend fun getRecentOpponentIds(clubId: String, limit: Int): List<String> {
-        val latest = MatchesTable.dateTime.max()
-        return MatchesTable.select(MatchesTable.opponentId, latest)
-            .where { MatchesTable.clubId eq clubId.toUuid() }
-            .groupBy(MatchesTable.opponentId)
-            .orderBy(latest, SortOrder.DESC)
-            .limit(limit)
-            .map { it[MatchesTable.opponentId].toString() }
     }
 
     override suspend fun getUpcomingMatchesByPlayer(playerId: String, limit: Int): List<Match> {

@@ -4,7 +4,6 @@ import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.presentation.ui.opponents.filterOpponents
 import com.ricardofrango.squadify.presentation.ui.opponents.groupByLetter
 import com.ricardofrango.squadify.presentation.ui.opponents.opponentInitials
-import com.ricardofrango.squadify.presentation.ui.opponents.recentOpponents
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -38,11 +37,6 @@ class OpponentSearchTest {
         val groups = groupByLetter(all)
         assertEquals(listOf("A", "C", "G", "#"), groups.map { it.first })
         assertEquals(listOf(academica, fontelas), groups.first().second)
-    }
-
-    @Test
-    fun recentKeepsTheServerOrderAndSkipsMissingOnes() {
-        assertEquals(listOf(malveira, fontelas), recentOpponents(all, listOf("o3", "gone", "o1")))
     }
 
     @Test
