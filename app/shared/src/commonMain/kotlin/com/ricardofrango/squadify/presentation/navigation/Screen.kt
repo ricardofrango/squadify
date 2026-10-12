@@ -236,6 +236,11 @@ sealed class Screen {
     @SerialName("exercise-library")
     data class ExerciseLibrary(val sessionId: String) : Screen()
 
+    // Rate players after a training session (design 39g).
+    @Serializable
+    @SerialName("rate-training")
+    data class RateTraining(val sessionId: String) : Screen()
+
     @Serializable
     @SerialName("match")
     data class MatchDetails(val matchId: String) : Screen()

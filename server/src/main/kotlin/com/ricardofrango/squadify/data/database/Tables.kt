@@ -419,3 +419,14 @@ object TrainingSessionExercisesTable : Table("training_session_exercises") {
 
     override val primaryKey = PrimaryKey(sessionId, exerciseId)
 }
+
+// Player ratings of a training session, in tenths (design 39g). See V19.
+object TrainingRatingsTable : Table("training_ratings") {
+    val sessionId = uuid("session_id").references(TrainingSessionsTable.id)
+    val playerId = uuid("player_id").references(Players.id)
+    val ratingTenths = integer("rating_tenths")
+    val updatedAt = timestamp("updated_at")
+    val updatedBy = uuid("updated_by").references(Users.id)
+
+    override val primaryKey = PrimaryKey(sessionId, playerId)
+}

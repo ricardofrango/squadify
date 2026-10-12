@@ -2663,3 +2663,19 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
   - **Editing:** the pencil on a row edits the exercise in the library.
 - **Replacing content:** bulk creation's replace warnings now count real exercises.
 - **Tests:** `TrainingSessionUseCasesTest` and `ExerciseLibraryTest`.
+
+**Player ratings** (design 39g/i, `V19`):
+- **Storage:** `training_ratings` holds one row per session and player, as tenths (0–100), so one decimal is exact.
+  - **0 means Absent** ("did not take part"), which makes ratings the attendance record. A player who trained gets 0.1–10.0.
+  - **Saves are partial:** saving only some players is fine, and sending null clears a rating.
+- **Who:** every coach and staff member of the age group, and coordinators, can rate. Players and parents never see ratings, rated counts or averages.
+- **When:** ratings open when the session's end time passes (server time). A cancelled session isn't rated.
+- **Rate players** (`RatePlayersScreen`): the pool by shirt number.
+  - **Quick numbers:** tap a row, then 5–9 sets a whole number and opens the next unrated player.
+  - **Fine-tuning:** − / + adjusts by 0.1 and stays on the player. Absent sets 0 and moves on.
+  - **Colours:** the match report's bands (≥ 8 solid green, 6–7.9 light green, < 6 amber, Absent grey).
+  - **Saving:** Save is enabled after any change. Leaving with changes asks first.
+- **On the session:** the ratings card (staff) says when ratings open. Once the session has ended it moves to the top with "12 of 18 rated" and Rate players.
+- **On the lists:** ended sessions show "Needs ratings" until everyone is rated, then the average (without Absent).
+- **Home to-do:** "Training of Thu 8 Oct needs player ratings · Sub-15", with "12 of 18 rated", opens Rate players. It's one row per session, grouped from 3 up like match reports, amber after 7 days.
+- **Tests:** `TrainingSessionUseCasesTest`, `GetClubHomeUseCaseTest`, `TrainingPeriodsTest` (tenths and attendance) and `RatePlayersTest`.

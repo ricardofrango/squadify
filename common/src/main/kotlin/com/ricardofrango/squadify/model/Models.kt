@@ -1191,7 +1191,13 @@ enum class ClubHomeAlertType {
      */
     SEASON_PLAN_MISSING,
     MONTH_PLAN_MISSING,
-    WEEK_PLAN_MISSING
+    WEEK_PLAN_MISSING,
+    /**
+     * A training session that has ended with players of its age group still unrated (design 39i). For
+     * admins/coordinators and the age group's coaches and staff. [ClubHomeAlert.count] is how many are rated,
+     * [ClubHomeAlert.total] the pool's size, [ClubHomeAlert.date] the session's date.
+     */
+    TRAINING_RATINGS_PENDING
 }
 
 /** One "Needs you" row. The client formats the copy from these parts so it stays localized. */
@@ -1210,7 +1216,10 @@ data class ClubHomeAlert(
     val teamName: String? = null,
     val opponentName: String? = null,
     // CALLUPS_UNSENT only -- the matches that day still without a call-up, so the to-do can open them.
-    val matches: List<ClubHomeAlertMatch> = emptyList()
+    val matches: List<ClubHomeAlertMatch> = emptyList(),
+    // TRAINING_RATINGS_PENDING only: the session to rate, and how many players there are to rate.
+    val sessionId: String? = null,
+    val total: Int? = null
 )
 
 /** One match behind a grouped Home to-do (a day's matches with no call-up yet). */

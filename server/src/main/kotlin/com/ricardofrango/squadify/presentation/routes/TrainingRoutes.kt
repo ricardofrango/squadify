@@ -6,6 +6,8 @@ import com.ricardofrango.squadify.domain.usecase.GetTrainingSessionUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTrainingSessionsUseCase
 import com.ricardofrango.squadify.domain.usecase.SaveTrainingSessionUseCase
 import com.ricardofrango.squadify.domain.usecase.TrainingExercisesUseCase
+import com.ricardofrango.squadify.domain.usecase.TrainingRatingsUseCase
+import com.ricardofrango.squadify.model.SaveTrainingRatingsRequest
 import com.ricardofrango.squadify.model.SaveExerciseRequest
 import com.ricardofrango.squadify.model.SetSessionExercisesRequest
 import com.ricardofrango.squadify.model.CreateTrainingSessionsRequest
@@ -32,6 +34,7 @@ fun Route.trainingRoutes() {
     val changeSession by inject<ChangeTrainingSessionUseCase>()
     val getSession by inject<GetTrainingSessionUseCase>()
     val exercises by inject<TrainingExercisesUseCase>()
+    val ratings by inject<TrainingRatingsUseCase>()
 
     authenticate("auth-jwt") {
         route("/age-groups/{ageGroupId}/training-sessions") {
@@ -79,6 +82,17 @@ fun Route.trainingRoutes() {
         }
 
         route("/training-sessions/{sessionId}") {
+            // Player ratings (staff only): the pool and the ratings so far; saving is partial.
+            get("/ratings") {
+                val sessionId = call.parameters["sessionId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                val userId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                call.respond(ratings.get(userId, sessionId))
+            }
+            put("/ratings") {
+                val sessionId = call.parameters["sessionId"] ?: return@put call.respond(HttpStatusCode.BadRequest)
+                val userId = call.userId ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                call.respond(ratings.save(userId, sessionId, call.receive<SaveTrainingRatingsRequest>()))
+            }
             // The session's exercises, in order: adds, removes and reorders in one go.
             put("/exercises") {
                 val sessionId = call.parameters["sessionId"] ?: return@put call.respond(HttpStatusCode.BadRequest)

@@ -1788,6 +1788,28 @@ order (adding, removing and reordering in one go), behind `MANAGE_TRAINING`: onl
 each once, and not while the session is cancelled. Deleting or replacing a session deletes its exercise links;
 the library keeps the exercises.
 
+### 9b.7 Player Ratings (`TrainingRatingsUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, sessionId, ratings] --> B[Fetch session and its AgeGroup]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C["requireRateTraining — COORDINATOR, or STAFF+ of the age group (never players or parents)"]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> O{"session ended (its end time passed) and not cancelled?"}
+    O -- No --> V1(["Throw ValidationException"])
+    O -- Yes --> P{"every player in the age group's pool, every rating 0–10 with one decimal?"}
+    P -- No --> V2(["Throw ValidationException"])
+    P -- Yes --> S["Upsert the given ratings (as tenths), delete those sent as null"]
+    S --> Z(["Return the pool and the ratings"])
+```
+
+`GET`/`PUT /training-sessions/{id}/ratings`. A rating of 0 means "did not take part", so ratings double as
+attendance. The Training tab and session details carry each session's rated count and its average without the
+Absent ones, for those who rate only. The club Home adds `TRAINING_RATINGS_PENDING`: one row per ended,
+non-cancelled session with players of its age group still unrated, for admins/coordinators and the age group's
+coaches and staff, oldest first.
+
 ### 9b.5 One Session (`GetTrainingSessionUseCase`, `SaveTrainingSessionUseCase`, `ChangeTrainingSessionUseCase`)
 
 `GET /training-sessions/{id}` has the same read gate as the Training tab (players and parents too) and returns
@@ -1888,6 +1910,8 @@ erDiagram
     AGE_GROUPS ||--o{ TRAINING_EXERCISES : library
     TRAINING_SESSIONS ||--o{ TRAINING_SESSION_EXERCISES : runs
     TRAINING_EXERCISES ||--o{ TRAINING_SESSION_EXERCISES : used_in
+    TRAINING_SESSIONS ||--o{ TRAINING_RATINGS : rated_in
+    PLAYERS ||--o{ TRAINING_RATINGS : rated
     USERS ||--o{ TRAINING_SESSIONS : cancels
     USERS ||--o{ TRAINING_PLANS : updates
     USERS ||--o{ AGE_GROUP_STAFF : serves_as
@@ -2162,6 +2186,13 @@ erDiagram
         uuid session_id PK, FK
         uuid exercise_id PK, FK
         integer position "order in the session"
+    }
+    TRAINING_RATINGS {
+        uuid session_id PK, FK
+        uuid player_id PK, FK
+        integer rating_tenths "0-100 (CHECK); 0 = did not take part"
+        timestamp updated_at
+        uuid updated_by FK
     }
 ```
 

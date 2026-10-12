@@ -1316,4 +1316,24 @@
     <string name="cd_move_up">Mover para cima</string>
     <string name="cd_move_down">Mover para baixo</string>
     <string name="msg_session_no_exercises">Ainda sem exercícios.</string>
+    <!-- Training ratings (design 39g/i) -->
+    <string name="title_rate_players">Avaliar jogadores</string>
+    <string name="msg_rate_intro">Toque num jogador e depois num número — abre o próximo por avaliar. Ajuste com − / +. As avaliações só são visíveis para a equipa técnica.</string>
+    <string name="btn_absent">Ausente</string>
+    <string name="label_absent">Não participou</string>
+    <string name="label_rated_count">%1$d de %2$d avaliados</string>
+    <string name="btn_save_ratings">Guardar</string>
+    <string name="msg_ratings_save_failed">Não foi possível guardar as avaliações. Tente novamente.</string>
+    <string name="msg_ratings_load_failed">Não foi possível carregar as avaliações</string>
+    <string name="label_player_ratings_staff">AVALIAÇÃO DOS JOGADORES · SÓ EQUIPA TÉCNICA</string>
+    <string name="msg_ratings_open_at">As avaliações abrem quando a sessão terminar, às %1$s.</string>
+    <string name="btn_rate_players">Avaliar jogadores</string>
+    <string name="msg_ratings_cancelled">Uma sessão cancelada não é avaliada.</string>
+    <string name="home_training_needs_ratings">O treino de %1$s precisa de avaliações · %2$s</string>
+    <string name="home_trainings_need_ratings">%1$d treinos precisam de avaliações</string>
+    <string name="label_not_rated">Por avaliar</string>
+    <string name="label_absent_count">%1$d ausentes</string>
+    <string name="cd_decrease">Diminuir</string>
+    <string name="cd_increase">Aumentar</string>
+    <string name="msg_ratings_not_open">As avaliações abrem quando a sessão terminar.</string>
 </resources>

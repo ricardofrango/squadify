@@ -153,6 +153,7 @@ fun ClubDetailsScreen(
     onNavigateToOpponents: () -> Unit = {},
     // A Home missing-plan alert: the plan editor of that age group and period.
     onNavigateToEditPlan: (ageGroupId: String, level: TrainingPlanLevel, periodStart: LocalDate) -> Unit = { _, _, _ -> },
+    onNavigateToRateSession: (sessionId: String) -> Unit = {},
     // The More panel's "Switch club" (2+ clubs) and Log out.
     onSwitchClub: () -> Unit = {},
     onLoggedOut: () -> Unit = {},
@@ -302,6 +303,7 @@ fun ClubDetailsScreen(
                             onNavigateToAgeGroup = onNavigateToAgeGroup,
                             onNavigateToMatch = onNavigateToMatch,
                             onNavigateToEditPlan = onNavigateToEditPlan,
+                            onNavigateToRateSession = onNavigateToRateSession,
                             clubName = clubName
                         )
                 }
@@ -382,6 +384,7 @@ private fun ClubDetailsTabContent(
     onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
     onNavigateToMatch: (matchId: String) -> Unit,
     onNavigateToEditPlan: (ageGroupId: String, level: TrainingPlanLevel, periodStart: LocalDate) -> Unit,
+    onNavigateToRateSession: (sessionId: String) -> Unit,
     clubName: String
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -391,7 +394,8 @@ private fun ClubDetailsTabContent(
                 onRetry = { viewModel.loadClubDetails(clubId, forceReload = true) },
                 onNavigateToAgeGroup = onNavigateToAgeGroup,
                 onNavigateToMatch = onNavigateToMatch,
-                onEditPlan = onNavigateToEditPlan
+                onEditPlan = onNavigateToEditPlan,
+                onRateSession = onNavigateToRateSession
             )
 
             CLUB_TAB_TEAMS -> {

@@ -4,6 +4,8 @@ import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
 import com.ricardofrango.squadify.model.CreateTrainingSessionsRequest
 import com.ricardofrango.squadify.model.SaveExerciseRequest
 import com.ricardofrango.squadify.model.TrainingExercise
+import com.ricardofrango.squadify.model.TrainingRatingChange
+import com.ricardofrango.squadify.model.TrainingRatings
 import com.ricardofrango.squadify.model.SaveTrainingSessionRequest
 import com.ricardofrango.squadify.model.TrainingSession
 import com.ricardofrango.squadify.model.TrainingSessionDetails
@@ -35,6 +37,12 @@ class TrainingExercisesUseCase(private val repository: TrainingSessionRepository
     suspend fun create(ageGroupId: String, request: SaveExerciseRequest): TrainingExercise = repository.createExercise(ageGroupId, request)
     suspend fun update(exerciseId: String, request: SaveExerciseRequest): TrainingExercise = repository.updateExercise(exerciseId, request)
     suspend fun setForSession(sessionId: String, exerciseIds: List<String>): List<TrainingExercise> = repository.setSessionExercises(sessionId, exerciseIds)
+}
+
+/** Rating players after a session (design 39g), staff only. */
+class TrainingRatingsUseCase(private val repository: TrainingSessionRepository) {
+    suspend fun get(sessionId: String): TrainingRatings = repository.getRatings(sessionId)
+    suspend fun save(sessionId: String, changes: List<TrainingRatingChange>): TrainingRatings = repository.saveRatings(sessionId, changes)
 }
 
 class ChangeTrainingSessionUseCase(private val repository: TrainingSessionRepository) {

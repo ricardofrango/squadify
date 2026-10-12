@@ -34,6 +34,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.toInstant
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -77,9 +78,15 @@ class TrainingSessionUseCasesTest {
     private val change = ChangeTrainingSessionUseCase(ageGroupRepository, repo, check, transactionManager)
     private val planRepository = mockk<com.ricardofrango.squadify.domain.repository.TrainingPlanRepository>()
     private val exerciseRepository = mockk<com.ricardofrango.squadify.domain.repository.TrainingExerciseRepository>(relaxed = true)
-    private val details = GetTrainingSessionUseCase(repo, ageGroupRepository, clubRepository, seasonRepository, playerRepository, planRepository, exerciseRepository, userRepository, check, transactionManager)
+    private val ratingRepository = mockk<com.ricardofrango.squadify.domain.repository.TrainingRatingRepository>(relaxed = true)
+    private val details = GetTrainingSessionUseCase(repo, ageGroupRepository, clubRepository, seasonRepository, playerRepository, planRepository, exerciseRepository, ratingRepository, userRepository, check, transactionManager)
     private val exercisesUseCase = TrainingExercisesUseCase(ageGroupRepository, repo, exerciseRepository, check, transactionManager)
-    private val get = GetTrainingSessionsUseCase(ageGroupRepository, seasonRepository, clubRepository, repo, userRepository, check, transactionManager)
+    // A fixed "now" for ratings: 20 Oct 2026, 12:00 in this machine's zone.
+    private val fixedClock = object : kotlin.time.Clock {
+        override fun now() = kotlinx.datetime.LocalDateTime(2026, 10, 20, 12, 0).toInstant(kotlinx.datetime.TimeZone.currentSystemDefault())
+    }
+    private val ratingsUseCase = TrainingRatingsUseCase(repo, ratingRepository, ageGroupRepository, clubRepository, playerRepository, check, transactionManager, fixedClock)
+    private val get = GetTrainingSessionsUseCase(ageGroupRepository, seasonRepository, clubRepository, repo, ratingRepository, userRepository, check, transactionManager)
 
     private val clubId = "club-1"
     private val ag = AgeGroup("ag-1", clubId, "Sub-15", "s-1", 2012, 2012)
@@ -285,5 +292,68 @@ class TrainingSessionUseCasesTest {
         existing("s1", LocalDate(2026, 10, 15), LocalTime(18, 30))
         library("a")
         assertFailsWith<ForbiddenException> { exercisesUseCase.setForSession(user(null, TeamRole.STAFF), "s1", listOf("a")) }
+    }
+
+    private val pool = listOf(
+        com.ricardofrango.squadify.model.Player("p1", clubId, "Tomás", "B", LocalDate(2012, 1, 1), shirtNumber = 10, active = true),
+        com.ricardofrango.squadify.model.Player("p2", clubId, "Gil", "B", LocalDate(2012, 1, 1), shirtNumber = 6, active = true)
+    )
+
+    @Test
+    fun ratingsOpenOnlyAfterTheSessionEndsAndNotWhenCancelled() = runBlocking<Unit> {
+        val staff = user(null, TeamRole.STAFF)
+        coEvery { playerRepository.getPlayersByAgeGroup(ag.id) } returns pool
+        existing("future", LocalDate(2026, 10, 22), LocalTime(18, 0))
+        existing("today", LocalDate(2026, 10, 20), LocalTime(18, 0))
+        existing("past", LocalDate(2026, 10, 15), LocalTime(18, 0))
+        val request = com.ricardofrango.squadify.model.SaveTrainingRatingsRequest(listOf(com.ricardofrango.squadify.model.TrainingRatingChange("p1", 7.5)))
+        assertFailsWith<ValidationException> { ratingsUseCase.save(staff, "future", request) }
+        assertFailsWith<ValidationException> { ratingsUseCase.save(staff, "today", request) }
+        ratingsUseCase.save(staff, "past", request)
+        io.mockk.coVerify { ratingRepository.save("past", mapOf("p1" to 75), staff) }
+        change.cancel(user(ClubRole.COORDINATOR), "past")
+        assertFailsWith<ValidationException> { ratingsUseCase.save(staff, "past", request) }
+    }
+
+    @Test
+    fun aRatingIsZeroToTenWithOneDecimalForPoolPlayersOnly() = runBlocking<Unit> {
+        val coach = user(null, TeamRole.COACH)
+        coEvery { playerRepository.getPlayersByAgeGroup(ag.id) } returns pool
+        existing("past", LocalDate(2026, 10, 15), LocalTime(18, 0))
+        fun req(player: String, rating: Double?) = com.ricardofrango.squadify.model.SaveTrainingRatingsRequest(listOf(com.ricardofrango.squadify.model.TrainingRatingChange(player, rating)))
+        assertFailsWith<ValidationException> { ratingsUseCase.save(coach, "past", req("p1", 10.5)) }
+        assertFailsWith<ValidationException> { ratingsUseCase.save(coach, "past", req("p1", 7.25)) }
+        assertFailsWith<ValidationException> { ratingsUseCase.save(coach, "past", req("stranger", 7.0)) }
+        ratingsUseCase.save(coach, "past", req("p2", 0.0))
+        io.mockk.coVerify { ratingRepository.save("past", mapOf("p2" to 0), coach) }
+        ratingsUseCase.save(coach, "past", req("p2", null))
+        io.mockk.coVerify { ratingRepository.save("past", mapOf("p2" to null), coach) }
+    }
+
+    @Test
+    fun playersAndParentsCannotSeeRatingsAndThePoolComesByShirtNumber() = runBlocking<Unit> {
+        coEvery { playerRepository.getPlayersByAgeGroup(ag.id) } returns pool
+        existing("past", LocalDate(2026, 10, 15), LocalTime(18, 0))
+        val parent = user(null)
+        coEvery { playerRepository.getPlayersByUser(parent) } returns listOf(pool[0])
+        assertFailsWith<ForbiddenException> { ratingsUseCase.get(parent, "past") }
+        val ratings = ratingsUseCase.get(user(null, TeamRole.STAFF), "past")
+        assertEquals(listOf("p2", "p1"), ratings.players.map { it.id })
+        assertTrue(ratings.ratingsOpen)
+    }
+
+    @Test
+    fun listsShowTheRatedCountAndTheAverageWithoutAbsentToStaffOnly() = runBlocking<Unit> {
+        existing("past", LocalDate(2026, 10, 15), LocalTime(18, 0))
+        coEvery { ratingRepository.getForSessions(any()) } returns mapOf("past" to listOf(
+            com.ricardofrango.squadify.model.TrainingRating("p1", 8.0), com.ricardofrango.squadify.model.TrainingRating("p2", 0.0)
+        ))
+        val staffView = get(user(null, TeamRole.STAFF), ag.id).sessions.single()
+        assertEquals(2, staffView.ratedCount)
+        assertEquals(8.0, staffView.averageRating)
+        val parent = user(null)
+        coEvery { playerRepository.getPlayersByUser(parent) } returns listOf(pool[0])
+        coEvery { playerRepository.getPlayersByAgeGroup(ag.id) } returns pool
+        assertEquals(null, get(parent, ag.id).sessions.single().ratedCount)
     }
 }

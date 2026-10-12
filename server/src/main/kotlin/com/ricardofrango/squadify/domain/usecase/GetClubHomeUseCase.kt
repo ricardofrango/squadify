@@ -10,6 +10,8 @@ import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.TrainingPlanRepository
+import com.ricardofrango.squadify.domain.repository.TrainingRatingRepository
+import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
@@ -56,7 +58,9 @@ class GetClubHomeUseCase(
     private val userRepository: UserRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager,
-    private val trainingPlanRepository: TrainingPlanRepository
+    private val trainingPlanRepository: TrainingPlanRepository,
+    private val trainingSessionRepository: TrainingSessionRepository,
+    private val trainingRatingRepository: TrainingRatingRepository
 ) {
     private val callUpWindow = 5.days
 
@@ -226,6 +230,35 @@ class GetClubHomeUseCase(
                     }
                 }
             }
+        }
+
+        // Training sessions that ended with players still unrated (design 39i), oldest first. Rating is open
+        // to every coach and staff member of the age group, so any staff role sees its own age groups'.
+        val rateAgeGroups = if (seesWholeClub) ageGroups else ageGroups.filter { staffRoleByAgeGroup[it.id] != null }
+        val nowLocal = now.toLocalDateTime(tz)
+        val pendingSessions = rateAgeGroups.flatMap { ag ->
+            trainingSessionRepository.getByAgeGroup(ag.id)
+                .map { it.session }
+                .filter { it.ratingsOpen(nowLocal) }
+                .map { ag to it }
+        }
+        if (pendingSessions.isNotEmpty()) {
+            val ratings = trainingRatingRepository.getForSessions(pendingSessions.map { it.second.id })
+            val poolSizes = rateAgeGroups.associate { it.id to playerRepository.getPlayersByAgeGroup(it.id).size }
+            pendingSessions
+                .filter { (ag, s) -> (poolSizes[ag.id] ?: 0) > (ratings[s.id]?.size ?: 0) }
+                .sortedWith(compareBy({ it.second.date }, { it.second.startTime }))
+                .forEach { (ag, s) ->
+                    alerts += ClubHomeAlert(
+                        type = ClubHomeAlertType.TRAINING_RATINGS_PENDING,
+                        count = ratings[s.id]?.size ?: 0,
+                        total = poolSizes[ag.id],
+                        ageGroupId = ag.id,
+                        ageGroupName = ag.name,
+                        date = s.date,
+                        sessionId = s.id
+                    )
+                }
         }
 
         ClubHome(

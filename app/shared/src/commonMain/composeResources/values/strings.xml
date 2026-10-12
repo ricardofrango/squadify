@@ -1318,4 +1318,24 @@
     <string name="cd_move_up">Move up</string>
     <string name="cd_move_down">Move down</string>
     <string name="msg_session_no_exercises">No exercises yet.</string>
+    <!-- Training ratings (design 39g/i) -->
+    <string name="title_rate_players">Rate players</string>
+    <string name="msg_rate_intro">Tap a player, then a quick number — the next unrated player opens. Fine-tune with − / +. Ratings are only visible to staff.</string>
+    <string name="btn_absent">Absent</string>
+    <string name="label_absent">Did not take part</string>
+    <string name="label_rated_count">%1$d of %2$d rated</string>
+    <string name="btn_save_ratings">Save</string>
+    <string name="msg_ratings_save_failed">Couldn\'t save the ratings. Please try again.</string>
+    <string name="msg_ratings_load_failed">Couldn\'t load the ratings</string>
+    <string name="label_player_ratings_staff">PLAYER RATINGS · STAFF ONLY</string>
+    <string name="msg_ratings_open_at">Ratings open after the session ends, at %1$s.</string>
+    <string name="btn_rate_players">Rate players</string>
+    <string name="msg_ratings_cancelled">A cancelled session isn\'t rated.</string>
+    <string name="home_training_needs_ratings">Training of %1$s needs player ratings · %2$s</string>
+    <string name="home_trainings_need_ratings">%1$d trainings need player ratings</string>
+    <string name="label_not_rated">Not rated</string>
+    <string name="label_absent_count">%1$d absent</string>
+    <string name="cd_decrease">Decrease</string>
+    <string name="cd_increase">Increase</string>
+    <string name="msg_ratings_not_open">Ratings open when the session ends.</string>
 </resources>

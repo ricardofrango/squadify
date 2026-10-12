@@ -106,6 +106,11 @@ import squadify.app.shared.generated.resources.msg_session_no_exercises
 import squadify.app.shared.generated.resources.btn_add_exercise
 import squadify.app.shared.generated.resources.label_exercises
 import squadify.app.shared.generated.resources.label_section_count
+import squadify.app.shared.generated.resources.btn_rate_players
+import squadify.app.shared.generated.resources.label_rated_count
+import squadify.app.shared.generated.resources.msg_ratings_open_at
+import squadify.app.shared.generated.resources.msg_ratings_cancelled
+import squadify.app.shared.generated.resources.label_player_ratings_staff
 
 /**
  * One training session (design 39f / 40f): when and where (Open in Maps) and its status; for staff, the
@@ -120,6 +125,7 @@ fun SessionDetailsScreen(
     onEdit: (ageGroupId: String) -> Unit,
     onOpenWeekPlan: (ageGroupId: String, monday: LocalDate, edit: Boolean) -> Unit,
     onAddExercises: () -> Unit,
+    onRatePlayers: () -> Unit,
     // A cancel, restore or delete happened: the screens underneath should reload.
     onChanged: (deleted: Boolean) -> Unit,
     refresh: Boolean = false,
@@ -139,7 +145,8 @@ fun SessionDetailsScreen(
         onRestore = viewModel::restore,
         onDelete = viewModel::delete,
         onAddExercises = onAddExercises,
-        onSetExercises = viewModel::setExercises
+        onSetExercises = viewModel::setExercises,
+        onRatePlayers = onRatePlayers
     )
 }
 
@@ -170,7 +177,8 @@ private fun SessionDetailsContent(
     onRestore: () -> Unit,
     onDelete: () -> Unit,
     onAddExercises: () -> Unit = {},
-    onSetExercises: (List<String>) -> Unit = {}
+    onSetExercises: (List<String>) -> Unit = {},
+    onRatePlayers: () -> Unit = {}
 ) {
     val details = state.details
     var askCancel by remember { mutableStateOf(false) }
@@ -212,11 +220,15 @@ private fun SessionDetailsContent(
             val wide = maxWidth >= 600.dp
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (details.session.cancelled) CancelledBanner(details, details.canEdit, onRestore)
+                // Once the session has ended, its ratings come first (design 39f).
+                val ended = details.session.ended(now)
+                if (ended) RatingsCard(details, now, onRatePlayers)
                 if (wide) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) { HeaderCard(details, now); WeekStrip(details, onOpenWeekPlan) }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             ExercisesCard(details, !state.busy, onAddExercises, onSetExercises)
+                            if (!ended) RatingsCard(details, now, onRatePlayers)
                             NotesCard(details.session)
                         }
                     }
@@ -224,6 +236,7 @@ private fun SessionDetailsContent(
                     HeaderCard(details, now)
                     WeekStrip(details, onOpenWeekPlan)
                     ExercisesCard(details, !state.busy, onAddExercises, onSetExercises)
+                    if (!ended) RatingsCard(details, now, onRatePlayers)
                     NotesCard(details.session)
                 }
                 FormErrorLine(state.error)
@@ -342,6 +355,30 @@ private fun ExercisesCard(details: TrainingSessionDetails, enabled: Boolean, onA
         }
         val total = exercises.sumOf { it.durationMinutes ?: 0 }
         if (total > 0) Text(stringResource(Res.string.msg_exercises_total, total), style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText)
+    }
+}
+
+/** Staff only: when ratings open, or how many are rated with "Rate players" (design 39f). */
+@Composable
+private fun RatingsCard(details: TrainingSessionDetails, now: LocalDateTime, onRatePlayers: () -> Unit) {
+    if (!details.canRate) return
+    val session = details.session
+    StatsCard {
+        StatsHeading(stringResource(Res.string.label_player_ratings_staff), Modifier.padding(bottom = 6.dp))
+        when {
+            session.cancelled -> Text(stringResource(Res.string.msg_ratings_cancelled), style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText)
+            !session.ended(now) -> Text(stringResource(Res.string.msg_ratings_open_at, session.endTime.hhmm()), style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText)
+            else -> Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(Res.string.label_rated_count, session.ratedCount ?: 0, details.poolSize),
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, modifier = Modifier.weight(1f)
+                )
+                androidx.compose.material3.Button(
+                    onClick = onRatePlayers,
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)
+                ) { Text(stringResource(Res.string.btn_rate_players), fontWeight = FontWeight.Bold) }
+            }
+        }
     }
 }
 

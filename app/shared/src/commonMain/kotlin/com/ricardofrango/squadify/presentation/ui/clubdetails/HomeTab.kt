@@ -67,7 +67,9 @@ fun HomeTab(
     onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
     onNavigateToMatch: (matchId: String) -> Unit,
     // A missing-plan alert opens that plan's editor (design 40g).
-    onEditPlan: (ageGroupId: String, level: TrainingPlanLevel, periodStart: LocalDate) -> Unit = { _, _, _ -> }
+    onEditPlan: (ageGroupId: String, level: TrainingPlanLevel, periodStart: LocalDate) -> Unit = { _, _, _ -> },
+    // A training ratings to-do opens Rate players (design 39i).
+    onRateSession: (sessionId: String) -> Unit = {}
 ) {
     if (home == null) {
         Column(
@@ -111,12 +113,12 @@ fun HomeTab(
             if (wide) {
                 Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     NextUpSection(home, onNavigateToMatch, Modifier.weight(1f))
-                    NeedsYouSection(home, onNavigateToAgeGroup, onNavigateToMatch, onEditPlan, Modifier.weight(1f))
+                    NeedsYouSection(home, onNavigateToAgeGroup, onNavigateToMatch, onEditPlan, onRateSession, Modifier.weight(1f))
                 }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                     NextUpSection(home, onNavigateToMatch)
-                    NeedsYouSection(home, onNavigateToAgeGroup, onNavigateToMatch, onEditPlan)
+                    NeedsYouSection(home, onNavigateToAgeGroup, onNavigateToMatch, onEditPlan, onRateSession)
                 }
             }
         }
@@ -150,6 +152,7 @@ private fun NeedsYouSection(
     onNavigateToAgeGroup: (String) -> Unit,
     onNavigateToMatch: (String) -> Unit,
     onEditPlan: (String, TrainingPlanLevel, LocalDate) -> Unit,
+    onRateSession: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (home.alerts.isEmpty()) return
@@ -157,6 +160,8 @@ private fun NeedsYouSection(
     val reports = home.alerts.filter { it.type == ClubHomeAlertType.MATCH_REPORT_PENDING }
     val gaps = home.alerts.filter { it.type == ClubHomeAlertType.AGE_GROUP_NEEDS_COACH }
     val missingPlans = home.alerts.filter { it.type.planLevel() != null }
+    val trainingRatings = home.alerts.filter { it.type == ClubHomeAlertType.TRAINING_RATINGS_PENDING }
+    var trainingExpanded by rememberSaveable { mutableStateOf(false) }
     val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     var expanded by rememberSaveable { mutableStateOf(false) }
     // Which call-up days (by date) are expanded into their matches.
@@ -228,6 +233,34 @@ private fun NeedsYouSection(
                     )
                 }
             }
+        }
+        // Training to-dos follow the reports' rules (design 39i): one row per session, grouped from 3 up.
+        val ratingRow: (ClubHomeAlert) -> @Composable () -> Unit = { alert ->
+            {
+                AlertRowContent(
+                    alertText(alert),
+                    if (alert.total != null) stringResource(Res.string.label_rated_count, alert.count, alert.total!!) else null,
+                    reportDotColor(alert, today),
+                    Res.drawable.ic_chevron_right,
+                    alert.sessionId?.let { id -> { onRateSession(id) } }
+                )
+            }
+        }
+        if (trainingRatings.size >= REPORT_GROUP_THRESHOLD) {
+            add {
+                AlertRowContent(
+                    title = stringResource(Res.string.home_trainings_need_ratings, trainingRatings.size),
+                    subtitle = null,
+                    dotColor = if (trainingRatings.any { reportDotColor(it, today) == Amber }) Amber else PitchGreen,
+                    trailingIcon = if (trainingExpanded) Res.drawable.ic_expand_less else Res.drawable.ic_expand_more,
+                    onClick = { trainingExpanded = !trainingExpanded }
+                )
+            }
+            if (trainingExpanded) trainingRatings.forEach { alert ->
+                add { Box(Modifier.background(Color(0xFFFAFAFA)).padding(start = 24.dp)) { ratingRow(alert)() } }
+            }
+        } else {
+            trainingRatings.forEach { add(ratingRow(it)) }
         }
         // Missing plans open their editor; amber once a week has passed since the period started.
         missingPlans.forEach { alert ->
@@ -407,6 +440,23 @@ private fun alertText(alert: ClubHomeAlert, seasonName: String? = null): String 
         stringResource(Res.string.home_month_no_plan, alert.date?.let { monthName(it) } ?: "", alert.ageGroupName ?: "")
     ClubHomeAlertType.WEEK_PLAN_MISSING ->
         stringResource(Res.string.home_week_no_plan, alert.date?.let { shortDateLabel(it) } ?: "", alert.ageGroupName ?: "")
+    ClubHomeAlertType.TRAINING_RATINGS_PENDING ->
+        stringResource(
+            Res.string.home_training_needs_ratings,
+            alert.date?.let { "${stringResource(weekdayShortRes(it.dayOfWeek))} ${shortDateLabel(it)}" } ?: "",
+            alert.ageGroupName ?: ""
+        )
+}
+
+private fun weekdayShortRes(day: DayOfWeek): StringResource = when (day) {
+    DayOfWeek.MONDAY -> Res.string.wd_short_1
+    DayOfWeek.TUESDAY -> Res.string.wd_short_2
+    DayOfWeek.WEDNESDAY -> Res.string.wd_short_3
+    DayOfWeek.THURSDAY -> Res.string.wd_short_4
+    DayOfWeek.FRIDAY -> Res.string.wd_short_5
+    DayOfWeek.SATURDAY -> Res.string.wd_short_6
+    DayOfWeek.SUNDAY -> Res.string.wd_short_7
+    else -> Res.string.wd_short_1
 }
 
 @Composable

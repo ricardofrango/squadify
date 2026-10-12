@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.TrainingExerciseRepository
 import com.ricardofrango.squadify.domain.repository.TrainingPlanRepository
+import com.ricardofrango.squadify.domain.repository.TrainingRatingRepository
 import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
@@ -30,6 +31,7 @@ class GetTrainingSessionUseCase(
     private val playerRepository: PlayerRepository,
     private val trainingPlanRepository: TrainingPlanRepository,
     private val trainingExerciseRepository: TrainingExerciseRepository,
+    private val trainingRatingRepository: TrainingRatingRepository,
     private val userRepository: UserRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager
@@ -54,7 +56,7 @@ class GetTrainingSessionUseCase(
             session = stored.session.copy(
                 cancelledByName = stored.cancelledBy?.let { id -> userRepository.findById(id)?.let { "${it.firstName} ${it.lastName}" } },
                 exerciseCount = counts?.exercises ?: 0
-            ),
+            ).withRatings(canRate, if (canRate) trainingRatingRepository.getForSession(sessionId) else emptyList()),
             ageGroup = ageGroup,
             clubName = clubRepository.getClubById(ageGroup.clubId)?.name ?: throw NotFoundException("Club not found"),
             season = seasonRepository.getSeasonById(ageGroup.seasonId) ?: throw NotFoundException("Season not found"),

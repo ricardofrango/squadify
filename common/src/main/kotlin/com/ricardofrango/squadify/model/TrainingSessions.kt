@@ -154,6 +154,46 @@ data class TrainingSessionDetails(
     val canRate: Boolean
 )
 
+/** One player's rating for a session: 0 is "did not take part", otherwise 0.1–10.0 (design 39g). */
+@Serializable
+data class TrainingRating(val playerId: String, val rating: Double)
+
+/**
+ * `GET /training-sessions/{id}/ratings` (staff only): the age group's pool and the ratings so far.
+ * [ratingsOpen] is false until the session ends (and while it's cancelled).
+ */
+@Serializable
+data class TrainingRatings(
+    val session: TrainingSession,
+    val ageGroupName: String,
+    val clubName: String,
+    val players: List<Player>,
+    val ratings: List<TrainingRating>,
+    val ratingsOpen: Boolean
+)
+
+/** `PUT /training-sessions/{id}/ratings`: saves these players' ratings; a null rating clears it. Partial saves are fine. */
+@Serializable
+data class SaveTrainingRatingsRequest(val ratings: List<TrainingRatingChange>)
+
+@Serializable
+data class TrainingRatingChange(val playerId: String, val rating: Double?)
+
+/** A rating as stored: tenths, 0–100. Null when it isn't a valid rating (outside 0–10 or more than one decimal). */
+fun ratingToTenths(rating: Double): Int? {
+    val tenths = kotlin.math.round(rating * 10).toInt()
+    if (kotlin.math.abs(rating * 10 - tenths) > 1e-6 || tenths !in 0..100) return null
+    return tenths
+}
+
+/** Attendance and average of a set of ratings: Absent (0) counts as not attended and isn't averaged. */
+data class TrainingAttendance(val attended: Int, val rated: Int, val average: Double?)
+
+fun List<Double>.attendance(): TrainingAttendance {
+    val trained = filter { it > 0.0 }
+    return TrainingAttendance(attended = trained.size, rated = size, average = trained.takeIf { it.isNotEmpty() }?.average())
+}
+
 /** The most sessions one bulk creation may produce. */
 const val MAX_BULK_SESSIONS = 400
 

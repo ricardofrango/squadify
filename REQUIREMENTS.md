@@ -186,6 +186,6 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Club country (Portugal by default), for public holidays.
     - [x] Create an age group's sessions in bulk: days and hours plus a period, with or without public holidays, and a preview that warns about sessions it will override. One-off sessions too. List and calendar. A single session can be cancelled.
     - [x] Exercise library, reusable across sessions.
-    - [ ] Player evaluations per session, 0–10 with decimals (0 = did not take part), by any staff member of the age group. Staff-only.
-    - [ ] Home to-do when an ended session has players still to evaluate.
+    - [x] Player evaluations per session, 0–10 with decimals (0 = did not take part), by any staff member of the age group. Staff-only.
+    - [x] Home to-do when an ended session has players still to evaluate.
     - [ ] Training stats (attendance, average rating) on Age Group Details' Stats tab and on Player Details, staff-only.

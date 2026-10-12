@@ -51,4 +51,22 @@ class TrainingPeriodsTest {
         assertEquals(LocalDate(2026, 10, 31), periodEnd(TrainingPlanLevel.MONTH, LocalDate(2026, 10, 1), season))
         assertEquals(LocalDate(2026, 10, 18), periodEnd(TrainingPlanLevel.WEEK, LocalDate(2026, 10, 12), season))
     }
+
+    @Test
+    fun ratingsAreStoredAsTenths() {
+        assertEquals(75, ratingToTenths(7.5))
+        assertEquals(0, ratingToTenths(0.0))
+        assertEquals(100, ratingToTenths(10.0))
+        assertEquals(null, ratingToTenths(7.25))
+        assertEquals(null, ratingToTenths(10.1))
+    }
+
+    @Test
+    fun attendanceLeavesAbsentOutOfTheAverage() {
+        val a = listOf(8.0, 6.0, 0.0).attendance()
+        assertEquals(2, a.attended)
+        assertEquals(3, a.rated)
+        assertEquals(7.0, a.average)
+        assertEquals(null, listOf(0.0).attendance().average)
+    }
 }

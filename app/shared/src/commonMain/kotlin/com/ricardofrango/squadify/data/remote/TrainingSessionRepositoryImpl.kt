@@ -5,7 +5,10 @@ import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
 import com.ricardofrango.squadify.model.CreateTrainingSessionsRequest
 import com.ricardofrango.squadify.model.SaveExerciseRequest
 import com.ricardofrango.squadify.model.SetSessionExercisesRequest
+import com.ricardofrango.squadify.model.SaveTrainingRatingsRequest
 import com.ricardofrango.squadify.model.TrainingExercise
+import com.ricardofrango.squadify.model.TrainingRatingChange
+import com.ricardofrango.squadify.model.TrainingRatings
 import com.ricardofrango.squadify.model.SaveTrainingSessionRequest
 import com.ricardofrango.squadify.model.TrainingSession
 import com.ricardofrango.squadify.model.TrainingSessionDetails
@@ -75,6 +78,15 @@ class TrainingSessionRepositoryImpl(
         httpClient.patch("${appConfig.baseUrl}/exercises/$exerciseId") {
             contentType(ContentType.Application.Json)
             setBody(request)
+        }.handleResponse()
+
+    override suspend fun getRatings(sessionId: String): TrainingRatings =
+        httpClient.get("${sessionUrl(sessionId)}/ratings").handleResponse()
+
+    override suspend fun saveRatings(sessionId: String, changes: List<TrainingRatingChange>): TrainingRatings =
+        httpClient.put("${sessionUrl(sessionId)}/ratings") {
+            contentType(ContentType.Application.Json)
+            setBody(SaveTrainingRatingsRequest(changes))
         }.handleResponse()
 
     override suspend fun setSessionExercises(sessionId: String, exerciseIds: List<String>): List<TrainingExercise> =
