@@ -353,3 +353,26 @@ object ClubPermissionOverrides : Table("club_permission_overrides") {
         uniqueIndex("unique_club_permission", clubId, permission)
     }
 }
+
+// An age group's training plans (design 40): one row per season / month / week plan. See
+// V15__training_plans.sql. The lists are JSON text, read and written with their plan.
+object TrainingPlansTable : Table("training_plans") {
+    val id = uuid("id")
+    val ageGroupId = uuid("age_group_id").references(AgeGroups.id)
+    val level = enumerationByName("level", 10, TrainingPlanLevel::class)
+    val periodStart = date("period_start")
+    val focus = varchar("focus", 255).nullable()
+    val objectives = text("objectives")
+    val notes = text("notes").nullable()
+    val intensity = enumerationByName("intensity", 10, TrainingIntensity::class).nullable()
+    val phases = text("phases")
+    val keyDates = text("key_dates")
+    val updatedAt = timestamp("updated_at")
+    val updatedBy = uuid("updated_by").references(Users.id)
+
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex("unique_training_plan_period", ageGroupId, level, periodStart)
+    }
+}

@@ -189,6 +189,15 @@ sealed class Screen {
     @SerialName("edit-opponent")
     data class EditOpponent(val opponentId: String) : Screen()
 
+    // Training plans (design 40): an age group's season plan, and its editor.
+    @Serializable
+    @SerialName("season-plan")
+    data class SeasonPlan(val ageGroupId: String) : Screen()
+
+    @Serializable
+    @SerialName("edit-season-plan")
+    data class EditSeasonPlan(val ageGroupId: String) : Screen()
+
     @Serializable
     @SerialName("match")
     data class MatchDetails(val matchId: String) : Screen()

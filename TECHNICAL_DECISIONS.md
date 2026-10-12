@@ -2571,3 +2571,18 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
 
 **Permission:** `ConfigurablePermission.MANAGE_TRAINING` ("Create and edit training") covers the season, month and week plans and the training sessions. Its default level is coach, like the other "create" actions, and the coordinator can set it to coordinators only or extend it to staff in Club settings → Permissions. Rating players after a session isn't part of it: any coach or staff member of the age group can do that.
 
+**Plans, all levels** (`common/model/TrainingPlans.kt`, `PROCESS_FLOWS.md` §9b):
+- **Levels:** one season plan (macrocycle) per age group, one month plan (mesocycle) per calendar month the season touches, and one week plan (microcycle) per Monday–Sunday week overlapping it.
+- **Weeks across months:** a week that crosses two months belongs to the month of its Monday.
+- **Shape:** every level has a focus, objectives and notes. The season adds phases and key dates, and the week adds intensity (Low / Medium / High).
+- **Storage:** one `training_plans` table (`V15`), unique per age group, level and period start. Objectives, phases and key dates are JSON text: small ordered lists that are only read and written with their plan.
+- **API:** `GET /age-groups/{id}/training-plans` returns every plan of the age group with the season and `canEdit`, and `PUT` saves (upserts) one. The period rules are in `common` (`monthStarts`, `weekStarts`, `isPeriodStart`), so the app and the server agree on which periods exist. Tested in `TrainingPeriodsTest` and `TrainingPlanUseCasesTest`.
+- **Visibility:** the club's people and the age group's staff can read plans. Players and parents can't.
+
+**Season plan** (`SeasonPlanScreen`, `SeasonPlanEditScreen`, design 40c):
+- **Timeline:** the season with its phases as bands sized by length, key dates as flags and today as a red line, plus a legend.
+- **Below it:** the months with their status (tapping one opens the month plan), then the objectives, phases and key dates. Landscape uses three columns.
+- **Editor:** objectives, phases (name, start, end, focus) and key dates (a date or a range, and a label). Every date is checked against the season, with the error inline under the field ("Must end by 30 Jun 2027, the end of the season.").
+  - **Leaving:** unsaved changes ask before leaving (`PlanEditorFrame`).
+  - **Reordering:** objectives and phases reorder with up / down buttons, not dragging as the design shows.
+- **Shared editor:** every level uses `PlanEditViewModel` with a `PlanForm` (`PlanForm.kt`, tested in `PlanFormTest`).
