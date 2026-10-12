@@ -29,7 +29,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 - **Age Group**: Categorization of players by a birth-year span (`startYear`/`endYear`) — a single year for most (football) groups, or two consecutive birth years for groups (typically futsal) that need both cohorts to field a squad; owns the player pool and the coaching staff. Carries an optional **team size** — the a-side count its teams play by default (one of the club sport's allowed sizes).
 - **Team**: A named group under an age group, used to schedule matches. Has its own **team size**, pre-filled from the age group's default but overridable (e.g. a 7-a-side age group with one team that plays 9-a-side).
 - **Player**: Personal data and stats.
-- **Opponent**: Management of external clubs/teams for matches (name, short name, logo).
+- **Opponent**: Management of external clubs/teams for matches (name, short name, logo, home stadium and address, contact, notes).
 - **ClubMember**: Links Users to Clubs with a specific Role.
 - **AgeGroupPlayer**: Links a Player to an Age Group pool (many-to-many; `(ageGroupId, playerId)` unique).
 - **AgeGroupStaff**: Links a User (coach/staff) to an Age Group with a role.
@@ -142,7 +142,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - **Still pending:** the server's super-admin, club-admin and parent dashboard endpoints (Phase 6) have no client screens yet.
     - [/] **Opponents** (design 38):
       - [x] **List:** a searchable list (name or short name, ignoring accents) used to pick an opponent on Schedule match, with Recent on top, and to browse them from More → Opponents. See `TECHNICAL_DECISIONS.md` §51.
-      - [ ] **Create opponent:** from the list, with stadium, contact and notes.
+      - [x] **Create opponent:** from the list, with stadium, contact and notes. A name the club already has is refused. Created while picking for a match, it comes back selected. Logo upload is still pending.
       - [ ] **Opponent details:** stadium with directions, head-to-head by season and every match against them.
       - [ ] **Edit opponent:** from the details.
     - [x] Club "More" panel (design 37): a full-screen panel that slides in from the right, replacing the old "More" dropdown and the header's account icon.

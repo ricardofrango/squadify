@@ -39,12 +39,20 @@ class CreateOpponentUseCase(
             errorMessage = "Only admins, coordinators, or this age group's coaches can create opponents"
         )
 
+        val name = requireOpponentName(request.name)
+        requireUniqueOpponentName(name, opponentRepository.getOpponentsByClub(clubId))
+
         val opponent = Opponent(
             id = Uuid.random().toString(),
             clubId = clubId,
-            name = request.name,
-            shortName = request.shortName,
-            logoUrl = request.logoUrl
+            name = name,
+            shortName = normalizeShortName(request.shortName),
+            logoUrl = request.logoUrl.cleaned(),
+            stadiumName = request.stadiumName.cleaned(),
+            stadiumAddress = request.stadiumAddress.cleaned(),
+            contactEmail = request.contactEmail.cleaned(),
+            contactPhone = request.contactPhone.cleaned(),
+            notes = request.notes.cleaned()
         )
 
         opponentRepository.createOpponent(opponent)

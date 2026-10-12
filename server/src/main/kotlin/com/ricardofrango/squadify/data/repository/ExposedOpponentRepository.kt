@@ -31,6 +31,11 @@ class ExposedOpponentRepository : OpponentRepository {
             it[name] = opponent.name
             it[shortName] = opponent.shortName
             it[logoUrl] = opponent.logoUrl
+            it[stadiumName] = opponent.stadiumName
+            it[stadiumAddress] = opponent.stadiumAddress
+            it[contactEmail] = opponent.contactEmail
+            it[contactPhone] = opponent.contactPhone
+            it[notes] = opponent.notes
         }.resultedValues
             ?.singleOrNull()
             ?.let(::toOpponent)
@@ -41,6 +46,11 @@ class ExposedOpponentRepository : OpponentRepository {
             it[name] = opponent.name
             it[shortName] = opponent.shortName
             it[logoUrl] = opponent.logoUrl
+            it[stadiumName] = opponent.stadiumName
+            it[stadiumAddress] = opponent.stadiumAddress
+            it[contactEmail] = opponent.contactEmail
+            it[contactPhone] = opponent.contactPhone
+            it[notes] = opponent.notes
         } > 0
 
     override suspend fun deleteOpponent(id: String): Boolean =
@@ -51,6 +61,11 @@ class ExposedOpponentRepository : OpponentRepository {
         clubId = row[OpponentsTable.clubId].toString(),
         name = row[OpponentsTable.name],
         shortName = row[OpponentsTable.shortName],
-        logoUrl = row[OpponentsTable.logoUrl]
+        logoUrl = row[OpponentsTable.logoUrl],
+        stadiumName = row[OpponentsTable.stadiumName],
+        stadiumAddress = row[OpponentsTable.stadiumAddress],
+        contactEmail = row[OpponentsTable.contactEmail],
+        contactPhone = row[OpponentsTable.contactPhone],
+        notes = row[OpponentsTable.notes]
     )
 }

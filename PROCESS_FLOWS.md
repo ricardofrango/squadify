@@ -1075,16 +1075,26 @@ Someone not yet a club member can't be picked there, so that screen also has a "
 
 ```mermaid
 graph TD
-    A[Start: userId, clubId, name, shortName, logoUrl, ageGroupId?] --> AG{ageGroupId supplied?}
+    A[Start: userId, clubId, name, shortName, logoUrl, stadiumName, stadiumAddress, contactEmail, contactPhone, notes, ageGroupId?] --> AG{ageGroupId supplied?}
     AG -- Yes --> AGF[Fetch AgeGroup by id]
     AGF -- not found --> N(["Throw NotFoundException"])
     AGF -- found, wrong club --> FB(["Throw ForbiddenException"])
     AGF -- found, right club --> B
     AG -- No --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=CREATE_OPPONENT, ageGroupId]
     B -- denied --> F(["Throw ForbiddenException"])
-    B -- allowed --> C[Create Opponent record]
+    B -- allowed --> V{name blank after trimming?}
+    V -- Yes --> VE(["Throw ValidationException"])
+    V -- No --> DUP{"another opponent of the club has this name, ignoring case?"}
+    DUP -- Yes --> CF(["Throw ConflictException (409)"])
+    DUP -- No --> SN{"shortName, trimmed and uppercased, longer than 5?"}
+    SN -- Yes --> VE2(["Throw ValidationException"])
+    SN -- No --> C["Create Opponent record (optional fields trimmed, blank ones null)"]
     C --> Z(["Persist Opponent"])
 ```
+
+The name and short-name rules live in `OpponentRules.kt`, shared with editing. There's no database
+constraint for the unique name, since clubs may already have duplicates from before; the check is in the
+use case.
 
 Same cross-club-validated, age-group-scoped `ageGroupId` shape as `CreatePlayersUseCase` (§5.1) — a
 coordinator+ can always create club-wide; an age-group coach only for that specific age group's opponents.
@@ -1907,6 +1917,11 @@ erDiagram
         varchar name "255 chars"
         varchar short_name "50 chars, nullable"
         varchar logo_url "500 chars, nullable"
+        varchar stadium_name "255 chars, nullable"
+        varchar stadium_address "500 chars, nullable"
+        varchar contact_email "255 chars, nullable"
+        varchar contact_phone "50 chars, nullable"
+        text notes "nullable"
     }
     MATCHES {
         uuid id PK

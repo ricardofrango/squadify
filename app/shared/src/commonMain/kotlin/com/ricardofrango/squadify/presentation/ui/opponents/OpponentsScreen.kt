@@ -286,7 +286,10 @@ private fun SectionHeader(text: String) {
 
 /** What a row says under the name: the short name, then the stadium when there is one. */
 internal fun opponentSubline(opponent: Opponent): String? =
-    listOfNotNull(opponent.shortName?.takeIf { it.isNotBlank() }).joinToString(" · ").ifEmpty { null }
+    listOfNotNull(opponent.shortName, opponent.stadiumName)
+        .filter { it.isNotBlank() }
+        .joinToString(" · ")
+        .ifEmpty { null }
 
 @Composable
 private fun OpponentRow(opponent: Opponent, selectMode: Boolean, selected: Boolean, onClick: () -> Unit) {

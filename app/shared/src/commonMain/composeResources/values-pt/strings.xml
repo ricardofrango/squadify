@@ -1032,4 +1032,29 @@
     <string name="msg_opponents_load_failed">Não foi possível carregar os adversários</string>
     <string name="msg_check_connection">Verifique a sua ligação e tente novamente.</string>
     <string name="more_opponents">Adversários</string>
+    <!-- Create / Edit opponent (design 38e) -->
+    <string name="title_create_opponent">Criar adversário</string>
+    <string name="btn_creating_opponent">A criar…</string>
+    <string name="msg_logo_coming_soon">O envio de logótipo estará disponível em breve.</string>
+    <string name="label_opponent_stadium_section">ESTÁDIO</string>
+    <string name="label_opponent_contact_section">CONTACTO · OPCIONAL</string>
+    <string name="label_opponent_notes_section">NOTAS · OPCIONAL</string>
+    <string name="label_opponent_name_field">Nome *</string>
+    <string name="label_opponent_name_placeholder">ex. GD Sobreirense</string>
+    <string name="label_opponent_short_name_placeholder">ex. GDS</string>
+    <string name="msg_opponent_short_name_helper">Até 5 caracteres · Aparece nos cartões de jogo</string>
+    <string name="label_opponent_short_name_field">Sigla</string>
+    <string name="label_contact_phone_field">Telefone</string>
+    <string name="label_stadium_name_field">Nome do estádio</string>
+    <string name="label_stadium_address_field">Morada / localização</string>
+    <string name="msg_stadium_address_helper">Usado como local dos jogos fora</string>
+    <string name="label_optional_placeholder">Opcional</string>
+    <string name="label_contact_email_placeholder">secretaria@clube.pt</string>
+    <string name="label_contact_phone_placeholder">+351 …</string>
+    <string name="label_opponent_notes_field">Notas</string>
+    <string name="label_opponent_notes_placeholder">ex. Relvado sintético, estacionamento atrás da bancada</string>
+    <string name="btn_open_in_maps">Abrir no Mapas</string>
+    <string name="msg_opponent_name_taken">Já existe um adversário com este nome</string>
+    <string name="msg_create_opponent_failed">Não foi possível criar o adversário. Tente novamente.</string>
+    <string name="msg_opponent_created_selected">%1$s criado e selecionado</string>
 </resources>

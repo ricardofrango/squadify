@@ -758,9 +758,19 @@ data class Opponent(
     val id: String,
     val clubId: String,
     val name: String,
+    // Up to 5 characters, uppercase (OPPONENT_SHORT_NAME_MAX).
     val shortName: String? = null,
-    val logoUrl: String? = null
+    val logoUrl: String? = null,
+    // The home stadium; the address doubles as the location of away matches.
+    val stadiumName: String? = null,
+    val stadiumAddress: String? = null,
+    val contactEmail: String? = null,
+    val contactPhone: String? = null,
+    val notes: String? = null
 )
+
+/** The most characters an opponent's short name can have (it's shown on match cards). */
+const val OPPONENT_SHORT_NAME_MAX = 5
 
 /**
  * Response for `GET /opponents/list` -- the Opponents screen (design 38), in both its modes: picking
@@ -1031,6 +1041,11 @@ data class CreateOpponentRequest(
     val name: String,
     val shortName: String? = null,
     val logoUrl: String? = null,
+    val stadiumName: String? = null,
+    val stadiumAddress: String? = null,
+    val contactEmail: String? = null,
+    val contactPhone: String? = null,
+    val notes: String? = null,
     // Set when this request originates from an age-group/match context (the "+ Add new opponent"
     // shortcut on the create-match screen) -- lets a coach of specifically THIS age group create
     // opponents, not just a club admin/coordinator. See CreateOpponentUseCase, and

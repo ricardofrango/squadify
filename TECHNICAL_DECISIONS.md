@@ -2525,3 +2525,19 @@ Picking an opponent on Schedule match was a dropdown of every opponent plus an i
 - **Data:** one call, `GET /opponents/list` (`GetOpponentListUseCase`, `PROCESS_FLOWS.md` §6.3), returns the club name, the opponents, the recent ids and `canCreate`. Recent is the opponents of the club's 5 latest matches, from one grouped query on `matches`.
 - **States:** skeleton rows while loading, "No opponents yet", "No opponents match …", and an error with Retry.
 - **Schedule match:** the Opponent field shows the pick with its logo, or "Choose opponent". The inline name field is gone; creating an opponent happens from the list. An opponent picked there that the form doesn't know yet (just created) makes it fetch the opponents again.
+
+**Create** (`OpponentFormScreen` / `OpponentFormViewModel`, route `Screen.CreateOpponent(clubId, ageGroupId, name, select)`):
+- **New fields:** stadium name, stadium address, contact email, contact phone and notes, all optional (`V14__opponent_details.sql`). The address will be the location of away matches.
+- **Form:** logo, IDENTITY, STADIUM, CONTACT · OPTIONAL and NOTES · OPTIONAL, with the button pinned at the bottom. On a wide screen the sections flow into two columns.
+  - **Logo:** "Add logo" is shown disabled with "Logo upload is coming soon." Upload needs the same image storage as the club logo.
+  - **Name:** the only required field.
+  - **Short name:** uppercased and capped at 5 as it's typed.
+  - **Open in Maps:** appears under the address once it's filled.
+  - **Keyboard:** Next moves from Name to Phone, and Done on Phone submits. Notes is multi-line.
+- **Duplicate names:** a name the club already has, ignoring case, is refused. The form checks it when Name loses focus, against the list it loads for the subtitle. The server checks it again (`ConflictException`, 409), and the form shows the same inline error under Name.
+- **Server rules:** `OpponentRules.kt`: a blank name, or a short name over 5 characters, is a 400. Optional fields are trimmed, and blank ones are stored as null. Tested in `CreateOpponentUseCaseTest` and, on the client, `OpponentFormTest`.
+- **Where it's opened:**
+  - **From picking:** the + in the bar, the "+ Create opponent" row, or "Create “typed text”" when a search finds nothing (the text prefills Name).
+  - **After creating while picking:** the app goes straight back to Schedule match, skipping the list, with the new opponent selected and "… created and selected" shown.
+  - **From browsing:** it goes back to the list, which reloads.
+- **Row line:** list rows and the Schedule match field show the short name and the stadium under the name.

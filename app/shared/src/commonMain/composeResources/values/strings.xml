@@ -1034,4 +1034,29 @@
     <string name="msg_opponents_load_failed">Couldn\'t load opponents</string>
     <string name="msg_check_connection">Check your connection and try again.</string>
     <string name="more_opponents">Opponents</string>
+    <!-- Create / Edit opponent (design 38e) -->
+    <string name="title_create_opponent">Create opponent</string>
+    <string name="btn_creating_opponent">Creating…</string>
+    <string name="msg_logo_coming_soon">Logo upload is coming soon.</string>
+    <string name="label_opponent_stadium_section">STADIUM</string>
+    <string name="label_opponent_contact_section">CONTACT · OPTIONAL</string>
+    <string name="label_opponent_notes_section">NOTES · OPTIONAL</string>
+    <string name="label_opponent_name_field">Name *</string>
+    <string name="label_opponent_name_placeholder">e.g. GD Sobreirense</string>
+    <string name="label_opponent_short_name_placeholder">e.g. GDS</string>
+    <string name="msg_opponent_short_name_helper">Up to 5 characters · Shown on match cards</string>
+    <string name="label_opponent_short_name_field">Short name</string>
+    <string name="label_contact_phone_field">Phone</string>
+    <string name="label_stadium_name_field">Stadium name</string>
+    <string name="label_stadium_address_field">Address / location</string>
+    <string name="msg_stadium_address_helper">Used for away match locations</string>
+    <string name="label_optional_placeholder">Optional</string>
+    <string name="label_contact_email_placeholder">secretaria@clube.pt</string>
+    <string name="label_contact_phone_placeholder">+351 …</string>
+    <string name="label_opponent_notes_field">Notes</string>
+    <string name="label_opponent_notes_placeholder">e.g. Artificial pitch, parking behind the stand</string>
+    <string name="btn_open_in_maps">Open in Maps</string>
+    <string name="msg_opponent_name_taken">An opponent with this name already exists</string>
+    <string name="msg_create_opponent_failed">Couldn\'t create the opponent. Please try again.</string>
+    <string name="msg_opponent_created_selected">%1$s created and selected</string>
 </resources>

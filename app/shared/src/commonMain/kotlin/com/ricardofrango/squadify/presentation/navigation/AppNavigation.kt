@@ -47,6 +47,7 @@ import com.ricardofrango.squadify.presentation.ui.agegroupdetails.AgeGroupDetail
 import com.ricardofrango.squadify.presentation.ui.createagegroups.CreateAgeGroupsScreen
 import com.ricardofrango.squadify.presentation.ui.teamdetails.TeamDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.creatematch.CreateMatchScreen
+import com.ricardofrango.squadify.presentation.ui.opponents.OpponentFormScreen
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentsScreen
 import com.ricardofrango.squadify.presentation.ui.matchdetails.MatchDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.matchreport.MatchReportScreen
@@ -68,6 +69,9 @@ private const val KEY_EMAIL_CHANGED = "emailChanged"
 
 // Opponents (SELECT) -> Schedule match: the id of the opponent just picked.
 private const val KEY_OPPONENT_PICKED = "opponentPicked"
+
+// Create opponent (SELECT) -> Schedule match: the new opponent's name, for "… created and selected".
+private const val KEY_OPPONENT_CREATED = "opponentCreated"
 
 // Duration of the app-wide screen transition (see the NavHost below).
 private const val NAV_ANIM_MS = 300
@@ -656,6 +660,9 @@ fun AppNavigation() {
             val pickedOpponentId by backStackEntry.savedStateHandle
                 .getStateFlow<String?>(KEY_OPPONENT_PICKED, null)
                 .collectAsState()
+            val createdOpponentName by backStackEntry.savedStateHandle
+                .getStateFlow<String?>(KEY_OPPONENT_CREATED, null)
+                .collectAsState()
             CreateMatchScreen(
                 ageGroupId = screen.ageGroupId,
                 teamId = screen.teamId,
@@ -665,6 +672,8 @@ fun AppNavigation() {
                 },
                 pickedOpponentId = pickedOpponentId,
                 onPickedOpponentConsumed = { backStackEntry.savedStateHandle[KEY_OPPONENT_PICKED] = null },
+                createdOpponentName = createdOpponentName,
+                onCreatedOpponentShown = { backStackEntry.savedStateHandle[KEY_OPPONENT_CREATED] = null },
                 onMatchCreated = {
                     navController.previousBackStackEntry
                         ?.savedStateHandle
@@ -676,6 +685,13 @@ fun AppNavigation() {
 
         screen<Screen.Opponents> { backStackEntry ->
             val screen: Screen.Opponents = backStackEntry.toRoute()
+            // Set by Create opponent (BROWSE), so the list reloads on return.
+            val opponentsChanged by backStackEntry.savedStateHandle
+                .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
+                .collectAsState()
+            if (opponentsChanged) {
+                backStackEntry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false
+            }
             OpponentsScreen(
                 clubId = screen.clubId,
                 ageGroupId = screen.ageGroupId,
@@ -688,7 +704,33 @@ fun AppNavigation() {
                         navController.popBackStack()
                     }
                 },
-                onCreateOpponent = null
+                onCreateOpponent = { name ->
+                    navController.navigate(Screen.CreateOpponent(screen.clubId, screen.ageGroupId, name, select = screen.select))
+                },
+                refresh = opponentsChanged
+            )
+        }
+
+        screen<Screen.CreateOpponent> { backStackEntry ->
+            val screen: Screen.CreateOpponent = backStackEntry.toRoute()
+            OpponentFormScreen(
+                clubId = screen.clubId,
+                ageGroupId = screen.ageGroupId,
+                initialName = screen.name,
+                onNavigateBack = { navController.popBackStack() },
+                onCreated = { opponent ->
+                    if (screen.select) {
+                        // Picking for a match: skip the list and go straight back to the form, with the
+                        // new opponent selected (design 38d).
+                        val matchEntry = runCatching { navController.getBackStackEntry<Screen.CreateMatch>() }.getOrNull()
+                        matchEntry?.setIfAlive(KEY_OPPONENT_PICKED, opponent.id)
+                        matchEntry?.setIfAlive(KEY_OPPONENT_CREATED, opponent.name)
+                        if (!navController.popBackStack<Screen.CreateMatch>(inclusive = false)) navController.popBackStack()
+                    } else {
+                        navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
+                        navController.popBackStack()
+                    }
+                }
             )
         }
 

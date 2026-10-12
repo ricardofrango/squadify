@@ -71,9 +71,20 @@ fun CreateMatchScreen(
     // The opponent just picked there, handed back once; [onPickedOpponentConsumed] clears it.
     pickedOpponentId: String? = null,
     onPickedOpponentConsumed: () -> Unit = {},
+    // Set when that opponent was just created there: shown as "… created and selected", then cleared.
+    createdOpponentName: String? = null,
+    onCreatedOpponentShown: () -> Unit = {},
     viewModel: CreateMatchViewModel = koinViewModel()
 ) {
     val uiState = viewModel.state.collectSettledState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val createdMessage = createdOpponentName?.let { stringResource(Res.string.msg_opponent_created_selected, it) }
+    LaunchedEffect(createdMessage) {
+        if (createdMessage != null) {
+            onCreatedOpponentShown()
+            snackbarHostState.showSnackbar(createdMessage)
+        }
+    }
 
     LaunchedEffect(ageGroupId, teamId) { viewModel.load(ageGroupId, teamId) }
     LaunchedEffect(pickedOpponentId) {
@@ -92,6 +103,7 @@ fun CreateMatchScreen(
 
     CreateMatchContent(
         uiState = uiState,
+        snackbarHostState = snackbarHostState,
         onNavigateBack = onNavigateBack,
         onRetry = { viewModel.load(ageGroupId, teamId) },
         onTeamSelected = viewModel::onTeamSelected,
@@ -110,6 +122,7 @@ fun CreateMatchScreen(
 @Composable
 private fun CreateMatchContent(
     uiState: CreateMatchUiState,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
     onTeamSelected: (String) -> Unit,
@@ -125,6 +138,7 @@ private fun CreateMatchContent(
     val clubName = (uiState as? CreateMatchUiState.Idle)?.clubName
     Scaffold(
         containerColor = Color.White,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             FMTopBar(
                 title = stringResource(Res.string.title_schedule_match),

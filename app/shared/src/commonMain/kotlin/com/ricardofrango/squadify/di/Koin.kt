@@ -12,6 +12,7 @@ import com.ricardofrango.squadify.domain.usecase.*
 import com.ricardofrango.squadify.presentation.ui.account.AccountViewModel
 import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubDetailsViewModel
 import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubPlayersViewModel
+import com.ricardofrango.squadify.presentation.ui.opponents.OpponentFormViewModel
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentsViewModel
 import com.ricardofrango.squadify.presentation.ui.editclub.EditClubViewModel
 import com.ricardofrango.squadify.presentation.ui.clubmember.ClubMemberDetailsViewModel
@@ -207,6 +208,7 @@ val presentationModule = module {
     viewModelOf(::DashboardViewModel)
     viewModelOf(::AccountViewModel)
     viewModelOf(::OpponentsViewModel)
+    viewModelOf(::OpponentFormViewModel)
     viewModelOf(::ClubDetailsViewModel)
     viewModelOf(::ClubPlayersViewModel)
     viewModelOf(::EditClubViewModel)
