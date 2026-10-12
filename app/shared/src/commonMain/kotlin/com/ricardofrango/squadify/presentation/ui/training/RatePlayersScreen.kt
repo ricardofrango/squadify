@@ -64,7 +64,6 @@ import squadify.app.shared.generated.resources.label_absent_count
 import squadify.app.shared.generated.resources.label_not_rated
 import squadify.app.shared.generated.resources.label_rated_count
 import squadify.app.shared.generated.resources.label_training_subtitle
-import squadify.app.shared.generated.resources.label_rating_field
 import squadify.app.shared.generated.resources.msg_rate_intro
 import squadify.app.shared.generated.resources.msg_rating_invalid
 import squadify.app.shared.generated.resources.msg_ratings_not_open
@@ -201,7 +200,8 @@ private fun PlayerRatingRow(
             FormTextField(
                 value = text,
                 onValueChange = onText,
-                label = stringResource(Res.string.label_rating_field),
+                label = null,
+                placeholder = "0–10",
                 enabled = enabled,
                 keyboardType = KeyboardType.Decimal,
                 isError = invalid,

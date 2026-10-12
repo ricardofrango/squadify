@@ -1346,6 +1346,5 @@
     <string name="msg_no_training_stats">No ended training sessions yet.</string>
     <!-- Rate players: text box -->
     <string name="msg_rate_intro">Type each player's rating from 0 to 10, decimals allowed (7.5). 0 means absent; leave it empty if not rated yet. Ratings are only visible to staff.</string>
-    <string name="label_rating_field">Rating</string>
     <string name="msg_rating_invalid">Enter 0 to 10, e.g. 7.5</string>
 </resources>

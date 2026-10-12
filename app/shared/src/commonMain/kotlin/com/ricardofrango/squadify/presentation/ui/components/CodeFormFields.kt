@@ -43,7 +43,8 @@ fun FormErrorLine(error: String?) {
 fun FormTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    label: String,
+    // Null for a box too narrow for a floating label (e.g. a rating), which uses a placeholder instead.
+    label: String?,
     enabled: Boolean,
     keyboardType: KeyboardType,
     modifier: Modifier = Modifier,
@@ -64,7 +65,7 @@ fun FormTextField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label) },
+        label = label?.let { { Text(it) } },
         supportingText = supporting?.let { { Text(it) } },
         placeholder = placeholder?.let { { Text(it, color = Color.Gray.copy(alpha = 0.7f)) } },
         modifier = modifier.fillMaxWidth(),
