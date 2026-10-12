@@ -86,6 +86,7 @@ class TrainingSessionUseCasesTest {
         override fun now() = kotlinx.datetime.LocalDateTime(2026, 10, 20, 12, 0).toInstant(kotlinx.datetime.TimeZone.currentSystemDefault())
     }
     private val ratingsUseCase = TrainingRatingsUseCase(repo, ratingRepository, ageGroupRepository, clubRepository, playerRepository, check, transactionManager, fixedClock)
+    private val statsUseCase = TrainingStatsUseCase(ageGroupRepository, seasonRepository, playerRepository, repo, ratingRepository, check, transactionManager, fixedClock)
     private val get = GetTrainingSessionsUseCase(ageGroupRepository, seasonRepository, clubRepository, repo, ratingRepository, userRepository, check, transactionManager)
 
     private val clubId = "club-1"
@@ -355,5 +356,33 @@ class TrainingSessionUseCasesTest {
         coEvery { playerRepository.getPlayersByUser(parent) } returns listOf(pool[0])
         coEvery { playerRepository.getPlayersByAgeGroup(ag.id) } returns pool
         assertEquals(null, get(parent, ag.id).sessions.single().ratedCount)
+    }
+
+    @Test
+    fun statsCountOnlyEndedSessionsAndThePlayersAttendance() = runBlocking<Unit> {
+        coEvery { playerRepository.getPlayersByAgeGroup(ag.id) } returns pool
+        existing("s1", LocalDate(2026, 10, 13), LocalTime(18, 0))
+        existing("s2", LocalDate(2026, 10, 15), LocalTime(18, 0))
+        existing("future", LocalDate(2026, 10, 22), LocalTime(18, 0))
+        existing("cancelled", LocalDate(2026, 10, 8), LocalTime(18, 0))
+        change.cancel(user(ClubRole.COORDINATOR), "cancelled")
+        coEvery { ratingRepository.getForSessions(listOf("s1", "s2")) } returns mapOf(
+            "s1" to listOf(com.ricardofrango.squadify.model.TrainingRating("p1", 8.0), com.ricardofrango.squadify.model.TrainingRating("p2", 0.0)),
+            "s2" to listOf(com.ricardofrango.squadify.model.TrainingRating("p1", 7.0))
+        )
+        val staff = user(null, TeamRole.STAFF)
+        assertEquals(listOf("s1", "s2"), statsUseCase.ageGroup(staff, ag.id).sessions.map { it.id })
+
+        coEvery { playerRepository.getPlayerById("p1") } returns pool[0]
+        coEvery { playerRepository.getAgeGroupIdsByPlayer("p1") } returns listOf(ag.id)
+        val p1 = statsUseCase.player(staff, "p1").seasons.single()
+        assertEquals(2, p1.sessions)
+        assertEquals(2, p1.attended)
+        assertEquals(7.5, p1.average)
+
+        val parent = user(null)
+        coEvery { playerRepository.getPlayersByUser(parent) } returns listOf(pool[0])
+        assertTrue(statsUseCase.player(parent, "p1").seasons.isEmpty())
+        assertFailsWith<ForbiddenException> { statsUseCase.ageGroup(parent, ag.id) }
     }
 }

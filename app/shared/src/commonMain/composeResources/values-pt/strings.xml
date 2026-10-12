@@ -1336,4 +1336,18 @@
     <string name="cd_decrease">Diminuir</string>
     <string name="cd_increase">Aumentar</string>
     <string name="msg_ratings_not_open">As avaliações abrem quando a sessão terminar.</string>
+    <!-- Training stats (design 39j) -->
+    <string name="label_training_staff">TREINO · SÓ EQUIPA TÉCNICA</string>
+    <string name="label_training_season_staff">TREINO · %1$s · SÓ EQUIPA TÉCNICA</string>
+    <string name="label_all_season">Toda a época</string>
+    <string name="sort_attendance">Assiduidade</string>
+    <string name="sort_rating">Avaliação</string>
+    <string name="sort_name">Nome</string>
+    <string name="col_player">JOGADOR</string>
+    <string name="col_attended">PRESENÇAS</string>
+    <string name="col_avg">MÉDIA</string>
+    <string name="label_attendance_tile">Assiduidade · %1$d de %2$d</string>
+    <string name="label_avg_tile">Média de avaliação · %1$d avaliados</string>
+    <string name="msg_absent_not_averaged">Ausente (0) não conta para a média.</string>
+    <string name="msg_no_training_stats">Ainda sem sessões de treino terminadas.</string>
 </resources>

@@ -1810,6 +1810,13 @@ Absent ones, for those who rate only. The club Home adds `TRAINING_RATINGS_PENDI
 non-cancelled session with players of its age group still unrated, for admins/coordinators and the age group's
 coaches and staff, oldest first.
 
+### 9b.8 Training Stats (`TrainingStatsUseCase`)
+
+`GET /age-groups/{id}/training-stats` (staff only) returns the pool, every session that has ended and wasn't
+cancelled, and their ratings in one query, so the app works out attendance and averages for the whole season or
+one month. `GET /players/{id}/training-stats` returns, per season, the player's attended sessions out of the
+ended ones and the average without Absent, only for the age groups the viewer rates (empty otherwise).
+
 ### 9b.5 One Session (`GetTrainingSessionUseCase`, `SaveTrainingSessionUseCase`, `ChangeTrainingSessionUseCase`)
 
 `GET /training-sessions/{id}` has the same read gate as the Training tab (players and parents too) and returns

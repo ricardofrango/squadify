@@ -186,6 +186,7 @@ val domainModule = module {
     factory { ChangeTrainingSessionUseCase(get()) }
     factory { TrainingExercisesUseCase(get()) }
     factory { TrainingRatingsUseCase(get()) }
+    factory { TrainingStatsUseCase(get()) }
     factory { SaveTrainingPlanUseCase(get()) }
     factory { GetOpponentDetailsUseCase(get()) }
     factory { CreateOpponentUseCase(get()) }

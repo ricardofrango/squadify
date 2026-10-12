@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.domain.usecase.GetTrainingSessionsUseCase
 import com.ricardofrango.squadify.domain.usecase.SaveTrainingSessionUseCase
 import com.ricardofrango.squadify.domain.usecase.TrainingExercisesUseCase
 import com.ricardofrango.squadify.domain.usecase.TrainingRatingsUseCase
+import com.ricardofrango.squadify.domain.usecase.TrainingStatsUseCase
 import com.ricardofrango.squadify.model.SaveTrainingRatingsRequest
 import com.ricardofrango.squadify.model.SaveExerciseRequest
 import com.ricardofrango.squadify.model.SetSessionExercisesRequest
@@ -35,6 +36,7 @@ fun Route.trainingRoutes() {
     val getSession by inject<GetTrainingSessionUseCase>()
     val exercises by inject<TrainingExercisesUseCase>()
     val ratings by inject<TrainingRatingsUseCase>()
+    val stats by inject<TrainingStatsUseCase>()
 
     authenticate("auth-jwt") {
         route("/age-groups/{ageGroupId}/training-sessions") {
@@ -73,6 +75,18 @@ fun Route.trainingRoutes() {
                 val userId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                 call.respond(HttpStatusCode.Created, exercises.create(userId, ageGroupId, call.receive<SaveExerciseRequest>()))
             }
+        }
+
+        // Training stats (design 39j), staff only.
+        get("/age-groups/{ageGroupId}/training-stats") {
+            val ageGroupId = call.parameters["ageGroupId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+            val userId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+            call.respond(stats.ageGroup(userId, ageGroupId))
+        }
+        get("/players/{playerId}/training-stats") {
+            val playerId = call.parameters["playerId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+            val userId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+            call.respond(stats.player(userId, playerId))
         }
 
         patch("/exercises/{exerciseId}") {

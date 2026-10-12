@@ -2679,3 +2679,9 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
 - **On the lists:** ended sessions show "Needs ratings" until everyone is rated, then the average (without Absent).
 - **Home to-do:** "Training of Thu 8 Oct needs player ratings · Sub-15", with "12 of 18 rated", opens Rate players. It's one row per session, grouped from 3 up like match reports, amber after 7 days.
 - **Tests:** `TrainingSessionUseCasesTest`, `GetClubHomeUseCaseTest`, `TrainingPeriodsTest` (tenths and attendance) and `RatePlayersTest`.
+
+**Training stats** (design 39j), staff only:
+- **Definitions:** attendance is the sessions a player was rated above 0 out of the ended, non-cancelled sessions in the period. The average leaves Absent out. Below 75% attendance shows amber.
+- **Age Group → Stats:** a TRAINING card under the existing ones, with All season or one month, and sorting by Attendance, Rating or Name. Each row shows "16/16 · 100%" and the average in its colour band, and opens the player.
+- **Player Details:** two tiles under the season stats (attendance with "14 of 16", and the average). They show the season selected above, else the latest.
+- **Data:** the age-group endpoint returns raw sessions and ratings, so switching month needs no request. Tested in `TrainingSessionUseCasesTest` and `TrainingStatsTest`.

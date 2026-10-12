@@ -92,6 +92,7 @@ fun AgeGroupDetailsScreen(
     val recordState by viewModel.record.collectAsState()
     val plansState by viewModel.plans.collectAsState()
     val sessionsState by viewModel.sessions.collectAsState()
+    val trainingStats by viewModel.trainingStats.collectAsState()
     val tab by viewModel.tab.collectAsState()
     val matchesTeamId by viewModel.matchesTeamId.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
@@ -104,6 +105,7 @@ fun AgeGroupDetailsScreen(
         recordState = recordState,
         plansState = plansState,
         sessionsState = sessionsState,
+        trainingStats = trainingStats,
         snackbarHostState = snackbarHostState,
         tab = tab,
         matchesTeamId = matchesTeamId,
@@ -162,6 +164,7 @@ private fun AgeGroupDetailsContent(
     recordState: AgeGroupRecordUiState,
     plansState: AgeGroupPlansUiState = AgeGroupPlansUiState.Loading,
     sessionsState: AgeGroupSessionsUiState = AgeGroupSessionsUiState.Loading,
+    trainingStats: com.ricardofrango.squadify.model.AgeGroupTrainingStats? = null,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     tab: AgeGroupTab,
     matchesTeamId: String?,
@@ -252,7 +255,8 @@ private fun AgeGroupDetailsContent(
                                 details = d, recordState = recordState, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,
                                 nextHint = nextHint, onViewNext = next?.let { { onMatchClick(it.id) } }, sideBySide = landscape,
                                 onGoToTeams = { onTabSelected(AgeGroupTab.TEAMS) }, onRetry = onRetryRecord,
-                                onFilterSelected = onFilterSelected, onOpenPlayer = onPlayerClick
+                                onFilterSelected = onFilterSelected, onOpenPlayer = onPlayerClick,
+                                trainingStats = trainingStats
                             )
                             AgeGroupTab.TEAMS -> AgeGroupTeamsTab(
                                 details = d, recordState = recordState, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,

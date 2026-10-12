@@ -1338,4 +1338,18 @@
     <string name="cd_decrease">Decrease</string>
     <string name="cd_increase">Increase</string>
     <string name="msg_ratings_not_open">Ratings open when the session ends.</string>
+    <!-- Training stats (design 39j) -->
+    <string name="label_training_staff">TRAINING · STAFF ONLY</string>
+    <string name="label_training_season_staff">TRAINING · %1$s · STAFF ONLY</string>
+    <string name="label_all_season">All season</string>
+    <string name="sort_attendance">Attendance</string>
+    <string name="sort_rating">Rating</string>
+    <string name="sort_name">Name</string>
+    <string name="col_player">PLAYER</string>
+    <string name="col_attended">ATTENDED</string>
+    <string name="col_avg">AVG</string>
+    <string name="label_attendance_tile">Attendance · %1$d of %2$d</string>
+    <string name="label_avg_tile">Avg rating · %1$d rated</string>
+    <string name="msg_absent_not_averaged">Absent (0) doesn\'t count towards the average.</string>
+    <string name="msg_no_training_stats">No ended training sessions yet.</string>
 </resources>

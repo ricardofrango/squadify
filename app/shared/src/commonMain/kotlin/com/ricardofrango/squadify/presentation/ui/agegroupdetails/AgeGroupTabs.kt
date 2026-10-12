@@ -72,6 +72,8 @@ import squadify.app.shared.generated.resources.msg_no_sessions_day
 import squadify.app.shared.generated.resources.btn_add_one_session
 import squadify.app.shared.generated.resources.btn_calendar
 import squadify.app.shared.generated.resources.btn_list
+import com.ricardofrango.squadify.presentation.ui.training.AgeGroupTrainingStatsCard
+import com.ricardofrango.squadify.model.AgeGroupTrainingStats
 
 // The four tabs of Age Group Details (design 33). Every number is derived from AgeGroupDetails (teams,
 // fixtures, staff, pool) and AgeGroupSeasonRecord (each team's season) by the shared code in
@@ -137,9 +139,27 @@ internal fun AgeGroupStatsTab(
     onGoToTeams: () -> Unit,
     onRetry: () -> Unit,
     onFilterSelected: (StatsFilter) -> Unit,
-    onOpenPlayer: (String) -> Unit
+    onOpenPlayer: (String) -> Unit,
+    // Staff only (design 39j); null hides the card.
+    trainingStats: AgeGroupTrainingStats? = null
 ) {
     LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        statsItems(details, recordState, nextHint, onViewNext, sideBySide, onGoToTeams, onRetry, onFilterSelected, onOpenPlayer)
+        trainingStats?.let { stats -> item(key = "training-stats") { AgeGroupTrainingStatsCard(stats, onOpenPlayer) } }
+    }
+}
+
+private fun LazyListScope.statsItems(
+    details: AgeGroupDetails,
+    recordState: AgeGroupRecordUiState,
+    nextHint: String?,
+    onViewNext: (() -> Unit)?,
+    sideBySide: Boolean,
+    onGoToTeams: () -> Unit,
+    onRetry: () -> Unit,
+    onFilterSelected: (StatsFilter) -> Unit,
+    onOpenPlayer: (String) -> Unit
+) {
         when {
             details.teams.isEmpty() -> item {
                 EmptyCard(
@@ -197,7 +217,6 @@ internal fun AgeGroupStatsTab(
                 }
             }
         }
-    }
 }
 
 @Composable

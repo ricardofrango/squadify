@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.model.PlayerTrainingSeason
+import com.ricardofrango.squadify.presentation.ui.training.PlayerTrainingCard
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -72,6 +74,7 @@ fun PlayerDetailsScreen(
 ) {
     val uiState = viewModel.state.collectSettledState()
     val statsState by viewModel.stats.collectAsState()
+    val training by viewModel.training.collectAsState()
 
     LaunchedEffect(playerId) {
         viewModel.loadPlayerDetails(playerId, initialSeasonId, initialFilter)
@@ -83,6 +86,7 @@ fun PlayerDetailsScreen(
     PlayerDetailsContent(
         uiState = uiState,
         statsState = statsState,
+        training = training,
         onNavigateBack = onNavigateBack,
         onRetry = { viewModel.loadPlayerDetails(playerId) },
         onRetryStats = { viewModel.loadSeasonStats(playerId) },
@@ -98,6 +102,7 @@ fun PlayerDetailsScreen(
 private fun PlayerDetailsContent(
     uiState: PlayerDetailsUiState,
     statsState: SeasonStatsUiState,
+    training: List<PlayerTrainingSeason> = emptyList(),
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
     onRetryStats: () -> Unit,
@@ -156,6 +161,7 @@ private fun PlayerDetailsContent(
             is PlayerDetailsUiState.Idle -> PlayerBody(
                 profile = uiState.profile,
                 statsState = statsState,
+                training = training,
                 modifier = boxModifier,
                 onRetryStats = onRetryStats,
                 onSeasonSelected = onSeasonSelected,
@@ -239,6 +245,7 @@ private fun subtitleLine(profile: PlayerProfile): String {
 private fun PlayerBody(
     profile: PlayerProfile,
     statsState: SeasonStatsUiState,
+    training: List<PlayerTrainingSeason> = emptyList(),
     modifier: Modifier = Modifier,
     onRetryStats: () -> Unit,
     onSeasonSelected: (String) -> Unit,
@@ -250,7 +257,7 @@ private fun PlayerBody(
     val matches = loaded?.visibleMatches().orEmpty()
     val showRatings = loaded?.stats?.canSeeRatings == true
 
-    val statsCard: @Composable () -> Unit = {
+    val statsCard: @Composable () -> Unit = { Column {
         PlayerSeasonStatsCard(
             state = statsState,
             playerFirstName = profile.player.firstName,
@@ -258,7 +265,12 @@ private fun PlayerBody(
             onOpenSeasons = { showSeasons = true },
             onFilterSelected = onFilterSelected
         )
-    }
+        // Staff only (design 39j): the season shown above, else the latest one with training.
+        (training.firstOrNull { it.seasonId == loaded?.selectedSeasonId } ?: training.firstOrNull())?.let {
+            Spacer(Modifier.height(12.dp))
+            PlayerTrainingCard(it)
+        }
+    } }
     val padding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 24.dp)
 
     // Landscape (30e): totals and Player info on the left, the match list beside them.

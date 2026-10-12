@@ -6,6 +6,8 @@ import com.ricardofrango.squadify.domain.usecase.GetAgeGroupDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupSeasonRecordUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTrainingPlansUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTrainingSessionsUseCase
+import com.ricardofrango.squadify.domain.usecase.TrainingStatsUseCase
+import com.ricardofrango.squadify.model.AgeGroupTrainingStats
 import com.ricardofrango.squadify.data.remote.ApiException
 import io.ktor.http.HttpStatusCode
 import com.ricardofrango.squadify.model.StatsFilter
@@ -22,8 +24,13 @@ class AgeGroupDetailsViewModel(
     private val getAgeGroupDetailsUseCase: GetAgeGroupDetailsUseCase,
     private val getAgeGroupSeasonRecordUseCase: GetAgeGroupSeasonRecordUseCase,
     private val getTrainingPlansUseCase: GetTrainingPlansUseCase,
-    private val getTrainingSessionsUseCase: GetTrainingSessionsUseCase
+    private val getTrainingSessionsUseCase: GetTrainingSessionsUseCase,
+    private val trainingStatsUseCase: TrainingStatsUseCase
 ) : ViewModel() {
+
+    // The Stats tab's TRAINING card (design 39j); null for anyone who can't see it (staff only).
+    private val _trainingStats = MutableStateFlow<AgeGroupTrainingStats?>(null)
+    val trainingStats: StateFlow<AgeGroupTrainingStats?> = _trainingStats.asStateFlow()
 
     private val _state = MutableStateFlow<AgeGroupDetailsUiState>(AgeGroupDetailsUiState.Loading)
     val state: StateFlow<AgeGroupDetailsUiState> = _state.asStateFlow()
@@ -50,6 +57,7 @@ class AgeGroupDetailsViewModel(
         loadRecord(ageGroupId)
         loadPlans(ageGroupId)
         loadSessions(ageGroupId)
+        viewModelScope.launch { _trainingStats.value = runCatching { trainingStatsUseCase.ageGroup(ageGroupId) }.getOrNull() }
 
         viewModelScope.launch {
             _state.update { AgeGroupDetailsUiState.Loading }

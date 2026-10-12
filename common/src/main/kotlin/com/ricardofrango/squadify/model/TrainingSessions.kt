@@ -194,6 +194,33 @@ fun List<Double>.attendance(): TrainingAttendance {
     return TrainingAttendance(attended = trained.size, rated = size, average = trained.takeIf { it.isNotEmpty() }?.average())
 }
 
+/**
+ * `GET /age-groups/{id}/training-stats` (staff only, design 39j): the pool, every session that has ended and
+ * wasn't cancelled, and their ratings, so the app works out attendance and averages for any period.
+ */
+@Serializable
+data class AgeGroupTrainingStats(
+    val players: List<Player>,
+    val sessions: List<TrainingSession>,
+    val ratings: Map<String, List<TrainingRating>>
+)
+
+/** One player's training in one season (design 39j): attended of the ended sessions, and the average without Absent. */
+@Serializable
+data class PlayerTrainingSeason(
+    val seasonId: String,
+    val seasonName: String,
+    val ageGroupName: String,
+    val sessions: Int,
+    val attended: Int,
+    val rated: Int,
+    val average: Double? = null
+)
+
+/** `GET /players/{id}/training-stats`: per season, only for the age groups the viewer rates; empty otherwise. */
+@Serializable
+data class PlayerTrainingStats(val seasons: List<PlayerTrainingSeason>)
+
 /** The most sessions one bulk creation may produce. */
 const val MAX_BULK_SESSIONS = 400
 

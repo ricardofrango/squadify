@@ -2,7 +2,9 @@ package com.ricardofrango.squadify.data.remote
 
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
+import com.ricardofrango.squadify.model.AgeGroupTrainingStats
 import com.ricardofrango.squadify.model.CreateTrainingSessionsRequest
+import com.ricardofrango.squadify.model.PlayerTrainingStats
 import com.ricardofrango.squadify.model.SaveExerciseRequest
 import com.ricardofrango.squadify.model.SetSessionExercisesRequest
 import com.ricardofrango.squadify.model.SaveTrainingRatingsRequest
@@ -79,6 +81,12 @@ class TrainingSessionRepositoryImpl(
             contentType(ContentType.Application.Json)
             setBody(request)
         }.handleResponse()
+
+    override suspend fun getAgeGroupTrainingStats(ageGroupId: String): AgeGroupTrainingStats =
+        httpClient.get("${appConfig.baseUrl}/age-groups/$ageGroupId/training-stats").handleResponse()
+
+    override suspend fun getPlayerTrainingStats(playerId: String): PlayerTrainingStats =
+        httpClient.get("${appConfig.baseUrl}/players/$playerId/training-stats").handleResponse()
 
     override suspend fun getRatings(sessionId: String): TrainingRatings =
         httpClient.get("${sessionUrl(sessionId)}/ratings").handleResponse()
