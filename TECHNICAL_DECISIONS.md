@@ -2510,3 +2510,57 @@ Change password and Change email ask for the current password. A wrong one used 
 - **Shared count:** one counter covers Change password and Change email together.
 - **Tests:** `CurrentPasswordGuardTest`; `ChangePasswordUseCaseTest` and `EmailChangeUseCasesTest` now expect `WrongPasswordException`.
 
+## 51. Opponents Screens
+
+Picking an opponent on Schedule match was a dropdown of every opponent plus an inline "+ New opponent" name field. With dozens of opponents that list has no search. Design 38 replaces it with an Opponents screen, a Create/Edit opponent form and Opponent details.
+
+**List** (`OpponentsScreen` / `OpponentsViewModel`, route `Screen.Opponents(clubId, select, ageGroupId, selectedOpponentId)`):
+- **Two modes, one screen:**
+  - **SELECT:** from the Opponent field on Schedule match. Title "Choose opponent" and a check on the current pick. Tapping a row hands its id back through the `opponentPicked` saved-state key and closes the list.
+  - **BROWSE:** from More → Opponents (shown to everyone in the club).
+- **Search:** pinned under the bar. It filters as you type on name and short name, ignoring case and accents (`OpponentSearch.kt`, tested in `OpponentSearchTest`).
+- **Sections:** sticky letter headers, accents folded, with anything that doesn't start with a letter under "#".
+- **Logo:** initials in a neutral grey circle (`OpponentLogo`), never green, which is kept for our own club. Logos can't be uploaded yet.
+- **No match counts on rows:** the design has "6 matches" on each row. It's left out because it would mean counting matches for every opponent just to draw the list.
+- **Data:** one call, `GET /opponents/list` (`GetOpponentListUseCase`, `PROCESS_FLOWS.md` §6.3), returns the club name, the opponents and `canCreate`. There's no Recent section, unlike the design: it was dropped as a product decision.
+- **States:** skeleton rows while loading, "No opponents yet", "No opponents match …", and an error with Retry.
+- **Schedule match:** the Opponent field shows the pick with its logo, or "Choose opponent". The inline name field is gone; creating an opponent happens from the list. An opponent picked there that the form doesn't know yet (just created) makes it fetch the opponents again.
+
+**Create** (`OpponentFormScreen` / `OpponentFormViewModel`, route `Screen.CreateOpponent(clubId, ageGroupId, name, select)`):
+- **New fields:** stadium name, stadium address, contact email, contact phone and notes, all optional (`V14__opponent_details.sql`). The address will be the location of away matches.
+- **Form:** logo, IDENTITY, STADIUM, CONTACT · OPTIONAL and NOTES · OPTIONAL, with the button pinned at the bottom. On a wide screen the sections flow into two columns.
+  - **Logo:** "Add logo" is shown disabled with "Logo upload is coming soon." Upload needs the same image storage as the club logo.
+  - **Name:** the only required field.
+  - **Short name:** uppercased and capped at 5 as it's typed.
+  - **Open in Maps:** appears under the address once it's filled.
+  - **Keyboard:** Next moves from Name to Phone, and Done on Phone submits. Notes is multi-line.
+- **Duplicate names:** a name the club already has, ignoring case, is refused. The form checks it when Name loses focus, against the list it loads for the subtitle. The server checks it again (`ConflictException`, 409), and the form shows the same inline error under Name.
+- **Server rules:** `OpponentRules.kt`: a blank name, or a short name over 5 characters, is a 400. Optional fields are trimmed, and blank ones are stored as null. Tested in `CreateOpponentUseCaseTest` and, on the client, `OpponentFormTest`.
+- **Where it's opened:**
+  - **From picking:** the + in the bar, or "Create “typed text”" when a search finds nothing (the text prefills Name). There's no "+ Create opponent" row in the list, since it would only repeat the +.
+  - **After creating while picking:** the app goes straight back to Schedule match, skipping the list, with the new opponent selected and "… created and selected" shown.
+  - **From browsing:** it goes back to the list, which reloads.
+- **Row line:** list rows and the Schedule match field show the short name and the stadium under the name.
+
+**Details** (`OpponentDetailsScreen` / `OpponentDetailsViewModel`, route `Screen.OpponentDetails(opponentId)`), opened by tapping a row when browsing:
+- **Header:** logo, name, the short name as a badge, and "6 matches all-time" (every match against them but the cancelled ones). The design also shows a city, which opponents don't have.
+- **Stadium:** the name, the address (or "No address yet") and Directions, which opens a maps search for the address. Left out when neither is set.
+- **Head-to-head:** Played · Won · Drawn · Lost, goals for–against and the last five (oldest on the left), for one season across all our teams.
+  - **Season:** it opens on the season today falls in, or the latest one. The pill picks among the seasons that have a match against them.
+  - **Squares:** the same as Team Details' form. Tapping one opens the match.
+  - **Empty:** with no finished match at all, it says so.
+- **Matches:** every match against them, newest first, with the standard `MatchRow` (team, kick-off, LIVE, coloured score). Tap to open.
+- **Contact and Notes:** only when filled. The email and phone open mail and the dialer.
+- **Wide screens:** two columns, with identity, stadium, contact and notes on the left, and head-to-head and matches on the right.
+- **Data:** one call, `GET /opponents/{opponentId}` (`GetOpponentDetailsUseCase`, `PROCESS_FLOWS.md` §6.4). It returns the opponent, the matches, the scores of the ones that started, their teams and the club's seasons, so changing season is worked out on the device (`OpponentHeadToHead.kt`, tested in `OpponentHeadToHeadTest`).
+  - **Scores:** the new `MatchEventRepository.getScoresByMatches` reads them in one query.
+  - **Readable by:** any club member. `canEdit` follows `EDIT_OPPONENT`.
+
+**Edit** (`OpponentEditScreen`, the same `OpponentFormViewModel`; route `Screen.EditOpponent(opponentId)`), opened from the pencil on Opponent details:
+- **Who sees the pencil:** only users with `EDIT_OPPONENT`. Everyone else gets no disabled pencil.
+- **Form:** the same as Create, prefilled. "Save changes" stays disabled until something changes.
+- **Duplicate names:** checked the same way, leaving out the opponent being edited. Changing only the case of its own name is allowed.
+- **Server:** `PATCH /opponents/{id}` now takes the new fields too. A null field is left as it is, and a blank optional one is cleared.
+  - **What the app sends:** every field as typed, so emptying a field clears it.
+  - **Rules:** the same as Create (`OpponentRules.kt`). Tested in `UpdateOpponentUseCaseTest` and `OpponentFormTest`.
+- **After saving:** the details reload, and so does the list underneath.

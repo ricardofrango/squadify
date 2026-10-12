@@ -11,6 +11,8 @@ interface MatchEventRepository {
     suspend fun deleteEventsByMatch(matchId: String)
     suspend fun getEventsByMatch(matchId: String): List<MatchEvent>
     suspend fun getScoreByMatch(matchId: String): MatchScore
+    // The same, for many matches in one query; a match with no goals gets 0-0.
+    suspend fun getScoresByMatches(matchIds: List<String>): Map<String, MatchScore>
     suspend fun getRecentEventsByPlayer(playerId: String, limit: Int): List<MatchEvent>
     // Newest first, no limit -- used to compute a player's all-time goal/assist counts, with the
     // first few also doubling as the "recent events" list on their profile.

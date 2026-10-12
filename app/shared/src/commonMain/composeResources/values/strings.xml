@@ -299,9 +299,6 @@
     <string name="label_team_field">Team</string>
     <string name="label_choose_team">Choose a team</string>
     <string name="label_opponent_field">Opponent</string>
-    <string name="label_choose_opponent">Choose an opponent</string>
-    <string name="label_new_opponent">New opponent</string>
-    <string name="label_new_opponent_name">Opponent name</string>
     <string name="btn_cancel">Cancel</string>
     <string name="label_when_field">When</string>
     <string name="label_match_date">Date</string>
@@ -1021,4 +1018,65 @@
     <string name="title_signed_out">Signed out</string>
     <string name="msg_signed_out_wrong_passwords">You entered a wrong password 3 times, so you\'ve been signed out for your security. Sign in again to continue.</string>
     <string name="btn_ok">OK</string>
+    <!-- Opponents list (design 38) -->
+    <string name="title_opponents">Opponents</string>
+    <string name="title_choose_opponent">Choose opponent</string>
+    <string name="label_search_opponents">Search opponents</string>
+    <string name="cd_clear_search">Clear search</string>
+    <string name="btn_create_opponent">Create opponent</string>
+    <string name="btn_create_typed_opponent">Create “%1$s”</string>
+    <string name="msg_no_opponents_title">No opponents yet</string>
+    <string name="msg_no_opponents_body">Add the clubs you play against, with their stadium and contact, so scheduling a match takes one tap.</string>
+    <string name="msg_no_opponents_match">No opponents match “%1$s”</string>
+    <string name="msg_no_opponents_match_hint">Check the spelling or search the short name.</string>
+    <string name="msg_ask_coordinator_opponent">Ask a coordinator to add it.</string>
+    <string name="msg_opponents_load_failed">Couldn\'t load opponents</string>
+    <string name="msg_check_connection">Check your connection and try again.</string>
+    <string name="more_opponents">Opponents</string>
+    <!-- Create / Edit opponent (design 38e) -->
+    <string name="title_create_opponent">Create opponent</string>
+    <string name="btn_creating_opponent">Creating…</string>
+    <string name="msg_logo_coming_soon">Logo upload is coming soon.</string>
+    <string name="label_opponent_stadium_section">STADIUM</string>
+    <string name="label_opponent_contact_section">CONTACT · OPTIONAL</string>
+    <string name="label_opponent_notes_section">NOTES · OPTIONAL</string>
+    <string name="label_opponent_name_field">Name *</string>
+    <string name="label_opponent_name_placeholder">e.g. GD Sobreirense</string>
+    <string name="label_opponent_short_name_placeholder">e.g. GDS</string>
+    <string name="msg_opponent_short_name_helper">Up to 5 characters · Shown on match cards</string>
+    <string name="label_opponent_short_name_field">Short name</string>
+    <string name="label_contact_phone_field">Phone</string>
+    <string name="label_stadium_name_field">Stadium name</string>
+    <string name="label_stadium_address_field">Address / location</string>
+    <string name="msg_stadium_address_helper">Used for away match locations</string>
+    <string name="label_optional_placeholder">Optional</string>
+    <string name="label_contact_email_placeholder">secretaria@clube.pt</string>
+    <string name="label_contact_phone_placeholder">+351 …</string>
+    <string name="label_opponent_notes_field">Notes</string>
+    <string name="label_opponent_notes_placeholder">e.g. Artificial pitch, parking behind the stand</string>
+    <string name="btn_open_in_maps">Open in Maps</string>
+    <string name="msg_opponent_name_taken">An opponent with this name already exists</string>
+    <string name="msg_create_opponent_failed">Couldn\'t create the opponent. Please try again.</string>
+    <string name="msg_opponent_created_selected">%1$s created and selected</string>
+    <string name="title_edit_opponent">Edit opponent</string>
+    <string name="msg_opponent_save_failed">Couldn\'t save the opponent. Please try again.</string>
+    <string name="cd_edit_opponent">Edit opponent</string>
+    <!-- Opponent details (design 38f) -->
+    <string name="title_opponent">Opponent</string>
+    <plurals name="opponent_matches_all_time">
+        <item quantity="one">%1$d match all-time</item>
+        <item quantity="other">%1$d matches all-time</item>
+    </plurals>
+    <string name="msg_no_address">No address yet</string>
+    <string name="btn_directions">Directions</string>
+    <string name="label_head_to_head">Head-to-head</string>
+    <string name="h2h_played">Played</string>
+    <string name="h2h_goals">Goals</string>
+    <string name="h2h_last_5">Last 5</string>
+    <string name="h2h_oldest_first">oldest first</string>
+    <string name="h2h_no_results_season">No finished matches against them in %1$s.</string>
+    <string name="msg_no_matches_against">No matches against %1$s yet</string>
+    <string name="msg_h2h_after_first_match">Results and the last-5 form appear after the first finished match.</string>
+    <string name="label_matches_count">Matches · %1$d</string>
+    <string name="msg_opponent_load_failed">Couldn\'t load this opponent</string>
 </resources>

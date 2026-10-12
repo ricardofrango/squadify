@@ -1,0 +1,428 @@
+package com.ricardofrango.squadify.presentation.ui.opponents
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.ricardofrango.squadify.model.Opponent
+import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
+import com.ricardofrango.squadify.presentation.ui.components.FormTextField
+import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
+import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
+import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
+import squadify.app.shared.generated.resources.Res
+import squadify.app.shared.generated.resources.btn_create_opponent
+import squadify.app.shared.generated.resources.btn_creating_opponent
+import squadify.app.shared.generated.resources.btn_open_in_maps
+import squadify.app.shared.generated.resources.label_add_logo
+import squadify.app.shared.generated.resources.label_contact_email_placeholder
+import squadify.app.shared.generated.resources.label_contact_phone_field
+import squadify.app.shared.generated.resources.label_contact_phone_placeholder
+import squadify.app.shared.generated.resources.label_email
+import squadify.app.shared.generated.resources.label_identity_section
+import squadify.app.shared.generated.resources.label_opponent_contact_section
+import squadify.app.shared.generated.resources.label_opponent_name_field
+import squadify.app.shared.generated.resources.label_opponent_name_placeholder
+import squadify.app.shared.generated.resources.label_opponent_notes_field
+import squadify.app.shared.generated.resources.label_opponent_notes_placeholder
+import squadify.app.shared.generated.resources.label_opponent_notes_section
+import squadify.app.shared.generated.resources.label_opponent_short_name_field
+import squadify.app.shared.generated.resources.label_opponent_short_name_placeholder
+import squadify.app.shared.generated.resources.label_opponent_stadium_section
+import squadify.app.shared.generated.resources.label_optional_placeholder
+import squadify.app.shared.generated.resources.label_stadium_address_field
+import squadify.app.shared.generated.resources.label_stadium_name_field
+import squadify.app.shared.generated.resources.msg_logo_coming_soon
+import squadify.app.shared.generated.resources.msg_opponent_name_taken
+import squadify.app.shared.generated.resources.msg_opponent_short_name_helper
+import squadify.app.shared.generated.resources.msg_stadium_address_helper
+import squadify.app.shared.generated.resources.title_create_opponent
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.text.style.TextAlign
+import squadify.app.shared.generated.resources.btn_retry
+import squadify.app.shared.generated.resources.btn_save_changes
+import squadify.app.shared.generated.resources.btn_saving_changes
+import squadify.app.shared.generated.resources.msg_check_connection
+import squadify.app.shared.generated.resources.msg_opponent_load_failed
+import squadify.app.shared.generated.resources.title_edit_opponent
+
+/**
+ * Create opponent (design 38e): logo (upload not available yet), IDENTITY, STADIUM, CONTACT and NOTES,
+ * with the button pinned at the bottom. Only Name is required; a name the club already has shows
+ * inline under it and keeps the button disabled. Next moves field to field and Done on Phone submits;
+ * Notes is multi-line and reached by tapping. [initialName] prefills Name (the search that found
+ * nothing). [onCreated] gets the new opponent.
+ */
+@Composable
+fun OpponentFormScreen(
+    clubId: String,
+    ageGroupId: String?,
+    initialName: String,
+    onNavigateBack: () -> Unit,
+    onCreated: (Opponent) -> Unit,
+    viewModel: OpponentFormViewModel = koinViewModel()
+) {
+    val state by viewModel.state.collectAsState()
+    LaunchedEffect(clubId) { viewModel.start(clubId, ageGroupId, initialName) }
+    LaunchedEffect(viewModel) { viewModel.done.collect { onCreated(it) } }
+
+    OpponentFormContent(
+        state = state,
+        title = Res.string.title_create_opponent,
+        submitText = Res.string.btn_create_opponent,
+        submittingText = Res.string.btn_creating_opponent,
+        onNavigateBack = onNavigateBack,
+        onRetry = {},
+        onFormChange = viewModel::onFormChange,
+        onNameFocusLost = viewModel::onNameFocusLost,
+        onSubmit = viewModel::onSubmit
+    )
+}
+
+/**
+ * Edit opponent (design 38e), from Opponent details: the same form, prefilled. "Save changes" is enabled
+ * only once something changed; emptying an optional field clears it. [onSaved] is called after saving.
+ */
+@Composable
+fun OpponentEditScreen(
+    opponentId: String,
+    onNavigateBack: () -> Unit,
+    onSaved: () -> Unit,
+    viewModel: OpponentFormViewModel = koinViewModel()
+) {
+    val state by viewModel.state.collectAsState()
+    LaunchedEffect(opponentId) { viewModel.startEdit(opponentId) }
+    LaunchedEffect(viewModel) { viewModel.done.collect { onSaved() } }
+
+    OpponentFormContent(
+        state = state,
+        title = Res.string.title_edit_opponent,
+        submitText = Res.string.btn_save_changes,
+        submittingText = Res.string.btn_saving_changes,
+        onNavigateBack = onNavigateBack,
+        onRetry = { viewModel.startEdit(opponentId, force = true) },
+        onFormChange = viewModel::onFormChange,
+        onNameFocusLost = viewModel::onNameFocusLost,
+        onSubmit = viewModel::onSubmit
+    )
+}
+
+@Composable
+private fun OpponentFormContent(
+    state: OpponentFormUiState,
+    title: StringResource,
+    submitText: StringResource,
+    submittingText: StringResource,
+    onNavigateBack: () -> Unit,
+    onRetry: () -> Unit,
+    onFormChange: (OpponentForm) -> Unit,
+    onNameFocusLost: () -> Unit,
+    onSubmit: () -> Unit
+) {
+    Scaffold(
+        containerColor = Color.White,
+        topBar = { FMTopBar(title = stringResource(title), subtitle = state.clubName, onNavigateBack = onNavigateBack) }
+    ) { padding ->
+        if (state.loading || state.loadFailed) {
+            Column(
+                Modifier.fillMaxSize().padding(padding).padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                if (state.loading) {
+                    CircularProgressIndicator(color = PitchGreen)
+                } else {
+                    Text(stringResource(Res.string.msg_opponent_load_failed), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(8.dp))
+                    Text(stringResource(Res.string.msg_check_connection), color = DeepCarbon.copy(alpha = 0.6f), textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(16.dp))
+                    Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)) { Text(stringResource(Res.string.btn_retry)) }
+                }
+            }
+            return@Scaffold
+        }
+        BoxWithConstraints(
+            Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding().background(Color.White)
+        ) {
+            // Landscape or tablet: the sections flow into two columns, the button pinned bottom-right.
+            val wide = maxWidth >= 600.dp
+            Column(Modifier.fillMaxSize()) {
+                Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+                    if (wide) {
+                        Row(Modifier.padding(24.dp), horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                LogoHeader(state.form)
+                                IdentitySection(state, onFormChange, onNameFocusLost)
+                                StadiumSection(state, onFormChange)
+                            }
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                ContactSection(state, onFormChange, onSubmit)
+                                NotesSection(state, onFormChange)
+                                FormErrorLine(state.error)
+                            }
+                        }
+                    } else {
+                        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            LogoHeader(state.form)
+                            IdentitySection(state, onFormChange, onNameFocusLost)
+                            StadiumSection(state, onFormChange)
+                            ContactSection(state, onFormChange, onSubmit)
+                            NotesSection(state, onFormChange)
+                            FormErrorLine(state.error)
+                        }
+                    }
+                }
+                Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
+                    Box(Modifier.padding(horizontal = 24.dp, vertical = 16.dp), contentAlignment = Alignment.CenterEnd) {
+                        PrimaryLoadingButton(
+                            text = submitText,
+                            submittingText = submittingText,
+                            isLoading = state.submitting,
+                            enabled = state.canSubmit,
+                            onClick = onSubmit,
+                            modifier = if (wide) Modifier.widthIn(max = 320.dp) else Modifier
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LogoHeader(form: OpponentForm) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        OpponentLogo(form.name.ifBlank { "?" }, form.shortName, size = 64.dp)
+        Spacer(Modifier.width(16.dp))
+        Column {
+            // Upload isn't available yet, so "Add logo" is shown disabled.
+            Text(
+                stringResource(Res.string.label_add_logo),
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                color = DeepCarbon.copy(alpha = 0.35f)
+            )
+            Text(
+                stringResource(Res.string.msg_logo_coming_soon),
+                style = MaterialTheme.typography.bodySmall,
+                color = DeepCarbon.copy(alpha = 0.5f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SectionLabel(text: StringResource) {
+    Text(
+        stringResource(text),
+        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+        color = DeepCarbon.copy(alpha = 0.6f)
+    )
+}
+
+@Composable
+private fun ColumnScope.Section(label: StringResource, divider: Boolean = true, content: @Composable ColumnScope.() -> Unit) {
+    if (divider) HorizontalDivider(color = CarbonGray.copy(alpha = 0.15f))
+    SectionLabel(label)
+    content()
+}
+
+@Composable
+private fun ColumnScope.IdentitySection(state: OpponentFormUiState, onFormChange: (OpponentForm) -> Unit, onNameFocusLost: () -> Unit) {
+    val form = state.form
+    var nameFocused by remember { mutableStateOf(false) }
+    Section(Res.string.label_identity_section, divider = false) {
+        FormTextField(
+            value = form.name,
+            onValueChange = { onFormChange(form.copy(name = it)) },
+            label = stringResource(Res.string.label_opponent_name_field),
+            placeholder = stringResource(Res.string.label_opponent_name_placeholder),
+            enabled = !state.submitting,
+            keyboardType = KeyboardType.Text,
+            isError = state.duplicateName,
+            supporting = if (state.duplicateName) stringResource(Res.string.msg_opponent_name_taken) else null,
+            // Checked when the field loses focus, as well as on submit.
+            modifier = Modifier.onFocusChanged {
+                if (nameFocused && !it.isFocused) onNameFocusLost()
+                nameFocused = it.isFocused
+            }
+        )
+        FormTextField(
+            value = form.shortName,
+            onValueChange = { onFormChange(form.copy(shortName = it)) },
+            label = stringResource(Res.string.label_opponent_short_name_field),
+            placeholder = stringResource(Res.string.label_opponent_short_name_placeholder),
+            supporting = stringResource(Res.string.msg_opponent_short_name_helper),
+            enabled = !state.submitting,
+            keyboardType = KeyboardType.Text
+        )
+    }
+}
+
+@Composable
+private fun ColumnScope.StadiumSection(state: OpponentFormUiState, onFormChange: (OpponentForm) -> Unit) {
+    val form = state.form
+    val uriHandler = LocalUriHandler.current
+    Section(Res.string.label_opponent_stadium_section) {
+        FormTextField(
+            value = form.stadiumName,
+            onValueChange = { onFormChange(form.copy(stadiumName = it)) },
+            label = stringResource(Res.string.label_stadium_name_field),
+            placeholder = stringResource(Res.string.label_optional_placeholder),
+            enabled = !state.submitting,
+            keyboardType = KeyboardType.Text
+        )
+        Column {
+            FormTextField(
+                value = form.stadiumAddress,
+                onValueChange = { onFormChange(form.copy(stadiumAddress = it)) },
+                label = stringResource(Res.string.label_stadium_address_field),
+                placeholder = stringResource(Res.string.label_optional_placeholder),
+                supporting = stringResource(Res.string.msg_stadium_address_helper),
+                enabled = !state.submitting,
+                keyboardType = KeyboardType.Text
+            )
+            if (form.stadiumAddress.isNotBlank()) {
+                TextButton(onClick = { uriHandler.openUri(mapsUrl(form.stadiumAddress)) }) {
+                    Text(stringResource(Res.string.btn_open_in_maps), color = PitchGreen, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ColumnScope.ContactSection(state: OpponentFormUiState, onFormChange: (OpponentForm) -> Unit, onSubmit: () -> Unit) {
+    val form = state.form
+    Section(Res.string.label_opponent_contact_section) {
+        FormTextField(
+            value = form.contactEmail,
+            onValueChange = { onFormChange(form.copy(contactEmail = it)) },
+            label = stringResource(Res.string.label_email),
+            placeholder = stringResource(Res.string.label_contact_email_placeholder),
+            enabled = !state.submitting,
+            keyboardType = KeyboardType.Email
+        )
+        // The last single-line field: Done submits, like the button.
+        FormTextField(
+            value = form.contactPhone,
+            onValueChange = { onFormChange(form.copy(contactPhone = it)) },
+            label = stringResource(Res.string.label_contact_phone_field),
+            placeholder = stringResource(Res.string.label_contact_phone_placeholder),
+            enabled = !state.submitting,
+            keyboardType = KeyboardType.Phone,
+            imeAction = ImeAction.Done,
+            onImeAction = onSubmit
+        )
+    }
+}
+
+@Composable
+private fun ColumnScope.NotesSection(state: OpponentFormUiState, onFormChange: (OpponentForm) -> Unit) {
+    val form = state.form
+    Section(Res.string.label_opponent_notes_section) {
+        FormTextField(
+            value = form.notes,
+            onValueChange = { onFormChange(form.copy(notes = it)) },
+            label = stringResource(Res.string.label_opponent_notes_field),
+            placeholder = stringResource(Res.string.label_opponent_notes_placeholder),
+            enabled = !state.submitting,
+            keyboardType = KeyboardType.Text,
+            singleLine = false,
+            imeAction = ImeAction.Default
+        )
+    }
+}
+
+// ---- Previews ----
+
+@Composable
+private fun PreviewForm(state: OpponentFormUiState) {
+    SquadifyTheme {
+        OpponentFormContent(
+            state = state,
+            title = Res.string.title_create_opponent,
+            submitText = Res.string.btn_create_opponent,
+            submittingText = Res.string.btn_creating_opponent,
+            onNavigateBack = {}, onRetry = {}, onFormChange = {}, onNameFocusLost = {}, onSubmit = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun CreateOpponentEmptyPreview() = PreviewForm(OpponentFormUiState(clubName = "CD Ribamar"))
+
+@Preview
+@Composable
+private fun CreateOpponentDuplicatePreview() = PreviewForm(
+    OpponentFormUiState(clubName = "CD Ribamar", form = OpponentForm(name = "CD Mafra"), duplicateName = true)
+)
+
+@Preview(widthDp = 900, heightDp = 420)
+@Composable
+private fun CreateOpponentLandscapePreview() = PreviewForm(
+    OpponentFormUiState(
+        clubName = "CD Ribamar",
+        form = OpponentForm(name = "Sporting Lourel", stadiumAddress = "Rua do Campo 3, Mafra")
+    )
+)
+
+@Preview
+@Composable
+private fun EditOpponentPreview() {
+    val form = OpponentForm(name = "AD Fontelas", shortName = "ADF", stadiumName = "Campo das Fontelas", stadiumAddress = "Rua do Campo 3, 2640-401 Mafra")
+    SquadifyTheme {
+        OpponentFormContent(
+            state = OpponentFormUiState(clubName = "CD Ribamar", form = form, original = form),
+            title = Res.string.title_edit_opponent,
+            submitText = Res.string.btn_save_changes,
+            submittingText = Res.string.btn_saving_changes,
+            onNavigateBack = {}, onRetry = {}, onFormChange = {}, onNameFocusLost = {}, onSubmit = {}
+        )
+    }
+}

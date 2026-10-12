@@ -1075,16 +1075,26 @@ Someone not yet a club member can't be picked there, so that screen also has a "
 
 ```mermaid
 graph TD
-    A[Start: userId, clubId, name, shortName, logoUrl, ageGroupId?] --> AG{ageGroupId supplied?}
+    A[Start: userId, clubId, name, shortName, logoUrl, stadiumName, stadiumAddress, contactEmail, contactPhone, notes, ageGroupId?] --> AG{ageGroupId supplied?}
     AG -- Yes --> AGF[Fetch AgeGroup by id]
     AGF -- not found --> N(["Throw NotFoundException"])
     AGF -- found, wrong club --> FB(["Throw ForbiddenException"])
     AGF -- found, right club --> B
     AG -- No --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=CREATE_OPPONENT, ageGroupId]
     B -- denied --> F(["Throw ForbiddenException"])
-    B -- allowed --> C[Create Opponent record]
+    B -- allowed --> V{name blank after trimming?}
+    V -- Yes --> VE(["Throw ValidationException"])
+    V -- No --> DUP{"another opponent of the club has this name, ignoring case?"}
+    DUP -- Yes --> CF(["Throw ConflictException (409)"])
+    DUP -- No --> SN{"shortName, trimmed and uppercased, longer than 5?"}
+    SN -- Yes --> VE2(["Throw ValidationException"])
+    SN -- No --> C["Create Opponent record (optional fields trimmed, blank ones null)"]
     C --> Z(["Persist Opponent"])
 ```
+
+The name and short-name rules live in `OpponentRules.kt`, shared with editing. There's no database
+constraint for the unique name, since clubs may already have duplicates from before; the check is in the
+use case.
 
 Same cross-club-validated, age-group-scoped `ageGroupId` shape as `CreatePlayersUseCase` (§5.1) — a
 coordinator+ can always create club-wide; an age-group coach only for that specific age group's opponents.
@@ -1103,14 +1113,58 @@ graph TD
     AGF -- found, right club --> C
     AG -- No --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=EDIT_OPPONENT, ageGroupId]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D["Merge patch fields (name, shortName, logoUrl)"]
+    C -- allowed --> V{name given and blank after trimming?}
+    V -- Yes --> VE(["Throw ValidationException"])
+    V -- No --> DUP{"name changed (ignoring case) and another opponent of the club has it?"}
+    DUP -- Yes --> CF(["Throw ConflictException (409)"])
+    DUP -- No --> D["Merge patch fields: null keeps a field, a blank optional field clears it; shortName uppercased, at most 5"]
     D --> Z(["Persist updated Opponent"])
 ```
 
 `ageGroupId`, added alongside making `EDIT_OPPONENT` configurable (`TECHNICAL_DECISIONS.md` §35), gives
 this the same age-group-coach path its sibling `CreateOpponentUseCase` already had — previously
-coordinator-only, no staff path at all. Not yet reachable from the client — no screen calls
-`UpdateOpponentUseCase` today.
+coordinator-only, no staff path at all. The client's Edit opponent screen (design 38e) sends every field,
+so a field the user emptied is cleared. It's opened from Opponent details, with no age-group context.
+
+### 6.3 Get Opponent List (`GetOpponentListUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, clubId, ageGroupId?] --> AG{ageGroupId supplied?}
+    AG -- Yes --> AGF[Fetch AgeGroup by id]
+    AGF -- not found --> N(["Throw NotFoundException"])
+    AGF -- found, wrong club --> FB(["Throw ForbiddenException"])
+    AGF -- found, right club --> B
+    AG -- No --> B[CheckUserPermissionUseCase — minClubRole=MEMBER, minTeamRole=COACH, ageGroupId]
+    B -- denied --> F(["Throw ForbiddenException"])
+    B -- allowed --> C["Club name; the club's opponents sorted by name"]
+    C --> D["canCreate: non-throwing probe — minClubRole=COORDINATOR, configurablePermission=CREATE_OPPONENT, ageGroupId"]
+    D --> Z(["Return OpponentList: clubName, opponents, canCreate"])
+```
+
+`GET /opponents/list` feeds the Opponents screen (design 38) in both its modes: picking an opponent for a
+match, and browsing them from the More panel. Who may read it is the same as `GetOpponentsUseCase`, including
+the age-group coach path. The client searches and groups the list itself, so there's no paging: a club has
+dozens of opponents, not thousands.
+
+### 6.4 Get Opponent Details (`GetOpponentDetailsUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, opponentId] --> B[Fetch Opponent by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D["canEdit: non-throwing probe — minClubRole=COORDINATOR, configurablePermission=EDIT_OPPONENT"]
+    D --> E["Club name; every match against them, newest first (getMatchesByOpponent)"]
+    E --> G["Scores of the LIVE / HALF_TIME / FINISHED ones, in one query (getScoresByMatches)"]
+    G --> H["The teams of those matches; the club's seasons"]
+    H --> Z(["Return OpponentDetails: opponent, clubName, matches, scores, teams, seasons, canEdit"])
+```
+
+`GET /opponents/{opponentId}` feeds Opponent details (design 38f). The client works out the head-to-head
+for whichever season is picked from `matches`, `scores` and each team's season, so changing season needs no
+request. `getScoresByMatches` reads the goal events of all the matches at once instead of one query per match.
 
 ---
 
@@ -1885,6 +1939,11 @@ erDiagram
         varchar name "255 chars"
         varchar short_name "50 chars, nullable"
         varchar logo_url "500 chars, nullable"
+        varchar stadium_name "255 chars, nullable"
+        varchar stadium_address "500 chars, nullable"
+        varchar contact_email "255 chars, nullable"
+        varchar contact_phone "50 chars, nullable"
+        text notes "nullable"
     }
     MATCHES {
         uuid id PK

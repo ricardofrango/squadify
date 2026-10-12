@@ -3,13 +3,11 @@ package com.ricardofrango.squadify.presentation.ui.creatematch
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.CreateMatchUseCase
-import com.ricardofrango.squadify.domain.usecase.CreateOpponentUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetOpponentsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTeamDetailsUseCase
 import com.ricardofrango.squadify.model.CreateMatchRequest
 import com.ricardofrango.squadify.model.MatchType
-import com.ricardofrango.squadify.model.CreateOpponentRequest
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
@@ -41,7 +39,6 @@ class CreateMatchViewModel(
     private val getAgeGroupDetailsUseCase: GetAgeGroupDetailsUseCase,
     private val getTeamDetailsUseCase: GetTeamDetailsUseCase,
     private val getOpponentsUseCase: GetOpponentsUseCase,
-    private val createOpponentUseCase: CreateOpponentUseCase,
     private val createMatchUseCase: CreateMatchUseCase
 ) : ViewModel() {
 
@@ -111,14 +108,23 @@ class CreateMatchViewModel(
 
     fun onTeamSelected(teamId: String) = updateIdle { it.copy(selectedTeamId = teamId, error = null) }
 
-    fun onOpponentSelected(opponentId: String) =
-        updateIdle { it.copy(selectedOpponentId = opponentId, addingOpponent = false, newOpponentName = "", error = null) }
-
-    fun onStartAddOpponent() = updateIdle { it.copy(addingOpponent = true, selectedOpponentId = null, error = null) }
-
-    fun onCancelAddOpponent() = updateIdle { it.copy(addingOpponent = false, newOpponentName = "", error = null) }
-
-    fun onNewOpponentNameChange(name: String) = updateIdle { it.copy(newOpponentName = name, error = null) }
+    /**
+     * The opponent picked on the Opponents screen. One created there is not in [CreateMatchUiState.Idle.opponents]
+     * yet, so the list is fetched again to show its name.
+     */
+    fun onOpponentPicked(opponentId: String) {
+        val current = _state.value as? CreateMatchUiState.Idle ?: return
+        updateIdle { it.copy(selectedOpponentId = opponentId, error = null) }
+        if (current.opponents.any { it.id == opponentId }) return
+        viewModelScope.launch {
+            val opponents = try {
+                getOpponentsUseCase(current.clubId, current.ageGroupId)
+            } catch (e: Exception) {
+                return@launch
+            }
+            updateIdle { it.copy(opponents = opponents) }
+        }
+    }
 
     fun onMatchTypeSelected(type: MatchType) = updateIdle { it.copy(matchType = type, matchTypeError = false, error = null) }
 
@@ -137,6 +143,7 @@ class CreateMatchViewModel(
     fun onSubmit() {
         val current = _state.value as? CreateMatchUiState.Idle ?: return
         val teamId = current.selectedTeamId ?: return
+        val opponentId = current.selectedOpponentId ?: return
         val matchType = current.matchType ?: run {
             updateIdle { it.copy(matchTypeError = true) }
             return
@@ -146,12 +153,6 @@ class CreateMatchViewModel(
         viewModelScope.launch {
             _state.update { current.copy(isSubmitting = true, error = null) }
             try {
-                val opponentId = current.selectedOpponentId
-                    ?: createOpponentUseCase(
-                        current.clubId,
-                        CreateOpponentRequest(name = current.newOpponentName.trim(), ageGroupId = current.ageGroupId)
-                    ).id
-
                 val dateTime: Instant = current.date
                     .atTime(current.time)
                     .toInstant(TimeZone.currentSystemDefault())

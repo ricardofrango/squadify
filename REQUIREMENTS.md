@@ -29,7 +29,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
 - **Age Group**: Categorization of players by a birth-year span (`startYear`/`endYear`) — a single year for most (football) groups, or two consecutive birth years for groups (typically futsal) that need both cohorts to field a squad; owns the player pool and the coaching staff. Carries an optional **team size** — the a-side count its teams play by default (one of the club sport's allowed sizes).
 - **Team**: A named group under an age group, used to schedule matches. Has its own **team size**, pre-filled from the age group's default but overridable (e.g. a 7-a-side age group with one team that plays 9-a-side).
 - **Player**: Personal data and stats.
-- **Opponent**: Management of external clubs/teams for matches (name, short name, logo).
+- **Opponent**: Management of external clubs/teams for matches (name, short name, logo, home stadium and address, contact, notes).
 - **ClubMember**: Links Users to Clubs with a specific Role.
 - **AgeGroupPlayer**: Links a Player to an Age Group pool (many-to-many; `(ageGroupId, playerId)` unique).
 - **AgeGroupStaff**: Links a User (coach/staff) to an Age Group with a role.
@@ -134,12 +134,17 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Authentication flows (Login/Register): login, register, session check on launch, automatic token refresh on 401, logout, and **Forgot password**. Forgot password emails a 6-digit code (15 minutes, 5 tries, one per minute) that sets a new password and signs the account out everywhere. An email with no account is reported straight away. See `TECHNICAL_DECISIONS.md` §48.
     - [x] Account Management: User profile viewing and editing. The Account screen edits name and phone and changes the password (`TECHNICAL_DECISIONS.md` §33), and changes the email (next item).
     - [x] **Change email**: from Account, enter the new address and the current password. A 6-digit code goes to the new address, and entering it switches the account. It reuses the Forgot-password code rules: 15 minutes, 5 tries, one per minute. The address can't belong to another account. Every other session is signed out, and the old address is told about the change. See `TECHNICAL_DECISIONS.md` §49.
-    - [ ] **Club logo upload**: "Add logo" in Club settings does nothing yet. This is the app's first image upload, so it needs storage, resizing and serving images. It goes together with Dynamic Club Theming.
+    - [ ] **Club logo upload**: "Add logo" in Club settings does nothing yet. This is the app's first image upload, so it needs storage, resizing and serving images. It goes together with Dynamic Club Theming. Opponent logos use the same storage (the Create/Edit opponent form shows "Add logo" disabled until then).
     - [x] Client-side Architecture (MVVM, Koin, UseCases).
     - [x] API Integration (Ktor Client): every screen talks to the server through repositories over a shared authenticated Ktor client (bearer tokens, refresh on 401), plus WebSockets for the live match and the club's Matches tab.
     - [/] Role-specific Dashboards:
       - **Done:** "My clubs" lists the user's clubs (opening straight into the only one when there's just one). Each club opens on a Home tab with the season's headline numbers (teams, players, coaches, matches this week), what's next up, and alerts for the people who manage it (e.g. a match missing call-ups or a report).
       - **Still pending:** the server's super-admin, club-admin and parent dashboard endpoints (Phase 6) have no client screens yet.
+    - [x] **Opponents** (design 38). Logo upload is still pending (see Club logo upload):
+      - [x] **List:** a searchable list (name or short name, ignoring accents) used to pick an opponent on Schedule match and to browse them from More → Opponents. See `TECHNICAL_DECISIONS.md` §51.
+      - [x] **Create opponent:** from the list, with stadium, contact and notes. A name the club already has is refused. Created while picking for a match, it comes back selected. Logo upload is still pending.
+      - [x] **Opponent details:** stadium with directions, head-to-head by season (W/D/L, goals, last five) and every match against them, plus contact and notes.
+      - [x] **Edit opponent:** from the details, for those allowed to edit opponents. Emptying a field clears it.
     - [x] Club "More" panel (design 37): a full-screen panel that slides in from the right, replacing the old "More" dropdown and the header's account icon.
       - **Account header:** avatar, name, email, role chip and club name; tapping it opens Account.
       - **Grouped rows by permission:** coordinators see every create action. A coach sees Create team and Create players for their own age groups, as far as the club's Permissions allow.

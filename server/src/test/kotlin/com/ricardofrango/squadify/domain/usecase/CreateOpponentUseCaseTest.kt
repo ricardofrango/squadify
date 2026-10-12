@@ -7,8 +7,10 @@ import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.exception.ConflictException
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.CreateOpponentRequest
@@ -44,6 +46,8 @@ class CreateOpponentUseCaseTest {
     private val clubId = "club-1"
     private val ag1 = "ag-1"
     private val request = CreateOpponentRequest(name = "Rivals FC")
+
+    init { coEvery { opponentRepository.getOpponentsByClub(clubId) } returns listOf(Opponent("o1", clubId, "AD Fontelas")) }
 
     private fun coach() = User("coach", "coach@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
 
@@ -113,5 +117,52 @@ class CreateOpponentUseCaseTest {
         val result = useCase(coordinator.id, clubId, request)
 
         assertEquals("Rivals FC", result.name)
+    }
+
+    private fun asCoordinator(): String {
+        val coordinator = User("p2-coordinator", "c@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
+        coEvery { userRepository.findById(coordinator.id) } returns coordinator
+        coEvery { userRepository.getUserRoleInClub(coordinator.id, clubId) } returns ClubRole.COORDINATOR
+        coEvery { opponentRepository.createOpponent(any()) } answers { firstArg() }
+        return coordinator.id
+    }
+
+    @Test
+    fun aNameTheClubAlreadyHasIsAConflictIgnoringCase() = runBlocking<Unit> {
+        val userId = asCoordinator()
+        assertFailsWith<ConflictException> { useCase(userId, clubId, CreateOpponentRequest(name = "  ad fontelas ")) }
+    }
+
+    @Test
+    fun aBlankNameIsRejected() = runBlocking<Unit> {
+        val userId = asCoordinator()
+        assertFailsWith<ValidationException> { useCase(userId, clubId, CreateOpponentRequest(name = "   ")) }
+    }
+
+    @Test
+    fun theShortNameIsUppercasedAndCappedAtFiveCharacters() = runBlocking<Unit> {
+        val userId = asCoordinator()
+        assertEquals("GDS", useCase(userId, clubId, CreateOpponentRequest(name = "GD Sobreirense", shortName = " gds ")).shortName)
+        assertFailsWith<ValidationException> { useCase(userId, clubId, CreateOpponentRequest(name = "Sporting Lourel", shortName = "SPORTL")) }
+    }
+
+    @Test
+    fun theDetailsAreTrimmedAndBlankOnesLeftEmpty() = runBlocking<Unit> {
+        val userId = asCoordinator()
+        val result = useCase(
+            userId, clubId,
+            CreateOpponentRequest(
+                name = " Sporting Lourel ",
+                stadiumName = " Campo do Lourel ",
+                stadiumAddress = "  ",
+                contactEmail = "geral@lourel.pt",
+                notes = ""
+            )
+        )
+        assertEquals("Sporting Lourel", result.name)
+        assertEquals("Campo do Lourel", result.stadiumName)
+        assertEquals(null, result.stadiumAddress)
+        assertEquals("geral@lourel.pt", result.contactEmail)
+        assertEquals(null, result.notes)
     }
 }

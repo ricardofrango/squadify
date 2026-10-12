@@ -10,6 +10,7 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -59,6 +60,19 @@ class ExposedMatchEventRepository : MatchEventRepository {
                     ((MatchEvents.type eq EventType.GOAL) or (MatchEvents.type eq EventType.OWN_GOAL))
         }.map(::toMatchEvent)
 
+        return scoreOf(matchId, events)
+    }
+
+    override suspend fun getScoresByMatches(matchIds: List<String>): Map<String, MatchScore> {
+        if (matchIds.isEmpty()) return emptyMap()
+        val events = MatchEvents.selectAll().where {
+            (MatchEvents.matchId inList matchIds.map { it.toUuid() }) and
+                    ((MatchEvents.type eq EventType.GOAL) or (MatchEvents.type eq EventType.OWN_GOAL))
+        }.map(::toMatchEvent).groupBy { it.matchId }
+        return matchIds.associateWith { scoreOf(it, events[it].orEmpty()) }
+    }
+
+    private fun scoreOf(matchId: String, events: List<MatchEvent>): MatchScore {
         var ourScore = 0
         var opponentScore = 0
 

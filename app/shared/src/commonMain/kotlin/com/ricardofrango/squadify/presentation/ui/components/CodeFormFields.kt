@@ -24,7 +24,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 
 // The pieces of the two-step "code by email" forms (Forgot password, Change email): an intro line,
-// a reserved error line, and a white outlined text field.
+// a reserved error line, and a white outlined text field (also used by the opponent form).
 
 @Composable
 fun FormIntro(text: String) {
@@ -49,6 +49,9 @@ fun FormTextField(
     modifier: Modifier = Modifier,
     isError: Boolean = false,
     supporting: String? = null,
+    placeholder: String? = null,
+    // False for a multi-line field (e.g. notes), whose Enter adds a line.
+    singleLine: Boolean = true,
     hidden: Boolean = false,
     onToggleHidden: (() -> Unit)? = null,
     // Next moves to the following field (Compose's default for ImeAction.Next); the last field's
@@ -61,8 +64,10 @@ fun FormTextField(
         onValueChange = onValueChange,
         label = { Text(label) },
         supportingText = supporting?.let { { Text(it) } },
+        placeholder = placeholder?.let { { Text(it, color = Color.Gray.copy(alpha = 0.7f)) } },
         modifier = modifier.fillMaxWidth(),
-        singleLine = true,
+        singleLine = singleLine,
+        minLines = if (singleLine) 1 else 3,
         enabled = enabled,
         isError = isError,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),

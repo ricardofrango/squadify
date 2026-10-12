@@ -217,6 +217,11 @@ object Opponents : Table("opponents") {
     val name = varchar("name", 255)
     val shortName = varchar("short_name", 50).nullable()
     val logoUrl = varchar("logo_url", 500).nullable()
+    val stadiumName = varchar("stadium_name", 255).nullable()
+    val stadiumAddress = varchar("stadium_address", 500).nullable()
+    val contactEmail = varchar("contact_email", 255).nullable()
+    val contactPhone = varchar("contact_phone", 50).nullable()
+    val notes = text("notes").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

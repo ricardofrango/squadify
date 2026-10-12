@@ -47,6 +47,10 @@ import com.ricardofrango.squadify.presentation.ui.agegroupdetails.AgeGroupDetail
 import com.ricardofrango.squadify.presentation.ui.createagegroups.CreateAgeGroupsScreen
 import com.ricardofrango.squadify.presentation.ui.teamdetails.TeamDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.creatematch.CreateMatchScreen
+import com.ricardofrango.squadify.presentation.ui.opponents.OpponentDetailsScreen
+import com.ricardofrango.squadify.presentation.ui.opponents.OpponentEditScreen
+import com.ricardofrango.squadify.presentation.ui.opponents.OpponentFormScreen
+import com.ricardofrango.squadify.presentation.ui.opponents.OpponentsScreen
 import com.ricardofrango.squadify.presentation.ui.matchdetails.MatchDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.matchreport.MatchReportScreen
 import com.ricardofrango.squadify.presentation.ui.livematch.LiveMatchScreen
@@ -64,6 +68,12 @@ private const val KEY_PASSWORD_RESET_EMAIL = "passwordResetEmail"
 
 // Change email -> Account: the new address, shown with a confirmation.
 private const val KEY_EMAIL_CHANGED = "emailChanged"
+
+// Opponents (SELECT) -> Schedule match: the id of the opponent just picked.
+private const val KEY_OPPONENT_PICKED = "opponentPicked"
+
+// Create opponent (SELECT) -> Schedule match: the new opponent's name, for "… created and selected".
+private const val KEY_OPPONENT_CREATED = "opponentCreated"
 
 // Duration of the app-wide screen transition (see the NavHost below).
 private const val NAV_ANIM_MS = 300
@@ -307,6 +317,9 @@ fun AppNavigation() {
                 },
                 onNavigateToPlayers = {
                     navController.navigate(Screen.ClubPlayers(screen.clubId))
+                },
+                onNavigateToOpponents = {
+                    navController.navigate(Screen.Opponents(screen.clubId))
                 },
                 // Back to the "My clubs" list. Normally it's already underneath (the club was opened
                 // from it), so pop back to it -- pushing a new one left two lists stacked, and back
@@ -646,15 +659,111 @@ fun AppNavigation() {
 
         screen<Screen.CreateMatch> { backStackEntry ->
             val screen: Screen.CreateMatch = backStackEntry.toRoute()
+            val pickedOpponentId by backStackEntry.savedStateHandle
+                .getStateFlow<String?>(KEY_OPPONENT_PICKED, null)
+                .collectAsState()
+            val createdOpponentName by backStackEntry.savedStateHandle
+                .getStateFlow<String?>(KEY_OPPONENT_CREATED, null)
+                .collectAsState()
             CreateMatchScreen(
                 ageGroupId = screen.ageGroupId,
                 teamId = screen.teamId,
                 onNavigateBack = { navController.popBackStack() },
+                onChooseOpponent = { clubId, ageGroupId, selectedOpponentId ->
+                    navController.navigate(Screen.Opponents(clubId, select = true, ageGroupId = ageGroupId, selectedOpponentId = selectedOpponentId))
+                },
+                pickedOpponentId = pickedOpponentId,
+                onPickedOpponentConsumed = { backStackEntry.savedStateHandle[KEY_OPPONENT_PICKED] = null },
+                createdOpponentName = createdOpponentName,
+                onCreatedOpponentShown = { backStackEntry.savedStateHandle[KEY_OPPONENT_CREATED] = null },
                 onMatchCreated = {
                     navController.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
                     navController.popBackStack()
+                }
+            )
+        }
+
+        screen<Screen.Opponents> { backStackEntry ->
+            val screen: Screen.Opponents = backStackEntry.toRoute()
+            // Set by Create opponent (BROWSE), so the list reloads on return.
+            val opponentsChanged by backStackEntry.savedStateHandle
+                .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
+                .collectAsState()
+            if (opponentsChanged) {
+                backStackEntry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false
+            }
+            OpponentsScreen(
+                clubId = screen.clubId,
+                ageGroupId = screen.ageGroupId,
+                selectMode = screen.select,
+                selectedOpponentId = screen.selectedOpponentId,
+                onNavigateBack = { navController.popBackStack() },
+                onOpponentClick = { opponent ->
+                    if (screen.select) {
+                        navController.previousBackStackEntry?.setIfAlive(KEY_OPPONENT_PICKED, opponent.id)
+                        navController.popBackStack()
+                    } else {
+                        navController.navigate(Screen.OpponentDetails(opponent.id))
+                    }
+                },
+                onCreateOpponent = { name ->
+                    navController.navigate(Screen.CreateOpponent(screen.clubId, screen.ageGroupId, name, select = screen.select))
+                },
+                refresh = opponentsChanged
+            )
+        }
+
+        screen<Screen.OpponentDetails> { backStackEntry ->
+            val screen: Screen.OpponentDetails = backStackEntry.toRoute()
+            // Set by Edit opponent; passed on so the list underneath reloads too.
+            val edited by backStackEntry.savedStateHandle
+                .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
+                .collectAsState()
+            if (edited) {
+                navController.consumeAndCascadeStructureChanged(backStackEntry)
+            }
+            OpponentDetailsScreen(
+                opponentId = screen.opponentId,
+                onNavigateBack = { navController.popBackStack() },
+                onOpenMatch = { matchId -> navController.navigate(Screen.MatchDetails(matchId)) },
+                onEdit = { navController.navigate(Screen.EditOpponent(screen.opponentId)) },
+                refresh = edited
+            )
+        }
+
+        screen<Screen.EditOpponent> { backStackEntry ->
+            val screen: Screen.EditOpponent = backStackEntry.toRoute()
+            OpponentEditScreen(
+                opponentId = screen.opponentId,
+                onNavigateBack = { navController.popBackStack() },
+                onSaved = {
+                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        screen<Screen.CreateOpponent> { backStackEntry ->
+            val screen: Screen.CreateOpponent = backStackEntry.toRoute()
+            OpponentFormScreen(
+                clubId = screen.clubId,
+                ageGroupId = screen.ageGroupId,
+                initialName = screen.name,
+                onNavigateBack = { navController.popBackStack() },
+                onCreated = { opponent ->
+                    if (screen.select) {
+                        // Picking for a match: skip the list and go straight back to the form, with the
+                        // new opponent selected (design 38d).
+                        val matchEntry = runCatching { navController.getBackStackEntry<Screen.CreateMatch>() }.getOrNull()
+                        matchEntry?.setIfAlive(KEY_OPPONENT_PICKED, opponent.id)
+                        matchEntry?.setIfAlive(KEY_OPPONENT_CREATED, opponent.name)
+                        if (!navController.popBackStack<Screen.CreateMatch>(inclusive = false)) navController.popBackStack()
+                    } else {
+                        navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
+                        navController.popBackStack()
+                    }
                 }
             )
         }
