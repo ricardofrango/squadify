@@ -1316,8 +1316,6 @@
     <string name="msg_session_no_exercises">No exercises yet.</string>
     <!-- Training ratings (design 39g/i) -->
     <string name="title_rate_players">Rate players</string>
-    <string name="msg_rate_intro">Tap a player, then a quick number — the next unrated player opens. Fine-tune with − / +. Ratings are only visible to staff.</string>
-    <string name="btn_absent">Absent</string>
     <string name="label_absent">Did not take part</string>
     <string name="label_rated_count">%1$d of %2$d rated</string>
     <string name="btn_save_ratings">Save</string>
@@ -1331,8 +1329,6 @@
     <string name="home_trainings_need_ratings">%1$d trainings need player ratings</string>
     <string name="label_not_rated">Not rated</string>
     <string name="label_absent_count">%1$d absent</string>
-    <string name="cd_decrease">Decrease</string>
-    <string name="cd_increase">Increase</string>
     <string name="msg_ratings_not_open">Ratings open when the session ends.</string>
     <!-- Training stats (design 39j) -->
     <string name="label_training_staff">TRAINING · STAFF ONLY</string>
@@ -1348,4 +1344,8 @@
     <string name="label_avg_tile">Avg rating · %1$d rated</string>
     <string name="msg_absent_not_averaged">Absent (0) doesn\'t count towards the average.</string>
     <string name="msg_no_training_stats">No ended training sessions yet.</string>
+    <!-- Rate players: text box -->
+    <string name="msg_rate_intro">Type each player's rating from 0 to 10, decimals allowed (7.5). 0 means absent; leave it empty if not rated yet. Ratings are only visible to staff.</string>
+    <string name="label_rating_field">Rating</string>
+    <string name="msg_rating_invalid">Enter 0 to 10, e.g. 7.5</string>
 </resources>

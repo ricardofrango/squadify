@@ -1,32 +1,49 @@
 package com.ricardofrango.squadify.presentation
 
 import com.ricardofrango.squadify.model.TrainingRatingChange
-import com.ricardofrango.squadify.presentation.ui.training.nextUnrated
+import com.ricardofrango.squadify.presentation.ui.training.RatePlayersUiState
+import com.ricardofrango.squadify.presentation.ui.training.RatingInput
+import com.ricardofrango.squadify.presentation.ui.training.parseRating
 import com.ricardofrango.squadify.presentation.ui.training.ratingChanges
-import com.ricardofrango.squadify.presentation.ui.training.stepRating
+import com.ricardofrango.squadify.presentation.ui.training.ratingText
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
-// Rate players (design 39g): − / + steps, the next unrated player, and what a save sends.
+// Rate players: the rating box (0 to 10, one decimal, 0 = absent, empty = not rated) and what a save sends.
 class RatePlayersTest {
     @Test
-    fun stepsAreTenthsKeptBetweenPointOneAndTen() {
-        assertEquals(7.1, stepRating(7.0, 1))
-        assertEquals(10.0, stepRating(10.0, 1))
-        // Stepping never makes a player Absent.
-        assertEquals(0.1, stepRating(0.1, -1))
-        // Unrated starts from 6.
-        assertEquals(6.1, stepRating(null, 1))
+    fun aRatingIsZeroToTenWithUpToOneDecimal() {
+        assertEquals(RatingInput.Valid(7.5), parseRating("7.5"))
+        assertEquals(RatingInput.Valid(7.5), parseRating(" 7,5 "))
+        assertEquals(RatingInput.Valid(10.0), parseRating("10"))
+        assertEquals(RatingInput.Valid(10.0), parseRating("10.0"))
+        // 0 means absent; empty means not rated.
+        assertEquals(RatingInput.Valid(0.0), parseRating("0"))
+        // Mid-typing "7." reads as 7, so the box doesn't flash red before the decimal.
+        assertEquals(RatingInput.Valid(7.0), parseRating("7,"))
+        assertEquals(RatingInput.Valid(null), parseRating(""))
+        listOf("10.5", "11", "7.55", "-1", ".5", "abc").forEach { assertEquals(RatingInput.Invalid, parseRating(it), it) }
     }
 
     @Test
-    fun theNextUnratedPlayerWrapsAround() {
-        val ids = listOf("a", "b", "c", "d")
-        val ratings = mapOf("a" to null, "b" to 7.0, "c" to null, "d" to 8.0)
-        assertEquals("c", nextUnrated(ids, ratings, "a"))
-        assertEquals("a", nextUnrated(ids, ratings, "c"))
-        assertNull(nextUnrated(ids, ids.associateWith { 7.0 }, "a"))
+    fun aStoredRatingShowsWithoutATrailingZero() {
+        assertEquals("8", ratingText(8.0))
+        assertEquals("7.5", ratingText(7.5))
+        assertEquals("0", ratingText(0.0))
+        assertEquals("", ratingText(null))
+    }
+
+    @Test
+    fun anInvalidBoxBlocksSavingAndKeepsTheLoadedValue() {
+        val original = mapOf<String, Double?>("a" to 7.0, "b" to null)
+        val state = RatePlayersUiState(loading = false, original = original, texts = mapOf("a" to "12", "b" to "6,5"))
+        assertEquals(setOf("a"), state.invalid)
+        assertEquals(mapOf<String, Double?>("a" to 7.0, "b" to 6.5), state.current)
+        assertTrue(state.dirty)
+        assertFalse(state.canSave)
+        assertTrue(state.copy(texts = mapOf("a" to "0", "b" to "6,5")).canSave)
     }
 
     @Test

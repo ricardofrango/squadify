@@ -2671,10 +2671,9 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
 - **Who:** every coach and staff member of the age group, and coordinators, can rate. Players and parents never see ratings, rated counts or averages.
 - **When:** ratings open when the session's end time passes (server time). A cancelled session isn't rated.
 - **Rate players** (`RatePlayersScreen`): the pool by shirt number.
-  - **Quick numbers:** tap a row, then 5–9 sets a whole number and opens the next unrated player.
-  - **Fine-tuning:** − / + adjusts by 0.1 and stays on the player. Absent sets 0 and moves on.
-  - **Colours:** the match report's bands (≥ 8 solid green, 6–7.9 light green, < 6 amber, Absent grey).
-  - **Saving:** Save is enabled after any change. Leaving with changes asks first.
+  - **Input:** a text box per player (decimal keyboard; Next moves to the following player). It takes 0 to 10 with up to one decimal, with a dot or a comma ("7.5", "7,5"); 0 means absent and an empty box means not rated. The design's quick 5–9 buttons, − / + and Absent button were dropped for this.
+  - **Invalid input:** the box turns red with "Enter 0 to 10, e.g. 7.5" under the name, and Save waits until it's fixed. "7." while typing reads as 7, so the box doesn't flash red mid-number.
+  - **Saving:** Save is enabled after any change while every box is valid. Leaving with changes asks first.
 - **On the session:** the ratings card (staff) says when ratings open. Once the session has ended it moves to the top with "12 of 18 rated" and Rate players.
 - **On the lists:** ended sessions show "Needs ratings" until everyone is rated, then the average (without Absent).
 - **Home to-do:** "Training of Thu 8 Oct needs player ratings · Sub-15", with "12 of 18 rated", opens Rate players. It's one row per session, grouped from 3 up like match reports, amber after 7 days.

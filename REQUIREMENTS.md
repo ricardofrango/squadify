@@ -79,6 +79,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
   - **Library:** exercises are reusable across sessions. Each one is written once and picked again in later sessions.
 - **Player evaluations:**
   - **Rating:** after a session, each player in the age group's pool gets a rating from **0 to 10, with decimals** (e.g. 7.5).
+  - **Input:** a plain text box per player, where the rating is typed (one decimal at most). Empty means not rated yet.
   - **0 means "did not take part"**, so the evaluation doubles as the attendance record. A player who trained always gets more than 0.
   - **Who can evaluate:** any staff member of the age group, coach or staff.
   - **Visibility:** training ratings are **staff-only**. Players and parents never see them, as with match ratings.

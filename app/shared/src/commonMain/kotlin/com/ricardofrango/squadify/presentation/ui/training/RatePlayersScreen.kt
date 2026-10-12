@@ -1,11 +1,10 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,15 +14,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -35,6 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigationevent.NavigationEventInfo
@@ -46,35 +45,35 @@ import com.ricardofrango.squadify.model.TrainingRatings
 import com.ricardofrango.squadify.model.TrainingSession
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
+import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
+import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
-import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.shared.generated.resources.Res
-import squadify.app.shared.generated.resources.btn_absent
 import squadify.app.shared.generated.resources.btn_save_ratings
 import squadify.app.shared.generated.resources.btn_saving_changes
-import squadify.app.shared.generated.resources.cd_decrease
-import squadify.app.shared.generated.resources.cd_increase
 import squadify.app.shared.generated.resources.label_absent
 import squadify.app.shared.generated.resources.label_absent_count
 import squadify.app.shared.generated.resources.label_not_rated
 import squadify.app.shared.generated.resources.label_rated_count
 import squadify.app.shared.generated.resources.label_training_subtitle
+import squadify.app.shared.generated.resources.label_rating_field
 import squadify.app.shared.generated.resources.msg_rate_intro
+import squadify.app.shared.generated.resources.msg_rating_invalid
 import squadify.app.shared.generated.resources.msg_ratings_not_open
 import squadify.app.shared.generated.resources.title_rate_players
 
 /**
- * Rate players (design 39g): every player of the pool by shirt number. Tap a row, then a quick 5–9 (the
- * next unrated player opens), − / + by 0.1, or Absent (0, "did not take part"). The match report's colour
- * bands. Save is enabled after any change and saves partially; leaving with changes asks first.
+ * Rate players: every player of the pool by shirt number, each with a text box for a rating from 0 to 10
+ * with up to one decimal. 0 means absent ("did not take part"); empty means not rated. Save is enabled
+ * after a change while every box is valid, and saves partially; leaving with changes asks first.
  */
 @Composable
 fun RatePlayersScreen(
@@ -90,9 +89,7 @@ fun RatePlayersScreen(
         state = state,
         onNavigateBack = onNavigateBack,
         onRetry = { viewModel.start(sessionId, force = true) },
-        onOpen = viewModel::open,
-        onSetAndNext = viewModel::setAndNext,
-        onStep = viewModel::step,
+        onText = viewModel::onText,
         onSave = viewModel::save
     )
 }
@@ -102,9 +99,7 @@ private fun RatePlayersContent(
     state: RatePlayersUiState,
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
-    onOpen: (String) -> Unit,
-    onSetAndNext: (String, Double) -> Unit,
-    onStep: (String, Int) -> Unit,
+    onText: (String, String) -> Unit,
     onSave: () -> Unit
 ) {
     var askDiscard by remember { mutableStateOf(false) }
@@ -134,15 +129,15 @@ private fun RatePlayersContent(
                         style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText, modifier = Modifier.padding(bottom = 6.dp)
                     )
                 }
-                items(ratings.players, key = { it.id }) { player ->
+                itemsIndexed(ratings.players, key = { _, p -> p.id }) { i, player ->
                     PlayerRatingRow(
                         player = player,
+                        text = state.texts[player.id].orEmpty(),
                         rating = state.current[player.id],
-                        open = state.open == player.id && ratings.ratingsOpen,
+                        invalid = player.id in state.invalid,
                         enabled = ratings.ratingsOpen && !state.saving,
-                        onOpen = { onOpen(player.id) },
-                        onSetAndNext = { onSetAndNext(player.id, it) },
-                        onStep = { onStep(player.id, it) }
+                        last = i == ratings.players.lastIndex,
+                        onText = { onText(player.id, it) }
                     )
                 }
             }
@@ -157,7 +152,7 @@ private fun RatePlayersContent(
                         text = stringResource(Res.string.btn_save_ratings),
                         submittingText = stringResource(Res.string.btn_saving_changes),
                         isLoading = state.saving,
-                        enabled = state.dirty && !state.saving,
+                        enabled = state.canSave,
                         onClick = onSave,
                         modifier = Modifier.widthIn(max = 200.dp)
                     )
@@ -171,75 +166,51 @@ private fun RatePlayersContent(
 @Composable
 private fun PlayerRatingRow(
     player: Player,
+    text: String,
     rating: Double?,
-    open: Boolean,
+    invalid: Boolean,
     enabled: Boolean,
-    onOpen: () -> Unit,
-    onSetAndNext: (Double) -> Unit,
-    onStep: (Int) -> Unit
+    last: Boolean,
+    onText: (String) -> Unit
 ) {
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = if (open) PitchGreen.copy(alpha = 0.05f) else Color.White,
-        border = androidx.compose.foundation.BorderStroke(1.dp, if (open) PitchGreen else CarbonGray.copy(alpha = 0.15f)),
+        color = Color.White,
+        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f)),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(Modifier.clickable(enabled = enabled, onClick = onOpen).padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(36.dp).background(CarbonGray.copy(alpha = 0.08f), CircleShape), contentAlignment = Alignment.Center) {
-                    Text(player.shirtNumber?.toString() ?: "${player.firstName.take(1)}${player.lastName.take(1)}", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
-                }
-                Spacer(Modifier.width(10.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("${player.firstName} ${player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = DeepCarbon)
-                    Text(
-                        when (rating) {
-                            null -> stringResource(Res.string.label_not_rated)
-                            0.0 -> stringResource(Res.string.label_absent)
-                            else -> ""
-                        },
-                        style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText
-                    )
-                }
-                RatingBadge(rating)
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(36.dp).background(CarbonGray.copy(alpha = 0.08f), CircleShape), contentAlignment = Alignment.Center) {
+                Text(player.shirtNumber?.toString() ?: "${player.firstName.take(1)}${player.lastName.take(1)}", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
             }
-            if (open) {
-                Spacer(Modifier.width(0.dp))
-                FlowRow(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    (5..9).forEach { n ->
-                        OutlinedButton(onClick = { onSetAndNext(n.toDouble()) }, shape = RoundedCornerShape(10.dp), modifier = Modifier.widthIn(min = 44.dp)) {
-                            Text("$n", color = DeepCarbon, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-                Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = { onStep(-1) }) { Text("−", style = MaterialTheme.typography.titleLarge, color = DeepCarbon, modifier = Modifier.padding(horizontal = 6.dp)) }
-                    Text(rating?.takeIf { it > 0 }?.oneDecimalString() ?: "—", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
-                    TextButton(onClick = { onStep(1) }) { Text("+", style = MaterialTheme.typography.titleLarge, color = DeepCarbon, modifier = Modifier.padding(horizontal = 6.dp)) }
-                    Spacer(Modifier.weight(1f))
-                    TextButton(onClick = { onSetAndNext(0.0) }) { Text(stringResource(Res.string.btn_absent), color = DeepCarbon.copy(alpha = 0.7f), fontWeight = FontWeight.Bold) }
-                }
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text("${player.firstName} ${player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = DeepCarbon)
+                Text(
+                    when {
+                        invalid -> stringResource(Res.string.msg_rating_invalid)
+                        rating == null -> stringResource(Res.string.label_not_rated)
+                        rating == 0.0 -> stringResource(Res.string.label_absent)
+                        else -> ""
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (invalid) AlertRed else StatsSecondaryText
+                )
             }
+            Spacer(Modifier.width(10.dp))
+            FormTextField(
+                value = text,
+                onValueChange = onText,
+                label = stringResource(Res.string.label_rating_field),
+                enabled = enabled,
+                keyboardType = KeyboardType.Decimal,
+                isError = invalid,
+                // Next moves to the following player's box; the last one closes the keyboard.
+                imeAction = if (last) ImeAction.Done else ImeAction.Next,
+                modifier = Modifier.width(96.dp)
+            )
         }
     }
-}
-
-/** The rating in its colour band, "—" when not rated. */
-@Composable
-private fun RatingBadge(rating: Double?) {
-    val text = when (rating) {
-        null -> "—"
-        0.0 -> stringResource(Res.string.btn_absent)
-        else -> rating.oneDecimalString()
-    }
-    Text(
-        text,
-        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Black),
-        color = if (rating == null) DeepCarbon.copy(alpha = 0.4f) else Color.White,
-        modifier = Modifier
-            .background(if (rating == null) CarbonGray.copy(alpha = 0.06f) else ratingColor(rating), RoundedCornerShape(8.dp))
-            .padding(horizontal = 10.dp, vertical = 5.dp)
-    )
 }
 
 // ---- Previews ----
@@ -262,7 +233,7 @@ private val previewRatings = TrainingRatings(
 private fun RatePlayersPreview() {
     val values = mapOf("p1" to 8.4, "p2" to 0.0, "p3" to null)
     SquadifyTheme {
-        RatePlayersContent(RatePlayersUiState(loading = false, ratings = previewRatings, original = values, current = values, open = "p3"), {}, {}, {}, { _, _ -> }, { _, _ -> }, {})
+        RatePlayersContent(RatePlayersUiState(loading = false, ratings = previewRatings, original = values, texts = mapOf("p1" to "8.4", "p2" to "0", "p3" to "11")), {}, {}, { _, _ -> }, {})
     }
 }
 
@@ -271,6 +242,6 @@ private fun RatePlayersPreview() {
 private fun RatePlayersLandscapePreview() {
     val values = mapOf("p1" to 8.4, "p2" to 0.0, "p3" to null)
     SquadifyTheme {
-        RatePlayersContent(RatePlayersUiState(loading = false, ratings = previewRatings, original = values, current = values, open = "p3"), {}, {}, {}, { _, _ -> }, { _, _ -> }, {})
+        RatePlayersContent(RatePlayersUiState(loading = false, ratings = previewRatings, original = values, texts = mapOf("p1" to "8.4", "p2" to "0", "p3" to "11")), {}, {}, { _, _ -> }, {})
     }
 }
