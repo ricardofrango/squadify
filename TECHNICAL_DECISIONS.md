@@ -2604,3 +2604,10 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
 - **Body:** the week's focus with its intensity chip ("Medium intensity", amber when high), objectives and notes. Empty, it says "This week has no plan" with "Plan this week".
 - **Editor:** the shared month/week editor, with Low / Medium / High.
 - **Still to come:** the week's sessions and "Add one session" arrive with the training sessions.
+
+**Training tab** (Age Group Details → Training, between Matches and Members, design 40a/b):
+- **Order:** Season plan → This month → This week, each a summary card that opens its own screen.
+- **Month and week cards:** they open on today's period, and ‹ › move within the season.
+- **Empty cards:** each has its own Plan button, or says who can add it.
+- **Data:** the plans load with the age group (`AgeGroupDetailsViewModel.loadPlans`). A 403 hides the cards, because players and parents don't see plans.
+- **Still to come:** the sessions list below the cards.

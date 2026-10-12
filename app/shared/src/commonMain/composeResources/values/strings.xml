@@ -1164,4 +1164,9 @@
     <string name="intensity_chip_high">High intensity</string>
     <string name="msg_week_no_plan">This week has no plan</string>
     <string name="btn_plan_this_week">Plan this week</string>
+    <string name="tab_training">Training</string>
+    <string name="label_season_plan_card">SEASON PLAN · %1$s</string>
+    <string name="label_this_month">THIS MONTH · %1$s</string>
+    <string name="label_this_week">THIS WEEK · %1$s</string>
+    <string name="btn_open">Open</string>
 </resources>

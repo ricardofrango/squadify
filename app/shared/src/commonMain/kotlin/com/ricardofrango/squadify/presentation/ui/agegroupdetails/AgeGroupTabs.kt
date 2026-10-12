@@ -44,6 +44,17 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.*
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
+import kotlin.time.Clock
+import squadify.app.shared.generated.resources.msg_check_connection
+import squadify.app.shared.generated.resources.msg_plans_load_failed
+import com.ricardofrango.squadify.presentation.ui.training.SeasonPlanCard
+import com.ricardofrango.squadify.presentation.ui.training.MonthPlanCard
+import com.ricardofrango.squadify.presentation.ui.training.WeekPlanCard
+import com.ricardofrango.squadify.presentation.ui.training.initialMonth
+import com.ricardofrango.squadify.presentation.ui.training.initialWeek
 
 // The four tabs of Age Group Details (design 33). Every number is derived from AgeGroupDetails (teams,
 // fixtures, staff, pool) and AgeGroupSeasonRecord (each team's season) by the shared code in
@@ -711,6 +722,51 @@ private fun MemberRow(player: Player, season: MemberSeason?, seasonKnown: Boolea
                             maxLines = 1
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Training tab (design 40a/b): Season plan → This month → This week, each opening its own screen.
+ * The month and week cards open on today's and move with ‹ › within the season; back on the tab they
+ * start from today again. Players and parents don't see plans ([AgeGroupPlansUiState.Hidden]).
+ */
+@Composable
+internal fun AgeGroupTrainingTab(
+    plansState: AgeGroupPlansUiState,
+    listState: LazyListState,
+    padding: PaddingValues,
+    modifier: Modifier,
+    onRetry: () -> Unit,
+    onOpenSeason: () -> Unit,
+    onEditSeason: () -> Unit,
+    onOpenMonth: (LocalDate) -> Unit,
+    onEditMonth: (LocalDate) -> Unit,
+    onOpenWeek: (LocalDate) -> Unit,
+    onEditWeek: (LocalDate) -> Unit
+) {
+    val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+    LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        when (plansState) {
+            AgeGroupPlansUiState.Loading -> item {
+                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
+            }
+            AgeGroupPlansUiState.Error -> item {
+                StatsCard { StatsMessage(stringResource(Res.string.msg_plans_load_failed), stringResource(Res.string.msg_check_connection), onRetry = onRetry) }
+            }
+            AgeGroupPlansUiState.Hidden -> Unit
+            is AgeGroupPlansUiState.Loaded -> {
+                val plans = plansState.plans
+                item(key = "season") { SeasonPlanCard(plans, today, onOpenSeason, onEditSeason) }
+                item(key = "month") {
+                    var month by remember(plans.season.id) { mutableStateOf(initialMonth(plans, today)) }
+                    month?.let { m -> MonthPlanCard(plans, m, onMove = { month = it }, onOpen = { onOpenMonth(m) }, onEdit = { onEditMonth(m) }) }
+                }
+                item(key = "week") {
+                    var week by remember(plans.season.id) { mutableStateOf(initialWeek(plans, today)) }
+                    week?.let { w -> WeekPlanCard(plans, w, onMove = { week = it }, onOpen = { onOpenWeek(w) }, onEdit = { onEditWeek(w) }) }
                 }
             }
         }

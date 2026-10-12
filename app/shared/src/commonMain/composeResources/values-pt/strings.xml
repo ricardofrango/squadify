@@ -1162,4 +1162,9 @@
     <string name="intensity_chip_high">Intensidade alta</string>
     <string name="msg_week_no_plan">Esta semana não tem plano</string>
     <string name="btn_plan_this_week">Planear esta semana</string>
+    <string name="tab_training">Treinos</string>
+    <string name="label_season_plan_card">PLANO DA ÉPOCA · %1$s</string>
+    <string name="label_this_month">ESTE MÊS · %1$s</string>
+    <string name="label_this_week">ESTA SEMANA · %1$s</string>
+    <string name="btn_open">Abrir</string>
 </resources>

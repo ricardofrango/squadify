@@ -562,6 +562,15 @@ fun AppNavigation() {
                 onNavigateToCreateMatch = { ageGroupId ->
                     navController.navigate(Screen.CreateMatch(ageGroupId = ageGroupId))
                 },
+                onNavigateToSeasonPlan = { ageGroupId, edit ->
+                    navController.navigate(if (edit) Screen.EditSeasonPlan(ageGroupId) else Screen.SeasonPlan(ageGroupId))
+                },
+                onNavigateToMonthPlan = { ageGroupId, month, edit ->
+                    navController.navigate(if (edit) Screen.EditMonthPlan(ageGroupId, month.toString()) else Screen.MonthPlan(ageGroupId, month.toString()))
+                },
+                onNavigateToWeekPlan = { ageGroupId, monday, edit ->
+                    navController.navigate(if (edit) Screen.EditWeekPlan(ageGroupId, monday.toString()) else Screen.WeekPlan(ageGroupId, monday.toString()))
+                },
                 refreshOnReturn = structureChanged
             )
         }
