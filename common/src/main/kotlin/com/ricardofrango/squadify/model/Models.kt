@@ -50,7 +50,10 @@ enum class ConfigurablePermission {
     // EventType.SUBSTITUTION_IN/OUT) -- is one setting: once the match is live, it's all the same
     // moment and the same person is typically operating all of it. There is deliberately no separate
     // "log match events" action anymore.
-    MANAGE_LIVE_MATCH
+    MANAGE_LIVE_MATCH,
+    // Training (Phase 8): the age group's season, month and week plans, and its training sessions.
+    // Rating players after a session is not part of it -- any coach or staff of the age group can.
+    MANAGE_TRAINING
 }
 
 /** The threshold each [ConfigurablePermission] falls back to until a club explicitly overrides it. */

@@ -137,6 +137,7 @@ import squadify.app.shared.generated.resources.label_permission_level_coordinato
 import squadify.app.shared.generated.resources.label_permission_level_staff
 import squadify.app.shared.generated.resources.label_permission_manage_call_ups
 import squadify.app.shared.generated.resources.label_permission_manage_live_match
+import squadify.app.shared.generated.resources.label_permission_manage_training
 import squadify.app.shared.generated.resources.label_permission_manage_match
 import squadify.app.shared.generated.resources.label_phone_field
 import squadify.app.shared.generated.resources.label_short_name_field
@@ -153,6 +154,7 @@ import squadify.app.shared.generated.resources.msg_permission_edit_opponent_desc
 import squadify.app.shared.generated.resources.msg_permission_edit_player_desc
 import squadify.app.shared.generated.resources.msg_permission_manage_call_ups_desc
 import squadify.app.shared.generated.resources.msg_permission_manage_live_match_desc
+import squadify.app.shared.generated.resources.msg_permission_manage_training_desc
 import squadify.app.shared.generated.resources.msg_permission_manage_match_desc
 import squadify.app.shared.generated.resources.msg_permissions_intro
 import squadify.app.shared.generated.resources.msg_short_name_helper
@@ -520,6 +522,7 @@ private fun permissionLabel(action: ConfigurablePermission) = when (action) {
     ConfigurablePermission.MANAGE_MATCH -> Res.string.label_permission_manage_match
     ConfigurablePermission.MANAGE_CALL_UPS -> Res.string.label_permission_manage_call_ups
     ConfigurablePermission.MANAGE_LIVE_MATCH -> Res.string.label_permission_manage_live_match
+    ConfigurablePermission.MANAGE_TRAINING -> Res.string.label_permission_manage_training
 }
 
 private fun permissionDescription(action: ConfigurablePermission) = when (action) {
@@ -532,6 +535,7 @@ private fun permissionDescription(action: ConfigurablePermission) = when (action
     ConfigurablePermission.MANAGE_MATCH -> Res.string.msg_permission_manage_match_desc
     ConfigurablePermission.MANAGE_CALL_UPS -> Res.string.msg_permission_manage_call_ups_desc
     ConfigurablePermission.MANAGE_LIVE_MATCH -> Res.string.msg_permission_manage_live_match_desc
+    ConfigurablePermission.MANAGE_TRAINING -> Res.string.msg_permission_manage_training_desc
 }
 
 // null means "coordinator-only" -- the age-group-staff path is disabled entirely for this action.

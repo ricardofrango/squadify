@@ -2564,3 +2564,10 @@ Picking an opponent on Schedule match was a dropdown of every opponent plus an i
   - **What the app sends:** every field as typed, so emptying a field clears it.
   - **Rules:** the same as Create (`OpponentRules.kt`). Tested in `UpdateOpponentUseCaseTest` and `OpponentFormTest`.
 - **After saving:** the details reload, and so does the list underneath.
+
+## 52. Training Planning
+
+Phase 8 starts with the plans (design 40): a coach sets the objectives of the season, the month and the week before preparing a session.
+
+**Permission:** `ConfigurablePermission.MANAGE_TRAINING` ("Create and edit training") covers the season, month and week plans and the training sessions. Its default level is coach, like the other "create" actions, and the coordinator can set it to coordinators only or extend it to staff in Club settings → Permissions. Rating players after a session isn't part of it: any coach or staff member of the age group can do that.
+

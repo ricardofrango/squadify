@@ -518,6 +518,8 @@
     <string name="msg_permission_manage_call_ups_desc">Quem pode definir a convocatória de pré-jogo para um jogo.</string>
     <string name="label_permission_manage_live_match">Gerir jogos ao vivo</string>
     <string name="msg_permission_manage_live_match_desc">Quem pode iniciar, pausar ou retomar, corrigir o cronómetro, alterar o estado de um jogo, ou adicionar e remover golos, cartões e substituições.</string>
+    <string name="label_permission_manage_training">Criar e editar treinos</string>
+    <string name="msg_permission_manage_training_desc">Quem pode planear a época, os meses e as semanas de um escalão, e criar, editar e cancelar as suas sessões de treino. Avaliar os jogadores está aberto a todos os treinadores e equipa técnica do escalão.</string>
     <string name="btn_save_permissions">Guardar permissões</string>
     <string name="btn_saving_permissions">A guardar...</string>
 

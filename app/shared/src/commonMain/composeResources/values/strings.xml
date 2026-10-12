@@ -520,6 +520,8 @@
     <string name="msg_permission_manage_call_ups_desc">Who can set the pre-match squad list for a game.</string>
     <string name="label_permission_manage_live_match">Run live matches</string>
     <string name="msg_permission_manage_live_match_desc">Who can kick off, pause or resume, correct the clock, change a match\'s status, or add and remove goals, cards, and substitutions.</string>
+    <string name="label_permission_manage_training">Create and edit training</string>
+    <string name="msg_permission_manage_training_desc">Who can plan the season, months and weeks of an age group, and create, edit and cancel its training sessions. Rating players is open to all its coaches and staff.</string>
     <string name="btn_save_permissions">Save permissions</string>
     <string name="btn_saving_permissions">Saving...</string>
 
