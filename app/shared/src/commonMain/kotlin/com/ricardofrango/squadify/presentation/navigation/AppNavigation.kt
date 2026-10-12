@@ -52,6 +52,7 @@ import com.ricardofrango.squadify.presentation.ui.opponents.OpponentEditScreen
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentFormScreen
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentsScreen
 import com.ricardofrango.squadify.presentation.ui.training.CreateSessionsScreen
+import com.ricardofrango.squadify.presentation.ui.training.ExerciseLibraryScreen
 import com.ricardofrango.squadify.presentation.ui.training.SessionDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.training.SessionEditScreen
 import com.ricardofrango.squadify.presentation.ui.training.MonthPlanScreen
@@ -922,11 +923,24 @@ fun AppNavigation() {
                 onOpenWeekPlan = { ageGroupId, monday, edit ->
                     navController.navigate(if (edit) Screen.EditWeekPlan(ageGroupId, monday.toString()) else Screen.WeekPlan(ageGroupId, monday.toString()))
                 },
+                onAddExercises = { navController.navigate(Screen.ExerciseLibrary(screen.sessionId)) },
                 onChanged = { deleted ->
                     navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
                     if (deleted) navController.popBackStack()
                 },
                 refresh = sessionChanged
+            )
+        }
+
+        screen<Screen.ExerciseLibrary> { backStackEntry ->
+            val screen: Screen.ExerciseLibrary = backStackEntry.toRoute()
+            ExerciseLibraryScreen(
+                sessionId = screen.sessionId,
+                onNavigateBack = { navController.popBackStack() },
+                onAdded = {
+                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
             )
         }
 

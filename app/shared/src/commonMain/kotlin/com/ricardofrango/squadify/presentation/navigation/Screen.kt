@@ -231,6 +231,11 @@ sealed class Screen {
     @SerialName("edit-training-session")
     data class EditTrainingSession(val ageGroupId: String, val sessionId: String? = null, val date: String? = null) : Screen()
 
+    // Add exercises to a session from its age group's library (design 39h).
+    @Serializable
+    @SerialName("exercise-library")
+    data class ExerciseLibrary(val sessionId: String) : Screen()
+
     @Serializable
     @SerialName("match")
     data class MatchDetails(val matchId: String) : Screen()

@@ -4,6 +4,7 @@ import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
+import com.ricardofrango.squadify.domain.repository.TrainingExerciseRepository
 import com.ricardofrango.squadify.domain.repository.TrainingPlanRepository
 import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
@@ -28,6 +29,7 @@ class GetTrainingSessionUseCase(
     private val seasonRepository: SeasonRepository,
     private val playerRepository: PlayerRepository,
     private val trainingPlanRepository: TrainingPlanRepository,
+    private val trainingExerciseRepository: TrainingExerciseRepository,
     private val userRepository: UserRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager
@@ -59,6 +61,7 @@ class GetTrainingSessionUseCase(
             poolSize = playerRepository.getPlayersByAgeGroup(ageGroup.id).size,
             weekPlan = plans.planFor(TrainingPlanLevel.WEEK, mondayOf(date)),
             monthPlan = plans.planFor(TrainingPlanLevel.MONTH, monthStartOf(date)),
+            exercises = trainingExerciseRepository.getForSession(sessionId),
             canEdit = canEdit,
             canRate = canRate
         )

@@ -1779,6 +1779,15 @@ graph TD
     D --> Z2(["Return how many were created"])
 ```
 
+### 9b.6 Exercises (`TrainingExercisesUseCase`)
+
+`GET /age-groups/{id}/exercises` is the age group's library for its staff and coordinators, most used first.
+Creating (`POST`) and editing (`PATCH /exercises/{id}`) need `MANAGE_TRAINING`: a name, and a duration that's a
+positive number of minutes when given. `PUT /training-sessions/{id}/exercises` sets a session's exercises in
+order (adding, removing and reordering in one go), behind `MANAGE_TRAINING`: only the age group's own exercises,
+each once, and not while the session is cancelled. Deleting or replacing a session deletes its exercise links;
+the library keeps the exercises.
+
 ### 9b.5 One Session (`GetTrainingSessionUseCase`, `SaveTrainingSessionUseCase`, `ChangeTrainingSessionUseCase`)
 
 `GET /training-sessions/{id}` has the same read gate as the Training tab (players and parents too) and returns
@@ -1876,6 +1885,9 @@ erDiagram
     AGE_GROUPS ||--o{ AGE_GROUP_STAFF : staffed_by
     AGE_GROUPS ||--o{ TRAINING_PLANS : plans
     AGE_GROUPS ||--o{ TRAINING_SESSIONS : trains
+    AGE_GROUPS ||--o{ TRAINING_EXERCISES : library
+    TRAINING_SESSIONS ||--o{ TRAINING_SESSION_EXERCISES : runs
+    TRAINING_EXERCISES ||--o{ TRAINING_SESSION_EXERCISES : used_in
     USERS ||--o{ TRAINING_SESSIONS : cancels
     USERS ||--o{ TRAINING_PLANS : updates
     USERS ||--o{ AGE_GROUP_STAFF : serves_as
@@ -2136,6 +2148,20 @@ erDiagram
         timestamp cancelled_at "nullable -- set while cancelled"
         uuid cancelled_by FK "nullable"
         timestamp created_at
+    }
+    TRAINING_EXERCISES {
+        uuid id PK
+        uuid age_group_id FK
+        varchar name "255 chars"
+        text description "nullable"
+        integer duration_minutes "nullable, > 0"
+        text objectives "nullable"
+        timestamp created_at
+    }
+    TRAINING_SESSION_EXERCISES {
+        uuid session_id PK, FK
+        uuid exercise_id PK, FK
+        integer position "order in the session"
     }
 ```
 

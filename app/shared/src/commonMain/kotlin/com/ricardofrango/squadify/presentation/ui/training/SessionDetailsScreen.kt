@@ -99,6 +99,13 @@ import squadify.app.shared.generated.resources.status_upcoming
 import squadify.app.shared.generated.resources.title_cancel_session
 import squadify.app.shared.generated.resources.title_delete_session
 import kotlin.time.Clock
+import squadify.app.shared.generated.resources.cd_remove
+import squadify.app.shared.generated.resources.ic_close
+import squadify.app.shared.generated.resources.msg_exercises_total
+import squadify.app.shared.generated.resources.msg_session_no_exercises
+import squadify.app.shared.generated.resources.btn_add_exercise
+import squadify.app.shared.generated.resources.label_exercises
+import squadify.app.shared.generated.resources.label_section_count
 
 /**
  * One training session (design 39f / 40f): when and where (Open in Maps) and its status; for staff, the
@@ -112,6 +119,7 @@ fun SessionDetailsScreen(
     onNavigateBack: () -> Unit,
     onEdit: (ageGroupId: String) -> Unit,
     onOpenWeekPlan: (ageGroupId: String, monday: LocalDate, edit: Boolean) -> Unit,
+    onAddExercises: () -> Unit,
     // A cancel, restore or delete happened: the screens underneath should reload.
     onChanged: (deleted: Boolean) -> Unit,
     refresh: Boolean = false,
@@ -129,7 +137,9 @@ fun SessionDetailsScreen(
         onOpenWeekPlan = { edit -> state.details?.let { onOpenWeekPlan(it.ageGroup.id, mondayOf(it.session.date), edit) } },
         onCancel = viewModel::cancel,
         onRestore = viewModel::restore,
-        onDelete = viewModel::delete
+        onDelete = viewModel::delete,
+        onAddExercises = onAddExercises,
+        onSetExercises = viewModel::setExercises
     )
 }
 
@@ -158,7 +168,9 @@ private fun SessionDetailsContent(
     onOpenWeekPlan: (edit: Boolean) -> Unit,
     onCancel: () -> Unit,
     onRestore: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onAddExercises: () -> Unit = {},
+    onSetExercises: (List<String>) -> Unit = {}
 ) {
     val details = state.details
     var askCancel by remember { mutableStateOf(false) }
@@ -203,11 +215,15 @@ private fun SessionDetailsContent(
                 if (wide) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) { HeaderCard(details, now); WeekStrip(details, onOpenWeekPlan) }
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) { NotesCard(details.session) }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            ExercisesCard(details, !state.busy, onAddExercises, onSetExercises)
+                            NotesCard(details.session)
+                        }
                     }
                 } else {
                     HeaderCard(details, now)
                     WeekStrip(details, onOpenWeekPlan)
+                    ExercisesCard(details, !state.busy, onAddExercises, onSetExercises)
                     NotesCard(details.session)
                 }
                 FormErrorLine(state.error)
@@ -286,6 +302,46 @@ private fun WeekStrip(details: TrainingSessionDetails, onOpenWeekPlan: (edit: Bo
         } else if (details.canEdit) {
             TextButton(onClick = { onOpenWeekPlan(true) }) { Text(stringResource(Res.string.btn_plan_the_week), color = AmberText, fontWeight = FontWeight.Bold) }
         }
+    }
+}
+
+/**
+ * The session's exercises, in order (design 39f): name, description and minutes, with the total.
+ * With `MANAGE_TRAINING` and while not cancelled: "Add exercise", ▲ / ▼ to reorder and × to remove from
+ * this session (never from the library).
+ */
+@Composable
+private fun ExercisesCard(details: TrainingSessionDetails, enabled: Boolean, onAdd: () -> Unit, onSet: (List<String>) -> Unit) {
+    val exercises = details.exercises
+    val canChange = details.canEdit && !details.session.cancelled
+    val ids = exercises.map { it.id }
+    StatsCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            StatsHeading(stringResource(Res.string.label_section_count, stringResource(Res.string.label_exercises), exercises.size), Modifier.weight(1f))
+            if (canChange) TextButton(onClick = onAdd, enabled = enabled) { Text(stringResource(Res.string.btn_add_exercise), color = PitchGreen, fontWeight = FontWeight.Bold) }
+        }
+        if (exercises.isEmpty()) {
+            Text(stringResource(Res.string.msg_session_no_exercises), style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText)
+            return@StatsCard
+        }
+        exercises.forEachIndexed { i, exercise ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("${i + 1}", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = PitchGreen, modifier = Modifier.padding(end = 10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(exercise.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = DeepCarbon)
+                    exercise.description?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText, maxLines = 2) }
+                }
+                exercise.durationMinutes?.let { Text("$it'", style = MaterialTheme.typography.labelLarge, color = DeepCarbon) }
+                if (canChange) {
+                    ReorderButtons(i, exercises.size, enabled) { from, to -> onSet(ids.moved(from, to)) }
+                    IconButton(onClick = { onSet(ids.filterIndexed { j, _ -> j != i }) }, enabled = enabled) {
+                        Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.cd_remove), tint = DeepCarbon.copy(alpha = 0.5f))
+                    }
+                }
+            }
+        }
+        val total = exercises.sumOf { it.durationMinutes ?: 0 }
+        if (total > 0) Text(stringResource(Res.string.msg_exercises_total, total), style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText)
     }
 }
 

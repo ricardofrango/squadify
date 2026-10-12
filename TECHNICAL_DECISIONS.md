@@ -2653,3 +2653,13 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
   - **Edit:** saves only after a change. From the calendar, "Add one session" starts on the selected day.
 - **Calendar:** List / Calendar on the Training tab. The grid is Monday-first, with a dot per session (amber when it needs ratings, grey when cancelled) and holidays' day numbers in amber. Tapping a day lists its sessions.
   - **Choice not kept:** the List / Calendar choice isn't remembered between visits, unlike the design.
+
+**Exercises** (design 39f/h, `V18`):
+- **Library:** each age group has its own (`training_exercises`). Sessions link to exercises in order (`training_session_exercises`), so editing an exercise changes it in every session that uses it, and the edit screen says so ("Used in 14 sessions").
+- **On the session:** each exercise shows its number, name, description and minutes, with the total. With `MANAGE_TRAINING`, while not cancelled, exercises can be added, reordered with ▲ / ▼ (not dragging as designed) and removed with ×. Removing never touches the library.
+- **Add exercises** (`ExerciseLibraryScreen`): the library sorted by most used, with "Used n×", searchable by name and description, and leaving out what the session already has.
+  - **Picking:** multi-select, added in the order picked.
+  - **New:** creates an exercise and adds it straight away. The search text prefills its name.
+  - **Editing:** the pencil on a row edits the exercise in the library.
+- **Replacing content:** bulk creation's replace warnings now count real exercises.
+- **Tests:** `TrainingSessionUseCasesTest` and `ExerciseLibraryTest`.

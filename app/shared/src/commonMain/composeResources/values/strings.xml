@@ -1288,4 +1288,34 @@
     <string name="legend_holiday">holiday</string>
     <string name="msg_no_sessions_day">No sessions on this day</string>
     <string name="cd_more_options">More options</string>
+    <!-- Training exercises (design 39f/h) -->
+    <string name="label_exercises">EXERCISES</string>
+    <string name="btn_add_exercise">Add exercise</string>
+    <string name="msg_exercises_total">%1$d min in total</string>
+    <string name="title_add_exercises">Add exercises</string>
+    <string name="btn_new">New</string>
+    <string name="label_search_exercises">Search exercises</string>
+    <string name="label_library">%1$s LIBRARY</string>
+    <string name="label_library_subtitle">%1$s library</string>
+    <string name="label_used_n">Used %1$d×</string>
+    <string name="btn_add_n_exercises">Add %1$d exercises</string>
+    <string name="title_new_exercise">New exercise</string>
+    <string name="title_edit_exercise">Edit exercise</string>
+    <string name="label_exercise_name">Name *</string>
+    <string name="label_exercise_description">Description</string>
+    <string name="label_exercise_description_placeholder">How it runs, size of the area, rules</string>
+    <string name="label_duration">Duration</string>
+    <string name="label_minutes">minutes</string>
+    <string name="label_objectives">Objectives</string>
+    <string name="label_objectives_placeholder">e.g. Press on the back pass</string>
+    <string name="btn_save_and_add">Save and add to session</string>
+    <string name="msg_used_in_sessions">Used in %1$d sessions. Changes apply everywhere it\'s used.</string>
+    <string name="msg_exercise_save_failed">Couldn\'t save the exercise. Please try again.</string>
+    <string name="msg_library_load_failed">Couldn\'t load the exercises</string>
+    <string name="msg_library_empty">No exercises yet. Create the first one with New.</string>
+    <string name="msg_library_no_match">No exercises match “%1$s”</string>
+    <string name="cd_edit_exercise">Edit exercise</string>
+    <string name="cd_move_up">Move up</string>
+    <string name="cd_move_down">Move down</string>
+    <string name="msg_session_no_exercises">No exercises yet.</string>
 </resources>

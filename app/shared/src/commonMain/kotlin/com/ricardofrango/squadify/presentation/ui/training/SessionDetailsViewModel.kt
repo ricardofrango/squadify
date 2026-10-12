@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.ChangeTrainingSessionUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTrainingSessionUseCase
+import com.ricardofrango.squadify.domain.usecase.TrainingExercisesUseCase
 import com.ricardofrango.squadify.model.TrainingSessionDetails
 import com.ricardofrango.squadify.presentation.errorMessage
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -28,7 +29,8 @@ data class SessionDetailsUiState(
 /** One training session (design 39f): cancel, restore and delete, then reload or leave. */
 class SessionDetailsViewModel(
     private val getTrainingSessionUseCase: GetTrainingSessionUseCase,
-    private val changeTrainingSessionUseCase: ChangeTrainingSessionUseCase
+    private val changeTrainingSessionUseCase: ChangeTrainingSessionUseCase,
+    private val trainingExercisesUseCase: TrainingExercisesUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SessionDetailsUiState())
@@ -57,6 +59,24 @@ class SessionDetailsViewModel(
     fun cancel() = change(deleted = false) { changeTrainingSessionUseCase.cancel(it) }
     fun restore() = change(deleted = false) { changeTrainingSessionUseCase.restore(it) }
     fun delete() = change(deleted = true) { changeTrainingSessionUseCase.delete(it) }
+
+    /** Removing or reordering the session's exercises (from the library: never). Shown at once, saved after. */
+    fun setExercises(ids: List<String>) {
+        val id = sessionId ?: return
+        val details = _state.value.details ?: return
+        val byId = details.exercises.associateBy { it.id }
+        _state.update { it.copy(details = details.copy(exercises = ids.mapNotNull { e -> byId[e] }), error = null) }
+        viewModelScope.launch {
+            try {
+                val saved = trainingExercisesUseCase.setForSession(id, ids)
+                _state.update { s -> s.copy(details = s.details?.copy(exercises = saved, session = s.details.session.copy(exerciseCount = saved.size))) }
+                _changed.emit(false)
+            } catch (e: Exception) {
+                val message = errorMessage(e, Res.string.msg_session_change_failed)
+                _state.update { it.copy(details = details, error = message) }
+            }
+        }
+    }
 
     private fun change(deleted: Boolean, action: suspend (String) -> Unit) {
         val id = sessionId ?: return

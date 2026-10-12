@@ -3,6 +3,9 @@ package com.ricardofrango.squadify.data.remote
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
 import com.ricardofrango.squadify.model.CreateTrainingSessionsRequest
+import com.ricardofrango.squadify.model.SaveExerciseRequest
+import com.ricardofrango.squadify.model.SetSessionExercisesRequest
+import com.ricardofrango.squadify.model.TrainingExercise
 import com.ricardofrango.squadify.model.SaveTrainingSessionRequest
 import com.ricardofrango.squadify.model.TrainingSession
 import com.ricardofrango.squadify.model.TrainingSessionDetails
@@ -58,4 +61,25 @@ class TrainingSessionRepositoryImpl(
 
     override suspend fun deleteSession(sessionId: String) =
         httpClient.delete(sessionUrl(sessionId)).handleResponse<Unit>()
+
+    override suspend fun getLibrary(ageGroupId: String): List<TrainingExercise> =
+        httpClient.get("${appConfig.baseUrl}/age-groups/$ageGroupId/exercises").handleResponse()
+
+    override suspend fun createExercise(ageGroupId: String, request: SaveExerciseRequest): TrainingExercise =
+        httpClient.post("${appConfig.baseUrl}/age-groups/$ageGroupId/exercises") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.handleResponse()
+
+    override suspend fun updateExercise(exerciseId: String, request: SaveExerciseRequest): TrainingExercise =
+        httpClient.patch("${appConfig.baseUrl}/exercises/$exerciseId") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.handleResponse()
+
+    override suspend fun setSessionExercises(sessionId: String, exerciseIds: List<String>): List<TrainingExercise> =
+        httpClient.put("${sessionUrl(sessionId)}/exercises") {
+            contentType(ContentType.Application.Json)
+            setBody(SetSessionExercisesRequest(exerciseIds))
+        }.handleResponse()
 }

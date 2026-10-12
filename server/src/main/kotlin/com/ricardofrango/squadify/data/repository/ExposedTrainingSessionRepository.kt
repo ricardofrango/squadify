@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.data.repository
 
+import com.ricardofrango.squadify.data.database.TrainingSessionExercisesTable
 import com.ricardofrango.squadify.data.database.TrainingSessionsTable
 import com.ricardofrango.squadify.domain.repository.SessionContentCounts
 import com.ricardofrango.squadify.domain.repository.StoredTrainingSession
@@ -57,11 +58,19 @@ class ExposedTrainingSessionRepository : TrainingSessionRepository {
 
     override suspend fun deleteAll(ids: List<String>) {
         if (ids.isEmpty()) return
-        TrainingSessionsTable.deleteWhere { TrainingSessionsTable.id inList ids.map { it.toUuid() } }
+        val uuids = ids.map { it.toUuid() }
+        TrainingSessionExercisesTable.deleteWhere { TrainingSessionExercisesTable.sessionId inList uuids }
+        TrainingSessionsTable.deleteWhere { TrainingSessionsTable.id inList uuids }
     }
 
-    override suspend fun contentCounts(ids: List<String>): Map<String, SessionContentCounts> =
-        ids.associateWith { SessionContentCounts(exercises = 0, ratings = 0) }
+    override suspend fun contentCounts(ids: List<String>): Map<String, SessionContentCounts> {
+        if (ids.isEmpty()) return emptyMap()
+        val exercises = TrainingSessionExercisesTable.selectAll()
+            .where { TrainingSessionExercisesTable.sessionId inList ids.map { it.toUuid() } }
+            .groupingBy { it[TrainingSessionExercisesTable.sessionId].toString() }
+            .eachCount()
+        return ids.associateWith { SessionContentCounts(exercises = exercises[it] ?: 0, ratings = 0) }
+    }
 
     private fun toStored(row: ResultRow) = StoredTrainingSession(
         session = TrainingSession(

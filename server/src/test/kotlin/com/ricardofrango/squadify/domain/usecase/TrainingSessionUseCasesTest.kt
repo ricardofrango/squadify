@@ -76,7 +76,9 @@ class TrainingSessionUseCasesTest {
     private val save = SaveTrainingSessionUseCase(ageGroupRepository, seasonRepository, repo, check, transactionManager)
     private val change = ChangeTrainingSessionUseCase(ageGroupRepository, repo, check, transactionManager)
     private val planRepository = mockk<com.ricardofrango.squadify.domain.repository.TrainingPlanRepository>()
-    private val details = GetTrainingSessionUseCase(repo, ageGroupRepository, clubRepository, seasonRepository, playerRepository, planRepository, userRepository, check, transactionManager)
+    private val exerciseRepository = mockk<com.ricardofrango.squadify.domain.repository.TrainingExerciseRepository>(relaxed = true)
+    private val details = GetTrainingSessionUseCase(repo, ageGroupRepository, clubRepository, seasonRepository, playerRepository, planRepository, exerciseRepository, userRepository, check, transactionManager)
+    private val exercisesUseCase = TrainingExercisesUseCase(ageGroupRepository, repo, exerciseRepository, check, transactionManager)
     private val get = GetTrainingSessionsUseCase(ageGroupRepository, seasonRepository, clubRepository, repo, userRepository, check, transactionManager)
 
     private val clubId = "club-1"
@@ -237,5 +239,51 @@ class TrainingSessionUseCasesTest {
         val parentView = details(parent, "s1")
         assertEquals(null, parentView.weekPlan)
         assertFalse(parentView.canRate)
+    }
+
+    private fun library(vararg ids: String) {
+        coEvery { exerciseRepository.getByAgeGroup(ag.id) } returns ids.mapIndexed { i, id ->
+            com.ricardofrango.squadify.model.TrainingExercise(id, ag.id, "Exercise $id", usedCount = i)
+        }
+    }
+
+    @Test
+    fun theLibraryIsMostUsedFirstAndForStaffOnly() = runBlocking<Unit> {
+        library("a", "b", "c")
+        assertEquals(listOf("c", "b", "a"), exercisesUseCase.library(user(null, TeamRole.STAFF), ag.id).map { it.id })
+        assertFailsWith<ForbiddenException> { exercisesUseCase.library(user(ClubRole.MEMBER), ag.id) }
+    }
+
+    @Test
+    fun anExerciseNeedsANameAndAPositiveDuration() = runBlocking<Unit> {
+        val coordinator = user(ClubRole.COORDINATOR)
+        val request = com.ricardofrango.squadify.model.SaveExerciseRequest(name = "  ")
+        assertFailsWith<ValidationException> { exercisesUseCase.create(coordinator, ag.id, request) }
+        assertFailsWith<ValidationException> { exercisesUseCase.create(coordinator, ag.id, request.copy(name = "Rondo 4v1", durationMinutes = 0)) }
+        coEvery { exerciseRepository.create(any()) } answers { firstArg() }
+        val created = exercisesUseCase.create(coordinator, ag.id, request.copy(name = " Rondo 4v1 ", durationMinutes = 15, description = " "))
+        assertEquals("Rondo 4v1", created.name)
+        assertEquals(null, created.description)
+        assertEquals(ag.id, created.ageGroupId)
+    }
+
+    @Test
+    fun aSessionTakesItsOwnLibrarysExercisesOnceAndNotWhileCancelled() = runBlocking<Unit> {
+        val coordinator = user(ClubRole.COORDINATOR)
+        existing("s1", LocalDate(2026, 10, 15), LocalTime(18, 30))
+        library("a", "b")
+        assertFailsWith<ValidationException> { exercisesUseCase.setForSession(coordinator, "s1", listOf("a", "a")) }
+        assertFailsWith<ValidationException> { exercisesUseCase.setForSession(coordinator, "s1", listOf("a", "elsewhere")) }
+        exercisesUseCase.setForSession(coordinator, "s1", listOf("b", "a"))
+        io.mockk.coVerify { exerciseRepository.setForSession("s1", listOf("b", "a")) }
+        change.cancel(coordinator, "s1")
+        assertFailsWith<ValidationException> { exercisesUseCase.setForSession(coordinator, "s1", listOf("a")) }
+    }
+
+    @Test
+    fun staffCannotChangeASessionsExercises() = runBlocking<Unit> {
+        existing("s1", LocalDate(2026, 10, 15), LocalTime(18, 30))
+        library("a")
+        assertFailsWith<ForbiddenException> { exercisesUseCase.setForSession(user(null, TeamRole.STAFF), "s1", listOf("a")) }
     }
 }

@@ -1,6 +1,8 @@
 package com.ricardofrango.squadify.domain.repository
 
 import com.ricardofrango.squadify.model.CreateTrainingSessionsRequest
+import com.ricardofrango.squadify.model.SaveExerciseRequest
+import com.ricardofrango.squadify.model.TrainingExercise
 import com.ricardofrango.squadify.model.SaveTrainingSessionRequest
 import com.ricardofrango.squadify.model.TrainingSession
 import com.ricardofrango.squadify.model.TrainingSessionDetails
@@ -17,4 +19,8 @@ interface TrainingSessionRepository {
     suspend fun cancelSession(sessionId: String)
     suspend fun restoreSession(sessionId: String)
     suspend fun deleteSession(sessionId: String)
+    suspend fun getLibrary(ageGroupId: String): List<TrainingExercise>
+    suspend fun createExercise(ageGroupId: String, request: SaveExerciseRequest): TrainingExercise
+    suspend fun updateExercise(exerciseId: String, request: SaveExerciseRequest): TrainingExercise
+    suspend fun setSessionExercises(sessionId: String, exerciseIds: List<String>): List<TrainingExercise>
 }

@@ -110,6 +110,31 @@ data class TrainingSessions(
     val canRate: Boolean
 )
 
+/** An exercise of an age group's library (design 39h). [usedCount] is how many sessions use it. */
+@Serializable
+data class TrainingExercise(
+    val id: String,
+    val ageGroupId: String,
+    val name: String,
+    val description: String? = null,
+    val durationMinutes: Int? = null,
+    val objectives: String? = null,
+    val usedCount: Int = 0
+)
+
+/** `POST /age-groups/{id}/exercises` and `PATCH /exercises/{id}`. */
+@Serializable
+data class SaveExerciseRequest(
+    val name: String,
+    val description: String? = null,
+    val durationMinutes: Int? = null,
+    val objectives: String? = null
+)
+
+/** `PUT /training-sessions/{id}/exercises`: the session's exercises, in order (adds, removes and reorders). */
+@Serializable
+data class SetSessionExercisesRequest(val exerciseIds: List<String>)
+
 /**
  * `GET /training-sessions/{id}`: one session (design 39f) with its age group, how many players its pool
  * has (for "12 of 18 rated"), and the week and month plans it falls in (design 40f, staff only).
@@ -123,6 +148,8 @@ data class TrainingSessionDetails(
     val poolSize: Int,
     val weekPlan: TrainingPlan? = null,
     val monthPlan: TrainingPlan? = null,
+    // In order.
+    val exercises: List<TrainingExercise> = emptyList(),
     val canEdit: Boolean,
     val canRate: Boolean
 )

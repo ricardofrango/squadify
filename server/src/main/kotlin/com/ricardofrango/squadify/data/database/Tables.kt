@@ -398,3 +398,24 @@ object TrainingSessionsTable : Table("training_sessions") {
         uniqueIndex("unique_training_session_time", ageGroupId, date, startTime)
     }
 }
+
+// An age group's exercise library and each session's exercises, in order (design 39h). See V18.
+object TrainingExercisesTable : Table("training_exercises") {
+    val id = uuid("id")
+    val ageGroupId = uuid("age_group_id").references(AgeGroups.id)
+    val name = varchar("name", 255)
+    val description = text("description").nullable()
+    val durationMinutes = integer("duration_minutes").nullable()
+    val objectives = text("objectives").nullable()
+    val createdAt = timestamp("created_at")
+
+    override val primaryKey = PrimaryKey(id)
+}
+
+object TrainingSessionExercisesTable : Table("training_session_exercises") {
+    val sessionId = uuid("session_id").references(TrainingSessionsTable.id)
+    val exerciseId = uuid("exercise_id").references(TrainingExercisesTable.id)
+    val position = integer("position")
+
+    override val primaryKey = PrimaryKey(sessionId, exerciseId)
+}
