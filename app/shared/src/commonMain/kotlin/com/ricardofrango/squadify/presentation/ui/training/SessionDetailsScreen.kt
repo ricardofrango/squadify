@@ -1,0 +1,351 @@
+package com.ricardofrango.squadify.presentation.ui.training
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.ricardofrango.squadify.model.AgeGroup
+import com.ricardofrango.squadify.model.TrainingIntensity
+import com.ricardofrango.squadify.model.TrainingPlan
+import com.ricardofrango.squadify.model.TrainingPlanLevel
+import com.ricardofrango.squadify.model.TrainingSession
+import com.ricardofrango.squadify.model.TrainingSessionDetails
+import com.ricardofrango.squadify.model.mondayOf
+import com.ricardofrango.squadify.model.periodEnd
+import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
+import com.ricardofrango.squadify.presentation.ui.components.StatsCard
+import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
+import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
+import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
+import com.ricardofrango.squadify.presentation.ui.opponents.mapsUrl
+import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
+import com.ricardofrango.squadify.presentation.ui.theme.Amber
+import com.ricardofrango.squadify.presentation.ui.theme.AmberText
+import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
+import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.daysUntil
+import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
+import squadify.app.shared.generated.resources.Res
+import squadify.app.shared.generated.resources.btn_cancel_session
+import squadify.app.shared.generated.resources.btn_delete
+import squadify.app.shared.generated.resources.btn_keep_it
+import squadify.app.shared.generated.resources.btn_open_in_maps
+import squadify.app.shared.generated.resources.btn_plan_the_week
+import squadify.app.shared.generated.resources.btn_restore
+import squadify.app.shared.generated.resources.btn_week_plan
+import squadify.app.shared.generated.resources.cd_edit_plan
+import squadify.app.shared.generated.resources.cd_more_options
+import squadify.app.shared.generated.resources.ic_edit
+import squadify.app.shared.generated.resources.ic_more
+import squadify.app.shared.generated.resources.label_notes_field
+import squadify.app.shared.generated.resources.label_this_week
+import squadify.app.shared.generated.resources.label_training_subtitle
+import squadify.app.shared.generated.resources.msg_cancel_session
+import squadify.app.shared.generated.resources.msg_delete_session
+import squadify.app.shared.generated.resources.msg_session_cancelled
+import squadify.app.shared.generated.resources.msg_session_cancelled_by
+import squadify.app.shared.generated.resources.msg_week_no_plan
+import squadify.app.shared.generated.resources.status_cancelled
+import squadify.app.shared.generated.resources.status_ended
+import squadify.app.shared.generated.resources.status_in_days
+import squadify.app.shared.generated.resources.status_today
+import squadify.app.shared.generated.resources.status_upcoming
+import squadify.app.shared.generated.resources.title_cancel_session
+import squadify.app.shared.generated.resources.title_delete_session
+import kotlin.time.Clock
+
+/**
+ * One training session (design 39f / 40f): when and where (Open in Maps) and its status; for staff, the
+ * week's focus and intensity with the month's focus (or "This week has no plan"); then its notes.
+ * With `MANAGE_TRAINING`: the pencil, and ⋮ with Cancel session and Delete. A cancelled session shows
+ * who cancelled it and when, with Restore, and loses the pencil.
+ */
+@Composable
+fun SessionDetailsScreen(
+    sessionId: String,
+    onNavigateBack: () -> Unit,
+    onEdit: (ageGroupId: String) -> Unit,
+    onOpenWeekPlan: (ageGroupId: String, monday: LocalDate, edit: Boolean) -> Unit,
+    // A cancel, restore or delete happened: the screens underneath should reload.
+    onChanged: (deleted: Boolean) -> Unit,
+    refresh: Boolean = false,
+    viewModel: SessionDetailsViewModel = koinViewModel()
+) {
+    val state by viewModel.state.collectAsState()
+    LaunchedEffect(sessionId) { viewModel.load(sessionId) }
+    LaunchedEffect(refresh) { if (refresh) viewModel.load(sessionId, force = true) }
+    LaunchedEffect(viewModel) { viewModel.changed.collect { onChanged(it) } }
+    SessionDetailsContent(
+        state = state,
+        onNavigateBack = onNavigateBack,
+        onRetry = { viewModel.load(sessionId, force = true) },
+        onEdit = { state.details?.let { onEdit(it.ageGroup.id) } },
+        onOpenWeekPlan = { edit -> state.details?.let { onOpenWeekPlan(it.ageGroup.id, mondayOf(it.session.date), edit) } },
+        onCancel = viewModel::cancel,
+        onRestore = viewModel::restore,
+        onDelete = viewModel::delete
+    )
+}
+
+/** "Thu 15 Oct". */
+@Composable
+internal fun sessionTitle(date: LocalDate): String = "${weekdayShort(date.dayOfWeek.isoDayNumber)} ${shortDateLabel(date)}"
+
+/** Upcoming · in 3 days / Today / Ended / Cancelled. */
+@Composable
+internal fun sessionStatus(session: TrainingSession, now: LocalDateTime): String = when {
+    session.cancelled -> stringResource(Res.string.status_cancelled)
+    session.ended(now) -> stringResource(Res.string.status_ended)
+    session.date == now.date -> stringResource(Res.string.status_today)
+    else -> {
+        val days = now.date.daysUntil(session.date)
+        "${stringResource(Res.string.status_upcoming)} · ${pluralStringResource(Res.plurals.status_in_days, days, days)}"
+    }
+}
+
+@Composable
+private fun SessionDetailsContent(
+    state: SessionDetailsUiState,
+    onNavigateBack: () -> Unit,
+    onRetry: () -> Unit,
+    onEdit: () -> Unit,
+    onOpenWeekPlan: (edit: Boolean) -> Unit,
+    onCancel: () -> Unit,
+    onRestore: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val details = state.details
+    var askCancel by remember { mutableStateOf(false) }
+    var askDelete by remember { mutableStateOf(false) }
+    Scaffold(
+        containerColor = Color.White,
+        topBar = {
+            FMTopBar(
+                title = details?.let { sessionTitle(it.session.date) } ?: "",
+                subtitle = details?.let { stringResource(Res.string.label_training_subtitle, it.ageGroup.name, it.clubName) },
+                onNavigateBack = onNavigateBack,
+                actions = {
+                    if (details?.canEdit == true) {
+                        if (!details.session.cancelled) {
+                            IconButton(onClick = onEdit, enabled = !state.busy) { Icon(painterResource(Res.drawable.ic_edit), stringResource(Res.string.cd_edit_plan), tint = Color.White) }
+                        }
+                        var open by remember { mutableStateOf(false) }
+                        Box {
+                            IconButton(onClick = { open = true }, enabled = !state.busy) { Icon(painterResource(Res.drawable.ic_more), stringResource(Res.string.cd_more_options), tint = Color.White) }
+                            DropdownMenu(open, onDismissRequest = { open = false }, modifier = Modifier.background(Color.White)) {
+                                if (!details.session.cancelled) {
+                                    DropdownMenuItem(text = { Text(stringResource(Res.string.btn_cancel_session), color = DeepCarbon) }, onClick = { open = false; askCancel = true })
+                                }
+                                DropdownMenuItem(text = { Text(stringResource(Res.string.btn_delete), color = AlertRed) }, onClick = { open = false; askDelete = true })
+                            }
+                        }
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        val modifier = Modifier.fillMaxSize().padding(padding).background(Color(0xFFF6F6F7))
+        if (details == null) {
+            PlanLoadingOrError(state.loading, modifier, onRetry)
+            return@Scaffold
+        }
+        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+        BoxWithConstraints(modifier) {
+            val wide = maxWidth >= 600.dp
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (details.session.cancelled) CancelledBanner(details, details.canEdit, onRestore)
+                if (wide) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) { HeaderCard(details, now); WeekStrip(details, onOpenWeekPlan) }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) { NotesCard(details.session) }
+                    }
+                } else {
+                    HeaderCard(details, now)
+                    WeekStrip(details, onOpenWeekPlan)
+                    NotesCard(details.session)
+                }
+                FormErrorLine(state.error)
+            }
+        }
+    }
+    if (askCancel && details != null) {
+        AlertDialog(
+            onDismissRequest = { askCancel = false },
+            title = { Text(stringResource(Res.string.title_cancel_session)) },
+            text = { Text(stringResource(Res.string.msg_cancel_session, sessionTitle(details.session.date))) },
+            confirmButton = { TextButton(onClick = { askCancel = false; onCancel() }) { Text(stringResource(Res.string.btn_cancel_session), color = AlertRed, fontWeight = FontWeight.Bold) } },
+            dismissButton = { TextButton(onClick = { askCancel = false }) { Text(stringResource(Res.string.btn_keep_it), color = CarbonGray) } }
+        )
+    }
+    if (askDelete) {
+        AlertDialog(
+            onDismissRequest = { askDelete = false },
+            title = { Text(stringResource(Res.string.title_delete_session)) },
+            text = { Text(stringResource(Res.string.msg_delete_session)) },
+            confirmButton = { TextButton(onClick = { askDelete = false; onDelete() }) { Text(stringResource(Res.string.btn_delete), color = AlertRed, fontWeight = FontWeight.Bold) } },
+            dismissButton = { TextButton(onClick = { askDelete = false }) { Text(stringResource(Res.string.btn_keep_it), color = CarbonGray) } }
+        )
+    }
+}
+
+@Composable
+private fun HeaderCard(details: TrainingSessionDetails, now: LocalDateTime) {
+    val session = details.session
+    val uriHandler = LocalUriHandler.current
+    StatsCard {
+        Text(timeRange(session.startTime, session.endTime), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
+        session.location?.let { location ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(location, style = MaterialTheme.typography.bodyMedium, color = StatsSecondaryText, modifier = Modifier.weight(1f))
+                TextButton(onClick = { uriHandler.openUri(mapsUrl(location)) }) {
+                    Text(stringResource(Res.string.btn_open_in_maps), color = PitchGreen, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        Text(sessionStatus(session, now), style = MaterialTheme.typography.labelLarge, color = if (session.cancelled) AlertRed else PitchGreen)
+    }
+}
+
+/** The week's focus and intensity with the month's focus (design 40f), staff only; amber when unplanned. */
+@Composable
+private fun WeekStrip(details: TrainingSessionDetails, onOpenWeekPlan: (edit: Boolean) -> Unit) {
+    if (!details.canRate) return
+    val monday = mondayOf(details.session.date)
+    val week = details.weekPlan
+    val month = details.monthPlan
+    val planned = week != null
+    Column(
+        Modifier.fillMaxWidth()
+            .background(if (planned) DeepCarbon else Amber.copy(alpha = 0.18f), RoundedCornerShape(16.dp))
+            .padding(14.dp)
+    ) {
+        val fg = if (planned) Color.White else AmberText
+        if (week != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(Res.string.label_this_week, rangeLabel(monday, periodEnd(TrainingPlanLevel.WEEK, monday, details.season))),
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = Color.White.copy(alpha = 0.6f), modifier = Modifier.weight(1f)
+                )
+                week.intensity?.let { Text(stringResource(it.chipRes()), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.8f)) }
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(week.focus.orEmpty(), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = fg)
+        } else {
+            Text(stringResource(Res.string.msg_week_no_plan), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = fg)
+        }
+        month?.focus?.let { Text("${monthName(month.periodStart)} · $it", style = MaterialTheme.typography.bodySmall, color = if (planned) Color.White.copy(alpha = 0.7f) else AmberText) }
+        if (planned) {
+            TextButton(onClick = { onOpenWeekPlan(false) }) { Text(stringResource(Res.string.btn_week_plan), color = Color.White) }
+        } else if (details.canEdit) {
+            TextButton(onClick = { onOpenWeekPlan(true) }) { Text(stringResource(Res.string.btn_plan_the_week), color = AmberText, fontWeight = FontWeight.Bold) }
+        }
+    }
+}
+
+@Composable
+private fun CancelledBanner(details: TrainingSessionDetails, canRestore: Boolean, onRestore: () -> Unit) {
+    val session = details.session
+    val on = session.cancelledAt?.toLocalDateTime(TimeZone.currentSystemDefault())?.date
+    Row(
+        Modifier.fillMaxWidth().background(CarbonGray.copy(alpha = 0.08f), RoundedCornerShape(14.dp)).padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            when {
+                on != null && session.cancelledByName != null -> stringResource(Res.string.msg_session_cancelled_by, shortDateLabel(on), session.cancelledByName!!)
+                on != null -> stringResource(Res.string.msg_session_cancelled, shortDateLabel(on))
+                else -> stringResource(Res.string.status_cancelled)
+            },
+            style = MaterialTheme.typography.bodySmall, color = DeepCarbon, modifier = Modifier.weight(1f)
+        )
+        if (canRestore) TextButton(onClick = onRestore) { Text(stringResource(Res.string.btn_restore), color = PitchGreen, fontWeight = FontWeight.Bold) }
+    }
+}
+
+@Composable
+private fun ColumnScope.NotesCard(session: TrainingSession) {
+    val notes = session.notes ?: return
+    StatsCard {
+        StatsHeading(stringResource(Res.string.label_notes_field), Modifier.padding(bottom = 6.dp))
+        Text(notes, style = MaterialTheme.typography.bodyMedium, color = DeepCarbon)
+    }
+}
+
+// ---- Previews ----
+
+private val previewDetails = TrainingSessionDetails(
+    session = TrainingSession("s1", "ag1", LocalDate(2026, 10, 15), LocalTime(18, 30), LocalTime(20, 0), location = "Campo do Ribamar", notes = "Bring bibs — small-sided games.", exerciseCount = 3),
+    ageGroup = AgeGroup("ag1", "c1", "Sub-15", "s1", 2012, 2012),
+    clubName = "CD Ribamar",
+    season = previewSeason,
+    poolSize = 18,
+    weekPlan = TrainingPlan("w", "ag1", TrainingPlanLevel.WEEK, LocalDate(2026, 10, 12), focus = "Playing out against a high press", intensity = TrainingIntensity.MEDIUM),
+    monthPlan = TrainingPlan("m", "ag1", TrainingPlanLevel.MONTH, LocalDate(2026, 10, 1), focus = "Building from the back"),
+    canEdit = true,
+    canRate = true
+)
+
+@Preview
+@Composable
+private fun SessionDetailsPreview() {
+    SquadifyTheme { SessionDetailsContent(SessionDetailsUiState(loading = false, details = previewDetails), {}, {}, {}, {}, {}, {}, {}) }
+}
+
+@Preview
+@Composable
+private fun SessionDetailsNoWeekPlanPreview() {
+    SquadifyTheme { SessionDetailsContent(SessionDetailsUiState(loading = false, details = previewDetails.copy(weekPlan = null)), {}, {}, {}, {}, {}, {}, {}) }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun SessionDetailsLandscapePreview() {
+    SquadifyTheme { SessionDetailsContent(SessionDetailsUiState(loading = false, details = previewDetails), {}, {}, {}, {}, {}, {}, {}) }
+}

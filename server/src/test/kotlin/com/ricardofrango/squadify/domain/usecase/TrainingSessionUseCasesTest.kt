@@ -75,6 +75,8 @@ class TrainingSessionUseCasesTest {
     private val create = CreateTrainingSessionsUseCase(ageGroupRepository, seasonRepository, clubRepository, repo, check, transactionManager)
     private val save = SaveTrainingSessionUseCase(ageGroupRepository, seasonRepository, repo, check, transactionManager)
     private val change = ChangeTrainingSessionUseCase(ageGroupRepository, repo, check, transactionManager)
+    private val planRepository = mockk<com.ricardofrango.squadify.domain.repository.TrainingPlanRepository>()
+    private val details = GetTrainingSessionUseCase(repo, ageGroupRepository, clubRepository, seasonRepository, playerRepository, planRepository, userRepository, check, transactionManager)
     private val get = GetTrainingSessionsUseCase(ageGroupRepository, seasonRepository, clubRepository, repo, userRepository, check, transactionManager)
 
     private val clubId = "club-1"
@@ -213,5 +215,27 @@ class TrainingSessionUseCasesTest {
     fun staffCannotCancel() = runBlocking<Unit> {
         existing("s1", LocalDate(2026, 10, 22), LocalTime(18, 30))
         assertFailsWith<ForbiddenException> { change.cancel(user(null, TeamRole.STAFF), "s1") }
+    }
+
+    @Test
+    fun theDetailsCarryTheWeekAndMonthPlansForStaffOnly() = runBlocking<Unit> {
+        existing("s1", LocalDate(2026, 10, 15), LocalTime(18, 30))
+        coEvery { planRepository.getByAgeGroup(ag.id) } returns listOf(
+            com.ricardofrango.squadify.model.TrainingPlan("w", ag.id, com.ricardofrango.squadify.model.TrainingPlanLevel.WEEK, LocalDate(2026, 10, 12), focus = "Playing out"),
+            com.ricardofrango.squadify.model.TrainingPlan("m", ag.id, com.ricardofrango.squadify.model.TrainingPlanLevel.MONTH, LocalDate(2026, 10, 1), focus = "Building from the back")
+        )
+        val player = com.ricardofrango.squadify.model.Player("p1", clubId, "Tomás", "B", LocalDate(2012, 1, 1), active = true)
+        coEvery { playerRepository.getPlayersByAgeGroup(ag.id) } returns listOf(player)
+
+        val staffView = details(user(null, TeamRole.STAFF), "s1")
+        assertEquals("Playing out", staffView.weekPlan?.focus)
+        assertEquals("Building from the back", staffView.monthPlan?.focus)
+        assertEquals(1, staffView.poolSize)
+
+        val parent = user(null)
+        coEvery { playerRepository.getPlayersByUser(parent) } returns listOf(player)
+        val parentView = details(parent, "s1")
+        assertEquals(null, parentView.weekPlan)
+        assertFalse(parentView.canRate)
     }
 }

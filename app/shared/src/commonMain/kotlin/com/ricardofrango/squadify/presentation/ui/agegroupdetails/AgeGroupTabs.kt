@@ -67,6 +67,11 @@ import squadify.app.shared.generated.resources.label_sessions
 import squadify.app.shared.generated.resources.msg_sessions_load_failed
 import kotlinx.datetime.toLocalDateTime
 import androidx.compose.foundation.lazy.LazyListScope
+import com.ricardofrango.squadify.presentation.ui.training.SessionsCalendar
+import squadify.app.shared.generated.resources.msg_no_sessions_day
+import squadify.app.shared.generated.resources.btn_add_one_session
+import squadify.app.shared.generated.resources.btn_calendar
+import squadify.app.shared.generated.resources.btn_list
 
 // The four tabs of Age Group Details (design 33). Every number is derived from AgeGroupDetails (teams,
 // fixtures, staff, pool) and AgeGroupSeasonRecord (each team's season) by the shared code in
@@ -752,6 +757,7 @@ internal fun AgeGroupTrainingTab(
     poolSize: Int,
     onRetrySessions: () -> Unit,
     onCreateSessions: () -> Unit,
+    onAddSession: (date: LocalDate?) -> Unit,
     onOpenSession: (sessionId: String) -> Unit,
     listState: LazyListState,
     padding: PaddingValues,
@@ -765,6 +771,11 @@ internal fun AgeGroupTrainingTab(
     onEditWeek: (LocalDate) -> Unit
 ) {
     val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+    // List or Calendar, and the calendar's month and selected day; they reset when the tab is left.
+    var calendar by remember { mutableStateOf(false) }
+    var month by remember { mutableStateOf(LocalDate(today.year, today.month, 1)) }
+    var selectedDay by remember { mutableStateOf<LocalDate?>(today) }
+    val view = SessionsView(calendar, month, selectedDay, { calendar = it }, { month = it }, { selectedDay = it })
     LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         when (plansState) {
             AgeGroupPlansUiState.Loading -> item {
@@ -787,16 +798,28 @@ internal fun AgeGroupTrainingTab(
                 }
             }
         }
-        sessionItems(sessionsState, poolSize, onRetrySessions, onCreateSessions, onOpenSession)
+        sessionItems(sessionsState, poolSize, view, onRetrySessions, onCreateSessions, onAddSession, onOpenSession)
     }
 }
 
 /** The sessions under the plan cards (design 39a/b): Upcoming, then Past, or the empty state. */
+/** The sessions' List / Calendar choice, hoisted out of the lazy list. */
+private class SessionsView(
+    val calendar: Boolean,
+    val month: LocalDate,
+    val selectedDay: LocalDate?,
+    val onCalendar: (Boolean) -> Unit,
+    val onMonth: (LocalDate) -> Unit,
+    val onSelectDay: (LocalDate) -> Unit
+)
+
 private fun LazyListScope.sessionItems(
     state: AgeGroupSessionsUiState,
     poolSize: Int,
+    view: SessionsView,
     onRetry: () -> Unit,
     onCreateSessions: () -> Unit,
+    onAddSession: (LocalDate?) -> Unit,
     onOpenSession: (String) -> Unit
 ) {
     when (state) {
@@ -808,10 +831,20 @@ private fun LazyListScope.sessionItems(
             val data = state.sessions
             val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
             item(key = "sessions-header") {
-                Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    StatsHeading(stringResource(Res.string.label_sessions), Modifier.weight(1f))
+                Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        StatsHeading(stringResource(Res.string.label_sessions), Modifier.weight(1f))
+                        if (data.sessions.isNotEmpty()) {
+                            FilterChipPill(stringResource(Res.string.btn_list), !view.calendar) { view.onCalendar(false) }
+                            Spacer(Modifier.width(6.dp))
+                            FilterChipPill(stringResource(Res.string.btn_calendar), view.calendar) { view.onCalendar(true) }
+                        }
+                    }
                     if (data.canEdit && data.sessions.isNotEmpty()) {
-                        TextButton(onClick = onCreateSessions) { Text(stringResource(Res.string.btn_create_sessions), color = PitchGreen, fontWeight = FontWeight.Bold) }
+                        Row {
+                            TextButton(onClick = onCreateSessions) { Text(stringResource(Res.string.btn_create_sessions), color = PitchGreen, fontWeight = FontWeight.Bold) }
+                            TextButton(onClick = { onAddSession(if (view.calendar) view.selectedDay else null) }) { Text(stringResource(Res.string.btn_add_one_session), color = PitchGreen, fontWeight = FontWeight.Bold) }
+                        }
                     }
                 }
             }
@@ -824,7 +857,30 @@ private fun LazyListScope.sessionItems(
                             Button(onClick = onCreateSessions, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)) {
                                 Text(stringResource(Res.string.btn_create_sessions), fontWeight = FontWeight.Bold)
                             }
+                            TextButton(onClick = { onAddSession(null) }) { Text(stringResource(Res.string.btn_add_one_session), color = PitchGreen, fontWeight = FontWeight.Bold) }
                         }
+                    }
+                }
+                return
+            }
+            if (view.calendar) {
+                val season = data.season
+                item(key = "calendar") {
+                    SessionsCalendar(
+                        month = view.month, sessions = data.sessions, country = data.country, selected = view.selectedDay, now = now,
+                        poolSize = poolSize, canRate = data.canRate,
+                        canGoBack = view.month > LocalDate(season.startDate.year, season.startDate.month, 1),
+                        canGoForward = view.month < LocalDate(season.endDate.year, season.endDate.month, 1),
+                        onMonthChange = view.onMonth, onSelect = view.onSelectDay
+                    )
+                }
+                val dayNext = splitSessions(data.sessions, now).first.let { up -> if (up.any { it.date == now.date }) null else up.firstOrNull { !it.cancelled } }
+                val ofDay = data.sessions.filter { it.date == view.selectedDay }.sortedBy { it.startTime }
+                if (ofDay.isEmpty()) {
+                    item(key = "day-empty") { Text(stringResource(Res.string.msg_no_sessions_day), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), modifier = Modifier.padding(8.dp)) }
+                } else {
+                    items(ofDay, key = { "day-${it.id}" }) { session ->
+                        SessionRow(session, chipFor(session, now, dayNext, poolSize, data.canRate)) { onOpenSession(session.id) }
                     }
                 }
                 return

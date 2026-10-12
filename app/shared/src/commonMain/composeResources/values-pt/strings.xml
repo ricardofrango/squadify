@@ -1245,4 +1245,45 @@
         <item quantity="one">%1$d exercício</item>
         <item quantity="other">%1$d exercícios</item>
     </plurals>
+    <!-- Training session details and add/edit (design 39e/f) -->
+    <string name="title_add_session">Adicionar sessão</string>
+    <string name="title_edit_session">Editar sessão</string>
+    <string name="label_when">QUANDO</string>
+    <string name="label_where">ONDE</string>
+    <string name="label_date_required">Data *</string>
+    <string name="label_session_notes_placeholder">ex. Sessão extra antes do jogo da taça</string>
+    <string name="btn_add_session">Adicionar sessão</string>
+    <string name="msg_session_save_failed">Não foi possível guardar a sessão. Tente novamente.</string>
+    <string name="label_training_subtitle">Treino · %1$s · %2$s</string>
+    <string name="status_upcoming">Próxima</string>
+    <plurals name="status_in_days">
+        <item quantity="one">daqui a %1$d dia</item>
+        <item quantity="other">daqui a %1$d dias</item>
+    </plurals>
+    <string name="status_today">Hoje</string>
+    <string name="status_ended">Terminada</string>
+    <string name="status_cancelled">Cancelada</string>
+    <string name="btn_cancel_session">Cancelar sessão</string>
+    <string name="btn_delete">Apagar</string>
+    <string name="btn_restore">Repor</string>
+    <string name="btn_keep_it">Manter</string>
+    <string name="title_cancel_session">Cancelar esta sessão?</string>
+    <string name="msg_cancel_session">%1$s fica no calendário como cancelada. Os exercícios são mantidos e pode repô-la.</string>
+    <string name="title_delete_session">Apagar esta sessão?</string>
+    <string name="msg_delete_session">É removida com os exercícios e as avaliações. Não é possível desfazer.</string>
+    <string name="msg_session_cancelled_by">Esta sessão foi cancelada a %1$s por %2$s.</string>
+    <string name="msg_session_cancelled">Esta sessão foi cancelada a %1$s.</string>
+    <string name="btn_week_plan">Plano da semana ›</string>
+    <string name="btn_plan_the_week">Planear a semana</string>
+    <string name="msg_session_change_failed">Não foi possível. Tente novamente.</string>
+    <string name="msg_session_load_failed">Não foi possível carregar esta sessão</string>
+    <string name="title_training">Treino</string>
+    <string name="btn_list">Lista</string>
+    <string name="btn_calendar">Calendário</string>
+    <string name="legend_session">Sessão</string>
+    <string name="legend_needs_ratings">Por avaliar</string>
+    <string name="legend_cancelled">Cancelada</string>
+    <string name="legend_holiday">feriado</string>
+    <string name="msg_no_sessions_day">Sem sessões neste dia</string>
+    <string name="cd_more_options">Mais opções</string>
 </resources>

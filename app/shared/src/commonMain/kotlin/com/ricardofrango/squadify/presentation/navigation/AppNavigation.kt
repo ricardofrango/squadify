@@ -52,6 +52,8 @@ import com.ricardofrango.squadify.presentation.ui.opponents.OpponentEditScreen
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentFormScreen
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentsScreen
 import com.ricardofrango.squadify.presentation.ui.training.CreateSessionsScreen
+import com.ricardofrango.squadify.presentation.ui.training.SessionDetailsScreen
+import com.ricardofrango.squadify.presentation.ui.training.SessionEditScreen
 import com.ricardofrango.squadify.presentation.ui.training.MonthPlanScreen
 import com.ricardofrango.squadify.presentation.ui.training.PeriodPlanEditScreen
 import com.ricardofrango.squadify.presentation.ui.training.SeasonPlanEditScreen
@@ -585,6 +587,8 @@ fun AppNavigation() {
                     navController.navigate(if (edit) Screen.EditMonthPlan(ageGroupId, month.toString()) else Screen.MonthPlan(ageGroupId, month.toString()))
                 },
                 onNavigateToCreateSessions = { ageGroupId -> navController.navigate(Screen.CreateTrainingSessions(ageGroupId)) },
+                onNavigateToAddSession = { ageGroupId, date -> navController.navigate(Screen.EditTrainingSession(ageGroupId, date = date?.toString())) },
+                onNavigateToSession = { sessionId -> navController.navigate(Screen.TrainingSession(sessionId)) },
                 sessionsCreated = sessionsCreated,
                 onMessageShown = { backStackEntry.savedStateHandle[KEY_TRAINING_MESSAGE] = null },
                 onNavigateToWeekPlan = { ageGroupId, monday, edit ->
@@ -900,6 +904,41 @@ fun AppNavigation() {
                         previous.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
                         previous.setIfAlive(KEY_TRAINING_MESSAGE, count)
                     }
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        screen<Screen.TrainingSession> { backStackEntry ->
+            val screen: Screen.TrainingSession = backStackEntry.toRoute()
+            val sessionChanged by backStackEntry.savedStateHandle
+                .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
+                .collectAsState()
+            if (sessionChanged) navController.consumeAndCascadeStructureChanged(backStackEntry)
+            SessionDetailsScreen(
+                sessionId = screen.sessionId,
+                onNavigateBack = { navController.popBackStack() },
+                onEdit = { ageGroupId -> navController.navigate(Screen.EditTrainingSession(ageGroupId, sessionId = screen.sessionId)) },
+                onOpenWeekPlan = { ageGroupId, monday, edit ->
+                    navController.navigate(if (edit) Screen.EditWeekPlan(ageGroupId, monday.toString()) else Screen.WeekPlan(ageGroupId, monday.toString()))
+                },
+                onChanged = { deleted ->
+                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    if (deleted) navController.popBackStack()
+                },
+                refresh = sessionChanged
+            )
+        }
+
+        screen<Screen.EditTrainingSession> { backStackEntry ->
+            val screen: Screen.EditTrainingSession = backStackEntry.toRoute()
+            SessionEditScreen(
+                ageGroupId = screen.ageGroupId,
+                sessionId = screen.sessionId,
+                date = screen.date?.let { LocalDate.parse(it) },
+                onNavigateBack = { navController.popBackStack() },
+                onSaved = {
+                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
                     navController.popBackStack()
                 }
             )

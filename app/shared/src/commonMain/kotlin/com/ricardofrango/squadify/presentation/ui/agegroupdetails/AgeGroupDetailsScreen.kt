@@ -72,6 +72,7 @@ fun AgeGroupDetailsScreen(
     onNavigateToMonthPlan: (ageGroupId: String, month: LocalDate, edit: Boolean) -> Unit = { _, _, _ -> },
     onNavigateToWeekPlan: (ageGroupId: String, monday: LocalDate, edit: Boolean) -> Unit = { _, _, _ -> },
     onNavigateToCreateSessions: (ageGroupId: String) -> Unit = {},
+    onNavigateToAddSession: (ageGroupId: String, date: LocalDate?) -> Unit = { _, _ -> },
     onNavigateToSession: (sessionId: String) -> Unit = {},
     refreshOnReturn: Boolean = false,
     // How many sessions Create sessions just made: "24 sessions created", shown once.
@@ -117,6 +118,7 @@ fun AgeGroupDetailsScreen(
         onRetryPlans = { viewModel.loadPlans(ageGroupId) },
         onRetrySessions = { viewModel.loadSessions(ageGroupId) },
         onCreateSessions = { onNavigateToCreateSessions(ageGroupId) },
+        onAddSession = { date -> onNavigateToAddSession(ageGroupId, date) },
         onOpenSession = onNavigateToSession,
         onSeasonPlan = { edit -> onNavigateToSeasonPlan(ageGroupId, edit) },
         onMonthPlan = { month, edit -> onNavigateToMonthPlan(ageGroupId, month, edit) },
@@ -174,6 +176,7 @@ private fun AgeGroupDetailsContent(
     onRetryPlans: () -> Unit = {},
     onRetrySessions: () -> Unit = {},
     onCreateSessions: () -> Unit = {},
+    onAddSession: (LocalDate?) -> Unit = {},
     onOpenSession: (String) -> Unit = {},
     onSeasonPlan: (edit: Boolean) -> Unit = {},
     onMonthPlan: (LocalDate, edit: Boolean) -> Unit = { _, _ -> },
@@ -263,7 +266,7 @@ private fun AgeGroupDetailsContent(
                             AgeGroupTab.TRAINING -> AgeGroupTrainingTab(
                                 plansState = plansState, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,
                                 sessionsState = sessionsState, poolSize = d.players.size,
-                                onRetrySessions = onRetrySessions, onCreateSessions = onCreateSessions, onOpenSession = onOpenSession,
+                                onRetrySessions = onRetrySessions, onCreateSessions = onCreateSessions, onAddSession = onAddSession, onOpenSession = onOpenSession,
                                 onRetry = onRetryPlans,
                                 onOpenSeason = { onSeasonPlan(false) }, onEditSeason = { onSeasonPlan(true) },
                                 onOpenMonth = { onMonthPlan(it, false) }, onEditMonth = { onMonthPlan(it, true) },

@@ -8,7 +8,10 @@ import com.ricardofrango.squadify.model.TrainingSessions
 import com.ricardofrango.squadify.presentation.ui.training.CreateSessionsForm
 import com.ricardofrango.squadify.presentation.ui.training.SessionChip
 import com.ricardofrango.squadify.presentation.ui.training.SlotForm
+import com.ricardofrango.squadify.presentation.ui.training.SessionForm
+import com.ricardofrango.squadify.presentation.ui.training.calendarDays
 import com.ricardofrango.squadify.presentation.ui.training.chipFor
+import com.ricardofrango.squadify.presentation.ui.training.clash
 import com.ricardofrango.squadify.presentation.ui.training.sessionCount
 import com.ricardofrango.squadify.presentation.ui.training.splitSessions
 import com.ricardofrango.squadify.presentation.ui.training.toRequest
@@ -75,5 +78,22 @@ class TrainingSessionsTest {
         // Fully rated, or someone who can't rate: no chip.
         assertNull(chipFor(session("p", LocalDate(2026, 10, 8), rated = 18), now, next, 18, canRate = true))
         assertNull(chipFor(session("p", LocalDate(2026, 10, 8)), now, next, 18, canRate = false))
+    }
+
+    @Test
+    fun anotherSessionAtTheSameDateAndStartIsAClashButNotItself() {
+        val existing = session("e", LocalDate(2026, 10, 17))
+        val form = SessionForm(date = LocalDate(2026, 10, 17), start = LocalTime(18, 0))
+        assertEquals("e", form.clash(listOf(existing), editingId = null)?.id)
+        assertNull(form.clash(listOf(existing), editingId = "e"))
+        assertNull(form.copy(start = LocalTime(10, 0)).clash(listOf(existing), editingId = null))
+    }
+
+    @Test
+    fun theCalendarStartsOnTheMondayBeforeTheFirst() {
+        val days = calendarDays(LocalDate(2026, 10, 1))
+        assertEquals(42, days.size)
+        // 1 Oct 2026 is a Thursday.
+        assertEquals(LocalDate(2026, 9, 28), days.first())
     }
 }

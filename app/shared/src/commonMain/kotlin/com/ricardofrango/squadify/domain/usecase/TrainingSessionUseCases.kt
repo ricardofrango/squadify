@@ -4,11 +4,16 @@ import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
 import com.ricardofrango.squadify.model.CreateTrainingSessionsRequest
 import com.ricardofrango.squadify.model.SaveTrainingSessionRequest
 import com.ricardofrango.squadify.model.TrainingSession
+import com.ricardofrango.squadify.model.TrainingSessionDetails
 import com.ricardofrango.squadify.model.TrainingSessions
 import com.ricardofrango.squadify.model.TrainingSessionsPreview
 
 class GetTrainingSessionsUseCase(private val repository: TrainingSessionRepository) {
     suspend operator fun invoke(ageGroupId: String): TrainingSessions = repository.getSessions(ageGroupId)
+}
+
+class GetTrainingSessionUseCase(private val repository: TrainingSessionRepository) {
+    suspend operator fun invoke(sessionId: String): TrainingSessionDetails = repository.getSession(sessionId)
 }
 
 /** Bulk creation: [preview] changes nothing, [create] returns how many sessions were created. */

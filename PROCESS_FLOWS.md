@@ -1779,7 +1779,11 @@ graph TD
     D --> Z2(["Return how many were created"])
 ```
 
-### 9b.5 One Session (`SaveTrainingSessionUseCase`, `ChangeTrainingSessionUseCase`)
+### 9b.5 One Session (`GetTrainingSessionUseCase`, `SaveTrainingSessionUseCase`, `ChangeTrainingSessionUseCase`)
+
+`GET /training-sessions/{id}` has the same read gate as the Training tab (players and parents too) and returns
+the session, its age group, season, pool size, and the week and month plans it falls in (only for those who
+rate, since plans are staff-only).
 
 Adding or editing one session (`POST /age-groups/{id}/training-sessions`, `PATCH /training-sessions/{id}`)
 checks `MANAGE_TRAINING`, that the date falls inside the season and that it ends after it starts. A session at

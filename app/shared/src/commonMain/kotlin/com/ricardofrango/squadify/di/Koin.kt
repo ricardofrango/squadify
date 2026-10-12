@@ -16,6 +16,8 @@ import com.ricardofrango.squadify.presentation.ui.opponents.OpponentDetailsViewM
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentFormViewModel
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentsViewModel
 import com.ricardofrango.squadify.presentation.ui.training.CreateSessionsViewModel
+import com.ricardofrango.squadify.presentation.ui.training.SessionDetailsViewModel
+import com.ricardofrango.squadify.presentation.ui.training.SessionEditViewModel
 import com.ricardofrango.squadify.presentation.ui.training.PlanEditViewModel
 import com.ricardofrango.squadify.presentation.ui.training.TrainingPlansViewModel
 import com.ricardofrango.squadify.presentation.ui.editclub.EditClubViewModel
@@ -176,6 +178,7 @@ val domainModule = module {
     factory { GetOpponentListUseCase(get()) }
     factory { GetTrainingPlansUseCase(get()) }
     factory { GetTrainingSessionsUseCase(get()) }
+    factory { GetTrainingSessionUseCase(get()) }
     factory { CreateTrainingSessionsUseCase(get()) }
     factory { SaveTrainingSessionUseCase(get()) }
     factory { ChangeTrainingSessionUseCase(get()) }
@@ -227,6 +230,8 @@ val presentationModule = module {
     viewModelOf(::TrainingPlansViewModel)
     viewModelOf(::PlanEditViewModel)
     viewModelOf(::CreateSessionsViewModel)
+    viewModelOf(::SessionDetailsViewModel)
+    viewModelOf(::SessionEditViewModel)
     viewModelOf(::ClubDetailsViewModel)
     viewModelOf(::ClubPlayersViewModel)
     viewModelOf(::EditClubViewModel)

@@ -221,6 +221,16 @@ sealed class Screen {
     @SerialName("create-training-sessions")
     data class CreateTrainingSessions(val ageGroupId: String) : Screen()
 
+    // One training session (design 39f).
+    @Serializable
+    @SerialName("training-session")
+    data class TrainingSession(val sessionId: String) : Screen()
+
+    // Add one session ([date] ISO, preselected from the calendar) or edit [sessionId] (design 39e).
+    @Serializable
+    @SerialName("edit-training-session")
+    data class EditTrainingSession(val ageGroupId: String, val sessionId: String? = null, val date: String? = null) : Screen()
+
     @Serializable
     @SerialName("match")
     data class MatchDetails(val matchId: String) : Screen()

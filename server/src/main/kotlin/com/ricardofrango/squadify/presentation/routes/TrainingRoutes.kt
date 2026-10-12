@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.routes
 
 import com.ricardofrango.squadify.domain.usecase.ChangeTrainingSessionUseCase
 import com.ricardofrango.squadify.domain.usecase.CreateTrainingSessionsUseCase
+import com.ricardofrango.squadify.domain.usecase.GetTrainingSessionUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTrainingSessionsUseCase
 import com.ricardofrango.squadify.domain.usecase.SaveTrainingSessionUseCase
 import com.ricardofrango.squadify.model.CreateTrainingSessionsRequest
@@ -25,6 +26,7 @@ fun Route.trainingRoutes() {
     val createSessions by inject<CreateTrainingSessionsUseCase>()
     val saveSession by inject<SaveTrainingSessionUseCase>()
     val changeSession by inject<ChangeTrainingSessionUseCase>()
+    val getSession by inject<GetTrainingSessionUseCase>()
 
     authenticate("auth-jwt") {
         route("/age-groups/{ageGroupId}/training-sessions") {
@@ -52,6 +54,11 @@ fun Route.trainingRoutes() {
         }
 
         route("/training-sessions/{sessionId}") {
+            get {
+                val sessionId = call.parameters["sessionId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                val userId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                call.respond(getSession(userId, sessionId))
+            }
             patch {
                 val sessionId = call.parameters["sessionId"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
                 val userId = call.userId ?: return@patch call.respond(HttpStatusCode.Unauthorized)

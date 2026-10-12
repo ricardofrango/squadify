@@ -2639,3 +2639,17 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
   - **Who sees them:** players and parents of the age group see sessions; only the ratings are staff-only.
   - **After creating:** Age Group Details shows "{n} sessions created".
 - **Tests:** `TrainingSessionUseCasesTest` (server) and `TrainingSessionsTest` (app).
+
+**Session details, add/edit and the calendar** (design 39a/e/f, 40f):
+- **Session details** (`SessionDetailsScreen`):
+  - **Top:** when and where (Open in Maps) and the status: Upcoming · in n days, Today, Ended or Cancelled.
+  - **Staff strip:** the week's focus and intensity with the month's focus. It turns amber with "Plan the week" when the week has no plan.
+  - **Then:** the notes.
+  - **With `MANAGE_TRAINING`:** the pencil, and ⋮ with Cancel session and Delete, each asking first. A cancelled session shows who cancelled it and when, with Restore, and has no pencil.
+  - **After a change:** the Training tab reloads.
+- **Add / edit one session** (`SessionEditScreen`):
+  - **Fields:** date, start and end, location (the stadium by default) and notes.
+  - **Clash:** a session already at that date and start time is flagged inline, since saving replaces it.
+  - **Edit:** saves only after a change. From the calendar, "Add one session" starts on the selected day.
+- **Calendar:** List / Calendar on the Training tab. The grid is Monday-first, with a dot per session (amber when it needs ratings, grey when cancelled) and holidays' day numbers in amber. Tapping a day lists its sessions.
+  - **Choice not kept:** the List / Calendar choice isn't remembered between visits, unlike the design.

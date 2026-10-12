@@ -1247,4 +1247,45 @@
         <item quantity="one">%1$d exercise</item>
         <item quantity="other">%1$d exercises</item>
     </plurals>
+    <!-- Training session details and add/edit (design 39e/f) -->
+    <string name="title_add_session">Add session</string>
+    <string name="title_edit_session">Edit session</string>
+    <string name="label_when">WHEN</string>
+    <string name="label_where">WHERE</string>
+    <string name="label_date_required">Date *</string>
+    <string name="label_session_notes_placeholder">e.g. Extra session before the cup game</string>
+    <string name="btn_add_session">Add session</string>
+    <string name="msg_session_save_failed">Couldn\'t save the session. Please try again.</string>
+    <string name="label_training_subtitle">Training · %1$s · %2$s</string>
+    <string name="status_upcoming">Upcoming</string>
+    <plurals name="status_in_days">
+        <item quantity="one">in %1$d day</item>
+        <item quantity="other">in %1$d days</item>
+    </plurals>
+    <string name="status_today">Today</string>
+    <string name="status_ended">Ended</string>
+    <string name="status_cancelled">Cancelled</string>
+    <string name="btn_cancel_session">Cancel session</string>
+    <string name="btn_delete">Delete</string>
+    <string name="btn_restore">Restore</string>
+    <string name="btn_keep_it">Keep it</string>
+    <string name="title_cancel_session">Cancel this session?</string>
+    <string name="msg_cancel_session">%1$s stays on the calendar as cancelled. Its exercises are kept and you can restore it.</string>
+    <string name="title_delete_session">Delete this session?</string>
+    <string name="msg_delete_session">It\'s removed with its exercises and ratings. This can\'t be undone.</string>
+    <string name="msg_session_cancelled_by">This session was cancelled on %1$s by %2$s.</string>
+    <string name="msg_session_cancelled">This session was cancelled on %1$s.</string>
+    <string name="btn_week_plan">Week plan ›</string>
+    <string name="btn_plan_the_week">Plan the week</string>
+    <string name="msg_session_change_failed">That didn\'t work. Please try again.</string>
+    <string name="msg_session_load_failed">Couldn\'t load this session</string>
+    <string name="title_training">Training</string>
+    <string name="btn_list">List</string>
+    <string name="btn_calendar">Calendar</string>
+    <string name="legend_session">Session</string>
+    <string name="legend_needs_ratings">Needs ratings</string>
+    <string name="legend_cancelled">Cancelled</string>
+    <string name="legend_holiday">holiday</string>
+    <string name="msg_no_sessions_day">No sessions on this day</string>
+    <string name="cd_more_options">More options</string>
 </resources>

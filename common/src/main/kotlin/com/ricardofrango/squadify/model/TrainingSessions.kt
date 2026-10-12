@@ -110,6 +110,23 @@ data class TrainingSessions(
     val canRate: Boolean
 )
 
+/**
+ * `GET /training-sessions/{id}`: one session (design 39f) with its age group, how many players its pool
+ * has (for "12 of 18 rated"), and the week and month plans it falls in (design 40f, staff only).
+ */
+@Serializable
+data class TrainingSessionDetails(
+    val session: TrainingSession,
+    val ageGroup: AgeGroup,
+    val clubName: String,
+    val season: Season,
+    val poolSize: Int,
+    val weekPlan: TrainingPlan? = null,
+    val monthPlan: TrainingPlan? = null,
+    val canEdit: Boolean,
+    val canRate: Boolean
+)
+
 /** The most sessions one bulk creation may produce. */
 const val MAX_BULK_SESSIONS = 400
 

@@ -104,6 +104,7 @@ val appModule = module {
     factory { CreateTrainingSessionsUseCase(get(), get(), get(), get(), get(), get()) }
     factory { SaveTrainingSessionUseCase(get(), get(), get(), get(), get()) }
     factory { ChangeTrainingSessionUseCase(get(), get(), get(), get()) }
+    factory { GetTrainingSessionUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetAgeGroupDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     factory { GetPlayerUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }

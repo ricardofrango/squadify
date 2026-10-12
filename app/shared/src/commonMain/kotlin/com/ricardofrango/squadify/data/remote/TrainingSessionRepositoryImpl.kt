@@ -5,6 +5,7 @@ import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
 import com.ricardofrango.squadify.model.CreateTrainingSessionsRequest
 import com.ricardofrango.squadify.model.SaveTrainingSessionRequest
 import com.ricardofrango.squadify.model.TrainingSession
+import com.ricardofrango.squadify.model.TrainingSessionDetails
 import com.ricardofrango.squadify.model.TrainingSessions
 import com.ricardofrango.squadify.model.TrainingSessionsPreview
 import io.ktor.client.*
@@ -21,6 +22,9 @@ class TrainingSessionRepositoryImpl(
 
     override suspend fun getSessions(ageGroupId: String): TrainingSessions =
         httpClient.get(ageGroupUrl(ageGroupId)).handleResponse()
+
+    override suspend fun getSession(sessionId: String): TrainingSessionDetails =
+        httpClient.get(sessionUrl(sessionId)).handleResponse()
 
     override suspend fun preview(ageGroupId: String, request: CreateTrainingSessionsRequest): TrainingSessionsPreview =
         httpClient.post("${ageGroupUrl(ageGroupId)}/preview") {
