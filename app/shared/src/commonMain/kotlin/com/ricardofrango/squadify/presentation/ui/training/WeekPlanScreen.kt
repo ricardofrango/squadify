@@ -44,6 +44,21 @@ import squadify.app.shared.generated.resources.ic_edit
 import squadify.app.shared.generated.resources.label_week_of
 import squadify.app.shared.generated.resources.msg_plan_read_only
 import squadify.app.shared.generated.resources.msg_week_no_plan
+import squadify.app.shared.generated.resources.btn_add_one_session
+import squadify.app.shared.generated.resources.label_sessions
+import squadify.app.shared.generated.resources.label_section_count
+import kotlin.time.Clock
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.plus
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.DatePeriod
+import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
+import com.ricardofrango.squadify.model.TrainingSessions
+import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.Row
 
 /**
  * Week plan (microcycle, design 40e): the month it belongs to and that month's focus in the dark strip;
@@ -56,13 +71,17 @@ fun WeekPlanScreen(
     monday: LocalDate,
     onNavigateBack: () -> Unit,
     onEdit: () -> Unit,
+    onOpenSession: (sessionId: String) -> Unit = {},
+    // "Add one session", on a day of this week.
+    onAddSession: (date: LocalDate) -> Unit = {},
     refresh: Boolean = false,
     viewModel: TrainingPlansViewModel = koinViewModel()
 ) {
     val state = viewModel.state.collectSettledState()
+    val sessions by viewModel.sessions.collectAsState()
     LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
     LaunchedEffect(refresh) { if (refresh) viewModel.load(ageGroupId, force = true) }
-    WeekPlanContent(state, monday, onNavigateBack, onRetry = { viewModel.load(ageGroupId, force = true) }, onEdit)
+    WeekPlanContent(state, monday, onNavigateBack, onRetry = { viewModel.load(ageGroupId, force = true) }, onEdit, sessions, onOpenSession, onAddSession)
 }
 
 /** The week's intensity as a small chip ("Medium intensity"): amber for high, green otherwise. */
@@ -83,7 +102,10 @@ private fun WeekPlanContent(
     monday: LocalDate,
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    sessions: TrainingSessions? = null,
+    onOpenSession: (String) -> Unit = {},
+    onAddSession: (LocalDate) -> Unit = {}
 ) {
     val plans = (state as? TrainingPlansUiState.Idle)?.plans
     val plan: TrainingPlan? = plans?.plans?.planFor(TrainingPlanLevel.WEEK, monday)
@@ -122,9 +144,27 @@ private fun WeekPlanContent(
                 } else {
                     PlanBody(plan) { plan.intensity?.let { IntensityChip(it) } }
                 }
+                if (sessions != null) WeekSessions(sessions, monday, onOpenSession, onAddSession)
             }
         }
     }
+}
+
+/** The week's sessions (design 40e): tap opens one; "Add one session" on a day of this week. */
+@Composable
+private fun WeekSessions(sessions: TrainingSessions, monday: LocalDate, onOpenSession: (String) -> Unit, onAddSession: (LocalDate) -> Unit) {
+    val sunday = monday.plus(DatePeriod(days = 6))
+    val week = sessions.sessions.filter { it.date in monday..sunday }.sortedWith(compareBy({ it.date }, { it.startTime }))
+    val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        StatsHeading(stringResource(Res.string.label_section_count, stringResource(Res.string.label_sessions), week.size), Modifier.weight(1f))
+        if (sessions.canEdit) {
+            TextButton(onClick = { onAddSession(now.date.takeIf { it in monday..sunday } ?: monday) }) {
+                Text(stringResource(Res.string.btn_add_one_session), color = PitchGreen, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+    week.forEach { session -> SessionRow(session, chipFor(session, now, null, null, false)) { onOpenSession(session.id) } }
 }
 
 // ---- Previews ----

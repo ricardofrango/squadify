@@ -55,6 +55,14 @@ import squadify.app.shared.generated.resources.msg_no_season_plan
 import squadify.app.shared.generated.resources.msg_plan_read_only
 import squadify.app.shared.generated.resources.msg_week_no_plan
 import squadify.app.shared.generated.resources.title_plan_month
+import squadify.app.shared.generated.resources.chip_today
+import kotlin.time.Clock
+import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.todayIn
+import kotlinx.datetime.TimeZone
+import com.ricardofrango.squadify.model.TrainingSession
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.padding
 
 // The top of the Training tab (design 40a/b), the way a coach plans: Season plan → This month → This
 // week, each a summary that opens its own screen, and an empty card with its Plan button otherwise.
@@ -151,7 +159,16 @@ fun MonthPlanCard(plans: TrainingPlans, month: LocalDate, onMove: (LocalDate) ->
 }
 
 @Composable
-fun WeekPlanCard(plans: TrainingPlans, monday: LocalDate, onMove: (LocalDate) -> Unit, onOpen: () -> Unit, onEdit: () -> Unit) {
+fun WeekPlanCard(
+    plans: TrainingPlans,
+    monday: LocalDate,
+    onMove: (LocalDate) -> Unit,
+    onOpen: () -> Unit,
+    onEdit: () -> Unit,
+    // That week's sessions, as compact rows under the plan.
+    sessions: List<TrainingSession> = emptyList(),
+    onOpenSession: (String) -> Unit = {}
+) {
     val weeks = plans.season.weekStarts()
     val i = weeks.indexOf(monday)
     val plan = plans.plans.planFor(TrainingPlanLevel.WEEK, monday)
@@ -168,6 +185,7 @@ fun WeekPlanCard(plans: TrainingPlans, monday: LocalDate, onMove: (LocalDate) ->
                 readOnlyText = stringResource(Res.string.msg_plan_read_only),
                 onAction = onEdit
             )
+            WeekSessionLines(sessions, onOpenSession)
             return@StatsCard
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -177,6 +195,32 @@ fun WeekPlanCard(plans: TrainingPlans, monday: LocalDate, onMove: (LocalDate) ->
         if (plan.objectives.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
             ObjectiveRows(plan.objectives)
+        }
+        WeekSessionLines(sessions, onOpenSession)
+    }
+}
+
+/** "MON 12  18:00–19:00  TODAY" lines for the week card. */
+@Composable
+private fun WeekSessionLines(sessions: List<TrainingSession>, onOpenSession: (String) -> Unit) {
+    if (sessions.isEmpty()) return
+    val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+    Spacer(Modifier.height(8.dp))
+    sessions.sortedWith(compareBy({ it.date }, { it.startTime })).forEach { s ->
+        Row(Modifier.fillMaxWidth().clickable { onOpenSession(s.id) }.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "${weekdayShort(s.date.dayOfWeek.isoDayNumber).uppercase()} ${s.date.day}",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = PitchGreen, modifier = Modifier.width(64.dp)
+            )
+            Text(
+                timeRange(s.startTime, s.endTime),
+                style = MaterialTheme.typography.bodyMedium.copy(textDecoration = if (s.cancelled) androidx.compose.ui.text.style.TextDecoration.LineThrough else null),
+                color = DeepCarbon, modifier = Modifier.weight(1f)
+            )
+            if (s.date == today && !s.cancelled) {
+                Text(stringResource(Res.string.chip_today), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = Color.White,
+                    modifier = Modifier.background(PitchGreen, RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 2.dp))
+            }
         }
     }
 }

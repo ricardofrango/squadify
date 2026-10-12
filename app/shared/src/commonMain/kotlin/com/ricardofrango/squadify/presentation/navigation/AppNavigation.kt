@@ -879,6 +879,8 @@ fun AppNavigation() {
                 monday = LocalDate.parse(screen.monday),
                 onNavigateBack = { navController.popBackStack() },
                 onEdit = { navController.navigate(Screen.EditWeekPlan(screen.ageGroupId, screen.monday)) },
+                onOpenSession = { sessionId -> navController.navigate(Screen.TrainingSession(sessionId)) },
+                onAddSession = { date -> navController.navigate(Screen.EditTrainingSession(screen.ageGroupId, date = date.toString())) },
                 refresh = planChanged
             )
         }

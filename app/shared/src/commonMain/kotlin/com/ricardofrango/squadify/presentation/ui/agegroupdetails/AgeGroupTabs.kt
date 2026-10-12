@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import kotlinx.datetime.plus
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -813,7 +814,14 @@ internal fun AgeGroupTrainingTab(
                 }
                 item(key = "week") {
                     var week by remember(plans.season.id) { mutableStateOf(initialWeek(plans, today)) }
-                    week?.let { w -> WeekPlanCard(plans, w, onMove = { week = it }, onOpen = { onOpenWeek(w) }, onEdit = { onEditWeek(w) }) }
+                    val weekSessions = (sessionsState as? AgeGroupSessionsUiState.Loaded)?.sessions?.sessions.orEmpty()
+                    week?.let { w ->
+                        val sunday = w.plus(kotlinx.datetime.DatePeriod(days = 6))
+                        WeekPlanCard(
+                            plans, w, onMove = { week = it }, onOpen = { onOpenWeek(w) }, onEdit = { onEditWeek(w) },
+                            sessions = weekSessions.filter { it.date in w..sunday }, onOpenSession = onOpenSession
+                        )
+                    }
                 }
             }
         }

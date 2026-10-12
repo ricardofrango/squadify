@@ -2603,14 +2603,14 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
 - **Context strip:** the month the week belongs to and that month's focus, with the week's dates.
 - **Body:** the week's focus with its intensity chip ("Medium intensity", amber when high), objectives and notes. Empty, it says "This week has no plan" with "Plan this week".
 - **Editor:** the shared month/week editor, with Low / Medium / High.
-- **Still to come:** the week's sessions and "Add one session" arrive with the training sessions.
+- **Sessions:** the week's sessions are listed under the plan (tap opens one). "Add one session" starts on today when it's in that week, else on its Monday.
 
 **Training tab** (Age Group Details → Training, between Matches and Members, design 40a/b):
 - **Order:** Season plan → This month → This week, each a summary card that opens its own screen.
 - **Month and week cards:** they open on today's period, and ‹ › move within the season.
 - **Empty cards:** each has its own Plan button, or says who can add it.
 - **Data:** the plans load with the age group (`AgeGroupDetailsViewModel.loadPlans`). A 403 hides the cards, because players and parents don't see plans.
-- **Still to come:** the sessions list below the cards.
+- **Below the cards:** the sessions list. The week card also shows that week's sessions as compact lines (day, time, TODAY).
 
 **Home alerts for missing plans** (design 40g):
 - **What they say:** `GetClubHomeUseCase` adds `SEASON_PLAN_MISSING`, `MONTH_PLAN_MISSING` and `WEEK_PLAN_MISSING`: "Season 26/27 has no plan · Sub-17", "October has no plan · Sub-17", "Week of 12 Oct has no plan · Sub-15".
