@@ -4,6 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupSeasonRecordUseCase
+import com.ricardofrango.squadify.domain.usecase.GetTrainingPlansUseCase
+import com.ricardofrango.squadify.domain.usecase.GetTrainingSessionsUseCase
+import com.ricardofrango.squadify.domain.usecase.TrainingStatsUseCase
+import com.ricardofrango.squadify.model.AgeGroupTrainingStats
+import com.ricardofrango.squadify.data.remote.ApiException
+import io.ktor.http.HttpStatusCode
 import com.ricardofrango.squadify.model.StatsFilter
 import com.ricardofrango.squadify.presentation.errorMessage
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,11 +22,24 @@ import squadify.app.shared.generated.resources.msg_failed_to_load_age_group
 
 class AgeGroupDetailsViewModel(
     private val getAgeGroupDetailsUseCase: GetAgeGroupDetailsUseCase,
-    private val getAgeGroupSeasonRecordUseCase: GetAgeGroupSeasonRecordUseCase
+    private val getAgeGroupSeasonRecordUseCase: GetAgeGroupSeasonRecordUseCase,
+    private val getTrainingPlansUseCase: GetTrainingPlansUseCase,
+    private val getTrainingSessionsUseCase: GetTrainingSessionsUseCase,
+    private val trainingStatsUseCase: TrainingStatsUseCase
 ) : ViewModel() {
+
+    // The Stats tab's TRAINING card (design 39j); null for anyone who can't see it (staff only).
+    private val _trainingStats = MutableStateFlow<AgeGroupTrainingStats?>(null)
+    val trainingStats: StateFlow<AgeGroupTrainingStats?> = _trainingStats.asStateFlow()
 
     private val _state = MutableStateFlow<AgeGroupDetailsUiState>(AgeGroupDetailsUiState.Loading)
     val state: StateFlow<AgeGroupDetailsUiState> = _state.asStateFlow()
+
+    private val _plans = MutableStateFlow<AgeGroupPlansUiState>(AgeGroupPlansUiState.Loading)
+    val plans: StateFlow<AgeGroupPlansUiState> = _plans.asStateFlow()
+
+    private val _sessions = MutableStateFlow<AgeGroupSessionsUiState>(AgeGroupSessionsUiState.Loading)
+    val sessions: StateFlow<AgeGroupSessionsUiState> = _sessions.asStateFlow()
 
     private val _record = MutableStateFlow<AgeGroupRecordUiState>(AgeGroupRecordUiState.Loading)
     val record: StateFlow<AgeGroupRecordUiState> = _record.asStateFlow()
@@ -36,6 +55,9 @@ class AgeGroupDetailsViewModel(
     fun load(ageGroupId: String, forceReload: Boolean = false) {
         if (!forceReload && _state.value is AgeGroupDetailsUiState.Idle) return
         loadRecord(ageGroupId)
+        loadPlans(ageGroupId)
+        loadSessions(ageGroupId)
+        viewModelScope.launch { _trainingStats.value = runCatching { trainingStatsUseCase.ageGroup(ageGroupId) }.getOrNull() }
 
         viewModelScope.launch {
             _state.update { AgeGroupDetailsUiState.Loading }
@@ -56,6 +78,35 @@ class AgeGroupDetailsViewModel(
                 _record.update { AgeGroupRecordUiState.Loaded(getAgeGroupSeasonRecordUseCase(ageGroupId), filter) }
             } catch (e: Exception) {
                 _record.update { AgeGroupRecordUiState.Error }
+            }
+        }
+    }
+
+    /** The Training tab's plans; a 403 means the viewer doesn't see plans, so the cards are left out. */
+    fun loadPlans(ageGroupId: String) {
+        viewModelScope.launch {
+            if (_plans.value !is AgeGroupPlansUiState.Loaded) _plans.update { AgeGroupPlansUiState.Loading }
+            _plans.update {
+                try {
+                    AgeGroupPlansUiState.Loaded(getTrainingPlansUseCase(ageGroupId))
+                } catch (e: ApiException) {
+                    if (e.statusCode == HttpStatusCode.Forbidden.value) AgeGroupPlansUiState.Hidden else AgeGroupPlansUiState.Error
+                } catch (e: Exception) {
+                    AgeGroupPlansUiState.Error
+                }
+            }
+        }
+    }
+
+    fun loadSessions(ageGroupId: String) {
+        viewModelScope.launch {
+            if (_sessions.value !is AgeGroupSessionsUiState.Loaded) _sessions.update { AgeGroupSessionsUiState.Loading }
+            _sessions.update {
+                try {
+                    AgeGroupSessionsUiState.Loaded(getTrainingSessionsUseCase(ageGroupId))
+                } catch (e: Exception) {
+                    (it as? AgeGroupSessionsUiState.Loaded) ?: AgeGroupSessionsUiState.Error
+                }
             }
         }
     }

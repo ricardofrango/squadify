@@ -189,6 +189,58 @@ sealed class Screen {
     @SerialName("edit-opponent")
     data class EditOpponent(val opponentId: String) : Screen()
 
+    // Training plans (design 40): an age group's season plan, and its editor.
+    @Serializable
+    @SerialName("season-plan")
+    data class SeasonPlan(val ageGroupId: String) : Screen()
+
+    @Serializable
+    @SerialName("edit-season-plan")
+    data class EditSeasonPlan(val ageGroupId: String) : Screen()
+
+    // A month plan; [month] is its 1st day, ISO ("2026-10-01").
+    @Serializable
+    @SerialName("month-plan")
+    data class MonthPlan(val ageGroupId: String, val month: String) : Screen()
+
+    @Serializable
+    @SerialName("edit-month-plan")
+    data class EditMonthPlan(val ageGroupId: String, val month: String) : Screen()
+
+    // A week plan; [monday] is the week's Monday, ISO.
+    @Serializable
+    @SerialName("week-plan")
+    data class WeekPlan(val ageGroupId: String, val monday: String) : Screen()
+
+    @Serializable
+    @SerialName("edit-week-plan")
+    data class EditWeekPlan(val ageGroupId: String, val monday: String) : Screen()
+
+    // Create an age group's training sessions in bulk (design 39c/d).
+    @Serializable
+    @SerialName("create-training-sessions")
+    data class CreateTrainingSessions(val ageGroupId: String) : Screen()
+
+    // One training session (design 39f).
+    @Serializable
+    @SerialName("training-session")
+    data class TrainingSession(val sessionId: String) : Screen()
+
+    // Add one session ([date] ISO, preselected from the calendar) or edit [sessionId] (design 39e).
+    @Serializable
+    @SerialName("edit-training-session")
+    data class EditTrainingSession(val ageGroupId: String, val sessionId: String? = null, val date: String? = null) : Screen()
+
+    // Add exercises to a session from its age group's library (design 39h).
+    @Serializable
+    @SerialName("exercise-library")
+    data class ExerciseLibrary(val sessionId: String) : Screen()
+
+    // Rate players after a training session (design 39g).
+    @Serializable
+    @SerialName("rate-training")
+    data class RateTraining(val sessionId: String) : Screen()
+
     @Serializable
     @SerialName("match")
     data class MatchDetails(val matchId: String) : Screen()

@@ -29,6 +29,14 @@ import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
+import com.ricardofrango.squadify.domain.repository.TrainingPlanRepository
+import com.ricardofrango.squadify.model.TrainingPlan
+import com.ricardofrango.squadify.model.TrainingPlanLevel
+import com.ricardofrango.squadify.model.monthStartOf
+import com.ricardofrango.squadify.model.mondayOf
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
+import kotlinx.datetime.toLocalDateTime
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
@@ -60,10 +68,33 @@ class GetClubHomeUseCaseTest {
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
+    private val trainingPlanRepository = mockk<TrainingPlanRepository>()
+    private val trainingSessionRepository = mockk<com.ricardofrango.squadify.domain.repository.TrainingSessionRepository>()
+    private val trainingRatingRepository = mockk<com.ricardofrango.squadify.domain.repository.TrainingRatingRepository>()
+    init {
+        coEvery { trainingSessionRepository.getByAgeGroup(any()) } returns emptyList()
+        coEvery { trainingRatingRepository.getForSessions(any()) } returns emptyMap()
+    }
     private val useCase = GetClubHomeUseCase(
         clubRepository, teamRepository, playerRepository, seasonRepository, ageGroupRepository,
-        matchRepository, matchReportRepository, clubPermissionRepository, opponentRepository, userRepository, checkUserPermissionUseCase, transactionManager
+        matchRepository, matchReportRepository, clubPermissionRepository, opponentRepository, userRepository, checkUserPermissionUseCase, transactionManager,
+        trainingPlanRepository, trainingSessionRepository, trainingRatingRepository
     )
+    private val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+
+    // Every age group has its season, this month's and this week's plan unless a test says otherwise,
+    // so the other tests only see the alerts they're about.
+    init {
+        coEvery { trainingPlanRepository.getByAgeGroups(any()) } answers {
+            firstArg<List<String>>().flatMap { ag ->
+                listOf(
+                    TrainingPlan("s-$ag", ag, TrainingPlanLevel.SEASON, LocalDate(2026, 7, 1)),
+                    TrainingPlan("m-$ag", ag, TrainingPlanLevel.MONTH, monthStartOf(today), focus = "f"),
+                    TrainingPlan("w-$ag", ag, TrainingPlanLevel.WEEK, mondayOf(today), focus = "f")
+                )
+            }
+        }
+    }
 
     private val clubId = "club-1"
     private val seasonId = "season-1"
@@ -273,5 +304,90 @@ class GetClubHomeUseCaseTest {
         coEvery { matchRepository.getMatchesByTeam(any()) } returns emptyList()
 
         assertTrue(useCase(u, clubId).alerts.none { it.type == ClubHomeAlertType.MATCH_REPORT_PENDING })
+    }
+
+    private fun quietMatches() {
+        coEvery { matchRepository.getMatchesByClub(clubId) } returns emptyList()
+        coEvery { matchRepository.getMatchesByTeam(any()) } returns emptyList()
+        coEvery { ageGroupRepository.getAgeGroupStaff(any()) } returns listOf(AgeGroupStaffMember("c1", "Nuno", "F", TeamRole.COACH))
+    }
+
+    @Test
+    fun aCoordinatorIsToldAboutEveryMissingPlanOfTheCurrentPeriods() = runBlocking<Unit> {
+        // This test needs today inside the season (1 Jul 2026 – 30 Jun 2027).
+        if (today < LocalDate(2026, 7, 1) || today > LocalDate(2027, 6, 30)) return@runBlocking
+        val u = "coordinator"
+        baseStubs(u, ClubRole.COORDINATOR)
+        quietMatches()
+        // Sub-15 has only its season plan; Sub-17 has nothing.
+        coEvery { trainingPlanRepository.getByAgeGroups(any()) } returns
+            listOf(TrainingPlan("s", ag1, TrainingPlanLevel.SEASON, LocalDate(2026, 7, 1)))
+
+        val alerts = useCase(u, clubId).alerts
+
+        assertEquals(
+            listOf(
+                ClubHomeAlertType.MONTH_PLAN_MISSING to ag1, ClubHomeAlertType.WEEK_PLAN_MISSING to ag1,
+                ClubHomeAlertType.SEASON_PLAN_MISSING to ag2, ClubHomeAlertType.MONTH_PLAN_MISSING to ag2, ClubHomeAlertType.WEEK_PLAN_MISSING to ag2
+            ),
+            alerts.map { it.type to it.ageGroupId }
+        )
+        assertEquals(mondayOf(today), alerts.first { it.type == ClubHomeAlertType.WEEK_PLAN_MISSING }.date)
+        assertEquals(monthStartOf(today), alerts.first { it.type == ClubHomeAlertType.MONTH_PLAN_MISSING }.date)
+    }
+
+    @Test
+    fun aCoachSeesPlanAlertsOnlyForTheirOwnAgeGroup() = runBlocking<Unit> {
+        if (today < LocalDate(2026, 7, 1) || today > LocalDate(2027, 6, 30)) return@runBlocking
+        val u = "coach"
+        baseStubs(u, ClubRole.MEMBER)
+        quietMatches()
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns TeamRole.COACH
+        coEvery { trainingPlanRepository.getByAgeGroups(any()) } returns emptyList()
+
+        val alerts = useCase(u, clubId).alerts
+
+        assertTrue(alerts.isNotEmpty())
+        assertTrue(alerts.all { it.ageGroupId == ag1 })
+    }
+
+    @Test
+    fun staffDoNotSeePlanAlertsWhileTrainingIsCoachLevel() = runBlocking<Unit> {
+        val u = "staff"
+        baseStubs(u, ClubRole.MEMBER)
+        quietMatches()
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns TeamRole.STAFF
+        coEvery { trainingPlanRepository.getByAgeGroups(any()) } returns emptyList()
+
+        assertTrue(useCase(u, clubId).alerts.none { it.type.name.endsWith("PLAN_MISSING") })
+    }
+
+    @Test
+    fun anEndedSessionWithPlayersStillUnratedIsATodoForItsStaff() = runBlocking<Unit> {
+        val u = "staff-rate"
+        baseStubs(u, ClubRole.MEMBER)
+        quietMatches()
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns TeamRole.STAFF
+        val past = today.minus(2, kotlinx.datetime.DateTimeUnit.DAY)
+        val ended = com.ricardofrango.squadify.model.TrainingSession("ts", ag1, past, kotlinx.datetime.LocalTime(18, 0), kotlinx.datetime.LocalTime(19, 0))
+        val fullyRated = ended.copy(id = "done")
+        coEvery { trainingSessionRepository.getByAgeGroup(ag1) } returns listOf(
+            com.ricardofrango.squadify.domain.repository.StoredTrainingSession(ended, null),
+            com.ricardofrango.squadify.domain.repository.StoredTrainingSession(fullyRated, null)
+        )
+        coEvery { trainingRatingRepository.getForSessions(any()) } returns mapOf(
+            "ts" to listOf(com.ricardofrango.squadify.model.TrainingRating("p1", 7.0)),
+            "done" to listOf(com.ricardofrango.squadify.model.TrainingRating("p1", 7.0), com.ricardofrango.squadify.model.TrainingRating("p2", 6.0))
+        )
+        coEvery { playerRepository.getPlayersByAgeGroup(ag1) } returns listOf(
+            com.ricardofrango.squadify.model.Player("p1", clubId, "A", "B", LocalDate(2011, 1, 1), active = true),
+            com.ricardofrango.squadify.model.Player("p2", clubId, "C", "D", LocalDate(2011, 1, 1), active = true)
+        )
+
+        val todo = useCase(u, clubId).alerts.filter { it.type == ClubHomeAlertType.TRAINING_RATINGS_PENDING }
+
+        assertEquals(listOf("ts"), todo.map { it.sessionId })
+        assertEquals(1, todo.single().count)
+        assertEquals(2, todo.single().total)
     }
 }

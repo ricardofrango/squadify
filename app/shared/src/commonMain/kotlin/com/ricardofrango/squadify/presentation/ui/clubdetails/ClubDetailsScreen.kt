@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import kotlinx.datetime.LocalDate
+import com.ricardofrango.squadify.model.TrainingPlanLevel
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import org.jetbrains.compose.resources.StringResource
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -149,6 +151,9 @@ fun ClubDetailsScreen(
     // The club's player list -- its own screen, not a tab under this bottom bar.
     onNavigateToPlayers: () -> Unit = {},
     onNavigateToOpponents: () -> Unit = {},
+    // A Home missing-plan alert: the plan editor of that age group and period.
+    onNavigateToEditPlan: (ageGroupId: String, level: TrainingPlanLevel, periodStart: LocalDate) -> Unit = { _, _, _ -> },
+    onNavigateToRateSession: (sessionId: String) -> Unit = {},
     // The More panel's "Switch club" (2+ clubs) and Log out.
     onSwitchClub: () -> Unit = {},
     onLoggedOut: () -> Unit = {},
@@ -297,6 +302,8 @@ fun ClubDetailsScreen(
                             onNavigateToAddPlayersToAgeGroup = onNavigateToAddPlayersToAgeGroup,
                             onNavigateToAgeGroup = onNavigateToAgeGroup,
                             onNavigateToMatch = onNavigateToMatch,
+                            onNavigateToEditPlan = onNavigateToEditPlan,
+                            onNavigateToRateSession = onNavigateToRateSession,
                             clubName = clubName
                         )
                 }
@@ -376,6 +383,8 @@ private fun ClubDetailsTabContent(
     onNavigateToAddPlayersToAgeGroup: (clubName: String) -> Unit,
     onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
     onNavigateToMatch: (matchId: String) -> Unit,
+    onNavigateToEditPlan: (ageGroupId: String, level: TrainingPlanLevel, periodStart: LocalDate) -> Unit,
+    onNavigateToRateSession: (sessionId: String) -> Unit,
     clubName: String
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -384,7 +393,9 @@ private fun ClubDetailsTabContent(
                 home = state.home,
                 onRetry = { viewModel.loadClubDetails(clubId, forceReload = true) },
                 onNavigateToAgeGroup = onNavigateToAgeGroup,
-                onNavigateToMatch = onNavigateToMatch
+                onNavigateToMatch = onNavigateToMatch,
+                onEditPlan = onNavigateToEditPlan,
+                onRateSession = onNavigateToRateSession
             )
 
             CLUB_TAB_TEAMS -> {

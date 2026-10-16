@@ -8,11 +8,14 @@ import com.ricardofrango.squadify.domain.usecase.GetAgeGroupSeasonRecordUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupStaffUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetEligiblePlayersForAgeGroupUseCase
+import com.ricardofrango.squadify.domain.usecase.GetTrainingPlansUseCase
+import com.ricardofrango.squadify.domain.usecase.SaveTrainingPlanUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateAgeGroupUseCase
 import com.ricardofrango.squadify.model.AddPlayersToAgeGroupRequest
 import com.ricardofrango.squadify.model.AddStaffToAgeGroupRequest
 import com.ricardofrango.squadify.model.CreateAgeGroupsRequest
 import com.ricardofrango.squadify.model.ErrorResponse
+import com.ricardofrango.squadify.model.SaveTrainingPlanRequest
 import com.ricardofrango.squadify.model.UpdateAgeGroupRequest
 import com.ricardofrango.squadify.security.userId
 import io.ktor.http.HttpStatusCode
@@ -23,6 +26,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
+import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 
@@ -36,6 +40,8 @@ fun Route.ageGroupRoutes() {
     val getAgeGroupStaffUseCase by inject<GetAgeGroupStaffUseCase>()
     val getAgeGroupDetailsUseCase by inject<GetAgeGroupDetailsUseCase>()
     val getAgeGroupSeasonRecordUseCase by inject<GetAgeGroupSeasonRecordUseCase>()
+    val getTrainingPlansUseCase by inject<GetTrainingPlansUseCase>()
+    val saveTrainingPlanUseCase by inject<SaveTrainingPlanUseCase>()
 
     authenticate("auth-jwt") {
         route("/age-groups") {
@@ -114,6 +120,21 @@ fun Route.ageGroupRoutes() {
                         HttpStatusCode.Created,
                         addPlayersToAgeGroupUseCase(currentUserId, ageGroupId, request)
                     )
+                }
+            }
+
+            // Training plans (design 40): the season, month and week plans of the age group.
+            route("/{ageGroupId}/training-plans") {
+                get {
+                    val ageGroupId = call.parameters["ageGroupId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                    call.respond(getTrainingPlansUseCase(currentUserId, ageGroupId))
+                }
+                put {
+                    val ageGroupId = call.parameters["ageGroupId"] ?: return@put call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                    val request = call.receive<SaveTrainingPlanRequest>()
+                    call.respond(saveTrainingPlanUseCase(currentUserId, ageGroupId, request))
                 }
             }
 

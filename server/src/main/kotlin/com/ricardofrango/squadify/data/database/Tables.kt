@@ -4,6 +4,7 @@ import com.ricardofrango.squadify.model.*
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.datetime.date
+import org.jetbrains.exposed.v1.datetime.time
 
 object Users : Table("users") {
     val id = uuid("id")
@@ -80,6 +81,7 @@ object Clubs : Table("clubs") {
     val phone = varchar("phone", 50).nullable()
     val address = varchar("address", 500).nullable()
     val stadiumLocation = varchar("stadium_location", 500).nullable()
+    val country = varchar("country", 2).default(Country.DEFAULT.code)
     val status = enumerationByName("status", 50, ClubStatus::class).default(ClubStatus.ACTIVE)
     val sport = enumerationByName("sport", 50, SportType::class)
     val createdAt = timestamp("created_at")
@@ -352,4 +354,78 @@ object ClubPermissionOverrides : Table("club_permission_overrides") {
     init {
         uniqueIndex("unique_club_permission", clubId, permission)
     }
+}
+
+// An age group's training plans (design 40): one row per season / month / week plan. See
+// V15__training_plans.sql. The lists are JSON text, read and written with their plan.
+object TrainingPlansTable : Table("training_plans") {
+    val id = uuid("id")
+    val ageGroupId = uuid("age_group_id").references(AgeGroups.id)
+    val level = enumerationByName("level", 10, TrainingPlanLevel::class)
+    val periodStart = date("period_start")
+    val focus = varchar("focus", 255).nullable()
+    val objectives = text("objectives")
+    val notes = text("notes").nullable()
+    val intensity = enumerationByName("intensity", 10, TrainingIntensity::class).nullable()
+    val phases = text("phases")
+    val updatedAt = timestamp("updated_at")
+    val updatedBy = uuid("updated_by").references(Users.id)
+
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex("unique_training_plan_period", ageGroupId, level, periodStart)
+    }
+}
+
+// An age group's training sessions (design 39). See V17__training_sessions.sql.
+object TrainingSessionsTable : Table("training_sessions") {
+    val id = uuid("id")
+    val ageGroupId = uuid("age_group_id").references(AgeGroups.id)
+    val date = date("date")
+    val startTime = time("start_time")
+    val endTime = time("end_time")
+    val location = varchar("location", 500).nullable()
+    val notes = text("notes").nullable()
+    val cancelledAt = timestamp("cancelled_at").nullable()
+    val cancelledBy = uuid("cancelled_by").references(Users.id).nullable()
+    val createdAt = timestamp("created_at")
+
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex("unique_training_session_time", ageGroupId, date, startTime)
+    }
+}
+
+// An age group's exercise library and each session's exercises, in order (design 39h). See V18.
+object TrainingExercisesTable : Table("training_exercises") {
+    val id = uuid("id")
+    val ageGroupId = uuid("age_group_id").references(AgeGroups.id)
+    val name = varchar("name", 255)
+    val description = text("description").nullable()
+    val durationMinutes = integer("duration_minutes").nullable()
+    val objectives = text("objectives").nullable()
+    val createdAt = timestamp("created_at")
+
+    override val primaryKey = PrimaryKey(id)
+}
+
+object TrainingSessionExercisesTable : Table("training_session_exercises") {
+    val sessionId = uuid("session_id").references(TrainingSessionsTable.id)
+    val exerciseId = uuid("exercise_id").references(TrainingExercisesTable.id)
+    val position = integer("position")
+
+    override val primaryKey = PrimaryKey(sessionId, exerciseId)
+}
+
+// Player ratings of a training session, in tenths (design 39g). See V19.
+object TrainingRatingsTable : Table("training_ratings") {
+    val sessionId = uuid("session_id").references(TrainingSessionsTable.id)
+    val playerId = uuid("player_id").references(Players.id)
+    val ratingTenths = integer("rating_tenths")
+    val updatedAt = timestamp("updated_at")
+    val updatedBy = uuid("updated_by").references(Users.id)
+
+    override val primaryKey = PrimaryKey(sessionId, playerId)
 }

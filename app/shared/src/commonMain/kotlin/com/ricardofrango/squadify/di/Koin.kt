@@ -15,6 +15,13 @@ import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubPlayersViewMod
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentDetailsViewModel
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentFormViewModel
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentsViewModel
+import com.ricardofrango.squadify.presentation.ui.training.CreateSessionsViewModel
+import com.ricardofrango.squadify.presentation.ui.training.SessionDetailsViewModel
+import com.ricardofrango.squadify.presentation.ui.training.SessionEditViewModel
+import com.ricardofrango.squadify.presentation.ui.training.ExerciseLibraryViewModel
+import com.ricardofrango.squadify.presentation.ui.training.RatePlayersViewModel
+import com.ricardofrango.squadify.presentation.ui.training.PlanEditViewModel
+import com.ricardofrango.squadify.presentation.ui.training.TrainingPlansViewModel
 import com.ricardofrango.squadify.presentation.ui.editclub.EditClubViewModel
 import com.ricardofrango.squadify.presentation.ui.clubmember.ClubMemberDetailsViewModel
 import com.ricardofrango.squadify.presentation.ui.createseason.CreateSeasonViewModel
@@ -122,6 +129,8 @@ val dataModule = module {
     single<AgeGroupRepository> { AgeGroupRepositoryImpl(get(), get()) }
     single<MatchRepository> { MatchRepositoryImpl(get(), get(), get()) }
     single<OpponentRepository> { OpponentRepositoryImpl(get(), get()) }
+    single<TrainingPlanRepository> { TrainingPlanRepositoryImpl(get(), get()) }
+    single<TrainingSessionRepository> { TrainingSessionRepositoryImpl(get(), get()) }
     single<UserRepository> { UserRepositoryImpl(get(), get()) }
     single<SessionRepository> { SessionRepositoryImpl(get()) }
     single<UiPreferencesRepository> { UiPreferencesRepositoryImpl(get()) }
@@ -169,6 +178,16 @@ val domainModule = module {
     factory { UpdatePlayerUseCase(get()) }
     factory { GetOpponentsUseCase(get()) }
     factory { GetOpponentListUseCase(get()) }
+    factory { GetTrainingPlansUseCase(get()) }
+    factory { GetTrainingSessionsUseCase(get()) }
+    factory { GetTrainingSessionUseCase(get()) }
+    factory { CreateTrainingSessionsUseCase(get()) }
+    factory { SaveTrainingSessionUseCase(get()) }
+    factory { ChangeTrainingSessionUseCase(get()) }
+    factory { TrainingExercisesUseCase(get()) }
+    factory { TrainingRatingsUseCase(get()) }
+    factory { TrainingStatsUseCase(get()) }
+    factory { SaveTrainingPlanUseCase(get()) }
     factory { GetOpponentDetailsUseCase(get()) }
     factory { CreateOpponentUseCase(get()) }
     factory { UpdateOpponentUseCase(get()) }
@@ -213,6 +232,13 @@ val presentationModule = module {
     viewModelOf(::OpponentsViewModel)
     viewModelOf(::OpponentFormViewModel)
     viewModelOf(::OpponentDetailsViewModel)
+    viewModelOf(::TrainingPlansViewModel)
+    viewModelOf(::PlanEditViewModel)
+    viewModelOf(::CreateSessionsViewModel)
+    viewModelOf(::SessionDetailsViewModel)
+    viewModelOf(::SessionEditViewModel)
+    viewModelOf(::ExerciseLibraryViewModel)
+    viewModelOf(::RatePlayersViewModel)
     viewModelOf(::ClubDetailsViewModel)
     viewModelOf(::ClubPlayersViewModel)
     viewModelOf(::EditClubViewModel)

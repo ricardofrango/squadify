@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.domain.usecase.TrainingStatsUseCase
+import com.ricardofrango.squadify.model.PlayerTrainingSeason
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.GetPlayerDetailsUseCase
@@ -13,8 +15,13 @@ import kotlinx.coroutines.launch
 
 class PlayerDetailsViewModel(
     private val getPlayerDetailsUseCase: GetPlayerDetailsUseCase,
-    private val getPlayerSeasonStatsUseCase: GetPlayerSeasonStatsUseCase
+    private val getPlayerSeasonStatsUseCase: GetPlayerSeasonStatsUseCase,
+    private val trainingStatsUseCase: TrainingStatsUseCase
 ) : ViewModel() {
+
+    // Training attendance and average per season (design 39j); empty for anyone who can't see it.
+    private val _training = MutableStateFlow<List<PlayerTrainingSeason>>(emptyList())
+    val training: StateFlow<List<PlayerTrainingSeason>> = _training.asStateFlow()
 
     private val _state = MutableStateFlow<PlayerDetailsUiState>(PlayerDetailsUiState.Loading)
     val state: StateFlow<PlayerDetailsUiState> = _state.asStateFlow()
@@ -38,6 +45,7 @@ class PlayerDetailsViewModel(
             }
         }
         loadSeasonStats(playerId, initialSeasonId, initialFilter)
+        viewModelScope.launch { _training.value = runCatching { trainingStatsUseCase.player(playerId).seasons }.getOrDefault(emptyList()) }
     }
 
     fun loadSeasonStats(playerId: String, initialSeasonId: String? = null, initialFilter: StatsFilter? = null) {

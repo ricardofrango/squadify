@@ -32,6 +32,10 @@ val appModule = module {
     single<MatchPlayerStatsRepository> { ExposedMatchPlayerStatsRepository() }
     single<MatchReportRepository> { ExposedMatchReportRepository() }
     single<OpponentRepository> { ExposedOpponentRepository() }
+    single<TrainingPlanRepository> { ExposedTrainingPlanRepository() }
+    single<TrainingSessionRepository> { ExposedTrainingSessionRepository() }
+    single<TrainingExerciseRepository> { ExposedTrainingExerciseRepository() }
+    single<TrainingRatingRepository> { ExposedTrainingRatingRepository() }
     single<FcmTokenRepository> { ExposedFcmTokenRepository() }
     single<ClubPermissionRepository> { ExposedClubPermissionRepository() }
 
@@ -45,7 +49,7 @@ val appModule = module {
     // Use Cases
     factory { GetClubsUseCase(get(), get(), get()) }
     factory { GetClubDetailsUseCase(get(), get(), get(), get(), get(), get()) }
-    factory { GetClubHomeUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { GetClubHomeUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { ProvisionClubUseCase(get(), get(), get(), get(), get(), get()) }
     factory { RegisterUseCase(get(), get(), get(), get(), get()) }
     factory {
@@ -96,6 +100,16 @@ val appModule = module {
     factory { GetAgeGroupsUseCase(get(), get(), get(), get(), get()) }
     factory { CreateAgeGroupsUseCase(get(), get(), get(), get()) }
     factory { UpdateAgeGroupUseCase(get(), get(), get(), get(), get()) }
+    factory { GetTrainingPlansUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { SaveTrainingPlanUseCase(get(), get(), get(), get(), get()) }
+    factory { GetTrainingSessionsUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { CreateTrainingSessionsUseCase(get(), get(), get(), get(), get()) }
+    factory { SaveTrainingSessionUseCase(get(), get(), get(), get()) }
+    factory { ChangeTrainingSessionUseCase(get(), get(), get(), get()) }
+    factory { GetTrainingSessionUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { TrainingRatingsUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { TrainingStatsUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { TrainingExercisesUseCase(get(), get(), get(), get(), get()) }
     factory { GetAgeGroupDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     factory { GetPlayerUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }

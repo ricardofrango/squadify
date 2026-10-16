@@ -67,11 +67,32 @@ fun AgeGroupDetailsScreen(
     // A staff row opens Member details (design 35) -- coordinators only, who can read it.
     onNavigateToMember: (clubId: String, userId: String) -> Unit = { _, _ -> },
     onNavigateToEditAgeGroup: (ageGroupId: String) -> Unit = {},
+    // Training plans (design 40): open or edit the season / a month / a week of this age group.
+    onNavigateToSeasonPlan: (ageGroupId: String, edit: Boolean) -> Unit = { _, _ -> },
+    onNavigateToMonthPlan: (ageGroupId: String, month: LocalDate, edit: Boolean) -> Unit = { _, _, _ -> },
+    onNavigateToWeekPlan: (ageGroupId: String, monday: LocalDate, edit: Boolean) -> Unit = { _, _, _ -> },
+    onNavigateToCreateSessions: (ageGroupId: String) -> Unit = {},
+    onNavigateToAddSession: (ageGroupId: String, date: LocalDate?) -> Unit = { _, _ -> },
+    onNavigateToSession: (sessionId: String) -> Unit = {},
     refreshOnReturn: Boolean = false,
+    // How many sessions Create sessions just made: "24 sessions created", shown once.
+    sessionsCreated: Int? = null,
+    onMessageShown: () -> Unit = {},
     viewModel: AgeGroupDetailsViewModel = koinViewModel()
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val message = sessionsCreated?.let { stringResource(Res.string.msg_sessions_created, it) }
+    LaunchedEffect(message) {
+        if (message != null) {
+            onMessageShown()
+            snackbarHostState.showSnackbar(message)
+        }
+    }
     val uiState = viewModel.state.collectSettledState()
     val recordState by viewModel.record.collectAsState()
+    val plansState by viewModel.plans.collectAsState()
+    val sessionsState by viewModel.sessions.collectAsState()
+    val trainingStats by viewModel.trainingStats.collectAsState()
     val tab by viewModel.tab.collectAsState()
     val matchesTeamId by viewModel.matchesTeamId.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
@@ -82,6 +103,10 @@ fun AgeGroupDetailsScreen(
     AgeGroupDetailsContent(
         uiState = uiState,
         recordState = recordState,
+        plansState = plansState,
+        sessionsState = sessionsState,
+        trainingStats = trainingStats,
+        snackbarHostState = snackbarHostState,
         tab = tab,
         matchesTeamId = matchesTeamId,
         searchQuery = searchQuery,
@@ -92,6 +117,14 @@ fun AgeGroupDetailsScreen(
         onNavigateBack = onNavigateBack,
         onRetry = { viewModel.load(ageGroupId, forceReload = true) },
         onRetryRecord = { viewModel.loadRecord(ageGroupId) },
+        onRetryPlans = { viewModel.loadPlans(ageGroupId) },
+        onRetrySessions = { viewModel.loadSessions(ageGroupId) },
+        onCreateSessions = { onNavigateToCreateSessions(ageGroupId) },
+        onAddSession = { date -> onNavigateToAddSession(ageGroupId, date) },
+        onOpenSession = onNavigateToSession,
+        onSeasonPlan = { edit -> onNavigateToSeasonPlan(ageGroupId, edit) },
+        onMonthPlan = { month, edit -> onNavigateToMonthPlan(ageGroupId, month, edit) },
+        onWeekPlan = { monday, edit -> onNavigateToWeekPlan(ageGroupId, monday, edit) },
         onPlayerClick = onNavigateToPlayer,
         onTeamClick = onNavigateToTeam,
         onMatchClick = onNavigateToMatch,
@@ -109,6 +142,7 @@ private val AgeGroupTab.icon
         AgeGroupTab.STATS -> Res.drawable.ic_stats
         AgeGroupTab.TEAMS -> Res.drawable.ic_teams
         AgeGroupTab.MATCHES -> Res.drawable.ic_calendar
+        AgeGroupTab.TRAINING -> Res.drawable.ic_training
         AgeGroupTab.MEMBERS -> Res.drawable.ic_player
     }
 
@@ -117,6 +151,7 @@ private val AgeGroupTab.label
         AgeGroupTab.STATS -> Res.string.team_tab_stats
         AgeGroupTab.TEAMS -> Res.string.tab_teams
         AgeGroupTab.MATCHES -> Res.string.team_tab_matches
+        AgeGroupTab.TRAINING -> Res.string.tab_training
         AgeGroupTab.MEMBERS -> Res.string.team_tab_players
     }
 
@@ -127,6 +162,10 @@ private val Tabs = AgeGroupTab.entries.map { DetailTab(it.icon, it.label) }
 private fun AgeGroupDetailsContent(
     uiState: AgeGroupDetailsUiState,
     recordState: AgeGroupRecordUiState,
+    plansState: AgeGroupPlansUiState = AgeGroupPlansUiState.Loading,
+    sessionsState: AgeGroupSessionsUiState = AgeGroupSessionsUiState.Loading,
+    trainingStats: com.ricardofrango.squadify.model.AgeGroupTrainingStats? = null,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     tab: AgeGroupTab,
     matchesTeamId: String?,
     searchQuery: String,
@@ -137,6 +176,14 @@ private fun AgeGroupDetailsContent(
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
     onRetryRecord: () -> Unit,
+    onRetryPlans: () -> Unit = {},
+    onRetrySessions: () -> Unit = {},
+    onCreateSessions: () -> Unit = {},
+    onAddSession: (LocalDate?) -> Unit = {},
+    onOpenSession: (String) -> Unit = {},
+    onSeasonPlan: (edit: Boolean) -> Unit = {},
+    onMonthPlan: (LocalDate, edit: Boolean) -> Unit = { _, _ -> },
+    onWeekPlan: (LocalDate, edit: Boolean) -> Unit = { _, _ -> },
     onPlayerClick: (String) -> Unit,
     onTeamClick: (String) -> Unit,
     onMatchClick: (String) -> Unit,
@@ -163,6 +210,7 @@ private fun AgeGroupDetailsContent(
             Scaffold(
                 modifier = Modifier.weight(1f),
                 containerColor = WhiteSmoke,
+                snackbarHost = { SnackbarHost(snackbarHostState) },
                 topBar = {
                     Column(Modifier.background(CarbonGray)) {
                         FMTopBar(
@@ -207,7 +255,8 @@ private fun AgeGroupDetailsContent(
                                 details = d, recordState = recordState, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,
                                 nextHint = nextHint, onViewNext = next?.let { { onMatchClick(it.id) } }, sideBySide = landscape,
                                 onGoToTeams = { onTabSelected(AgeGroupTab.TEAMS) }, onRetry = onRetryRecord,
-                                onFilterSelected = onFilterSelected, onOpenPlayer = onPlayerClick
+                                onFilterSelected = onFilterSelected, onOpenPlayer = onPlayerClick,
+                                trainingStats = trainingStats
                             )
                             AgeGroupTab.TEAMS -> AgeGroupTeamsTab(
                                 details = d, recordState = recordState, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,
@@ -217,6 +266,15 @@ private fun AgeGroupDetailsContent(
                             AgeGroupTab.MATCHES -> AgeGroupMatchesTab(
                                 details = d, teamFilter = matchesTeamId, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,
                                 onTeamFilter = onMatchesTeamSelected, onSchedule = { onCreateMatch(d) }, onOpenMatch = onMatchClick
+                            )
+                            AgeGroupTab.TRAINING -> AgeGroupTrainingTab(
+                                plansState = plansState, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,
+                                sessionsState = sessionsState, poolSize = d.players.size,
+                                onRetrySessions = onRetrySessions, onCreateSessions = onCreateSessions, onAddSession = onAddSession, onOpenSession = onOpenSession,
+                                onRetry = onRetryPlans,
+                                onOpenSeason = { onSeasonPlan(false) }, onEditSeason = { onSeasonPlan(true) },
+                                onOpenMonth = { onMonthPlan(it, false) }, onEditMonth = { onMonthPlan(it, true) },
+                                onOpenWeek = { onWeekPlan(it, false) }, onEditWeek = { onWeekPlan(it, true) }
                             )
                             AgeGroupTab.MEMBERS -> AgeGroupMembersTab(
                                 details = d, recordState = recordState, searchQuery = searchQuery, listState = listStates.getValue(tab), padding = padding,

@@ -50,7 +50,10 @@ enum class ConfigurablePermission {
     // EventType.SUBSTITUTION_IN/OUT) -- is one setting: once the match is live, it's all the same
     // moment and the same person is typically operating all of it. There is deliberately no separate
     // "log match events" action anymore.
-    MANAGE_LIVE_MATCH
+    MANAGE_LIVE_MATCH,
+    // Training (Phase 8): the age group's season, month and week plans, and its training sessions.
+    // Rating players after a session is not part of it -- any coach or staff of the age group can.
+    MANAGE_TRAINING
 }
 
 /** The threshold each [ConfigurablePermission] falls back to until a club explicitly overrides it. */
@@ -248,6 +251,8 @@ data class Club(
     // administrative address) -- e.g. a club office address vs. a municipal stadium. Plain text, same
     // shape as `Match.location`, so a home match's location field can default to this verbatim.
     val stadiumLocation: String? = null,
+    // For its national public holidays (training sessions skip them). Portugal unless set.
+    val country: Country = Country.DEFAULT,
     val status: ClubStatus,
     val createdAt: Instant,
     // Defaulted so the many `Club(...)` test/preview constructions stay valid; the choice is forced
@@ -571,6 +576,7 @@ data class UpdateClubRequest(
     val phone: String? = null,
     val address: String? = null,
     val stadiumLocation: String? = null,
+    val country: Country? = null,
     val status: ClubStatus? = null
 )
 
@@ -1177,7 +1183,21 @@ enum class ClubHomeAlertType {
     /** Matches within 5 days with no call-ups yet. Admins/coordinators: the whole club; staff: their age groups, per MANAGE_CALL_UPS. */
     CALLUPS_UNSENT,
     /** A finished match whose report isn't completed. Admins/coordinators: the whole club; staff: their age groups, per MANAGE_MATCH. */
-    MATCH_REPORT_PENDING
+    MATCH_REPORT_PENDING,
+    /**
+     * Training plans (design 40g): the season, the current month or the current week of an age group has
+     * started without its plan. Shown to whoever may edit its training (MANAGE_TRAINING). [ClubHomeAlert.date]
+     * is when the period started, so the client turns it amber a week later.
+     */
+    SEASON_PLAN_MISSING,
+    MONTH_PLAN_MISSING,
+    WEEK_PLAN_MISSING,
+    /**
+     * A training session that has ended with players of its age group still unrated (design 39i). For
+     * admins/coordinators and the age group's coaches and staff. [ClubHomeAlert.count] is how many are rated,
+     * [ClubHomeAlert.total] the pool's size, [ClubHomeAlert.date] the session's date.
+     */
+    TRAINING_RATINGS_PENDING
 }
 
 /** One "Needs you" row. The client formats the copy from these parts so it stays localized. */
@@ -1185,17 +1205,21 @@ enum class ClubHomeAlertType {
 data class ClubHomeAlert(
     val type: ClubHomeAlertType,
     val count: Int,
-    // AGE_GROUP_NEEDS_COACH only:
+    // AGE_GROUP_NEEDS_COACH and the *_PLAN_MISSING alerts:
     val ageGroupId: String? = null,
     val ageGroupName: String? = null,
     // CALLUPS_UNSENT: the day those matches fall on. MATCH_REPORT_PENDING: the day the match was played.
+    // *_PLAN_MISSING: the first day of the period (season start, the 1st of the month, the week's Monday).
     val date: LocalDate? = null,
     // MATCH_REPORT_PENDING only -- the match to open, and the names to show:
     val matchId: String? = null,
     val teamName: String? = null,
     val opponentName: String? = null,
     // CALLUPS_UNSENT only -- the matches that day still without a call-up, so the to-do can open them.
-    val matches: List<ClubHomeAlertMatch> = emptyList()
+    val matches: List<ClubHomeAlertMatch> = emptyList(),
+    // TRAINING_RATINGS_PENDING only: the session to rate, and how many players there are to rate.
+    val sessionId: String? = null,
+    val total: Int? = null
 )
 
 /** One match behind a grouped Home to-do (a day's matches with no call-up yet). */

@@ -2564,3 +2564,123 @@ Picking an opponent on Schedule match was a dropdown of every opponent plus an i
   - **What the app sends:** every field as typed, so emptying a field clears it.
   - **Rules:** the same as Create (`OpponentRules.kt`). Tested in `UpdateOpponentUseCaseTest` and `OpponentFormTest`.
 - **After saving:** the details reload, and so does the list underneath.
+
+## 52. Training Planning
+
+Phase 8 starts with the plans (design 40): a coach sets the objectives of the season, the month and the week before preparing a session.
+
+**Permission:** `ConfigurablePermission.MANAGE_TRAINING` ("Create and edit training") covers the season, month and week plans and the training sessions. Its default level is coach, like the other "create" actions, and the coordinator can set it to coordinators only or extend it to staff in Club settings → Permissions. Rating players after a session isn't part of it: any coach or staff member of the age group can do that.
+
+**Plans, all levels** (`common/model/TrainingPlans.kt`, `PROCESS_FLOWS.md` §9b):
+- **Levels:** one season plan (macrocycle) per age group, one month plan (mesocycle) per calendar month the season touches, and one week plan (microcycle) per Monday–Sunday week overlapping it.
+- **Weeks across months:** a week that crosses two months belongs to the month of its Monday.
+- **Shape:** every level has a focus, objectives and notes. The season adds phases, and the week adds intensity (Low / Medium / High).
+- **Storage:** one `training_plans` table (`V15`), unique per age group, level and period start. Objectives and phases are JSON text: small ordered lists that are only read and written with their plan. Key dates were in the design and dropped (`V20` removes their column).
+- **API:** `GET /age-groups/{id}/training-plans` returns every plan of the age group with the season and `canEdit`, and `PUT` saves (upserts) one. The period rules are in `common` (`monthStarts`, `weekStarts`, `isPeriodStart`), so the app and the server agree on which periods exist. Tested in `TrainingPeriodsTest` and `TrainingPlanUseCasesTest`.
+- **Visibility:** admins, coordinators and the age group's coaches and staff can read plans. Other club members, players and parents can't.
+
+**Season plan** (`SeasonPlanScreen`, `SeasonPlanEditScreen`, design 40c):
+- **Timeline:** the season with its phases as bands sized by length and today as a red line, plus a legend.
+- **Below it:** the months with their status (tapping one opens the month plan), then the objectives and phases. Landscape uses three columns.
+- **Editor:** objectives and phases (name, start, end, focus). Every date is checked against the season, with the error inline under the field ("Must end by 30 Jun 2027, the end of the season.").
+  - **Leaving:** unsaved changes ask before leaving (`PlanEditorFrame`).
+  - **Order:** objectives and phases don't reorder; they keep the order they were added. An objective is a multi-line field (it grows as you type); each row has a compact × to remove it.
+- **Shared editor:** every level uses `PlanEditViewModel` with a `PlanForm` (`PlanForm.kt`, tested in `PlanFormTest`).
+
+**Month plan** (`MonthPlanScreen`, design 40d):
+- **Context strip:** the phase the month falls in and its focus, with the season objectives collapsed under it.
+- **Body:** the month's focus, objectives and notes. Empty, it says "{month} has no plan", with "Plan {month}" for those who can edit.
+- **Weeks:** "WEEKS · 3 OF 5 PLANNED", each with its range, its focus or "No focus yet", and its status. Tapping one opens the week.
+- **Wide screens:** the plan on the left, the weeks on the right.
+
+**Month and week editor** (`PeriodPlanEditScreen`, one editor for both levels):
+- **Fields:** Focus (required), notes and objectives. The week adds intensity, which is optional: tapping the selected chip clears it.
+- **Prev / Next:** moves to the previous or next period without leaving. Unsaved changes ask first.
+- **Copy from:** copies the previous period's focus, objectives, notes and intensity. If something is already typed, it asks before replacing it (design 40i says "fills empty fields only and asks before overwriting"; this asks, then copies everything).
+- **Context strip:** the phase for a month, and the month and its focus for a week.
+
+**Week plan** (`WeekPlanScreen`, design 40e):
+- **Context strip:** the month the week belongs to and that month's focus, with the week's dates.
+- **Body:** the week's focus with its intensity chip ("Medium intensity", amber when high), objectives and notes. Empty, it says "This week has no plan" with "Plan this week".
+- **Editor:** the shared month/week editor, with Low / Medium / High.
+- **Sessions:** the week's sessions are listed under the plan (tap opens one). "Add one session" starts on today when it's in that week, else on its Monday.
+
+**Training tab** (Age Group Details → Training, between Matches and Members, design 40a/b):
+- **Order:** Season plan → This month → This week, each a summary card that opens its own screen.
+- **Month and week cards:** they open on today's period, and ‹ › move within the season.
+- **Empty cards:** each has its own Plan button, or says who can add it.
+- **Data:** the plans load with the age group (`AgeGroupDetailsViewModel.loadPlans`). A 403 hides the cards, because players and parents don't see plans.
+- **Below the cards:** the sessions list. The week card also shows that week's sessions as compact lines (day, time, TODAY).
+
+**Home alerts for missing plans** (design 40g):
+- **What they say:** `GetClubHomeUseCase` adds `SEASON_PLAN_MISSING`, `MONTH_PLAN_MISSING` and `WEEK_PLAN_MISSING`: "Season 26/27 has no plan · Sub-17", "October has no plan · Sub-17", "Week of 12 Oct has no plan · Sub-15".
+- **When:** only for the period we're in. The season counts from its first day, the month from the 1st and the week from Monday. An alert clears once the plan is saved.
+- **Who sees them:** admins and coordinators see every age group of the season. Age-group staff see their own age groups, as far as `MANAGE_TRAINING` allows (coach by default).
+- **Data:** all the age groups' plans come in one query (`TrainingPlanRepository.getByAgeGroups`).
+- **In the app:** each row says since when, turns amber after 7 days, and opens that plan's editor. Tested in `GetClubHomeUseCaseTest`.
+
+**Club country and public holidays** (design 39k, `common/model/PublicHolidays.kt`):
+- **Country:** clubs have a country (`clubs.country`, an ISO code, `V16`; Portugal for every existing club). It's set under Where in Club settings.
+- **Holidays:** the national ones are computed in code, including those that move with Easter (Good Friday, Easter, Corpus Christi; Easter by the Gregorian algorithm). No library and no external service are involved. Municipal holidays are deliberately ignored.
+- **Supported countries:** only Portugal for now. Adding a country means adding its holiday list.
+- **Names:** a holiday travels as a key (`Holiday`), and the app shows its localized name.
+- **Tests:** `PublicHolidaysTest`.
+
+**Training sessions** (`common/model/TrainingSessions.kt`, `PROCESS_FLOWS.md` §9b.3–9b.5):
+- **Storage:** one `training_sessions` row per session (`V17`), unique per age group, date and start time. A cancelled session keeps its row (`cancelled_at`, `cancelled_by`) and its content.
+- **Creating in bulk** (`CreateSessionsScreen`, design 39c/d):
+  - **Form:** weekly slots (weekdays sharing a start and an end), a period (not bound by the season's dates, which are the association's calendar, since clubs often train into July; the calendar's ‹ › widen to reach any session outside the season), the location (the club's stadium by default) and "Also on public holidays". Nothing is saved for next time.
+  - **Preview count:** the button's "Preview N sessions" is worked out on the device with the same `plannedSessions` and holidays the server uses.
+  - **Preview step:** the server lists every date by month. It names skipped holidays and flags each existing session at the same date and start time, in red when its exercises or ratings would be deleted.
+  - **Creating:** if any replaced session has content, a dialog counts them before anything is created, and the server refuses (409) without that confirmation.
+  - **Limits:** at most 400 sessions at once.
+- **Training tab:** the sessions follow the plan cards. Upcoming come soonest first and past newest first, using the match row's day block.
+  - **Chips:** TODAY, NEXT (only when nothing is today), CANCELLED (struck through), and "Needs ratings" for an ended session not fully rated (staff only).
+  - **Who sees them:** players and parents of the age group see sessions; only the ratings are staff-only.
+  - **After creating:** Age Group Details shows "{n} sessions created".
+- **Tests:** `TrainingSessionUseCasesTest` (server) and `TrainingSessionsTest` (app).
+
+**Session details, add/edit and the calendar** (design 39a/e/f, 40f):
+- **Session details** (`SessionDetailsScreen`):
+  - **Top:** when and where (Open in Maps) and the status: Upcoming · in n days, Today, Ended or Cancelled.
+  - **Staff strip:** the week's focus and intensity with the month's focus. It turns amber with "Plan the week" when the week has no plan.
+  - **Then:** the notes.
+  - **With `MANAGE_TRAINING`:** the pencil, and ⋮ with Cancel session and Delete, each asking first. A cancelled session shows who cancelled it and when, with Restore, and has no pencil.
+  - **After a change:** the Training tab reloads.
+- **Add / edit one session** (`SessionEditScreen`):
+  - **Fields:** date, start and end, location (the stadium by default) and notes.
+  - **Clash:** a session already at that date and start time is flagged inline, since saving replaces it.
+  - **Edit:** saves only after a change. From the calendar, "Add one session" starts on the selected day.
+- **Calendar:** List / Calendar on the Training tab. The grid is Monday-first, with a dot per session (amber when it needs ratings, grey when cancelled) and holidays' day numbers in amber. Tapping a day lists its sessions.
+  - **Choice not kept:** the List / Calendar choice isn't remembered between visits, unlike the design.
+
+**Exercises** (design 39f/h, `V18`):
+- **Library:** each age group has its own (`training_exercises`). Sessions link to exercises in order (`training_session_exercises`), so editing an exercise changes it in every session that uses it, and the edit screen says so ("Used in 14 sessions").
+- **On the session:** each exercise shows its number, name, description and minutes, with the total. With `MANAGE_TRAINING`, while not cancelled, exercises can be added, reordered with ▲ / ▼ (not dragging as designed) and removed with ×. Removing never touches the library.
+- **Add exercises** (`ExerciseLibraryScreen`): the library sorted by most used, with "Used n×", searchable by name and description, and leaving out what the session already has.
+  - **Picking:** multi-select, added in the order picked.
+  - **New:** creates an exercise and adds it straight away. The search text prefills its name.
+  - **Editing:** the pencil on a row edits the exercise in the library.
+- **Replacing content:** bulk creation's replace warnings now count real exercises.
+- **Tests:** `TrainingSessionUseCasesTest` and `ExerciseLibraryTest`.
+
+**Player ratings** (design 39g/i, `V19`):
+- **Storage:** `training_ratings` holds one row per session and player, as tenths (0–100), so one decimal is exact.
+  - **0 means Absent** ("did not take part"), which makes ratings the attendance record. A player who trained gets 0.1–10.0.
+  - **Saves are partial:** saving only some players is fine, and sending null clears a rating.
+- **Who:** every coach and staff member of the age group, and coordinators, can rate. Players and parents never see ratings, rated counts or averages.
+- **When:** ratings open when the session's end time passes (server time). A cancelled session isn't rated.
+- **Rate players** (`RatePlayersScreen`): the pool by shirt number.
+  - **Input:** a text box per player (decimal keyboard; Next moves to the following player). It takes 0 to 10 with up to one decimal, with a dot or a comma ("7.5", "7,5"); 0 means absent and an empty box means not rated. The design's quick 5–9 buttons, − / + and Absent button were dropped for this.
+  - **Invalid input:** the box turns red with "Enter 0 to 10, e.g. 7.5" under the name, and Save waits until it's fixed. "7." while typing reads as 7, so the box doesn't flash red mid-number.
+  - **Saving:** Save is enabled after any change while every box is valid. Leaving with changes asks first.
+- **On the session:** the ratings card (staff) says when ratings open. Once the session has ended it moves to the top with "12 of 18 rated" and Rate players.
+- **On the lists:** ended sessions show "Needs ratings" until everyone is rated, then the average (without Absent).
+- **Home to-do:** "Training of Thu 8 Oct needs player ratings · Sub-15", with "12 of 18 rated", opens Rate players. It's one row per session, grouped from 3 up like match reports, amber after 7 days.
+- **Tests:** `TrainingSessionUseCasesTest`, `GetClubHomeUseCaseTest`, `TrainingPeriodsTest` (tenths and attendance) and `RatePlayersTest`.
+
+**Training stats** (design 39j), staff only:
+- **Definitions:** attendance is the sessions a player was rated above 0 out of the ended, non-cancelled sessions in the period. The average leaves Absent out. Below 75% attendance shows amber.
+- **Age Group → Stats:** a TRAINING card under the existing ones, with All season or one month, and sorting by Attendance, Rating or Name. Each row shows "16/16 · 100%" and the average in its colour band, and opens the player.
+- **Player Details:** two tiles under the season stats (attendance with "14 of 16", and the average). They show the season selected above, else the latest.
+- **Data:** the age-group endpoint returns raw sessions and ratings, so switching month needs no request. Tested in `TrainingSessionUseCasesTest` and `TrainingStatsTest`.

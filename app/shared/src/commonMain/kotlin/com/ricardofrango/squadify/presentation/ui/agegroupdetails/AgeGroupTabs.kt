@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import kotlinx.datetime.plus
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -44,6 +45,36 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.*
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
+import kotlin.time.Clock
+import squadify.app.shared.generated.resources.msg_check_connection
+import squadify.app.shared.generated.resources.msg_plans_load_failed
+import com.ricardofrango.squadify.presentation.ui.training.SeasonPlanCard
+import com.ricardofrango.squadify.presentation.ui.training.MonthPlanCard
+import com.ricardofrango.squadify.presentation.ui.training.WeekPlanCard
+import com.ricardofrango.squadify.presentation.ui.training.initialMonth
+import com.ricardofrango.squadify.presentation.ui.training.initialWeek
+import com.ricardofrango.squadify.presentation.ui.training.splitSessions
+import com.ricardofrango.squadify.presentation.ui.training.chipFor
+import com.ricardofrango.squadify.presentation.ui.training.SessionRow
+import squadify.app.shared.generated.resources.label_past_sessions
+import squadify.app.shared.generated.resources.label_upcoming_sessions
+import squadify.app.shared.generated.resources.msg_no_sessions_body
+import squadify.app.shared.generated.resources.msg_no_sessions_title
+import squadify.app.shared.generated.resources.btn_create_sessions
+import squadify.app.shared.generated.resources.label_sessions
+import squadify.app.shared.generated.resources.msg_sessions_load_failed
+import kotlinx.datetime.toLocalDateTime
+import androidx.compose.foundation.lazy.LazyListScope
+import com.ricardofrango.squadify.presentation.ui.training.SessionsCalendar
+import squadify.app.shared.generated.resources.msg_no_sessions_day
+import squadify.app.shared.generated.resources.btn_add_one_session
+import squadify.app.shared.generated.resources.btn_calendar
+import squadify.app.shared.generated.resources.btn_list
+import com.ricardofrango.squadify.presentation.ui.training.AgeGroupTrainingStatsCard
+import com.ricardofrango.squadify.model.AgeGroupTrainingStats
 
 // The four tabs of Age Group Details (design 33). Every number is derived from AgeGroupDetails (teams,
 // fixtures, staff, pool) and AgeGroupSeasonRecord (each team's season) by the shared code in
@@ -109,9 +140,27 @@ internal fun AgeGroupStatsTab(
     onGoToTeams: () -> Unit,
     onRetry: () -> Unit,
     onFilterSelected: (StatsFilter) -> Unit,
-    onOpenPlayer: (String) -> Unit
+    onOpenPlayer: (String) -> Unit,
+    // Staff only (design 39j); null hides the card.
+    trainingStats: AgeGroupTrainingStats? = null
 ) {
     LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        statsItems(details, recordState, nextHint, onViewNext, sideBySide, onGoToTeams, onRetry, onFilterSelected, onOpenPlayer)
+        trainingStats?.let { stats -> item(key = "training-stats") { AgeGroupTrainingStatsCard(stats, onOpenPlayer) } }
+    }
+}
+
+private fun LazyListScope.statsItems(
+    details: AgeGroupDetails,
+    recordState: AgeGroupRecordUiState,
+    nextHint: String?,
+    onViewNext: (() -> Unit)?,
+    sideBySide: Boolean,
+    onGoToTeams: () -> Unit,
+    onRetry: () -> Unit,
+    onFilterSelected: (StatsFilter) -> Unit,
+    onOpenPlayer: (String) -> Unit
+) {
         when {
             details.teams.isEmpty() -> item {
                 EmptyCard(
@@ -169,7 +218,6 @@ internal fun AgeGroupStatsTab(
                 }
             }
         }
-    }
 }
 
 @Composable
@@ -711,6 +759,174 @@ private fun MemberRow(player: Player, season: MemberSeason?, seasonKnown: Boolea
                             maxLines = 1
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Training tab (design 40a/b): Season plan → This month → This week, each opening its own screen.
+ * The month and week cards open on today's and move with ‹ › within the season; back on the tab they
+ * start from today again. Players and parents don't see plans ([AgeGroupPlansUiState.Hidden]).
+ */
+@Composable
+internal fun AgeGroupTrainingTab(
+    plansState: AgeGroupPlansUiState,
+    sessionsState: AgeGroupSessionsUiState,
+    poolSize: Int,
+    onRetrySessions: () -> Unit,
+    onCreateSessions: () -> Unit,
+    onAddSession: (date: LocalDate?) -> Unit,
+    onOpenSession: (sessionId: String) -> Unit,
+    listState: LazyListState,
+    padding: PaddingValues,
+    modifier: Modifier,
+    onRetry: () -> Unit,
+    onOpenSeason: () -> Unit,
+    onEditSeason: () -> Unit,
+    onOpenMonth: (LocalDate) -> Unit,
+    onEditMonth: (LocalDate) -> Unit,
+    onOpenWeek: (LocalDate) -> Unit,
+    onEditWeek: (LocalDate) -> Unit
+) {
+    val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+    // List or Calendar, and the calendar's month and selected day; they reset when the tab is left.
+    var calendar by remember { mutableStateOf(false) }
+    var month by remember { mutableStateOf(LocalDate(today.year, today.month, 1)) }
+    var selectedDay by remember { mutableStateOf<LocalDate?>(today) }
+    val view = SessionsView(calendar, month, selectedDay, { calendar = it }, { month = it }, { selectedDay = it })
+    LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        when (plansState) {
+            AgeGroupPlansUiState.Loading -> item {
+                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
+            }
+            AgeGroupPlansUiState.Error -> item {
+                StatsCard { StatsMessage(stringResource(Res.string.msg_plans_load_failed), stringResource(Res.string.msg_check_connection), onRetry = onRetry) }
+            }
+            AgeGroupPlansUiState.Hidden -> Unit
+            is AgeGroupPlansUiState.Loaded -> {
+                val plans = plansState.plans
+                item(key = "season") { SeasonPlanCard(plans, today, onOpenSeason, onEditSeason) }
+                item(key = "month") {
+                    var month by remember(plans.season.id) { mutableStateOf(initialMonth(plans, today)) }
+                    month?.let { m -> MonthPlanCard(plans, m, onMove = { month = it }, onOpen = { onOpenMonth(m) }, onEdit = { onEditMonth(m) }) }
+                }
+                item(key = "week") {
+                    var week by remember(plans.season.id) { mutableStateOf(initialWeek(plans, today)) }
+                    val weekSessions = (sessionsState as? AgeGroupSessionsUiState.Loaded)?.sessions?.sessions.orEmpty()
+                    week?.let { w ->
+                        val sunday = w.plus(kotlinx.datetime.DatePeriod(days = 6))
+                        WeekPlanCard(
+                            plans, w, onMove = { week = it }, onOpen = { onOpenWeek(w) }, onEdit = { onEditWeek(w) },
+                            sessions = weekSessions.filter { it.date in w..sunday }, onOpenSession = onOpenSession
+                        )
+                    }
+                }
+            }
+        }
+        sessionItems(sessionsState, poolSize, view, onRetrySessions, onCreateSessions, onAddSession, onOpenSession)
+    }
+}
+
+/** The sessions under the plan cards (design 39a/b): Upcoming, then Past, or the empty state. */
+/** The sessions' List / Calendar choice, hoisted out of the lazy list. */
+private class SessionsView(
+    val calendar: Boolean,
+    val month: LocalDate,
+    val selectedDay: LocalDate?,
+    val onCalendar: (Boolean) -> Unit,
+    val onMonth: (LocalDate) -> Unit,
+    val onSelectDay: (LocalDate) -> Unit
+)
+
+private fun LazyListScope.sessionItems(
+    state: AgeGroupSessionsUiState,
+    poolSize: Int,
+    view: SessionsView,
+    onRetry: () -> Unit,
+    onCreateSessions: () -> Unit,
+    onAddSession: (LocalDate?) -> Unit,
+    onOpenSession: (String) -> Unit
+) {
+    when (state) {
+        AgeGroupSessionsUiState.Loading -> Unit
+        AgeGroupSessionsUiState.Error -> item {
+            StatsCard { StatsMessage(stringResource(Res.string.msg_sessions_load_failed), stringResource(Res.string.msg_check_connection), onRetry = onRetry) }
+        }
+        is AgeGroupSessionsUiState.Loaded -> {
+            val data = state.sessions
+            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            item(key = "sessions-header") {
+                Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        StatsHeading(stringResource(Res.string.label_sessions), Modifier.weight(1f))
+                        if (data.sessions.isNotEmpty()) {
+                            FilterChipPill(stringResource(Res.string.btn_list), !view.calendar) { view.onCalendar(false) }
+                            Spacer(Modifier.width(6.dp))
+                            FilterChipPill(stringResource(Res.string.btn_calendar), view.calendar) { view.onCalendar(true) }
+                        }
+                    }
+                    if (data.canEdit && data.sessions.isNotEmpty()) {
+                        Row {
+                            TextButton(onClick = onCreateSessions) { Text(stringResource(Res.string.btn_create_sessions), color = PitchGreen, fontWeight = FontWeight.Bold) }
+                            TextButton(onClick = { onAddSession(if (view.calendar) view.selectedDay else null) }) { Text(stringResource(Res.string.btn_add_one_session), color = PitchGreen, fontWeight = FontWeight.Bold) }
+                        }
+                    }
+                }
+            }
+            if (data.sessions.isEmpty()) {
+                item(key = "sessions-empty") {
+                    StatsCard {
+                        StatsMessage(stringResource(Res.string.msg_no_sessions_title), stringResource(Res.string.msg_no_sessions_body))
+                        if (data.canEdit) {
+                            Spacer(Modifier.height(12.dp))
+                            Button(onClick = onCreateSessions, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)) {
+                                Text(stringResource(Res.string.btn_create_sessions), fontWeight = FontWeight.Bold)
+                            }
+                            TextButton(onClick = { onAddSession(null) }) { Text(stringResource(Res.string.btn_add_one_session), color = PitchGreen, fontWeight = FontWeight.Bold) }
+                        }
+                    }
+                }
+                return
+            }
+            if (view.calendar) {
+                // The season's months, widened to any sessions outside them (clubs train past the season's end).
+                val season = data.season
+                val firstMonth = minOf(season.startDate, data.sessions.minOfOrNull { it.date } ?: season.startDate).let { LocalDate(it.year, it.month, 1) }
+                val lastMonth = maxOf(season.endDate, data.sessions.maxOfOrNull { it.date } ?: season.endDate).let { LocalDate(it.year, it.month, 1) }
+                item(key = "calendar") {
+                    SessionsCalendar(
+                        month = view.month, sessions = data.sessions, country = data.country, selected = view.selectedDay, now = now,
+                        poolSize = poolSize, canRate = data.canRate,
+                        canGoBack = view.month > firstMonth,
+                        canGoForward = view.month < lastMonth,
+                        onMonthChange = view.onMonth, onSelect = view.onSelectDay
+                    )
+                }
+                val dayNext = splitSessions(data.sessions, now).first.let { up -> if (up.any { it.date == now.date }) null else up.firstOrNull { !it.cancelled } }
+                val ofDay = data.sessions.filter { it.date == view.selectedDay }.sortedBy { it.startTime }
+                if (ofDay.isEmpty()) {
+                    item(key = "day-empty") { Text(stringResource(Res.string.msg_no_sessions_day), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), modifier = Modifier.padding(8.dp)) }
+                } else {
+                    items(ofDay, key = { "day-${it.id}" }) { session ->
+                        SessionRow(session, chipFor(session, now, dayNext, poolSize, data.canRate)) { onOpenSession(session.id) }
+                    }
+                }
+                return
+            }
+            val (upcoming, past) = splitSessions(data.sessions, now)
+            val next = if (upcoming.any { it.date == now.date }) null else upcoming.firstOrNull { !it.cancelled }
+            if (upcoming.isNotEmpty()) {
+                item(key = "upcoming") { StatsHeading(stringResource(Res.string.label_upcoming_sessions)) }
+                items(upcoming, key = { it.id }) { session ->
+                    SessionRow(session, chipFor(session, now, next, poolSize, data.canRate)) { onOpenSession(session.id) }
+                }
+            }
+            if (past.isNotEmpty()) {
+                item(key = "past") { StatsHeading(stringResource(Res.string.label_past_sessions), Modifier.padding(top = 8.dp)) }
+                items(past, key = { it.id }) { session ->
+                    SessionRow(session, chipFor(session, now, next, poolSize, data.canRate)) { onOpenSession(session.id) }
                 }
             }
         }

@@ -43,7 +43,8 @@ fun FormErrorLine(error: String?) {
 fun FormTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    label: String,
+    // Null for a box too narrow for a floating label (e.g. a rating), which uses a placeholder instead.
+    label: String?,
     enabled: Boolean,
     keyboardType: KeyboardType,
     modifier: Modifier = Modifier,
@@ -52,6 +53,8 @@ fun FormTextField(
     placeholder: String? = null,
     // False for a multi-line field (e.g. notes), whose Enter adds a line.
     singleLine: Boolean = true,
+    // The height of a multi-line field, in lines (it grows as text is typed).
+    minLines: Int = if (singleLine) 1 else 3,
     hidden: Boolean = false,
     onToggleHidden: (() -> Unit)? = null,
     // Next moves to the following field (Compose's default for ImeAction.Next); the last field's
@@ -62,12 +65,12 @@ fun FormTextField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label) },
+        label = label?.let { { Text(it) } },
         supportingText = supporting?.let { { Text(it) } },
         placeholder = placeholder?.let { { Text(it, color = Color.Gray.copy(alpha = 0.7f)) } },
         modifier = modifier.fillMaxWidth(),
         singleLine = singleLine,
-        minLines = if (singleLine) 1 else 3,
+        minLines = minLines,
         enabled = enabled,
         isError = isError,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),

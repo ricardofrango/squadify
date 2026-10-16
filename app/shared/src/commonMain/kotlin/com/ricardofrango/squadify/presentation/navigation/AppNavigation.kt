@@ -51,6 +51,18 @@ import com.ricardofrango.squadify.presentation.ui.opponents.OpponentDetailsScree
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentEditScreen
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentFormScreen
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentsScreen
+import com.ricardofrango.squadify.presentation.ui.training.CreateSessionsScreen
+import com.ricardofrango.squadify.presentation.ui.training.ExerciseLibraryScreen
+import com.ricardofrango.squadify.presentation.ui.training.RatePlayersScreen
+import com.ricardofrango.squadify.presentation.ui.training.SessionDetailsScreen
+import com.ricardofrango.squadify.presentation.ui.training.SessionEditScreen
+import com.ricardofrango.squadify.presentation.ui.training.MonthPlanScreen
+import com.ricardofrango.squadify.presentation.ui.training.PeriodPlanEditScreen
+import com.ricardofrango.squadify.presentation.ui.training.SeasonPlanEditScreen
+import com.ricardofrango.squadify.model.TrainingPlanLevel
+import kotlinx.datetime.LocalDate
+import com.ricardofrango.squadify.presentation.ui.training.SeasonPlanScreen
+import com.ricardofrango.squadify.presentation.ui.training.WeekPlanScreen
 import com.ricardofrango.squadify.presentation.ui.matchdetails.MatchDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.matchreport.MatchReportScreen
 import com.ricardofrango.squadify.presentation.ui.livematch.LiveMatchScreen
@@ -74,6 +86,9 @@ private const val KEY_OPPONENT_PICKED = "opponentPicked"
 
 // Create opponent (SELECT) -> Schedule match: the new opponent's name, for "… created and selected".
 private const val KEY_OPPONENT_CREATED = "opponentCreated"
+
+// Create sessions -> Age Group Details: how many were created, for "24 sessions created".
+private const val KEY_TRAINING_MESSAGE = "trainingMessage"
 
 // Duration of the app-wide screen transition (see the NavHost below).
 private const val NAV_ANIM_MS = 300
@@ -321,6 +336,16 @@ fun AppNavigation() {
                 onNavigateToOpponents = {
                     navController.navigate(Screen.Opponents(screen.clubId))
                 },
+                onNavigateToRateSession = { sessionId -> navController.navigate(Screen.RateTraining(sessionId)) },
+                onNavigateToEditPlan = { ageGroupId, level, start ->
+                    navController.navigate(
+                        when (level) {
+                            TrainingPlanLevel.SEASON -> Screen.EditSeasonPlan(ageGroupId)
+                            TrainingPlanLevel.MONTH -> Screen.EditMonthPlan(ageGroupId, start.toString())
+                            TrainingPlanLevel.WEEK -> Screen.EditWeekPlan(ageGroupId, start.toString())
+                        }
+                    )
+                },
                 // Back to the "My clubs" list. Normally it's already underneath (the club was opened
                 // from it), so pop back to it -- pushing a new one left two lists stacked, and back
                 // from the list went to the other list. A user who started straight in their only
@@ -532,6 +557,9 @@ fun AppNavigation() {
             val structureChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
                 .collectAsState()
+            val sessionsCreated by backStackEntry.savedStateHandle
+                .getStateFlow<Int?>(KEY_TRAINING_MESSAGE, null)
+                .collectAsState()
             if (structureChanged) {
                 navController.consumeAndCascadeStructureChanged(backStackEntry)
             }
@@ -554,6 +582,20 @@ fun AppNavigation() {
                 },
                 onNavigateToCreateMatch = { ageGroupId ->
                     navController.navigate(Screen.CreateMatch(ageGroupId = ageGroupId))
+                },
+                onNavigateToSeasonPlan = { ageGroupId, edit ->
+                    navController.navigate(if (edit) Screen.EditSeasonPlan(ageGroupId) else Screen.SeasonPlan(ageGroupId))
+                },
+                onNavigateToMonthPlan = { ageGroupId, month, edit ->
+                    navController.navigate(if (edit) Screen.EditMonthPlan(ageGroupId, month.toString()) else Screen.MonthPlan(ageGroupId, month.toString()))
+                },
+                onNavigateToCreateSessions = { ageGroupId -> navController.navigate(Screen.CreateTrainingSessions(ageGroupId)) },
+                onNavigateToAddSession = { ageGroupId, date -> navController.navigate(Screen.EditTrainingSession(ageGroupId, date = date?.toString())) },
+                onNavigateToSession = { sessionId -> navController.navigate(Screen.TrainingSession(sessionId)) },
+                sessionsCreated = sessionsCreated,
+                onMessageShown = { backStackEntry.savedStateHandle[KEY_TRAINING_MESSAGE] = null },
+                onNavigateToWeekPlan = { ageGroupId, monday, edit ->
+                    navController.navigate(if (edit) Screen.EditWeekPlan(ageGroupId, monday.toString()) else Screen.WeekPlan(ageGroupId, monday.toString()))
                 },
                 refreshOnReturn = structureChanged
             )
@@ -764,6 +806,171 @@ fun AppNavigation() {
                         navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
                         navController.popBackStack()
                     }
+                }
+            )
+        }
+
+        screen<Screen.SeasonPlan> { backStackEntry ->
+            val screen: Screen.SeasonPlan = backStackEntry.toRoute()
+            // Set by the plan editors, so the plan reloads on return.
+            val planChanged by backStackEntry.savedStateHandle
+                .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
+                .collectAsState()
+            if (planChanged) navController.consumeAndCascadeStructureChanged(backStackEntry)
+            SeasonPlanScreen(
+                ageGroupId = screen.ageGroupId,
+                onNavigateBack = { navController.popBackStack() },
+                onEdit = { navController.navigate(Screen.EditSeasonPlan(screen.ageGroupId)) },
+                onOpenMonth = { month -> navController.navigate(Screen.MonthPlan(screen.ageGroupId, month.toString())) },
+                refresh = planChanged
+            )
+        }
+
+        screen<Screen.EditSeasonPlan> { backStackEntry ->
+            val screen: Screen.EditSeasonPlan = backStackEntry.toRoute()
+            SeasonPlanEditScreen(
+                ageGroupId = screen.ageGroupId,
+                onNavigateBack = { navController.popBackStack() },
+                onSaved = {
+                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        screen<Screen.MonthPlan> { backStackEntry ->
+            val screen: Screen.MonthPlan = backStackEntry.toRoute()
+            val planChanged by backStackEntry.savedStateHandle
+                .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
+                .collectAsState()
+            if (planChanged) navController.consumeAndCascadeStructureChanged(backStackEntry)
+            MonthPlanScreen(
+                ageGroupId = screen.ageGroupId,
+                month = LocalDate.parse(screen.month),
+                onNavigateBack = { navController.popBackStack() },
+                onEdit = { navController.navigate(Screen.EditMonthPlan(screen.ageGroupId, screen.month)) },
+                onOpenWeek = { monday -> navController.navigate(Screen.WeekPlan(screen.ageGroupId, monday.toString())) },
+                refresh = planChanged
+            )
+        }
+
+        screen<Screen.EditMonthPlan> { backStackEntry ->
+            val screen: Screen.EditMonthPlan = backStackEntry.toRoute()
+            PeriodPlanEditScreen(
+                ageGroupId = screen.ageGroupId,
+                level = TrainingPlanLevel.MONTH,
+                periodStart = LocalDate.parse(screen.month),
+                onNavigateBack = { navController.popBackStack() },
+                onSaved = {
+                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        screen<Screen.WeekPlan> { backStackEntry ->
+            val screen: Screen.WeekPlan = backStackEntry.toRoute()
+            val planChanged by backStackEntry.savedStateHandle
+                .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
+                .collectAsState()
+            if (planChanged) navController.consumeAndCascadeStructureChanged(backStackEntry)
+            WeekPlanScreen(
+                ageGroupId = screen.ageGroupId,
+                monday = LocalDate.parse(screen.monday),
+                onNavigateBack = { navController.popBackStack() },
+                onEdit = { navController.navigate(Screen.EditWeekPlan(screen.ageGroupId, screen.monday)) },
+                onOpenSession = { sessionId -> navController.navigate(Screen.TrainingSession(sessionId)) },
+                onAddSession = { date -> navController.navigate(Screen.EditTrainingSession(screen.ageGroupId, date = date.toString())) },
+                refresh = planChanged
+            )
+        }
+
+        screen<Screen.EditWeekPlan> { backStackEntry ->
+            val screen: Screen.EditWeekPlan = backStackEntry.toRoute()
+            PeriodPlanEditScreen(
+                ageGroupId = screen.ageGroupId,
+                level = TrainingPlanLevel.WEEK,
+                periodStart = LocalDate.parse(screen.monday),
+                onNavigateBack = { navController.popBackStack() },
+                onSaved = {
+                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        screen<Screen.CreateTrainingSessions> { backStackEntry ->
+            val screen: Screen.CreateTrainingSessions = backStackEntry.toRoute()
+            CreateSessionsScreen(
+                ageGroupId = screen.ageGroupId,
+                onNavigateBack = { navController.popBackStack() },
+                onCreated = { count ->
+                    navController.previousBackStackEntry?.let { previous ->
+                        previous.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
+                        previous.setIfAlive(KEY_TRAINING_MESSAGE, count)
+                    }
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        screen<Screen.TrainingSession> { backStackEntry ->
+            val screen: Screen.TrainingSession = backStackEntry.toRoute()
+            val sessionChanged by backStackEntry.savedStateHandle
+                .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
+                .collectAsState()
+            if (sessionChanged) navController.consumeAndCascadeStructureChanged(backStackEntry)
+            SessionDetailsScreen(
+                sessionId = screen.sessionId,
+                onNavigateBack = { navController.popBackStack() },
+                onEdit = { ageGroupId -> navController.navigate(Screen.EditTrainingSession(ageGroupId, sessionId = screen.sessionId)) },
+                onOpenWeekPlan = { ageGroupId, monday, edit ->
+                    navController.navigate(if (edit) Screen.EditWeekPlan(ageGroupId, monday.toString()) else Screen.WeekPlan(ageGroupId, monday.toString()))
+                },
+                onAddExercises = { navController.navigate(Screen.ExerciseLibrary(screen.sessionId)) },
+                onRatePlayers = { navController.navigate(Screen.RateTraining(screen.sessionId)) },
+                onChanged = { deleted ->
+                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    if (deleted) navController.popBackStack()
+                },
+                refresh = sessionChanged
+            )
+        }
+
+        screen<Screen.RateTraining> { backStackEntry ->
+            val screen: Screen.RateTraining = backStackEntry.toRoute()
+            RatePlayersScreen(
+                sessionId = screen.sessionId,
+                onNavigateBack = { navController.popBackStack() },
+                onSaved = {
+                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        screen<Screen.ExerciseLibrary> { backStackEntry ->
+            val screen: Screen.ExerciseLibrary = backStackEntry.toRoute()
+            ExerciseLibraryScreen(
+                sessionId = screen.sessionId,
+                onNavigateBack = { navController.popBackStack() },
+                onAdded = {
+                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        screen<Screen.EditTrainingSession> { backStackEntry ->
+            val screen: Screen.EditTrainingSession = backStackEntry.toRoute()
+            SessionEditScreen(
+                ageGroupId = screen.ageGroupId,
+                sessionId = screen.sessionId,
+                date = screen.date?.let { LocalDate.parse(it) },
+                onNavigateBack = { navController.popBackStack() },
+                onSaved = {
+                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
                 }
             )
         }

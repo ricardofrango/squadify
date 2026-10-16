@@ -137,6 +137,7 @@ import squadify.app.shared.generated.resources.label_permission_level_coordinato
 import squadify.app.shared.generated.resources.label_permission_level_staff
 import squadify.app.shared.generated.resources.label_permission_manage_call_ups
 import squadify.app.shared.generated.resources.label_permission_manage_live_match
+import squadify.app.shared.generated.resources.label_permission_manage_training
 import squadify.app.shared.generated.resources.label_permission_manage_match
 import squadify.app.shared.generated.resources.label_phone_field
 import squadify.app.shared.generated.resources.label_short_name_field
@@ -153,12 +154,17 @@ import squadify.app.shared.generated.resources.msg_permission_edit_opponent_desc
 import squadify.app.shared.generated.resources.msg_permission_edit_player_desc
 import squadify.app.shared.generated.resources.msg_permission_manage_call_ups_desc
 import squadify.app.shared.generated.resources.msg_permission_manage_live_match_desc
+import squadify.app.shared.generated.resources.msg_permission_manage_training_desc
 import squadify.app.shared.generated.resources.msg_permission_manage_match_desc
 import squadify.app.shared.generated.resources.msg_permissions_intro
 import squadify.app.shared.generated.resources.msg_short_name_helper
 import squadify.app.shared.generated.resources.msg_stadium_location_helper
 import squadify.app.shared.generated.resources.msg_unsaved_club_changes
 import squadify.app.shared.generated.resources.title_club_details
+import squadify.app.shared.generated.resources.country_portugal
+import squadify.app.shared.generated.resources.msg_country_helper
+import squadify.app.shared.generated.resources.label_country_field
+import com.ricardofrango.squadify.model.Country
 
 private val FormRoundedShape = RoundedCornerShape(18.dp)
 
@@ -520,6 +526,7 @@ private fun permissionLabel(action: ConfigurablePermission) = when (action) {
     ConfigurablePermission.MANAGE_MATCH -> Res.string.label_permission_manage_match
     ConfigurablePermission.MANAGE_CALL_UPS -> Res.string.label_permission_manage_call_ups
     ConfigurablePermission.MANAGE_LIVE_MATCH -> Res.string.label_permission_manage_live_match
+    ConfigurablePermission.MANAGE_TRAINING -> Res.string.label_permission_manage_training
 }
 
 private fun permissionDescription(action: ConfigurablePermission) = when (action) {
@@ -532,6 +539,7 @@ private fun permissionDescription(action: ConfigurablePermission) = when (action
     ConfigurablePermission.MANAGE_MATCH -> Res.string.msg_permission_manage_match_desc
     ConfigurablePermission.MANAGE_CALL_UPS -> Res.string.msg_permission_manage_call_ups_desc
     ConfigurablePermission.MANAGE_LIVE_MATCH -> Res.string.msg_permission_manage_live_match_desc
+    ConfigurablePermission.MANAGE_TRAINING -> Res.string.msg_permission_manage_training_desc
 }
 
 // null means "coordinator-only" -- the age-group-staff path is disabled entirely for this action.
@@ -680,6 +688,7 @@ private fun ClubDetailsForm(
             infoText = stringResource(Res.string.msg_stadium_location_helper),
             onSubmit = onSubmit
         )
+        CountryField(form.country) { onFormChange(form.copy(country = it)) }
 
         if (state.submitError != null) {
             Text(
@@ -689,6 +698,46 @@ private fun ClubDetailsForm(
             )
         }
     }
+}
+
+/** The club's country, for its public holidays when creating training sessions (design 39k). */
+@Composable
+private fun CountryField(country: Country, onChange: (Country) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth()) {
+        Box {
+            Surface(
+                onClick = { open = true },
+                shape = FormRoundedShape,
+                color = Color.White,
+                border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.3f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(Res.string.label_country_field), style = MaterialTheme.typography.labelSmall, color = CarbonGray)
+                        Text(stringResource(country.nameRes()), style = MaterialTheme.typography.bodyLarge, color = DeepCarbon)
+                    }
+                    Text("▾", color = DeepCarbon.copy(alpha = 0.4f), fontWeight = FontWeight.Bold)
+                }
+            }
+            DropdownMenu(open, onDismissRequest = { open = false }, modifier = Modifier.background(Color.White)) {
+                Country.entries.forEach { c ->
+                    DropdownMenuItem(text = { Text(stringResource(c.nameRes()), color = DeepCarbon) }, onClick = { open = false; onChange(c) })
+                }
+            }
+        }
+        Text(
+            modifier = Modifier.padding(top = 4.dp),
+            text = stringResource(Res.string.msg_country_helper),
+            style = MaterialTheme.typography.bodySmall,
+            color = DeepCarbon.copy(alpha = 0.5f)
+        )
+    }
+}
+
+private fun Country.nameRes() = when (this) {
+    Country.PORTUGAL -> Res.string.country_portugal
 }
 
 @Composable
