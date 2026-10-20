@@ -49,6 +49,19 @@ class GetClubDetailsUseCase(
             false
         }
 
+        // Disabling / reactivating players: the club-level MANAGE_PLAYER_STATUS setting.
+        val canManagePlayerStatus = try {
+            checkUserPermissionUseCase(
+                userId = userId,
+                clubId = clubId,
+                minClubRole = ClubRole.COORDINATOR,
+                configurablePermission = ConfigurablePermission.MANAGE_PLAYER_STATUS
+            )
+            true
+        } catch (e: ForbiddenException) {
+            false
+        }
+
         val viewerRole = userRepository.getUserRoleInClub(userId, clubId)
             ?: if (userRepository.findById(userId)?.isPlatformAdmin == true) ClubRole.CLUB_ADMIN else null
 
@@ -82,6 +95,7 @@ class GetClubDetailsUseCase(
         ClubDetailsResponse(
             club = club,
             canEditClub = canEditClub,
+            canManagePlayerStatus = canManagePlayerStatus,
             viewerRole = viewerRole,
             viewerAgeGroups = viewerAgeGroups,
             createTeamAgeGroupIds = allowedFor(ConfigurablePermission.CREATE_TEAM),

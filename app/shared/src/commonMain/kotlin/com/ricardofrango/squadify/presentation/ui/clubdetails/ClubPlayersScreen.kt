@@ -130,13 +130,13 @@ fun ClubPlayersScreen(
                             onAddPlayersToClub = { onCreatePlayers(clubName) },
                             onAddPlayersToAgeGroup = { onAddPlayersToAgeGroup(clubName) }
                         )
-                    // Disabling and reactivating are club-wide: coordinators and admins (canEditClub), like the server.
+                    // Disabling and reactivating follow the club's MANAGE_PLAYER_STATUS setting, like the server.
                     // Reactivating needs no confirmation: it only lets the player be added to a pool again.
                     else -> PlayerList(
                         s.players,
                         onOpenPlayer,
-                        onDisable = if (s.details.canEditClub) { player -> confirmDisable = player } else null,
-                        onReactivate = if (s.details.canEditClub) { player -> viewModel.reactivate(player.id) } else null
+                        onDisable = if (s.details.canManagePlayerStatus) { player -> confirmDisable = player } else null,
+                        onReactivate = if (s.details.canManagePlayerStatus) { player -> viewModel.reactivate(player.id) } else null
                     )
                 }
             }

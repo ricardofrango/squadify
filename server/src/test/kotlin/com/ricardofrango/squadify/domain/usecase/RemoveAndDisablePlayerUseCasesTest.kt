@@ -13,7 +13,9 @@ import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AddPlayersToAgeGroupRequest
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.CallUpStatus
+import com.ricardofrango.squadify.model.ClubPermissionSetting
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchCallUp
 import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
@@ -159,5 +161,21 @@ class RemoveAndDisablePlayerUseCasesTest {
         coEvery { playerRepository.getPlayersByAgeGroup(ag.id) } returns emptyList()
         add(user("coord", ClubRole.COORDINATOR), ag.id, AddPlayersToAgeGroupRequest(listOf(player.id)))
         coVerify { playerRepository.addPlayersToAgeGroup(match { links -> links.single().let { it.ageGroupId == ag.id && it.playerId == player.id } }) }
+    }
+
+    @Test
+    fun whenTheAdminSetsAdminsOnlyACoordinatorCanNeitherDisableNorReactivate() = runBlocking<Unit> {
+        coEvery { clubPermissionRepository.getOverride(clubId, ConfigurablePermission.MANAGE_PLAYER_STATUS) } returns
+            ClubPermissionSetting(ConfigurablePermission.MANAGE_PLAYER_STATUS, null, ClubRole.CLUB_ADMIN)
+        val coordinator = user("coord", ClubRole.COORDINATOR)
+
+        assertFailsWith<ForbiddenException> { disable(coordinator, player.id) }
+        coEvery { playerRepository.getPlayerById(player.id) } returns player.copy(active = false)
+        assertFailsWith<ForbiddenException> { reactivate(coordinator, player.id) }
+        coVerify(exactly = 0) { playerRepository.updateActiveStatus(any(), any()) }
+
+        // The admin still can.
+        reactivate(user("admin", ClubRole.CLUB_ADMIN), player.id)
+        coVerify { playerRepository.updateActiveStatus(player.id, true) }
     }
 }

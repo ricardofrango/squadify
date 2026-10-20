@@ -207,4 +207,20 @@ class GetClubDetailsUseCaseTest {
         assertEquals(ClubRole.COORDINATOR, result.viewerRole)
         assertEquals(emptyList(), result.createTeamAgeGroupIds)
     }
+
+    @Test
+    fun canManagePlayerStatusFollowsTheClubLevelSetting() = runBlocking {
+        val coord = user("coord-status")
+        coEvery { userRepository.findById(coord.id) } returns coord
+        coEvery { userRepository.getUserRoleInClub(coord.id, clubIdA) } returns ClubRole.COORDINATOR
+        coEvery { clubRepository.getClubById(clubIdA) } returns club
+        assertTrue(useCase(coord.id, clubIdA).canManagePlayerStatus)
+
+        // Admins only: the coordinator still edits the club, but no longer disables players.
+        coEvery { clubPermissionRepository.getOverride(clubIdA, ConfigurablePermission.MANAGE_PLAYER_STATUS) } returns
+            ClubPermissionSetting(ConfigurablePermission.MANAGE_PLAYER_STATUS, null, ClubRole.CLUB_ADMIN)
+        val result = useCase(coord.id, clubIdA)
+        assertTrue(result.canEditClub)
+        assertFalse(result.canManagePlayerStatus)
+    }
 }

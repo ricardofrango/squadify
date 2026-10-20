@@ -497,7 +497,7 @@
     <string name="msg_password_changed">Password changed.</string>
 
     <!-- Club Permissions -->
-    <string name="msg_permissions_intro">Set the minimum role required for each action below. Coordinators and club admins can always do everything, regardless of these settings.</string>
+    <string name="msg_permissions_intro">Set the minimum role required for each action below. Coordinators and club admins can always do them, except an action set to Admins only.</string>
     <string name="msg_permissions_save_failed">These permissions didn\'t save. Please try again.</string>
     <string name="label_permission_level_staff">Any staff</string>
     <string name="label_permission_level_coach">Coach only</string>
@@ -1378,4 +1378,10 @@
     <string name="btn_reactivate">Reactivate</string>
     <string name="msg_player_reactivated">%1$s reactivated. They can be added to an age group again.</string>
     <string name="msg_reactivate_player_failed">Couldn\'t reactivate the player. Try again.</string>
+    <!-- Club-level permission: disable and reactivate players -->
+    <string name="label_permission_manage_player_status">Disable and reactivate players</string>
+    <string name="msg_permission_manage_player_status_desc">Take a player out of the club (out of every age group, nothing deleted), and bring them back.</string>
+    <string name="label_permission_level_admins_coordinators">Admins and coordinators</string>
+    <string name="label_permission_level_admins_only">Admins only</string>
+    <string name="msg_permission_admin_only_setting">Only a club admin can change this.</string>
 </resources>

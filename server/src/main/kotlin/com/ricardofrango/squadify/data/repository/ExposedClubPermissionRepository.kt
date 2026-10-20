@@ -40,11 +40,13 @@ class ExposedClubPermissionRepository : ClubPermissionRepository {
             this[ClubPermissionOverrides.clubId] = clubUuid
             this[ClubPermissionOverrides.permission] = setting.action
             this[ClubPermissionOverrides.minTeamRole] = setting.minTeamRole
+            this[ClubPermissionOverrides.minClubRole] = setting.minClubRole
         }
     }
 
     private fun toSetting(row: ResultRow) = ClubPermissionSetting(
         action = row[ClubPermissionOverrides.permission],
-        minTeamRole = row[ClubPermissionOverrides.minTeamRole]
+        minTeamRole = row[ClubPermissionOverrides.minTeamRole],
+        minClubRole = row[ClubPermissionOverrides.minClubRole]
     )
 }

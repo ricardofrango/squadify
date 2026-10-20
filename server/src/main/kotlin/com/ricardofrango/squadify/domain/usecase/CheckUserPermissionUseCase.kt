@@ -11,7 +11,9 @@ import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.UserStatus
+import com.ricardofrango.squadify.model.defaultMinClubRole
 import com.ricardofrango.squadify.model.defaultMinTeamRole
+import com.ricardofrango.squadify.model.isClubLevel
 
 class CheckUserPermissionUseCase(
     private val userRepository: UserRepository,
@@ -37,6 +39,8 @@ class CheckUserPermissionUseCase(
      *   ([ClubPermissionRepository.getOverride], which may itself be `null` meaning "coordinator-only"),
      *   else [defaultMinTeamRole]. See `TECHNICAL_DECISIONS.md` on configurable permissions -- who may
      *   *change* these settings is never itself configurable (always plain `minClubRole = COORDINATOR`).
+     *   A club-level action ([isClubLevel]) is different: its setting is a minimum **club** role, which
+     *   replaces [minClubRole], and no age-group role ever passes it.
      * @param teamId Optional team ID; used only to derive its age group for the staff / player-link
      *   checks below.
      * @param ageGroupId Optional age-group ID for operations that act on an age group directly
@@ -73,6 +77,16 @@ class CheckUserPermissionUseCase(
 
         // 1. Platform Admins have "God Mode"
         if (user.isPlatformAdmin) return@runInTransaction
+
+        // A club-level configurable action: the club's setting is the minimum club role (admins and
+        // coordinators by default, or admins only), and nothing else grants it.
+        if (configurablePermission != null && configurablePermission.isClubLevel) {
+            val required = clubPermissionRepository.getOverride(clubId, configurablePermission)?.minClubRole
+                ?: configurablePermission.defaultMinClubRole!!
+            val role = userRepository.getUserRoleInClub(userId, clubId)
+            if (role != null && role.level >= required.level) return@runInTransaction
+            throw ForbiddenException(errorMessage)
+        }
 
         // The age-group context for the staff and player-link checks: given directly, or derived
         // from the team the operation targets.

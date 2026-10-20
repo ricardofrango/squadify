@@ -104,6 +104,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.ClubPermissionSetting
 import com.ricardofrango.squadify.model.ConfigurablePermission
+import com.ricardofrango.squadify.model.defaultSetting
+import com.ricardofrango.squadify.model.isClubLevel
+import squadify.app.shared.generated.resources.label_permission_manage_player_status
+import squadify.app.shared.generated.resources.msg_permission_manage_player_status_desc
+import squadify.app.shared.generated.resources.label_permission_level_admins_coordinators
+import squadify.app.shared.generated.resources.label_permission_level_admins_only
+import squadify.app.shared.generated.resources.msg_permission_admin_only_setting
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
@@ -217,7 +224,7 @@ fun EditClubScreen(
         onTabSelected = { viewModel.onTabSelected(it) },
         onFormChange = { form -> viewModel.updateForm(form) },
         onSaveClick = { viewModel.onSaveClicked(clubId, onSaved = onClubUpdated) },
-        onPermissionChanged = { action, minTeamRole -> viewModel.onPermissionChanged(action, minTeamRole) },
+        onPermissionChanged = viewModel::onPermissionChanged,
         onSavePermissionsClick = { viewModel.onSavePermissionsClicked(clubId) },
         onRetryMembers = { viewModel.loadMembers(clubId) },
         onInvite = { email, role, onDone -> viewModel.invite(clubId, email, role, onDone) },
@@ -237,7 +244,7 @@ private fun EditClubContent(
     onTabSelected: (Int) -> Unit,
     onFormChange: (ClubFormFields) -> Unit,
     onSaveClick: () -> Unit,
-    onPermissionChanged: (ConfigurablePermission, TeamRole?) -> Unit,
+    onPermissionChanged: (ClubPermissionSetting) -> Unit,
     onSavePermissionsClick: () -> Unit,
     members: MembersUiState = MembersUiState.Loading,
     inviting: Boolean = false,
@@ -476,7 +483,7 @@ internal fun RoleOption(role: ClubRole, selected: Boolean, enabled: Boolean, rea
 private fun PermissionsForm(
     state: EditClubUiState.Idle,
     modifier: Modifier,
-    onPermissionChanged: (ConfigurablePermission, TeamRole?) -> Unit,
+    onPermissionChanged: (ClubPermissionSetting) -> Unit,
     onSaveClick: () -> Unit
 ) {
     Column(
@@ -492,10 +499,18 @@ private fun PermissionsForm(
         )
 
         state.permissions.forEach { setting ->
-            PermissionRow(
-                setting = setting,
-                onChange = { newValue -> onPermissionChanged(setting.action, newValue) }
-            )
+            if (setting.action.isClubLevel) {
+                ClubLevelPermissionRow(
+                    setting = setting,
+                    enabled = state.canChangeClubLevelPermissions,
+                    onChange = { role -> onPermissionChanged(setting.copy(minClubRole = role)) }
+                )
+            } else {
+                PermissionRow(
+                    setting = setting,
+                    onChange = { newValue -> onPermissionChanged(setting.copy(minTeamRole = newValue)) }
+                )
+            }
         }
 
         if (state.permissionsSubmitError != null) {
@@ -527,6 +542,7 @@ private fun permissionLabel(action: ConfigurablePermission) = when (action) {
     ConfigurablePermission.MANAGE_CALL_UPS -> Res.string.label_permission_manage_call_ups
     ConfigurablePermission.MANAGE_LIVE_MATCH -> Res.string.label_permission_manage_live_match
     ConfigurablePermission.MANAGE_TRAINING -> Res.string.label_permission_manage_training
+    ConfigurablePermission.MANAGE_PLAYER_STATUS -> Res.string.label_permission_manage_player_status
 }
 
 private fun permissionDescription(action: ConfigurablePermission) = when (action) {
@@ -540,6 +556,7 @@ private fun permissionDescription(action: ConfigurablePermission) = when (action
     ConfigurablePermission.MANAGE_CALL_UPS -> Res.string.msg_permission_manage_call_ups_desc
     ConfigurablePermission.MANAGE_LIVE_MATCH -> Res.string.msg_permission_manage_live_match_desc
     ConfigurablePermission.MANAGE_TRAINING -> Res.string.msg_permission_manage_training_desc
+    ConfigurablePermission.MANAGE_PLAYER_STATUS -> Res.string.msg_permission_manage_player_status_desc
 }
 
 // null means "coordinator-only" -- the age-group-staff path is disabled entirely for this action.
@@ -554,6 +571,48 @@ private fun PermissionRow(
     setting: ClubPermissionSetting,
     onChange: (TeamRole?) -> Unit
 ) {
+    PermissionCard(
+        action = setting.action,
+        selected = stringResource(levelLabel(setting.minTeamRole)),
+        options = listOf(
+            Res.string.label_permission_level_staff to { onChange(TeamRole.STAFF) },
+            Res.string.label_permission_level_coach to { onChange(TeamRole.COACH) },
+            Res.string.label_permission_level_coordinator_only to { onChange(null) }
+        )
+    )
+}
+
+/** A club-level action (who disables and reactivates players): admins and coordinators, or admins only. */
+@Composable
+private fun ClubLevelPermissionRow(
+    setting: ClubPermissionSetting,
+    enabled: Boolean,
+    onChange: (ClubRole) -> Unit
+) {
+    PermissionCard(
+        action = setting.action,
+        selected = stringResource(
+            if (setting.minClubRole == ClubRole.CLUB_ADMIN) Res.string.label_permission_level_admins_only
+            else Res.string.label_permission_level_admins_coordinators
+        ),
+        options = listOf(
+            Res.string.label_permission_level_admins_coordinators to { onChange(ClubRole.COORDINATOR) },
+            Res.string.label_permission_level_admins_only to { onChange(ClubRole.CLUB_ADMIN) }
+        ),
+        enabled = enabled,
+        // A coordinator sees the admin's choice but can't change it.
+        footnote = if (enabled) null else stringResource(Res.string.msg_permission_admin_only_setting)
+    )
+}
+
+@Composable
+private fun PermissionCard(
+    action: ConfigurablePermission,
+    selected: String,
+    options: List<Pair<StringResource, () -> Unit>>,
+    enabled: Boolean = true,
+    footnote: String? = null
+) {
     var expanded by remember { mutableStateOf(false) }
 
     Surface(
@@ -563,12 +622,12 @@ private fun PermissionRow(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = stringResource(permissionLabel(setting.action)),
+                text = stringResource(permissionLabel(action)),
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                 color = DeepCarbon
             )
             Text(
-                text = stringResource(permissionDescription(setting.action)),
+                text = stringResource(permissionDescription(action)),
                 style = MaterialTheme.typography.bodySmall,
                 color = DeepCarbon.copy(alpha = 0.6f)
             )
@@ -576,6 +635,7 @@ private fun PermissionRow(
             Box {
                 Surface(
                     onClick = { expanded = true },
+                    enabled = enabled,
                     modifier = Modifier.fillMaxWidth().height(44.dp),
                     shape = RoundedCornerShape(12.dp),
                     color = CarbonGray.copy(alpha = 0.06f),
@@ -587,27 +647,25 @@ private fun PermissionRow(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = stringResource(levelLabel(setting.minTeamRole)),
-                            color = DeepCarbon,
+                            text = selected,
+                            color = DeepCarbon.copy(alpha = if (enabled) 1f else 0.5f),
                             fontWeight = FontWeight.Bold
                         )
-                        Text("▾", color = DeepCarbon.copy(alpha = 0.4f), fontWeight = FontWeight.Bold)
+                        if (enabled) Text("▾", color = DeepCarbon.copy(alpha = 0.4f), fontWeight = FontWeight.Bold)
                     }
                 }
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.background(Color.White)) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.label_permission_level_staff), color = DeepCarbon) },
-                        onClick = { onChange(TeamRole.STAFF); expanded = false }
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.label_permission_level_coach), color = DeepCarbon) },
-                        onClick = { onChange(TeamRole.COACH); expanded = false }
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.label_permission_level_coordinator_only), color = DeepCarbon) },
-                        onClick = { onChange(null); expanded = false }
-                    )
+                    options.forEach { (label, onClick) ->
+                        DropdownMenuItem(
+                            text = { Text(stringResource(label), color = DeepCarbon) },
+                            onClick = { onClick(); expanded = false }
+                        )
+                    }
                 }
+            }
+            if (footnote != null) {
+                Spacer(Modifier.height(6.dp))
+                Text(footnote, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.6f))
             }
         }
     }
@@ -829,7 +887,7 @@ private fun sampleFields() = ClubFormFields(
 )
 
 private fun samplePermissions() = ConfigurablePermission.entries.map {
-    ClubPermissionSetting(it, if (it == ConfigurablePermission.MANAGE_LIVE_MATCH) TeamRole.STAFF else TeamRole.COACH)
+    it.defaultSetting()
 }
 
 @Preview
@@ -845,7 +903,7 @@ private fun EditClubDetailsPreview() {
             onTabSelected = {},
             onFormChange = {},
             onSaveClick = {},
-            onPermissionChanged = { _, _ -> },
+            onPermissionChanged = {},
             onSavePermissionsClick = {}
         )
     }
@@ -869,7 +927,7 @@ private fun EditClubDetailsDirtyPreview() {
             onTabSelected = {},
             onFormChange = {},
             onSaveClick = {},
-            onPermissionChanged = { _, _ -> },
+            onPermissionChanged = {},
             onSavePermissionsClick = {}
         )
     }
@@ -894,7 +952,7 @@ private fun EditClubPermissionsTabPreview() {
             onTabSelected = {},
             onFormChange = {},
             onSaveClick = {},
-            onPermissionChanged = { _, _ -> },
+            onPermissionChanged = {},
             onSavePermissionsClick = {}
         )
     }
@@ -921,7 +979,7 @@ private fun EditClubPermissionsTabDirtyPreview() {
             onTabSelected = {},
             onFormChange = {},
             onSaveClick = {},
-            onPermissionChanged = { _, _ -> },
+            onPermissionChanged = {},
             onSavePermissionsClick = {}
         )
     }
@@ -938,7 +996,7 @@ private fun EditClubLoadingPreview() {
             onTabSelected = {},
             onFormChange = {},
             onSaveClick = {},
-            onPermissionChanged = { _, _ -> },
+            onPermissionChanged = {},
             onSavePermissionsClick = {}
         )
     }
@@ -955,7 +1013,7 @@ private fun EditClubErrorPreview() {
             onTabSelected = {},
             onFormChange = {},
             onSaveClick = {},
-            onPermissionChanged = { _, _ -> },
+            onPermissionChanged = {},
             onSavePermissionsClick = {}
         )
     }
@@ -996,7 +1054,7 @@ private fun MembersPreviewFrame(members: MembersUiState, filter: MembersFilter =
             onTabSelected = {},
             onFormChange = {},
             onSaveClick = {},
-            onPermissionChanged = { _, _ -> },
+            onPermissionChanged = {},
             onSavePermissionsClick = {},
             members = members,
             initialFilter = filter

@@ -363,4 +363,42 @@ class CheckUserPermissionUseCaseTest {
         )
         coVerify(exactly = 0) { clubPermissionRepository.getOverride(any(), any()) }
     }
+
+    // ---- Club-level configurable action: MANAGE_PLAYER_STATUS (a club role, not an age-group role) ----
+
+    private suspend fun managePlayerStatus(userId: String) = useCase(
+        userId, clubIdA,
+        minClubRole = ClubRole.COORDINATOR,
+        configurablePermission = ConfigurablePermission.MANAGE_PLAYER_STATUS
+    )
+
+    @Test
+    fun aCoordinatorManagesPlayerStatusByDefaultButAnAgeGroupCoachNever() = runBlocking<Unit> {
+        coEvery { clubPermissionRepository.getOverride(clubIdA, ConfigurablePermission.MANAGE_PLAYER_STATUS) } returns null
+        val coordinator = user("coord-status")
+        coEvery { userRepository.findById(coordinator.id) } returns coordinator
+        coEvery { userRepository.getUserRoleInClub(coordinator.id, clubIdA) } returns ClubRole.COORDINATOR
+        managePlayerStatus(coordinator.id)
+
+        val coach = user("coach-status")
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, any()) } returns TeamRole.COACH
+        assertFailsWith<ForbiddenException> { managePlayerStatus(coach.id) }
+    }
+
+    @Test
+    fun adminsOnlyShutsOutTheCoordinatorButNotTheAdmin() = runBlocking<Unit> {
+        coEvery { clubPermissionRepository.getOverride(clubIdA, ConfigurablePermission.MANAGE_PLAYER_STATUS) } returns
+            ClubPermissionSetting(ConfigurablePermission.MANAGE_PLAYER_STATUS, null, ClubRole.CLUB_ADMIN)
+        val coordinator = user("coord-locked")
+        coEvery { userRepository.findById(coordinator.id) } returns coordinator
+        coEvery { userRepository.getUserRoleInClub(coordinator.id, clubIdA) } returns ClubRole.COORDINATOR
+        assertFailsWith<ForbiddenException> { managePlayerStatus(coordinator.id) }
+
+        val admin = user("admin-status")
+        coEvery { userRepository.findById(admin.id) } returns admin
+        coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.CLUB_ADMIN
+        managePlayerStatus(admin.id)
+    }
 }

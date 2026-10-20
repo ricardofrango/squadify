@@ -495,7 +495,7 @@
     <string name="msg_password_changed">Senha alterada.</string>
 
     <!-- Club Permissions -->
-    <string name="msg_permissions_intro">Defina o nível mínimo necessário para cada ação abaixo. Coordenadores e administradores do clube podem sempre fazer tudo, independentemente destas definições.</string>
+    <string name="msg_permissions_intro">Defina o nível mínimo necessário para cada ação abaixo. Coordenadores e administradores do clube podem sempre fazê-las, exceto uma ação definida como Só administradores.</string>
     <string name="msg_permissions_save_failed">Não foi possível guardar estas permissões. Por favor, tente novamente.</string>
     <string name="label_permission_level_staff">Qualquer elemento da equipa técnica</string>
     <string name="label_permission_level_coach">Apenas treinador</string>
@@ -1376,4 +1376,10 @@
     <string name="btn_reactivate">Reativar</string>
     <string name="msg_player_reactivated">%1$s reativado. Pode voltar a ser adicionado a um escalão.</string>
     <string name="msg_reactivate_player_failed">Não foi possível reativar o jogador. Tente novamente.</string>
+    <!-- Club-level permission: disable and reactivate players -->
+    <string name="label_permission_manage_player_status">Desativar e reativar jogadores</string>
+    <string name="msg_permission_manage_player_status_desc">Retirar um jogador do clube (sai de todos os escalões, nada é apagado) e voltar a ativá-lo.</string>
+    <string name="label_permission_level_admins_coordinators">Administradores e coordenadores</string>
+    <string name="label_permission_level_admins_only">Só administradores</string>
+    <string name="msg_permission_admin_only_setting">Só um administrador do clube pode alterar isto.</string>
 </resources>

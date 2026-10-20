@@ -40,7 +40,12 @@ graph TD
     B -- not found --> X1(["Throw ForbiddenException: User not found"])
     B -- found --> C{user.isPlatformAdmin?}
     C -- Yes --> ALLOW(["Allow — God Mode"])
-    C -- No --> R["Resolve age-group context: ageGroupId, else team.ageGroupId for teamId"]
+    C -- No --> CL{"configurablePermission is club-level (MANAGE_PLAYER_STATUS)?"}
+    CL -- Yes --> CLR["Required club role: the club's override minClubRole, else COORDINATOR"]
+    CLR --> CLK{"user's ClubRole level >= required?"}
+    CLK -- Yes --> ALLOW
+    CLK -- No --> DENY
+    CL -- No --> R["Resolve age-group context: ageGroupId, else team.ageGroupId for teamId"]
     R --> D[Get user's ClubRole for clubId]
     D --> E{Has a club role?}
     E -- No --> RESOLVE
@@ -66,7 +71,7 @@ graph TD
     M -- No --> DENY
 ```
 
-Key behaviours baked into this one function: Platform Admins bypass everything ("God Mode"); a club-level `CLUB_ADMIN`/`COORDINATOR` role satisfies almost any check without needing a lower-level role; a plain `MEMBER` role is only sufficient when no age-group-specific check is requested; `COACH`/`STAFF` roles are validated per **age group** via `age_group_staff` (a `teamId` passed by a caller is resolved to its age group first); the opt-in player/parent path grants a read when a linked player sits in the relevant age group's pool. `configurablePermission` (mutually exclusive with a literal `minTeamRole` at any one call site) resolves the effective staff-role threshold from the club's own `ClubPermissionOverrides` setting instead of a hardcoded constant — see `TECHNICAL_DECISIONS.md` §35 for the full configurable-permissions design, including which actions are (and deliberately aren't) configurable, and the `ClubPermissionRepository.getOverride` row-exists-vs-null distinction that a naive `?:` chain would get wrong.
+Key behaviours baked into this one function: Platform Admins bypass everything ("God Mode"); a club-level `CLUB_ADMIN`/`COORDINATOR` role satisfies almost any check without needing a lower-level role; a plain `MEMBER` role is only sufficient when no age-group-specific check is requested; `COACH`/`STAFF` roles are validated per **age group** via `age_group_staff` (a `teamId` passed by a caller is resolved to its age group first); the opt-in player/parent path grants a read when a linked player sits in the relevant age group's pool. `configurablePermission` (mutually exclusive with a literal `minTeamRole` at any one call site) resolves the effective staff-role threshold from the club's own `ClubPermissionOverrides` setting instead of a hardcoded constant — see `TECHNICAL_DECISIONS.md` §35 for the full configurable-permissions design, including which actions are (and deliberately aren't) configurable, and the `ClubPermissionRepository.getOverride` row-exists-vs-null distinction that a naive `?:` chain would get wrong. A **club-level** configurable action (`ConfigurablePermission.isClubLevel`, today only `MANAGE_PLAYER_STATUS`) is checked before all of that: its setting is a minimum **club** role (`minClubRole`: `COORDINATOR` by default, or `CLUB_ADMIN`), it replaces the caller's `minClubRole`, and no age-group role passes it (`TECHNICAL_DECISIONS.md` §55).
 
 ### 1.2 `CheckUserIsAdminUseCase` — platform-level gate
 
@@ -459,8 +464,8 @@ graph TD
     A[Start: userId, clubId] --> B[CheckUserPermissionUseCase — minClubRole=MEMBER]
     B -- denied --> F(["Throw ForbiddenException"])
     B -- allowed --> C[Fetch this club's explicit overrides]
-    C --> D["For each of the 8 ConfigurablePermission values: override's minTeamRole if a row exists, else the action's default"]
-    D --> Z(["Return one ClubPermissionSetting per action, always 8"])
+    C --> D["For each ConfigurablePermission value: the override if a row exists, else the action's default (defaultSetting: minTeamRole, or minClubRole = COORDINATOR for a club-level action)"]
+    D --> Z(["Return one ClubPermissionSetting per action"])
 ```
 
 ```mermaid
@@ -469,14 +474,24 @@ graph TD
     B2 -- denied --> F2(["Throw ForbiddenException"])
     B2 -- allowed --> C2{Any duplicate action in the settings list?}
     C2 -- Yes --> V2(["Throw ValidationException"])
-    C2 -- No --> D2["Delete all of this club's existing overrides, then insert exactly the submitted settings"]
+    C2 -- No --> CV{"A club-level action without minClubRole COORDINATOR/CLUB_ADMIN (or with a minTeamRole), or an age-group action with a minClubRole?"}
+    CV -- Yes --> V3(["Throw ValidationException"])
+    CV -- No --> K2["Add back the current override of any club-level action left out of the request"]
+    K2 --> CH{"A club-level action's minClubRole changes?"}
+    CH -- Yes --> AD[CheckUserPermissionUseCase — minClubRole=CLUB_ADMIN]
+    AD -- denied --> F3(["Throw ForbiddenException: only admins"])
+    AD -- allowed --> D2
+    CH -- No --> D2["Delete all of this club's existing overrides, then insert the settings"]
     D2 --> Z2(["Return success"])
 ```
 
 Update is deliberately a full replace, not a per-action patch — the client always submits the whole
 8-action form. `GET` is readable by any club member; `PATCH` is fixed at `minClubRole=COORDINATOR` with no
 `configurablePermission` involved anywhere in its own check — changing a setting is never itself one of
-the settings.
+the settings. The exception is a **club-level** action (who disables and reactivates players): only a
+`CLUB_ADMIN` may change it, so a coordinator can't undo an admin's "Admins only". A coordinator can still
+save the rest of the form with it unchanged, and leaving it out of the request keeps it (an older app that
+doesn't know the action can't reset it). The Permissions tab shows it read-only to coordinators.
 
 ### 3.5 Update Club Member Role (`UpdateClubMemberRoleUseCase`)
 
@@ -1088,7 +1103,7 @@ Out of the pool, **not out of the club**: the player row stays active. Same gate
 graph TD
     A[Start: userId, playerId] --> B[Fetch Player by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, no age-group context]
+    B -- found --> C[CheckUserPermissionUseCase — configurablePermission=MANAGE_PLAYER_STATUS, club-level]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D["players.active = false"]
     D --> E["Delete every age_group_players link of the player"]
@@ -1096,7 +1111,7 @@ graph TD
     U --> Z(["Done (204)"])
 ```
 
-"Removing" a player from the club: nothing is deleted. The player is disabled and leaves every pool (with §5.3a's effects in each), and the club's Players screen keeps listing them, faded, tagged "Disabled" and sorted last. Coordinators and admins only, since it's club-wide (a coach of one age group can't). A disabled player can't be added to a pool (§5.3). `POST /players/{playerId}/disable`. Client: a ✕ on each active row of the club's Players screen when `canEditClub`, behind a confirmation. Undone by §5.3c.
+"Removing" a player from the club: nothing is deleted. The player is disabled and leaves every pool (with §5.3a's effects in each), and the club's Players screen keeps listing them, faded, tagged "Disabled" and sorted last. Behind the club-level `MANAGE_PLAYER_STATUS` setting: admins and coordinators by default, or admins only if the admin says so; a coach of one age group never can. A disabled player can't be added to a pool (§5.3). `POST /players/{playerId}/disable`. Client: a ✕ on each active row of the club's Players screen when `ClubDetailsResponse.canManagePlayerStatus`, behind a confirmation. Undone by §5.3c.
 
 ### 5.3c Reactivate Player (`ReactivatePlayerUseCase`)
 
@@ -1104,7 +1119,7 @@ graph TD
 graph TD
     A[Start: userId, playerId] --> B[Fetch Player by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, no age-group context]
+    B -- found --> C[CheckUserPermissionUseCase — configurablePermission=MANAGE_PLAYER_STATUS, club-level]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D{"Already active?"}
     D -- yes --> Z(["Done (204), nothing changes"])
@@ -1112,7 +1127,7 @@ graph TD
     E --> Z
 ```
 
-Undoes §5.3b: the player is active again, so they're eligible for and can be added to a pool (§5.3). The pools and call-ups they left are **not** restored; whoever manages the age group adds them back. Same gate as disabling. `POST /players/{playerId}/reactivate`. Client: a green "Reactivate" on each disabled row of the club's Players screen when `canEditClub`, with no confirmation (it only makes the player addable again); a snackbar confirms, and the row moves back among the active players.
+Undoes §5.3b: the player is active again, so they're eligible for and can be added to a pool (§5.3). The pools and call-ups they left are **not** restored; whoever manages the age group adds them back. Same gate as disabling. `POST /players/{playerId}/reactivate`. Client: a green "Reactivate" on each disabled row of the club's Players screen when `canManagePlayerStatus`, with no confirmation (it only makes the player addable again); a snackbar confirms, and the row moves back among the active players.
 
 ### 5.4 Add Staff to Age Group (`AddStaffToAgeGroupUseCase`)
 
@@ -2076,6 +2091,7 @@ erDiagram
         uuid club_id FK
         varchar permission "ConfigurablePermission, unique with club_id"
         varchar min_team_role "TeamRole, nullable -- null means coordinator-only"
+        varchar min_club_role "ClubRole, nullable -- club-level actions only: COORDINATOR or CLUB_ADMIN (V22)"
     }
     SEASONS {
         uuid id PK
@@ -2305,7 +2321,7 @@ erDiagram
 ### 12.4 Current persistence setup
 
 - **Engine**: PostgreSQL, both dev and production. H2 has been removed entirely. The connection is built from `ServerConfig.kt`'s `DATABASE_HOST`/`DATABASE_PORT`/`DATABASE_USER`/`DATABASE_PASSWORD`/`DATABASE_NAME` env vars — host and password are required explicitly when `APP_ENV=production` (no silent fallback), while the database name defaults per environment (`squadify_dev` / `squadify_production`), so dev and production stay isolated even against the same Postgres server. `docker-compose.yml` at the repo root provides a local Postgres matching the dev defaults.
-- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, `V5__match_reports.sql`, `V6__match_event_period.sql`, `V7__match_report_opponent_tactic.sql`, `V8__match_event_assist_link.sql`, and so on up to `V21__cascade_team_and_match_deletes.sql` (see the folder for the full list). An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
+- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, `V5__match_reports.sql`, `V6__match_event_period.sql`, `V7__match_report_opponent_tactic.sql`, `V8__match_event_assist_link.sql`, and so on up to `V22__club_level_permissions.sql` (see the folder for the full list). An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
 - **Legacy backfill**: right after Flyway, `DatabaseFactory.init()` still runs a raw, idempotent SQL block that backfills `age_groups.start_year`/`end_year` from the old single `birth_year` column (if it still exists) and then drops that column (§4.3/§5.3). It's a no-op once `birth_year` is gone. It was deliberately left outside the migration chain because there's no way to confirm every environment has already run it.
 - **Connection pool**: HikariCP, `maximumPoolSize = 3` in dev / `10` in production, `autoCommit = false`, isolation level `TRANSACTION_REPEATABLE_READ`.
 

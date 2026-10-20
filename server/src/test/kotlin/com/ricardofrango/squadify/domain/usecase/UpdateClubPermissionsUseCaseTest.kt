@@ -111,4 +111,65 @@ class UpdateClubPermissionsUseCaseTest {
         assertFailsWith<ValidationException> { useCase(coordinator.id, clubId, duplicateRequest) }
         coVerify(exactly = 0) { clubPermissionRepository.replaceOverrides(any(), any()) }
     }
+
+    // ---- Club-level: who disables and reactivates players (MANAGE_PLAYER_STATUS) ----
+
+    private fun member(id: String, role: ClubRole): String {
+        coEvery { userRepository.findById(id) } returns user(id)
+        coEvery { userRepository.getUserRoleInClub(id, clubId) } returns role
+        return id
+    }
+
+    private fun playerStatus(role: ClubRole?) = ClubPermissionSetting(ConfigurablePermission.MANAGE_PLAYER_STATUS, null, role)
+
+    @Test
+    fun onlyAnAdminCanMakeDisablingPlayersAdminsOnly() = runBlocking {
+        coEvery { clubPermissionRepository.getOverrides(clubId) } returns emptyList()
+        val adminsOnly = UpdateClubPermissionsRequest(listOf(playerStatus(ClubRole.CLUB_ADMIN)))
+
+        assertFailsWith<ForbiddenException> { useCase(member("coord", ClubRole.COORDINATOR), clubId, adminsOnly) }
+        coVerify(exactly = 0) { clubPermissionRepository.replaceOverrides(any(), any()) }
+
+        useCase(member("admin", ClubRole.CLUB_ADMIN), clubId, adminsOnly)
+        coVerify { clubPermissionRepository.replaceOverrides(clubId, adminsOnly.settings) }
+    }
+
+    @Test
+    fun aCoordinatorCantGiveThemselvesBackWhatTheAdminTookAway() = runBlocking {
+        coEvery { clubPermissionRepository.getOverrides(clubId) } returns listOf(playerStatus(ClubRole.CLUB_ADMIN))
+        val back = UpdateClubPermissionsRequest(listOf(playerStatus(ClubRole.COORDINATOR)))
+
+        assertFailsWith<ForbiddenException> { useCase(member("coord", ClubRole.COORDINATOR), clubId, back) }
+        coVerify(exactly = 0) { clubPermissionRepository.replaceOverrides(any(), any()) }
+    }
+
+    @Test
+    fun aCoordinatorCanSaveTheRestWhileTheAdminsSettingStaysAndIsKeptWhenLeftOut() = runBlocking {
+        coEvery { clubPermissionRepository.getOverrides(clubId) } returns listOf(playerStatus(ClubRole.CLUB_ADMIN))
+        val coord = member("coord", ClubRole.COORDINATOR)
+
+        // Unchanged in the form: fine.
+        val unchanged = UpdateClubPermissionsRequest(request().settings + playerStatus(ClubRole.CLUB_ADMIN))
+        useCase(coord, clubId, unchanged)
+        coVerify { clubPermissionRepository.replaceOverrides(clubId, unchanged.settings) }
+
+        // Left out (an older app): kept, not reset to the default.
+        useCase(coord, clubId, request())
+        coVerify { clubPermissionRepository.replaceOverrides(clubId, request().settings + playerStatus(ClubRole.CLUB_ADMIN)) }
+    }
+
+    @Test
+    fun aClubLevelActionTakesAdminsOrCoordinatorsAndAnAgeGroupActionNoClubRole() = runBlocking<Unit> {
+        coEvery { clubPermissionRepository.getOverrides(clubId) } returns emptyList()
+        val admin = member("admin", ClubRole.CLUB_ADMIN)
+        listOf(
+            playerStatus(ClubRole.MEMBER),
+            playerStatus(null),
+            ClubPermissionSetting(ConfigurablePermission.MANAGE_PLAYER_STATUS, TeamRole.COACH, ClubRole.COORDINATOR),
+            ClubPermissionSetting(ConfigurablePermission.CREATE_PLAYERS, TeamRole.COACH, ClubRole.CLUB_ADMIN)
+        ).forEach { setting ->
+            assertFailsWith<ValidationException> { useCase(admin, clubId, UpdateClubPermissionsRequest(listOf(setting))) }
+        }
+        coVerify(exactly = 0) { clubPermissionRepository.replaceOverrides(any(), any()) }
+    }
 }
