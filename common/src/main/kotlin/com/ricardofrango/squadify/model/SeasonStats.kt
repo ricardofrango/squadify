@@ -6,20 +6,22 @@ import kotlin.time.Instant
 
 // Season stats for Player Details (design 30) and the season record + team leaders on Team Details
 // (design 31). The server returns the per-match rows; every total, the W/D/L record, form and the
-// leader boards are derived here, from those rows, so switching the All / Competitive / Friendly
-// filter (or a player's season) needs no round trip and the server and clients can't disagree.
+// leader boards are derived here, from those rows, so switching the All / Official / Tournament /
+// Friendly filter (or a player's season) needs no round trip and the server and clients can't disagree.
 
 /** The match-type filter shared by both screens. */
 enum class StatsFilter {
     ALL,
-    // Championship + Tournament -- "how does he do when it counts?" (design 30a).
-    COMPETITIVE,
+    // Official league games (Championship).
+    OFFICIAL,
+    TOURNAMENT,
     FRIENDLY;
 
     /** Untyped (older) matches only count under [ALL]. */
     fun includes(type: MatchType?): Boolean = when (this) {
         ALL -> true
-        COMPETITIVE -> type == MatchType.CHAMPIONSHIP || type == MatchType.TOURNAMENT
+        OFFICIAL -> type == MatchType.CHAMPIONSHIP
+        TOURNAMENT -> type == MatchType.TOURNAMENT
         FRIENDLY -> type == MatchType.FRIENDLY
     }
 }

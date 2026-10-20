@@ -46,12 +46,17 @@ class SeasonStatsTest {
     }
 
     @Test
-    fun competitiveIsChampionshipPlusTournamentAndDropsUntyped() {
-        val t = rows.totals(StatsFilter.COMPETITIVE)
-        assertEquals(2, t.apps)
-        assertEquals(2, t.goals)
-        assertEquals(8.5, t.averageRating)
-        assertEquals(0, t.untypedMatches)
+    fun officialAndTournamentAreSeparateAndDropUntyped() {
+        val official = rows.totals(StatsFilter.OFFICIAL)
+        assertEquals(1, official.apps)
+        assertEquals(2, official.goals)
+        assertEquals(9.0, official.averageRating)
+        assertEquals(0, official.untypedMatches)
+        val tournament = rows.totals(StatsFilter.TOURNAMENT)
+        assertEquals(1, tournament.apps)
+        assertEquals(1, tournament.assists)
+        assertEquals(8.0, tournament.averageRating)
+        assertEquals(0, tournament.untypedMatches)
     }
 
     @Test
@@ -105,10 +110,11 @@ class SeasonStatsTest {
         assertEquals(FormResult.DRAW, all.form.first().result)
         assertEquals(1, all.untypedMatches)
 
-        val competitive = record.totals(StatsFilter.COMPETITIVE)
-        assertEquals(4, competitive.played)
-        assertEquals(0, competitive.untypedMatches)
-        assertEquals(listOf("f", "e", "c", "a"), competitive.form.map { it.matchId })
+        val official = record.totals(StatsFilter.OFFICIAL)
+        assertEquals(3, official.played)
+        assertEquals(0, official.untypedMatches)
+        assertEquals(listOf("f", "c", "a"), official.form.map { it.matchId })
+        assertEquals(listOf("e"), record.totals(StatsFilter.TOURNAMENT).form.map { it.matchId })
     }
 
     @Test
@@ -238,7 +244,8 @@ class SeasonStatsTest {
         assertEquals(listOf(1, 1, 1), listOf(all.won, all.drawn, all.lost))
         assertEquals(4, all.goalsFor)
         assertEquals(3, all.goalsAgainst)
-        assertEquals(2, ageGroup.combined(StatsFilter.COMPETITIVE).played)
+        assertEquals(2, ageGroup.combined(StatsFilter.OFFICIAL).played)
+        assertEquals(0, ageGroup.combined(StatsFilter.TOURNAMENT).played)
     }
 
     @Test
@@ -250,8 +257,8 @@ class SeasonStatsTest {
         assertEquals(listOf("Caio"), m.bands.getValue(MinutesBand.LITTLE).map { it.name }) // 30
         assertEquals(listOf("Duda", "Edu"), m.bands.getValue(MinutesBand.NONE).map { it.name }) // unused sub, never called up
         assertEquals(1, m.playedForSeveralTeams)
-        // Competitive only: Ana keeps just a1's 200.
-        assertEquals(listOf("Ana"), ageGroup.poolMinutes(StatsFilter.COMPETITIVE).bands.getValue(MinutesBand.SOME).map { it.name }.filter { it == "Ana" })
+        // Official only: Ana keeps just a1's 200.
+        assertEquals(listOf("Ana"), ageGroup.poolMinutes(StatsFilter.OFFICIAL).bands.getValue(MinutesBand.SOME).map { it.name }.filter { it == "Ana" })
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.emptySquadRes
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -488,7 +489,7 @@ private fun PlayersTab(
                         item {
                             StatsCard(contentPadding = 16.dp) {
                                 StatsMessage(
-                                    stringResource(if (recordState.filter == StatsFilter.FRIENDLY) Res.string.squad_empty_friendly else Res.string.squad_empty_competitive),
+                                    stringResource(recordState.filter.emptySquadRes()),
                                     stringResource(Res.string.squad_switch_to_all)
                                 )
                             }

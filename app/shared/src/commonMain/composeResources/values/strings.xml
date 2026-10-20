@@ -649,7 +649,8 @@
     <!-- Season stats (Player Details, design 30) and season record (Team Details, design 31) -->
     <string name="stats_season_stats">Season stats</string>
     <string name="stats_filter_all">All</string>
-    <string name="stats_filter_competitive">Competitive</string>
+    <string name="stats_filter_official">Official</string>
+    <string name="stats_filter_tournament">Tournament</string>
     <string name="stats_filter_friendly">Friendly</string>
     <string name="stats_apps">Apps</string>
     <string name="stats_goals">Goals</string>
@@ -662,7 +663,8 @@
     <string name="stats_cards">%1$d yellow · %2$d red</string>
     <string name="stats_matches">Matches</string>
     <string name="stats_empty_friendly">No friendlies this season</string>
-    <string name="stats_empty_competitive">No competitive matches this season</string>
+    <string name="stats_empty_official">No official matches this season</string>
+    <string name="stats_empty_tournament">No tournament matches this season</string>
     <string name="stats_switch_to_all">Switch to All to see every match.</string>
     <string name="stats_no_matches_title">No matches yet</string>
     <string name="stats_no_matches_body">Stats appear here after %1$s plays a first match with stats recorded.</string>
@@ -731,7 +733,8 @@
     <string name="squad_view_pool">View pool</string>
     <string name="squad_no_players_title">No players used yet</string>
     <string name="squad_empty_friendly">Nobody has played a friendly this season</string>
-    <string name="squad_empty_competitive">Nobody has played a competitive match this season</string>
+    <string name="squad_empty_official">Nobody has played an official match this season</string>
+    <string name="squad_empty_tournament">Nobody has played a tournament match this season</string>
     <string name="squad_switch_to_all">Switch to All to see every player used.</string>
     <string name="squad_load_failed_title">Couldn\'t load this team\'s players</string>
     <string name="squad_load_failed_body">Stats and Matches still work. Check your connection and try again.</string>
