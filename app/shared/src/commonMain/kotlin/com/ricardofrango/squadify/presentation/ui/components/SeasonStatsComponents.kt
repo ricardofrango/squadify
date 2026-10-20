@@ -1,5 +1,14 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -54,13 +63,20 @@ import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.btn_retry
 import squadify.app.shared.generated.resources.ic_expand_more
 import squadify.app.shared.generated.resources.stats_filter_all
-import squadify.app.shared.generated.resources.stats_filter_competitive
+import squadify.app.shared.generated.resources.stats_filter_official
+import squadify.app.shared.generated.resources.stats_filter_tournament
+import squadify.app.shared.generated.resources.stats_empty_friendly
+import squadify.app.shared.generated.resources.stats_empty_official
+import squadify.app.shared.generated.resources.stats_empty_tournament
+import squadify.app.shared.generated.resources.squad_empty_friendly
+import squadify.app.shared.generated.resources.squad_empty_official
+import squadify.app.shared.generated.resources.squad_empty_tournament
 import squadify.app.shared.generated.resources.stats_filter_friendly
 import kotlin.math.roundToInt
 
 // Building blocks shared by Player Details' season stats (design 30) and Team Details' season record
-// (design 31): the white card, its uppercase heading with the season pill, the All / Competitive /
-// Friendly segments, and the rating pill.
+// (design 31): the white card, its uppercase heading with the season pill, the All / Official /
+// Tournament / Friendly segments, and the rating pill.
 
 val StatsSecondaryText = DeepCarbon.copy(alpha = 0.62f)
 private val StatsCardShape = RoundedCornerShape(16.dp)
@@ -112,7 +128,11 @@ fun StatsHeaderRow(title: String, pillText: String?, onPillClick: (() -> Unit)?)
     }
 }
 
-/** All · Competitive · Friendly, as one segmented control. */
+/**
+ * All · Official · Tournament · Friendly, as one segmented control. Four labels don't fit side by side,
+ * so the others show their first 3 letters ("Off", "Tou") and only the selected one its full name.
+ * Switching animates: the segments' widths, the label and the dark background move together.
+ */
 @Composable
 fun StatsFilterSegments(selected: StatsFilter, onSelected: (StatsFilter) -> Unit, modifier: Modifier = Modifier, bottomSpacing: Dp = 14.dp) {
     Row(
@@ -123,39 +143,72 @@ fun StatsFilterSegments(selected: StatsFilter, onSelected: (StatsFilter) -> Unit
             .clip(RoundedCornerShape(12.dp))
             .border(1.5.dp, CarbonGray.copy(alpha = 0.16f), RoundedCornerShape(12.dp))
     ) {
-        // Segments share the width in proportion to their labels (the design's flex: 1 1 auto), so a
-        // long label like "Competitivos" isn't squeezed into an equal third.
-        val labels = StatsFilter.entries.map { stringResource(it.labelRes()) }
-        StatsFilter.entries.forEachIndexed { i, filter ->
+        StatsFilter.entries.forEach { filter ->
             val isSelected = filter == selected
+            val label = stringResource(filter.labelRes())
+            val short = shortFilterLabel(label)
+            // The selected segment takes the room its full name needs; the others, their 3 letters.
+            val weight by animateFloatAsState(
+                (if (isSelected) label.length else short.length).coerceAtLeast(3).toFloat() + 2f,
+                animationSpec = tween(FilterAnimationMillis), label = "filterWeight"
+            )
+            val background by animateColorAsState(if (isSelected) CarbonGray else Color.White, tween(FilterAnimationMillis), label = "filterBackground")
+            val textColor by animateColorAsState(if (isSelected) Color.White else DeepCarbon, tween(FilterAnimationMillis), label = "filterText")
             Box(
                 Modifier
-                    .weight(labels[i].length.coerceAtLeast(4).toFloat())
+                    .weight(weight)
                     .fillMaxHeight()
                     .heightIn(min = 40.dp)
-                    .background(if (isSelected) CarbonGray else Color.White)
-                    .semantics { role = Role.Tab; this.selected = isSelected }
+                    .background(background)
+                    // The full name for screen readers, whatever is shown.
+                    .semantics { role = Role.Tab; this.selected = isSelected; contentDescription = label }
                     .clickable { onSelected(filter) }
                     .padding(horizontal = 4.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    labels[i],
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
-                    color = if (isSelected) Color.White else DeepCarbon,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    softWrap = false
-                )
+                AnimatedContent(
+                    targetState = if (isSelected) label else short,
+                    transitionSpec = { fadeIn(tween(FilterAnimationMillis)) togetherWith fadeOut(tween(FilterAnimationMillis / 2)) },
+                    label = "filterLabel"
+                ) { text ->
+                    Text(
+                        text,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
+                        color = textColor,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
             }
         }
     }
 }
 
+private const val FilterAnimationMillis = 250
+
+/** "Official" → "Off", "Todos" → "Tod"; a label of 3 letters or fewer stays as it is ("All"). */
+internal fun shortFilterLabel(label: String): String = label.take(3)
+
 fun StatsFilter.labelRes() = when (this) {
     StatsFilter.ALL -> Res.string.stats_filter_all
-    StatsFilter.COMPETITIVE -> Res.string.stats_filter_competitive
+    StatsFilter.OFFICIAL -> Res.string.stats_filter_official
+    StatsFilter.TOURNAMENT -> Res.string.stats_filter_tournament
     StatsFilter.FRIENDLY -> Res.string.stats_filter_friendly
+}
+
+/** "No official matches this season", for a filter with nothing in it ([StatsFilter.ALL] reads as official). */
+fun StatsFilter.emptyStatsRes() = when (this) {
+    StatsFilter.FRIENDLY -> Res.string.stats_empty_friendly
+    StatsFilter.TOURNAMENT -> Res.string.stats_empty_tournament
+    StatsFilter.ALL, StatsFilter.OFFICIAL -> Res.string.stats_empty_official
+}
+
+/** "Nobody has played an official match this season", the squad list's empty state. */
+fun StatsFilter.emptySquadRes() = when (this) {
+    StatsFilter.FRIENDLY -> Res.string.squad_empty_friendly
+    StatsFilter.TOURNAMENT -> Res.string.squad_empty_tournament
+    StatsFilter.ALL, StatsFilter.OFFICIAL -> Res.string.squad_empty_official
 }
 
 /** A rating in the report's colour bands (design 25d); an average is banded by its rounded value. */

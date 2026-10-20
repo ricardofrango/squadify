@@ -871,8 +871,8 @@ graph TD
     L3 --> Z
 ```
 
-The W/D/L record, form, goals and team leaders are all derived on the client from these rows by shared code (`SeasonStats.kt`: `totals(filter)`, `leaders(filter)`), so the All / Competitive / Friendly filter needs no round trip. The rules:
-- **Filter:** Competitive is Championship + Tournament. Matches with no type count only under All.
+The W/D/L record, form, goals and team leaders are all derived on the client from these rows by shared code (`SeasonStats.kt`: `totals(filter)`, `leaders(filter)`), so the All / Official / Tournament / Friendly filter needs no round trip. The rules:
+- **Filter:** each type has its own segment: Official is Championship, then Tournament and Friendly. Matches with no type count only under All.
 - **Form:** the last five matches in the filter, most recent first.
 - **Appearances:** every called-up player has a stats line, so an unused substitute has a 0-minute line. An appearance is a start or at least one minute (`played`), and only appearances count toward apps (this applies to player totals too, §5.1c).
 - **Members tab (design 32):** `squad(filter, sort)` lists only the players who played for *this* team within the filter. Players called up without ever coming on go into a separate group with their call-up count. Sorting is by Apps, Minutes, Goals, Rating or Name, with ties broken by name.

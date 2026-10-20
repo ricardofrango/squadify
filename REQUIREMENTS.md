@@ -138,7 +138,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - Team Details has a season record (W/D/L, goals, form) and team leaders.
       - Team Details is split into Stats · Matches · Members tabs. The Members tab lists only the players who played for that team.
       - Age Group Details is split into Stats · Teams · Matches · Members tabs. Stats shows results by team and how minutes are spread across the pool.
-      - Both can be filtered by match type (All / Competitive / Friendly), and ratings are shown to staff only (see `TECHNICAL_DECISIONS.md` §43).
+      - Both can be filtered by match type (All / Official / Tournament / Friendly; unselected segments show 3 letters, the selected one its full name, animated), and ratings are shown to staff only (see `TECHNICAL_DECISIONS.md` §43).
 
     - [x] **Live minutes played** (design 36): the live console's Squad tab shows each player's minutes so far, live, with a bar against the fair share, the current spell ("on for 18'") or "off since", and amber flags for players below the share or not played yet; the bench sorts fewest minutes first. Substitutions are unlimited and in any direction (rolling subs in 7- and 9-a-side), and the substitution pickers list candidates with their minutes. Half time shows first-half totals and who's furthest below the share. The clock has a real pause button and is tapped to correct it. Full time shows a minutes table and links to the match report. See `TECHNICAL_DECISIONS.md` §45.
 - [ ] **Phase 6: Dashboards & Aggregated Summaries**: Role-specific overview endpoints.

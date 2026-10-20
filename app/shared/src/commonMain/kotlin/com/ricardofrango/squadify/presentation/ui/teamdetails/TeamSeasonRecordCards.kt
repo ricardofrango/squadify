@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.emptyStatsRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -112,7 +113,7 @@ internal fun TeamRecordCard(
                 val t = record.totals(state.filter)
                 if (t.played == 0) {
                     StatsMessage(
-                        stringResource(if (state.filter == StatsFilter.FRIENDLY) Res.string.stats_empty_friendly else Res.string.stats_empty_competitive),
+                        stringResource(state.filter.emptyStatsRes()),
                         stringResource(Res.string.stats_switch_to_all),
                         Modifier.padding(start = 4.dp, top = 4.dp, bottom = 8.dp)
                     )

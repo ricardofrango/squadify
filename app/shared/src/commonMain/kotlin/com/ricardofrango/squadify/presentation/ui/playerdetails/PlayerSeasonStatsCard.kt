@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.emptyStatsRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -145,7 +146,7 @@ internal fun PlayerSeasonStatsCard(
                     val rows = season.matches.inFilter(state.filter)
                     if (rows.isEmpty()) {
                         StatsMessage(
-                            stringResource(if (state.filter == StatsFilter.FRIENDLY) Res.string.stats_empty_friendly else Res.string.stats_empty_competitive),
+                            stringResource(state.filter.emptyStatsRes()),
                             stringResource(Res.string.stats_switch_to_all),
                             Modifier.padding(start = 4.dp, top = 4.dp, bottom = 8.dp)
                         )

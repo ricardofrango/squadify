@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.emptyStatsRes
 import kotlinx.datetime.plus
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -196,7 +197,7 @@ private fun LazyListScope.statsItems(
                         item {
                             StatsCard(contentPadding = 16.dp) {
                                 StatsMessage(
-                                    stringResource(if (recordState.filter == StatsFilter.FRIENDLY) Res.string.stats_empty_friendly else Res.string.stats_empty_competitive),
+                                    stringResource(recordState.filter.emptyStatsRes()),
                                     stringResource(Res.string.stats_switch_to_all)
                                 )
                             }

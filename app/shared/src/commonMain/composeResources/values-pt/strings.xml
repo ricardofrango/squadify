@@ -647,7 +647,8 @@
     <!-- Season stats (Player Details, design 30) and season record (Team Details, design 31) -->
     <string name="stats_season_stats">Estatísticas da época</string>
     <string name="stats_filter_all">Todos</string>
-    <string name="stats_filter_competitive">Competitivos</string>
+    <string name="stats_filter_official">Oficiais</string>
+    <string name="stats_filter_tournament">Torneios</string>
     <string name="stats_filter_friendly">Amigáveis</string>
     <string name="stats_apps">Jogos</string>
     <string name="stats_goals">Golos</string>
@@ -660,7 +661,8 @@
     <string name="stats_cards">%1$d amarelos · %2$d vermelhos</string>
     <string name="stats_matches">Jogos</string>
     <string name="stats_empty_friendly">Sem jogos amigáveis nesta época</string>
-    <string name="stats_empty_competitive">Sem jogos competitivos nesta época</string>
+    <string name="stats_empty_official">Sem jogos oficiais nesta época</string>
+    <string name="stats_empty_tournament">Sem jogos de torneio nesta época</string>
     <string name="stats_switch_to_all">Mude para Todos para ver todos os jogos.</string>
     <string name="stats_no_matches_title">Ainda sem jogos</string>
     <string name="stats_no_matches_body">As estatísticas aparecem aqui depois do primeiro jogo de %1$s com estatísticas registadas.</string>
@@ -729,7 +731,8 @@
     <string name="squad_view_pool">Ver plantel</string>
     <string name="squad_no_players_title">Ainda sem jogadores utilizados</string>
     <string name="squad_empty_friendly">Ninguém jogou um amigável nesta época</string>
-    <string name="squad_empty_competitive">Ninguém jogou um jogo competitivo nesta época</string>
+    <string name="squad_empty_official">Ninguém jogou um jogo oficial nesta época</string>
+    <string name="squad_empty_tournament">Ninguém jogou um jogo de torneio nesta época</string>
     <string name="squad_switch_to_all">Mude para Todos para ver todos os jogadores utilizados.</string>
     <string name="squad_load_failed_title">Não foi possível carregar os jogadores da equipa</string>
     <string name="squad_load_failed_body">Estatísticas e Jogos continuam disponíveis. Verifique a ligação e tente novamente.</string>
