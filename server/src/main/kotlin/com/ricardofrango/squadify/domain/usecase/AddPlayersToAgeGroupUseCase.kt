@@ -57,6 +57,10 @@ class AddPlayersToAgeGroupUseCase(
             if (player.clubId != ageGroup.clubId) {
                 throw ForbiddenException("Player $playerId does not belong to this club")
             }
+            // A disabled player was removed from the club (DisablePlayerUseCase).
+            if (!player.active) {
+                throw ValidationException("Player ${player.firstName} ${player.lastName} is disabled")
+            }
             if (player.birthDate.year < ageGroup.endYear) {
                 throw ValidationException(
                     "Player ${player.firstName} ${player.lastName} is too old for this age group"

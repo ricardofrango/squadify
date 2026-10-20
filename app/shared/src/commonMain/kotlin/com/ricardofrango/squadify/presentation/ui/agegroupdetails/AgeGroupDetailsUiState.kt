@@ -12,6 +12,12 @@ sealed class AgeGroupDetailsUiState {
     data class Error(val message: String) : AgeGroupDetailsUiState()
 }
 
+/** What removing a player from the pool came to, for the snackbar. */
+sealed class PlayerRemovalResult {
+    data class Removed(val playerName: String, val ageGroupName: String) : PlayerRemovalResult()
+    data class Failed(val message: String) : PlayerRemovalResult()
+}
+
 /** Age Group Details' tabs (design 33, Training from design 40). It always opens on Stats. */
 enum class AgeGroupTab { STATS, TEAMS, MATCHES, TRAINING, MEMBERS }
 

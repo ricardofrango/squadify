@@ -1358,4 +1358,18 @@
     </plurals>
     <string name="msg_delete_team_no_matches">Esta equipa não tem jogos. Não é possível anular.</string>
     <string name="edit_team_delete_failed">Não foi possível eliminar a equipa. Tente novamente.</string>
+    <!-- Remove a player from an age group / disable in the club -->
+    <string name="cd_remove_from_age_group">Remover %1$s do escalão</string>
+    <string name="title_remove_player_age_group">Remover %1$s de %2$s?</string>
+    <string name="msg_remove_player_age_group">Continua no clube e pode voltar a ser adicionado. Os jogos em que jogou continuam a mostrá-lo, mas as estatísticas deste escalão deixam de o contar. Sai também das convocatórias dos jogos que ainda não começaram.</string>
+    <string name="btn_remove">Remover</string>
+    <string name="msg_player_removed_age_group">%1$s removido de %2$s</string>
+    <string name="msg_remove_player_failed">Não foi possível remover o jogador. Tente novamente.</string>
+    <string name="cd_disable_player">Desativar %1$s</string>
+    <string name="title_disable_player">Desativar %1$s?</string>
+    <string name="msg_disable_player">Sai de todos os escalões e das convocatórias dos jogos que ainda não começaram. Nada é apagado: os dados e o histórico de jogos ficam, e aparece aqui como desativado.</string>
+    <string name="btn_disable">Desativar</string>
+    <string name="label_player_disabled">Desativado</string>
+    <string name="msg_player_disabled">%1$s desativado</string>
+    <string name="msg_disable_player_failed">Não foi possível desativar o jogador. Tente novamente.</string>
 </resources>

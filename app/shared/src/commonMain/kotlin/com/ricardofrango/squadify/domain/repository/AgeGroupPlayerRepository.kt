@@ -10,4 +10,7 @@ interface AgeGroupPlayerRepository {
     suspend fun getEligiblePlayers(ageGroupId: String): List<Player>
 
     suspend fun addPlayers(ageGroupId: String, playerIds: List<String>): List<AgeGroupPlayer>
+
+    /** Out of [ageGroupId]'s pool, not out of the club. */
+    suspend fun removePlayer(ageGroupId: String, playerId: String)
 }

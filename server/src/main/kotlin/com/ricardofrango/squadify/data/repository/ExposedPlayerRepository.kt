@@ -9,6 +9,7 @@ import com.ricardofrango.squadify.model.AgeGroupPlayer
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.UserPlayerRelationship
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.batchInsert
@@ -98,6 +99,18 @@ class ExposedPlayerRepository : PlayerRepository {
         Players.update({ Players.id eq playerId.toUuid() }) {
             it[Players.active] = active
         } > 0
+
+    override suspend fun removePlayerFromAgeGroup(ageGroupId: String, playerId: String): Boolean =
+        AgeGroupPlayers.deleteWhere {
+            (AgeGroupPlayers.ageGroupId eq ageGroupId.toUuid()) and (AgeGroupPlayers.playerId eq playerId.toUuid())
+        } > 0
+
+    override suspend fun removePlayerFromAllAgeGroups(playerId: String): List<String> {
+        val ageGroupIds = AgeGroupPlayers.selectAll().where { AgeGroupPlayers.playerId eq playerId.toUuid() }
+            .map { it[AgeGroupPlayers.ageGroupId].toString() }
+        AgeGroupPlayers.deleteWhere { AgeGroupPlayers.playerId eq playerId.toUuid() }
+        return ageGroupIds
+    }
 
     override suspend fun createUserPlayer(
         userId: String,

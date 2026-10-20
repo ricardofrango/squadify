@@ -3,16 +3,21 @@ package com.ricardofrango.squadify.presentation.ui.clubdetails
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.ClubDetails
+import com.ricardofrango.squadify.domain.usecase.DisablePlayerUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubDetailsUseCase
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.presentation.errorMessage
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import squadify.app.shared.generated.resources.Res
+import squadify.app.shared.generated.resources.msg_disable_player_failed
 import squadify.app.shared.generated.resources.msg_failed_to_load_club_details
 
 /** The club's player list, opened from the More panel as its own screen (no bottom bar). */
@@ -55,12 +60,23 @@ internal fun filterClubPlayers(details: ClubDetails, seasonId: String?, ageGroup
         }
         val matchesSearch = q.isEmpty() || "${player.firstName} ${player.lastName}".lowercase().contains(q)
         matchesSeason && matchesAgeGroup && matchesSearch
-    }
+    }.sortedBy { !it.active } // Disabled players last, otherwise in the club's order.
 }
 
+/** The club after [playerId] was disabled: marked inactive and out of every age group's pool. */
+internal fun ClubDetails.withPlayerDisabled(playerId: String): ClubDetails = copy(
+    players = players.map { if (it.id == playerId) it.copy(active = false) else it },
+    ageGroupPlayers = ageGroupPlayers.filter { it.playerId != playerId }
+)
+
 class ClubPlayersViewModel(
-    private val getClubDetailsUseCase: GetClubDetailsUseCase
+    private val getClubDetailsUseCase: GetClubDetailsUseCase,
+    private val disablePlayerUseCase: DisablePlayerUseCase
 ) : ViewModel() {
+
+    // One-off results of disabling a player, for the snackbar: the name, or the error (Failure).
+    private val _disabled = MutableSharedFlow<Result<String>>()
+    val disabled: SharedFlow<Result<String>> = _disabled.asSharedFlow()
 
     private val _state = MutableStateFlow<ClubPlayersUiState>(ClubPlayersUiState.Loading)
     val state: StateFlow<ClubPlayersUiState> = _state.asStateFlow()
@@ -80,6 +96,20 @@ class ClubPlayersViewModel(
                     ?: ClubPlayersUiState.Idle(details, seasonId = details.seasons.maxByOrNull { it.endDate }?.id)
             } catch (e: Exception) {
                 ClubPlayersUiState.Error(errorMessage(e, Res.string.msg_failed_to_load_club_details))
+            }
+        }
+    }
+
+    /** Disables [playerId] (coordinators and admins); the row stays, shown as disabled. */
+    fun disable(playerId: String) {
+        val player = (_state.value as? ClubPlayersUiState.Idle)?.details?.players?.firstOrNull { it.id == playerId } ?: return
+        viewModelScope.launch {
+            try {
+                disablePlayerUseCase(playerId)
+                update { it.copy(details = it.details.withPlayerDisabled(playerId)) }
+                _disabled.emit(Result.success("${player.firstName} ${player.lastName}"))
+            } catch (e: Exception) {
+                _disabled.emit(Result.failure(Exception(errorMessage(e, Res.string.msg_disable_player_failed))))
             }
         }
     }

@@ -1,5 +1,20 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import squadify.app.shared.generated.resources.ic_close
+import squadify.app.shared.generated.resources.btn_cancel
+import squadify.app.shared.generated.resources.btn_remove
+import squadify.app.shared.generated.resources.cd_remove_from_age_group
+import squadify.app.shared.generated.resources.msg_remove_player_age_group
+import squadify.app.shared.generated.resources.title_remove_player_age_group
+import com.ricardofrango.squadify.model.Player
+import androidx.compose.material3.Icon
 import com.ricardofrango.squadify.presentation.ui.components.emptyStatsRes
 import kotlinx.datetime.plus
 import androidx.compose.foundation.BorderStroke
@@ -597,8 +612,11 @@ internal fun AgeGroupMembersTab(
     onAddPlayers: () -> Unit,
     onOpenPlayer: (String) -> Unit,
     // Null for readers who can't open Member details (below coordinator): the rows stay inert.
-    onOpenStaff: ((String) -> Unit)? = null
+    onOpenStaff: ((String) -> Unit)? = null,
+    // Null without ASSIGN_PLAYERS_TO_AGE_GROUP: no ✕ on the player rows.
+    onRemovePlayer: ((String) -> Unit)? = null
 ) {
+    var confirmRemove by remember { mutableStateOf<Player?>(null) }
     val members = (recordState as? AgeGroupRecordUiState.Loaded)?.record?.memberSeasons()
     val teamsById = remember(details.teams) { details.teams.associateBy { it.id } }
     val players = remember(details.players, searchQuery) {
@@ -698,13 +716,31 @@ internal fun AgeGroupMembersTab(
                                 seasonKnown = members != null,
                                 playsUp = player.birthDate.year > details.ageGroup.endYear,
                                 teamNames = members?.get(player.id)?.teamIds.orEmpty().mapNotNull { teamsById[it]?.name }.sorted(),
-                                onClick = { onOpenPlayer(player.id) }
+                                onClick = { onOpenPlayer(player.id) },
+                                onRemove = if (onRemovePlayer != null) { { confirmRemove = player } } else null
                             )
                         }
                     }
                 }
             }
         }
+    }
+    confirmRemove?.let { player ->
+        AlertDialog(
+            onDismissRequest = { confirmRemove = null },
+            title = { Text(stringResource(Res.string.title_remove_player_age_group, "${player.firstName} ${player.lastName}", details.ageGroup.name)) },
+            text = { Text(stringResource(Res.string.msg_remove_player_age_group)) },
+            confirmButton = {
+                TextButton(onClick = { confirmRemove = null; onRemovePlayer?.invoke(player.id) }) {
+                    Text(stringResource(Res.string.btn_remove), color = AlertRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRemove = null }) {
+                    Text(stringResource(Res.string.btn_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        )
     }
 }
 
@@ -714,7 +750,7 @@ internal fun AgeGroupMembersTab(
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun MemberRow(player: Player, season: MemberSeason?, seasonKnown: Boolean, playsUp: Boolean, teamNames: List<String>, onClick: () -> Unit) {
+private fun MemberRow(player: Player, season: MemberSeason?, seasonKnown: Boolean, playsUp: Boolean, teamNames: List<String>, onClick: () -> Unit, onRemove: (() -> Unit)? = null) {
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 10.dp, end = 12.dp, top = 11.dp, bottom = 11.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(32.dp), contentAlignment = Alignment.Center) {
             Text(
@@ -761,6 +797,17 @@ private fun MemberRow(player: Player, season: MemberSeason?, seasonKnown: Boolea
                         )
                     }
                 }
+            }
+        }
+        if (onRemove != null) {
+            // Out of the age group only (the confirmation says so); compact, like the plan editors' ✕.
+            IconButton(onClick = onRemove, modifier = Modifier.padding(start = 4.dp).size(32.dp)) {
+                Icon(
+                    painterResource(Res.drawable.ic_close),
+                    stringResource(Res.string.cd_remove_from_age_group, "${player.firstName} ${player.lastName}"),
+                    tint = DeepCarbon.copy(alpha = 0.45f),
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }

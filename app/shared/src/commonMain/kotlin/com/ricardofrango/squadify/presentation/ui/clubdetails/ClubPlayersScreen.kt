@@ -1,5 +1,21 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.font.FontWeight
+import com.ricardofrango.squadify.model.Player
+import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
+import org.jetbrains.compose.resources.getString
+import squadify.app.shared.generated.resources.btn_cancel
+import squadify.app.shared.generated.resources.btn_disable
+import squadify.app.shared.generated.resources.msg_disable_player
+import squadify.app.shared.generated.resources.msg_player_disabled
+import squadify.app.shared.generated.resources.title_disable_player
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -64,8 +80,17 @@ fun ClubPlayersScreen(
     LaunchedEffect(refresh) { if (refresh) viewModel.load(clubId, force = true) }
 
     val idle = state as? ClubPlayersUiState.Idle
+    val snackbarHostState = remember { SnackbarHostState() }
+    val disabledText = Res.string.msg_player_disabled
+    LaunchedEffect(viewModel) {
+        viewModel.disabled.collect { result ->
+            snackbarHostState.showSnackbar(result.fold({ getString(disabledText, it) }, { it.message.orEmpty() }))
+        }
+    }
+    var confirmDisable by remember { mutableStateOf<Player?>(null) }
     Scaffold(
         containerColor = Color.White,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             FMTopBar(
                 title = stringResource(Res.string.tab_players),
@@ -98,10 +123,28 @@ fun ClubPlayersScreen(
                             onAddPlayersToClub = { onCreatePlayers(clubName) },
                             onAddPlayersToAgeGroup = { onAddPlayersToAgeGroup(clubName) }
                         )
-                    else -> PlayerList(s.players, onOpenPlayer)
+                    // Disabling is club-wide: coordinators and admins (canEditClub), like the server.
+                    else -> PlayerList(s.players, onOpenPlayer, onDisable = if (s.details.canEditClub) { player -> confirmDisable = player } else null)
                 }
             }
         }
+    }
+    confirmDisable?.let { player ->
+        AlertDialog(
+            onDismissRequest = { confirmDisable = null },
+            title = { Text(stringResource(Res.string.title_disable_player, "${player.firstName} ${player.lastName}")) },
+            text = { Text(stringResource(Res.string.msg_disable_player)) },
+            confirmButton = {
+                TextButton(onClick = { confirmDisable = null; viewModel.disable(player.id) }) {
+                    Text(stringResource(Res.string.btn_disable), color = AlertRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDisable = null }) {
+                    Text(stringResource(Res.string.btn_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        )
     }
 }
 

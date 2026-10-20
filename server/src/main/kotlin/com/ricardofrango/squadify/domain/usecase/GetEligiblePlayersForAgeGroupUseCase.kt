@@ -32,6 +32,6 @@ class GetEligiblePlayersForAgeGroupUseCase(
 
         val alreadyIn = playerRepository.getPlayersByAgeGroup(ageGroupId).map { it.id }.toSet()
         playerRepository.getPlayersByClub(ageGroup.clubId)
-            .filter { it.birthDate.year >= ageGroup.endYear && it.id !in alreadyIn }
+            .filter { it.active && it.birthDate.year >= ageGroup.endYear && it.id !in alreadyIn }
     }
 }
