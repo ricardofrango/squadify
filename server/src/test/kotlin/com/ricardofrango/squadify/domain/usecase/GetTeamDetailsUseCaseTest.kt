@@ -125,6 +125,7 @@ class GetTeamDetailsUseCaseTest {
         assertTrue(result.canManageMatch)
         assertTrue(result.canViewMembers)
         assertTrue(result.canEditTeam)
+        assertTrue(result.canDeleteTeam)
     }
 
     @Test
@@ -140,6 +141,8 @@ class GetTeamDetailsUseCaseTest {
         assertFalse(useCase(coach.id, teamId).canViewMembers)
         // The team's own coach can edit it.
         assertTrue(useCase(coach.id, teamId).canEditTeam)
+        // The age group's coach can create teams by default, so can also delete them.
+        assertTrue(useCase(coach.id, teamId).canDeleteTeam)
     }
 
     @Test
@@ -151,6 +154,7 @@ class GetTeamDetailsUseCaseTest {
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, ag1) } returns TeamRole.STAFF
 
         assertFalse(useCase(staff.id, teamId).canManageMatch)
+        assertFalse(useCase(staff.id, teamId).canDeleteTeam)
     }
 
     @Test
@@ -173,6 +177,7 @@ class GetTeamDetailsUseCaseTest {
         assertFalse(result.canManageMatch)
         assertFalse(result.canViewMembers)
         assertFalse(result.canEditTeam)
+        assertFalse(result.canDeleteTeam)
     }
 
     @Test
@@ -259,5 +264,7 @@ class GetTeamDetailsUseCaseTest {
         assertEquals(listOf("m-won", "m-lost"), result.recentResults.map { it.match.id })
         assertEquals(MatchOutcome.WIN, result.recentResults.first().outcome)
         assertEquals(MatchOutcome.LOSS, result.recentResults.last().outcome)
+        // Every match, played or not: what deleting the team would remove.
+        assertEquals(3, result.matchCount)
     }
 }

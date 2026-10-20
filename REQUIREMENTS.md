@@ -120,6 +120,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Player management (individual/batch) with eligibility checks.
     - [x] Team Staff management (Coaches/Staff assignment).
     - [x] Edit team: name and team size (the a-side format), from Team Details, for coordinators and the team's own coach.
+    - [x] Delete team: from Edit team, for whoever can create teams in the age group. All its matches go with it, played ones included (with their call-ups, events, stats and reports); the players stay in the age group. See `TECHNICAL_DECISIONS.md` §53.
     - [x] Edit age group: name, birth-year span and default team size, from Age Group Details, for coordinators. A span that would leave players already in the pool ineligible is refused.
 - [x] **Phase 4: Match & Call-ups**: Calendar and attendance management.
     - [x] Opponent management (dedicated entity and table).

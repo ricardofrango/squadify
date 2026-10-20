@@ -10,9 +10,7 @@ interface MatchRepository {
     suspend fun getMatchesByOpponent(opponentId: String): List<Match>
     suspend fun createMatch(match: Match): Match
     suspend fun updateMatch(match: Match): Boolean
-    // Call-ups and events must be cleared first (DeleteMatchUseCase does this) -- there's no ON
-    // DELETE CASCADE on their matchId foreign keys, so deleting a match with either still attached
-    // fails the FK constraint.
+    // Cascades (V21): its call-ups, events, player stats and report go with it.
     suspend fun deleteMatch(matchId: String): Boolean
     suspend fun updateMatchStatus(matchId: String, status: MatchStatus): Boolean
     // Kicks off: sets isStarting=true on [startingPlayerIds]' call-ups (false on every other call-up

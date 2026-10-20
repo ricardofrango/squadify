@@ -2684,3 +2684,14 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
 - **Age Group → Stats:** a TRAINING card under the existing ones, with All season or one month, and sorting by Attendance, Rating or Name. Each row shows "16/16 · 100%" and the average in its colour band, and opens the player.
 - **Player Details:** two tiles under the season stats (attendance with "14 of 16", and the average). They show the season selected above, else the latest.
 - **Data:** the age-group endpoint returns raw sessions and ratings, so switching month needs no request. Tested in `TrainingSessionUseCasesTest` and `TrainingStatsTest`.
+
+## 53. Deleting a Team, and Cascading Deletes
+
+Per the developer, 2026-10-20: a team can be deleted from its age group, and all its games go with it.
+
+- **Cascade in the database, not by hand.** `V21__cascade_team_and_match_deletes.sql` switches `matches.team_id` → `teams` and the `match_id` foreign keys of `match_call_ups`, `match_events`, `match_player_stats` and `match_reports` → `matches` to `ON DELETE CASCADE` (mirrored in `Tables.kt` with `ReferenceOption.CASCADE`). Deleting the team row removes the matches and everything under them in one statement, and nothing can be forgotten when a new table hangs off a match later, as long as its foreign key cascades too. `DeleteMatchUseCase` used to clear events and call-ups by hand first (§ "Delete match" above); it now just deletes the match.
+- **What references a team.** Only `matches` has a `team_id`. Players and staff belong to the age group, so they stay. `match_events.related_event_id` (assist → goal) keeps `NO ACTION`; all of a match's events go in one cascaded statement, so the check passes (checked against the dev database).
+- **Played matches go too.** `DeleteMatchUseCase` refuses a FINISHED match, but deleting the whole team is the deliberate, bigger action, and its matches can't outlive it. The confirmation says how many matches will go (`TeamDetails.matchCount`) and that played ones are included.
+- **Who:** the same gate as creating a team (`ConfigurablePermission.CREATE_TEAM` in the age group's context, coach-tier by default), not Edit team's (coordinator or this team's coach). Whoever can add teams to the age group can remove them. `TeamDetails.canDeleteTeam` is the probe that shows the button.
+- **Client:** a red outlined "Delete team" at the bottom of Edit team, with a confirmation naming the team and the match count. After deleting, Edit team and Team Details close (`popBackStack<Screen.TeamDetails>(inclusive = true)`) and the age group below reloads and passes the refresh down. Open Matches tabs drop the deleted matches through the club bus (`ClubMatchesUpdate.deletedMatchId`, one per match, sent after the commit).
+- **Tests:** `DeleteTeamUseCaseTest` (permission, one delete, broadcasts), `GetTeamDetailsUseCaseTest` (`canDeleteTeam`, `matchCount`), `DeleteMatchUseCaseTest` (now a single delete), `EditTeamStateTest`.

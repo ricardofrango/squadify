@@ -39,4 +39,8 @@ class TeamRepositoryImpl(
             setBody(request)
         }.handleResponse<Unit>()
     }
+
+    override suspend fun deleteTeam(teamId: String) {
+        httpClient.delete("${appConfig.baseUrl}/teams/$teamId").handleResponse<Unit>()
+    }
 }

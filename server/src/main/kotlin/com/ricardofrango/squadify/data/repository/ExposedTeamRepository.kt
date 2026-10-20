@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.model.Team
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.batchInsert
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
@@ -65,6 +66,9 @@ class ExposedTeamRepository : TeamRepository {
         TeamsTable.update({ TeamsTable.id eq teamId.toUuid() }) {
             it[TeamsTable.active] = active
         } > 0
+
+    override suspend fun deleteTeam(teamId: String): Boolean =
+        TeamsTable.deleteWhere { TeamsTable.id eq teamId.toUuid() } > 0
 
     override suspend fun countTeamsByClub(clubId: String): Long =
         TeamsTable.selectAll()

@@ -438,6 +438,12 @@ fun AppNavigation() {
                     // Team Details (and the age group / club below it) show the name: reload on return.
                     navController.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
                     navController.popBackStack()
+                },
+                onTeamDeleted = {
+                    // Team Details is gone with the team: back to what opened it (the age group), which
+                    // reloads and passes the refresh down (its teams, matches and the club's counts changed).
+                    if (!navController.popBackStack<Screen.TeamDetails>(inclusive = true)) navController.popBackStack()
+                    navController.currentBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
                 }
             )
         }

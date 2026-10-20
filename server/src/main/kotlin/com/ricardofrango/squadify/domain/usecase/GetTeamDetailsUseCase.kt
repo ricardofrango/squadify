@@ -95,6 +95,20 @@ class GetTeamDetailsUseCase(
             false
         }
 
+        // Mirrors DeleteTeamUseCase's gate, so "Delete team" only shows where deleting would work.
+        val canDeleteTeam = try {
+            checkUserPermissionUseCase(
+                userId = userId,
+                clubId = team.clubId,
+                minClubRole = ClubRole.COORDINATOR,
+                configurablePermission = ConfigurablePermission.CREATE_TEAM,
+                ageGroupId = team.ageGroupId
+            )
+            true
+        } catch (e: ForbiddenException) {
+            false
+        }
+
         val now = Clock.System.now()
         val allMatches = matchRepository.getMatchesByTeam(teamId)
 
@@ -144,7 +158,9 @@ class GetTeamDetailsUseCase(
             opponents = opponentRepository.getOpponentsByClub(team.clubId),
             canManageMatch = canManageMatch,
             canViewMembers = canViewMembers,
-            canEditTeam = canEditTeam
+            canEditTeam = canEditTeam,
+            canDeleteTeam = canDeleteTeam,
+            matchCount = allMatches.size
         )
     }
 }

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.data.database
 
+import org.jetbrains.exposed.v1.core.ReferenceOption
 import com.ricardofrango.squadify.model.*
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.datetime.timestamp
@@ -231,7 +232,8 @@ object Opponents : Table("opponents") {
 object Matches : Table("matches") {
     val id = uuid("id")
     val clubId = uuid("club_id").references(Clubs.id)
-    val teamId = uuid("team_id").references(Teams.id)
+    // Deleting a team deletes its matches (V21).
+    val teamId = uuid("team_id").references(Teams.id, onDelete = ReferenceOption.CASCADE)
     val opponentId = uuid("opponent_id").references(Opponents.id)
     val location = varchar("location", 500).nullable()
     val dateTime = timestamp("date_time")
@@ -262,7 +264,7 @@ object Matches : Table("matches") {
 
 object MatchCallUps : Table("match_call_ups") {
     val id = uuid("id")
-    val matchId = uuid("match_id").references(Matches.id)
+    val matchId = uuid("match_id").references(Matches.id, onDelete = ReferenceOption.CASCADE)
     val playerId = uuid("player_id").references(Players.id)
     val status = enumerationByName("status", 50, CallUpStatus::class).default(CallUpStatus.CALLED_UP)
     val notes = text("notes").nullable()
@@ -279,7 +281,7 @@ object MatchCallUps : Table("match_call_ups") {
 
 object MatchEvents : Table("match_events") {
     val id = uuid("id")
-    val matchId = uuid("match_id").references(Matches.id)
+    val matchId = uuid("match_id").references(Matches.id, onDelete = ReferenceOption.CASCADE)
     val type = enumerationByName("type", 50, EventType::class)
     val minute = integer("minute")
     val playerId = uuid("player_id").references(Players.id).nullable()
@@ -298,7 +300,7 @@ object MatchEvents : Table("match_events") {
 // Models.kt). One row per called-up player; `rating` is set later by the coach's match report.
 object MatchPlayerStatsTable : Table("match_player_stats") {
     val id = uuid("id")
-    val matchId = uuid("match_id").references(Matches.id)
+    val matchId = uuid("match_id").references(Matches.id, onDelete = ReferenceOption.CASCADE)
     val playerId = uuid("player_id").references(Players.id)
     val started = bool("started")
     val minutesPlayed = integer("minutes_played")
@@ -320,7 +322,7 @@ object MatchPlayerStatsTable : Table("match_player_stats") {
 // column is optional free text. completed_at null means the report is still pending.
 object MatchReports : Table("match_reports") {
     val id = uuid("id")
-    val matchId = uuid("match_id").references(Matches.id).uniqueIndex("unique_match_report")
+    val matchId = uuid("match_id").references(Matches.id, onDelete = ReferenceOption.CASCADE).uniqueIndex("unique_match_report")
     val tactic = text("tactic").nullable()
     val positiveAspects = text("positive_aspects").nullable()
     val lessPositiveAspects = text("less_positive_aspects").nullable()

@@ -713,7 +713,11 @@ data class TeamDetails(
     // Coordinator+: the staff chips open Member details (design 35), which only they can read.
     val canViewMembers: Boolean = false,
     // The same gate UpdateTeamUseCase enforces (coordinator+, or this team's coach): shows "Edit team".
-    val canEditTeam: Boolean = false
+    val canEditTeam: Boolean = false,
+    // The same gate DeleteTeamUseCase enforces (CREATE_TEAM in the age group): shows "Delete team".
+    val canDeleteTeam: Boolean = false,
+    // Every match of the team, played or not: what deleting it would remove.
+    val matchCount: Int = 0
 )
 
 /**
