@@ -10,4 +10,6 @@ interface TeamRepository {
     suspend fun updateTeam(team: Team): Boolean
     suspend fun updateActiveStatus(teamId: String, active: Boolean): Boolean
     suspend fun countTeamsByClub(clubId: String): Long
+    // Cascades (V21): its matches go too, with their call-ups, events, player stats and reports.
+    suspend fun deleteTeam(teamId: String): Boolean
 }

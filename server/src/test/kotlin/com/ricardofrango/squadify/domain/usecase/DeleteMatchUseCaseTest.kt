@@ -1,7 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
-import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
@@ -21,7 +20,6 @@ import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.coVerifyOrder
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
@@ -32,7 +30,6 @@ import kotlin.time.Instant
 class DeleteMatchUseCaseTest {
 
     private val matchRepository = mockk<MatchRepository>()
-    private val matchEventRepository = mockk<MatchEventRepository>()
     private val teamRepository = mockk<TeamRepository>()
     private val playerRepository = mockk<PlayerRepository>()
     private val ageGroupRepository = mockk<AgeGroupRepository>()
@@ -46,7 +43,7 @@ class DeleteMatchUseCaseTest {
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
     private val clubMatchesBus = mockk<ClubMatchesBus>(relaxed = true)
-    private val useCase = DeleteMatchUseCase(matchRepository, matchEventRepository, checkUserPermissionUseCase, clubMatchesBus, transactionManager)
+    private val useCase = DeleteMatchUseCase(matchRepository, checkUserPermissionUseCase, clubMatchesBus, transactionManager)
 
     private val clubId = "club-1"
     private val matchId = "m-1"
@@ -58,26 +55,20 @@ class DeleteMatchUseCaseTest {
     private fun user(id: String) = User(id, "$id@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
 
     @Test
-    fun coachCanDeleteAMatchAndItsCallUpsAndEventsAreClearedFirst() = runBlocking {
+    fun coachCanDeleteAMatch() = runBlocking {
         val coach = user("coach")
         coEvery { matchRepository.getMatchById(matchId) } returns match
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
         coEvery { teamRepository.getTeamById(teamId) } returns team
-        coEvery { matchEventRepository.deleteEventsByMatch(matchId) } returns Unit
-        coEvery { matchRepository.manageCallUps(matchId, emptyList()) } returns true
         coEvery { matchRepository.deleteMatch(matchId) } returns true
 
         val result = useCase(coach.id, matchId)
 
         assertEquals(true, result)
-        // Events and call-ups must be cleared before the match row itself -- no ON DELETE CASCADE.
-        coVerifyOrder {
-            matchEventRepository.deleteEventsByMatch(matchId)
-            matchRepository.manageCallUps(matchId, emptyList())
-            matchRepository.deleteMatch(matchId)
-        }
+        // One delete: the database cascades to its call-ups and events (V21).
+        coVerify(exactly = 1) { matchRepository.deleteMatch(matchId) }
         coVerify { clubMatchesBus.publish(clubId, com.ricardofrango.squadify.model.ClubMatchesUpdate(deletedMatchId = matchId)) }
     }
 
@@ -103,8 +94,6 @@ class DeleteMatchUseCaseTest {
         coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
         coEvery { teamRepository.getTeamById(teamId) } returns team
-        coEvery { matchEventRepository.deleteEventsByMatch(matchId) } returns Unit
-        coEvery { matchRepository.manageCallUps(matchId, emptyList()) } returns true
         coEvery { matchRepository.deleteMatch(matchId) } returns true
         return coach
     }
@@ -115,7 +104,6 @@ class DeleteMatchUseCaseTest {
         coEvery { matchRepository.getMatchById(matchId) } returns match.copy(status = MatchStatus.FINISHED)
 
         assertFailsWith<ConflictException> { useCase(coach.id, matchId) }
-        coVerify(exactly = 0) { matchEventRepository.deleteEventsByMatch(any()) }
         coVerify(exactly = 0) { matchRepository.deleteMatch(any()) }
         Unit
     }

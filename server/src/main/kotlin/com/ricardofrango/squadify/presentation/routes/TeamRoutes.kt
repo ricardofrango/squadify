@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.routes
 
 import com.ricardofrango.squadify.domain.usecase.CreateTeamUseCase
 import com.ricardofrango.squadify.domain.usecase.CreateTeamsUseCase
+import com.ricardofrango.squadify.domain.usecase.DeleteTeamUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTeamDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTeamSeasonRecordUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTeamPlayersUseCase
@@ -17,6 +18,7 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
@@ -31,6 +33,7 @@ fun Route.teamRoutes() {
     val getTeamDetailsUseCase by inject<GetTeamDetailsUseCase>()
     val getTeamSeasonRecordUseCase by inject<GetTeamSeasonRecordUseCase>()
     val updateTeamUseCase by inject<UpdateTeamUseCase>()
+    val deleteTeamUseCase by inject<DeleteTeamUseCase>()
 
     authenticate("auth-jwt") {
         route("/teams") {
@@ -110,6 +113,14 @@ fun Route.teamRoutes() {
                             ErrorResponse("Failed to update team")
                         )
                     }
+                }
+
+                // Deletes the team and all its matches (DeleteTeamUseCase).
+                delete {
+                    val teamId = call.parameters["teamId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                    deleteTeamUseCase(currentUserId, teamId)
+                    call.respond(HttpStatusCode.NoContent)
                 }
             }
         }

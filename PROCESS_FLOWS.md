@@ -805,6 +805,28 @@ already played. The client's **Edit team** screen (Team Details ⋮) edits the n
 `TeamDetails.canEditTeam` (§4.6b) is the same gate as a non-throwing probe, so the menu item only shows
 where saving would work.
 
+### 4.6a Delete Team (`DeleteTeamUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, teamId] --> B[Fetch Team by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C["CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=CREATE_TEAM, ageGroupId=team.ageGroupId"]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> M["Read the team's match ids (only to announce them)"]
+    M --> D["Delete the Team row — ON DELETE CASCADE (V21) removes its matches and each match's call-ups, events, player stats and report"]
+    D --> P["After commit: publish ClubMatchesUpdate(deletedMatchId) per match on the club bus"]
+    P --> Z(["Return the number of matches deleted"])
+```
+
+Every match goes, **played ones too** -- unlike §7.2b, which refuses to delete a FINISHED match. Removing
+the team is the deliberate, bigger action, and its matches can't exist without it. The players stay: they
+belong to the age group's pool, not to the team. Same gate as creating a team (`CREATE_TEAM`, coach-tier by
+default), so whoever can add teams to the age group can remove them. Exposed as `DELETE /teams/{teamId}`.
+The client's **Edit team** screen shows "Delete team" when `TeamDetails.canDeleteTeam` (§4.6b, the same gate
+as a probe); its confirmation counts `TeamDetails.matchCount` ("This team has 12 matches. They will be
+deleted too…"). After deleting, the app leaves Edit team and Team Details for the age group, which reloads.
+
 ### 4.6b Get Team Details (`GetTeamDetailsUseCase`)
 
 The aggregate behind the team detail screen. A team is only a scheduling handle, so the payload leads with its fixtures and carries the age group's pool size + staff read-only. Standard permission-gated read (§1.3) with an aggregation step and a `canManageMatch` probe:
@@ -1280,9 +1302,7 @@ graph TD
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> ST{match.status == FINISHED?}
     ST -- Yes --> CF(["Throw ConflictException: a played match can't be deleted"])
-    ST -- No --> D["Delete all MatchEvents for this match"]
-    D --> E["Clear all call-ups for this match (manageCallUps with an empty list)"]
-    E --> G["Delete the Match row"]
+    ST -- No --> G["Delete the Match row — ON DELETE CASCADE (V21) removes its call-ups and events"]
     G --> Z(["Return success"])
 ```
 
@@ -1290,9 +1310,9 @@ Same `MANAGE_MATCH` gate as scheduling/editing a match -- deliberately a **separ
 configurable action from both the pre-match call-ups in §7.2 (`MANAGE_CALL_UPS`, also coach-tier by
 default) and the live-match operations in §8.0/§8.1/§8.1b/§8.2 (`MANAGE_LIVE_MATCH`, staff-tier by
 default; see TECHNICAL_DECISIONS.md §19 for the original coach-vs-staff split, and §35 for how all three are
-now per-club configurable). Events and call-ups are
-cleared first because neither's `matchId` foreign key has `ON DELETE CASCADE`; deleting the match row
-first would fail the constraint. Exposed via `DELETE /matches/{matchId}` (`MatchRoutes.kt`), reachable
+now per-club configurable). Its call-ups and events go with it through
+`ON DELETE CASCADE` on their `match_id` foreign keys (`V21`; before that the use case cleared both by hand,
+first). Exposed via `DELETE /matches/{matchId}` (`MatchRoutes.kt`), reachable
 from `MatchDetailsScreen`'s top-right overflow menu (a `ConfirmDialog` -- see `presentation.ui.components`
 -- gates the actual call, since this is irreversible).
 
@@ -1929,14 +1949,14 @@ erDiagram
     PLAYERS ||--o{ INVITES : optionally_linked
     CLUBS ||--o{ OPPONENTS : tracks
     CLUBS ||--o{ MATCHES : schedules
-    TEAMS ||--o{ MATCHES : plays_in
+    TEAMS ||--o{ MATCHES : "plays_in (cascade)"
     OPPONENTS ||--o{ MATCHES : faced_in
-    MATCHES ||--o{ MATCH_CALL_UPS : calls_up_for
+    MATCHES ||--o{ MATCH_CALL_UPS : "calls_up_for (cascade)"
     PLAYERS ||--o{ MATCH_CALL_UPS : called_up_in
-    MATCHES ||--o{ MATCH_EVENTS : logs
-    MATCHES ||--o{ MATCH_PLAYER_STATS : summarizes
+    MATCHES ||--o{ MATCH_EVENTS : "logs (cascade)"
+    MATCHES ||--o{ MATCH_PLAYER_STATS : "summarizes (cascade)"
     PLAYERS ||--o{ MATCH_PLAYER_STATS : played_in
-    MATCHES ||--o| MATCH_REPORTS : reported_in
+    MATCHES ||--o| MATCH_REPORTS : "reported_in (cascade)"
     USERS ||--o{ MATCH_REPORTS : last_edited
     PLAYERS ||--o{ MATCH_EVENTS : optionally_involved
 
@@ -2207,7 +2227,8 @@ erDiagram
 
 - **Unique indexes**: `users.email`; `refresh_tokens.token`; `password_reset_codes.user_id` (the primary key, so a new Forgot-password request replaces the pending code, `V11__password_reset_codes.sql`); `email_change_codes.user_id` (likewise for Change email, `V12__email_change_codes.sql`); `club_members(club_id, user_id)` — one membership per user per club (`V3__unique_club_members.sql`); both add-member repository methods insert with `ON CONFLICT DO NOTHING`, so re-adding an existing member keeps their current row and role rather than duplicating or downgrading it; `fcm_tokens.token` — deliberately on the token alone rather than `(user_id, token)`, since a token identifies one app install, not one user; a registration endpoint that gets the same token again (shared device, or a re-login without reinstalling) should reassign the existing row's `user_id` rather than insert a duplicate; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list; `match_player_stats(match_id, player_id)` — one stats line per player per match; `match_reports.match_id` — one report per match; `training_plans(age_group_id, level, period_start)` — one plan per period (`V15__training_plans.sql`); `training_sessions(age_group_id, date, start_time)` — one session per age group, date and start time, so creating another replaces it (`V17__training_sessions.sql`). A `CHECK` keeps `match_player_stats.rating` NULL or between 0 and 10.
 - **Nullable foreign keys**: `invites.player_id` (only set for `PARENT_PLAYER` invites) and `match_events.player_id` (null when `is_opponent = true`, since the event belongs to a player on the opposing team who isn't in the `players` table).
-- **No `onDelete` behavior is configured on any foreign key** — every `.references(...)` call in `Tables.kt` uses the Exposed default (`NO ACTION`). Deleting a row that still has children (e.g. a `Club` with existing `Teams`) will fail at the database level rather than cascading, nulling out, or being blocked at the application layer with a friendlier error.
+- **`ON DELETE CASCADE` on the team → match chain** (`V21__cascade_team_and_match_deletes.sql`): `matches.team_id` → `teams`, and `match_id` on `match_call_ups`, `match_events`, `match_player_stats` and `match_reports` → `matches`. Deleting a team takes its matches and everything under them (§4.6a); deleting a match takes its children (§7.2b). `matches` is the only table with a `team_id`: players and staff hang off the age group, not the team. `match_events.related_event_id` (an assist pointing at its goal) stays `NO ACTION`; a match's events are deleted in one cascaded statement, where that check passes.
+- **Every other foreign key has no `onDelete` behavior** — the Exposed default (`NO ACTION`). Deleting a row that still has children (e.g. a `Club` with existing `Teams`) fails at the database level rather than cascading, nulling out, or being blocked at the application layer with a friendlier error.
 - Several `enum` columns are nullable independently of their parent row's lifecycle: `club_members.role`/`age_group_staff.role`/`user_players.relationship` are all non-null (required at creation), while `invites.role` and `invites.relationship` are nullable because a single `Invite` row is reused for both invite shapes (see §10) and only one of the two is populated depending on `type`.
 
 ### 12.3 Enum reference
@@ -2234,12 +2255,12 @@ erDiagram
 ### 12.4 Current persistence setup
 
 - **Engine**: PostgreSQL, both dev and production. H2 has been removed entirely. The connection is built from `ServerConfig.kt`'s `DATABASE_HOST`/`DATABASE_PORT`/`DATABASE_USER`/`DATABASE_PASSWORD`/`DATABASE_NAME` env vars — host and password are required explicitly when `APP_ENV=production` (no silent fallback), while the database name defaults per environment (`squadify_dev` / `squadify_production`), so dev and production stay isolated even against the same Postgres server. `docker-compose.yml` at the repo root provides a local Postgres matching the dev defaults.
-- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, `V5__match_reports.sql`, `V6__match_event_period.sql`, `V7__match_report_opponent_tactic.sql`, and `V8__match_event_assist_link.sql`. An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
+- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, `V5__match_reports.sql`, `V6__match_event_period.sql`, `V7__match_report_opponent_tactic.sql`, `V8__match_event_assist_link.sql`, and so on up to `V21__cascade_team_and_match_deletes.sql` (see the folder for the full list). An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
 - **Legacy backfill**: right after Flyway, `DatabaseFactory.init()` still runs a raw, idempotent SQL block that backfills `age_groups.start_year`/`end_year` from the old single `birth_year` column (if it still exists) and then drops that column (§4.3/§5.3). It's a no-op once `birth_year` is gone. It was deliberately left outside the migration chain because there's no way to confirm every environment has already run it.
 - **Connection pool**: HikariCP, `maximumPoolSize = 3` in dev / `10` in production, `autoCommit = false`, isolation level `TRANSACTION_REPEATABLE_READ`.
 
 ### 12.5 Schema-level gaps observed
 
-- [ ] No `onDelete` cascade/set-null strategy anywhere — every FK relies on the DB's default no-action behavior (see §12.2).
+- [ ] No `onDelete` cascade/set-null strategy outside the team → match chain (cascaded since `V21`) — every other FK relies on the DB's default no-action behavior (see §12.2).
 - [x] The Flyway/`SchemaUtils` mismatch: **fixed**, since Flyway is now the real migration mechanism (§12.4, `TECHNICAL_DECISIONS.md` §34). There are still no down/rollback scripts, as Flyway Community only supports forward migrations.
 - [ ] `AgeGroups.start_year`/`end_year` each have a `.default(0)` that has no real-world meaning and is never actually relied upon for a normal insert (`CreateAgeGroupsUseCase` always supplies explicit values) — the default exists only as the "not yet migrated" sentinel the one-off `birth_year` backfill above checks for.

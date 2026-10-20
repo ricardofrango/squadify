@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.ui.editteam
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ricardofrango.squadify.domain.usecase.DeleteTeamUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTeamDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateTeamUseCase
 import com.ricardofrango.squadify.model.UpdateTeamRequest
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import squadify.app.shared.generated.resources.Res
+import squadify.app.shared.generated.resources.edit_team_delete_failed
 import squadify.app.shared.generated.resources.edit_team_failed
 import squadify.app.shared.generated.resources.edit_team_load_failed
 
@@ -32,10 +34,17 @@ sealed class EditTeamUiState {
         val original: TeamFormFields,
         val form: TeamFormFields,
         val isSubmitting: Boolean = false,
-        val submitError: String? = null
+        val submitError: String? = null,
+        val teamName: String = original.name,
+        // The same gate the server enforces (CREATE_TEAM in the age group); hides "Delete team" otherwise.
+        val canDelete: Boolean = false,
+        // Every match of the team, which deleting it removes too.
+        val matchCount: Int = 0,
+        val isDeleting: Boolean = false
     ) : EditTeamUiState() {
+        val busy: Boolean get() = isSubmitting || isDeleting
         val isDirty: Boolean get() = form.name.trim() != original.name || form.teamSize != original.teamSize
-        val canSave: Boolean get() = isDirty && form.name.isNotBlank() && !isSubmitting
+        val canSave: Boolean get() = isDirty && form.name.isNotBlank() && !busy
 
         /** Only the fields that changed, so an untouched one is never overwritten. */
         fun toRequest() = UpdateTeamRequest(
@@ -47,7 +56,8 @@ sealed class EditTeamUiState {
 
 class EditTeamViewModel(
     private val getTeamDetailsUseCase: GetTeamDetailsUseCase,
-    private val updateTeamUseCase: UpdateTeamUseCase
+    private val updateTeamUseCase: UpdateTeamUseCase,
+    private val deleteTeamUseCase: DeleteTeamUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<EditTeamUiState>(EditTeamUiState.Loading)
@@ -55,6 +65,9 @@ class EditTeamViewModel(
 
     private val _saved = MutableSharedFlow<Unit>()
     val saved: SharedFlow<Unit> = _saved.asSharedFlow()
+
+    private val _deleted = MutableSharedFlow<Unit>()
+    val deleted: SharedFlow<Unit> = _deleted.asSharedFlow()
 
     fun load(teamId: String) {
         viewModelScope.launch {
@@ -67,7 +80,9 @@ class EditTeamViewModel(
                     seasonName = details.season.name,
                     teamSizeOptions = details.club.sport.teamSizes,
                     original = fields,
-                    form = fields
+                    form = fields,
+                    canDelete = details.canDeleteTeam,
+                    matchCount = details.matchCount
                 )
             } catch (e: Exception) {
                 EditTeamUiState.Error(errorMessage(e, Res.string.edit_team_load_failed))
@@ -90,6 +105,22 @@ class EditTeamViewModel(
             } catch (e: Exception) {
                 val message = errorMessage(e, Res.string.edit_team_failed)
                 _state.update { (it as? EditTeamUiState.Idle)?.copy(isSubmitting = false, submitError = message) ?: it }
+            }
+        }
+    }
+
+    /** Deletes the team and all its matches (after the screen's confirmation). */
+    fun delete(teamId: String) {
+        val current = _state.value as? EditTeamUiState.Idle ?: return
+        if (!current.canDelete || current.busy) return
+        _state.value = current.copy(isDeleting = true, submitError = null)
+        viewModelScope.launch {
+            try {
+                deleteTeamUseCase(teamId)
+                _deleted.emit(Unit)
+            } catch (e: Exception) {
+                val message = errorMessage(e, Res.string.edit_team_delete_failed)
+                _state.update { (it as? EditTeamUiState.Idle)?.copy(isDeleting = false, submitError = message) ?: it }
             }
         }
     }

@@ -1,6 +1,5 @@
 package com.ricardofrango.squadify.domain.usecase
 
-import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
@@ -12,7 +11,7 @@ import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchStatus
 
 /**
- * Permanently removes a match, its call-ups, and its events. Coach-only, same as editing a match
+ * Permanently removes a match, its call-ups, and its events (cascaded by the database, V21). Coach-only, same as editing a match
  * (CreateMatchUseCase/UpdateMatchUseCase) -- deleting is a change to the match's own record, not a
  * match-day operation, so it's not open to staff (see TECHNICAL_DECISIONS.md's "Match-Day Permissions
  * Opened to Staff" section for that distinction).
@@ -23,7 +22,6 @@ import com.ricardofrango.squadify.model.MatchStatus
  */
 class DeleteMatchUseCase(
     private val matchRepository: MatchRepository,
-    private val matchEventRepository: MatchEventRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val clubMatchesBus: ClubMatchesBus,
     private val transactionManager: TransactionManager
@@ -48,10 +46,7 @@ class DeleteMatchUseCase(
                 throw ConflictException("A match that has been played can't be deleted")
             }
 
-            // No ON DELETE CASCADE on call-ups'/events' matchId foreign keys -- clear both before the
-            // match row itself or the delete fails the FK constraint.
-            matchEventRepository.deleteEventsByMatch(matchId)
-            matchRepository.manageCallUps(matchId, emptyList())
+            // ON DELETE CASCADE (V21) takes its call-ups and events with it.
             matchRepository.deleteMatch(matchId)
         }
 

@@ -11,4 +11,6 @@ interface TeamRepository {
     suspend fun getTeamSeasonRecord(teamId: String): TeamSeasonRecord
     suspend fun createTeams(request: CreateTeamsRequest): List<Team>
     suspend fun updateTeam(teamId: String, request: com.ricardofrango.squadify.model.UpdateTeamRequest)
+    // Deletes the team and all its matches (`DELETE /teams/{id}`).
+    suspend fun deleteTeam(teamId: String)
 }
