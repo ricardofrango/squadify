@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.ui.clubdetails
 
 import squadify.app.shared.generated.resources.ic_close
 import squadify.app.shared.generated.resources.cd_disable_player
+import squadify.app.shared.generated.resources.btn_reactivate
 import squadify.app.shared.generated.resources.label_player_disabled
 import kotlinx.datetime.LocalDate
 import com.ricardofrango.squadify.model.TrainingPlanLevel
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -710,7 +712,9 @@ internal fun PlayerList(
     players: List<Player>,
     onNavigateToPlayer: (String) -> Unit,
     // Null without the permission: no ✕. Never offered on a player already disabled.
-    onDisable: ((Player) -> Unit)? = null
+    onDisable: ((Player) -> Unit)? = null,
+    // Null without the permission: no "Reactivate". Only offered on a disabled player.
+    onReactivate: ((Player) -> Unit)? = null
 ) {
     // Callers only reach here with a non-empty list -- the empty case is handled one level up by
     // NoPlayersState (which also offers the right "add players" action).
@@ -720,7 +724,12 @@ internal fun PlayerList(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(players) { player ->
-            PlayerCard(player, onClick = { onNavigateToPlayer(player.id) }, onDisable = onDisable?.takeIf { player.active }?.let { { it(player) } })
+            PlayerCard(
+                player,
+                onClick = { onNavigateToPlayer(player.id) },
+                onDisable = onDisable?.takeIf { player.active }?.let { { it(player) } },
+                onReactivate = onReactivate?.takeIf { !player.active }?.let { { it(player) } }
+            )
         }
     }
 }
@@ -756,7 +765,7 @@ private fun TeamCard(team: Team, onClick: () -> Unit) {
 }
 
 @Composable
-private fun PlayerCard(player: Player, onClick: () -> Unit, onDisable: (() -> Unit)? = null) {
+private fun PlayerCard(player: Player, onClick: () -> Unit, onDisable: (() -> Unit)? = null, onReactivate: (() -> Unit)? = null) {
     // A disabled player stays listed (their data is kept), faded and tagged "Disabled".
     val faded = if (player.active) 1f else 0.45f
     Card(
@@ -816,6 +825,11 @@ private fun PlayerCard(player: Player, onClick: () -> Unit, onDisable: (() -> Un
                         tint = DeepCarbon.copy(alpha = 0.45f),
                         modifier = Modifier.size(20.dp)
                     )
+                }
+            }
+            if (onReactivate != null) {
+                TextButton(onClick = onReactivate, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                    Text(stringResource(Res.string.btn_reactivate), color = PitchGreen, fontWeight = FontWeight.Bold)
                 }
             }
         }

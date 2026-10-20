@@ -1374,4 +1374,8 @@
     <string name="label_player_disabled">Disabled</string>
     <string name="msg_player_disabled">%1$s disabled</string>
     <string name="msg_disable_player_failed">Couldn\'t disable the player. Try again.</string>
+    <!-- Reactivate a disabled player -->
+    <string name="btn_reactivate">Reactivate</string>
+    <string name="msg_player_reactivated">%1$s reactivated. They can be added to an age group again.</string>
+    <string name="msg_reactivate_player_failed">Couldn\'t reactivate the player. Try again.</string>
 </resources>

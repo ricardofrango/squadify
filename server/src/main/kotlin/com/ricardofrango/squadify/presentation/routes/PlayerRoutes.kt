@@ -18,6 +18,7 @@ fun Route.playerRoutes() {
     val createPlayersUseCase by inject<CreatePlayersUseCase>()
     val updatePlayerUseCase by inject<UpdatePlayerUseCase>()
     val disablePlayerUseCase by inject<DisablePlayerUseCase>()
+    val reactivatePlayerUseCase by inject<ReactivatePlayerUseCase>()
 
     authenticate("auth-jwt") {
         route("/players") {
@@ -99,6 +100,14 @@ fun Route.playerRoutes() {
                     val playerId = call.parameters["playerId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
                     val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                     disablePlayerUseCase(currentUserId, playerId)
+                    call.respond(HttpStatusCode.NoContent)
+                }
+
+                // Active again, so they can be added to a pool; the old pools aren't restored (ReactivatePlayerUseCase).
+                post("/reactivate") {
+                    val playerId = call.parameters["playerId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                    reactivatePlayerUseCase(currentUserId, playerId)
                     call.respond(HttpStatusCode.NoContent)
                 }
             }

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.ClubDetails
 import com.ricardofrango.squadify.domain.usecase.DisablePlayerUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubDetailsUseCase
+import com.ricardofrango.squadify.domain.usecase.ReactivatePlayerUseCase
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.presentation.errorMessage
@@ -19,6 +20,7 @@ import kotlinx.coroutines.launch
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_disable_player_failed
 import squadify.app.shared.generated.resources.msg_failed_to_load_club_details
+import squadify.app.shared.generated.resources.msg_reactivate_player_failed
 
 /** The club's player list, opened from the More panel as its own screen (no bottom bar). */
 sealed class ClubPlayersUiState {
@@ -69,14 +71,24 @@ internal fun ClubDetails.withPlayerDisabled(playerId: String): ClubDetails = cop
     ageGroupPlayers = ageGroupPlayers.filter { it.playerId != playerId }
 )
 
+/** The club after [playerId] was reactivated: active again, still in no pool until someone adds them. */
+internal fun ClubDetails.withPlayerReactivated(playerId: String): ClubDetails = copy(
+    players = players.map { if (it.id == playerId) it.copy(active = true) else it }
+)
+
 class ClubPlayersViewModel(
     private val getClubDetailsUseCase: GetClubDetailsUseCase,
-    private val disablePlayerUseCase: DisablePlayerUseCase
+    private val disablePlayerUseCase: DisablePlayerUseCase,
+    private val reactivatePlayerUseCase: ReactivatePlayerUseCase
 ) : ViewModel() {
 
     // One-off results of disabling a player, for the snackbar: the name, or the error (Failure).
     private val _disabled = MutableSharedFlow<Result<String>>()
     val disabled: SharedFlow<Result<String>> = _disabled.asSharedFlow()
+
+    // Likewise for reactivating one.
+    private val _reactivated = MutableSharedFlow<Result<String>>()
+    val reactivated: SharedFlow<Result<String>> = _reactivated.asSharedFlow()
 
     private val _state = MutableStateFlow<ClubPlayersUiState>(ClubPlayersUiState.Loading)
     val state: StateFlow<ClubPlayersUiState> = _state.asStateFlow()
@@ -110,6 +122,20 @@ class ClubPlayersViewModel(
                 _disabled.emit(Result.success("${player.firstName} ${player.lastName}"))
             } catch (e: Exception) {
                 _disabled.emit(Result.failure(Exception(errorMessage(e, Res.string.msg_disable_player_failed))))
+            }
+        }
+    }
+
+    /** Reactivates a disabled [playerId] (coordinators and admins); they can then be added to an age group. */
+    fun reactivate(playerId: String) {
+        val player = (_state.value as? ClubPlayersUiState.Idle)?.details?.players?.firstOrNull { it.id == playerId } ?: return
+        viewModelScope.launch {
+            try {
+                reactivatePlayerUseCase(playerId)
+                update { it.copy(details = it.details.withPlayerReactivated(playerId)) }
+                _reactivated.emit(Result.success("${player.firstName} ${player.lastName}"))
+            } catch (e: Exception) {
+                _reactivated.emit(Result.failure(Exception(errorMessage(e, Res.string.msg_reactivate_player_failed))))
             }
         }
     }

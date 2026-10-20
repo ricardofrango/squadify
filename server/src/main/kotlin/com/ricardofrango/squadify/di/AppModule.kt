@@ -122,6 +122,7 @@ val appModule = module {
     factory { AddPlayersToAgeGroupUseCase(get(), get(), get(), get()) }
     factory { RemovePlayerFromAgeGroupUseCase(get(), get(), get(), get(), get(), get()) }
     factory { DisablePlayerUseCase(get(), get(), get(), get(), get()) }
+    factory { ReactivatePlayerUseCase(get(), get(), get()) }
     factory { GetEligiblePlayersForAgeGroupUseCase(get(), get(), get(), get()) }
 
     factory { GetTeamsUseCase(get(), get(), get(), get(), get(), get()) }

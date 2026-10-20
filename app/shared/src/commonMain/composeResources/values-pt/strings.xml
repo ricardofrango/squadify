@@ -1372,4 +1372,8 @@
     <string name="label_player_disabled">Desativado</string>
     <string name="msg_player_disabled">%1$s desativado</string>
     <string name="msg_disable_player_failed">Não foi possível desativar o jogador. Tente novamente.</string>
+    <!-- Reactivate a disabled player -->
+    <string name="btn_reactivate">Reativar</string>
+    <string name="msg_player_reactivated">%1$s reativado. Pode voltar a ser adicionado a um escalão.</string>
+    <string name="msg_reactivate_player_failed">Não foi possível reativar o jogador. Tente novamente.</string>
 </resources>

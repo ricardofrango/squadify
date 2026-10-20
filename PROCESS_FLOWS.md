@@ -1096,7 +1096,23 @@ graph TD
     U --> Z(["Done (204)"])
 ```
 
-"Removing" a player from the club: nothing is deleted. The player is disabled and leaves every pool (with §5.3a's effects in each), and the club's Players screen keeps listing them, faded, tagged "Disabled" and sorted last. Coordinators and admins only, since it's club-wide (a coach of one age group can't). A disabled player can't be added to a pool (§5.3). `POST /players/{playerId}/disable`. Client: a ✕ on each active row of the club's Players screen when `canEditClub`, behind a confirmation. There's no re-enable yet.
+"Removing" a player from the club: nothing is deleted. The player is disabled and leaves every pool (with §5.3a's effects in each), and the club's Players screen keeps listing them, faded, tagged "Disabled" and sorted last. Coordinators and admins only, since it's club-wide (a coach of one age group can't). A disabled player can't be added to a pool (§5.3). `POST /players/{playerId}/disable`. Client: a ✕ on each active row of the club's Players screen when `canEditClub`, behind a confirmation. Undone by §5.3c.
+
+### 5.3c Reactivate Player (`ReactivatePlayerUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, playerId] --> B[Fetch Player by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, no age-group context]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D{"Already active?"}
+    D -- yes --> Z(["Done (204), nothing changes"])
+    D -- no --> E["players.active = true"]
+    E --> Z
+```
+
+Undoes §5.3b: the player is active again, so they're eligible for and can be added to a pool (§5.3). The pools and call-ups they left are **not** restored; whoever manages the age group adds them back. Same gate as disabling. `POST /players/{playerId}/reactivate`. Client: a green "Reactivate" on each disabled row of the club's Players screen when `canEditClub`, with no confirmation (it only makes the player addable again); a snackbar confirms, and the row moves back among the active players.
 
 ### 5.4 Add Staff to Age Group (`AddStaffToAgeGroupUseCase`)
 
