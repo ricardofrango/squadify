@@ -2269,7 +2269,7 @@ Player Details shows a **Season stats** card with a per-match list (design 30), 
 
 **The match-type filter** is All · Official · Tournament · Friendly (`StatsFilter`).
 - **Official and Tournament are separate** (per the developer, 2026-10-20). They used to be merged as "Competitive", but clubs read league games and tournaments differently. Official is the Championship type.
-- **Labels:** four full labels don't fit across a phone, so unselected segments show their first 3 letters ("Off", "Tou", "Fri"; in Portuguese "Ofi", "Tor", "Ami") and the selected one its full name. The full name is always the segment's content description.
+- **Labels:** four full labels don't fit across a phone, so unselected segments show their first 5 letters and a "." to say they're cut ("Offic.", "Tourn.", "Frien."; in Portuguese "Ofici.", "Torne.", "Amigá.") and the selected one its full name. Labels of 5 letters or fewer stay whole ("All", "Todos"). The full name is always the segment's content description.
 - **Animation:** switching animates the segments' widths (weights from the label lengths), the label (a fade) and the dark background together, over 250 ms.
 - **Untyped matches** (older matches, §42) count only under All, signalled by one quiet line under the totals.
 

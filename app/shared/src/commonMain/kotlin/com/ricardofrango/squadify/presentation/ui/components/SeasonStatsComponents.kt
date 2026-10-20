@@ -130,7 +130,7 @@ fun StatsHeaderRow(title: String, pillText: String?, onPillClick: (() -> Unit)?)
 
 /**
  * All · Official · Tournament · Friendly, as one segmented control. Four labels don't fit side by side,
- * so the others show their first 3 letters ("Off", "Tou") and only the selected one its full name.
+ * so the others show their first 5 letters and a "." ("Offic.", "Tourn.") and only the selected one its full name.
  * Switching animates: the segments' widths, the label and the dark background move together.
  */
 @Composable
@@ -147,7 +147,7 @@ fun StatsFilterSegments(selected: StatsFilter, onSelected: (StatsFilter) -> Unit
             val isSelected = filter == selected
             val label = stringResource(filter.labelRes())
             val short = shortFilterLabel(label)
-            // The selected segment takes the room its full name needs; the others, their 3 letters.
+            // The selected segment takes the room its full name needs; the others, their short label.
             val weight by animateFloatAsState(
                 (if (isSelected) label.length else short.length).coerceAtLeast(3).toFloat() + 2f,
                 animationSpec = tween(FilterAnimationMillis), label = "filterWeight"
@@ -187,8 +187,10 @@ fun StatsFilterSegments(selected: StatsFilter, onSelected: (StatsFilter) -> Unit
 
 private const val FilterAnimationMillis = 250
 
-/** "Official" → "Off", "Todos" → "Tod"; a label of 3 letters or fewer stays as it is ("All"). */
-internal fun shortFilterLabel(label: String): String = label.take(3)
+/** "Official" → "Offic.", the "." saying it's cut; a label of 5 letters or fewer stays whole ("All", "Todos"). */
+internal fun shortFilterLabel(label: String): String = if (label.length <= ShortLabelLength) label else label.take(ShortLabelLength) + "."
+
+private const val ShortLabelLength = 5
 
 fun StatsFilter.labelRes() = when (this) {
     StatsFilter.ALL -> Res.string.stats_filter_all
