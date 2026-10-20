@@ -39,4 +39,8 @@ class PlayerRepositoryImpl(
             setBody(request)
         }.handleResponse<Unit>()
     }
+
+    override suspend fun disablePlayer(playerId: String) {
+        httpClient.post("${appConfig.baseUrl}/players/$playerId/disable").handleResponse<Unit>()
+    }
 }

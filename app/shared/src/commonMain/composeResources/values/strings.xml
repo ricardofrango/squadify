@@ -1360,4 +1360,18 @@
     </plurals>
     <string name="msg_delete_team_no_matches">This team has no matches. This can\'t be undone.</string>
     <string name="edit_team_delete_failed">Couldn\'t delete the team. Try again.</string>
+    <!-- Remove a player from an age group / disable in the club -->
+    <string name="cd_remove_from_age_group">Remove %1$s from the age group</string>
+    <string name="title_remove_player_age_group">Remove %1$s from %2$s?</string>
+    <string name="msg_remove_player_age_group">They stay in the club and can be added again later. Matches they played still show them, but this age group\'s stats stop counting them. They also leave the call-ups of matches that haven\'t started.</string>
+    <string name="btn_remove">Remove</string>
+    <string name="msg_player_removed_age_group">%1$s removed from %2$s</string>
+    <string name="msg_remove_player_failed">Couldn\'t remove the player. Try again.</string>
+    <string name="cd_disable_player">Disable %1$s</string>
+    <string name="title_disable_player">Disable %1$s?</string>
+    <string name="msg_disable_player">They\'re taken out of every age group and leave the call-ups of matches that haven\'t started. Nothing is deleted: their data and match history stay, and they show here as disabled.</string>
+    <string name="btn_disable">Disable</string>
+    <string name="label_player_disabled">Disabled</string>
+    <string name="msg_player_disabled">%1$s disabled</string>
+    <string name="msg_disable_player_failed">Couldn\'t disable the player. Try again.</string>
 </resources>

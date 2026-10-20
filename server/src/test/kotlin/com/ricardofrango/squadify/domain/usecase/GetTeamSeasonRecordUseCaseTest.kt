@@ -129,4 +129,21 @@ class GetTeamSeasonRecordUseCaseTest {
         assertEquals(2, record.matches.size)
         assertTrue(record.playerLines.all { it.rating == null })
     }
+
+    @Test
+    fun aPlayerNoLongerInThePoolDropsOutOfThePlayerStatsButNotTheResults() = runBlocking {
+        stubData()
+        val coach = stubUser(TeamRole.COACH)
+        // Tomás was removed from the age group after playing both matches.
+        coEvery { playerRepository.getPlayersByAgeGroup("ag-1") } returns emptyList()
+        coEvery { playerRepository.getPlayersData(emptyList()) } returns emptyList()
+
+        val record = useCase(coach.id, team.id)
+
+        assertTrue(record.playerLines.isEmpty())
+        assertTrue(record.players.isEmpty())
+        // The team's results stay.
+        assertEquals(2, record.matches.size)
+        assertEquals(3, record.matches.last().ourScore)
+    }
 }

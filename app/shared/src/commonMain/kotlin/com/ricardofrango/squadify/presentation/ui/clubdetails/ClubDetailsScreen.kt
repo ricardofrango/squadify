@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import squadify.app.shared.generated.resources.ic_close
+import squadify.app.shared.generated.resources.cd_disable_player
+import squadify.app.shared.generated.resources.label_player_disabled
 import kotlinx.datetime.LocalDate
 import com.ricardofrango.squadify.model.TrainingPlanLevel
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
@@ -703,7 +706,12 @@ private fun TeamList(teams: List<Team>, onNavigateToTeam: (String) -> Unit) {
 }
 
 @Composable
-internal fun PlayerList(players: List<Player>, onNavigateToPlayer: (String) -> Unit) {
+internal fun PlayerList(
+    players: List<Player>,
+    onNavigateToPlayer: (String) -> Unit,
+    // Null without the permission: no ✕. Never offered on a player already disabled.
+    onDisable: ((Player) -> Unit)? = null
+) {
     // Callers only reach here with a non-empty list -- the empty case is handled one level up by
     // NoPlayersState (which also offers the right "add players" action).
     LazyColumn(
@@ -712,7 +720,7 @@ internal fun PlayerList(players: List<Player>, onNavigateToPlayer: (String) -> U
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(players) { player ->
-            PlayerCard(player, onClick = { onNavigateToPlayer(player.id) })
+            PlayerCard(player, onClick = { onNavigateToPlayer(player.id) }, onDisable = onDisable?.takeIf { player.active }?.let { { it(player) } })
         }
     }
 }
@@ -748,7 +756,9 @@ private fun TeamCard(team: Team, onClick: () -> Unit) {
 }
 
 @Composable
-private fun PlayerCard(player: Player, onClick: () -> Unit) {
+private fun PlayerCard(player: Player, onClick: () -> Unit, onDisable: (() -> Unit)? = null) {
+    // A disabled player stays listed (their data is kept), faded and tagged "Disabled".
+    val faded = if (player.active) 1f else 0.45f
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -767,17 +777,25 @@ private fun PlayerCard(player: Player, onClick: () -> Unit) {
             ) {
                 Text(
                     text = "${player.firstName.take(1)}${player.lastName.take(1)}",
-                    color = DeepCarbon
+                    color = DeepCarbon.copy(alpha = faded)
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
-            Column {
+            Column(Modifier.weight(1f)) {
                 Text(
                     text = "${player.firstName} ${player.lastName}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = DeepCarbon
+                    color = DeepCarbon.copy(alpha = faded)
                 )
+                if (!player.active) {
+                    Text(
+                        stringResource(Res.string.label_player_disabled),
+                        modifier = Modifier.padding(vertical = 2.dp).background(CarbonGray.copy(alpha = 0.08f), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 1.dp),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = DeepCarbon.copy(alpha = 0.6f)
+                    )
+                }
                 val caption = listOfNotNull(
                     player.shirtNumber?.let { stringResource(Res.string.label_number_prefix, it.toString()) },
                     player.position?.let { stringResource(it.labelRes()) }
@@ -786,7 +804,17 @@ private fun PlayerCard(player: Player, onClick: () -> Unit) {
                     Text(
                         text = caption,
                         style = MaterialTheme.typography.bodySmall,
-                        color = DeepCarbon.copy(alpha = 0.7f)
+                        color = DeepCarbon.copy(alpha = 0.7f * faded)
+                    )
+                }
+            }
+            if (onDisable != null) {
+                IconButton(onClick = onDisable, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        painterResource(Res.drawable.ic_close),
+                        stringResource(Res.string.cd_disable_player, "${player.firstName} ${player.lastName}"),
+                        tint = DeepCarbon.copy(alpha = 0.45f),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }

@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.presentation.routes
 
 import com.ricardofrango.squadify.domain.usecase.AddPlayersToAgeGroupUseCase
+import com.ricardofrango.squadify.domain.usecase.RemovePlayerFromAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.AddStaffToAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.CreateAgeGroupsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupDetailsUseCase
@@ -25,6 +26,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
@@ -35,6 +37,7 @@ fun Route.ageGroupRoutes() {
     val createAgeGroupsUseCase by inject<CreateAgeGroupsUseCase>()
     val updateAgeGroupUseCase by inject<UpdateAgeGroupUseCase>()
     val addPlayersToAgeGroupUseCase by inject<AddPlayersToAgeGroupUseCase>()
+    val removePlayerFromAgeGroupUseCase by inject<RemovePlayerFromAgeGroupUseCase>()
     val getEligiblePlayersForAgeGroupUseCase by inject<GetEligiblePlayersForAgeGroupUseCase>()
     val addStaffToAgeGroupUseCase by inject<AddStaffToAgeGroupUseCase>()
     val getAgeGroupStaffUseCase by inject<GetAgeGroupStaffUseCase>()
@@ -120,6 +123,15 @@ fun Route.ageGroupRoutes() {
                         HttpStatusCode.Created,
                         addPlayersToAgeGroupUseCase(currentUserId, ageGroupId, request)
                     )
+                }
+
+                // Out of this age group's pool, not out of the club (RemovePlayerFromAgeGroupUseCase).
+                delete("/{playerId}") {
+                    val ageGroupId = call.parameters["ageGroupId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                    val playerId = call.parameters["playerId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                    removePlayerFromAgeGroupUseCase(currentUserId, ageGroupId, playerId)
+                    call.respond(HttpStatusCode.NoContent)
                 }
             }
 

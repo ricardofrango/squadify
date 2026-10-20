@@ -27,4 +27,8 @@ class AgeGroupPlayerRepositoryImpl(
             contentType(ContentType.Application.Json)
             setBody(AddPlayersToAgeGroupRequest(playerIds))
         }.handleResponse()
+
+    override suspend fun removePlayer(ageGroupId: String, playerId: String) {
+        httpClient.delete("${appConfig.baseUrl}/age-groups/$ageGroupId/players/$playerId").handleResponse<Unit>()
+    }
 }

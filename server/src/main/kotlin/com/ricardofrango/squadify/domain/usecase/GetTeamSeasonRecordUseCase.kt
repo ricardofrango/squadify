@@ -117,7 +117,11 @@ internal suspend fun buildTeamSeasonRecord(
 
     val matchIds = finished.map { it.id }
     val completedReports = if (canSeeRatings) matchReportRepository.getCompletedMatchIds(matchIds) else emptySet()
-    val lines = matchPlayerStatsRepository.getByMatches(matchIds).map { s ->
+    // Only the age group's current pool: a player taken out of it (or disabled) drops out of the
+    // season's leaders and squad. The team's results and goals come from the matches, so they stay,
+    // and each match still lists everyone who played in it (Match Details reads its own call-ups).
+    val poolIds = playerRepository.getPlayersByAgeGroup(team.ageGroupId).map { it.id }.toSet()
+    val lines = matchPlayerStatsRepository.getByMatches(matchIds).filter { it.playerId in poolIds }.map { s ->
         TeamSeasonPlayerLine(
             matchId = s.matchId,
             playerId = s.playerId,

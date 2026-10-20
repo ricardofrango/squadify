@@ -17,6 +17,7 @@ fun Route.playerRoutes() {
     val getAgeGroupPlayersByClubUseCase by inject<GetAgeGroupPlayersByClubUseCase>()
     val createPlayersUseCase by inject<CreatePlayersUseCase>()
     val updatePlayerUseCase by inject<UpdatePlayerUseCase>()
+    val disablePlayerUseCase by inject<DisablePlayerUseCase>()
 
     authenticate("auth-jwt") {
         route("/players") {
@@ -91,6 +92,14 @@ fun Route.playerRoutes() {
                             ErrorResponse("Failed to update player")
                         )
                     }
+                }
+
+                // Disabled, and out of every age group; the data stays (DisablePlayerUseCase).
+                post("/disable") {
+                    val playerId = call.parameters["playerId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                    disablePlayerUseCase(currentUserId, playerId)
+                    call.respond(HttpStatusCode.NoContent)
                 }
             }
         }

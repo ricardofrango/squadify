@@ -1058,11 +1058,45 @@ graph TD
     I --> Z(["Return created AgeGroupPlayer links"])
 ```
 
-`GetEligiblePlayersForAgeGroupUseCase` is the read counterpart: every club player with `birthDate.year >= ageGroup.endYear` who isn't already in the group; visible to a coordinator or any age-group staff. Playing up is unbounded — a young player is eligible for any older age group, never a younger one.
+A **disabled** player (§5.3b) is refused (`ValidationException`) and never listed as eligible.
+
+`GetEligiblePlayersForAgeGroupUseCase` is the read counterpart: every **active** club player with `birthDate.year >= ageGroup.endYear` who isn't already in the group; visible to a coordinator or any age-group staff. Playing up is unbounded — a young player is eligible for any older age group, never a younger one.
 
 Age groups carry a `startYear`/`endYear` birth-year **span**, not a single birth year (see §4.3): most (football) are single-year, with `startYear == endYear`; some (typically futsal) span two consecutive birth years to have enough players for a squad -- e.g. a Benjamins group covering 2016 and 2017 is `startYear = 2017, endYear = 2016`. Eligibility above and the inferred "Sub N" name (client-side `AgeGroupDefaults.inferredName`) are both always keyed off `endYear` -- the oldest birth year the group allows -- so a two-year group behaves exactly like the old single-birth-year field with the threshold lowered by one year; `startYear` is otherwise informational (shown in the UI, not compared against).
 
 The client's Add Players screen has a "New player" shortcut that pushes the Create Players (register-to-club) screen; on return it reloads the eligible list so the just-registered players are pickable without leaving, and propagates the reload down to Club Details / Age Group Details.
+
+### 5.3a Remove Player from Age Group (`RemovePlayerFromAgeGroupUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, ageGroupId, playerId] --> B[Fetch AgeGroup by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=ASSIGN_PLAYERS_TO_AGE_GROUP, ageGroupId]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D{"Delete the age_group_players link"}
+    D -- no link --> N2(["Throw NotFoundException: not in this age group"])
+    D -- deleted --> U["dropFromUpcomingCallUps: the age group's teams' SCHEDULED matches lose them from the call-up"]
+    U --> Z(["Done (204)"])
+```
+
+Out of the pool, **not out of the club**: the player row stays active. Same gate as adding players (§5.3). Only the link goes, so every match they played keeps their call-up, events and stats line, and Match Details still shows them. The age group's and teams' season stats are built from the **current pool** (`buildTeamSeasonRecord` keeps only pool players' lines; the pool-minutes card and training stats read the pool), so the player drops out of those; the team's W/D/L and goals come from the matches and don't change. Matches that haven't started lose them from the call-up; started and finished ones keep it. `DELETE /age-groups/{ageGroupId}/players/{playerId}`. Client: a ✕ on each pool row of Age Group Details → Members (only with `canAssignPlayersToAgeGroup`), behind a confirmation that says they stay in the club.
+
+### 5.3b Disable Player (`DisablePlayerUseCase`)
+
+```mermaid
+graph TD
+    A[Start: userId, playerId] --> B[Fetch Player by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, no age-group context]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D["players.active = false"]
+    D --> E["Delete every age_group_players link of the player"]
+    E --> U["dropFromUpcomingCallUps for each of those age groups"]
+    U --> Z(["Done (204)"])
+```
+
+"Removing" a player from the club: nothing is deleted. The player is disabled and leaves every pool (with §5.3a's effects in each), and the club's Players screen keeps listing them, faded, tagged "Disabled" and sorted last. Coordinators and admins only, since it's club-wide (a coach of one age group can't). A disabled player can't be added to a pool (§5.3). `POST /players/{playerId}/disable`. Client: a ✕ on each active row of the club's Players screen when `canEditClub`, behind a confirmation. There's no re-enable yet.
 
 ### 5.4 Add Staff to Age Group (`AddStaffToAgeGroupUseCase`)
 

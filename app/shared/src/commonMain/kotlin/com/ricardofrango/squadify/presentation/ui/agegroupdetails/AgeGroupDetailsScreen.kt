@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import squadify.app.shared.generated.resources.msg_player_removed_age_group
+import org.jetbrains.compose.resources.getString
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -98,6 +100,17 @@ fun AgeGroupDetailsScreen(
     var searchQuery by remember { mutableStateOf("") }
 
     LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
+    val removedText = Res.string.msg_player_removed_age_group
+    LaunchedEffect(viewModel) {
+        viewModel.playerRemoval.collect { result ->
+            snackbarHostState.showSnackbar(
+                when (result) {
+                    is PlayerRemovalResult.Removed -> getString(removedText, result.playerName, result.ageGroupName)
+                    is PlayerRemovalResult.Failed -> result.message
+                }
+            )
+        }
+    }
     LaunchedEffect(refreshOnReturn) { if (refreshOnReturn) viewModel.load(ageGroupId, forceReload = true) }
 
     AgeGroupDetailsContent(
@@ -133,7 +146,8 @@ fun AgeGroupDetailsScreen(
         onCreateTeam = { d -> onNavigateToCreateTeams(d.ageGroup.clubId, d.club.name, d.club.sport) },
         onCreateMatch = { d -> onNavigateToCreateMatch(d.ageGroup.id) },
         onStaffClick = { d, userId -> onNavigateToMember(d.ageGroup.clubId, userId) },
-        onEditAgeGroup = { d -> onNavigateToEditAgeGroup(d.ageGroup.id) }
+        onEditAgeGroup = { d -> onNavigateToEditAgeGroup(d.ageGroup.id) },
+        onRemovePlayer = { playerId -> viewModel.removePlayer(ageGroupId, playerId) }
     )
 }
 
@@ -192,7 +206,8 @@ private fun AgeGroupDetailsContent(
     onCreateTeam: (AgeGroupDetails) -> Unit,
     onCreateMatch: (AgeGroupDetails) -> Unit,
     onStaffClick: (AgeGroupDetails, String) -> Unit = { _, _ -> },
-    onEditAgeGroup: (AgeGroupDetails) -> Unit = {}
+    onEditAgeGroup: (AgeGroupDetails) -> Unit = {},
+    onRemovePlayer: (playerId: String) -> Unit = {}
 ) {
     val details = (uiState as? AgeGroupDetailsUiState.Idle)?.details
     // Each tab keeps its own scroll; tapping the active tab scrolls it to the top (33f).
@@ -280,7 +295,9 @@ private fun AgeGroupDetailsContent(
                                 details = d, recordState = recordState, searchQuery = searchQuery, listState = listStates.getValue(tab), padding = padding,
                                 modifier = boxModifier, onSearchChange = onSearchChange, onAddStaff = { onAddStaff(d) },
                                 onAddPlayers = { onAddPlayers(d) }, onOpenPlayer = onPlayerClick,
-                                onOpenStaff = if (d.canAddStaff) { userId -> onStaffClick(d, userId) } else null
+                                onOpenStaff = if (d.canAddStaff) { userId -> onStaffClick(d, userId) } else null,
+                                // The same permission as adding players to the pool.
+                                onRemovePlayer = if (d.canAssignPlayersToAgeGroup) onRemovePlayer else null
                             )
                         }
                     }
