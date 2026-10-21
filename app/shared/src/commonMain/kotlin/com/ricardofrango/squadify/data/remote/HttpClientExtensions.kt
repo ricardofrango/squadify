@@ -1,7 +1,9 @@
 package com.ricardofrango.squadify.data.remote
 
 import com.ricardofrango.squadify.model.ErrorResponse
+import io.ktor.client.HttpClientConfig
 import io.ktor.client.call.*
+import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.statement.*
 import io.ktor.http.*
 
@@ -35,5 +37,22 @@ suspend inline fun <reified T> HttpResponse.handleResponse(): T {
             code = errorBody?.code,
             message = errorBody?.message ?: "An unexpected error occurred (Status: ${status.value})"
         )
+    }
+}
+
+/**
+ * A request that never got a response: no connection, the server down, or (on web) a request the
+ * browser blocked. On web, Ktor's fetch engine reports this as a `kotlin.Error` ("Fail to fetch"), which
+ * isn't an [Exception], so it slipped past every view model's `catch (e: Exception)` and crashed the
+ * app. [mapNetworkErrors] turns it into this instead.
+ */
+class NetworkException(cause: Throwable) : Exception(cause.message ?: "Network request failed", cause)
+
+/** Rethrows anything a request throws that isn't an [Exception] as a [NetworkException]. */
+fun HttpClientConfig<*>.mapNetworkErrors() {
+    HttpResponseValidator {
+        handleResponseExceptionWithRequest { cause, _ ->
+            if (cause !is Exception) throw NetworkException(cause)
+        }
     }
 }
