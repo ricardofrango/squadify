@@ -11,6 +11,13 @@ import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ManageCallUpRequest
 import com.ricardofrango.squadify.model.Match
+import com.ricardofrango.squadify.model.CallUpStatus
+import com.ricardofrango.squadify.model.MatchCallUp
+import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
+import com.ricardofrango.squadify.model.Player
+import com.ricardofrango.squadify.exception.ValidationException
+import kotlinx.datetime.LocalDate
+import io.mockk.coVerify
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.User
@@ -38,7 +45,7 @@ class ManageCallUpsUseCaseTest {
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
-    private val useCase = ManageCallUpsUseCase(matchRepository, transactionManager, checkUserPermissionUseCase)
+    private val useCase = ManageCallUpsUseCase(matchRepository, transactionManager, checkUserPermissionUseCase, playerRepository)
 
     private val clubId = "club-1"
     private val matchId = "m-1"
@@ -76,6 +83,8 @@ class ManageCallUpsUseCaseTest {
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
         coEvery { teamRepository.getTeamById(teamId) } returns team
         coEvery { matchRepository.manageCallUps(matchId, listOf("p1")) } returns true
+        coEvery { matchRepository.getCallUpsForMatch(matchId) } returns emptyList()
+        coEvery { playerRepository.getPlayersData(listOf("p1")) } returns listOf(pl("p1"))
 
         val result = useCase(coach.id, matchId, ManageCallUpRequest(listOf("p1")))
 
@@ -96,5 +105,37 @@ class ManageCallUpsUseCaseTest {
             useCase(member.id, matchId, ManageCallUpRequest(listOf("p1")))
         }
         Unit
+    }
+
+    private fun pl(id: String, active: Boolean = true) = Player(id, clubId, "P", id, LocalDate(2012, 1, 1), active = active)
+
+    private fun coordinator(): String {
+        val coord = user("coord")
+        coEvery { matchRepository.getMatchById(matchId) } returns match
+        coEvery { teamRepository.getTeamById(teamId) } returns team
+        coEvery { userRepository.findById(coord.id) } returns coord
+        coEvery { userRepository.getUserRoleInClub(coord.id, clubId) } returns ClubRole.COORDINATOR
+        return coord.id
+    }
+
+    @Test
+    fun aDisabledPlayerCantBeNewlyCalledUp() = runBlocking<Unit> {
+        val coord = coordinator()
+        coEvery { matchRepository.getCallUpsForMatch(matchId) } returns emptyList()
+        coEvery { playerRepository.getPlayersData(listOf("p1", "p2")) } returns listOf(pl("p1"), pl("p2", active = false))
+
+        assertFailsWith<ValidationException> { useCase(coord, matchId, ManageCallUpRequest(listOf("p1", "p2"))) }
+        coVerify(exactly = 0) { matchRepository.manageCallUps(any(), any()) }
+    }
+
+    @Test
+    fun aDisabledPlayerAlreadyInTheCallUpCanStay() = runBlocking {
+        val coord = coordinator()
+        coEvery { matchRepository.getCallUpsForMatch(matchId) } returns
+            listOf(MatchCallUpWithPlayer(MatchCallUp("c1", matchId, "p2", CallUpStatus.CALLED_UP), pl("p2", active = false)))
+        coEvery { playerRepository.getPlayersData(listOf("p1")) } returns listOf(pl("p1"))
+        coEvery { matchRepository.manageCallUps(matchId, listOf("p1", "p2")) } returns true
+
+        assertEquals(true, useCase(coord, matchId, ManageCallUpRequest(listOf("p1", "p2"))))
     }
 }

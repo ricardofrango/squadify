@@ -49,12 +49,13 @@ class RemovePlayerFromAgeGroupUseCase(
 internal suspend fun dropFromUpcomingCallUps(
     playerId: String,
     clubId: String,
-    ageGroupIds: Set<String>,
+    // Null: every team of the club (a disabled player).
+    ageGroupIds: Set<String>?,
     teamRepository: TeamRepository,
     matchRepository: MatchRepository
 ) {
-    if (ageGroupIds.isEmpty()) return
-    teamRepository.getTeamsByClub(clubId).filter { it.ageGroupId in ageGroupIds }.forEach { team ->
+    if (ageGroupIds?.isEmpty() == true) return
+    teamRepository.getTeamsByClub(clubId).filter { ageGroupIds == null || it.ageGroupId in ageGroupIds }.forEach { team ->
         matchRepository.getMatchesByTeam(team.id).filter { it.status == MatchStatus.SCHEDULED }.forEach { match ->
             val calledUp = matchRepository.getCallUpsForMatch(match.id).map { it.player.id }
             if (playerId in calledUp) matchRepository.manageCallUps(match.id, calledUp - playerId)

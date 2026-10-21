@@ -17,8 +17,6 @@ interface PlayerRepository {
     suspend fun updateActiveStatus(playerId: String, active: Boolean): Boolean
     // Takes the player out of one age group's pool (only the link; the player and their match history stay).
     suspend fun removePlayerFromAgeGroup(ageGroupId: String, playerId: String): Boolean
-    // Takes the player out of every age group's pool; returns the age groups they were in.
-    suspend fun removePlayerFromAllAgeGroups(playerId: String): List<String>
     suspend fun createUserPlayer(userId: String, playerId: String, relationship: UserPlayerRelationship)
     suspend fun createUserPlayers(userPlayers: List<Triple<String, String, UserPlayerRelationship>>)
     suspend fun deleteUserPlayersByPlayer(playerId: String)

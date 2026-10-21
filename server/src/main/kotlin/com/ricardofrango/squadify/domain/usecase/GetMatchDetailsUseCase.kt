@@ -58,9 +58,10 @@ class GetMatchDetailsUseCase(
 
         val callUps = matchRepository.getCallUpsForMatch(matchId)
         val calledUpIds = callUps.map { it.player.id }.toSet()
-        // The age group's pool minus whoever is already in the call-up -- the "Available" list.
+        // The age group's pool minus whoever is already in the call-up -- the "Available" list. A
+        // disabled player stays in the pool but can't be called up.
         val poolPlayers = playerRepository.getPlayersByAgeGroup(team.ageGroupId)
-            .filter { it.id !in calledUpIds }
+            .filter { it.id !in calledUpIds && it.active }
 
         // Each flag is a non-throwing probe of the exact same configurable-permission gate its
         // corresponding use case actually enforces (UpdateMatchUseCase/DeleteMatchUseCase,

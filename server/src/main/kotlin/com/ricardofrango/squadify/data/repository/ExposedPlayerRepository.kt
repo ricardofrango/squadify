@@ -105,13 +105,6 @@ class ExposedPlayerRepository : PlayerRepository {
             (AgeGroupPlayers.ageGroupId eq ageGroupId.toUuid()) and (AgeGroupPlayers.playerId eq playerId.toUuid())
         } > 0
 
-    override suspend fun removePlayerFromAllAgeGroups(playerId: String): List<String> {
-        val ageGroupIds = AgeGroupPlayers.selectAll().where { AgeGroupPlayers.playerId eq playerId.toUuid() }
-            .map { it[AgeGroupPlayers.ageGroupId].toString() }
-        AgeGroupPlayers.deleteWhere { AgeGroupPlayers.playerId eq playerId.toUuid() }
-        return ageGroupIds
-    }
-
     override suspend fun createUserPlayer(
         userId: String,
         playerId: String,

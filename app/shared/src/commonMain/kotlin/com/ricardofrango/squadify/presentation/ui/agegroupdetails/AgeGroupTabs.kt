@@ -32,6 +32,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
@@ -626,6 +627,9 @@ internal fun AgeGroupMembersTab(
             // Position order (Goalkeeper -> Striker), no position last, then name.
             .sortedWith(compareBy({ it.position?.ordinal ?: Int.MAX_VALUE }, { it.firstName.lowercase() }, { it.lastName.lowercase() }))
     }
+    // Disabled players stay in the pool but get their own section below the active ones.
+    val (activePlayers, disabledPlayers) = players.partition { it.active }
+    val disabledCount = details.players.count { !it.active }
 
     LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         // ---- Staff ----
@@ -677,7 +681,7 @@ internal fun AgeGroupMembersTab(
         // ---- Player pool ----
         item {
             TabHeading(
-                stringResource(Res.string.team_heading_count, stringResource(Res.string.ag_pool_heading), details.players.size),
+                stringResource(Res.string.team_heading_count, stringResource(Res.string.ag_pool_heading), details.players.size - disabledCount),
                 if (details.canAssignPlayersToAgeGroup) stringResource(Res.string.ag_add_players_short) to onAddPlayers else null
             )
         }
@@ -705,21 +709,34 @@ internal fun AgeGroupMembersTab(
                     )
                 )
             }
-            if (players.isNotEmpty()) {
-                item {
-                    StatsCard(contentPadding = 0.dp) {
-                        players.forEachIndexed { i, player ->
-                            if (i > 0) HorizontalDivider(color = CarbonGray.copy(alpha = 0.07f))
-                            MemberRow(
-                                player = player,
-                                season = members?.get(player.id),
-                                seasonKnown = members != null,
-                                playsUp = player.birthDate.year > details.ageGroup.endYear,
-                                teamNames = members?.get(player.id)?.teamIds.orEmpty().mapNotNull { teamsById[it]?.name }.sorted(),
-                                onClick = { onOpenPlayer(player.id) },
-                                onRemove = if (onRemovePlayer != null) { { confirmRemove = player } } else null
-                            )
+            @Composable
+            fun Rows(list: List<Player>) {
+                StatsCard(contentPadding = 0.dp) {
+                    list.forEachIndexed { i, player ->
+                        if (i > 0) HorizontalDivider(color = CarbonGray.copy(alpha = 0.07f))
+                        MemberRow(
+                            player = player,
+                            season = members?.get(player.id),
+                            seasonKnown = members != null,
+                            playsUp = player.birthDate.year > details.ageGroup.endYear,
+                            teamNames = members?.get(player.id)?.teamIds.orEmpty().mapNotNull { teamsById[it]?.name }.sorted(),
+                            onClick = { onOpenPlayer(player.id) },
+                            onRemove = if (onRemovePlayer != null) { { confirmRemove = player } } else null
+                        )
+                    }
+                }
+            }
+            if (activePlayers.isNotEmpty()) item(key = "pool-active") { Rows(activePlayers) }
+            if (disabledPlayers.isNotEmpty()) {
+                item(key = "pool-disabled") {
+                    Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(painterResource(Res.drawable.ic_block), contentDescription = null, tint = AlertRed, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            StatsHeading(stringResource(Res.string.team_heading_count, stringResource(Res.string.ag_disabled_heading), disabledPlayers.size))
                         }
+                        Text(stringResource(Res.string.msg_ag_disabled_hint), style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp), color = StatsSecondaryText, modifier = Modifier.padding(horizontal = 2.dp))
+                        Rows(disabledPlayers)
                     }
                 }
             }
@@ -751,8 +768,10 @@ internal fun AgeGroupMembersTab(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MemberRow(player: Player, season: MemberSeason?, seasonKnown: Boolean, playsUp: Boolean, teamNames: List<String>, onClick: () -> Unit, onRemove: (() -> Unit)? = null) {
+    // A disabled player (own section, see AgeGroupMembersTab): faded, with a red "Disabled" chip. The ✕ stays fully visible.
+    val faded = Modifier.alpha(if (player.active) 1f else 0.45f)
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 10.dp, end = 12.dp, top = 11.dp, bottom = 11.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.width(32.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.width(32.dp).then(faded), contentAlignment = Alignment.Center) {
             Text(
                 player.shirtNumber?.toString() ?: "—",
                 textAlign = TextAlign.Center,
@@ -762,9 +781,21 @@ private fun MemberRow(player: Player, season: MemberSeason?, seasonKnown: Boolea
         }
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text("${player.firstName} ${player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.5.sp), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("${player.firstName} ${player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.5.sp), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false).then(faded))
+                if (!player.active) {
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        stringResource(Res.string.label_player_disabled),
+                        modifier = Modifier.background(AlertRed.copy(alpha = 0.1f), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 1.dp),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
+                        color = AlertRed,
+                        maxLines = 1
+                    )
+                }
+            }
             Spacer(Modifier.height(3.dp))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+            FlowRow(faded, horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp), itemVerticalAlignment = Alignment.CenterVertically) {
                 Text(
                     player.position?.let { stringResource(it.labelRes()) } ?: stringResource(Res.string.report_no_position),
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp), color = StatsSecondaryText
@@ -786,7 +817,7 @@ private fun MemberRow(player: Player, season: MemberSeason?, seasonKnown: Boolea
             }
             if (teamNames.isNotEmpty()) {
                 Spacer(Modifier.height(5.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                FlowRow(faded, horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     teamNames.forEach { name ->
                         Text(
                             name,

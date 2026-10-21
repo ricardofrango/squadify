@@ -12,8 +12,8 @@ interface PlayerRepository {
     suspend fun getPlayerSeasonStats(playerId: String): PlayerSeasonStats
     suspend fun createPlayers(request: CreatePlayersRequest): List<Player>
     suspend fun updatePlayer(playerId: String, request: UpdatePlayerRequest)
-    // Disabled in the club and out of every age group; the data stays.
+    // Disabled in the club: still in their age groups, out of upcoming call-ups; the data stays.
     suspend fun disablePlayer(playerId: String)
-    // Active again; the age groups it left aren't restored.
+    // Active again.
     suspend fun reactivatePlayer(playerId: String)
 }

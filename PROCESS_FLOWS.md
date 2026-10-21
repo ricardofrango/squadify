@@ -1106,12 +1106,11 @@ graph TD
     B -- found --> C[CheckUserPermissionUseCase — configurablePermission=MANAGE_PLAYER_STATUS, club-level]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D["players.active = false"]
-    D --> E["Delete every age_group_players link of the player"]
-    E --> U["dropFromUpcomingCallUps for each of those age groups"]
+    D --> U["dropFromUpcomingCallUps across every team of the club: SCHEDULED matches lose them from the call-up"]
     U --> Z(["Done (204)"])
 ```
 
-"Removing" a player from the club: nothing is deleted. The player is disabled and leaves every pool (with §5.3a's effects in each), and the club's Players screen keeps listing them, faded, tagged "Disabled" and sorted last. Behind the club-level `MANAGE_PLAYER_STATUS` setting: admins and coordinators by default, or admins only if the admin says so; a coach of one age group never can. A disabled player can't be added to a pool (§5.3). `POST /players/{playerId}/disable`. Client: a ✕ on each active row of the club's Players screen when `ClubDetailsResponse.canManagePlayerStatus`, behind a confirmation. Undone by §5.3c.
+"Removing" a player from the club: nothing is deleted and they **stay in their age groups' pools**. The player is disabled and leaves the call-ups of matches that haven't started; started and finished matches keep theirs. The club's Players screen keeps listing them, faded, tagged "Disabled" and sorted last, and Age Group Details → Members lists them in their own "Disabled" section below the active pool (faded, with a red "Disabled" chip, and a line saying they can't be called up), with the pool heading counting only the active players. While disabled they aren't offered in a match's "Available" list (`GetMatchDetailsUseCase.poolPlayers` skips them) and can't be newly called up (§7.2). Behind the club-level `MANAGE_PLAYER_STATUS` setting: admins and coordinators by default, or admins only if the admin says so; a coach of one age group never can. A disabled player can't be added to another pool (§5.3). `POST /players/{playerId}/disable`. Client: a ✕ on each active row of the club's Players screen when `ClubDetailsResponse.canManagePlayerStatus`, behind a confirmation. Undone by §5.3c.
 
 ### 5.3c Reactivate Player (`ReactivatePlayerUseCase`)
 
@@ -1127,7 +1126,7 @@ graph TD
     E --> Z
 ```
 
-Undoes §5.3b: the player is active again, so they're eligible for and can be added to a pool (§5.3). The pools and call-ups they left are **not** restored; whoever manages the age group adds them back. Same gate as disabling. `POST /players/{playerId}/reactivate`. Client: a green "Reactivate" on each disabled row of the club's Players screen when `canManagePlayerStatus`, with no confirmation (it only makes the player addable again); a snackbar confirms, and the row moves back among the active players.
+Undoes §5.3b: the player is active again, in the same pools they never left, so they can be called up and added to other pools again. The upcoming call-ups they were dropped from aren't restored. Same gate as disabling. `POST /players/{playerId}/reactivate`. Client: a green "Reactivate" on each disabled row of the club's Players screen when `canManagePlayerStatus`, with no confirmation; a snackbar confirms, and the row moves back among the active players.
 
 ### 5.4 Add Staff to Age Group (`AddStaffToAgeGroupUseCase`)
 
@@ -1351,11 +1350,13 @@ graph TD
     B -- not found --> N(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_CALL_UPS, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D["Set call-ups for the match to exactly this playerIds list (repository owns diff/replace)"]
+    C -- allowed --> DA{"A player not already called up is disabled (players.active = false)?"}
+    DA -- Yes --> V(["Throw ValidationException"])
+    DA -- No --> D["Set call-ups for the match to exactly this playerIds list (repository owns diff/replace)"]
     D --> Z(["Return success"])
 ```
 
-The same single write handles both adding and removing -- the client sends the full desired list (current call-ups minus/plus one player) and the repository diffs it against what's stored (§7.2's Exposed implementation). `MatchDetailsScreen`'s call-up rows each carry a remove ("−") button, the "Available" pool rows an add ("+") button, both wired to this one endpoint -- see `MatchDetailsViewModel.onAddToCallUp`/`onRemoveFromCallUp`.
+The same single write handles both adding and removing -- the client sends the full desired list (current call-ups minus/plus one player) and the repository diffs it against what's stored (§7.2's Exposed implementation). `MatchDetailsScreen`'s call-up rows each carry a remove ("−") button, the "Available" pool rows an add ("+") button, both wired to this one endpoint -- see `MatchDetailsViewModel.onAddToCallUp`/`onRemoveFromCallUp`. A disabled player (§5.3b) can't be newly called up; one already in the list (e.g. a played match's) can stay.
 
 ### 7.2b Delete Match (`DeleteMatchUseCase`)
 

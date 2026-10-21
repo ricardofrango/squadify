@@ -49,20 +49,20 @@ class ClubPlayersFilterTest {
     }
 
     @Test
-    fun aDisabledPlayerStaysListedLastAndLeavesEveryPool() {
+    fun aDisabledPlayerStaysListedLastAndKeepsTheirPool() {
         val after = details.withPlayerDisabled("p1")
         assertFalse(after.players.first { it.id == "p1" }.active)
-        // Out of every pool, so no age group lists them; with no pool they still show, last.
-        assertEquals(emptyList(), filterClubPlayers(after, null, "a26", "").map { it.id })
+        // Still in their age group, and listed last.
+        assertEquals(listOf("p1"), filterClubPlayers(after, null, "a26", "").map { it.id })
         assertEquals(listOf("p2", "p3", "p1"), filterClubPlayers(after, null, null, "").map { it.id })
     }
 
     @Test
-    fun aReactivatedPlayerIsActiveAgainButStillInNoPool() {
+    fun aReactivatedPlayerIsActiveAgainInTheSamePool() {
         val after = details.withPlayerDisabled("p1").withPlayerReactivated("p1")
         assertTrue(after.players.first { it.id == "p1" }.active)
-        // Back among the active players, in the club's order; the old pool isn't restored.
+        // Back among the active players, in the club's order, still in their age group.
         assertEquals(listOf("p1", "p2", "p3"), filterClubPlayers(after, null, null, "").map { it.id })
-        assertEquals(emptyList(), filterClubPlayers(after, null, "a26", "").map { it.id })
+        assertEquals(listOf("p1"), filterClubPlayers(after, null, "a26", "").map { it.id })
     }
 }

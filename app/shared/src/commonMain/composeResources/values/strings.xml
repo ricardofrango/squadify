@@ -1369,19 +1369,22 @@
     <string name="msg_remove_player_failed">Couldn\'t remove the player. Try again.</string>
     <string name="cd_disable_player">Disable %1$s</string>
     <string name="title_disable_player">Disable %1$s?</string>
-    <string name="msg_disable_player">They\'re taken out of every age group and leave the call-ups of matches that haven\'t started. Nothing is deleted: their data and match history stay, and they show here as disabled.</string>
+    <string name="msg_disable_player">They stay in their age groups and their data and match history stay, but they leave the call-ups of matches that haven\'t started and can\'t be called up while disabled. They show as disabled.</string>
     <string name="btn_disable">Disable</string>
     <string name="label_player_disabled">Disabled</string>
     <string name="msg_player_disabled">%1$s disabled</string>
     <string name="msg_disable_player_failed">Couldn\'t disable the player. Try again.</string>
     <!-- Reactivate a disabled player -->
     <string name="btn_reactivate">Reactivate</string>
-    <string name="msg_player_reactivated">%1$s reactivated. They can be added to an age group again.</string>
+    <string name="msg_player_reactivated">%1$s reactivated</string>
     <string name="msg_reactivate_player_failed">Couldn\'t reactivate the player. Try again.</string>
     <!-- Club-level permission: disable and reactivate players -->
     <string name="label_permission_manage_player_status">Disable and reactivate players</string>
-    <string name="msg_permission_manage_player_status_desc">Take a player out of the club (out of every age group, nothing deleted), and bring them back.</string>
+    <string name="msg_permission_manage_player_status_desc">Disable a player (nothing is deleted; they leave upcoming call-ups and can\'t be called up), and reactivate them.</string>
     <string name="label_permission_level_admins_coordinators">Admins and coordinators</string>
     <string name="label_permission_level_admins_only">Admins only</string>
     <string name="msg_permission_admin_only_setting">Only a club admin can change this.</string>
+    <!-- Age group Members: disabled players section -->
+    <string name="ag_disabled_heading">Disabled</string>
+    <string name="msg_ag_disabled_hint">Disabled in the club: still in this age group, but they can\'t be called up. Reactivate them from the club\'s Players screen.</string>
 </resources>

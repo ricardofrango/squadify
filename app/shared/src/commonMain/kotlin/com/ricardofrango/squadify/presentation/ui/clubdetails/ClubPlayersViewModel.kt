@@ -65,13 +65,12 @@ internal fun filterClubPlayers(details: ClubDetails, seasonId: String?, ageGroup
     }.sortedBy { !it.active } // Disabled players last, otherwise in the club's order.
 }
 
-/** The club after [playerId] was disabled: marked inactive and out of every age group's pool. */
+/** The club after [playerId] was disabled: marked inactive, still in their age groups' pools. */
 internal fun ClubDetails.withPlayerDisabled(playerId: String): ClubDetails = copy(
-    players = players.map { if (it.id == playerId) it.copy(active = false) else it },
-    ageGroupPlayers = ageGroupPlayers.filter { it.playerId != playerId }
+    players = players.map { if (it.id == playerId) it.copy(active = false) else it }
 )
 
-/** The club after [playerId] was reactivated: active again, still in no pool until someone adds them. */
+/** The club after [playerId] was reactivated: active again, in the same pools. */
 internal fun ClubDetails.withPlayerReactivated(playerId: String): ClubDetails = copy(
     players = players.map { if (it.id == playerId) it.copy(active = true) else it }
 )
@@ -112,7 +111,7 @@ class ClubPlayersViewModel(
         }
     }
 
-    /** Disables [playerId] (coordinators and admins); the row stays, shown as disabled. */
+    /** Disables [playerId] (MANAGE_PLAYER_STATUS); the row stays, shown as disabled. */
     fun disable(playerId: String) {
         val player = (_state.value as? ClubPlayersUiState.Idle)?.details?.players?.firstOrNull { it.id == playerId } ?: return
         viewModelScope.launch {
@@ -126,7 +125,7 @@ class ClubPlayersViewModel(
         }
     }
 
-    /** Reactivates a disabled [playerId] (coordinators and admins); they can then be added to an age group. */
+    /** Reactivates a disabled [playerId] (MANAGE_PLAYER_STATUS); they can be called up again. */
     fun reactivate(playerId: String) {
         val player = (_state.value as? ClubPlayersUiState.Idle)?.details?.players?.firstOrNull { it.id == playerId } ?: return
         viewModelScope.launch {

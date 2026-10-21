@@ -395,7 +395,9 @@ private fun sampleDetails(populated: Boolean, canManage: Boolean): AgeGroupDetai
         players = if (populated) listOf(
             p("p1", "Afonso", "Rebelo", 2015, 7, PlayerPosition.MIDFIELD),
             p("p2", "Bruno", "Tavares", 2015, 4),
-            p("p3", "Caetano", "Lousada", 2016, 11, PlayerPosition.STRIKER)
+            p("p3", "Caetano", "Lousada", 2016, 11, PlayerPosition.STRIKER),
+            // Disabled in the club: listed in its own section of Members.
+            p("p4", "Duarte", "Meireles", 2015, 9, PlayerPosition.DEFENDER).copy(active = false)
         ) else emptyList(),
         staff = if (populated) listOf(
             AgeGroupStaffMember("u1", "Nuno", "Faria", TeamRole.COACH),

@@ -109,14 +109,15 @@ class RemoveAndDisablePlayerUseCasesTest {
     }
 
     @Test
-    fun disablingKeepsThePlayerButTakesThemOutOfEveryAgeGroup() = runBlocking {
-        coEvery { playerRepository.removePlayerFromAllAgeGroups(player.id) } returns listOf(ag.id, other.id)
-
+    fun disablingKeepsThePlayerInTheirAgeGroupsAndOnlyDropsUpcomingCallUps() = runBlocking {
         disable(user("coord", ClubRole.COORDINATOR), player.id)
 
         coVerify { playerRepository.updateActiveStatus(player.id, false) }
-        coVerify { playerRepository.removePlayerFromAllAgeGroups(player.id) }
+        // Still in every pool.
+        coVerify(exactly = 0) { playerRepository.removePlayerFromAgeGroup(any(), any()) }
+        // Out of the match that hasn't started; the played one keeps its call-up (history).
         coVerify { matchRepository.manageCallUps(upcoming.id, listOf(teammate.id)) }
+        coVerify(exactly = 0) { matchRepository.manageCallUps(played.id, any()) }
     }
 
     @Test
@@ -133,7 +134,7 @@ class RemoveAndDisablePlayerUseCasesTest {
     }
 
     @Test
-    fun aCoordinatorReactivatesADisabledPlayerWithoutRestoringTheirPools() = runBlocking {
+    fun aCoordinatorReactivatesADisabledPlayer() = runBlocking {
         coEvery { playerRepository.getPlayerById(player.id) } returns player.copy(active = false)
 
         reactivate(user("coord", ClubRole.COORDINATOR), player.id)
