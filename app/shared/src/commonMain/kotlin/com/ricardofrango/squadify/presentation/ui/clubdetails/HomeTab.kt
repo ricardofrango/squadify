@@ -38,6 +38,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -251,7 +252,7 @@ private fun NeedsYouSection(
                 AlertRowContent(
                     title = stringResource(Res.string.home_trainings_need_ratings, trainingRatings.size),
                     subtitle = null,
-                    dotColor = if (trainingRatings.any { reportDotColor(it, today) == Amber }) Amber else PitchGreen,
+                    dotColor = if (trainingRatings.any { reportDotColor(it, today) == Amber }) Amber else SuccessGreen,
                     trailingIcon = if (trainingExpanded) Res.drawable.ic_expand_less else Res.drawable.ic_expand_more,
                     onClick = { trainingExpanded = !trainingExpanded }
                 )
@@ -270,7 +271,7 @@ private fun NeedsYouSection(
                 AlertRowContent(
                     alertText(alert, home.seasonName),
                     start?.let { stringResource(Res.string.home_plan_since, shortDateLabel(it)) },
-                    if (start != null && start.daysUntil(today) >= REPORT_OVERDUE_DAYS) Amber else PitchGreen,
+                    if (start != null && start.daysUntil(today) >= REPORT_OVERDUE_DAYS) Amber else SuccessGreen,
                     Res.drawable.ic_chevron_right,
                     if (level != null && start != null && alert.ageGroupId != null) { { onEditPlan(alert.ageGroupId!!, level, start) } } else null
                 )
@@ -405,7 +406,7 @@ private const val REPORT_GROUP_THRESHOLD = 3
 private const val REPORT_OVERDUE_DAYS = 7
 
 private fun reportDotColor(alert: ClubHomeAlert, today: LocalDate): Color =
-    if (alert.date != null && alert.date!!.daysUntil(today) > REPORT_OVERDUE_DAYS) Amber else PitchGreen
+    if (alert.date != null && alert.date!!.daysUntil(today) > REPORT_OVERDUE_DAYS) Amber else SuccessGreen
 
 /** "Played 27 Sep · 3 days ago" -- relative age matters more than the date, so both are shown. */
 @Composable

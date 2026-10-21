@@ -58,6 +58,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.Amber
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -251,7 +252,7 @@ private fun ResultsByTeamCard(record: AgeGroupSeasonRecord, filter: StatsFilter,
                 }
                 Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    WdlCount(t.won, stringResource(Res.string.record_form_win), PitchGreen)
+                    WdlCount(t.won, stringResource(Res.string.record_form_win), SuccessGreen)
                     Spacer(Modifier.width(10.dp))
                     WdlCount(t.drawn, stringResource(Res.string.record_form_draw), DeepCarbon)
                     Spacer(Modifier.width(10.dp))
@@ -286,8 +287,8 @@ private fun WdlCount(value: Int, letter: String, color: Color) {
 }
 
 private val BandColors = mapOf(
-    MinutesBand.LOTS to PitchGreen,
-    MinutesBand.SOME to PitchGreen.copy(alpha = 0.5f),
+    MinutesBand.LOTS to SuccessGreen,
+    MinutesBand.SOME to SuccessGreen.copy(alpha = 0.5f),
     MinutesBand.LITTLE to Amber,
     MinutesBand.NONE to CarbonGray.copy(alpha = 0.22f)
 )
@@ -470,7 +471,7 @@ private fun TeamCard(team: Team, record: TeamSeasonRecord?, staff: Boolean, next
                 val t = record.totals(StatsFilter.ALL)
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    WdlCount(t.won, stringResource(Res.string.record_form_win), PitchGreen)
+                    WdlCount(t.won, stringResource(Res.string.record_form_win), SuccessGreen)
                     Spacer(Modifier.width(10.dp))
                     WdlCount(t.drawn, stringResource(Res.string.record_form_draw), DeepCarbon)
                     Spacer(Modifier.width(10.dp))

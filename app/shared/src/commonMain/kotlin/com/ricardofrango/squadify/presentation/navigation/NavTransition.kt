@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 /** False while this destination's enter/exit transition is running. Always true outside a NavHost. */
 val LocalNavTransitionSettled = compositionLocalOf<State<Boolean>> { mutableStateOf(true) }
 
-/** `composable<T>` that also provides [LocalNavTransitionSettled] to the destination's content. */
+/** `composable<T>` that also provides [LocalNavTransitionSettled] to the destination's content, and draws it in its club's colours ([ClubThemedEntry]). */
 inline fun <reified T : Any> NavGraphBuilder.screen(
     noinline content: @Composable AnimatedContentScope.(NavBackStackEntry) -> Unit
 ) {
@@ -33,7 +33,9 @@ inline fun <reified T : Any> NavGraphBuilder.screen(
                 transition.currentState == EnterExitState.Visible && transition.targetState == EnterExitState.Visible
             }
         }
-        CompositionLocalProvider(LocalNavTransitionSettled provides settled) { content(entry) }
+        CompositionLocalProvider(LocalNavTransitionSettled provides settled) {
+            ClubThemedEntry(entry) { content(entry) }
+        }
     }
 }
 

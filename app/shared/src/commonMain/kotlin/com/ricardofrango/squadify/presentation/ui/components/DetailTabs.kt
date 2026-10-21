@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -24,7 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.presentation.ui.theme.Amber
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
-import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
@@ -46,7 +47,7 @@ private fun TabIcon(tab: DetailTab) {
 
 @Composable
 fun DetailBottomBar(tabs: List<DetailTab>, selected: Int, onSelect: (Int) -> Unit) {
-    NavigationBar(containerColor = CarbonGray, tonalElevation = 0.dp, windowInsets = NavigationBarDefaults.windowInsets) {
+    NavigationBar(containerColor = ClubChrome, tonalElevation = 0.dp, windowInsets = NavigationBarDefaults.windowInsets) {
         tabs.forEachIndexed { i, tab ->
             val isSelected = i == selected
             NavigationBarItem(
@@ -61,11 +62,11 @@ fun DetailBottomBar(tabs: List<DetailTab>, selected: Int, onSelect: (Int) -> Uni
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = PitchGreen,
-                    selectedTextColor = PitchGreen,
+                    selectedIconColor = ChromeAccent,
+                    selectedTextColor = ChromeAccent,
                     unselectedIconColor = Color.White.copy(alpha = 0.5f),
                     unselectedTextColor = Color.White.copy(alpha = 0.5f),
-                    indicatorColor = PitchGreen.copy(alpha = 0.15f)
+                    indicatorColor = ChromeAccent.copy(alpha = 0.15f)
                 )
             )
         }
@@ -74,7 +75,7 @@ fun DetailBottomBar(tabs: List<DetailTab>, selected: Int, onSelect: (Int) -> Uni
 
 @Composable
 fun DetailRail(tabs: List<DetailTab>, selected: Int, onSelect: (Int) -> Unit) {
-    NavigationRail(containerColor = CarbonGray, modifier = Modifier.fillMaxHeight()) {
+    NavigationRail(containerColor = ClubChrome, modifier = Modifier.fillMaxHeight()) {
         Spacer(Modifier.weight(1f))
         tabs.forEachIndexed { i, tab ->
             val isSelected = i == selected
@@ -90,11 +91,11 @@ fun DetailRail(tabs: List<DetailTab>, selected: Int, onSelect: (Int) -> Unit) {
                     )
                 },
                 colors = NavigationRailItemDefaults.colors(
-                    selectedIconColor = PitchGreen,
-                    selectedTextColor = PitchGreen,
+                    selectedIconColor = ChromeAccent,
+                    selectedTextColor = ChromeAccent,
                     unselectedIconColor = Color.White.copy(alpha = 0.5f),
                     unselectedTextColor = Color.White.copy(alpha = 0.5f),
-                    indicatorColor = PitchGreen.copy(alpha = 0.15f)
+                    indicatorColor = ChromeAccent.copy(alpha = 0.15f)
                 )
             )
         }

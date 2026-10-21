@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.editplayer
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
+import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import androidx.compose.foundation.text.KeyboardActions
 import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
@@ -128,7 +130,7 @@ private fun EditPlayerContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            Column(Modifier.background(CarbonGray)) {
+            Column(Modifier.background(ClubChrome)) {
                 FMTopBar(
                     title = stringResource(Res.string.title_edit_player),
                     subtitle = idle?.let { subtitleLine(it) },
@@ -138,7 +140,7 @@ private fun EditPlayerContent(
                             Icon(
                                 painter = painterResource(Res.drawable.ic_check),
                                 contentDescription = stringResource(Res.string.btn_save_changes),
-                                tint = if (idle?.canSave == true) PitchGreen else Color.White.copy(alpha = 0.3f)
+                                tint = if (idle?.canSave == true) ChromeAccent else Color.White.copy(alpha = 0.3f)
                             )
                         }
                     }

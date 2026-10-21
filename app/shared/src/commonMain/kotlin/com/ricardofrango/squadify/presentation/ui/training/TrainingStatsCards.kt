@@ -37,6 +37,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.AmberText
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.Res
@@ -153,7 +154,7 @@ fun PlayerTrainingCard(season: PlayerTrainingSeason) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column(Modifier.weight(1f).background(Color(0xFFFAFAFA), RoundedCornerShape(12.dp)).padding(12.dp)) {
                 Text("$percent%", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black),
-                    color = if (season.sessions > 0 && percent < LOW_ATTENDANCE_PERCENT) AmberText else PitchGreen)
+                    color = if (season.sessions > 0 && percent < LOW_ATTENDANCE_PERCENT) AmberText else SuccessGreen)
                 Text(stringResource(Res.string.label_attendance_tile, season.attended, season.sessions), style = MaterialTheme.typography.labelMedium, color = StatsSecondaryText)
             }
             Column(Modifier.weight(1f).background(Color(0xFFFAFAFA), RoundedCornerShape(12.dp)).padding(12.dp)) {

@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.clubmember
 
+import com.ricardofrango.squadify.presentation.ui.theme.OnChromeAccent
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
+import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -222,7 +225,7 @@ private fun ClubMemberDetailsContent(
         containerColor = WhiteSmoke,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            Column(Modifier.background(CarbonGray)) {
+            Column(Modifier.background(ClubChrome)) {
                 FMTopBar(title = stringResource(Res.string.member_title), onNavigateBack = onNavigateBack)
                 when (state) {
                     is ClubMemberDetailsUiState.Member -> MemberHeader(state)
@@ -314,8 +317,8 @@ private fun ClubMemberEntry.fullName() = "$firstName $lastName"
 @Composable
 private fun HeaderBand(initials: String, title: String, chip: String, line: String) {
     Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(60.dp).background(PitchGreen.copy(alpha = 0.25f), CircleShape), contentAlignment = Alignment.Center) {
-            Text(initials, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = PitchGreen)
+        Box(Modifier.size(60.dp).background(ChromeAccent.copy(alpha = 0.25f), CircleShape), contentAlignment = Alignment.Center) {
+            Text(initials, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = ChromeAccent)
         }
         Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f)) {
@@ -323,8 +326,8 @@ private fun HeaderBand(initials: String, title: String, chip: String, line: Stri
             Spacer(Modifier.height(6.dp))
             // Wraps, so a long "Invited 12 days ago" drops under the chip instead of being cut off.
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp), itemVerticalAlignment = Alignment.CenterVertically) {
-                Surface(shape = RoundedCornerShape(6.dp), color = PitchGreen) {
-                    Text(chip, Modifier.padding(horizontal = 8.dp, vertical = 2.dp), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = Color.White)
+                Surface(shape = RoundedCornerShape(6.dp), color = ChromeAccent) {
+                    Text(chip, Modifier.padding(horizontal = 8.dp, vertical = 2.dp), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = OnChromeAccent)
                 }
                 Text(line, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.7f))
             }

@@ -54,6 +54,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.DeepGreen
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -178,7 +179,7 @@ private fun SquadRow(entry: SquadEntry, staff: Boolean, onClick: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
                     color = DeepCarbon
                 )
-                if (entry.goals > 0) MiniPill(stringResource(Res.string.report_chip_goals, entry.goals), PitchGreen.copy(alpha = 0.12f), DeepGreen)
+                if (entry.goals > 0) MiniPill(stringResource(Res.string.report_chip_goals, entry.goals), SuccessGreen.copy(alpha = 0.12f), DeepGreen)
                 if (entry.assists > 0) MiniPill(stringResource(Res.string.report_chip_assists, entry.assists), CarbonGray.copy(alpha = 0.07f), DeepCarbon)
             }
         }

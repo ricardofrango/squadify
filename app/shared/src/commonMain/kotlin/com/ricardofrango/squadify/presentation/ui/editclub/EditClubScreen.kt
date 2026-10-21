@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
@@ -299,7 +300,7 @@ private fun EditClubContent(
                                     Icon(
                                         painter = painterResource(Res.drawable.ic_check),
                                         contentDescription = stringResource(Res.string.btn_save_changes),
-                                        tint = if (idle.canSave) PitchGreen else Color.White.copy(alpha = 0.3f)
+                                        tint = if (idle.canSave) ChromeAccent else Color.White.copy(alpha = 0.3f)
                                     )
                                 }
                             }
@@ -707,6 +708,16 @@ private fun ClubDetailsForm(
 
         HorizontalDivider(color = CarbonGray.copy(alpha = 0.15f))
 
+        ClubColoursSection(
+            theme = form.theme,
+            problem = form.themeProblem,
+            clubName = form.name.ifBlank { stringResource(Res.string.title_club_details) },
+            initials = state.initials,
+            onChange = { onFormChange(form.copy(theme = it)) }
+        )
+
+        HorizontalDivider(color = CarbonGray.copy(alpha = 0.15f))
+
         Text(
             text = stringResource(Res.string.label_contact_section),
             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
@@ -928,6 +939,30 @@ private fun EditClubDetailsDirtyPreview() {
             onFormChange = {},
             onSaveClick = {},
             onPermissionChanged = {},
+            onSavePermissionsClick = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun EditClubColoursDirtyPreview() {
+    SquadifyTheme {
+        val fields = sampleFields()
+        val permissions = samplePermissions()
+        EditClubContent(
+            uiState = EditClubUiState.Idle(
+                original = fields,
+                form = fields.copy(theme = com.ricardofrango.squadify.model.ClubTheme("#E30613", "#FFFFFF")),
+                originalPermissions = permissions,
+                permissions = permissions
+            ),
+            onNavigateBack = {},
+            onRetry = {},
+            onTabSelected = {},
+            onFormChange = {},
+            onSaveClick = {},
+            onPermissionChanged = { _ -> },
             onSavePermissionsClick = {}
         )
     }

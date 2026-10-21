@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.account
 
+import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import com.ricardofrango.squadify.presentation.ui.components.SignedOutAlert
 import androidx.compose.foundation.clickable
 import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
@@ -137,7 +138,7 @@ private fun AccountContent(
                             Icon(
                                 painter = painterResource(Res.drawable.ic_check),
                                 contentDescription = stringResource(Res.string.btn_save_changes),
-                                tint = if (idle?.canSaveProfile == true) PitchGreen else Color.White.copy(alpha = 0.3f)
+                                tint = if (idle?.canSaveProfile == true) ChromeAccent else Color.White.copy(alpha = 0.3f)
                             )
                         }
                     }

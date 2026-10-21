@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.presentation.ui.theme.OnChromeAccent
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
+import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import com.ricardofrango.squadify.model.PlayerTrainingSeason
 import com.ricardofrango.squadify.presentation.ui.training.PlayerTrainingCard
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
@@ -116,7 +119,7 @@ private fun PlayerDetailsContent(
     Scaffold(
         containerColor = WhiteSmoke,
         topBar = {
-            Column(Modifier.background(CarbonGray)) {
+            Column(Modifier.background(ClubChrome)) {
                 FMTopBar(
                     title = stringResource(Res.string.title_player_profile),
                     onNavigateBack = onNavigateBack,
@@ -183,12 +186,12 @@ private fun PlayerHeaderBand(profile: PlayerProfile) {
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Surface(modifier = Modifier.size(64.dp), shape = CircleShape, color = PitchGreen.copy(alpha = 0.25f)) {
+        Surface(modifier = Modifier.size(64.dp), shape = CircleShape, color = ChromeAccent.copy(alpha = 0.25f)) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
                     "${player.firstName.take(1)}${player.lastName.take(1)}",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = PitchGreen
+                    color = ChromeAccent
                 )
             }
         }
@@ -204,12 +207,12 @@ private fun PlayerHeaderBand(profile: PlayerProfile) {
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 player.shirtNumber?.let { number ->
-                    Surface(shape = RoundedCornerShape(6.dp), color = PitchGreen) {
+                    Surface(shape = RoundedCornerShape(6.dp), color = ChromeAccent) {
                         Text(
                             number.toString(),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = Color.White
+                            color = OnChromeAccent
                         )
                     }
                     Spacer(Modifier.width(8.dp))

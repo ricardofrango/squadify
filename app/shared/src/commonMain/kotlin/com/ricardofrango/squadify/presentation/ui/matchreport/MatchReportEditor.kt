@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.matchreport
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
+import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.BorderStroke
@@ -74,7 +76,7 @@ internal fun EditorTabs(state: MatchReportUiState.Idle, onTabSelected: (ReportTa
         add(ReportTab.TEAM); add(ReportTab.OPPONENT)
     }
     // Portrait: three equal tabs under the title. Landscape (24c): compact tabs in the header row.
-    Row(if (compact) Modifier else Modifier.fillMaxWidth().background(CarbonGray)) {
+    Row(if (compact) Modifier else Modifier.fillMaxWidth().background(ClubChrome)) {
         tabs.forEach { tab ->
             val selected = tab == state.tab
             Column(
@@ -102,7 +104,7 @@ internal fun EditorTabs(state: MatchReportUiState.Idle, onTabSelected: (ReportTa
                     }
                 }
                 Spacer(Modifier.height(10.dp))
-                Box(Modifier.fillMaxWidth().height(3.dp).background(if (selected) PitchGreen else Color.Transparent))
+                Box(Modifier.fillMaxWidth().height(3.dp).background(if (selected) ChromeAccent else Color.Transparent))
             }
         }
     }
@@ -430,9 +432,10 @@ private fun RatingButton(rating: Int?, onClick: () -> Unit) {
             Modifier.size(56.dp).clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
+            val dashColor = PitchGreen.copy(alpha = 0.55f)
             Canvas(Modifier.matchParentSize()) {
                 drawRoundRect(
-                    color = PitchGreen.copy(alpha = 0.55f),
+                    color = dashColor,
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(12.dp.toPx()),
                     style = Stroke(width = 1.5.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f)))
                 )

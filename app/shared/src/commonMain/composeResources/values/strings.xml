@@ -1387,4 +1387,26 @@
     <!-- Age group Members: disabled players section -->
     <string name="ag_disabled_heading">Disabled</string>
     <string name="msg_ag_disabled_hint">Disabled in the club: still in this age group, but they can\'t be called up. Reactivate them from the club\'s Players screen.</string>
+    <!-- Club colours (Club settings > Details) -->
+    <string name="label_club_colours_section">CLUB COLOURS</string>
+    <string name="msg_club_colours_none">Using Squadify\'s colours. Pick two for your club: a strong main colour and a lighter second one.</string>
+    <string name="btn_choose_club_colours">Choose club colours</string>
+    <string name="label_main_colour">Main colour</string>
+    <string name="label_second_colour">Second colour</string>
+    <string name="msg_main_colour_hint">Bars and buttons, with white text on it</string>
+    <string name="msg_second_colour_hint">What\'s selected on the bars</string>
+    <string name="btn_swap_colours">Swap</string>
+    <string name="btn_remove_colours">Remove colours</string>
+    <string name="msg_club_colours_saved_hint">Everyone in the club sees the app in these colours.</string>
+    <string name="msg_colour_invalid">Enter a colour as #RRGGBB.</string>
+    <string name="msg_colour_primary_too_light">The main colour is too light for white text. Pick a darker shade, or swap the two.</string>
+    <string name="msg_colour_secondary_too_close">The second colour must be clearly lighter than the main one.</string>
+    <string name="label_colour_suggested">Suggested</string>
+    <string name="label_colour_custom">Custom</string>
+    <string name="label_colour_hue">Hue</string>
+    <string name="label_colour_saturation">Saturation</string>
+    <string name="label_colour_lightness">Lightness</string>
+    <string name="label_colour_hex">Hex code</string>
+    <string name="btn_use_colour">Use this colour</string>
+    <string name="label_colour_preview">Preview</string>
 </resources>

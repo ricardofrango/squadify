@@ -59,6 +59,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.AmberText
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -277,7 +278,7 @@ private fun HeaderCard(details: TrainingSessionDetails, now: LocalDateTime) {
                 }
             }
         }
-        Text(sessionStatus(session, now), style = MaterialTheme.typography.labelLarge, color = if (session.cancelled) AlertRed else PitchGreen)
+        Text(sessionStatus(session, now), style = MaterialTheme.typography.labelLarge, color = if (session.cancelled) AlertRed else SuccessGreen)
     }
 }
 

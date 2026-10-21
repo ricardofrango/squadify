@@ -3,6 +3,9 @@ package com.ricardofrango.squadify.presentation.ui.editclub
 import com.ricardofrango.squadify.model.Country
 import com.ricardofrango.squadify.model.ClubMembersOverview
 import com.ricardofrango.squadify.model.ClubPermissionSetting
+import com.ricardofrango.squadify.model.ClubTheme
+import com.ricardofrango.squadify.model.ClubThemeProblem
+import com.ricardofrango.squadify.model.ClubThemeRules
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.UpdateClubRequest
@@ -32,7 +35,9 @@ data class ClubFormFields(
     val phone: String,
     val address: String,
     val stadiumLocation: String,
-    val country: Country = Country.DEFAULT
+    val country: Country = Country.DEFAULT,
+    // Both colours or none (ClubTheme); null is Squadify's own.
+    val theme: ClubTheme? = null
 ) {
     fun trimmed(): ClubFormFields = ClubFormFields(
         name = name.trim(),
@@ -41,8 +46,12 @@ data class ClubFormFields(
         phone = phone.trim(),
         address = address.trim(),
         stadiumLocation = stadiumLocation.trim(),
-        country = country
+        country = country,
+        theme = theme?.let(ClubThemeRules::normalized)
     )
+
+    /** Why [theme] can't be saved, or null. */
+    val themeProblem: ClubThemeProblem? get() = theme?.let(ClubThemeRules::problem)
 
     fun toRequest(): UpdateClubRequest = trimmed().let {
         UpdateClubRequest(
@@ -52,7 +61,9 @@ data class ClubFormFields(
             phone = it.phone.takeIf(String::isNotBlank),
             address = it.address.takeIf(String::isNotBlank),
             stadiumLocation = it.stadiumLocation.takeIf(String::isNotBlank),
-            country = it.country
+            country = it.country,
+            theme = it.theme,
+            clearTheme = it.theme == null
         )
     }
 }
@@ -79,7 +90,7 @@ sealed class EditClubUiState {
         val canChangeClubLevelPermissions: Boolean = false
     ) : EditClubUiState() {
         val isDirty: Boolean get() = form != original
-        val isValid: Boolean get() = form.name.isNotBlank()
+        val isValid: Boolean get() = form.name.isNotBlank() && form.themeProblem == null
         val canSave: Boolean get() = isDirty && isValid && !isSubmitting
 
         // The short name ("CDR") already reads as a logo placeholder as-is; only derive initials from

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubThemeStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.config.AppConfig
@@ -37,7 +38,8 @@ class ClubDetailsViewModel(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getClubsUseCase: GetClubsUseCase,
     private val logoutUseCase: LogoutUseCase,
-    private val appConfig: AppConfig
+    private val appConfig: AppConfig,
+    private val clubThemeStore: ClubThemeStore
 ) : ViewModel() {
 
     // ---- The "More" panel (design 37): who's signed in, how many clubs they're in, the app version ----
@@ -98,6 +100,7 @@ class ClubDetailsViewModel(
             _state.update { ClubDetailsUiState.Loading }
             try {
                 val details = getClubDetailsUseCase(clubId)
+                clubThemeStore.remember(details.club)
                 // Best-effort: the Home tab is nice-to-have, so a failure here shouldn't block the
                 // rest of the club screen -- the Home tab renders its own light empty state.
                 val home = try {

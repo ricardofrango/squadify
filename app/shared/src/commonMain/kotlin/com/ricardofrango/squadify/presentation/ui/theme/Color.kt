@@ -1,11 +1,19 @@
 package com.ricardofrango.squadify.presentation.ui.theme
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 
 // Platform Base Colors - Modern Sports Management Theme
 val CarbonGray = Color(0xFF1C1C1E)
 val DeepCarbon = Color(0xFF121212)
-val PitchGreen = Color(0xFF2E7D32) // Slightly deeper, more professional green
+val SquadifyGreen = Color(0xFF2E7D32) // Slightly deeper, more professional green
+
+// The accent: Squadify's green, or the club's main colour inside a club (ClubPalette.kt). For green
+// that means something (a win, done, available) use SuccessGreen, which never changes.
+val PitchGreen: Color
+    @Composable @ReadOnlyComposable get() = LocalClubPalette.current.accent
+val SuccessGreen = SquadifyGreen
 val PitchGreenLight = Color(0xFF4CAF50)
 val WhiteSmoke = Color(0xFFF5F5F5)
 
@@ -20,7 +28,7 @@ val AlertRed = Color(0xFFC62828)
 // Light Mode Palette
 val md_theme_light_primary = CarbonGray
 val md_theme_light_onPrimary = Color(0xFFFFFFFF)
-val md_theme_light_secondary = PitchGreen
+val md_theme_light_secondary = SquadifyGreen
 val md_theme_light_onSecondary = Color(0xFFFFFFFF)
 val md_theme_light_background = WhiteSmoke
 val md_theme_light_surface = Color(0xFFFFFFFF)

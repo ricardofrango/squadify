@@ -2722,7 +2722,7 @@ Per the developer, 2026-10-20: disabling and reactivating a player should be a p
 - **Validation:** a club-level setting must carry `COORDINATOR` or `CLUB_ADMIN` and no `minTeamRole`; an age-group setting must carry no `minClubRole`.
 - **Tests:** `CheckUserPermissionUseCaseTest` (default, admins only, a coach never), `UpdateClubPermissionsUseCaseTest` (only an admin changes it, a coordinator can't undo it, kept when left out, validation), `GetClubPermissionsUseCaseTest` (default), `GetClubDetailsUseCaseTest` (`canManagePlayerStatus`), `RemoveAndDisablePlayerUseCasesTest` (admins only blocks a coordinator from both).
 
-## 58. Push Notifications: What Tapping One Opens
+## 56. Push Notifications: What Tapping One Opens
 
 Per the developer, 2026-10-22: a match notification opens the match, an age group one opens the age group, and so on. Before this, a tapped push only opened the app wherever it was.
 
@@ -2749,3 +2749,30 @@ Per the developer, 2026-10-22: a match notification opens the match, an age grou
 - **Not covered.** iOS, desktop and web don't receive pushes yet. With club theming (§57, PR #119), a deep-linked screen gets its club's colours only once they're in `ClubThemeStore`, which happens when My clubs or the club screen loads; the club's screen in the rebuilt stack isn't shown, so it doesn't load them.
 - **Tests:** `PushLinkTest` (round trip, keys, missing club) and the use case tests check each push's link (`NotifyMatchEventUseCaseTest`, `CreateTeamUseCaseTest`, `CreateTeamsUseCaseTest`, `AddStaffToAgeGroupUseCaseTest`). On the app side, `PushLinksTest` covers the back stack per kind, the single-club root, a push for another club, and the inbox handing a link out once.
 
+## 57. Club Colours (Dynamic Club Theming)
+
+Per the developer, 2026-10-21: a club can set its own colours. It's both colours or neither, a strong main colour and a lighter second one, chosen in Club settings. (§55 and §56 belong to the open player-status and club-logo work.)
+
+- **Model.** `Club.theme: ClubTheme?`, with `ClubTheme(primaryColor, secondaryColor)` as `#RRGGBB`. One nullable object, so a single colour can't be expressed. Stored as two columns with `chk_clubs_theme_pair` (both or neither) and `chk_clubs_theme_format` (`V23__club_theme.sql`).
+- **Rules** (`ClubThemeRules` in `:common`, so the app and the server run the same code):
+  - the main colour must take white text at 3:1 (WCAG's minimum for bold text and UI parts);
+  - the second colour must be lighter than the main one, at 3:1 against it.
+
+  Red/white, blue/white, black/yellow and navy/sky blue pass. A yellow main colour, or red with green, is refused, and the message suggests a darker shade or swapping the two.
+- **Update request.** `UpdateClubRequest.theme` follows the request's "null keeps the current value" rule. Removing the colours is an explicit `clearTheme = true`, so an app that predates colours can never wipe them. Sending both is refused. Colours are saved in capitals.
+- **Where the colours go.** The app hard-codes its colours (`PitchGreen` in about 390 places), not `MaterialTheme`. `PitchGreen` became a composable getter reading `LocalClubPalette`, so every accent follows the club with no change at the call sites. A `ClubPalette` has:
+  - `accent`: the main colour, for buttons, selected states and links on the white screens;
+  - `chrome`: also the main colour, for the top bar, the tab bars and rails, the detail headers under the top bar and the More panel's dark column (`ClubChrome`, which replaced `CarbonGray` at those backgrounds);
+  - `accentOnChrome`: the second colour, for what's selected on those bars (`ChromeAccent`), with `onAccentOnChrome` (the main colour) for text on a filled chip;
+  - `accentOnDark`: the main colour lifted towards white just enough to read on DeepCarbon (luminance 0.13), still under the 0.30 that white text needs. The live match console stays dark whatever the club, and `OnDarkSurface` points `PitchGreen` at this inside it. Navy becomes a mid blue and black a mid grey; red and Squadify's green are unchanged.
+
+  Without a theme, the palette is Squadify's own (carbon bars, green), identical to before.
+- **Green that means something stays green.** Wins, rating bands, the minutes bands, attendance, completed reports, goals pills and session status now use the fixed `SuccessGreen`, so a red club's wins aren't red. On a themed header, the match's result pill goes solid with white text and the score turns white (`IsClubThemed`), since a tinted green or red can vanish on a club's colour.
+- **Which screens wear which club.** Each destination (`ClubThemedEntry`, inside `NavGraphBuilder.screen`) takes the club of the topmost `Screen.ClubDetails` in the back stack when it was first shown, saved with the entry. Everything opened from a club wears its colours, while My clubs, sign-in and screens reached from them keep Squadify's, even after coming back to them. During a transition, each screen keeps its own colours. The colours come from `ClubThemeStore` (a Koin single), filled by My clubs, the club screen and a successful save in Club settings. Saving applies the new colours at once.
+- **Picker.** Club settings → Details → CLUB COLOURS shows:
+  - a preview of the bars, a button and a chip, plus a card per colour;
+  - Swap and Remove;
+  - "Choose club colours", which starts from a valid pair (Squadify green and white).
+
+  The sheet has suggested swatches (strong ones for the main colour, light ones for the second), with those that don't fit the other colour faded but still pickable. It also has hue, saturation and lightness sliders over gradients, and a hex field. The ✓ save stays off while the pair breaks a rule, with the reason shown. On My clubs, the badge is drawn in each club's colours.
+- **Tests:** `ClubThemeRulesTest` and `UpdateClubUseCaseTest` (keep, clear, refuse, capitals, permission) on the server; `ClubThemeTest` (palette, dark lifting, request, HSL round trip) in the app.

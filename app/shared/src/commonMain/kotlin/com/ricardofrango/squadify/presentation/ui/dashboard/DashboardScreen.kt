@@ -22,6 +22,7 @@ import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.hexColor
 import squadify.app.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -156,16 +157,18 @@ private fun ClubCard(club: Club, onClick: () -> Unit) {
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Placeholder for Logo
+            // Placeholder for Logo: in the club's colours when it has them (§57).
+            val main = club.theme?.let { hexColor(it.primaryColor) }
+            val second = club.theme?.let { hexColor(it.secondaryColor) }
             Surface(
                 modifier = Modifier.size(48.dp),
                 shape = RoundedCornerShape(12.dp),
-                color = CarbonGray.copy(alpha = 0.1f)
+                color = main ?: CarbonGray.copy(alpha = 0.1f)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         text = club.shortName ?: club.name.take(1).uppercase(),
-                        style = MaterialTheme.typography.titleMedium.copy(color = CarbonGray)
+                        style = MaterialTheme.typography.titleMedium.copy(color = second ?: CarbonGray)
                     )
                 }
             }

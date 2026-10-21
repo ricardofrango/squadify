@@ -28,6 +28,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.AmberText
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.isoDayNumber
 import org.jetbrains.compose.resources.pluralStringResource
@@ -135,7 +136,7 @@ internal fun Double.oneDecimalString(): String {
 /** The match report bands (design 39m): 8+ solid green, 6–7.9 light green, under 6 amber, 0 grey. */
 internal fun ratingColor(rating: Double): Color = when {
     rating <= 0.0 -> CarbonGray.copy(alpha = 0.35f)
-    rating >= 8.0 -> PitchGreen
+    rating >= 8.0 -> SuccessGreen
     rating >= 6.0 -> Color(0xFF7CB342)
     else -> Amber
 }

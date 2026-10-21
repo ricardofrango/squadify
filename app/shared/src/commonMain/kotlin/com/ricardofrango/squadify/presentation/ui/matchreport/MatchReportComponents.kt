@@ -39,6 +39,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.DeepGreen
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.*
 
@@ -71,7 +72,7 @@ internal fun RatingBadge(rating: Int?) {
     val (bg, fg) = when (rating?.let(::ratingBand)) {
         RatingBand.LOW -> AlertRed to Color.White
         RatingBand.MID -> Amber to CarbonGray
-        RatingBand.GOOD -> PitchGreen to Color.White
+        RatingBand.GOOD -> SuccessGreen to Color.White
         RatingBand.TOP -> DeepGreen to Color.White
         null -> Color.White to SecondaryText
     }
@@ -162,7 +163,7 @@ private fun FlowRowScope.StatsChips(row: MatchPlayerStatsWithPlayer) {
                     MiniPill(stringResource(Res.string.report_sub), Amber.copy(alpha = 0.2f), AmberText)
                 }
                 Text("${s.minutesPlayed}'", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = SecondaryText, modifier = Modifier.align(Alignment.CenterVertically))
-                if (s.goals > 0) MiniPill(stringResource(Res.string.report_chip_goals, s.goals), PitchGreen.copy(alpha = 0.12f), DeepGreen)
+                if (s.goals > 0) MiniPill(stringResource(Res.string.report_chip_goals, s.goals), SuccessGreen.copy(alpha = 0.12f), DeepGreen)
                 if (s.assists > 0) MiniPill(stringResource(Res.string.report_chip_assists, s.assists), CarbonGray.copy(alpha = 0.07f), DeepCarbon)
                 if (s.ownGoals > 0) MiniPill(stringResource(Res.string.report_chip_own_goals, s.ownGoals), AlertRed.copy(alpha = 0.1f), AlertRed)
                 if (s.yellowCards > 0) MiniPill(if (s.yellowCards > 1) "×${s.yellowCards}" else "", CarbonGray.copy(alpha = 0.05f), DeepCarbon, swatch = Amber)

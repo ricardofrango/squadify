@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editteam
 
+import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardOptions
 import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
@@ -122,13 +123,13 @@ private fun EditTeamContent(
                 onNavigateBack = onNavigateBack,
                 actions = {
                     if (idle?.busy == true) {
-                        CircularProgressIndicator(color = PitchGreen, strokeWidth = 2.dp, modifier = Modifier.padding(end = 16.dp).size(20.dp))
+                        CircularProgressIndicator(color = ChromeAccent, strokeWidth = 2.dp, modifier = Modifier.padding(end = 16.dp).size(20.dp))
                     } else {
                         IconButton(onClick = onSave, enabled = idle?.canSave == true) {
                             Icon(
                                 painter = painterResource(Res.drawable.ic_check),
                                 contentDescription = stringResource(Res.string.btn_save_changes),
-                                tint = if (idle?.canSave == true) PitchGreen else Color.White.copy(alpha = 0.3f)
+                                tint = if (idle?.canSave == true) ChromeAccent else Color.White.copy(alpha = 0.3f)
                             )
                         }
                     }

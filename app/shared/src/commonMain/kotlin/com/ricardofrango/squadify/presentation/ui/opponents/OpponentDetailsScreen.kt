@@ -69,6 +69,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.painterResource
@@ -293,7 +294,7 @@ private fun HeadToHeadCard(details: OpponentDetails, seasonId: String?, onSeason
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Tile(t.played, stringResource(Res.string.h2h_played), DeepCarbon, Modifier.weight(1f))
-            Tile(t.won, stringResource(Res.string.record_won), PitchGreen, Modifier.weight(1f))
+            Tile(t.won, stringResource(Res.string.record_won), SuccessGreen, Modifier.weight(1f))
             Tile(t.drawn, stringResource(Res.string.record_drawn), DeepCarbon, Modifier.weight(1f))
             Tile(t.lost, stringResource(Res.string.record_lost), AlertRed, Modifier.weight(1f))
         }

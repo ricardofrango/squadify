@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -74,7 +75,7 @@ fun FMTopBar(
             navigationIcon = navigationIcon,
             actions = actions,
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = CarbonGray,
+                containerColor = ClubChrome,
                 titleContentColor = Color.White,
                 navigationIconContentColor = Color.White
             )
@@ -85,7 +86,7 @@ fun FMTopBar(
             navigationIcon = navigationIcon,
             actions = actions,
             colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                containerColor = CarbonGray,
+                containerColor = ClubChrome,
                 titleContentColor = Color.White,
                 navigationIconContentColor = Color.White,
                 actionIconContentColor = Color.White

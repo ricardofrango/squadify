@@ -18,6 +18,7 @@ import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.UpdateClubPermissionsRequest
 import com.ricardofrango.squadify.presentation.errorMessage
+import com.ricardofrango.squadify.presentation.ui.theme.ClubThemeStore
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.members_action_failed
 import squadify.app.shared.generated.resources.members_invite_cancelled
@@ -46,7 +47,8 @@ class EditClubViewModel(
     private val getClubMembersOverviewUseCase: GetClubMembersOverviewUseCase,
     private val addClubMembersUseCase: AddClubMembersUseCase,
     private val resendClubInviteUseCase: ResendClubInviteUseCase,
-    private val cancelClubInviteUseCase: CancelClubInviteUseCase
+    private val cancelClubInviteUseCase: CancelClubInviteUseCase,
+    private val clubThemeStore: ClubThemeStore
 ) : ViewModel() {
 
     private val _members = MutableStateFlow<MembersUiState>(MembersUiState.Loading)
@@ -152,7 +154,8 @@ class EditClubViewModel(
             phone = club.phone.orEmpty(),
             address = club.address.orEmpty(),
             stadiumLocation = club.stadiumLocation.orEmpty(),
-            country = club.country
+            country = club.country,
+            theme = club.theme
         )
         return EditClubUiState.Idle(
             original = fields,
@@ -181,6 +184,8 @@ class EditClubViewModel(
             try {
                 updateClubUseCase(clubId, idle.form.toRequest())
                 val saved = idle.form.trimmed()
+                // The rest of the club's screens switch to the new colours straight away.
+                clubThemeStore.set(clubId, saved.theme)
                 _state.update {
                     (it as EditClubUiState.Idle).copy(
                         original = saved,

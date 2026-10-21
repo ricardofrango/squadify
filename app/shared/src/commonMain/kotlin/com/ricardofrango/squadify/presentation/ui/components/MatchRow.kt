@@ -36,6 +36,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.label_paused_badge
 import squadify.app.shared.generated.resources.label_result_draw
@@ -250,7 +251,7 @@ private fun subtitleFor(match: Match, live: Boolean, finished: Boolean): String 
 }
 
 private fun resultColor(score: MatchScore): Color = when {
-    score.ourScore > score.opponentScore -> PitchGreen
+    score.ourScore > score.opponentScore -> SuccessGreen
     score.ourScore < score.opponentScore -> LiveRed
     else -> CarbonGray.copy(alpha = 0.6f)
 }

@@ -57,6 +57,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.DeepGreen
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.Res
@@ -219,7 +220,7 @@ fun RatingPill(value: Double, text: String, minWidth: Dp, height: Dp, fontSize: 
     val (bg, fg) = when (ratingBand(value.roundToInt())) {
         RatingBand.LOW -> AlertRed to Color.White
         RatingBand.MID -> Amber to CarbonGray
-        RatingBand.GOOD -> PitchGreen to Color.White
+        RatingBand.GOOD -> SuccessGreen to Color.White
         RatingBand.TOP -> DeepGreen to Color.White
     }
     Box(

@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import com.ricardofrango.squadify.presentation.ui.theme.IsClubThemed
+import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardOptions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
@@ -37,6 +40,7 @@ import com.ricardofrango.squadify.presentation.ui.components.TimePickerSheet
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
@@ -130,7 +134,7 @@ private fun MatchDetailsContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            Column(Modifier.background(CarbonGray)) {
+            Column(Modifier.background(ClubChrome)) {
                 FMTopBar(
                     title = details?.let { "${it.team.name} vs ${it.opponent.shortName ?: it.opponent.name}" }
                         ?: stringResource(Res.string.title_match),
@@ -216,7 +220,7 @@ private fun StatusBand(details: MatchDetails) {
     val match = details.match
     val dt = match.dateTime.toLocalDateTime(TimeZone.currentSystemDefault())
     val counts = callUpCounts(details)
-    Column(Modifier.background(CarbonGray).padding(start = 16.dp, end = 16.dp, bottom = 12.dp)) {
+    Column(Modifier.background(ClubChrome).padding(start = 16.dp, end = 16.dp, bottom = 12.dp)) {
         // The type chip leads the status line so it lines up across states (design 29a); the line
         // wraps rather than truncating when a long type name and the date don't fit together.
         FlowRow(
@@ -237,9 +241,11 @@ private fun StatusBand(details: MatchDetails) {
             if (match.status == MatchStatus.LIVE || match.status == MatchStatus.HALF_TIME) {
                 Pill(stringResource(Res.string.matches_live), LossRed, Color.White)
             } else if (match.status == MatchStatus.SCHEDULED) {
-                Pill(relativeLabel(match.dateTime), PitchGreen.copy(alpha = 0.25f), PitchGreen)
+                Pill(relativeLabel(match.dateTime), ChromeAccent.copy(alpha = 0.25f), ChromeAccent)
             } else if (match.status == MatchStatus.FINISHED) {
-                val (bg, fg) = resultPillColors(details.score)
+                // On a club's colours a tinted green or red can vanish (green on a green club), so the
+                // pill goes solid with white text.
+                val (bg, fg) = if (IsClubThemed) solidResultPillColors(details.score) else resultPillColors(details.score)
                 Pill(stringResource(resultLabel(details.score)), bg, fg)
             }
         }
@@ -247,7 +253,7 @@ private fun StatusBand(details: MatchDetails) {
             Text(
                 "${details.score.ourScore} – ${details.score.opponentScore}",
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                color = resultAccent(details.score)
+                color = if (IsClubThemed) Color.White else resultAccent(details.score)
             )
         }
         match.location?.takeIf { it.isNotBlank() }?.let {
@@ -722,13 +728,19 @@ internal fun playerComparator(sort: CallUpSort): Comparator<Player> = when (sort
 }
 
 private fun resultAccent(score: MatchScore): Color = when {
-    score.ourScore > score.opponentScore -> PitchGreen
+    score.ourScore > score.opponentScore -> SuccessGreen
     score.ourScore < score.opponentScore -> LossRed
     else -> Color.White.copy(alpha = 0.75f)
 }
 
+private fun solidResultPillColors(score: MatchScore): Pair<Color, Color> = when {
+    score.ourScore > score.opponentScore -> SuccessGreen to Color.White
+    score.ourScore < score.opponentScore -> LossRed to Color.White
+    else -> Color.White.copy(alpha = 0.2f) to Color.White
+}
+
 private fun resultPillColors(score: MatchScore): Pair<Color, Color> = when {
-    score.ourScore > score.opponentScore -> PitchGreen.copy(alpha = 0.25f) to PitchGreen
+    score.ourScore > score.opponentScore -> SuccessGreen.copy(alpha = 0.25f) to SuccessGreen
     score.ourScore < score.opponentScore -> LossRed.copy(alpha = 0.25f) to LossRed
     else -> Color.White.copy(alpha = 0.15f) to Color.White.copy(alpha = 0.75f)
 }

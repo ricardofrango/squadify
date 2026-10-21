@@ -52,6 +52,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -158,7 +159,7 @@ private fun SeasonPlanContent(
 }
 
 private val PhaseColors = listOf(
-    Color(0xFF9CCC65), PitchGreen, CarbonGray.copy(alpha = 0.25f), Color(0xFF43A047), Color(0xFF1B5E20)
+    Color(0xFF9CCC65), SuccessGreen, CarbonGray.copy(alpha = 0.25f), Color(0xFF43A047), Color(0xFF1B5E20)
 )
 
 /** Where [date] sits along the season, 0..1. */

@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import squadify.app.shared.generated.resources.ic_close
 import squadify.app.shared.generated.resources.cd_disable_player
 import squadify.app.shared.generated.resources.btn_reactivate
@@ -208,7 +210,7 @@ fun ClubDetailsScreen(
             // fetch failed (Idle.details stays null), there's nothing for the tabs to show.
             if ((uiState as? ClubDetailsUiState.Idle)?.details != null) {
                 NavigationBar(
-                    containerColor = CarbonGray,
+                    containerColor = ClubChrome,
                     tonalElevation = 0.dp,
                     windowInsets = NavigationBarDefaults.windowInsets
                 ) {
@@ -491,11 +493,11 @@ private fun RowScope.ClubTabItem(
             )
         },
         colors = NavigationBarItemDefaults.colors(
-            selectedIconColor = PitchGreen,
-            selectedTextColor = PitchGreen,
+            selectedIconColor = ChromeAccent,
+            selectedTextColor = ChromeAccent,
             unselectedIconColor = Color.White.copy(alpha = 0.5f),
             unselectedTextColor = Color.White.copy(alpha = 0.5f),
-            indicatorColor = PitchGreen.copy(alpha = 0.15f)
+            indicatorColor = ChromeAccent.copy(alpha = 0.15f)
         )
     )
 }

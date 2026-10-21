@@ -17,6 +17,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
@@ -127,8 +128,7 @@ private fun NavController.consumeAndCascadeStructureChanged(entry: NavBackStackE
 }
 
 @Composable
-fun AppNavigation() {
-    val navController = rememberNavController()
+fun AppNavigation(navController: NavHostController = rememberNavController()) {
     // Read (and, on web, cleared from the visible URL) exactly once, during this first composition --
     // strictly before the LaunchedEffect below runs, so bindToBrowserHistoryIfWeb's own default
     // "navigate straight to the initial URL fragment" behavior finds nothing left to act on; the deep
