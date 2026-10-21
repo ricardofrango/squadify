@@ -86,6 +86,9 @@ class ExposedClubRepository : ClubRepository {
             it[status] = club.status
         } > 0
 
+    override suspend fun updateLogoUrl(clubId: String, logoUrl: String?): Boolean =
+        Clubs.update({ Clubs.id eq clubId.toUuid() }) { it[Clubs.logoUrl] = logoUrl } > 0
+
     // Both add-member methods skip a (club_id, user_id) pair that already has a membership
     // (ON CONFLICT DO NOTHING on unique_club_member) rather than failing or duplicating it. The existing
     // row, and its role, is left untouched, so re-adding someone never downgrades them.

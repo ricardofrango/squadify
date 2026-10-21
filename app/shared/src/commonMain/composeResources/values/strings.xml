@@ -1387,4 +1387,12 @@
     <!-- Age group Members: disabled players section -->
     <string name="ag_disabled_heading">Disabled</string>
     <string name="msg_ag_disabled_hint">Disabled in the club: still in this age group, but they can\'t be called up. Reactivate them from the club\'s Players screen.</string>
+    <!-- Club logo -->
+    <string name="label_change_logo">Change logo</string>
+    <string name="btn_remove_logo">Remove</string>
+    <string name="msg_logo_hint">PNG or JPEG, up to 5 MB. Saved straight away.</string>
+    <string name="msg_logo_saving">Saving the logo…</string>
+    <string name="msg_logo_too_big">That image is larger than 5 MB. Pick a smaller one.</string>
+    <string name="msg_logo_upload_failed">Couldn\'t upload the logo. Try again.</string>
+    <string name="msg_logo_remove_failed">Couldn\'t remove the logo. Try again.</string>
 </resources>

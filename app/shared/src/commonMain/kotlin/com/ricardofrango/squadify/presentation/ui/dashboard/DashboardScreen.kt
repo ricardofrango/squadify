@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.SportType
+import com.ricardofrango.squadify.presentation.ui.components.ClubLogo
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
@@ -156,19 +157,15 @@ private fun ClubCard(club: Club, onClick: () -> Unit) {
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Placeholder for Logo
-            Surface(
-                modifier = Modifier.size(48.dp),
+            // The club's logo, or its short name / first letter until it has one.
+            ClubLogo(
+                logoUrl = club.logoUrl,
+                initials = club.shortName ?: club.name.take(1).uppercase(),
+                size = 48.dp,
                 shape = RoundedCornerShape(12.dp),
-                color = CarbonGray.copy(alpha = 0.1f)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = club.shortName ?: club.name.take(1).uppercase(),
-                        style = MaterialTheme.typography.titleMedium.copy(color = CarbonGray)
-                    )
-                }
-            }
+                background = CarbonGray.copy(alpha = 0.1f),
+                initialsColor = CarbonGray
+            )
             
             Spacer(modifier = Modifier.width(16.dp))
 

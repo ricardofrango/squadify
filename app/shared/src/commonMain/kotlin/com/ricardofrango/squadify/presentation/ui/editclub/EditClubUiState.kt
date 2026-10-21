@@ -76,7 +76,11 @@ sealed class EditClubUiState {
         val permissionsSubmitError: String? = null,
         // Club-level settings (who disables and reactivates players) are the admin's call: a
         // coordinator sees them, read-only.
-        val canChangeClubLevelPermissions: Boolean = false
+        val canChangeClubLevelPermissions: Boolean = false,
+        // The logo is saved on its own, straight away (not with the ✓): the server path, or null.
+        val logoUrl: String? = null,
+        val isUpdatingLogo: Boolean = false,
+        val logoError: String? = null
     ) : EditClubUiState() {
         val isDirty: Boolean get() = form != original
         val isValid: Boolean get() = form.name.isNotBlank()

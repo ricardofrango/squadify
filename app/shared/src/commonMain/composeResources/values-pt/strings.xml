@@ -1385,4 +1385,12 @@
     <!-- Age group Members: disabled players section -->
     <string name="ag_disabled_heading">Desativados</string>
     <string name="msg_ag_disabled_hint">Desativados no clube: continuam neste escalão, mas não podem ser convocados. Reative-os no ecrã Jogadores do clube.</string>
+    <!-- Club logo -->
+    <string name="label_change_logo">Alterar logótipo</string>
+    <string name="btn_remove_logo">Remover</string>
+    <string name="msg_logo_hint">PNG ou JPEG, até 5 MB. Guardado de imediato.</string>
+    <string name="msg_logo_saving">A guardar o logótipo…</string>
+    <string name="msg_logo_too_big">Essa imagem tem mais de 5 MB. Escolha uma mais pequena.</string>
+    <string name="msg_logo_upload_failed">Não foi possível carregar o logótipo. Tente novamente.</string>
+    <string name="msg_logo_remove_failed">Não foi possível remover o logótipo. Tente novamente.</string>
 </resources>
