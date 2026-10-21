@@ -598,10 +598,15 @@ data class UpdatePlayerRequest(
     val ageGroupId: String? = null
 )
 
+/** `PUT /clubs/{clubId}/logo` -- the new logo's path (`/clubs/{clubId}/logo/{imageId}.png`). */
+@Serializable
+data class ClubLogoResponse(val logoUrl: String)
+
 @Serializable
 data class UpdateClubRequest(
     val name: String? = null,
     val shortName: String? = null,
+    // Ignored by the server: the logo is only set by uploading it (PUT /clubs/{clubId}/logo).
     val logoUrl: String? = null,
     val email: String? = null,
     val phone: String? = null,

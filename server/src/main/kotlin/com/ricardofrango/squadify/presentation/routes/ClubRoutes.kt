@@ -22,7 +22,20 @@ import com.ricardofrango.squadify.model.UpdateClubPermissionsRequest
 import com.ricardofrango.squadify.model.UpdateClubRequest
 import com.ricardofrango.squadify.security.JwtConfig
 import com.ricardofrango.squadify.security.userId
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.request.receiveChannel
+import io.ktor.server.response.header
+import io.ktor.server.response.respondBytes
+import io.ktor.server.routing.put
+import io.ktor.utils.io.readRemaining
+import kotlinx.io.readByteArray
+import com.ricardofrango.squadify.domain.usecase.UploadClubLogoUseCase
+import com.ricardofrango.squadify.domain.usecase.DeleteClubLogoUseCase
+import com.ricardofrango.squadify.domain.usecase.GetClubLogoUseCase
+import com.ricardofrango.squadify.model.ClubLogoResponse
+import com.ricardofrango.squadify.util.LogoImage
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -51,6 +64,9 @@ fun Route.clubRoutes() {
     val getClubMatchesUpdatesUseCase by inject<GetClubMatchesUpdatesUseCase>()
     val getClubPermissionsUseCase by inject<GetClubPermissionsUseCase>()
     val updateClubPermissionsUseCase by inject<UpdateClubPermissionsUseCase>()
+    val uploadClubLogoUseCase by inject<UploadClubLogoUseCase>()
+    val deleteClubLogoUseCase by inject<DeleteClubLogoUseCase>()
+    val getClubLogoUseCase by inject<GetClubLogoUseCase>()
 
     authenticate("auth-jwt") {
         route("/clubs") {
@@ -109,6 +125,32 @@ fun Route.clubRoutes() {
                             ErrorResponse("Failed to update club")
                         )
                     }
+                }
+
+                // The logo: the image is the raw request body (PNG or JPEG, at most 5 MB). See ClubLogoUseCases.
+                put("/logo") {
+                    val clubId = call.parameters["clubId"] ?: return@put call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                    // One byte over the limit is enough to know it's too big, without reading the rest.
+                    val bytes = call.receiveChannel().readRemaining(LogoImage.MAX_UPLOAD_BYTES + 1L).readByteArray()
+                    call.respond(ClubLogoResponse(uploadClubLogoUseCase(currentUserId, clubId, bytes)))
+                }
+
+                delete("/logo") {
+                    val clubId = call.parameters["clubId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                    deleteClubLogoUseCase(currentUserId, clubId)
+                    call.respond(HttpStatusCode.NoContent)
+                }
+
+                // A new image id on every upload, so the file never changes under a path: cache it for good.
+                get("/logo/{file}") {
+                    val clubId = call.parameters["clubId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                    val imageId = call.parameters["file"]?.removeSuffix(".png") ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val bytes = getClubLogoUseCase(currentUserId, clubId, imageId)
+                    call.response.header(HttpHeaders.CacheControl, "private, max-age=31536000, immutable")
+                    call.respondBytes(bytes, ContentType.Image.PNG)
                 }
 
                 post("/members") {

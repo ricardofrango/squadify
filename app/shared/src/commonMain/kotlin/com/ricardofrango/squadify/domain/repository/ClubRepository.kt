@@ -23,6 +23,9 @@ interface ClubRepository {
     suspend fun resendClubInvite(clubId: String, inviteId: String)
     suspend fun cancelClubInvite(clubId: String, inviteId: String)
     suspend fun updateClub(clubId: String, request: UpdateClubRequest)
+    /** Uploads [bytes] (PNG or JPEG) as the club's logo; returns the new logo path. */
+    suspend fun uploadClubLogo(clubId: String, bytes: ByteArray): String
+    suspend fun deleteClubLogo(clubId: String)
     suspend fun getClubPermissions(clubId: String): ClubPermissionsResponse
     suspend fun updateClubPermissions(clubId: String, request: UpdateClubPermissionsRequest)
 }

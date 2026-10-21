@@ -14,8 +14,6 @@ import com.ricardofrango.squadify.model.AddClubMembersRequest
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ClubPermissionSetting
-import com.ricardofrango.squadify.model.ConfigurablePermission
-import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.UpdateClubPermissionsRequest
 import com.ricardofrango.squadify.presentation.errorMessage
 import com.ricardofrango.squadify.presentation.ui.theme.ClubThemeStore
@@ -38,6 +36,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.StringResource
+import com.ricardofrango.squadify.domain.usecase.UploadClubLogoUseCase
+import com.ricardofrango.squadify.domain.usecase.DeleteClubLogoUseCase
+import squadify.app.shared.generated.resources.msg_logo_too_big
+import squadify.app.shared.generated.resources.msg_logo_upload_failed
+import squadify.app.shared.generated.resources.msg_logo_remove_failed
 
 class EditClubViewModel(
     private val getClubUseCase: GetClubUseCase,
@@ -48,6 +52,8 @@ class EditClubViewModel(
     private val addClubMembersUseCase: AddClubMembersUseCase,
     private val resendClubInviteUseCase: ResendClubInviteUseCase,
     private val cancelClubInviteUseCase: CancelClubInviteUseCase,
+    private val uploadClubLogoUseCase: UploadClubLogoUseCase,
+    private val deleteClubLogoUseCase: DeleteClubLogoUseCase,
     private val clubThemeStore: ClubThemeStore
 ) : ViewModel() {
 
@@ -161,7 +167,8 @@ class EditClubViewModel(
             original = fields,
             form = fields,
             originalPermissions = permissions,
-            permissions = permissions
+            permissions = permissions,
+            logoUrl = club.logoUrl
         )
     }
 
@@ -203,6 +210,40 @@ class EditClubViewModel(
         }
     }
 
+    /** Uploads [bytes] as the logo (the server checks and resizes it); [onChanged] tells the screens below. */
+    fun onLogoPicked(clubId: String, bytes: ByteArray, onChanged: () -> Unit) {
+        if (bytes.size > MAX_LOGO_BYTES) {
+            viewModelScope.launch {
+                val message = getString(Res.string.msg_logo_too_big)
+                updateLogo { it.copy(logoError = message) }
+            }
+            return
+        }
+        changeLogo(onChanged, Res.string.msg_logo_upload_failed) { uploadClubLogoUseCase(clubId, bytes) }
+    }
+
+    fun onRemoveLogo(clubId: String, onChanged: () -> Unit) =
+        changeLogo(onChanged, Res.string.msg_logo_remove_failed) { deleteClubLogoUseCase(clubId); null }
+
+    private fun changeLogo(onChanged: () -> Unit, failure: StringResource, action: suspend () -> String?) {
+        if ((_state.value as? EditClubUiState.Idle)?.isUpdatingLogo != false) return
+        viewModelScope.launch {
+            updateLogo { it.copy(isUpdatingLogo = true, logoError = null) }
+            try {
+                val url = action()
+                updateLogo { it.copy(logoUrl = url, isUpdatingLogo = false) }
+                onChanged()
+            } catch (e: Exception) {
+                val message = errorMessage(e, failure)
+                updateLogo { it.copy(isUpdatingLogo = false, logoError = message) }
+            }
+        }
+    }
+
+    private fun updateLogo(block: (EditClubUiState.Idle) -> EditClubUiState.Idle) {
+        _state.update { (it as? EditClubUiState.Idle)?.let(block) ?: it }
+    }
+
     fun onPermissionChanged(setting: ClubPermissionSetting) {
         _state.update { current ->
             val idle = current as? EditClubUiState.Idle ?: return@update current
@@ -234,3 +275,6 @@ class EditClubViewModel(
         }
     }
 }
+
+// The server's limit (LogoImage.MAX_UPLOAD_BYTES): checked here too, so a big photo isn't sent for nothing.
+private const val MAX_LOGO_BYTES = 5 * 1024 * 1024

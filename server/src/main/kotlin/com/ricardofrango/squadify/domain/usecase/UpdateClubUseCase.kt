@@ -41,7 +41,8 @@ class UpdateClubUseCase(
         val updatedClub = existingClub.copy(
             name = request.name ?: existingClub.name,
             shortName = request.shortName ?: existingClub.shortName,
-            logoUrl = request.logoUrl ?: existingClub.logoUrl,
+            // Only the logo upload sets it (UploadClubLogoUseCase), never a URL sent here.
+            logoUrl = existingClub.logoUrl,
             email = request.email ?: existingClub.email,
             phone = request.phone ?: existingClub.phone,
             address = request.address ?: existingClub.address,

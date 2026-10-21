@@ -459,7 +459,31 @@ graph TD
 
 **Club colours (`theme`).** A `ClubTheme` is both colours or none, so one colour on its own can't be sent; the database refuses it too (`chk_clubs_theme_pair`). The rules live in the shared `ClubThemeRules`, so the app checks them as the user picks and the server checks them again on save. A request without `theme` keeps the current colours, so an app that predates them can't wipe them. See `TECHNICAL_DECISIONS.md` §57.
 
-(Corrected from an earlier revision of this doc that said `minClubRole=CLUB_ADMIN` — the code has required only `COORDINATOR` since admin/coordinator were made fully equivalent short of billing; see `UpdateClubUseCaseTest`.) `stadiumLocation` — where home matches are actually played, when that differs from the official `address` — is edited from the client's Edit Club Details screen (Club Details' "More" menu); see `TECHNICAL_DECISIONS.md` §32.
+(Corrected from an earlier revision of this doc that said `minClubRole=CLUB_ADMIN` — the code has required only `COORDINATOR` since admin/coordinator were made fully equivalent short of billing; see `UpdateClubUseCaseTest`.) `stadiumLocation` — where home matches are actually played, when that differs from the official `address` — is edited from the client's Edit Club Details screen (Club Details' "More" menu); see `TECHNICAL_DECISIONS.md` §32. `logoUrl` in the request is ignored: the logo is only set by uploading it (§3.4c).
+
+### 3.4c Club Logo (`UploadClubLogoUseCase` / `DeleteClubLogoUseCase` / `GetClubLogoUseCase`)
+
+`PUT /clubs/{clubId}/logo` (raw PNG or JPEG body, at most 5 MB) → `ClubLogoResponse(logoUrl)`; `DELETE /clubs/{clubId}/logo` (204); `GET /clubs/{clubId}/logo/{imageId}.png` (the image, `Cache-Control: private, max-age=31536000, immutable`). Storage key `clubs/{clubId}/logo/{imageId}.png`; `clubs.logo_url` holds the same path under the API. See `TECHNICAL_DECISIONS.md` §56.
+
+```mermaid
+graph TD
+    A[Start: userId, clubId, image bytes] --> B[Fetch Club by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> S{Image storage available?}
+    S -- No --> V0(["Throw ValidationException: uploads aren't set up"])
+    S -- Yes --> P["LogoImage.toPng: PNG/JPEG only, ≤ 5 MB, ≤ 6000×6000; fit in 512×512 (never enlarged), centred on a transparent square, PNG"]
+    P -- bad image --> V(["Throw ValidationException (current logo untouched)"])
+    P -- ok --> D["Delete the current logo's file, if any"]
+    D --> G["New imageId (UUID)"]
+    G --> PUT["Store clubs/{clubId}/logo/{imageId}.png"]
+    PUT -- fails --> X["clubs.logo_url = null"] --> E(["Rethrow"])
+    PUT -- ok --> U["clubs.logo_url = /clubs/{clubId}/logo/{imageId}.png"]
+    U --> Z(["Return the new logoUrl"])
+```
+
+The old file is deleted **before** the new one is stored, so files never pile up, and every upload gets a new id, so a cached logo can never be stale. If storing the new one fails, the club is left with no logo rather than a link to a deleted file. Delete: same gate; removes the file and clears `logo_url`. Get: anyone who can see the club (`minClubRole=MEMBER`, `allowPlayerOrParentAccess`, like §3.3), and only the club's **current** image id; an old id is a 404.
 
 ### 3.4b Get / Update Club Permissions (`GetClubPermissionsUseCase` / `UpdateClubPermissionsUseCase`)
 
@@ -1973,7 +1997,7 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
   **Fixed:** per-player stats lines are written for every finished match (`MatchPlayerStatsCalculator`, §8.2f), and are read back through the match report (§8.6), a player's season stats (`GetPlayerSeasonStatsUseCase`, §5.1c), a team's season record (`GetTeamSeasonRecordUseCase`, §4.6c) and an age group's season record (`GetAgeGroupSeasonRecordUseCase`, §4.4c). The live console now shows the same minutes while the match runs and at full time (§8.4).
 - [ ] **Some client affordances are still inert.** These are shown on purpose, matching the designs, but do nothing yet:
   - ~~**Login:** "Forgot password?" has no flow.~~ Fixed: emailed 6-digit code (§2.9, §2.10).
-  - **Club settings:** "Add logo" does nothing, since there's no image upload anywhere in the app.
+  - ~~**Club settings:** "Add logo" does nothing.~~ Fixed: club logo upload (§3.4c). Opponent logos are still inert.
   - ~~**Account:** "Change email" is likewise non-functional.~~ Fixed: code sent to the new address (§2.11, §2.12).
 - [ ] **The club Matches list's live badge uses the device clock.** The live console counts on the server's clock (`MatchDetails.serverNow`, §8.4), but `MatchRow`'s badge still uses `now` from the device. It only shows whole minutes, so a few seconds of drift rarely shows. Fixing it would need the server's time on the matches list too.
 - [x] **Invite emails are not sent.** Every invite-creation path used to only write to the `Invites` table (§10), with no email call anywhere.
@@ -2078,7 +2102,7 @@ erDiagram
         uuid id PK
         varchar name "255 chars"
         varchar short_name "50 chars, nullable"
-        varchar logo_url "500 chars, nullable"
+        varchar logo_url "500 chars, nullable -- /clubs/{id}/logo/{imageId}.png, set only by the logo upload (§3.4c)"
         varchar email "255 chars, nullable"
         varchar phone "50 chars, nullable"
         varchar address "500 chars, nullable"

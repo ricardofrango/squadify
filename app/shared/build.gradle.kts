@@ -105,6 +105,12 @@ kotlin {
 
             // Settings
             implementation(libs.multiplatform.settings.no.arg)
+
+            // Images: Coil loads the club logo through the app's authenticated Ktor client; FileKit
+            // opens the platform's image picker for uploading one.
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor3)
+            implementation(libs.filekit.dialogs.compose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

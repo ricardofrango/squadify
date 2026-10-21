@@ -2749,7 +2749,21 @@ Per the developer, 2026-10-22: a match notification opens the match, an age grou
 - **Not covered.** iOS, desktop and web don't receive pushes yet. With club theming (§57, PR #119), a deep-linked screen gets its club's colours only once they're in `ClubThemeStore`, which happens when My clubs or the club screen loads; the club's screen in the rebuilt stack isn't shown, so it doesn't load them.
 - **Tests:** `PushLinkTest` (round trip, keys, missing club) and the use case tests check each push's link (`NotifyMatchEventUseCaseTest`, `CreateTeamUseCaseTest`, `CreateTeamsUseCaseTest`, `AddStaffToAgeGroupUseCaseTest`). On the app side, `PushLinksTest` covers the back stack per kind, the single-club root, a push for another club, and the inbox handing a link out once.
 
-## 57. Club Colours (Dynamic Club Theming)
+## 57. Club Logos and Image Storage
+
+Per the developer, 2026-10-21: club logos first (opponents later), stored on Railway so everything stays in one place.
+
+- **Storage:** an `ImageStorage` interface with three implementations. `S3ImageStorage` talks to a **Railway Storage Bucket** (S3-compatible, private, free egress) through the AWS SDK v2 with the JDK's HTTP client (the Apache and Netty clients are excluded). `LocalImageStorage` keeps files under `server/uploads/` (gitignored) in dev. `UnavailableImageStorage` is used in production without a bucket, and uploads are refused: a Railway container's disk is wiped on every deploy, so silently writing there would lose logos.
+- **Configuration:** `STORAGE_BUCKET`, `STORAGE_ENDPOINT` (default `https://storage.railway.app`), `STORAGE_REGION` (default `auto`), `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY`. On Railway they're mapped from the bucket's reference variables (`${{Bucket.BUCKET}}` and so on). One bucket per environment, like the databases.
+- **Paths:** storage key `clubs/{clubId}/logo/{imageId}.png`; the same path under the API is what `clubs.logo_url` holds (no migration: the column already existed). Grouped by club so later images (player photos, opponent logos) get their own folders.
+- **Replacing:** each upload gets a **new image id**, so a path never changes content and apps can cache an image for good (`Cache-Control: immutable`), with no stale logo after a change. The **old file is deleted before the new one is stored** (developer's call), so storage doesn't grow. The image is validated and resized first, so a bad file never costs the current logo. If storing the new one fails, `logo_url` is cleared rather than left pointing at a deleted file.
+- **Processing** (`LogoImage`): PNG or JPEG only, at most 5 MB, at most 6000×6000 (read from the header before decoding). Fitted into 512×512 without enlarging, centred on a transparent square, saved as PNG so transparent crests stay transparent. Step-by-step halving keeps large photos smooth.
+- **Serving:** private bucket, so the server serves images itself (`GET /clubs/{clubId}/logo/{imageId}.png`) to whoever can see the club, and only the current id. `UpdateClubRequest.logoUrl` is now ignored, so a client can't point a club at an arbitrary URL.
+- **Who:** coordinators and admins, the same gate as editing the club's details.
+- **Client:** FileKit opens the platform picker (Android photo picker, iOS PHPicker, a file dialog on web/desktop); Coil 3 loads images through the app's authenticated Ktor client, set as Coil's singleton loader in `App()`. `ClubLogo` shows the logo or the initials (also on a load error). Club settings → Details: "Add logo" / "Change logo" and "Remove", saved straight away (not with the ✓), with a 5 MB check before sending. My clubs shows the logo too.
+- **Tests:** `LogoImageTest` (fit, no enlarging, formats, limits), `ClubLogoUseCasesTest` (delete-then-store order with a new id, a bad image leaves the logo, a failed store clears it, permissions, no storage, delete, only the current id is served, foreign URLs never become storage keys).
+
+## 58. Club Colours (Dynamic Club Theming)
 
 Per the developer, 2026-10-21: a club can set its own colours. It's both colours or neither, a strong main colour and a lighter second one, chosen in Club settings. (§55 and §56 belong to the open player-status and club-logo work.)
 
