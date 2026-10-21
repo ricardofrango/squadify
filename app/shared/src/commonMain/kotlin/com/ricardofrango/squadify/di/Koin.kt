@@ -104,6 +104,7 @@ val dataModule = module {
             defaultRequest {
                 contentType(ContentType.Application.Json)
             }
+            mapNetworkErrors()
         }
     }
 

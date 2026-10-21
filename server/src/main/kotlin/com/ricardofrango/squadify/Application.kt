@@ -74,23 +74,7 @@ fun Application.module() {
     // environment's web client URL". java.net.URI.authority preserves the string's own port (or lack of
     // one) as written, unlike Ktor's Url.hostWithPort, which always forces one in -- allowHost needs to
     // match the browser's actual Origin header ("https://host", no ":443") exactly.
-    install(CORS) {
-        val webAppUri = java.net.URI(ServerConfig.webAppBaseUrl)
-        val webAppAuthority = webAppUri.authority
-            ?: throw IllegalStateException(
-                "WEBAPP_BASE_URL (\"${ServerConfig.webAppBaseUrl}\") must be a full URL including a " +
-                    "scheme, e.g. \"https://example.com\" -- CORS can't determine the allowed origin's " +
-                    "host from a value with no scheme."
-            )
-        allowHost(webAppAuthority, schemes = listOf(webAppUri.scheme))
-        allowMethod(HttpMethod.Get)
-        allowMethod(HttpMethod.Post)
-        allowMethod(HttpMethod.Patch)
-        allowMethod(HttpMethod.Delete)
-        allowHeader(HttpHeaders.Authorization)
-        allowHeader(HttpHeaders.ContentType)
-        allowNonSimpleContentTypes = true
-    }
+    configureCors(ServerConfig.webAppBaseUrl)
 
     install(Authentication) {
         jwt("auth-jwt") {
@@ -191,5 +175,32 @@ fun Application.module() {
             trainingRoutes()
             fcmTokenRoutes()
         }
+    }
+}
+
+/**
+ * The web client's CORS rules, kept apart from [module] so a test can check them without a database.
+ * Every method a repository uses has to be listed: a browser refuses anything else at the preflight
+ * and the app only sees "Failed to fetch" (PUT was missing, so saving a match report, a training plan,
+ * session ratings or exercises failed on web only).
+ */
+fun Application.configureCors(webAppBaseUrl: String) {
+    install(CORS) {
+        val webAppUri = java.net.URI(webAppBaseUrl)
+        val webAppAuthority = webAppUri.authority
+            ?: throw IllegalStateException(
+                "WEBAPP_BASE_URL (\"${webAppBaseUrl}\") must be a full URL including a " +
+                    "scheme, e.g. \"https://example.com\" -- CORS can't determine the allowed origin's " +
+                    "host from a value with no scheme."
+            )
+        allowHost(webAppAuthority, schemes = listOf(webAppUri.scheme))
+        allowMethod(HttpMethod.Get)
+        allowMethod(HttpMethod.Post)
+        allowMethod(HttpMethod.Put)
+        allowMethod(HttpMethod.Patch)
+        allowMethod(HttpMethod.Delete)
+        allowHeader(HttpHeaders.Authorization)
+        allowHeader(HttpHeaders.ContentType)
+        allowNonSimpleContentTypes = true
     }
 }
