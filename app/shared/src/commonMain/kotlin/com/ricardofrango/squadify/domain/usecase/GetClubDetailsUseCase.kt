@@ -22,6 +22,8 @@ data class ClubDetails(
     val viewerAgeGroups: List<ViewerAgeGroup> = emptyList(),
     val createTeamAgeGroupIds: List<String> = emptyList(),
     val createPlayersAgeGroupIds: List<String> = emptyList(),
+    // May disable and reactivate players (the club-level MANAGE_PLAYER_STATUS setting).
+    val canManagePlayerStatus: Boolean = false,
 )
 
 class GetClubDetailsUseCase(
@@ -52,6 +54,7 @@ class GetClubDetailsUseCase(
             viewerAgeGroups = clubDetailsResponse.viewerAgeGroups,
             createTeamAgeGroupIds = clubDetailsResponse.createTeamAgeGroupIds,
             createPlayersAgeGroupIds = clubDetailsResponse.createPlayersAgeGroupIds,
+            canManagePlayerStatus = clubDetailsResponse.canManagePlayerStatus,
         )
     }
 }

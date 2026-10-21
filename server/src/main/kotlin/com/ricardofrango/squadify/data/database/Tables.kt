@@ -350,6 +350,8 @@ object ClubPermissionOverrides : Table("club_permission_overrides") {
     val clubId = uuid("club_id").references(Clubs.id)
     val permission = enumerationByName("permission", 50, ConfigurablePermission::class)
     val minTeamRole = enumerationByName("min_team_role", 50, TeamRole::class).nullable()
+    // Club-level actions only (ConfigurablePermission.isClubLevel): COORDINATOR or CLUB_ADMIN. See V22.
+    val minClubRole = enumerationByName("min_club_role", 50, ClubRole::class).nullable()
 
     override val primaryKey = PrimaryKey(id)
 

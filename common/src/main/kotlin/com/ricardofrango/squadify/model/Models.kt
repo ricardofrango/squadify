@@ -53,22 +53,49 @@ enum class ConfigurablePermission {
     MANAGE_LIVE_MATCH,
     // Training (Phase 8): the age group's season, month and week plans, and its training sessions.
     // Rating players after a session is not part of it -- any coach or staff of the age group can.
-    MANAGE_TRAINING
+    MANAGE_TRAINING,
+    // Disabling and reactivating a player in the club. Club-level (see isClubLevel): it acts on the
+    // whole club, so its threshold is a club role -- admins and coordinators (default) or admins only --
+    // and only an admin can change it.
+    MANAGE_PLAYER_STATUS
 }
 
-/** The threshold each [ConfigurablePermission] falls back to until a club explicitly overrides it. */
-val ConfigurablePermission.defaultMinTeamRole: TeamRole
-    get() = if (this == ConfigurablePermission.MANAGE_LIVE_MATCH) TeamRole.STAFF else TeamRole.COACH
+/**
+ * A club-level action has no age-group context: its threshold is a [ClubRole] ([ClubPermissionSetting.minClubRole]),
+ * not an age-group staff role, and only a `CLUB_ADMIN` can change it, since a coordinator could otherwise
+ * give themselves back what an admin took away.
+ */
+val ConfigurablePermission.isClubLevel: Boolean
+    get() = this == ConfigurablePermission.MANAGE_PLAYER_STATUS
+
+/** The threshold each [ConfigurablePermission] falls back to until a club explicitly overrides it (null for club-level actions). */
+val ConfigurablePermission.defaultMinTeamRole: TeamRole?
+    get() = when {
+        isClubLevel -> null
+        this == ConfigurablePermission.MANAGE_LIVE_MATCH -> TeamRole.STAFF
+        else -> TeamRole.COACH
+    }
+
+/** A club-level action's default threshold: coordinators and admins. Null for age-group actions. */
+val ConfigurablePermission.defaultMinClubRole: ClubRole?
+    get() = if (isClubLevel) ClubRole.COORDINATOR else null
+
+/** The setting a club has until it overrides [this]. */
+fun ConfigurablePermission.defaultSetting() = ClubPermissionSetting(this, defaultMinTeamRole, defaultMinClubRole)
 
 /**
  * One club's setting for one [ConfigurablePermission]. [minTeamRole] `null` means "coordinator-only" --
  * the age-group-staff path is disabled entirely for this action, leaving only the (fixed) `COORDINATOR`+
  * club-role floor every configurable action also always carries.
+ *
+ * [minClubRole] is only for club-level actions ([isClubLevel]): `COORDINATOR` (admins and coordinators)
+ * or `CLUB_ADMIN` (admins only). Null on every age-group action, whose club floor is fixed.
  */
 @Serializable
 data class ClubPermissionSetting(
     val action: ConfigurablePermission,
-    val minTeamRole: TeamRole?
+    val minTeamRole: TeamRole?,
+    val minClubRole: ClubRole? = null
 )
 
 /** `GET /clubs/{clubId}/permissions` -- always one entry per [ConfigurablePermission], override-or-default. */
@@ -279,6 +306,8 @@ data class ClubDetailsResponse(
     // Empty for coordinators and admins, who can do both anywhere (see canEditClub).
     val createTeamAgeGroupIds: List<String> = emptyList(),
     val createPlayersAgeGroupIds: List<String> = emptyList(),
+    // Whether the viewer may disable and reactivate players (ConfigurablePermission.MANAGE_PLAYER_STATUS).
+    val canManagePlayerStatus: Boolean = false,
 )
 
 /** One age group the viewer is staff on, in the active season. */

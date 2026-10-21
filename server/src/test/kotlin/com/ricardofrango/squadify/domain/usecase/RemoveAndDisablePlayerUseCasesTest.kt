@@ -13,7 +13,9 @@ import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AddPlayersToAgeGroupRequest
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.CallUpStatus
+import com.ricardofrango.squadify.model.ClubPermissionSetting
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchCallUp
 import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
@@ -32,7 +34,7 @@ import org.junit.Test
 import kotlin.test.assertFailsWith
 import kotlin.time.Instant
 
-// Removing a player from an age group (not the club), and disabling a player in the club.
+// Removing a player from an age group (not the club), disabling a player in the club, and reactivating them.
 class RemoveAndDisablePlayerUseCasesTest {
 
     private val playerRepository = mockk<PlayerRepository>(relaxed = true)
@@ -48,6 +50,7 @@ class RemoveAndDisablePlayerUseCasesTest {
     private val check = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository)
     private val remove = RemovePlayerFromAgeGroupUseCase(playerRepository, ageGroupRepository, teamRepository, matchRepository, check, transactionManager)
     private val disable = DisablePlayerUseCase(playerRepository, teamRepository, matchRepository, check, transactionManager)
+    private val reactivate = ReactivatePlayerUseCase(playerRepository, check, transactionManager)
     private val add = AddPlayersToAgeGroupUseCase(playerRepository, ageGroupRepository, check, transactionManager)
 
     private val clubId = "club-1"
@@ -106,14 +109,15 @@ class RemoveAndDisablePlayerUseCasesTest {
     }
 
     @Test
-    fun disablingKeepsThePlayerButTakesThemOutOfEveryAgeGroup() = runBlocking {
-        coEvery { playerRepository.removePlayerFromAllAgeGroups(player.id) } returns listOf(ag.id, other.id)
-
+    fun disablingKeepsThePlayerInTheirAgeGroupsAndOnlyDropsUpcomingCallUps() = runBlocking {
         disable(user("coord", ClubRole.COORDINATOR), player.id)
 
         coVerify { playerRepository.updateActiveStatus(player.id, false) }
-        coVerify { playerRepository.removePlayerFromAllAgeGroups(player.id) }
+        // Still in every pool.
+        coVerify(exactly = 0) { playerRepository.removePlayerFromAgeGroup(any(), any()) }
+        // Out of the match that hasn't started; the played one keeps its call-up (history).
         coVerify { matchRepository.manageCallUps(upcoming.id, listOf(teammate.id)) }
+        coVerify(exactly = 0) { matchRepository.manageCallUps(played.id, any()) }
     }
 
     @Test
@@ -127,5 +131,52 @@ class RemoveAndDisablePlayerUseCasesTest {
         coEvery { playerRepository.getPlayersData(listOf(player.id)) } returns listOf(player.copy(active = false))
         coEvery { playerRepository.getPlayersByAgeGroup(ag.id) } returns emptyList()
         assertFailsWith<ValidationException> { add(user("coord", ClubRole.COORDINATOR), ag.id, AddPlayersToAgeGroupRequest(listOf(player.id))) }
+    }
+
+    @Test
+    fun aCoordinatorReactivatesADisabledPlayer() = runBlocking {
+        coEvery { playerRepository.getPlayerById(player.id) } returns player.copy(active = false)
+
+        reactivate(user("coord", ClubRole.COORDINATOR), player.id)
+
+        coVerify { playerRepository.updateActiveStatus(player.id, true) }
+        coVerify(exactly = 0) { playerRepository.addPlayersToAgeGroup(any()) }
+    }
+
+    @Test
+    fun onlyCoordinatorsAndAdminsCanReactivate() = runBlocking<Unit> {
+        coEvery { playerRepository.getPlayerById(player.id) } returns player.copy(active = false)
+        assertFailsWith<ForbiddenException> { reactivate(user("coach", ClubRole.MEMBER, TeamRole.COACH), player.id) }
+        coVerify(exactly = 0) { playerRepository.updateActiveStatus(any(), any()) }
+    }
+
+    @Test
+    fun reactivatingAnActivePlayerChangesNothing() = runBlocking {
+        reactivate(user("coord", ClubRole.COORDINATOR), player.id)
+        coVerify(exactly = 0) { playerRepository.updateActiveStatus(any(), any()) }
+    }
+
+    @Test
+    fun aReactivatedPlayerCanBeAddedToAPoolAgain() = runBlocking {
+        coEvery { playerRepository.getPlayersData(listOf(player.id)) } returns listOf(player)
+        coEvery { playerRepository.getPlayersByAgeGroup(ag.id) } returns emptyList()
+        add(user("coord", ClubRole.COORDINATOR), ag.id, AddPlayersToAgeGroupRequest(listOf(player.id)))
+        coVerify { playerRepository.addPlayersToAgeGroup(match { links -> links.single().let { it.ageGroupId == ag.id && it.playerId == player.id } }) }
+    }
+
+    @Test
+    fun whenTheAdminSetsAdminsOnlyACoordinatorCanNeitherDisableNorReactivate() = runBlocking<Unit> {
+        coEvery { clubPermissionRepository.getOverride(clubId, ConfigurablePermission.MANAGE_PLAYER_STATUS) } returns
+            ClubPermissionSetting(ConfigurablePermission.MANAGE_PLAYER_STATUS, null, ClubRole.CLUB_ADMIN)
+        val coordinator = user("coord", ClubRole.COORDINATOR)
+
+        assertFailsWith<ForbiddenException> { disable(coordinator, player.id) }
+        coEvery { playerRepository.getPlayerById(player.id) } returns player.copy(active = false)
+        assertFailsWith<ForbiddenException> { reactivate(coordinator, player.id) }
+        coVerify(exactly = 0) { playerRepository.updateActiveStatus(any(), any()) }
+
+        // The admin still can.
+        reactivate(user("admin", ClubRole.CLUB_ADMIN), player.id)
+        coVerify { playerRepository.updateActiveStatus(player.id, true) }
     }
 }

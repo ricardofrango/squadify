@@ -177,6 +177,7 @@ val domainModule = module {
     factory { AddPlayersToAgeGroupUseCase(get()) }
     factory { RemovePlayerFromAgeGroupUseCase(get()) }
     factory { DisablePlayerUseCase(get()) }
+    factory { ReactivatePlayerUseCase(get()) }
     factory { CreatePlayersUseCase(get()) }
     factory { UpdatePlayerUseCase(get()) }
     factory { GetOpponentsUseCase(get()) }

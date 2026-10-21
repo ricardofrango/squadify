@@ -2,11 +2,10 @@ package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
-import com.ricardofrango.squadify.model.ClubPermissionSetting
 import com.ricardofrango.squadify.model.ClubPermissionsResponse
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
-import com.ricardofrango.squadify.model.defaultMinTeamRole
+import com.ricardofrango.squadify.model.defaultSetting
 
 /**
  * The effective setting for every [ConfigurablePermission], override-or-default -- always exactly one
@@ -25,7 +24,7 @@ class GetClubPermissionsUseCase(
 
             val overrides = clubPermissionRepository.getOverrides(clubId).associateBy { it.action }
             val settings = ConfigurablePermission.entries.map { action ->
-                overrides[action] ?: ClubPermissionSetting(action, action.defaultMinTeamRole)
+                overrides[action] ?: action.defaultSetting()
             }
             ClubPermissionsResponse(settings)
         }

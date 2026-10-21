@@ -9,10 +9,12 @@ import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.presentation.ui.clubdetails.filterClubPlayers
 import com.ricardofrango.squadify.presentation.ui.clubdetails.withPlayerDisabled
+import com.ricardofrango.squadify.presentation.ui.clubdetails.withPlayerReactivated
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 // The Players screen's filters: season and age group go through the age-group pools.
@@ -47,11 +49,20 @@ class ClubPlayersFilterTest {
     }
 
     @Test
-    fun aDisabledPlayerStaysListedLastAndLeavesEveryPool() {
+    fun aDisabledPlayerStaysListedLastAndKeepsTheirPool() {
         val after = details.withPlayerDisabled("p1")
         assertFalse(after.players.first { it.id == "p1" }.active)
-        // Out of every pool, so no age group lists them; with no pool they still show, last.
-        assertEquals(emptyList(), filterClubPlayers(after, null, "a26", "").map { it.id })
+        // Still in their age group, and listed last.
+        assertEquals(listOf("p1"), filterClubPlayers(after, null, "a26", "").map { it.id })
         assertEquals(listOf("p2", "p3", "p1"), filterClubPlayers(after, null, null, "").map { it.id })
+    }
+
+    @Test
+    fun aReactivatedPlayerIsActiveAgainInTheSamePool() {
+        val after = details.withPlayerDisabled("p1").withPlayerReactivated("p1")
+        assertTrue(after.players.first { it.id == "p1" }.active)
+        // Back among the active players, in the club's order, still in their age group.
+        assertEquals(listOf("p1", "p2", "p3"), filterClubPlayers(after, null, null, "").map { it.id })
+        assertEquals(listOf("p1"), filterClubPlayers(after, null, "a26", "").map { it.id })
     }
 }

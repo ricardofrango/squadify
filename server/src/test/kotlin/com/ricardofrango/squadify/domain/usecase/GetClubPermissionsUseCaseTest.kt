@@ -57,6 +57,10 @@ class GetClubPermissionsUseCaseTest {
         assertEquals(null, byAction.getValue(ConfigurablePermission.CREATE_PLAYERS).minTeamRole)
         assertEquals(TeamRole.COACH, byAction.getValue(ConfigurablePermission.CREATE_OPPONENT).minTeamRole)
         assertEquals(TeamRole.STAFF, byAction.getValue(ConfigurablePermission.MANAGE_LIVE_MATCH).minTeamRole)
+        // The club-level one defaults to admins and coordinators, with no age-group role.
+        val playerStatus = byAction.getValue(ConfigurablePermission.MANAGE_PLAYER_STATUS)
+        assertEquals(null, playerStatus.minTeamRole)
+        assertEquals(ClubRole.COORDINATOR, playerStatus.minClubRole)
     }
 
     @Test

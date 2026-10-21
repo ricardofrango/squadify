@@ -15,6 +15,7 @@ import squadify.app.shared.generated.resources.btn_cancel
 import squadify.app.shared.generated.resources.btn_disable
 import squadify.app.shared.generated.resources.msg_disable_player
 import squadify.app.shared.generated.resources.msg_player_disabled
+import squadify.app.shared.generated.resources.msg_player_reactivated
 import squadify.app.shared.generated.resources.title_disable_player
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.background
@@ -87,6 +88,12 @@ fun ClubPlayersScreen(
             snackbarHostState.showSnackbar(result.fold({ getString(disabledText, it) }, { it.message.orEmpty() }))
         }
     }
+    val reactivatedText = Res.string.msg_player_reactivated
+    LaunchedEffect(viewModel) {
+        viewModel.reactivated.collect { result ->
+            snackbarHostState.showSnackbar(result.fold({ getString(reactivatedText, it) }, { it.message.orEmpty() }))
+        }
+    }
     var confirmDisable by remember { mutableStateOf<Player?>(null) }
     Scaffold(
         containerColor = Color.White,
@@ -123,8 +130,14 @@ fun ClubPlayersScreen(
                             onAddPlayersToClub = { onCreatePlayers(clubName) },
                             onAddPlayersToAgeGroup = { onAddPlayersToAgeGroup(clubName) }
                         )
-                    // Disabling is club-wide: coordinators and admins (canEditClub), like the server.
-                    else -> PlayerList(s.players, onOpenPlayer, onDisable = if (s.details.canEditClub) { player -> confirmDisable = player } else null)
+                    // Disabling and reactivating follow the club's MANAGE_PLAYER_STATUS setting, like the server.
+                    // Reactivating needs no confirmation: it only lets the player be added to a pool again.
+                    else -> PlayerList(
+                        s.players,
+                        onOpenPlayer,
+                        onDisable = if (s.details.canManagePlayerStatus) { player -> confirmDisable = player } else null,
+                        onReactivate = if (s.details.canManagePlayerStatus) { player -> viewModel.reactivate(player.id) } else null
+                    )
                 }
             }
         }

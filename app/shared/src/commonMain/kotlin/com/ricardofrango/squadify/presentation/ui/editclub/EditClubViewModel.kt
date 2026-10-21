@@ -135,7 +135,7 @@ class EditClubViewModel(
                     } else {
                         val permissions = getClubPermissionsUseCase(clubId).settings
                         loadMembers(clubId)
-                        idleFor(details.club, permissions)
+                        idleFor(details.club, permissions).copy(canChangeClubLevelPermissions = details.viewerRole == ClubRole.CLUB_ADMIN)
                     }
                 } catch (e: Exception) {
                     EditClubUiState.Error(errorMessage(e, Res.string.msg_failed_to_load_club))
@@ -198,12 +198,10 @@ class EditClubViewModel(
         }
     }
 
-    fun onPermissionChanged(action: ConfigurablePermission, minTeamRole: TeamRole?) {
+    fun onPermissionChanged(setting: ClubPermissionSetting) {
         _state.update { current ->
             val idle = current as? EditClubUiState.Idle ?: return@update current
-            val updated = idle.permissions.map {
-                if (it.action == action) ClubPermissionSetting(action, minTeamRole) else it
-            }
+            val updated = idle.permissions.map { if (it.action == setting.action) setting else it }
             idle.copy(permissions = updated, permissionsSubmitError = null)
         }
     }

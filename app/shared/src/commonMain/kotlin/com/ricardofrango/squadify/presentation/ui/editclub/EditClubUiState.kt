@@ -73,7 +73,10 @@ sealed class EditClubUiState {
         val originalPermissions: List<ClubPermissionSetting>,
         val permissions: List<ClubPermissionSetting>,
         val isSubmittingPermissions: Boolean = false,
-        val permissionsSubmitError: String? = null
+        val permissionsSubmitError: String? = null,
+        // Club-level settings (who disables and reactivates players) are the admin's call: a
+        // coordinator sees them, read-only.
+        val canChangeClubLevelPermissions: Boolean = false
     ) : EditClubUiState() {
         val isDirty: Boolean get() = form != original
         val isValid: Boolean get() = form.name.isNotBlank()
