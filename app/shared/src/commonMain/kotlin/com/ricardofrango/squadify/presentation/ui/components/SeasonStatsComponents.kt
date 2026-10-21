@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -153,7 +154,7 @@ fun StatsFilterSegments(selected: StatsFilter, onSelected: (StatsFilter) -> Unit
                 (if (isSelected) label.length else short.length).coerceAtLeast(3).toFloat() + 2f,
                 animationSpec = tween(FilterAnimationMillis), label = "filterWeight"
             )
-            val background by animateColorAsState(if (isSelected) CarbonGray else Color.White, tween(FilterAnimationMillis), label = "filterBackground")
+            val background by animateColorAsState(if (isSelected) ClubChrome else Color.White, tween(FilterAnimationMillis), label = "filterBackground")
             val textColor by animateColorAsState(if (isSelected) Color.White else DeepCarbon, tween(FilterAnimationMillis), label = "filterText")
             Box(
                 Modifier

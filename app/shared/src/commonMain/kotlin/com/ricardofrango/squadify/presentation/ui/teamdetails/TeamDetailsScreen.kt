@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
+import com.ricardofrango.squadify.presentation.ui.theme.ChromeHighlight
 import com.ricardofrango.squadify.presentation.ui.components.emptySquadRes
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
@@ -53,7 +55,6 @@ import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Instant
 
 private val CardShape = RoundedCornerShape(16.dp)
-private val LightGreen = Color(0xFF4CAF50)
 private const val RECENT_SHOWN = 3
 
 private val WeekdayDayMonth = LocalDate.Format {
@@ -146,7 +147,7 @@ private fun TeamDetailsContent(
                 modifier = Modifier.weight(1f),
                 containerColor = WhiteSmoke,
                 topBar = {
-                    Column(Modifier.background(CarbonGray)) {
+                    Column(Modifier.background(ClubChrome)) {
                         FMTopBar(
                             title = details?.team?.name ?: stringResource(Res.string.title_team_details),
                             // Landscape (32e): the Next fixture folds into the subtitle to save height.
@@ -284,13 +285,13 @@ private fun TeamHeader(details: TeamDetails, recordState: TeamRecordUiState, sho
     val opponentsById = remember(details.opponents) { details.opponents.associateBy { it.id } }
     val next = details.upcomingMatches.firstOrNull()
     val playersUsed = (recordState as? TeamRecordUiState.Loaded)?.record?.squad(StatsFilter.ALL)?.used?.size
-    Column(Modifier.fillMaxWidth().background(CarbonGray).padding(start = 14.dp, end = 14.dp, bottom = 12.dp)) {
+    Column(Modifier.fillMaxWidth().background(ClubChrome).padding(start = 14.dp, end = 14.dp, bottom = 12.dp)) {
         if (next != null && showNext) {
             Row(
                 Modifier.fillMaxWidth().padding(top = 4.dp).background(Color.White.copy(alpha = 0.07f), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(stringResource(Res.string.label_next).uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp), color = LightGreen)
+                Text(stringResource(Res.string.label_next).uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp), color = ChromeHighlight)
                 Spacer(Modifier.width(10.dp))
                 Text(
                     "${dateLabel(next.dateTime)} · vs ${opponentName(opponentsById, next.opponentId)}",
@@ -298,8 +299,8 @@ private fun TeamHeader(details: TeamDetails, recordState: TeamRecordUiState, sho
                     color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
             }
+            Spacer(Modifier.height(12.dp))
         }
-        Spacer(Modifier.height(12.dp))
         Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.12f)))
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
             StripStat(details.upcomingMatches.size.toString(), stringResource(Res.string.label_upcoming), highlight = details.upcomingMatches.isNotEmpty(), modifier = Modifier.weight(1f)) { onSelect(TeamTab.MATCHES) }
@@ -314,7 +315,7 @@ private fun TeamHeader(details: TeamDetails, recordState: TeamRecordUiState, sho
 @Composable
 private fun StripStat(value: String, label: String, modifier: Modifier, highlight: Boolean = false, onClick: () -> Unit) {
     Column(modifier.clickable(onClick = onClick).padding(top = 9.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 17.sp), color = if (highlight) LightGreen else Color.White)
+        Text(value, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 17.sp), color = if (highlight) ChromeHighlight else Color.White)
         Text(label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp), color = Color.White.copy(alpha = 0.62f), maxLines = 1)
     }
 }

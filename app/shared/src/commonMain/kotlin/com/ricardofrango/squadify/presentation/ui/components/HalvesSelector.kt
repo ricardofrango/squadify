@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -50,7 +51,7 @@ fun HalvesSelector(halves: Int, onSelected: (Int) -> Unit, modifier: Modifier = 
                     Modifier
                         .weight(1f)
                         .heightIn(min = 44.dp)
-                        .background(if (isSelected) CarbonGray else Color.White)
+                        .background(if (isSelected) ClubChrome else Color.White)
                         .semantics { role = Role.RadioButton; this.selected = isSelected }
                         .clickable { onSelected(value) },
                     contentAlignment = Alignment.Center

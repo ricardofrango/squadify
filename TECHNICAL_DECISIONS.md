@@ -2764,6 +2764,7 @@ Per the developer, 2026-10-21: a club can set its own colours. It's both colours
   - `accent`: the main colour, for buttons, selected states and links on the white screens;
   - `chrome`: also the main colour, for the top bar, the tab bars and rails, the detail headers under the top bar and the More panel's dark column (`ClubChrome`, which replaced `CarbonGray` at those backgrounds);
   - `accentOnChrome`: the second colour, for what's selected on those bars (`ChromeAccent`), with `onAccentOnChrome` (the main colour) for text on a filled chip;
+  - the selected option of a filter, segment or sort chip on a white screen (stats game type, team games, squad sort, halves, members, report sort) is filled with `ClubChrome` too; the highlighted numbers in the age group and team header strips use `ChromeHighlight` (light green, or the second colour);
   - `accentOnDark`: the main colour lifted towards white just enough to read on DeepCarbon (luminance 0.13), still under the 0.30 that white text needs. The live match console stays dark whatever the club, and `OnDarkSurface` points `PitchGreen` at this inside it. Navy becomes a mid blue and black a mid grey; red and Squadify's green are unchanged.
 
   Without a theme, the palette is Squadify's own (carbon bars, green), identical to before.

@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
+import com.ricardofrango.squadify.presentation.ui.theme.ChromeHighlight
 import squadify.app.shared.generated.resources.msg_player_removed_age_group
 import org.jetbrains.compose.resources.getString
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
@@ -42,7 +44,6 @@ import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.shared.generated.resources.*
 import kotlin.time.Instant
 
-private val LightGreen = Color(0xFF4CAF50)
 
 private val WeekdayDayMonth = LocalDate.Format {
     dayOfWeek(DayOfWeekNames.ENGLISH_ABBREVIATED); char(' '); day(Padding.NONE); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED)
@@ -227,7 +228,7 @@ private fun AgeGroupDetailsContent(
                 containerColor = WhiteSmoke,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 topBar = {
-                    Column(Modifier.background(CarbonGray)) {
+                    Column(Modifier.background(ClubChrome)) {
                         FMTopBar(
                             title = details?.ageGroup?.name ?: stringResource(Res.string.tab_age_groups),
                             subtitle = details?.let { stringResource(Res.string.ag_born, bornLabel(it.ageGroup), it.season.name) },
@@ -347,7 +348,7 @@ private fun OverflowMenu(
 /** Teams · Players · Staff · Upcoming -- each switches to its tab (Players and Staff both open Members). */
 @Composable
 private fun AgeGroupStrip(details: AgeGroupDetails, onSelect: (AgeGroupTab) -> Unit) {
-    Column(Modifier.fillMaxWidth().background(CarbonGray).padding(start = 14.dp, end = 14.dp, bottom = 12.dp)) {
+    Column(Modifier.fillMaxWidth().background(ClubChrome).padding(start = 14.dp, end = 14.dp, bottom = 12.dp)) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.12f)))
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
             StripStat(details.teams.size.toString(), stringResource(Res.string.tab_teams), Modifier.weight(1f)) { onSelect(AgeGroupTab.TEAMS) }
@@ -364,7 +365,7 @@ private fun AgeGroupStrip(details: AgeGroupDetails, onSelect: (AgeGroupTab) -> U
 @Composable
 private fun StripStat(value: String, label: String, modifier: Modifier, highlight: Boolean = false, onClick: () -> Unit) {
     Column(modifier.clickable(onClick = onClick).padding(top = 9.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 17.sp), color = if (highlight) LightGreen else Color.White)
+        Text(value, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 17.sp), color = if (highlight) ChromeHighlight else Color.White)
         Text(label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp), color = Color.White.copy(alpha = 0.62f), textAlign = TextAlign.Center)
     }
 }

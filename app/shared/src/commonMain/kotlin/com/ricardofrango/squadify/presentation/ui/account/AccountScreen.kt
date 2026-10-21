@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.account
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import com.ricardofrango.squadify.presentation.ui.components.SignedOutAlert
 import androidx.compose.foundation.clickable
@@ -122,7 +123,7 @@ private fun AccountContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            Column(Modifier.background(CarbonGray)) {
+            Column(Modifier.background(ClubChrome)) {
                 FMTopBar(
                     title = stringResource(Res.string.title_account),
                     subtitle = idle?.let {

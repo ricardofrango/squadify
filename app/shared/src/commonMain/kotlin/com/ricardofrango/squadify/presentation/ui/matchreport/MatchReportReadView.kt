@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchreport
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -110,7 +111,7 @@ private fun CardHeaderWithTactic(title: String, tactic: String) {
         if (tactic.isNotBlank()) {
             Text(stringResource(Res.string.report_field_tactic), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = SecondaryText)
             Spacer(Modifier.width(10.dp))
-            Surface(shape = RoundedCornerShape(12.dp), color = CarbonGray) {
+            Surface(shape = RoundedCornerShape(12.dp), color = ClubChrome) {
                 Text(
                     tactic,
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
@@ -183,7 +184,7 @@ private fun SortToggle(sort: ReportPlayerSort, onSortSelected: (ReportPlayerSort
                 val selected = value == sort
                 Box(
                     Modifier
-                        .background(if (selected) CarbonGray else Color.Transparent, shape)
+                        .background(if (selected) ClubChrome else Color.Transparent, shape)
                         .clickable { onSortSelected(value) }
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {

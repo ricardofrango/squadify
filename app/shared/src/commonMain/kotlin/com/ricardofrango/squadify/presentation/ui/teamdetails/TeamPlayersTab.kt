@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -86,8 +87,8 @@ internal fun SquadSortChips(selected: SquadSort, staff: Boolean, onSelected: (Sq
             Surface(
                 onClick = { onSelected(sort) },
                 shape = RoundedCornerShape(16.dp),
-                color = if (isSelected) CarbonGray else Color.White,
-                border = BorderStroke(1.5.dp, if (isSelected) CarbonGray else CarbonGray.copy(alpha = 0.16f))
+                color = if (isSelected) ClubChrome else Color.White,
+                border = BorderStroke(1.5.dp, if (isSelected) ClubChrome else CarbonGray.copy(alpha = 0.16f))
             ) {
                 Box(Modifier.heightIn(min = 32.dp).padding(horizontal = 11.dp), contentAlignment = Alignment.Center) {
                     Text(

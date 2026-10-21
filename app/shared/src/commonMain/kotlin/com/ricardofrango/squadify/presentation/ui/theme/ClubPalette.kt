@@ -106,3 +106,9 @@ fun OnDarkSurface(content: @Composable () -> Unit) {
     val dark = remember(palette) { palette.copy(accent = palette.accentOnDark) }
     CompositionLocalProvider(LocalClubPalette provides dark, content = content)
 }
+
+/** A highlighted number or label on [ClubChrome]: light green, or the club's light colour. */
+val ChromeHighlight: Color
+    @Composable @ReadOnlyComposable get() = LocalClubPalette.current.let { if (it == SquadifyPalette) ChromeLightGreen else it.accentOnChrome }
+
+private val ChromeLightGreen = Color(0xFF4CAF50)

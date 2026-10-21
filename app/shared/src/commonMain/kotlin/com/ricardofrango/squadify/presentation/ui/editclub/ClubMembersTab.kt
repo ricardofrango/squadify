@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -339,8 +340,8 @@ private fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         Modifier
             .clip(RoundedCornerShape(18.dp))
-            .background(if (selected) CarbonGray else Color.White)
-            .border(1.5.dp, if (selected) CarbonGray else CarbonGray.copy(alpha = 0.16f), RoundedCornerShape(18.dp))
+            .background(if (selected) ClubChrome else Color.White)
+            .border(1.5.dp, if (selected) ClubChrome else CarbonGray.copy(alpha = 0.16f), RoundedCornerShape(18.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp)
     ) {
@@ -363,7 +364,7 @@ private fun FilterList(overview: ClubMembersOverview, selected: MembersFilter, o
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (isSelected) CarbonGray else Color.White)
+                    .background(if (isSelected) ClubChrome else Color.White)
                     .clickable { onSelect(f) }
                     .padding(horizontal = 12.dp, vertical = 10.dp)
             ) {

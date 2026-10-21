@@ -531,7 +531,7 @@ private fun SortChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(10.dp),
-        color = if (selected) DeepCarbon else CarbonGray.copy(alpha = 0.08f),
+        color = if (selected) (if (IsClubThemed) ClubChrome else DeepCarbon) else CarbonGray.copy(alpha = 0.08f),
         border = if (selected) null else BorderStroke(1.dp, CarbonGray.copy(alpha = 0.2f))
     ) {
         Text(label, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = if (selected) Color.White else DeepCarbon)

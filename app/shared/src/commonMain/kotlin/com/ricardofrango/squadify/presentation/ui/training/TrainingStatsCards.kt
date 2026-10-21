@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.theme.IsClubThemed
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -96,7 +98,7 @@ private fun Pill(text: String, selected: Boolean, onClick: () -> Unit) {
         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
         color = if (selected) Color.White else DeepCarbon,
         modifier = Modifier
-            .background(if (selected) DeepCarbon else CarbonGray.copy(alpha = 0.06f), RoundedCornerShape(10.dp))
+            .background(if (selected) (if (IsClubThemed) ClubChrome else DeepCarbon) else CarbonGray.copy(alpha = 0.06f), RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 6.dp)
     )
