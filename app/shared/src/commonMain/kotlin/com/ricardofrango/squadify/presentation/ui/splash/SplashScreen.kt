@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.splash
 
+import com.ricardofrango.squadify.presentation.navigation.Screen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -32,6 +33,7 @@ fun SplashScreen(
     onNavigateToDashboard: () -> Unit,
     onNavigateToOnlyClub: (String) -> Unit,
     onNavigateToDeepLink: (String) -> Unit,
+    onNavigateToBackStack: (List<Screen>) -> Unit,
     viewModel: SplashViewModel = koinViewModel()
 ) {
     LaunchedEffect(Unit) {
@@ -42,6 +44,7 @@ fun SplashScreen(
                 SplashNavigationEvent.NavigateToDashboard -> onNavigateToDashboard()
                 is SplashNavigationEvent.NavigateToOnlyClub -> onNavigateToOnlyClub(event.clubId)
                 is SplashNavigationEvent.NavigateToDeepLink -> onNavigateToDeepLink(event.route)
+                is SplashNavigationEvent.NavigateToBackStack -> onNavigateToBackStack(event.screens)
             }
         }
     }

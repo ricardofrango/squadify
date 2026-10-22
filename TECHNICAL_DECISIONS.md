@@ -2721,3 +2721,31 @@ Per the developer, 2026-10-20: disabling and reactivating a player should be a p
 - **Only an admin changes it.** Changing the settings stays coordinator-or-above (§35), but if a coordinator could change this one they could hand themselves back what the admin took away. So `UpdateClubPermissionsUseCase` requires `CLUB_ADMIN` when a club-level action's value changes. A coordinator can still save the rest of the form; a request that leaves the action out keeps its current value (an app that predates it can't reset it to the default). The Permissions tab shows it read-only to a coordinator, with "Only a club admin can change this".
 - **Validation:** a club-level setting must carry `COORDINATOR` or `CLUB_ADMIN` and no `minTeamRole`; an age-group setting must carry no `minClubRole`.
 - **Tests:** `CheckUserPermissionUseCaseTest` (default, admins only, a coach never), `UpdateClubPermissionsUseCaseTest` (only an admin changes it, a coordinator can't undo it, kept when left out, validation), `GetClubPermissionsUseCaseTest` (default), `GetClubDetailsUseCaseTest` (`canManagePlayerStatus`), `RemoveAndDisablePlayerUseCasesTest` (admins only blocks a coordinator from both).
+
+## 58. Push Notifications: What Tapping One Opens
+
+Per the developer, 2026-10-22: a match notification opens the match, an age group one opens the age group, and so on. Before this, a tapped push only opened the app wherever it was.
+
+- **Contract.** `PushLink(clubId, ageGroupId?, teamId?, matchId?)` lives in `:common`, so the server and the app share `toData()` / `fromData()`. It travels as the FCM message's `data`, with keys prefixed `squadify…`. `clubId` is always set, and the most specific other id decides the target. `PushNotificationService` takes a `link` on every send.
+- **What each push opens.**
+
+  | Push | Opens |
+  |---|---|
+  | Match scheduled, rescheduled, cancelled; kickoff, goal, half-time, second half, full-time | Match details (`PushLink.match`). The live console is one tap from there, and a cancelled match still exists, with its status. |
+  | Added as age-group staff | the age group |
+  | One team created | that team |
+  | Several teams created at once | their age group |
+  | Added to a club | the club |
+- **Back stack.** `pushLinkBackStack` rebuilds the stack so Back works and the target is shown inside its club: My clubs → club → target, or club (as root) → target for a single-club user, the same root Splash would pick. A push for a club other than a single-club user's club gets My clubs underneath (for example, they've just been added to a second club).
+- **Delivery to the app (Android).**
+  - The server sends a notification message with data. With the app in the background, Android shows it itself and puts the data in the launch intent's extras.
+  - In the foreground, `SquadifyMessagingService` builds the notification and copies the data into its intent. Each notification uses its own `PendingIntent` request code, so two don't share extras.
+  - `MainActivity` (now `singleTop`) reads the link in `onCreate` (not after a rotation) and `onNewIntent`, removes the extras, and posts it to `PushLinkInbox`.
+- **When it's opened.**
+  - On a cold start, Splash takes the link once the session is confirmed and emits `NavigateToBackStack`.
+  - With the app running, `AppNavigation` watches the inbox together with the current destination and opens the link once the destination isn't Splash or a sign-in screen.
+  - A signed-out user's link waits in the inbox and opens right after Login.
+  - A push without a club id (one sent from the Firebase console, or from an older server) opens the app as before.
+- **Not covered.** iOS, desktop and web don't receive pushes yet. With club theming (§57, PR #119), a deep-linked screen gets its club's colours only once they're in `ClubThemeStore`, which happens when My clubs or the club screen loads; the club's screen in the rebuilt stack isn't shown, so it doesn't load them.
+- **Tests:** `PushLinkTest` (round trip, keys, missing club) and the use case tests check each push's link (`NotifyMatchEventUseCaseTest`, `CreateTeamUseCaseTest`, `CreateTeamsUseCaseTest`, `AddStaffToAgeGroupUseCaseTest`). On the app side, `PushLinksTest` covers the back stack per kind, the single-club root, a push for another club, and the inbox handing a link out once.
+

@@ -10,6 +10,7 @@ import com.google.firebase.messaging.MulticastMessage
 import com.ricardofrango.squadify.config.ServerConfig
 import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.model.MatchScore
+import com.ricardofrango.squadify.model.PushLink
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
@@ -45,51 +46,51 @@ class FirebaseAdminPushNotificationService : PushNotificationService {
         }
     }
 
-    override suspend fun sendClubMembershipAdded(tokens: List<String>, clubName: String) {
-        send(tokens, INVITES_CHANNEL, "push_club_membership_added", listOf(clubName))
+    override suspend fun sendClubMembershipAdded(tokens: List<String>, link: PushLink, clubName: String) {
+        send(tokens, link, INVITES_CHANNEL, "push_club_membership_added", listOf(clubName))
     }
 
-    override suspend fun sendAgeGroupStaffAdded(tokens: List<String>, ageGroupName: String, clubName: String) {
-        send(tokens, AGE_GROUP_CHANNEL, "push_age_group_staff_added", listOf(ageGroupName, clubName))
+    override suspend fun sendAgeGroupStaffAdded(tokens: List<String>, link: PushLink, ageGroupName: String, clubName: String) {
+        send(tokens, link, AGE_GROUP_CHANNEL, "push_age_group_staff_added", listOf(ageGroupName, clubName))
     }
 
-    override suspend fun sendMatchScheduled(tokens: List<String>, teamName: String, opponentName: String) {
-        send(tokens, AGE_GROUP_CHANNEL, "push_match_scheduled", listOf(teamName, opponentName))
+    override suspend fun sendMatchScheduled(tokens: List<String>, link: PushLink, teamName: String, opponentName: String) {
+        send(tokens, link, AGE_GROUP_CHANNEL, "push_match_scheduled", listOf(teamName, opponentName))
     }
 
-    override suspend fun sendMatchRescheduled(tokens: List<String>, teamName: String, opponentName: String) {
-        send(tokens, AGE_GROUP_CHANNEL, "push_match_rescheduled", listOf(teamName, opponentName))
+    override suspend fun sendMatchRescheduled(tokens: List<String>, link: PushLink, teamName: String, opponentName: String) {
+        send(tokens, link, AGE_GROUP_CHANNEL, "push_match_rescheduled", listOf(teamName, opponentName))
     }
 
-    override suspend fun sendMatchCancelled(tokens: List<String>, teamName: String, opponentName: String) {
-        send(tokens, AGE_GROUP_CHANNEL, "push_match_cancelled", listOf(teamName, opponentName))
+    override suspend fun sendMatchCancelled(tokens: List<String>, link: PushLink, teamName: String, opponentName: String) {
+        send(tokens, link, AGE_GROUP_CHANNEL, "push_match_cancelled", listOf(teamName, opponentName))
     }
 
-    override suspend fun sendMatchKickedOff(tokens: List<String>, teamName: String, opponentName: String) {
-        send(tokens, LIVE_MATCHES_CHANNEL, "push_match_kicked_off", listOf(teamName, opponentName))
+    override suspend fun sendMatchKickedOff(tokens: List<String>, link: PushLink, teamName: String, opponentName: String) {
+        send(tokens, link, LIVE_MATCHES_CHANNEL, "push_match_kicked_off", listOf(teamName, opponentName))
     }
 
-    override suspend fun sendHalfTime(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore) {
-        send(tokens, LIVE_MATCHES_CHANNEL, "push_half_time", scoreArgs(teamName, opponentName, score))
+    override suspend fun sendHalfTime(tokens: List<String>, link: PushLink, teamName: String, opponentName: String, score: MatchScore) {
+        send(tokens, link, LIVE_MATCHES_CHANNEL, "push_half_time", scoreArgs(teamName, opponentName, score))
     }
 
-    override suspend fun sendSecondHalfStarted(tokens: List<String>, teamName: String, opponentName: String) {
-        send(tokens, LIVE_MATCHES_CHANNEL, "push_second_half_started", listOf(teamName, opponentName))
+    override suspend fun sendSecondHalfStarted(tokens: List<String>, link: PushLink, teamName: String, opponentName: String) {
+        send(tokens, link, LIVE_MATCHES_CHANNEL, "push_second_half_started", listOf(teamName, opponentName))
     }
 
-    override suspend fun sendMatchFinished(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore) {
-        send(tokens, LIVE_MATCHES_CHANNEL, "push_match_finished", scoreArgs(teamName, opponentName, score))
+    override suspend fun sendMatchFinished(tokens: List<String>, link: PushLink, teamName: String, opponentName: String, score: MatchScore) {
+        send(tokens, link, LIVE_MATCHES_CHANNEL, "push_match_finished", scoreArgs(teamName, opponentName, score))
     }
 
-    override suspend fun sendGoalScored(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore) {
-        send(tokens, LIVE_MATCHES_CHANNEL, "push_goal_scored", scoreArgs(teamName, opponentName, score))
+    override suspend fun sendGoalScored(tokens: List<String>, link: PushLink, teamName: String, opponentName: String, score: MatchScore) {
+        send(tokens, link, LIVE_MATCHES_CHANNEL, "push_goal_scored", scoreArgs(teamName, opponentName, score))
     }
 
-    override suspend fun sendTeamCreated(tokens: List<String>, teamNames: List<String>, ageGroupName: String, clubName: String) {
+    override suspend fun sendTeamCreated(tokens: List<String>, link: PushLink, teamNames: List<String>, ageGroupName: String, clubName: String) {
         if (teamNames.size == 1) {
-            send(tokens, AGE_GROUP_CHANNEL, "push_team_created_one", listOf(teamNames.first(), ageGroupName))
+            send(tokens, link, AGE_GROUP_CHANNEL, "push_team_created_one", listOf(teamNames.first(), ageGroupName))
         } else {
-            send(tokens, AGE_GROUP_CHANNEL, "push_team_created_many", listOf(teamNames.joinToString(", "), ageGroupName))
+            send(tokens, link, AGE_GROUP_CHANNEL, "push_team_created_many", listOf(teamNames.joinToString(", "), ageGroupName))
         }
     }
 
@@ -99,7 +100,7 @@ class FirebaseAdminPushNotificationService : PushNotificationService {
     private fun scoreArgs(teamName: String, opponentName: String, score: MatchScore) =
         listOf(teamName, score.ourScore.toString(), score.opponentScore.toString(), opponentName)
 
-    private suspend fun send(tokens: List<String>, channelId: String, bodyLocKey: String, bodyLocArgs: List<String>) {
+    private suspend fun send(tokens: List<String>, link: PushLink, channelId: String, bodyLocKey: String, bodyLocArgs: List<String>) {
         if (tokens.isEmpty()) return
         if (ServerConfig.firebaseServiceAccountJson.isBlank() || FirebaseApp.getApps().isEmpty()) {
             logger.warn("FIREBASE_SERVICE_ACCOUNT_JSON not set -- skipping push to {} device(s) ({})", tokens.size, bodyLocKey)
@@ -112,6 +113,10 @@ class FirebaseAdminPushNotificationService : PushNotificationService {
             tokens.chunked(500).forEach { chunk ->
                 val message = MulticastMessage.builder()
                     .addAllTokens(chunk)
+                    // Where tapping it goes (§58). Data rides along with the notification: Android
+                    // hands it to the app as the launch intent's extras when it shows the notification
+                    // itself (app in the background), or to onMessageReceived otherwise.
+                    .putAllData(link.toData())
                     .setAndroidConfig(
                         AndroidConfig.builder()
                             .setNotification(

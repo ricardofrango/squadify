@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.CheckAndRefreshSessionUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
 import com.ricardofrango.squadify.domain.usecase.RegisterCurrentFcmTokenUseCase
+import com.ricardofrango.squadify.presentation.navigation.PushLinkInbox
+import com.ricardofrango.squadify.presentation.navigation.pushLinkBackStack
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -14,7 +16,8 @@ import kotlinx.coroutines.launch
 class SplashViewModel(
     private val checkAndRefreshSessionUseCase: CheckAndRefreshSessionUseCase,
     private val getClubsUseCase: GetClubsUseCase,
-    private val registerCurrentFcmTokenUseCase: RegisterCurrentFcmTokenUseCase
+    private val registerCurrentFcmTokenUseCase: RegisterCurrentFcmTokenUseCase,
+    private val pushLinkInbox: PushLinkInbox
 ) : ViewModel() {
 
     // Set once, before the first collection of [navigationEvent] -- see SplashScreen. Not a constructor
@@ -56,6 +59,13 @@ class SplashViewModel(
                     getClubsUseCase().singleOrNull()
                 } catch (e: Exception) {
                     null
+                }
+                // A tapped push notification opens its club and target instead (§58). Taken only here,
+                // with the session confirmed; signed out, it waits in the inbox until after Login.
+                val pushLink = pushLinkInbox.take()
+                if (pushLink != null) {
+                    _navigationEvent.emit(SplashNavigationEvent.NavigateToBackStack(pushLinkBackStack(pushLink, onlyClub?.id)))
+                    return@launch
                 }
                 _navigationEvent.emit(
                     if (onlyClub != null) {

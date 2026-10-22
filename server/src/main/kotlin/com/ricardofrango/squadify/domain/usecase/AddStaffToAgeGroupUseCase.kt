@@ -9,6 +9,7 @@ import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.model.PushLink
 import com.ricardofrango.squadify.model.*
 import kotlin.uuid.Uuid
 
@@ -30,12 +31,14 @@ class AddStaffToAgeGroupUseCase(
         val staffAdded = mutableListOf<User>()
         var ageGroupName = ""
         var clubName = "your club"
+        var clubId = ""
         var pushTokensByUser: Map<String, List<String>> = emptyMap()
 
         val result = transactionManager.runInTransaction {
             val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId)
                 ?: throw NotFoundException("Age group not found")
             ageGroupName = ageGroup.name
+            clubId = ageGroup.clubId
             // clubRepository has no ambient transaction of its own outside this block -- fetched here,
             // not after the transaction closes, even though it's only used for the emails sent below.
             clubRepository.getClubById(ageGroup.clubId)?.let { clubName = it.name }
@@ -82,7 +85,7 @@ class AddStaffToAgeGroupUseCase(
             staffAdded.forEach {
                 emailService.sendAgeGroupStaffAdded(to = it.email, firstName = it.firstName, ageGroupName = ageGroupName, clubName = clubName)
                 pushTokensByUser[it.id]?.let { tokens ->
-                    pushNotificationService.sendAgeGroupStaffAdded(tokens = tokens, ageGroupName = ageGroupName, clubName = clubName)
+                    pushNotificationService.sendAgeGroupStaffAdded(tokens = tokens, link = PushLink.ageGroup(clubId, ageGroupId), ageGroupName = ageGroupName, clubName = clubName)
                 }
             }
         }
