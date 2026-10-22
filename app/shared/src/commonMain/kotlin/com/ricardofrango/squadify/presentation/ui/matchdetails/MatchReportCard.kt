@@ -40,6 +40,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.DeepGreen
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -126,7 +127,7 @@ internal fun MatchReportCard(report: MatchReportSummary, onOpenReport: (edit: Bo
 
 @Composable
 private fun StatusBadge(completed: Boolean) {
-    val (bg, fg, dot) = if (completed) Triple(PitchGreen.copy(alpha = 0.12f), DeepGreen, PitchGreen)
+    val (bg, fg, dot) = if (completed) Triple(SuccessGreen.copy(alpha = 0.12f), DeepGreen, SuccessGreen)
     else Triple(Amber.copy(alpha = 0.2f), AmberText, Amber)
     Surface(shape = RoundedCornerShape(10.dp), color = bg) {
         Row(Modifier.padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {

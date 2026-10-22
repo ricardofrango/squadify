@@ -42,6 +42,7 @@ import com.ricardofrango.squadify.presentation.ui.createstaff.CreateStaffViewMod
 import com.ricardofrango.squadify.presentation.ui.playerdetails.PlayerDetailsViewModel
 import com.ricardofrango.squadify.presentation.ui.editplayer.EditPlayerViewModel
 import com.ricardofrango.squadify.presentation.ui.dashboard.DashboardViewModel
+import com.ricardofrango.squadify.presentation.ui.theme.ClubThemeStore
 import com.ricardofrango.squadify.presentation.ui.login.LoginViewModel
 import com.ricardofrango.squadify.presentation.ui.forgotpassword.ForgotPasswordViewModel
 import com.ricardofrango.squadify.presentation.ui.changeemail.ChangeEmailViewModel
@@ -122,6 +123,7 @@ val dataModule = module {
 
     single<Settings> { Settings() }
     single { SessionEventBus() }
+    single { ClubThemeStore() }
     single { PushLinkInbox() }
     single<AuthRepository> { AuthRepositoryImpl(get(publicHttpClientQualifier), get()) }
     single<ClubRepository> { ClubRepositoryImpl(get(), get()) }
@@ -159,6 +161,8 @@ val domainModule = module {
     factory { GetClubDetailsUseCase(get(), get(), get(), get(), get(), get()) }
     factory { GetClubUseCase(get()) }
     factory { UpdateClubUseCase(get()) }
+    factory { UploadClubLogoUseCase(get()) }
+    factory { DeleteClubLogoUseCase(get()) }
     factory { GetClubPermissionsUseCase(get()) }
     factory { UpdateClubPermissionsUseCase(get()) }
     factory { GetClubHomeUseCase(get()) }

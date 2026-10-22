@@ -284,7 +284,9 @@ data class Club(
     val createdAt: Instant,
     // Defaulted so the many `Club(...)` test/preview constructions stay valid; the choice is forced
     // where a human actually makes it (`ProvisionClubRequest.sport`).
-    val sport: SportType
+    val sport: SportType,
+    // The club's colours, or null for Squadify's own (see ClubTheme).
+    val theme: ClubTheme? = null
 )
 
 /**
@@ -596,17 +598,26 @@ data class UpdatePlayerRequest(
     val ageGroupId: String? = null
 )
 
+/** `PUT /clubs/{clubId}/logo` -- the new logo's path (`/clubs/{clubId}/logo/{imageId}.png`). */
+@Serializable
+data class ClubLogoResponse(val logoUrl: String)
+
 @Serializable
 data class UpdateClubRequest(
     val name: String? = null,
     val shortName: String? = null,
+    // Ignored by the server: the logo is only set by uploading it (PUT /clubs/{clubId}/logo).
     val logoUrl: String? = null,
     val email: String? = null,
     val phone: String? = null,
     val address: String? = null,
     val stadiumLocation: String? = null,
     val country: Country? = null,
-    val status: ClubStatus? = null
+    val status: ClubStatus? = null,
+    // Like every field here, null keeps the current colours; [clearTheme] removes them. Sending both
+    // is refused.
+    val theme: ClubTheme? = null,
+    val clearTheme: Boolean = false
 )
 
 @Serializable

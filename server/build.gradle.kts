@@ -43,6 +43,14 @@ dependencies {
     // Push notifications (Firebase Admin SDK)
     implementation(libs.firebase.admin)
 
+    // Image storage: Railway Storage Buckets speak the S3 API. The JDK's HTTP client only -- no Apache
+    // or Netty client pulled in next to Ktor's.
+    implementation(libs.awssdk.s3) {
+        exclude(group = "software.amazon.awssdk", module = "apache-client")
+        exclude(group = "software.amazon.awssdk", module = "netty-nio-client")
+    }
+    implementation(libs.awssdk.url.connection.client)
+
     // KTOR
     implementation(libs.ktor.server.serialization.kotlinx.json)
     implementation(libs.ktor.server.content.negotiation)

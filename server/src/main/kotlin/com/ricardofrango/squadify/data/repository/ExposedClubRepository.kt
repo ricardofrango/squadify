@@ -9,6 +9,7 @@ import com.ricardofrango.squadify.data.database.Users
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.exception.DatabaseException
 import com.ricardofrango.squadify.model.Club
+import com.ricardofrango.squadify.model.ClubTheme
 import com.ricardofrango.squadify.model.ClubMemberSummary
 import com.ricardofrango.squadify.model.ClubRole
 import org.jetbrains.exposed.v1.core.ResultRow
@@ -65,6 +66,8 @@ class ExposedClubRepository : ClubRepository {
             it[status] = club.status
             it[sport] = club.sport
             it[createdAt] = club.createdAt
+            it[themePrimaryColor] = club.theme?.primaryColor
+            it[themeSecondaryColor] = club.theme?.secondaryColor
         }.resultedValues?.singleOrNull()?.let(::toClub)
             ?: throw DatabaseException("Failed to create club")
 
@@ -84,7 +87,12 @@ class ExposedClubRepository : ClubRepository {
             it[stadiumLocation] = club.stadiumLocation
             it[country] = club.country.code
             it[status] = club.status
+            it[themePrimaryColor] = club.theme?.primaryColor
+            it[themeSecondaryColor] = club.theme?.secondaryColor
         } > 0
+
+    override suspend fun updateLogoUrl(clubId: String, logoUrl: String?): Boolean =
+        Clubs.update({ Clubs.id eq clubId.toUuid() }) { it[Clubs.logoUrl] = logoUrl } > 0
 
     // Both add-member methods skip a (club_id, user_id) pair that already has a membership
     // (ON CONFLICT DO NOTHING on unique_club_member) rather than failing or duplicating it. The existing
@@ -153,6 +161,9 @@ class ExposedClubRepository : ClubRepository {
         country = Country.fromCode(row[Clubs.country]),
         status = row[Clubs.status],
         createdAt = row[Clubs.createdAt],
-        sport = row[Clubs.sport]
+        sport = row[Clubs.sport],
+        theme = row[Clubs.themePrimaryColor]?.let { primary ->
+            row[Clubs.themeSecondaryColor]?.let { ClubTheme(primary, it) }
+        }
     )
 }

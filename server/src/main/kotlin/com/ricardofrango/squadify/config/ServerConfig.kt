@@ -139,6 +139,23 @@ object ServerConfig {
         ?: "Squadify <onboarding@resend.dev>"
 
     /**
+     * Image storage (club logos). On Railway, a Storage Bucket (S3-compatible): map the bucket's
+     * reference variables onto these on the server service, e.g. `STORAGE_BUCKET=${{Bucket.BUCKET}}`,
+     * `STORAGE_ENDPOINT=${{Bucket.ENDPOINT}}`, `STORAGE_REGION=${{Bucket.REGION}}`,
+     * `STORAGE_ACCESS_KEY_ID=${{Bucket.ACCESS_KEY_ID}}`, `STORAGE_SECRET_ACCESS_KEY=${{Bucket.SECRET_ACCESS_KEY}}`.
+     * Without a bucket, dev keeps images on disk under [localImageDir]; production refuses uploads
+     * instead (a Railway container's disk is wiped on every deploy). See TECHNICAL_DECISIONS.md §56.
+     */
+    val storageBucket: String? = System.getenv("STORAGE_BUCKET")?.takeIf { it.isNotBlank() }
+    val storageEndpoint: String = System.getenv("STORAGE_ENDPOINT")?.takeIf { it.isNotBlank() } ?: "https://storage.railway.app"
+    val storageRegion: String = System.getenv("STORAGE_REGION")?.takeIf { it.isNotBlank() } ?: "auto"
+    val storageAccessKeyId: String = System.getenv("STORAGE_ACCESS_KEY_ID")?.takeIf { it.isNotBlank() } ?: ""
+    val storageSecretAccessKey: String = System.getenv("STORAGE_SECRET_ACCESS_KEY")?.takeIf { it.isNotBlank() } ?: ""
+
+    /** Where [com.ricardofrango.squadify.data.service.LocalImageStorage] keeps images in dev (relative to `server/` under `./gradlew :server:run`). */
+    val localImageDir: String = System.getenv("LOCAL_IMAGE_DIR")?.takeIf { it.isNotBlank() } ?: "uploads"
+
+    /**
      * Base URL of the deployed web client, linked from invite/registration emails. Placeholder until
      * the web client is actually deployed -- see ISSUES TO FIX.md's "Client config points nowhere
      * real" item for the same pattern on the client side.

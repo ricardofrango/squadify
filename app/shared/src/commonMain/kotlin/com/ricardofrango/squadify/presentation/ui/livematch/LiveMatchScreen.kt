@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.livematch
 
+import com.ricardofrango.squadify.presentation.ui.theme.OnDarkSurface
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -35,6 +36,7 @@ import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import squadify.app.shared.generated.resources.*
 import kotlinx.coroutines.delay
@@ -80,12 +82,15 @@ fun LiveMatchScreen(
     // navigationBarsPadding) since the header/bottom bar are plain content, not Scaffold's topBar/
     // bottomBar slots. Scaffold's own default contentWindowInsets would apply the same system-bar
     // insets a second time on top of those -- pushing the header down and the bottom button up.
-    Scaffold(containerColor = DeepCarbon, contentWindowInsets = WindowInsets(0)) { paddingValues ->
-        Box(Modifier.fillMaxSize().padding(paddingValues).background(DeepCarbon)) {
-            when (val state = uiState) {
-                is LiveMatchUiState.Loading -> LoadingBody(onNavigateBack)
-                is LiveMatchUiState.Error -> ErrorBody(state.message, onNavigateBack)
-                is LiveMatchUiState.Idle -> IdleBody(state, viewModel, onNavigateBack, onOpenReport)
+    // The console is dark whatever the club: a club's colour is lifted to read on it (ClubPalette).
+    OnDarkSurface {
+        Scaffold(containerColor = DeepCarbon, contentWindowInsets = WindowInsets(0)) { paddingValues ->
+            Box(Modifier.fillMaxSize().padding(paddingValues).background(DeepCarbon)) {
+                when (val state = uiState) {
+                    is LiveMatchUiState.Loading -> LoadingBody(onNavigateBack)
+                    is LiveMatchUiState.Error -> ErrorBody(state.message, onNavigateBack)
+                    is LiveMatchUiState.Idle -> IdleBody(state, viewModel, onNavigateBack, onOpenReport)
+                }
             }
         }
     }
@@ -987,7 +992,7 @@ private fun SummaryContent(state: LiveMatchUiState.Idle, onNavigateBack: () -> U
     val minutes = remember(details, state.events) { squadMinutes(details, state.events, liveMinute = null) }
     val outcome: Pair<org.jetbrains.compose.resources.StringResource, Color> = when {
         details.match.status == MatchStatus.CANCELLED -> Res.string.label_result_cancelled to Color.White.copy(alpha = 0.5f)
-        state.score.ourScore > state.score.opponentScore -> Res.string.label_result_win to PitchGreen
+        state.score.ourScore > state.score.opponentScore -> Res.string.label_result_win to SuccessGreen
         state.score.ourScore < state.score.opponentScore -> Res.string.label_result_loss to LiveRed
         else -> Res.string.label_result_draw to Color.White.copy(alpha = 0.6f)
     }

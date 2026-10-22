@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
@@ -28,6 +29,17 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 import com.ricardofrango.squadify.model.ClubRole
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.readBytes
+import com.ricardofrango.squadify.presentation.ui.components.ClubLogo
+import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
+import squadify.app.shared.generated.resources.label_change_logo
+import squadify.app.shared.generated.resources.btn_remove_logo
+import squadify.app.shared.generated.resources.msg_logo_saving
+import squadify.app.shared.generated.resources.msg_logo_hint
 import com.ricardofrango.squadify.model.PendingClubInvite
 import com.ricardofrango.squadify.presentation.ui.components.DetailBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.DetailRail
@@ -69,7 +81,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -152,7 +163,6 @@ import squadify.app.shared.generated.resources.label_stadium_location_field
 import squadify.app.shared.generated.resources.label_stadium_location_placeholder
 import squadify.app.shared.generated.resources.label_where_section
 import squadify.app.shared.generated.resources.msg_club_address_helper
-import squadify.app.shared.generated.resources.msg_no_club_changes
 import squadify.app.shared.generated.resources.msg_permission_assign_players_to_age_group_desc
 import squadify.app.shared.generated.resources.msg_permission_create_opponent_desc
 import squadify.app.shared.generated.resources.msg_permission_create_players_desc
@@ -224,6 +234,8 @@ fun EditClubScreen(
         onTabSelected = { viewModel.onTabSelected(it) },
         onFormChange = { form -> viewModel.updateForm(form) },
         onSaveClick = { viewModel.onSaveClicked(clubId, onSaved = onClubUpdated) },
+        onLogoPicked = { bytes -> viewModel.onLogoPicked(clubId, bytes, onChanged = onClubUpdated) },
+        onRemoveLogo = { viewModel.onRemoveLogo(clubId, onChanged = onClubUpdated) },
         onPermissionChanged = viewModel::onPermissionChanged,
         onSavePermissionsClick = { viewModel.onSavePermissionsClicked(clubId) },
         onRetryMembers = { viewModel.loadMembers(clubId) },
@@ -255,6 +267,8 @@ private fun EditClubContent(
     onOpenInvite: (PendingClubInvite) -> Unit = {},
     onResend: (PendingClubInvite) -> Unit = {},
     onCancelInvite: (PendingClubInvite) -> Unit = {},
+    onLogoPicked: (ByteArray) -> Unit = {},
+    onRemoveLogo: () -> Unit = {},
     initialFilter: MembersFilter = MembersFilter.ALL
 ) {
     val idle = uiState as? EditClubUiState.Idle
@@ -299,7 +313,7 @@ private fun EditClubContent(
                                     Icon(
                                         painter = painterResource(Res.drawable.ic_check),
                                         contentDescription = stringResource(Res.string.btn_save_changes),
-                                        tint = if (idle.canSave) PitchGreen else Color.White.copy(alpha = 0.3f)
+                                        tint = if (idle.canSave) ChromeAccent else Color.White.copy(alpha = 0.3f)
                                     )
                                 }
                             }
@@ -358,6 +372,8 @@ private fun EditClubContent(
                             state = uiState,
                             modifier = boxModifier,
                             onFormChange = onFormChange,
+                            onLogoPicked = onLogoPicked,
+                            onRemoveLogo = onRemoveLogo,
                             onSubmit = { if (uiState.canSave) onSaveClick() }
                         )
                     }
@@ -676,7 +692,9 @@ private fun ClubDetailsForm(
     state: EditClubUiState.Idle,
     modifier: Modifier,
     onFormChange: (ClubFormFields) -> Unit,
-    onSubmit: () -> Unit
+    onSubmit: () -> Unit,
+    onLogoPicked: (ByteArray) -> Unit = {},
+    onRemoveLogo: () -> Unit = {}
 ) {
     val form = state.form
 
@@ -686,7 +704,7 @@ private fun ClubDetailsForm(
             .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        ClubIdentityHeader(state = state)
+        ClubIdentityHeader(state = state, onLogoPicked = onLogoPicked, onRemoveLogo = onRemoveLogo)
 
         Text(
             text = stringResource(Res.string.label_identity_section),
@@ -703,6 +721,16 @@ private fun ClubDetailsForm(
             onValueChange = { onFormChange(form.copy(shortName = it)) },
             label = stringResource(Res.string.label_short_name_field),
             infoText = stringResource(Res.string.msg_short_name_helper),
+        )
+
+        HorizontalDivider(color = CarbonGray.copy(alpha = 0.15f))
+
+        ClubColoursSection(
+            theme = form.theme,
+            problem = form.themeProblem,
+            clubName = form.name.ifBlank { stringResource(Res.string.title_club_details) },
+            initials = state.initials,
+            onChange = { onFormChange(form.copy(theme = it)) }
         )
 
         HorizontalDivider(color = CarbonGray.copy(alpha = 0.15f))
@@ -798,32 +826,61 @@ private fun Country.nameRes() = when (this) {
     Country.PORTUGAL -> Res.string.country_portugal
 }
 
+/**
+ * The logo (or initials) with "Add logo" / "Change logo" and "Remove". The image picker opens the
+ * platform's gallery; the logo is saved straight away, apart from the ✓ that saves the fields below.
+ */
 @Composable
-private fun ClubIdentityHeader(modifier: Modifier = Modifier, state: EditClubUiState.Idle) {
+private fun ClubIdentityHeader(
+    modifier: Modifier = Modifier,
+    state: EditClubUiState.Idle,
+    onLogoPicked: (ByteArray) -> Unit,
+    onRemoveLogo: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    val picker = rememberFilePickerLauncher(type = FileKitType.Image) { file ->
+        if (file != null) scope.launch { onLogoPicked(file.readBytes()) }
+    }
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier.size(56.dp).background(PitchGreen.copy(alpha = 0.15f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = state.initials,
-                color = PitchGreen,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+        Box(contentAlignment = Alignment.Center) {
+            ClubLogo(
+                logoUrl = state.logoUrl,
+                initials = state.initials,
+                size = 56.dp,
+                background = PitchGreen.copy(alpha = 0.15f),
+                initialsColor = PitchGreen
             )
+            if (state.isUpdatingLogo) CircularProgressIndicator(Modifier.size(56.dp), color = PitchGreen, strokeWidth = 2.dp)
         }
         Spacer(Modifier.width(16.dp))
         Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(if (state.logoUrl == null) Res.string.label_add_logo else Res.string.label_change_logo),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = if (state.isUpdatingLogo) PitchGreen.copy(alpha = 0.4f) else PitchGreen,
+                    modifier = Modifier.clickable(enabled = !state.isUpdatingLogo) { picker.launch() }.padding(vertical = 4.dp)
+                )
+                if (state.logoUrl != null) {
+                    Text(" · ", color = DeepCarbon.copy(alpha = 0.3f))
+                    Text(
+                        text = stringResource(Res.string.btn_remove_logo),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = if (state.isUpdatingLogo) AlertRed.copy(alpha = 0.4f) else AlertRed,
+                        modifier = Modifier.clickable(enabled = !state.isUpdatingLogo) { onRemoveLogo() }.padding(vertical = 4.dp)
+                    )
+                }
+            }
             Text(
-                text = stringResource(Res.string.label_add_logo),
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                color = PitchGreen
-            )
-            Text(
-                text = stringResource(
-                    if (state.isDirty) Res.string.msg_unsaved_club_changes else Res.string.msg_no_club_changes
+                text = state.logoError ?: stringResource(
+                    when {
+                        state.isUpdatingLogo -> Res.string.msg_logo_saving
+                        state.isDirty -> Res.string.msg_unsaved_club_changes
+                        else -> Res.string.msg_logo_hint
+                    }
                 ),
                 style = MaterialTheme.typography.bodySmall,
-                color = DeepCarbon.copy(alpha = 0.5f)
+                color = if (state.logoError != null) MaterialTheme.colorScheme.error else DeepCarbon.copy(alpha = 0.5f)
             )
         }
     }
@@ -928,6 +985,30 @@ private fun EditClubDetailsDirtyPreview() {
             onFormChange = {},
             onSaveClick = {},
             onPermissionChanged = {},
+            onSavePermissionsClick = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun EditClubColoursDirtyPreview() {
+    SquadifyTheme {
+        val fields = sampleFields()
+        val permissions = samplePermissions()
+        EditClubContent(
+            uiState = EditClubUiState.Idle(
+                original = fields,
+                form = fields.copy(theme = com.ricardofrango.squadify.model.ClubTheme("#E30613", "#FFFFFF")),
+                originalPermissions = permissions,
+                permissions = permissions
+            ),
+            onNavigateBack = {},
+            onRetry = {},
+            onTabSelected = {},
+            onFormChange = {},
+            onSaveClick = {},
+            onPermissionChanged = { _ -> },
             onSavePermissionsClick = {}
         )
     }

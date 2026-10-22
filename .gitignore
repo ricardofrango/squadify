@@ -19,5 +19,7 @@ captures
 node_modules/
 kotlin-js-store/
 firebase-service-account.json
+# Club logos stored on disk in development (LocalImageStorage)
+server/uploads/
 keystore/keystore.properties
 keystore/squadify-keystore.jks

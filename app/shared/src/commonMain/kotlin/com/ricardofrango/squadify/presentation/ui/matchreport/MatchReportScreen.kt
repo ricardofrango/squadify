@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.matchreport
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
+import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -196,7 +198,7 @@ private fun MatchReportContent(
                 }
             },
             topBar = {
-                Column(Modifier.background(CarbonGray)) {
+                Column(Modifier.background(ClubChrome)) {
                     FMTopBar(
                         // The no-permission screen drops the subtitle so it doesn't reveal the match (26f).
                         title = stringResource(Res.string.report_title),
@@ -332,9 +334,9 @@ private fun EditAction(onClick: () -> Unit) {
         Modifier.clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(painterResource(Res.drawable.ic_edit), contentDescription = null, tint = PitchGreenLight, modifier = Modifier.size(18.dp))
+        Icon(painterResource(Res.drawable.ic_edit), contentDescription = null, tint = ChromeAccent, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(6.dp))
-        Text(stringResource(Res.string.label_edit), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = PitchGreenLight)
+        Text(stringResource(Res.string.label_edit), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = ChromeAccent)
     }
 }
 

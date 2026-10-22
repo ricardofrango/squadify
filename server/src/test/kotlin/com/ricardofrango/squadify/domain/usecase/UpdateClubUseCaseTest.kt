@@ -13,6 +13,7 @@ import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ClubStatus
+import com.ricardofrango.squadify.model.ClubTheme
 import com.ricardofrango.squadify.model.UpdateClubRequest
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
@@ -21,7 +22,9 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 import kotlin.time.Instant
 
 /**
@@ -123,5 +126,76 @@ class UpdateClubUseCaseTest {
         useCase(coordinator.id, clubIdA, UpdateClubRequest(stadiumLocation = "Estrada da Praia, Ribamar"))
 
         assert(updated.captured.stadiumLocation == "Estrada da Praia, Ribamar")
+    }
+
+    private fun coordinatorSaving(existing: Club = club): Pair<String, io.mockk.CapturingSlot<Club>> {
+        val coordinator = user("p3-coordinator")
+        coEvery { userRepository.findById(coordinator.id) } returns coordinator
+        coEvery { userRepository.getUserRoleInClub(coordinator.id, clubIdA) } returns ClubRole.COORDINATOR
+        coEvery { clubRepository.getClubById(clubIdA) } returns existing
+        val updated = slot<Club>()
+        coEvery { clubRepository.updateClub(capture(updated)) } returns true
+        return coordinator.id to updated
+    }
+
+    private val benfica = ClubTheme("#E30613", "#FFFFFF")
+
+    @Test
+    fun clubColoursAreSavedInCapitals() = runBlocking {
+        val (userId, updated) = coordinatorSaving()
+        useCase(userId, clubIdA, UpdateClubRequest(theme = ClubTheme("#e30613", "#ffffff")))
+        assertEquals(benfica, updated.captured.theme)
+    }
+
+    @Test
+    fun anUpdateWithoutColoursKeepsThem() = runBlocking {
+        val (userId, updated) = coordinatorSaving(club.copy(theme = benfica))
+        useCase(userId, clubIdA, UpdateClubRequest(name = "New Name"))
+        assertEquals(benfica, updated.captured.theme)
+    }
+
+    @Test
+    fun clearThemeRemovesBothColours() = runBlocking {
+        val (userId, updated) = coordinatorSaving(club.copy(theme = benfica))
+        useCase(userId, clubIdA, UpdateClubRequest(clearTheme = true))
+        assertNull(updated.captured.theme)
+    }
+
+    @Test
+    fun newColoursAndClearThemeTogetherAreRefused() = runBlocking<Unit> {
+        val (userId, _) = coordinatorSaving()
+        assertFailsWith<ValidationException> { useCase(userId, clubIdA, UpdateClubRequest(theme = benfica, clearTheme = true)) }
+    }
+
+    @Test
+    fun aMainColourTooLightForWhiteTextIsRefused() = runBlocking<Unit> {
+        val (userId, _) = coordinatorSaving()
+        // Yellow main, white second: white text on yellow can't be read.
+        assertFailsWith<ValidationException> { useCase(userId, clubIdA, UpdateClubRequest(theme = ClubTheme("#FFD700", "#FFFFFF"))) }
+    }
+
+    @Test
+    fun aSecondColourThatIsntClearlyLighterIsRefused() = runBlocking<Unit> {
+        val (userId, _) = coordinatorSaving()
+        // Red and green are about as dark as each other.
+        assertFailsWith<ValidationException> { useCase(userId, clubIdA, UpdateClubRequest(theme = ClubTheme("#D6001C", "#009A44"))) }
+        // The right two colours the wrong way round.
+        assertFailsWith<ValidationException> { useCase(userId, clubIdA, UpdateClubRequest(theme = ClubTheme("#FDE100", "#000000"))) }
+    }
+
+    @Test
+    fun aColourThatIsntHexIsRefused() = runBlocking<Unit> {
+        val (userId, _) = coordinatorSaving()
+        assertFailsWith<ValidationException> { useCase(userId, clubIdA, UpdateClubRequest(theme = ClubTheme("red", "#FFFFFF"))) }
+        assertFailsWith<ValidationException> { useCase(userId, clubIdA, UpdateClubRequest(theme = ClubTheme("#E30613", "#FFF"))) }
+    }
+
+    @Test
+    fun aPlainMemberCantChangeTheColours() = runBlocking<Unit> {
+        val member = user("p4-plain-member")
+        coEvery { userRepository.findById(member.id) } returns member
+        coEvery { userRepository.getUserRoleInClub(member.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { clubRepository.getClubById(clubIdA) } returns club
+        assertFailsWith<ForbiddenException> { useCase(member.id, clubIdA, UpdateClubRequest(theme = benfica)) }
     }
 }

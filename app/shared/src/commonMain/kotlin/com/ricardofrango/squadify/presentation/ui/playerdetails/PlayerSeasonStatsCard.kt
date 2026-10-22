@@ -58,6 +58,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.DeepGreen
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
@@ -165,7 +166,7 @@ private fun TotalsBlock(matches: List<PlayerSeasonMatch>, filter: StatsFilter, s
     val t = matches.totals(filter)
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Headline(t.apps.toString(), stringResource(Res.string.stats_apps), Modifier.weight(1f))
-        Headline(t.goals.toString(), stringResource(Res.string.stats_goals), Modifier.weight(1f), color = PitchGreen)
+        Headline(t.goals.toString(), stringResource(Res.string.stats_goals), Modifier.weight(1f), color = SuccessGreen)
         Headline(t.assists.toString(), stringResource(Res.string.stats_assists_short), Modifier.weight(1f))
         if (staff) {
             Column(Modifier.weight(1f)) {
@@ -262,7 +263,7 @@ private fun PlayerMatchRow(m: PlayerSeasonMatch, showRating: Boolean, onClick: (
                     MiniPill(stringResource(Res.string.report_sub), Amber.copy(alpha = 0.2f), AmberText)
                 }
                 Text("${m.minutesPlayed}'", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = StatsSecondaryText)
-                if (m.goals > 0) MiniPill(stringResource(Res.string.report_chip_goals, m.goals), PitchGreen.copy(alpha = 0.12f), DeepGreen)
+                if (m.goals > 0) MiniPill(stringResource(Res.string.report_chip_goals, m.goals), SuccessGreen.copy(alpha = 0.12f), DeepGreen)
                 if (m.assists > 0) MiniPill(stringResource(Res.string.report_chip_assists, m.assists), CarbonGray.copy(alpha = 0.07f), DeepCarbon)
                 if (m.ownGoals > 0) MiniPill(stringResource(Res.string.report_chip_own_goals, m.ownGoals), AlertRed.copy(alpha = 0.1f), AlertRed)
                 if (m.yellowCards > 0) MiniPill(if (m.yellowCards > 1) "×${m.yellowCards}" else "", CarbonGray.copy(alpha = 0.05f), DeepCarbon, swatch = Amber)

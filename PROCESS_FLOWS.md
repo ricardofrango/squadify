@@ -445,15 +445,45 @@ Alerts carry structured parts (`ageGroupName`, `date`, `count`, and for a pendin
 graph TD
     A[Start: userId, clubId, patch fields] --> B{name is blank (non-null but empty/whitespace)?}
     B -- Yes --> V(["Throw ValidationException"])
-    B -- No --> C[Fetch Club by id]
+    B -- No --> T{theme AND clearTheme both sent?}
+    T -- Yes --> V
+    T -- No --> TV{"theme sent and it breaks ClubThemeRules? (not #RRGGBB; main colour under 3:1 against white; second colour not lighter or under 3:1 against the main)"}
+    TV -- Yes --> V
+    TV -- No --> C[Fetch Club by id]
     C -- not found --> N(["Throw NotFoundException"])
     C -- found --> D[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
     D -- denied --> F(["Throw ForbiddenException"])
-    D -- allowed --> E["Merge patch fields over existing (null = keep current, incl. stadiumLocation)"]
+    D -- allowed --> E["Merge patch fields over existing (null = keep current, incl. stadiumLocation and theme); clearTheme removes both colours; colours saved in capitals"]
     E --> Z(["Persist updated Club"])
 ```
 
-(Corrected from an earlier revision of this doc that said `minClubRole=CLUB_ADMIN` — the code has required only `COORDINATOR` since admin/coordinator were made fully equivalent short of billing; see `UpdateClubUseCaseTest`.) `stadiumLocation` — where home matches are actually played, when that differs from the official `address` — is edited from the client's Edit Club Details screen (Club Details' "More" menu); see `TECHNICAL_DECISIONS.md` §32.
+**Club colours (`theme`).** A `ClubTheme` is both colours or none, so one colour on its own can't be sent; the database refuses it too (`chk_clubs_theme_pair`). The rules live in the shared `ClubThemeRules`, so the app checks them as the user picks and the server checks them again on save. A request without `theme` keeps the current colours, so an app that predates them can't wipe them. See `TECHNICAL_DECISIONS.md` §57.
+
+(Corrected from an earlier revision of this doc that said `minClubRole=CLUB_ADMIN` — the code has required only `COORDINATOR` since admin/coordinator were made fully equivalent short of billing; see `UpdateClubUseCaseTest`.) `stadiumLocation` — where home matches are actually played, when that differs from the official `address` — is edited from the client's Edit Club Details screen (Club Details' "More" menu); see `TECHNICAL_DECISIONS.md` §32. `logoUrl` in the request is ignored: the logo is only set by uploading it (§3.4c).
+
+### 3.4c Club Logo (`UploadClubLogoUseCase` / `DeleteClubLogoUseCase` / `GetClubLogoUseCase`)
+
+`PUT /clubs/{clubId}/logo` (raw PNG or JPEG body, at most 5 MB) → `ClubLogoResponse(logoUrl)`; `DELETE /clubs/{clubId}/logo` (204); `GET /clubs/{clubId}/logo/{imageId}.png` (the image, `Cache-Control: private, max-age=31536000, immutable`). Storage key `clubs/{clubId}/logo/{imageId}.png`; `clubs.logo_url` holds the same path under the API. See `TECHNICAL_DECISIONS.md` §56.
+
+```mermaid
+graph TD
+    A[Start: userId, clubId, image bytes] --> B[Fetch Club by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> S{Image storage available?}
+    S -- No --> V0(["Throw ValidationException: uploads aren't set up"])
+    S -- Yes --> P["LogoImage.toPng: PNG/JPEG only, ≤ 5 MB, ≤ 6000×6000; fit in 512×512 (never enlarged), centred on a transparent square, PNG"]
+    P -- bad image --> V(["Throw ValidationException (current logo untouched)"])
+    P -- ok --> D["Delete the current logo's file, if any"]
+    D --> G["New imageId (UUID)"]
+    G --> PUT["Store clubs/{clubId}/logo/{imageId}.png"]
+    PUT -- fails --> X["clubs.logo_url = null"] --> E(["Rethrow"])
+    PUT -- ok --> U["clubs.logo_url = /clubs/{clubId}/logo/{imageId}.png"]
+    U --> Z(["Return the new logoUrl"])
+```
+
+The old file is deleted **before** the new one is stored, so files never pile up, and every upload gets a new id, so a cached logo can never be stale. If storing the new one fails, the club is left with no logo rather than a link to a deleted file. Delete: same gate; removes the file and clears `logo_url`. Get: anyone who can see the club (`minClubRole=MEMBER`, `allowPlayerOrParentAccess`, like §3.3), and only the club's **current** image id; an old id is a 404.
 
 ### 3.4b Get / Update Club Permissions (`GetClubPermissionsUseCase` / `UpdateClubPermissionsUseCase`)
 
@@ -1967,7 +1997,7 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
   **Fixed:** per-player stats lines are written for every finished match (`MatchPlayerStatsCalculator`, §8.2f), and are read back through the match report (§8.6), a player's season stats (`GetPlayerSeasonStatsUseCase`, §5.1c), a team's season record (`GetTeamSeasonRecordUseCase`, §4.6c) and an age group's season record (`GetAgeGroupSeasonRecordUseCase`, §4.4c). The live console now shows the same minutes while the match runs and at full time (§8.4).
 - [ ] **Some client affordances are still inert.** These are shown on purpose, matching the designs, but do nothing yet:
   - ~~**Login:** "Forgot password?" has no flow.~~ Fixed: emailed 6-digit code (§2.9, §2.10).
-  - **Club settings:** "Add logo" does nothing, since there's no image upload anywhere in the app.
+  - ~~**Club settings:** "Add logo" does nothing.~~ Fixed: club logo upload (§3.4c). Opponent logos are still inert.
   - ~~**Account:** "Change email" is likewise non-functional.~~ Fixed: code sent to the new address (§2.11, §2.12).
 - [ ] **The club Matches list's live badge uses the device clock.** The live console counts on the server's clock (`MatchDetails.serverNow`, §8.4), but `MatchRow`'s badge still uses `now` from the device. It only shows whole minutes, so a few seconds of drift rarely shows. Fixing it would need the server's time on the matches list too.
 - [x] **Invite emails are not sent.** Every invite-creation path used to only write to the `Invites` table (§10), with no email call anywhere.
@@ -2072,7 +2102,7 @@ erDiagram
         uuid id PK
         varchar name "255 chars"
         varchar short_name "50 chars, nullable"
-        varchar logo_url "500 chars, nullable"
+        varchar logo_url "500 chars, nullable -- /clubs/{id}/logo/{imageId}.png, set only by the logo upload (§3.4c)"
         varchar email "255 chars, nullable"
         varchar phone "50 chars, nullable"
         varchar address "500 chars, nullable"
@@ -2081,6 +2111,8 @@ erDiagram
         enum status "ClubStatus, default ACTIVE"
         enum sport "SportType, default FOOTBALL"
         timestamp created_at
+        varchar theme_primary_color "7 chars, nullable -- #RRGGBB, the club's main colour (V23)"
+        varchar theme_secondary_color "7 chars, nullable -- #RRGGBB, its lighter second colour (V23)"
     }
     CLUB_MEMBERS {
         uuid id PK
@@ -2295,6 +2327,7 @@ erDiagram
 ### 12.2 Constraints & defaults worth knowing
 
 - **Unique indexes**: `users.email`; `refresh_tokens.token`; `password_reset_codes.user_id` (the primary key, so a new Forgot-password request replaces the pending code, `V11__password_reset_codes.sql`); `email_change_codes.user_id` (likewise for Change email, `V12__email_change_codes.sql`); `club_members(club_id, user_id)` — one membership per user per club (`V3__unique_club_members.sql`); both add-member repository methods insert with `ON CONFLICT DO NOTHING`, so re-adding an existing member keeps their current row and role rather than duplicating or downgrading it; `fcm_tokens.token` — deliberately on the token alone rather than `(user_id, token)`, since a token identifies one app install, not one user; a registration endpoint that gets the same token again (shared device, or a re-login without reinstalling) should reassign the existing row's `user_id` rather than insert a duplicate; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list; `match_player_stats(match_id, player_id)` — one stats line per player per match; `match_reports.match_id` — one report per match; `training_plans(age_group_id, level, period_start)` — one plan per period (`V15__training_plans.sql`); `training_sessions(age_group_id, date, start_time)` — one session per age group, date and start time, so creating another replaces it (`V17__training_sessions.sql`). A `CHECK` keeps `match_player_stats.rating` NULL or between 0 and 10.
+- **Club colours** (`V23__club_theme.sql`): `chk_clubs_theme_pair` keeps `clubs.theme_primary_color` and `theme_secondary_color` both set or both NULL, and `chk_clubs_theme_format` keeps each one an upper-case `#RRGGBB`. The contrast rules are checked in `UpdateClubUseCase`, not the database.
 - **Nullable foreign keys**: `invites.player_id` (only set for `PARENT_PLAYER` invites) and `match_events.player_id` (null when `is_opponent = true`, since the event belongs to a player on the opposing team who isn't in the `players` table).
 - **`ON DELETE CASCADE` on the team → match chain** (`V21__cascade_team_and_match_deletes.sql`): `matches.team_id` → `teams`, and `match_id` on `match_call_ups`, `match_events`, `match_player_stats` and `match_reports` → `matches`. Deleting a team takes its matches and everything under them (§4.6a); deleting a match takes its children (§7.2b). `matches` is the only table with a `team_id`: players and staff hang off the age group, not the team. `match_events.related_event_id` (an assist pointing at its goal) stays `NO ACTION`; a match's events are deleted in one cascaded statement, where that check passes.
 - **Every other foreign key has no `onDelete` behavior** — the Exposed default (`NO ACTION`). Deleting a row that still has children (e.g. a `Club` with existing `Teams`) fails at the database level rather than cascading, nulling out, or being blocked at the application layer with a friendlier error.

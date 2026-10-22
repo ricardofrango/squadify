@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.theme.IsClubThemed
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -220,7 +222,7 @@ private fun StatusChip(label: StringResource, selected: Boolean, onClick: () -> 
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(10.dp),
-        color = if (selected) DeepCarbon else CarbonGray.copy(alpha = 0.08f),
+        color = if (selected) (if (IsClubThemed) ClubChrome else DeepCarbon) else CarbonGray.copy(alpha = 0.08f),
         border = if (selected) null else BorderStroke(1.dp, CarbonGray.copy(alpha = 0.2f))
     ) {
         Text(

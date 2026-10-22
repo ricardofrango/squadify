@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -54,6 +55,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.DeepGreen
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -85,8 +87,8 @@ internal fun SquadSortChips(selected: SquadSort, staff: Boolean, onSelected: (Sq
             Surface(
                 onClick = { onSelected(sort) },
                 shape = RoundedCornerShape(16.dp),
-                color = if (isSelected) CarbonGray else Color.White,
-                border = BorderStroke(1.5.dp, if (isSelected) CarbonGray else CarbonGray.copy(alpha = 0.16f))
+                color = if (isSelected) ClubChrome else Color.White,
+                border = BorderStroke(1.5.dp, if (isSelected) ClubChrome else CarbonGray.copy(alpha = 0.16f))
             ) {
                 Box(Modifier.heightIn(min = 32.dp).padding(horizontal = 11.dp), contentAlignment = Alignment.Center) {
                     Text(
@@ -178,7 +180,7 @@ private fun SquadRow(entry: SquadEntry, staff: Boolean, onClick: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
                     color = DeepCarbon
                 )
-                if (entry.goals > 0) MiniPill(stringResource(Res.string.report_chip_goals, entry.goals), PitchGreen.copy(alpha = 0.12f), DeepGreen)
+                if (entry.goals > 0) MiniPill(stringResource(Res.string.report_chip_goals, entry.goals), SuccessGreen.copy(alpha = 0.12f), DeepGreen)
                 if (entry.assists > 0) MiniPill(stringResource(Res.string.report_chip_assists, entry.assists), CarbonGray.copy(alpha = 0.07f), DeepCarbon)
             }
         }

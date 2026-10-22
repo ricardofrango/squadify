@@ -11,6 +11,12 @@ import com.ricardofrango.squadify.domain.repository.*
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.CurrentPasswordGuard
 import com.ricardofrango.squadify.domain.service.EmailService
+import com.ricardofrango.squadify.domain.service.ImageStorage
+import com.ricardofrango.squadify.data.service.LocalImageStorage
+import com.ricardofrango.squadify.data.service.S3ImageStorage
+import com.ricardofrango.squadify.data.service.UnavailableImageStorage
+import com.ricardofrango.squadify.config.AppEnvironment
+import java.io.File
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
@@ -44,6 +50,19 @@ val appModule = module {
     single<ClubMatchesBus> { KotlinFlowClubMatchesBus() }
     single<TransactionManager> { DatabaseFactory }
     single<EmailService> { ResendEmailService() }
+    // Club logos: a Railway Storage Bucket when one is configured, the disk in dev, none in production
+    // without a bucket (a container's disk doesn't survive a deploy). See TECHNICAL_DECISIONS.md §56.
+    single<ImageStorage> {
+        val bucket = ServerConfig.storageBucket
+        when {
+            bucket != null -> S3ImageStorage(
+                bucket, ServerConfig.storageEndpoint, ServerConfig.storageRegion,
+                ServerConfig.storageAccessKeyId, ServerConfig.storageSecretAccessKey
+            )
+            ServerConfig.environment == AppEnvironment.DEV -> LocalImageStorage(File(ServerConfig.localImageDir))
+            else -> UnavailableImageStorage
+        }
+    }
     single<PushNotificationService> { FirebaseAdminPushNotificationService() }
 
     // Use Cases
@@ -82,6 +101,9 @@ val appModule = module {
     factory { GetClubMembersOverviewUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { ManageClubInviteUseCase(get(), get(), get(), get(), get()) }
     factory { UpdateClubUseCase(get(), get(), get()) }
+    factory { UploadClubLogoUseCase(get(), get(), get(), get()) }
+    factory { DeleteClubLogoUseCase(get(), get(), get(), get()) }
+    factory { GetClubLogoUseCase(get(), get(), get(), get()) }
 
     factory { CreateTeamUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { CreateTeamsUseCase(get(), get(), get(), get(), get(), get(), get()) }

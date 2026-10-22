@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.theme.OnChromeAccent
+import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -275,7 +278,7 @@ private fun LandscapeLayout(
     // 37g: the account block becomes a 300dp dark column; the groups sit in at most two columns,
     // 560dp wide at most, so rows never stretch across the screen.
     Row(Modifier.fillMaxSize()) {
-        Column(Modifier.width(300.dp).fillMaxHeight().background(CarbonGray)) {
+        Column(Modifier.width(300.dp).fillMaxHeight().background(ClubChrome)) {
             AccountBlock(account, viewer, onOpenAccount, onClose)
             Spacer(Modifier.weight(1f))
             Version(account, onDark = true)
@@ -294,7 +297,7 @@ private fun LandscapeLayout(
 
 @Composable
 private fun AccountBlock(account: MoreAccount?, viewer: MoreViewer, onOpenAccount: () -> Unit, onClose: () -> Unit) {
-    Column(Modifier.fillMaxWidth().background(CarbonGray).statusBarsPadding().padding(bottom = 16.dp)) {
+    Column(Modifier.fillMaxWidth().background(ClubChrome).statusBarsPadding().padding(bottom = 16.dp)) {
         Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Spacer(Modifier.weight(1f))
             IconButton(onClick = onClose) {
@@ -306,8 +309,8 @@ private fun AccountBlock(account: MoreAccount?, viewer: MoreViewer, onOpenAccoun
             Modifier.fillMaxWidth().clickable(onClick = onOpenAccount).padding(horizontal = 20.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(Modifier.size(52.dp).background(PitchGreen.copy(alpha = 0.25f), CircleShape), contentAlignment = Alignment.Center) {
-                Text(account?.let { initialsOf(it.name) } ?: "", color = PitchGreen, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black))
+            Box(Modifier.size(52.dp).background(ChromeAccent.copy(alpha = 0.25f), CircleShape), contentAlignment = Alignment.Center) {
+                Text(account?.let { initialsOf(it.name) } ?: "", color = ChromeAccent, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black))
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
@@ -319,11 +322,11 @@ private fun AccountBlock(account: MoreAccount?, viewer: MoreViewer, onOpenAccoun
         Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 6.dp)) {
             Text(
                 roleChip(viewer),
-                color = Color.White,
+                color = OnChromeAccent,
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.background(PitchGreen, RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 3.dp)
+                modifier = Modifier.background(ChromeAccent, RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 3.dp)
             )
             Spacer(Modifier.height(6.dp))
             Text(viewer.clubName, color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.bodyMedium)

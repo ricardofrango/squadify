@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TextButton
@@ -58,6 +59,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.Amber
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -251,7 +253,7 @@ private fun ResultsByTeamCard(record: AgeGroupSeasonRecord, filter: StatsFilter,
                 }
                 Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    WdlCount(t.won, stringResource(Res.string.record_form_win), PitchGreen)
+                    WdlCount(t.won, stringResource(Res.string.record_form_win), SuccessGreen)
                     Spacer(Modifier.width(10.dp))
                     WdlCount(t.drawn, stringResource(Res.string.record_form_draw), DeepCarbon)
                     Spacer(Modifier.width(10.dp))
@@ -286,8 +288,8 @@ private fun WdlCount(value: Int, letter: String, color: Color) {
 }
 
 private val BandColors = mapOf(
-    MinutesBand.LOTS to PitchGreen,
-    MinutesBand.SOME to PitchGreen.copy(alpha = 0.5f),
+    MinutesBand.LOTS to SuccessGreen,
+    MinutesBand.SOME to SuccessGreen.copy(alpha = 0.5f),
     MinutesBand.LITTLE to Amber,
     MinutesBand.NONE to CarbonGray.copy(alpha = 0.22f)
 )
@@ -470,7 +472,7 @@ private fun TeamCard(team: Team, record: TeamSeasonRecord?, staff: Boolean, next
                 val t = record.totals(StatsFilter.ALL)
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    WdlCount(t.won, stringResource(Res.string.record_form_win), PitchGreen)
+                    WdlCount(t.won, stringResource(Res.string.record_form_win), SuccessGreen)
                     Spacer(Modifier.width(10.dp))
                     WdlCount(t.drawn, stringResource(Res.string.record_form_draw), DeepCarbon)
                     Spacer(Modifier.width(10.dp))
@@ -584,8 +586,8 @@ private fun FilterChipPill(label: String, selected: Boolean, onClick: () -> Unit
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        color = if (selected) CarbonGray else Color.White,
-        border = BorderStroke(1.5.dp, if (selected) CarbonGray else CarbonGray.copy(alpha = 0.16f))
+        color = if (selected) ClubChrome else Color.White,
+        border = BorderStroke(1.5.dp, if (selected) ClubChrome else CarbonGray.copy(alpha = 0.16f))
     ) {
         Box(Modifier.heightIn(min = 32.dp).padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
             Text(label, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, fontSize = 12.5.sp), color = if (selected) Color.White else DeepCarbon)

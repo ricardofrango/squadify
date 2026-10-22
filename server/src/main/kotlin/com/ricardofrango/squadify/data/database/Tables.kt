@@ -86,6 +86,9 @@ object Clubs : Table("clubs") {
     val status = enumerationByName("status", 50, ClubStatus::class).default(ClubStatus.ACTIVE)
     val sport = enumerationByName("sport", 50, SportType::class)
     val createdAt = timestamp("created_at")
+    // ClubTheme: both set or both null (chk_clubs_theme_pair).
+    val themePrimaryColor = varchar("theme_primary_color", 7).nullable()
+    val themeSecondaryColor = varchar("theme_secondary_color", 7).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

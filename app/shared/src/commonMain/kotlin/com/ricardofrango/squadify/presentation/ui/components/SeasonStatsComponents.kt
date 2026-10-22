@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -57,6 +58,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.DeepGreen
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.Res
@@ -152,7 +154,7 @@ fun StatsFilterSegments(selected: StatsFilter, onSelected: (StatsFilter) -> Unit
                 (if (isSelected) label.length else short.length).coerceAtLeast(3).toFloat() + 2f,
                 animationSpec = tween(FilterAnimationMillis), label = "filterWeight"
             )
-            val background by animateColorAsState(if (isSelected) CarbonGray else Color.White, tween(FilterAnimationMillis), label = "filterBackground")
+            val background by animateColorAsState(if (isSelected) ClubChrome else Color.White, tween(FilterAnimationMillis), label = "filterBackground")
             val textColor by animateColorAsState(if (isSelected) Color.White else DeepCarbon, tween(FilterAnimationMillis), label = "filterText")
             Box(
                 Modifier
@@ -219,7 +221,7 @@ fun RatingPill(value: Double, text: String, minWidth: Dp, height: Dp, fontSize: 
     val (bg, fg) = when (ratingBand(value.roundToInt())) {
         RatingBand.LOW -> AlertRed to Color.White
         RatingBand.MID -> Amber to CarbonGray
-        RatingBand.GOOD -> PitchGreen to Color.White
+        RatingBand.GOOD -> SuccessGreen to Color.White
         RatingBand.TOP -> DeepGreen to Color.White
     }
     Box(

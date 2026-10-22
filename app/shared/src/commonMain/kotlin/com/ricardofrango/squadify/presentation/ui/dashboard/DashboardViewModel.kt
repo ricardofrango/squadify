@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_failed_to_load_clubs
+import com.ricardofrango.squadify.presentation.ui.theme.ClubThemeStore
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -16,7 +17,8 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 
 class DashboardViewModel(
-    private val getClubsUseCase: GetClubsUseCase
+    private val getClubsUseCase: GetClubsUseCase,
+    private val clubThemeStore: ClubThemeStore
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<DashboardUiState>(DashboardUiState.Idle())
@@ -38,7 +40,7 @@ class DashboardViewModel(
         viewModelScope.launch {
             _state.value = DashboardUiState.Loading
             try {
-                val clubs = getClubsUseCase()
+                val clubs = getClubsUseCase().also(clubThemeStore::remember)
                 _state.value = DashboardUiState.Idle(clubs = clubs)
                 val onlyClub = clubs.singleOrNull()
                 if (onlyClub != null) {
@@ -58,7 +60,7 @@ class DashboardViewModel(
         viewModelScope.launch {
             _state.value = current.copy(isRefreshing = true, error = null)
             try {
-                val clubs = getClubsUseCase()
+                val clubs = getClubsUseCase().also(clubThemeStore::remember)
                 _state.value = DashboardUiState.Idle(clubs = clubs)
             } catch (e: Exception) {
                 _state.value = current.copy(isRefreshing = false, error = getString(Res.string.msg_failed_to_load_clubs))

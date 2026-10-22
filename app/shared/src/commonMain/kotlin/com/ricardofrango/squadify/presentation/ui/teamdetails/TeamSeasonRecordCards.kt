@@ -51,6 +51,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -120,7 +121,7 @@ internal fun TeamRecordCard(
                     return@StatsCard
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    RecordTile(t.won, stringResource(Res.string.record_won), PitchGreen, Modifier.weight(1f))
+                    RecordTile(t.won, stringResource(Res.string.record_won), SuccessGreen, Modifier.weight(1f))
                     RecordTile(t.drawn, stringResource(Res.string.record_drawn), DeepCarbon, Modifier.weight(1f))
                     RecordTile(t.lost, stringResource(Res.string.record_lost), AlertRed, Modifier.weight(1f))
                 }
@@ -134,7 +135,7 @@ internal fun TeamRecordCard(
                         stringResource(Res.string.record_goal_difference),
                         if (t.goalDifference > 0) "+${t.goalDifference}" else t.goalDifference.toString(),
                         valueColor = when {
-                            t.goalDifference > 0 -> PitchGreen
+                            t.goalDifference > 0 -> SuccessGreen
                             t.goalDifference < 0 -> AlertRed
                             else -> DeepCarbon
                         }
@@ -191,7 +192,7 @@ private fun LabeledNumber(label: String, value: String, valueColor: Color = Deep
 @Composable
 internal fun FormSquare(entry: TeamFormEntry, onClick: () -> Unit) {
     val (bg, fg, letter, word) = when (entry.result) {
-        FormResult.WIN -> Quad(PitchGreen, Color.White, Res.string.record_form_win, Res.string.record_result_win)
+        FormResult.WIN -> Quad(SuccessGreen, Color.White, Res.string.record_form_win, Res.string.record_result_win)
         FormResult.DRAW -> Quad(CarbonGray.copy(alpha = 0.12f), DeepCarbon, Res.string.record_form_draw, Res.string.record_result_draw)
         FormResult.LOSS -> Quad(AlertRed, Color.White, Res.string.record_form_loss, Res.string.record_result_loss)
     }
