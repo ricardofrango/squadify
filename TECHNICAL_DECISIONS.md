@@ -255,7 +255,7 @@ This section records the current (2026) Google/JetBrains-recommended approach fo
 
 ### 11.1 UI toolkit: Jetpack Compose
 
-Compose is Google's default and recommended UI toolkit; the XML View system is legacy, maintenance-only. **Status: already the case.** This project is fully on Compose Multiplatform (`composeMultiplatform = "1.11.1"`) across all four client targets (`app/androidApp`, `app/shared` for iOS, `app/desktopApp`, `app/webApp`) — there is no View-based UI anywhere in the codebase.
+Compose is Google's default and recommended UI toolkit; the XML View system is legacy, maintenance-only. **Status: already the case.** This project is fully on Compose Multiplatform (`composeMultiplatform = "1.12.0"`; keep it at or above what the libraries pull in, since the web app ships the Skia runtime of the plugin's version: FileKit 0.16 pulled Compose 1.12.0 under a 1.11.1 plugin and web crashed with `..._1nGetUnresolvedCodepointsCount is not defined`) across all four client targets (`app/androidApp`, `app/shared` for iOS, `app/desktopApp`, `app/webApp`) — there is no View-based UI anywhere in the codebase.
 
 ### 11.2 Design system: Material 3
 
