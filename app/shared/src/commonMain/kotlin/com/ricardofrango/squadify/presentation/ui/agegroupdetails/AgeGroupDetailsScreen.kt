@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeHighlight
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import squadify.app.shared.generated.resources.msg_player_removed_age_group
 import org.jetbrains.compose.resources.getString
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
@@ -83,73 +84,75 @@ fun AgeGroupDetailsScreen(
     onMessageShown: () -> Unit = {},
     viewModel: AgeGroupDetailsViewModel = koinViewModel()
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
-    val message = sessionsCreated?.let { stringResource(Res.string.msg_sessions_created, it) }
-    LaunchedEffect(message) {
-        if (message != null) {
-            onMessageShown()
-            snackbarHostState.showSnackbar(message)
+    SquadifyClubTheme {
+        val snackbarHostState = remember { SnackbarHostState() }
+        val message = sessionsCreated?.let { stringResource(Res.string.msg_sessions_created, it) }
+        LaunchedEffect(message) {
+            if (message != null) {
+                onMessageShown()
+                snackbarHostState.showSnackbar(message)
+            }
         }
-    }
-    val uiState = viewModel.state.collectSettledState()
-    val recordState by viewModel.record.collectAsState()
-    val plansState by viewModel.plans.collectAsState()
-    val sessionsState by viewModel.sessions.collectAsState()
-    val trainingStats by viewModel.trainingStats.collectAsState()
-    val tab by viewModel.tab.collectAsState()
-    val matchesTeamId by viewModel.matchesTeamId.collectAsState()
-    var searchQuery by remember { mutableStateOf("") }
+        val uiState = viewModel.state.collectSettledState()
+        val recordState by viewModel.record.collectAsState()
+        val plansState by viewModel.plans.collectAsState()
+        val sessionsState by viewModel.sessions.collectAsState()
+        val trainingStats by viewModel.trainingStats.collectAsState()
+        val tab by viewModel.tab.collectAsState()
+        val matchesTeamId by viewModel.matchesTeamId.collectAsState()
+        var searchQuery by remember { mutableStateOf("") }
 
-    LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
-    val removedText = Res.string.msg_player_removed_age_group
-    LaunchedEffect(viewModel) {
-        viewModel.playerRemoval.collect { result ->
-            snackbarHostState.showSnackbar(
-                when (result) {
-                    is PlayerRemovalResult.Removed -> getString(removedText, result.playerName, result.ageGroupName)
-                    is PlayerRemovalResult.Failed -> result.message
-                }
-            )
+        LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
+        val removedText = Res.string.msg_player_removed_age_group
+        LaunchedEffect(viewModel) {
+            viewModel.playerRemoval.collect { result ->
+                snackbarHostState.showSnackbar(
+                    when (result) {
+                        is PlayerRemovalResult.Removed -> getString(removedText, result.playerName, result.ageGroupName)
+                        is PlayerRemovalResult.Failed -> result.message
+                    }
+                )
+            }
         }
-    }
-    LaunchedEffect(refreshOnReturn) { if (refreshOnReturn) viewModel.load(ageGroupId, forceReload = true) }
+        LaunchedEffect(refreshOnReturn) { if (refreshOnReturn) viewModel.load(ageGroupId, forceReload = true) }
 
-    AgeGroupDetailsContent(
-        uiState = uiState,
-        recordState = recordState,
-        plansState = plansState,
-        sessionsState = sessionsState,
-        trainingStats = trainingStats,
-        snackbarHostState = snackbarHostState,
-        tab = tab,
-        matchesTeamId = matchesTeamId,
-        searchQuery = searchQuery,
-        onTabSelected = viewModel::onTabSelected,
-        onFilterSelected = viewModel::onFilterSelected,
-        onMatchesTeamSelected = viewModel::onMatchesTeamSelected,
-        onSearchChange = { searchQuery = it },
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.load(ageGroupId, forceReload = true) },
-        onRetryRecord = { viewModel.loadRecord(ageGroupId) },
-        onRetryPlans = { viewModel.loadPlans(ageGroupId) },
-        onRetrySessions = { viewModel.loadSessions(ageGroupId) },
-        onCreateSessions = { onNavigateToCreateSessions(ageGroupId) },
-        onAddSession = { date -> onNavigateToAddSession(ageGroupId, date) },
-        onOpenSession = onNavigateToSession,
-        onSeasonPlan = { edit -> onNavigateToSeasonPlan(ageGroupId, edit) },
-        onMonthPlan = { month, edit -> onNavigateToMonthPlan(ageGroupId, month, edit) },
-        onWeekPlan = { monday, edit -> onNavigateToWeekPlan(ageGroupId, monday, edit) },
-        onPlayerClick = onNavigateToPlayer,
-        onTeamClick = onNavigateToTeam,
-        onMatchClick = onNavigateToMatch,
-        onAddPlayers = { d -> onNavigateToAddPlayers(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
-        onAddStaff = { d -> onNavigateToAddStaff(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
-        onCreateTeam = { d -> onNavigateToCreateTeams(d.ageGroup.clubId, d.club.name, d.club.sport) },
-        onCreateMatch = { d -> onNavigateToCreateMatch(d.ageGroup.id) },
-        onStaffClick = { d, userId -> onNavigateToMember(d.ageGroup.clubId, userId) },
-        onEditAgeGroup = { d -> onNavigateToEditAgeGroup(d.ageGroup.id) },
-        onRemovePlayer = { playerId -> viewModel.removePlayer(ageGroupId, playerId) }
-    )
+        AgeGroupDetailsContent(
+            uiState = uiState,
+            recordState = recordState,
+            plansState = plansState,
+            sessionsState = sessionsState,
+            trainingStats = trainingStats,
+            snackbarHostState = snackbarHostState,
+            tab = tab,
+            matchesTeamId = matchesTeamId,
+            searchQuery = searchQuery,
+            onTabSelected = viewModel::onTabSelected,
+            onFilterSelected = viewModel::onFilterSelected,
+            onMatchesTeamSelected = viewModel::onMatchesTeamSelected,
+            onSearchChange = { searchQuery = it },
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.load(ageGroupId, forceReload = true) },
+            onRetryRecord = { viewModel.loadRecord(ageGroupId) },
+            onRetryPlans = { viewModel.loadPlans(ageGroupId) },
+            onRetrySessions = { viewModel.loadSessions(ageGroupId) },
+            onCreateSessions = { onNavigateToCreateSessions(ageGroupId) },
+            onAddSession = { date -> onNavigateToAddSession(ageGroupId, date) },
+            onOpenSession = onNavigateToSession,
+            onSeasonPlan = { edit -> onNavigateToSeasonPlan(ageGroupId, edit) },
+            onMonthPlan = { month, edit -> onNavigateToMonthPlan(ageGroupId, month, edit) },
+            onWeekPlan = { monday, edit -> onNavigateToWeekPlan(ageGroupId, monday, edit) },
+            onPlayerClick = onNavigateToPlayer,
+            onTeamClick = onNavigateToTeam,
+            onMatchClick = onNavigateToMatch,
+            onAddPlayers = { d -> onNavigateToAddPlayers(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
+            onAddStaff = { d -> onNavigateToAddStaff(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
+            onCreateTeam = { d -> onNavigateToCreateTeams(d.ageGroup.clubId, d.club.name, d.club.sport) },
+            onCreateMatch = { d -> onNavigateToCreateMatch(d.ageGroup.id) },
+            onStaffClick = { d, userId -> onNavigateToMember(d.ageGroup.clubId, userId) },
+            onEditAgeGroup = { d -> onNavigateToEditAgeGroup(d.ageGroup.id) },
+            onRemovePlayer = { playerId -> viewModel.removePlayer(ageGroupId, playerId) }
+        )
+    }
 }
 
 private val AgeGroupTab.icon

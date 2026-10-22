@@ -27,6 +27,7 @@ import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import squadify.app.shared.generated.resources.*
@@ -87,77 +88,79 @@ fun CreatePlayersScreen(
     onPlayersCreated: () -> Unit,
     viewModel: CreatePlayersViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.state.collectSettledState()
-    val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+    SquadifyClubTheme {
+        val uiState = viewModel.state.collectSettledState()
+        val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
 
-    var nextRowKey by remember { mutableStateOf(1) }
-    val rows = remember { mutableStateListOf(PlayerRow(key = 0)) }
-    var showValidationErrors by remember { mutableStateOf(false) }
-    var datePickerForKey by remember { mutableStateOf<Int?>(null) }
+        var nextRowKey by remember { mutableStateOf(1) }
+        val rows = remember { mutableStateListOf(PlayerRow(key = 0)) }
+        var showValidationErrors by remember { mutableStateOf(false) }
+        var datePickerForKey by remember { mutableStateOf<Int?>(null) }
 
-    LaunchedEffect(viewModel.navigationEvent) {
-        viewModel.navigationEvent.collect { event ->
-            when (event) {
-                CreatePlayersNavigationEvent.NavigateBackWithPlayersCreated -> onPlayersCreated()
-            }
-        }
-    }
-
-    CreatePlayersContent(
-        uiState = uiState,
-        clubName = clubName,
-        rows = rows,
-        showValidationErrors = showValidationErrors,
-        onNavigateBack = onNavigateBack,
-        onFirstNameChange = { key, value ->
-            updateRow(rows, key) { it.copy(firstName = value) }
-            showValidationErrors = false
-            viewModel.clearSubmitError()
-        },
-        onLastNameChange = { key, value ->
-            updateRow(rows, key) { it.copy(lastName = value) }
-            showValidationErrors = false
-            viewModel.clearSubmitError()
-        },
-        onDateClick = { key -> datePickerForKey = key },
-        onAddRow = {
-            rows.add(PlayerRow(key = nextRowKey))
-            nextRowKey += 1
-        },
-        onRemoveRow = { key -> rows.removeAll { it.key == key } },
-        onCreateClick = {
-            showValidationErrors = true
-            val allValid = rows.isNotEmpty() && rows.all {
-                it.firstName.isNotBlank() && it.lastName.isNotBlank() && it.birthDateIso != null
-            }
-            if (allValid) {
-                val players = rows.map { r ->
-                    CreatePlayer(
-                        firstName = r.firstName.trim(),
-                        lastName = r.lastName.trim(),
-                        birthDate = LocalDate.parse(r.birthDateIso!!)
-                    )
+        LaunchedEffect(viewModel.navigationEvent) {
+            viewModel.navigationEvent.collect { event ->
+                when (event) {
+                    CreatePlayersNavigationEvent.NavigateBackWithPlayersCreated -> onPlayersCreated()
                 }
-                viewModel.onCreateClicked(clubId, players, ageGroupId)
             }
         }
-    )
 
-    val pickerRowKey = datePickerForKey
-    if (pickerRowKey != null) {
-        val row = rows.firstOrNull { it.key == pickerRowKey }
-        DatePickerSheet(
-            title = Res.string.label_select_birth_date,
-            initialDate = row?.birthDateIso?.let { LocalDate.parse(it) } ?: LocalDate(today.year - 10, 1, 1),
-            maxDate = today,
-            onConfirm = { picked ->
-                updateRow(rows, pickerRowKey) { it.copy(birthDateIso = picked.toString()) }
-                datePickerForKey = null
+        CreatePlayersContent(
+            uiState = uiState,
+            clubName = clubName,
+            rows = rows,
+            showValidationErrors = showValidationErrors,
+            onNavigateBack = onNavigateBack,
+            onFirstNameChange = { key, value ->
+                updateRow(rows, key) { it.copy(firstName = value) }
                 showValidationErrors = false
                 viewModel.clearSubmitError()
             },
-            onDismiss = { datePickerForKey = null }
+            onLastNameChange = { key, value ->
+                updateRow(rows, key) { it.copy(lastName = value) }
+                showValidationErrors = false
+                viewModel.clearSubmitError()
+            },
+            onDateClick = { key -> datePickerForKey = key },
+            onAddRow = {
+                rows.add(PlayerRow(key = nextRowKey))
+                nextRowKey += 1
+            },
+            onRemoveRow = { key -> rows.removeAll { it.key == key } },
+            onCreateClick = {
+                showValidationErrors = true
+                val allValid = rows.isNotEmpty() && rows.all {
+                    it.firstName.isNotBlank() && it.lastName.isNotBlank() && it.birthDateIso != null
+                }
+                if (allValid) {
+                    val players = rows.map { r ->
+                        CreatePlayer(
+                            firstName = r.firstName.trim(),
+                            lastName = r.lastName.trim(),
+                            birthDate = LocalDate.parse(r.birthDateIso!!)
+                        )
+                    }
+                    viewModel.onCreateClicked(clubId, players, ageGroupId)
+                }
+            }
         )
+
+        val pickerRowKey = datePickerForKey
+        if (pickerRowKey != null) {
+            val row = rows.firstOrNull { it.key == pickerRowKey }
+            DatePickerSheet(
+                title = Res.string.label_select_birth_date,
+                initialDate = row?.birthDateIso?.let { LocalDate.parse(it) } ?: LocalDate(today.year - 10, 1, 1),
+                maxDate = today,
+                onConfirm = { picked ->
+                    updateRow(rows, pickerRowKey) { it.copy(birthDateIso = picked.toString()) }
+                    datePickerForKey = null
+                    showValidationErrors = false
+                    viewModel.clearSubmitError()
+                },
+                onDismiss = { datePickerForKey = null }
+            )
+        }
     }
 }
 

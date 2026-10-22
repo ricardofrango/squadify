@@ -113,7 +113,7 @@ class FirebaseAdminPushNotificationService : PushNotificationService {
             tokens.chunked(500).forEach { chunk ->
                 val message = MulticastMessage.builder()
                     .addAllTokens(chunk)
-                    // Where tapping it goes (§58). Data rides along with the notification: Android
+                    // Where tapping it goes (§56). Data rides along with the notification: Android
                     // hands it to the app as the launch intent's extras when it shows the notification
                     // itself (app in the background), or to onMessageReceived otherwise.
                     .putAllData(link.toData())

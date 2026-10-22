@@ -36,6 +36,7 @@ import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import squadify.app.shared.generated.resources.*
@@ -74,22 +75,24 @@ fun LiveMatchScreen(
     onOpenReport: (matchId: String, edit: Boolean) -> Unit = { _, _ -> },
     viewModel: LiveMatchViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.state.collectSettledState()
+    SquadifyClubTheme {
+        val uiState = viewModel.state.collectSettledState()
 
-    LaunchedEffect(matchId) { viewModel.load(matchId) }
+        LaunchedEffect(matchId) { viewModel.load(matchId) }
 
-    // Insets are handled by hand below (ConsoleHeader's statusBarsPadding, the bottom action bars'
-    // navigationBarsPadding) since the header/bottom bar are plain content, not Scaffold's topBar/
-    // bottomBar slots. Scaffold's own default contentWindowInsets would apply the same system-bar
-    // insets a second time on top of those -- pushing the header down and the bottom button up.
-    // The console is dark whatever the club: a club's colour is lifted to read on it (ClubPalette).
-    OnDarkSurface {
-        Scaffold(containerColor = DeepCarbon, contentWindowInsets = WindowInsets(0)) { paddingValues ->
-            Box(Modifier.fillMaxSize().padding(paddingValues).background(DeepCarbon)) {
-                when (val state = uiState) {
-                    is LiveMatchUiState.Loading -> LoadingBody(onNavigateBack)
-                    is LiveMatchUiState.Error -> ErrorBody(state.message, onNavigateBack)
-                    is LiveMatchUiState.Idle -> IdleBody(state, viewModel, onNavigateBack, onOpenReport)
+        // Insets are handled by hand below (ConsoleHeader's statusBarsPadding, the bottom action bars'
+        // navigationBarsPadding) since the header/bottom bar are plain content, not Scaffold's topBar/
+        // bottomBar slots. Scaffold's own default contentWindowInsets would apply the same system-bar
+        // insets a second time on top of those -- pushing the header down and the bottom button up.
+        // The console is dark whatever the club: a club's colour is lifted to read on it (ClubPalette).
+        OnDarkSurface {
+            Scaffold(containerColor = DeepCarbon, contentWindowInsets = WindowInsets(0)) { paddingValues ->
+                Box(Modifier.fillMaxSize().padding(paddingValues).background(DeepCarbon)) {
+                    when (val state = uiState) {
+                        is LiveMatchUiState.Loading -> LoadingBody(onNavigateBack)
+                        is LiveMatchUiState.Error -> ErrorBody(state.message, onNavigateBack)
+                        is LiveMatchUiState.Idle -> IdleBody(state, viewModel, onNavigateBack, onOpenReport)
+                    }
                 }
             }
         }

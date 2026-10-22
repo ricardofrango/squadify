@@ -28,6 +28,7 @@ import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
@@ -61,38 +62,40 @@ fun AddPlayersToAgeGroupScreen(
     refreshOnReturn: Boolean = false,
     viewModel: AddPlayersToAgeGroupViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.state.collectSettledState()
-    var searchQuery by remember { mutableStateOf("") }
+    SquadifyClubTheme {
+        val uiState = viewModel.state.collectSettledState()
+        var searchQuery by remember { mutableStateOf("") }
 
-    LaunchedEffect(clubId) {
-        viewModel.load(clubId, initialAgeGroupId)
-    }
+        LaunchedEffect(clubId) {
+            viewModel.load(clubId, initialAgeGroupId)
+        }
 
-    LaunchedEffect(refreshOnReturn) {
-        if (refreshOnReturn) viewModel.refreshEligiblePlayers()
-    }
+        LaunchedEffect(refreshOnReturn) {
+            if (refreshOnReturn) viewModel.refreshEligiblePlayers()
+        }
 
-    LaunchedEffect(viewModel.navigationEvent) {
-        viewModel.navigationEvent.collect { event ->
-            when (event) {
-                AddPlayersToAgeGroupNavigationEvent.NavigateBackWithPlayersAdded -> onPlayersAdded()
+        LaunchedEffect(viewModel.navigationEvent) {
+            viewModel.navigationEvent.collect { event ->
+                when (event) {
+                    AddPlayersToAgeGroupNavigationEvent.NavigateBackWithPlayersAdded -> onPlayersAdded()
+                }
             }
         }
-    }
 
-    AddPlayersToAgeGroupContent(
-        uiState = uiState,
-        searchQuery = searchQuery,
-        onNavigateBack = onNavigateBack,
-        onSearchChange = { searchQuery = it },
-        onAgeGroupSelected = {
-            searchQuery = ""
-            viewModel.onAgeGroupSelected(it)
-        },
-        onPlayerToggled = viewModel::onPlayerToggled,
-        onAddNewPlayer = { onNavigateToCreatePlayers((uiState as? AddPlayersToAgeGroupUiState.Idle)?.selectedAgeGroup?.id) },
-        onAddClick = viewModel::onAddClicked
-    )
+        AddPlayersToAgeGroupContent(
+            uiState = uiState,
+            searchQuery = searchQuery,
+            onNavigateBack = onNavigateBack,
+            onSearchChange = { searchQuery = it },
+            onAgeGroupSelected = {
+                searchQuery = ""
+                viewModel.onAgeGroupSelected(it)
+            },
+            onPlayerToggled = viewModel::onPlayerToggled,
+            onAddNewPlayer = { onNavigateToCreatePlayers((uiState as? AddPlayersToAgeGroupUiState.Idle)?.selectedAgeGroup?.id) },
+            onAddClick = viewModel::onAddClicked
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

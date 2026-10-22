@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.font.FontWeight
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import org.jetbrains.compose.resources.pluralStringResource
 import squadify.app.shared.generated.resources.btn_cancel
 import squadify.app.shared.generated.resources.btn_delete
@@ -86,20 +87,22 @@ fun EditTeamScreen(
     onTeamDeleted: () -> Unit,
     viewModel: EditTeamViewModel = koinViewModel()
 ) {
-    val state = viewModel.state.collectSettledState()
-    LaunchedEffect(teamId) { viewModel.load(teamId) }
-    LaunchedEffect(Unit) { viewModel.saved.collect { onTeamUpdated() } }
-    LaunchedEffect(Unit) { viewModel.deleted.collect { onTeamDeleted() } }
+    SquadifyClubTheme {
+        val state = viewModel.state.collectSettledState()
+        LaunchedEffect(teamId) { viewModel.load(teamId) }
+        LaunchedEffect(Unit) { viewModel.saved.collect { onTeamUpdated() } }
+        LaunchedEffect(Unit) { viewModel.deleted.collect { onTeamDeleted() } }
 
-    EditTeamContent(
-        state = state,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.load(teamId) },
-        onNameChange = { value -> viewModel.updateForm { it.copy(name = value) } },
-        onTeamSizeSelected = { value -> viewModel.updateForm { it.copy(teamSize = value) } },
-        onSave = { viewModel.save(teamId) },
-        onDelete = { viewModel.delete(teamId) }
-    )
+        EditTeamContent(
+            state = state,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.load(teamId) },
+            onNameChange = { value -> viewModel.updateForm { it.copy(name = value) } },
+            onTeamSizeSelected = { value -> viewModel.updateForm { it.copy(teamSize = value) } },
+            onSave = { viewModel.save(teamId) },
+            onDelete = { viewModel.delete(teamId) }
+        )
+    }
 }
 
 @Composable

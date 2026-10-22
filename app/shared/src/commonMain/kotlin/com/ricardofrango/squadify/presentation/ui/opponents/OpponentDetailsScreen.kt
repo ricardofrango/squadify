@@ -69,6 +69,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
@@ -120,18 +121,20 @@ fun OpponentDetailsScreen(
     refresh: Boolean = false,
     viewModel: OpponentDetailsViewModel = koinViewModel()
 ) {
-    val state = viewModel.state.collectSettledState()
-    LaunchedEffect(opponentId) { viewModel.load(opponentId) }
-    LaunchedEffect(refresh) { if (refresh) viewModel.load(opponentId, force = true) }
+    SquadifyClubTheme {
+        val state = viewModel.state.collectSettledState()
+        LaunchedEffect(opponentId) { viewModel.load(opponentId) }
+        LaunchedEffect(refresh) { if (refresh) viewModel.load(opponentId, force = true) }
 
-    OpponentDetailsContent(
-        state = state,
-        onNavigateBack = onNavigateBack,
-        onEdit = onEdit,
-        onRetry = { viewModel.load(opponentId, force = true) },
-        onSeasonSelected = viewModel::onSeasonSelected,
-        onOpenMatch = onOpenMatch
-    )
+        OpponentDetailsContent(
+            state = state,
+            onNavigateBack = onNavigateBack,
+            onEdit = onEdit,
+            onRetry = { viewModel.load(opponentId, force = true) },
+            onSeasonSelected = viewModel::onSeasonSelected,
+            onOpenMatch = onOpenMatch
+        )
+    }
 }
 
 @Composable

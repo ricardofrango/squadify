@@ -5,7 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-/** What tapping each kind of push opens, and what's under it (§58). */
+/** What tapping each kind of push opens, and what's under it (§56). */
 class PushLinksTest {
 
     @Test

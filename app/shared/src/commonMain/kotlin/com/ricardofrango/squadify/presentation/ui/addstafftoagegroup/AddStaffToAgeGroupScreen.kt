@@ -28,6 +28,7 @@ import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import squadify.app.shared.generated.resources.*
@@ -57,38 +58,40 @@ fun AddStaffToAgeGroupScreen(
     refreshOnReturn: Boolean = false,
     viewModel: AddStaffToAgeGroupViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.state.collectSettledState()
-    var searchQuery by remember { mutableStateOf("") }
+    SquadifyClubTheme {
+        val uiState = viewModel.state.collectSettledState()
+        var searchQuery by remember { mutableStateOf("") }
 
-    LaunchedEffect(clubId) {
-        viewModel.load(clubId, initialAgeGroupId)
-    }
+        LaunchedEffect(clubId) {
+            viewModel.load(clubId, initialAgeGroupId)
+        }
 
-    LaunchedEffect(refreshOnReturn) {
-        if (refreshOnReturn) viewModel.refreshEligibleMembers()
-    }
+        LaunchedEffect(refreshOnReturn) {
+            if (refreshOnReturn) viewModel.refreshEligibleMembers()
+        }
 
-    LaunchedEffect(viewModel.navigationEvent) {
-        viewModel.navigationEvent.collect { event ->
-            when (event) {
-                AddStaffToAgeGroupNavigationEvent.NavigateBackWithStaffAdded -> onStaffAdded()
+        LaunchedEffect(viewModel.navigationEvent) {
+            viewModel.navigationEvent.collect { event ->
+                when (event) {
+                    AddStaffToAgeGroupNavigationEvent.NavigateBackWithStaffAdded -> onStaffAdded()
+                }
             }
         }
-    }
 
-    AddStaffToAgeGroupContent(
-        uiState = uiState,
-        searchQuery = searchQuery,
-        onNavigateBack = onNavigateBack,
-        onSearchChange = { searchQuery = it },
-        onAgeGroupSelected = {
-            searchQuery = ""
-            viewModel.onAgeGroupSelected(clubId, it)
-        },
-        onRoleTapped = viewModel::onRoleTapped,
-        onAddNewStaff = onNavigateToCreateStaff,
-        onAddClick = viewModel::onAddClicked
-    )
+        AddStaffToAgeGroupContent(
+            uiState = uiState,
+            searchQuery = searchQuery,
+            onNavigateBack = onNavigateBack,
+            onSearchChange = { searchQuery = it },
+            onAgeGroupSelected = {
+                searchQuery = ""
+                viewModel.onAgeGroupSelected(clubId, it)
+            },
+            onRoleTapped = viewModel::onRoleTapped,
+            onAddNewStaff = onNavigateToCreateStaff,
+            onAddClick = viewModel::onAddClicked
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

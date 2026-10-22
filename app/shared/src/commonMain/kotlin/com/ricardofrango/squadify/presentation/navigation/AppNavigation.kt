@@ -153,7 +153,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
 
     // A push notification tapped while the app is already running (Android: MainActivity.onNewIntent)
     // opens here, or after Login if the user is signed out. Splash opens the cold-start one itself, so
-    // nothing happens while it (or a sign-in screen) is showing. See PushLinks.kt / §58.
+    // nothing happens while it (or a sign-in screen) is showing. See PushLinks.kt / §56.
     val pushLinkInbox = koinInject<PushLinkInbox>()
     val getClubsUseCase = koinInject<GetClubsUseCase>()
     LaunchedEffect(navController) {
@@ -1113,9 +1113,11 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 onNavigateBack = {
                     navController.popBackStack()
                 },
+                // Clear the whole back stack: a single-club user has no My clubs underneath, and a
+                // club left under Sign in would also draw it in that club's colours.
                 onNavigateToLogin = {
                     navController.navigate(Screen.Login) {
-                        popUpTo(Screen.Dashboard) { inclusive = true }
+                        popUpTo(navController.graph.id) { inclusive = true }
                     }
                 }
             )

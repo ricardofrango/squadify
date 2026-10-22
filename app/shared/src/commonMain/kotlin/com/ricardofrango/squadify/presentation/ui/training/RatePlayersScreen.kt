@@ -51,6 +51,7 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -81,16 +82,18 @@ fun RatePlayersScreen(
     onSaved: () -> Unit,
     viewModel: RatePlayersViewModel = koinViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
-    LaunchedEffect(sessionId) { viewModel.start(sessionId) }
-    LaunchedEffect(viewModel) { viewModel.saved.collect { onSaved() } }
-    RatePlayersContent(
-        state = state,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.start(sessionId, force = true) },
-        onText = viewModel::onText,
-        onSave = viewModel::save
-    )
+    SquadifyClubTheme {
+        val state by viewModel.state.collectAsState()
+        LaunchedEffect(sessionId) { viewModel.start(sessionId) }
+        LaunchedEffect(viewModel) { viewModel.saved.collect { onSaved() } }
+        RatePlayersContent(
+            state = state,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.start(sessionId, force = true) },
+            onText = viewModel::onText,
+            onSave = viewModel::save
+        )
+    }
 }
 
 @Composable

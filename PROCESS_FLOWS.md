@@ -457,13 +457,13 @@ graph TD
     E --> Z(["Persist updated Club"])
 ```
 
-**Club colours (`theme`).** A `ClubTheme` is both colours or none, so one colour on its own can't be sent; the database refuses it too (`chk_clubs_theme_pair`). The rules live in the shared `ClubThemeRules`, so the app checks them as the user picks and the server checks them again on save. A request without `theme` keeps the current colours, so an app that predates them can't wipe them. See `TECHNICAL_DECISIONS.md` §57.
+**Club colours (`theme`).** A `ClubTheme` is both colours or none, so one colour on its own can't be sent; the database refuses it too (`chk_clubs_theme_pair`). The rules live in the shared `ClubThemeRules`, so the app checks them as the user picks and the server checks them again on save. A request without `theme` keeps the current colours, so an app that predates them can't wipe them. See `TECHNICAL_DECISIONS.md` §58.
 
 (Corrected from an earlier revision of this doc that said `minClubRole=CLUB_ADMIN` — the code has required only `COORDINATOR` since admin/coordinator were made fully equivalent short of billing; see `UpdateClubUseCaseTest`.) `stadiumLocation` — where home matches are actually played, when that differs from the official `address` — is edited from the client's Edit Club Details screen (Club Details' "More" menu); see `TECHNICAL_DECISIONS.md` §32. `logoUrl` in the request is ignored: the logo is only set by uploading it (§3.4c).
 
 ### 3.4c Club Logo (`UploadClubLogoUseCase` / `DeleteClubLogoUseCase` / `GetClubLogoUseCase`)
 
-`PUT /clubs/{clubId}/logo` (raw PNG or JPEG body, at most 5 MB) → `ClubLogoResponse(logoUrl)`; `DELETE /clubs/{clubId}/logo` (204); `GET /clubs/{clubId}/logo/{imageId}.png` (the image, `Cache-Control: private, max-age=31536000, immutable`). Storage key `clubs/{clubId}/logo/{imageId}.png`; `clubs.logo_url` holds the same path under the API. See `TECHNICAL_DECISIONS.md` §56.
+`PUT /clubs/{clubId}/logo` (raw PNG or JPEG body, at most 5 MB) → `ClubLogoResponse(logoUrl)`; `DELETE /clubs/{clubId}/logo` (204); `GET /clubs/{clubId}/logo/{imageId}.png` (the image, `Cache-Control: private, max-age=31536000, immutable`). Storage key `clubs/{clubId}/logo/{imageId}.png`; `clubs.logo_url` holds the same path under the API. See `TECHNICAL_DECISIONS.md` §57.
 
 ```mermaid
 graph TD
@@ -1614,7 +1614,7 @@ graph TD
 
 Not a route — a shared orchestrator called by §7.1 (a match created), §7.1c (a match's schedule edited), §8.0, §8.1, and §8.2 after their own transaction has already committed, so it opens a transaction of its own purely to read the data the push needs (see `TECHNICAL_DECISIONS.md` §24). Wrapped in a top-level try/catch that logs and swallows any exception (a not-found match, a repository throwing, a push send failing) — this must never propagate back to the use case that triggered it, the same "best-effort" contract as `EmailService`/`PushNotificationService` elsewhere. Recipients are **every active club member**, not scoped to the match's own age group — deliberately broader than the view/edit permissions the rest of the match domain enforces (§7–§8.2); see the developer's note on this in `TECHNICAL_DECISIONS.md` §24. Originally scoped to just the five live-match moments (hence the class's earlier name, `NotifyMatchEventUseCase`) — renamed once the three schedule-change events made "live match" no longer an accurate description of everything it sends.
 
-**Where tapping a push goes** (`TECHNICAL_DECISIONS.md` §58). Every push carries a `PushLink` as its FCM data: the club, plus the most specific of an age group, a team or a match. Every match push opens the match (Match details), including a cancelled or finished one. Being added as staff, or several teams being created at once, opens the age group. One team being created opens that team. Being added to a club opens the club. The app opens the club's screen under the target: My clubs → club → target, or club → target for a single-club user.
+**Where tapping a push goes** (`TECHNICAL_DECISIONS.md` §56). Every push carries a `PushLink` as its FCM data: the club, plus the most specific of an age group, a team or a match. Every match push opens the match (Match details), including a cancelled or finished one. Being added as staff, or several teams being created at once, opens the age group. One team being created opens that team. Being added to a club opens the club. The app opens the club's screen under the target: My clubs → club → target, or club → target for a single-club user.
 
 ### 8.2c Pause Match (`PauseMatchUseCase`)
 

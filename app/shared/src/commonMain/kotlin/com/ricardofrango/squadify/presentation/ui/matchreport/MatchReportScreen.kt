@@ -17,6 +17,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
@@ -107,26 +108,28 @@ fun MatchReportScreen(
     onReportSaved: () -> Unit,
     viewModel: MatchReportViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsStateWithLifecycle()
-    val saved by viewModel.savedSomething.collectAsStateWithLifecycle()
-    LaunchedEffect(matchId) { viewModel.load(matchId, startEditing) }
-    LaunchedEffect(saved) { if (saved) onReportSaved() }
+    SquadifyClubTheme {
+        val uiState by viewModel.state.collectAsStateWithLifecycle()
+        val saved by viewModel.savedSomething.collectAsStateWithLifecycle()
+        LaunchedEffect(matchId) { viewModel.load(matchId, startEditing) }
+        LaunchedEffect(saved) { if (saved) onReportSaved() }
 
-    MatchReportContent(
-        uiState = uiState,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.load(matchId, startEditing, force = true) },
-        onStartEditing = viewModel::onStartEditing,
-        onTabSelected = viewModel::onTabSelected,
-        onFieldsChanged = viewModel::onFieldsChanged,
-        onToggleRating = viewModel::onToggleRating,
-        onRate = viewModel::onRate,
-        onClearRating = viewModel::onClearRating,
-        onRateNext = viewModel::onRateNext,
-        onReadSortSelected = viewModel::onReadSortSelected,
-        onSave = viewModel::onSave,
-        onToastShown = viewModel::onToastShown
-    )
+        MatchReportContent(
+            uiState = uiState,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.load(matchId, startEditing, force = true) },
+            onStartEditing = viewModel::onStartEditing,
+            onTabSelected = viewModel::onTabSelected,
+            onFieldsChanged = viewModel::onFieldsChanged,
+            onToggleRating = viewModel::onToggleRating,
+            onRate = viewModel::onRate,
+            onClearRating = viewModel::onClearRating,
+            onRateNext = viewModel::onRateNext,
+            onReadSortSelected = viewModel::onReadSortSelected,
+            onSave = viewModel::onSave,
+            onToastShown = viewModel::onToastShown
+        )
+    }
 }
 
 @Composable

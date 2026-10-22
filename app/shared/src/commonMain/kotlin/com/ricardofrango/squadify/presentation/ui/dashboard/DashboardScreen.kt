@@ -159,7 +159,7 @@ private fun ClubCard(club: Club, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             // The club's logo, or its short name / first letter until it has one -- in the club's
-            // colours when it has them (§57).
+            // colours when it has them (§58).
             val main = club.theme?.let { hexColor(it.primaryColor) }
             val second = club.theme?.let { hexColor(it.secondaryColor) }
             ClubLogo(

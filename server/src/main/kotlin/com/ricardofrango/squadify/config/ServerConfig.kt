@@ -144,7 +144,7 @@ object ServerConfig {
      * `STORAGE_ENDPOINT=${{Bucket.ENDPOINT}}`, `STORAGE_REGION=${{Bucket.REGION}}`,
      * `STORAGE_ACCESS_KEY_ID=${{Bucket.ACCESS_KEY_ID}}`, `STORAGE_SECRET_ACCESS_KEY=${{Bucket.SECRET_ACCESS_KEY}}`.
      * Without a bucket, dev keeps images on disk under [localImageDir]; production refuses uploads
-     * instead (a Railway container's disk is wiped on every deploy). See TECHNICAL_DECISIONS.md §56.
+     * instead (a Railway container's disk is wiped on every deploy). See TECHNICAL_DECISIONS.md §57.
      */
     val storageBucket: String? = System.getenv("STORAGE_BUCKET")?.takeIf { it.isNotBlank() }
     val storageEndpoint: String = System.getenv("STORAGE_ENDPOINT")?.takeIf { it.isNotBlank() } ?: "https://storage.railway.app"

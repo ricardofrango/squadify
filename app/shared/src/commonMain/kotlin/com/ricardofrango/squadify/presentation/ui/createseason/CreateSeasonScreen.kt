@@ -54,6 +54,7 @@ import com.ricardofrango.squadify.presentation.ui.components.DatePickerSheet
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import squadify.app.shared.generated.resources.Res
@@ -124,80 +125,82 @@ fun CreateSeasonScreen(
     onSeasonCreated: () -> Unit,
     viewModel: CreateSeasonViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.state.collectSettledState()
-    val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+    SquadifyClubTheme {
+        val uiState = viewModel.state.collectSettledState()
+        val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
 
-    var selectedTypeName by rememberSaveable { mutableStateOf(SeasonType.EUROPEAN_YEAR.name) }
-    val selectedType = SeasonType.valueOf(selectedTypeName)
+        var selectedTypeName by rememberSaveable { mutableStateOf(SeasonType.EUROPEAN_YEAR.name) }
+        val selectedType = SeasonType.valueOf(selectedTypeName)
 
-    val initialDates = remember { SeasonDateDefaults.datesFor(SeasonType.EUROPEAN_YEAR, today) }
-    var startDateIso by rememberSaveable { mutableStateOf(initialDates.first.toString()) }
-    var endDateIso by rememberSaveable { mutableStateOf(initialDates.second.toString()) }
-    val startDate = LocalDate.parse(startDateIso)
-    val endDate = LocalDate.parse(endDateIso)
+        val initialDates = remember { SeasonDateDefaults.datesFor(SeasonType.EUROPEAN_YEAR, today) }
+        var startDateIso by rememberSaveable { mutableStateOf(initialDates.first.toString()) }
+        var endDateIso by rememberSaveable { mutableStateOf(initialDates.second.toString()) }
+        val startDate = LocalDate.parse(startDateIso)
+        val endDate = LocalDate.parse(endDateIso)
 
-    var name by rememberSaveable { mutableStateOf("") }
-    var showStartPicker by rememberSaveable { mutableStateOf(false) }
-    var showEndPicker by rememberSaveable { mutableStateOf(false) }
+        var name by rememberSaveable { mutableStateOf("") }
+        var showStartPicker by rememberSaveable { mutableStateOf(false) }
+        var showEndPicker by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(clubId) {
-        viewModel.loadExistingSeasons(clubId)
-    }
+        LaunchedEffect(clubId) {
+            viewModel.loadExistingSeasons(clubId)
+        }
 
-    LaunchedEffect(viewModel.navigationEvent) {
-        viewModel.navigationEvent.collect { event ->
-            when (event) {
-                CreateSeasonNavigationEvent.NavigateBackWithSeasonCreated -> onSeasonCreated()
+        LaunchedEffect(viewModel.navigationEvent) {
+            viewModel.navigationEvent.collect { event ->
+                when (event) {
+                    CreateSeasonNavigationEvent.NavigateBackWithSeasonCreated -> onSeasonCreated()
+                }
             }
         }
-    }
 
-    CreateSeasonContent(
-        uiState = uiState,
-        clubName = clubName,
-        today = today,
-        selectedType = selectedType,
-        startDate = startDate,
-        endDate = endDate,
-        name = name,
-        showStartPicker = showStartPicker,
-        showEndPicker = showEndPicker,
-        onNavigateBack = onNavigateBack,
-        onTypeSelected = { type ->
-            selectedTypeName = type.name
-            val (start, end) = SeasonDateDefaults.datesFor(type, today)
-            startDateIso = start.toString()
-            endDateIso = end.toString()
-            viewModel.clearSubmitError()
-        },
-        onNameChange = {
-            name = it
-            viewModel.clearSubmitError()
-        },
-        onStartDateClick = { showStartPicker = true },
-        onEndDateClick = { showEndPicker = true },
-        onStartDateConfirmed = {
-            startDateIso = it.toString()
-            showStartPicker = false
-            viewModel.clearSubmitError()
-        },
-        onEndDateConfirmed = {
-            endDateIso = it.toString()
-            showEndPicker = false
-            viewModel.clearSubmitError()
-        },
-        onDismissStartPicker = { showStartPicker = false },
-        onDismissEndPicker = { showEndPicker = false },
-        onCreateClick = {
-            viewModel.onCreateClicked(
-                clubId = clubId,
-                type = selectedType,
-                startDate = startDate,
-                endDate = endDate,
-                name = name
-            )
-        }
-    )
+        CreateSeasonContent(
+            uiState = uiState,
+            clubName = clubName,
+            today = today,
+            selectedType = selectedType,
+            startDate = startDate,
+            endDate = endDate,
+            name = name,
+            showStartPicker = showStartPicker,
+            showEndPicker = showEndPicker,
+            onNavigateBack = onNavigateBack,
+            onTypeSelected = { type ->
+                selectedTypeName = type.name
+                val (start, end) = SeasonDateDefaults.datesFor(type, today)
+                startDateIso = start.toString()
+                endDateIso = end.toString()
+                viewModel.clearSubmitError()
+            },
+            onNameChange = {
+                name = it
+                viewModel.clearSubmitError()
+            },
+            onStartDateClick = { showStartPicker = true },
+            onEndDateClick = { showEndPicker = true },
+            onStartDateConfirmed = {
+                startDateIso = it.toString()
+                showStartPicker = false
+                viewModel.clearSubmitError()
+            },
+            onEndDateConfirmed = {
+                endDateIso = it.toString()
+                showEndPicker = false
+                viewModel.clearSubmitError()
+            },
+            onDismissStartPicker = { showStartPicker = false },
+            onDismissEndPicker = { showEndPicker = false },
+            onCreateClick = {
+                viewModel.onCreateClicked(
+                    clubId = clubId,
+                    type = selectedType,
+                    startDate = startDate,
+                    endDate = endDate,
+                    name = name
+                )
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

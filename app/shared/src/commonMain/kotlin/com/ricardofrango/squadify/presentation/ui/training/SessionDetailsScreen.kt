@@ -59,6 +59,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.AmberText
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
@@ -132,23 +133,25 @@ fun SessionDetailsScreen(
     refresh: Boolean = false,
     viewModel: SessionDetailsViewModel = koinViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
-    LaunchedEffect(sessionId) { viewModel.load(sessionId) }
-    LaunchedEffect(refresh) { if (refresh) viewModel.load(sessionId, force = true) }
-    LaunchedEffect(viewModel) { viewModel.changed.collect { onChanged(it) } }
-    SessionDetailsContent(
-        state = state,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.load(sessionId, force = true) },
-        onEdit = { state.details?.let { onEdit(it.ageGroup.id) } },
-        onOpenWeekPlan = { edit -> state.details?.let { onOpenWeekPlan(it.ageGroup.id, mondayOf(it.session.date), edit) } },
-        onCancel = viewModel::cancel,
-        onRestore = viewModel::restore,
-        onDelete = viewModel::delete,
-        onAddExercises = onAddExercises,
-        onSetExercises = viewModel::setExercises,
-        onRatePlayers = onRatePlayers
-    )
+    SquadifyClubTheme {
+        val state by viewModel.state.collectAsState()
+        LaunchedEffect(sessionId) { viewModel.load(sessionId) }
+        LaunchedEffect(refresh) { if (refresh) viewModel.load(sessionId, force = true) }
+        LaunchedEffect(viewModel) { viewModel.changed.collect { onChanged(it) } }
+        SessionDetailsContent(
+            state = state,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.load(sessionId, force = true) },
+            onEdit = { state.details?.let { onEdit(it.ageGroup.id) } },
+            onOpenWeekPlan = { edit -> state.details?.let { onOpenWeekPlan(it.ageGroup.id, mondayOf(it.session.date), edit) } },
+            onCancel = viewModel::cancel,
+            onRestore = viewModel::restore,
+            onDelete = viewModel::delete,
+            onAddExercises = onAddExercises,
+            onSetExercises = viewModel::setExercises,
+            onRatePlayers = onRatePlayers
+        )
+    }
 }
 
 /** "Thu 15 Oct". */

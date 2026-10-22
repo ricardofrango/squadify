@@ -15,7 +15,7 @@ import com.ricardofrango.squadify.model.PushLink
  * language. See TECHNICAL_DECISIONS.md §27.
  *
  * Every push also carries a [PushLink] -- what tapping it opens (the club, the age group, the team or
- * the match), sent as the message's data. See TECHNICAL_DECISIONS.md §58.
+ * the match), sent as the message's data. See TECHNICAL_DECISIONS.md §56.
  */
 interface PushNotificationService {
     /**

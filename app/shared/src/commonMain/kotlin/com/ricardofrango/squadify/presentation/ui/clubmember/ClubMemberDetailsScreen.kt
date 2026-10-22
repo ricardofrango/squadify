@@ -83,6 +83,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.AmberText
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
 import kotlinx.coroutines.delay
@@ -165,43 +166,45 @@ fun ClubMemberDetailsScreen(
     onOpenPlayer: (String) -> Unit,
     viewModel: ClubMemberDetailsViewModel = koinViewModel()
 ) {
-    val state = viewModel.state.collectSettledState()
-    val snackbarHostState = remember { SnackbarHostState() }
+    SquadifyClubTheme {
+        val state = viewModel.state.collectSettledState()
+        val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(clubId, userId, inviteId) { viewModel.load(clubId, userId, inviteId) }
-    LaunchedEffect(Unit) {
-        viewModel.events.collect { event ->
-            when (event) {
-                is ClubMemberDetailsEvent.Message -> {
-                    onMembersChanged(null)
-                    launch { snackbarHostState.showSnackbar(event.text) }
-                }
-                is ClubMemberDetailsEvent.Closed -> {
-                    onMembersChanged(event.text)
-                    onNavigateBack()
-                }
-                is ClubMemberDetailsEvent.LeftSettings -> {
-                    launch { snackbarHostState.showSnackbar(event.text) }
-                    delay(1500)
-                    onReturnToClub()
+        LaunchedEffect(clubId, userId, inviteId) { viewModel.load(clubId, userId, inviteId) }
+        LaunchedEffect(Unit) {
+            viewModel.events.collect { event ->
+                when (event) {
+                    is ClubMemberDetailsEvent.Message -> {
+                        onMembersChanged(null)
+                        launch { snackbarHostState.showSnackbar(event.text) }
+                    }
+                    is ClubMemberDetailsEvent.Closed -> {
+                        onMembersChanged(event.text)
+                        onNavigateBack()
+                    }
+                    is ClubMemberDetailsEvent.LeftSettings -> {
+                        launch { snackbarHostState.showSnackbar(event.text) }
+                        delay(1500)
+                        onReturnToClub()
+                    }
                 }
             }
         }
-    }
 
-    ClubMemberDetailsContent(
-        state = state,
-        snackbarHostState = snackbarHostState,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.load(clubId, userId, inviteId, force = true) },
-        onSelectRole = viewModel::selectRole,
-        onSaveRole = { viewModel.saveRole(clubId) },
-        onResend = { viewModel.resendInvite(clubId) },
-        onCancelInvite = { viewModel.cancelInvite(clubId) },
-        onRemove = { viewModel.removeMember(clubId) },
-        onOpenAgeGroup = onOpenAgeGroup,
-        onOpenPlayer = onOpenPlayer
-    )
+        ClubMemberDetailsContent(
+            state = state,
+            snackbarHostState = snackbarHostState,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.load(clubId, userId, inviteId, force = true) },
+            onSelectRole = viewModel::selectRole,
+            onSaveRole = { viewModel.saveRole(clubId) },
+            onResend = { viewModel.resendInvite(clubId) },
+            onCancelInvite = { viewModel.cancelInvite(clubId) },
+            onRemove = { viewModel.removeMember(clubId) },
+            onOpenAgeGroup = onOpenAgeGroup,
+            onOpenPlayer = onOpenPlayer
+        )
+    }
 }
 
 @Composable

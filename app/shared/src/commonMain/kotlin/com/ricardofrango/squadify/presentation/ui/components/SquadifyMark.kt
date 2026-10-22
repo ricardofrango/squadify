@@ -11,21 +11,22 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
-import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreenLight
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 
 /**
  * The app's brand mark: a 3-3-4 formation of dots (the app icon's "18a" design, see
  * AI_GUIDELINES.md "UI Design Reference"), drawn as vector circles rather than an imported bitmap
  * so it stays crisp at any [size] and can be recolored per surface (dark header vs. light card).
+ * Always Squadify's greens, never a club's colours.
  */
 @Composable
 fun SquadifyMark(
     modifier: Modifier = Modifier,
     size: Dp = 96.dp,
     lightDotColor: Color = PitchGreenLight,
-    darkDotColor: Color = PitchGreen
+    darkDotColor: Color = SquadifyGreen
 ) {
     Canvas(modifier = modifier.size(size)) {
         val w = this.size.width

@@ -51,7 +51,7 @@ val appModule = module {
     single<TransactionManager> { DatabaseFactory }
     single<EmailService> { ResendEmailService() }
     // Club logos: a Railway Storage Bucket when one is configured, the disk in dev, none in production
-    // without a bucket (a container's disk doesn't survive a deploy). See TECHNICAL_DECISIONS.md §56.
+    // without a bucket (a container's disk doesn't survive a deploy). See TECHNICAL_DECISIONS.md §57.
     single<ImageStorage> {
         val bucket = ServerConfig.storageBucket
         when {

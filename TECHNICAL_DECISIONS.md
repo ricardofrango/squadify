@@ -2746,7 +2746,7 @@ Per the developer, 2026-10-22: a match notification opens the match, an age grou
   - With the app running, `AppNavigation` watches the inbox together with the current destination and opens the link once the destination isn't Splash or a sign-in screen.
   - A signed-out user's link waits in the inbox and opens right after Login.
   - A push without a club id (one sent from the Firebase console, or from an older server) opens the app as before.
-- **Not covered.** iOS, desktop and web don't receive pushes yet. With club theming (§57, PR #119), a deep-linked screen gets its club's colours only once they're in `ClubThemeStore`, which happens when My clubs or the club screen loads; the club's screen in the rebuilt stack isn't shown, so it doesn't load them.
+- **Not covered.** iOS, desktop and web don't receive pushes yet. With club theming (§58, PR #119), a deep-linked screen gets its club's colours only once they're in `ClubThemeStore`, which happens when My clubs or the club screen loads; the club's screen in the rebuilt stack isn't shown, so it doesn't load them.
 - **Tests:** `PushLinkTest` (round trip, keys, missing club) and the use case tests check each push's link (`NotifyMatchEventUseCaseTest`, `CreateTeamUseCaseTest`, `CreateTeamsUseCaseTest`, `AddStaffToAgeGroupUseCaseTest`). On the app side, `PushLinksTest` covers the back stack per kind, the single-club root, a push for another club, and the inbox handing a link out once.
 
 ## 57. Club Logos and Image Storage
@@ -2765,7 +2765,7 @@ Per the developer, 2026-10-21: club logos first (opponents later), stored on Rai
 
 ## 58. Club Colours (Dynamic Club Theming)
 
-Per the developer, 2026-10-21: a club can set its own colours. It's both colours or neither, a strong main colour and a lighter second one, chosen in Club settings. (§55 and §56 belong to the open player-status and club-logo work.)
+Per the developer, 2026-10-21: a club can set its own colours. It's both colours or neither, a strong main colour and a lighter second one, chosen in Club settings.
 
 - **Model.** `Club.theme: ClubTheme?`, with `ClubTheme(primaryColor, secondaryColor)` as `#RRGGBB`. One nullable object, so a single colour can't be expressed. Stored as two columns with `chk_clubs_theme_pair` (both or neither) and `chk_clubs_theme_format` (`V23__club_theme.sql`).
 - **Rules** (`ClubThemeRules` in `:common`, so the app and the server run the same code):
@@ -2783,7 +2783,12 @@ Per the developer, 2026-10-21: a club can set its own colours. It's both colours
 
   Without a theme, the palette is Squadify's own (carbon bars, green), identical to before.
 - **Green that means something stays green.** Wins, rating bands, the minutes bands, attendance, completed reports, goals pills and session status now use the fixed `SuccessGreen`, so a red club's wins aren't red. On a themed header, the match's result pill goes solid with white text and the score turns white (`IsClubThemed`), since a tinted green or red can vanish on a club's colour.
-- **Which screens wear which club.** Each destination (`ClubThemedEntry`, inside `NavGraphBuilder.screen`) takes the club of the topmost `Screen.ClubDetails` in the back stack when it was first shown, saved with the entry. Everything opened from a club wears its colours, while My clubs, sign-in and screens reached from them keep Squadify's, even after coming back to them. During a transition, each screen keeps its own colours. The colours come from `ClubThemeStore` (a Koin single), filled by My clubs, the club screen and a successful save in Club settings. Saving applies the new colours at once.
+- **Two themes** (`Theme.kt`), as the developer asked on 2026-10-22:
+  - `SquadifyTheme`: Squadify's colours. It wraps the whole app, so a screen that doesn't ask for a club's colours stays in it. Splash, Login, Register, Forgot password and My clubs are such screens.
+  - `SquadifyClubTheme { }`: a club's colours. Every club screen wraps its content in it (Account and Change email too, since they open from the club's More panel). It finds its club itself: the topmost `Screen.ClubDetails` in the back stack when the screen was first shown, kept with the screen (`rememberSaveable`), so it doesn't change when coming back to it. With no club under it, or a club without colours, it's Squadify's. It also sets `MaterialTheme.colorScheme.primary` to the club's bar colour, for Material parts that read it. `SquadifyClubTheme(theme)` draws a given club's colours.
+
+  This replaced theming every destination from the navigation graph, which coloured whatever had a club under it. Logging out from Account as a single-club user left the club under Sign in, because the logout only popped up to My clubs, which that user doesn't have, so Sign in showed the club's colours. That logout now clears the whole back stack, like the others.
+- **The app logo is never a club's.** `SquadifyMark` draws its dots in `SquadifyGreen` and `PitchGreenLight`, not `PitchGreen`, so it stays Squadify's on any screen. During a transition, each screen keeps its own colours. The colours come from `ClubThemeStore` (a Koin single), filled by My clubs, the club screen and a successful save in Club settings. Saving applies the new colours at once.
 - **Picker.** Club settings → Details → CLUB COLOURS shows:
   - a preview of the bars, a button and a chip, plus a card per colour;
   - Swap and Remove;

@@ -27,7 +27,7 @@ fun App() {
             .build()
     }
     SquadifyTheme {
-        // Each screen is drawn in the colours of the club it was opened under (ClubThemedEntry).
+        // A club's screens find their club (SquadifyClubTheme) through these.
         val navController = rememberNavController()
         val clubThemes by koinInject<ClubThemeStore>().themes.collectAsState()
         CompositionLocalProvider(LocalAppNavController provides navController, LocalClubThemes provides clubThemes) {

@@ -40,6 +40,7 @@ import com.ricardofrango.squadify.presentation.ui.components.TimePickerSheet
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
@@ -87,32 +88,34 @@ fun MatchDetailsScreen(
     refreshOnReturn: Boolean = false,
     viewModel: MatchDetailsViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.state.collectSettledState()
+    SquadifyClubTheme {
+        val uiState = viewModel.state.collectSettledState()
 
-    LaunchedEffect(matchId) { viewModel.load(matchId) }
-    LaunchedEffect(refreshOnReturn) { if (refreshOnReturn) viewModel.load(matchId, forceReload = true) }
-    LaunchedEffect(viewModel.navEvent) {
-        viewModel.navEvent.collect { event ->
-            when (event) {
-                is MatchDetailsNavEvent.EnterLiveMatch -> onEnterLiveMatch(event.matchId)
-                is MatchDetailsNavEvent.RedirectToLiveMatch -> onRedirectToLiveMatch(event.matchId)
-                is MatchDetailsNavEvent.MatchDeleted -> onNavigateBack()
+        LaunchedEffect(matchId) { viewModel.load(matchId) }
+        LaunchedEffect(refreshOnReturn) { if (refreshOnReturn) viewModel.load(matchId, forceReload = true) }
+        LaunchedEffect(viewModel.navEvent) {
+            viewModel.navEvent.collect { event ->
+                when (event) {
+                    is MatchDetailsNavEvent.EnterLiveMatch -> onEnterLiveMatch(event.matchId)
+                    is MatchDetailsNavEvent.RedirectToLiveMatch -> onRedirectToLiveMatch(event.matchId)
+                    is MatchDetailsNavEvent.MatchDeleted -> onNavigateBack()
+                }
             }
         }
-    }
 
-    MatchDetailsContent(
-        uiState = uiState,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.load(matchId, forceReload = true) },
-        onSortSelected = viewModel::onSortSelected,
-        onAddToCallUp = viewModel::onAddToCallUp,
-        onRemoveFromCallUp = viewModel::onRemoveFromCallUp,
-        onEditMatch = viewModel::onEditMatch,
-        onDeleteMatch = viewModel::onDeleteMatch,
-        onEnterLiveMatch = viewModel::onEnterLiveMatch,
-        onOpenReport = { edit -> onOpenReport(matchId, edit) }
-    )
+        MatchDetailsContent(
+            uiState = uiState,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.load(matchId, forceReload = true) },
+            onSortSelected = viewModel::onSortSelected,
+            onAddToCallUp = viewModel::onAddToCallUp,
+            onRemoveFromCallUp = viewModel::onRemoveFromCallUp,
+            onEditMatch = viewModel::onEditMatch,
+            onDeleteMatch = viewModel::onDeleteMatch,
+            onEnterLiveMatch = viewModel::onEnterLiveMatch,
+            onOpenReport = { edit -> onOpenReport(matchId, edit) }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

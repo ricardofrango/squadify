@@ -50,6 +50,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.AmberText
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
@@ -89,17 +90,19 @@ fun EditAgeGroupScreen(
     onAgeGroupUpdated: () -> Unit,
     viewModel: EditAgeGroupViewModel = koinViewModel()
 ) {
-    val state = viewModel.state.collectSettledState()
-    LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
-    LaunchedEffect(Unit) { viewModel.saved.collect { onAgeGroupUpdated() } }
+    SquadifyClubTheme {
+        val state = viewModel.state.collectSettledState()
+        LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
+        LaunchedEffect(Unit) { viewModel.saved.collect { onAgeGroupUpdated() } }
 
-    EditAgeGroupContent(
-        state = state,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.load(ageGroupId) },
-        onChange = { transform -> viewModel.updateForm(transform) },
-        onSave = { viewModel.save(ageGroupId) }
-    )
+        EditAgeGroupContent(
+            state = state,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.load(ageGroupId) },
+            onChange = { transform -> viewModel.updateForm(transform) },
+            onSave = { viewModel.save(ageGroupId) }
+        )
+    }
 }
 
 @Composable

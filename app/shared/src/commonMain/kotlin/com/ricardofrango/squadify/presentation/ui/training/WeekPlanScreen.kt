@@ -32,6 +32,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.Amber
 import com.ricardofrango.squadify.presentation.ui.theme.AmberText
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.painterResource
@@ -77,11 +78,13 @@ fun WeekPlanScreen(
     refresh: Boolean = false,
     viewModel: TrainingPlansViewModel = koinViewModel()
 ) {
-    val state = viewModel.state.collectSettledState()
-    val sessions by viewModel.sessions.collectAsState()
-    LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
-    LaunchedEffect(refresh) { if (refresh) viewModel.load(ageGroupId, force = true) }
-    WeekPlanContent(state, monday, onNavigateBack, onRetry = { viewModel.load(ageGroupId, force = true) }, onEdit, sessions, onOpenSession, onAddSession)
+    SquadifyClubTheme {
+        val state = viewModel.state.collectSettledState()
+        val sessions by viewModel.sessions.collectAsState()
+        LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
+        LaunchedEffect(refresh) { if (refresh) viewModel.load(ageGroupId, force = true) }
+        WeekPlanContent(state, monday, onNavigateBack, onRetry = { viewModel.load(ageGroupId, force = true) }, onEdit, sessions, onOpenSession, onAddSession)
+    }
 }
 
 /** The week's intensity as a small chip ("Medium intensity"): amber for high, green otherwise. */
