@@ -56,6 +56,7 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -105,21 +106,23 @@ fun ExerciseLibraryScreen(
     onAdded: () -> Unit,
     viewModel: ExerciseLibraryViewModel = koinViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
-    LaunchedEffect(sessionId) { viewModel.start(sessionId) }
-    LaunchedEffect(viewModel) { viewModel.done.collect { onAdded() } }
-    ExerciseLibraryContent(
-        state = state,
-        onNavigateBack = { if (state.form != null) viewModel.closeForm() else onNavigateBack() },
-        onRetry = { viewModel.start(sessionId, force = true) },
-        onQueryChange = viewModel::onQueryChange,
-        onToggle = viewModel::toggle,
-        onNew = viewModel::newExercise,
-        onEdit = viewModel::edit,
-        onFormChange = viewModel::onFormChange,
-        onSaveForm = viewModel::saveForm,
-        onAddSelected = viewModel::addSelected
-    )
+    SquadifyClubTheme {
+        val state by viewModel.state.collectAsState()
+        LaunchedEffect(sessionId) { viewModel.start(sessionId) }
+        LaunchedEffect(viewModel) { viewModel.done.collect { onAdded() } }
+        ExerciseLibraryContent(
+            state = state,
+            onNavigateBack = { if (state.form != null) viewModel.closeForm() else onNavigateBack() },
+            onRetry = { viewModel.start(sessionId, force = true) },
+            onQueryChange = viewModel::onQueryChange,
+            onToggle = viewModel::toggle,
+            onNew = viewModel::newExercise,
+            onEdit = viewModel::edit,
+            onFormChange = viewModel::onFormChange,
+            onSaveForm = viewModel::saveForm,
+            onAddSelected = viewModel::addSelected
+        )
+    }
 }
 
 @Composable

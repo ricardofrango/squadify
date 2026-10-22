@@ -35,6 +35,7 @@ import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButto
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.format
@@ -68,39 +69,41 @@ fun AccountScreen(
     changedEmail: String? = null,
     viewModel: AccountViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.state.collectSettledState()
+    SquadifyClubTheme {
+        val uiState = viewModel.state.collectSettledState()
 
-    LaunchedEffect(Unit) {
-        viewModel.navigationEvent.collect { event ->
-            when (event) {
-                AccountNavigationEvent.NavigateToLogin -> onNavigateToLogin()
+        LaunchedEffect(Unit) {
+            viewModel.navigationEvent.collect { event ->
+                when (event) {
+                    AccountNavigationEvent.NavigateToLogin -> onNavigateToLogin()
+                }
             }
         }
+
+        LaunchedEffect(changedEmail, uiState is AccountUiState.Idle) {
+            if (changedEmail != null) viewModel.onEmailChanged(changedEmail)
+        }
+
+        if ((uiState as? AccountUiState.Idle)?.signedOut == true) {
+            SignedOutAlert(onConfirm = { viewModel.onLogoutClicked() })
+        }
+
+        fun currentForm() = (viewModel.state.value as? AccountUiState.Idle)?.form
+
+        AccountContent(
+            uiState = uiState,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.load() },
+            onFirstNameChange = { value -> currentForm()?.let { viewModel.updateProfileForm(it.copy(firstName = value)) } },
+            onLastNameChange = { value -> currentForm()?.let { viewModel.updateProfileForm(it.copy(lastName = value)) } },
+            onPhoneChange = { value -> currentForm()?.let { viewModel.updateProfileForm(it.copy(phone = value)) } },
+            onSaveProfileClick = { viewModel.onSaveProfileClicked() },
+            onPasswordFormChange = { form -> viewModel.updatePasswordForm(form) },
+            onChangePasswordClick = { viewModel.onChangePasswordClicked() },
+            onChangeEmailClick = onNavigateToChangeEmail,
+            onLogoutClick = { viewModel.onLogoutClicked() }
+        )
     }
-
-    LaunchedEffect(changedEmail, uiState is AccountUiState.Idle) {
-        if (changedEmail != null) viewModel.onEmailChanged(changedEmail)
-    }
-
-    if ((uiState as? AccountUiState.Idle)?.signedOut == true) {
-        SignedOutAlert(onConfirm = { viewModel.onLogoutClicked() })
-    }
-
-    fun currentForm() = (viewModel.state.value as? AccountUiState.Idle)?.form
-
-    AccountContent(
-        uiState = uiState,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.load() },
-        onFirstNameChange = { value -> currentForm()?.let { viewModel.updateProfileForm(it.copy(firstName = value)) } },
-        onLastNameChange = { value -> currentForm()?.let { viewModel.updateProfileForm(it.copy(lastName = value)) } },
-        onPhoneChange = { value -> currentForm()?.let { viewModel.updateProfileForm(it.copy(phone = value)) } },
-        onSaveProfileClick = { viewModel.onSaveProfileClicked() },
-        onPasswordFormChange = { form -> viewModel.updatePasswordForm(form) },
-        onChangePasswordClick = { viewModel.onChangePasswordClicked() },
-        onChangeEmailClick = onNavigateToChangeEmail,
-        onLogoutClick = { viewModel.onLogoutClicked() }
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

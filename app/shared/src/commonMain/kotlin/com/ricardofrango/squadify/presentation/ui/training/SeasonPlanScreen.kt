@@ -52,6 +52,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
@@ -89,10 +90,12 @@ fun SeasonPlanScreen(
     refresh: Boolean = false,
     viewModel: TrainingPlansViewModel = koinViewModel()
 ) {
-    val state = viewModel.state.collectSettledState()
-    LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
-    LaunchedEffect(refresh) { if (refresh) viewModel.load(ageGroupId, force = true) }
-    SeasonPlanContent(state, onNavigateBack, onRetry = { viewModel.load(ageGroupId, force = true) }, onEdit, onOpenMonth)
+    SquadifyClubTheme {
+        val state = viewModel.state.collectSettledState()
+        LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
+        LaunchedEffect(refresh) { if (refresh) viewModel.load(ageGroupId, force = true) }
+        SeasonPlanContent(state, onNavigateBack, onRetry = { viewModel.load(ageGroupId, force = true) }, onEdit, onOpenMonth)
+    }
 }
 
 @Composable

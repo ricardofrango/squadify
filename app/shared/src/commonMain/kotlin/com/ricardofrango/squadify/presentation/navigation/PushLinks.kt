@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.getAndUpdate
  * The link of the push notification the user just tapped, until it's been opened. The platform puts
  * it here (Android: MainActivity, from the notification's intent); Splash opens it after a cold start,
  * once the session is confirmed, and AppNavigation opens one that arrives while the app is running.
- * If the user isn't signed in, it waits here until they are. See TECHNICAL_DECISIONS.md §58.
+ * If the user isn't signed in, it waits here until they are. See TECHNICAL_DECISIONS.md §56.
  */
 class PushLinkInbox {
     private val _link = MutableStateFlow<PushLink?>(null)

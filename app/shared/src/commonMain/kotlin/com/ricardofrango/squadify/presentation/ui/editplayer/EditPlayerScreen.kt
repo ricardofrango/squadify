@@ -29,6 +29,7 @@ import com.ricardofrango.squadify.presentation.ui.components.DatePickerSheet
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
@@ -66,46 +67,48 @@ fun EditPlayerScreen(
     onPlayerUpdated: () -> Unit,
     viewModel: EditPlayerViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.state.collectSettledState()
-    val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
-    var datePickerOpen by remember { mutableStateOf(false) }
+    SquadifyClubTheme {
+        val uiState = viewModel.state.collectSettledState()
+        val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+        var datePickerOpen by remember { mutableStateOf(false) }
 
-    LaunchedEffect(playerId) { viewModel.load(playerId) }
-    LaunchedEffect(viewModel.navigationEvent) {
-        viewModel.navigationEvent.collect { event ->
-            when (event) {
-                EditPlayerNavigationEvent.NavigateBackWithPlayerUpdated -> onPlayerUpdated()
+        LaunchedEffect(playerId) { viewModel.load(playerId) }
+        LaunchedEffect(viewModel.navigationEvent) {
+            viewModel.navigationEvent.collect { event ->
+                when (event) {
+                    EditPlayerNavigationEvent.NavigateBackWithPlayerUpdated -> onPlayerUpdated()
+                }
             }
         }
-    }
 
-    EditPlayerContent(
-        uiState = uiState,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.load(playerId) },
-        onFirstNameChange = { value -> viewModel.updateForm { it.copy(firstName = value) } },
-        onLastNameChange = { value -> viewModel.updateForm { it.copy(lastName = value) } },
-        onDateClick = { datePickerOpen = true },
-        onShirtNumberChange = { value -> viewModel.updateForm { it.copy(shirtNumber = value) } },
-        onPositionSelected = { value -> viewModel.updateForm { it.copy(position = value) } },
-        onHeightChange = { value -> viewModel.updateForm { it.copy(heightCm = value) } },
-        onWeightChange = { value -> viewModel.updateForm { it.copy(weightKg = value) } },
-        onEmergencyContactChange = { value -> viewModel.updateForm { it.copy(emergencyContact = value) } },
-        onSaveClick = { viewModel.onSaveClicked(playerId) }
-    )
-
-    val idle = uiState as? EditPlayerUiState.Idle
-    if (datePickerOpen && idle != null) {
-        DatePickerSheet(
-            title = Res.string.label_select_birth_date,
-            initialDate = idle.form.birthDateIso?.let(LocalDate::parse) ?: LocalDate(today.year - 10, 1, 1),
-            maxDate = today,
-            onConfirm = { picked ->
-                viewModel.updateForm { it.copy(birthDateIso = picked.toString()) }
-                datePickerOpen = false
-            },
-            onDismiss = { datePickerOpen = false }
+        EditPlayerContent(
+            uiState = uiState,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.load(playerId) },
+            onFirstNameChange = { value -> viewModel.updateForm { it.copy(firstName = value) } },
+            onLastNameChange = { value -> viewModel.updateForm { it.copy(lastName = value) } },
+            onDateClick = { datePickerOpen = true },
+            onShirtNumberChange = { value -> viewModel.updateForm { it.copy(shirtNumber = value) } },
+            onPositionSelected = { value -> viewModel.updateForm { it.copy(position = value) } },
+            onHeightChange = { value -> viewModel.updateForm { it.copy(heightCm = value) } },
+            onWeightChange = { value -> viewModel.updateForm { it.copy(weightKg = value) } },
+            onEmergencyContactChange = { value -> viewModel.updateForm { it.copy(emergencyContact = value) } },
+            onSaveClick = { viewModel.onSaveClicked(playerId) }
         )
+
+        val idle = uiState as? EditPlayerUiState.Idle
+        if (datePickerOpen && idle != null) {
+            DatePickerSheet(
+                title = Res.string.label_select_birth_date,
+                initialDate = idle.form.birthDateIso?.let(LocalDate::parse) ?: LocalDate(today.year - 10, 1, 1),
+                maxDate = today,
+                onConfirm = { picked ->
+                    viewModel.updateForm { it.copy(birthDateIso = picked.toString()) }
+                    datePickerOpen = false
+                },
+                onDismiss = { datePickerOpen = false }
+            )
+        }
     }
 }
 

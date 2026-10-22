@@ -27,6 +27,7 @@ import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import squadify.app.shared.generated.resources.*
@@ -63,45 +64,47 @@ fun CreateStaffScreen(
     onStaffCreated: () -> Unit,
     viewModel: CreateStaffViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.state.collectSettledState()
+    SquadifyClubTheme {
+        val uiState = viewModel.state.collectSettledState()
 
-    var nextRowKey by remember { mutableStateOf(1) }
-    val rows = remember { mutableStateListOf(StaffRow(key = 0)) }
-    var showValidationErrors by remember { mutableStateOf(false) }
+        var nextRowKey by remember { mutableStateOf(1) }
+        val rows = remember { mutableStateListOf(StaffRow(key = 0)) }
+        var showValidationErrors by remember { mutableStateOf(false) }
 
-    LaunchedEffect(viewModel.navigationEvent) {
-        viewModel.navigationEvent.collect { event ->
-            when (event) {
-                CreateStaffNavigationEvent.NavigateBackWithStaffCreated -> onStaffCreated()
+        LaunchedEffect(viewModel.navigationEvent) {
+            viewModel.navigationEvent.collect { event ->
+                when (event) {
+                    CreateStaffNavigationEvent.NavigateBackWithStaffCreated -> onStaffCreated()
+                }
             }
         }
+
+        CreateStaffContent(
+            uiState = uiState,
+            clubName = clubName,
+            rows = rows,
+            showValidationErrors = showValidationErrors,
+            onNavigateBack = onNavigateBack,
+            onEmailChange = { key, value ->
+                updateRow(rows, key) { it.copy(email = value) }
+                showValidationErrors = false
+                viewModel.clearSubmitError()
+            },
+            onAddRow = {
+                rows.add(StaffRow(key = nextRowKey))
+                nextRowKey += 1
+            },
+            onRemoveRow = { key -> rows.removeAll { it.key == key } },
+            onCreateClick = {
+                showValidationErrors = true
+                val allValid = rows.isNotEmpty() && rows.all { isValidEmail(it.email) }
+                if (allValid) {
+                    val emails = rows.map { it.email.trim() }.distinct()
+                    viewModel.onCreateClicked(clubId, emails)
+                }
+            }
+        )
     }
-
-    CreateStaffContent(
-        uiState = uiState,
-        clubName = clubName,
-        rows = rows,
-        showValidationErrors = showValidationErrors,
-        onNavigateBack = onNavigateBack,
-        onEmailChange = { key, value ->
-            updateRow(rows, key) { it.copy(email = value) }
-            showValidationErrors = false
-            viewModel.clearSubmitError()
-        },
-        onAddRow = {
-            rows.add(StaffRow(key = nextRowKey))
-            nextRowKey += 1
-        },
-        onRemoveRow = { key -> rows.removeAll { it.key == key } },
-        onCreateClick = {
-            showValidationErrors = true
-            val allValid = rows.isNotEmpty() && rows.all { isValidEmail(it.email) }
-            if (allValid) {
-                val emails = rows.map { it.email.trim() }.distinct()
-                viewModel.onCreateClicked(clubId, emails)
-            }
-        }
-    )
 }
 
 private inline fun updateRow(rows: MutableList<StaffRow>, key: Int, transform: (StaffRow) -> StaffRow) {

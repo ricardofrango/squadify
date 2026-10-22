@@ -60,7 +60,7 @@ class SplashViewModel(
                 } catch (e: Exception) {
                     null
                 }
-                // A tapped push notification opens its club and target instead (§58). Taken only here,
+                // A tapped push notification opens its club and target instead (§56). Taken only here,
                 // with the session confirmed; signed out, it waits in the inbox until after Login.
                 val pushLink = pushLinkInbox.take()
                 if (pushLink != null) {

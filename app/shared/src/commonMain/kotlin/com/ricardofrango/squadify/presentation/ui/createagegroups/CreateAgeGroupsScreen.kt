@@ -31,6 +31,7 @@ import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import squadify.app.shared.generated.resources.*
@@ -100,116 +101,118 @@ fun CreateAgeGroupsScreen(
     onAgeGroupsCreated: () -> Unit,
     viewModel: CreateAgeGroupsViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.state.collectSettledState()
-    val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
+    SquadifyClubTheme {
+        val uiState = viewModel.state.collectSettledState()
+        val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
 
-    // Default a new age group to the sport's largest format (e.g. 11-a-side football); the coordinator
-    // narrows it for the younger groups.
-    val defaultTeamSize = sport.teamSizes.last()
+        // Default a new age group to the sport's largest format (e.g. 11-a-side football); the coordinator
+        // narrows it for the younger groups.
+        val defaultTeamSize = sport.teamSizes.last()
 
-    var nextRowKey by remember { mutableStateOf(1) }
-    val rows = remember { mutableStateListOf(AgeGroupRow(key = 0, teamSize = defaultTeamSize)) }
+        var nextRowKey by remember { mutableStateOf(1) }
+        val rows = remember { mutableStateListOf(AgeGroupRow(key = 0, teamSize = defaultTeamSize)) }
 
-    // End year of the currently picked season -- drives the inferred "Sub N" name (age reached within
-    // the season). Null until a season is selected, in which case the name column stays disabled.
-    val seasonEndYear = (uiState as? CreateAgeGroupsUiState.Idle)?.selectedSeason?.endDate?.year
+        // End year of the currently picked season -- drives the inferred "Sub N" name (age reached within
+        // the season). Null until a season is selected, in which case the name column stays disabled.
+        val seasonEndYear = (uiState as? CreateAgeGroupsUiState.Idle)?.selectedSeason?.endDate?.year
 
-    LaunchedEffect(clubId, initialSeasonId) {
-        viewModel.load(clubId, initialSeasonId)
-    }
-
-    LaunchedEffect(viewModel.navigationEvent) {
-        viewModel.navigationEvent.collect { event ->
-            when (event) {
-                CreateAgeGroupsNavigationEvent.NavigateBackWithAgeGroupsCreated -> onAgeGroupsCreated()
-            }
+        LaunchedEffect(clubId, initialSeasonId) {
+            viewModel.load(clubId, initialSeasonId)
         }
-    }
 
-    CreateAgeGroupsContent(
-        uiState = uiState,
-        clubName = clubName,
-        today = today,
-        rows = rows,
-        teamSizeOptions = sport.teamSizes,
-        onNavigateBack = onNavigateBack,
-        onSeasonSelected = { seasonId ->
-            viewModel.onSeasonSelected(seasonId)
-            // A birth year valid in the old season may already be taken in the new one -- drop the
-            // now-possibly-conflicting picks rather than carrying them silently into a failed submit.
-            for (i in rows.indices) {
-                rows[i] = rows[i].copy(startYear = null, endYear = null, name = "")
-            }
-        },
-        onRowSpanTypeSelected = { rowKey, spanType ->
-            val index = rows.indexOfFirst { it.key == rowKey }
-            if (index >= 0) {
-                val row = rows[index]
-                rows[index] = when (spanType) {
-                    // Collapsing to a single year: keep the older/end year as the one picked year.
-                    AgeGroupSpanType.SINGLE_YEAR -> row.copy(spanType = spanType, startYear = row.endYear)
-                    AgeGroupSpanType.TWO_YEAR -> row.copy(spanType = spanType)
+        LaunchedEffect(viewModel.navigationEvent) {
+            viewModel.navigationEvent.collect { event ->
+                when (event) {
+                    CreateAgeGroupsNavigationEvent.NavigateBackWithAgeGroupsCreated -> onAgeGroupsCreated()
                 }
             }
-            viewModel.clearSubmitError()
-        },
-        onRowStartYearSelected = { rowKey, startYear ->
-            val index = rows.indexOfFirst { it.key == rowKey }
-            if (index >= 0) rows[index] = rows[index].copy(startYear = startYear)
-            viewModel.clearSubmitError()
-        },
-        onRowEndYearSelected = { rowKey, endYear ->
-            val index = rows.indexOfFirst { it.key == rowKey }
-            if (index >= 0) {
-                val row = rows[index]
-                // Fill the name with the inferred "Sub N" as real, editable text. A name the user
-                // typed themselves is kept; one that's still the previous year's inferred value (or
-                // blank) is replaced with the new year's. Single-year rows also pin startYear == endYear.
-                val previousInferred = row.endYear?.let { year ->
-                    seasonEndYear?.let { AgeGroupDefaults.inferredName(year, it) }
-                }
-                val newInferred = seasonEndYear?.let { AgeGroupDefaults.inferredName(endYear, it) }.orEmpty()
-                val keepName = row.name.isNotBlank() && row.name != previousInferred
-                rows[index] = row.copy(
-                    endYear = endYear,
-                    startYear = if (row.spanType == AgeGroupSpanType.SINGLE_YEAR) endYear else row.startYear,
-                    name = if (keepName) row.name else newInferred
-                )
-            }
-            viewModel.clearSubmitError()
-        },
-        onRowNameChanged = { rowKey, name ->
-            val index = rows.indexOfFirst { it.key == rowKey }
-            if (index >= 0) rows[index] = rows[index].copy(name = name)
-            viewModel.clearSubmitError()
-        },
-        onRowTeamSizeSelected = { rowKey, teamSize ->
-            val index = rows.indexOfFirst { it.key == rowKey }
-            if (index >= 0) rows[index] = rows[index].copy(teamSize = teamSize)
-            viewModel.clearSubmitError()
-        },
-        onAddRow = {
-            rows.add(AgeGroupRow(key = nextRowKey, teamSize = defaultTeamSize))
-            nextRowKey += 1
-        },
-        onRemoveRow = { rowKey ->
-            rows.removeAll { it.key == rowKey }
-        },
-        onCreateClick = onCreateClick@{
-            val seasonEnd = seasonEndYear ?: return@onCreateClick
-            val items = rows.mapNotNull { row ->
-                val endYear = row.endYear ?: return@mapNotNull null
-                val startYear = row.startYear ?: return@mapNotNull null
-                AgeGroupItemRequest(
-                    name = row.name.ifBlank { AgeGroupDefaults.inferredName(endYear, seasonEnd) },
-                    startYear = startYear,
-                    endYear = endYear,
-                    teamSize = row.teamSize
-                )
-            }
-            viewModel.onCreateClicked(clubId, items)
         }
-    )
+
+        CreateAgeGroupsContent(
+            uiState = uiState,
+            clubName = clubName,
+            today = today,
+            rows = rows,
+            teamSizeOptions = sport.teamSizes,
+            onNavigateBack = onNavigateBack,
+            onSeasonSelected = { seasonId ->
+                viewModel.onSeasonSelected(seasonId)
+                // A birth year valid in the old season may already be taken in the new one -- drop the
+                // now-possibly-conflicting picks rather than carrying them silently into a failed submit.
+                for (i in rows.indices) {
+                    rows[i] = rows[i].copy(startYear = null, endYear = null, name = "")
+                }
+            },
+            onRowSpanTypeSelected = { rowKey, spanType ->
+                val index = rows.indexOfFirst { it.key == rowKey }
+                if (index >= 0) {
+                    val row = rows[index]
+                    rows[index] = when (spanType) {
+                        // Collapsing to a single year: keep the older/end year as the one picked year.
+                        AgeGroupSpanType.SINGLE_YEAR -> row.copy(spanType = spanType, startYear = row.endYear)
+                        AgeGroupSpanType.TWO_YEAR -> row.copy(spanType = spanType)
+                    }
+                }
+                viewModel.clearSubmitError()
+            },
+            onRowStartYearSelected = { rowKey, startYear ->
+                val index = rows.indexOfFirst { it.key == rowKey }
+                if (index >= 0) rows[index] = rows[index].copy(startYear = startYear)
+                viewModel.clearSubmitError()
+            },
+            onRowEndYearSelected = { rowKey, endYear ->
+                val index = rows.indexOfFirst { it.key == rowKey }
+                if (index >= 0) {
+                    val row = rows[index]
+                    // Fill the name with the inferred "Sub N" as real, editable text. A name the user
+                    // typed themselves is kept; one that's still the previous year's inferred value (or
+                    // blank) is replaced with the new year's. Single-year rows also pin startYear == endYear.
+                    val previousInferred = row.endYear?.let { year ->
+                        seasonEndYear?.let { AgeGroupDefaults.inferredName(year, it) }
+                    }
+                    val newInferred = seasonEndYear?.let { AgeGroupDefaults.inferredName(endYear, it) }.orEmpty()
+                    val keepName = row.name.isNotBlank() && row.name != previousInferred
+                    rows[index] = row.copy(
+                        endYear = endYear,
+                        startYear = if (row.spanType == AgeGroupSpanType.SINGLE_YEAR) endYear else row.startYear,
+                        name = if (keepName) row.name else newInferred
+                    )
+                }
+                viewModel.clearSubmitError()
+            },
+            onRowNameChanged = { rowKey, name ->
+                val index = rows.indexOfFirst { it.key == rowKey }
+                if (index >= 0) rows[index] = rows[index].copy(name = name)
+                viewModel.clearSubmitError()
+            },
+            onRowTeamSizeSelected = { rowKey, teamSize ->
+                val index = rows.indexOfFirst { it.key == rowKey }
+                if (index >= 0) rows[index] = rows[index].copy(teamSize = teamSize)
+                viewModel.clearSubmitError()
+            },
+            onAddRow = {
+                rows.add(AgeGroupRow(key = nextRowKey, teamSize = defaultTeamSize))
+                nextRowKey += 1
+            },
+            onRemoveRow = { rowKey ->
+                rows.removeAll { it.key == rowKey }
+            },
+            onCreateClick = onCreateClick@{
+                val seasonEnd = seasonEndYear ?: return@onCreateClick
+                val items = rows.mapNotNull { row ->
+                    val endYear = row.endYear ?: return@mapNotNull null
+                    val startYear = row.startYear ?: return@mapNotNull null
+                    AgeGroupItemRequest(
+                        name = row.name.ifBlank { AgeGroupDefaults.inferredName(endYear, seasonEnd) },
+                        startYear = startYear,
+                        endYear = endYear,
+                        teamSize = row.teamSize
+                    )
+                }
+                viewModel.onCreateClicked(clubId, items)
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

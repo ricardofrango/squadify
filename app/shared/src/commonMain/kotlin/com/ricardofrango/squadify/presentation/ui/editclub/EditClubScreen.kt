@@ -25,6 +25,7 @@ import com.ricardofrango.squadify.model.ClubMembersOverview
 import com.ricardofrango.squadify.model.MemberAgeGroupRole
 import com.ricardofrango.squadify.model.MemberLinkedPlayer
 import com.ricardofrango.squadify.model.UserPlayerRelationship
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
@@ -207,44 +208,46 @@ fun EditClubScreen(
     onMembersRefreshed: () -> Unit = {},
     viewModel: EditClubViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.state.collectSettledState()
-    val members by viewModel.members.collectAsState()
-    val inviting by viewModel.inviting.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
+    SquadifyClubTheme {
+        val uiState = viewModel.state.collectSettledState()
+        val members by viewModel.members.collectAsState()
+        val inviting by viewModel.inviting.collectAsState()
+        val snackbarHostState = remember { SnackbarHostState() }
 
-    // Loads once per club: coming back from Member details must not reset unsaved Details/Permissions edits.
-    LaunchedEffect(clubId) { viewModel.load(clubId) }
-    LaunchedEffect(Unit) { viewModel.messages.collect { snackbarHostState.showSnackbar(it) } }
-    LaunchedEffect(refreshMembers, membersMessage) {
-        if (refreshMembers) {
-            viewModel.loadMembers(clubId)
-            val message = membersMessage
-            onMembersRefreshed()
-            if (message != null) snackbarHostState.showSnackbar(message)
+        // Loads once per club: coming back from Member details must not reset unsaved Details/Permissions edits.
+        LaunchedEffect(clubId) { viewModel.load(clubId) }
+        LaunchedEffect(Unit) { viewModel.messages.collect { snackbarHostState.showSnackbar(it) } }
+        LaunchedEffect(refreshMembers, membersMessage) {
+            if (refreshMembers) {
+                viewModel.loadMembers(clubId)
+                val message = membersMessage
+                onMembersRefreshed()
+                if (message != null) snackbarHostState.showSnackbar(message)
+            }
         }
-    }
 
-    EditClubContent(
-        uiState = uiState,
-        members = members,
-        inviting = inviting,
-        snackbarHostState = snackbarHostState,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.load(clubId, force = true) },
-        onTabSelected = { viewModel.onTabSelected(it) },
-        onFormChange = { form -> viewModel.updateForm(form) },
-        onSaveClick = { viewModel.onSaveClicked(clubId, onSaved = onClubUpdated) },
-        onLogoPicked = { bytes -> viewModel.onLogoPicked(clubId, bytes, onChanged = onClubUpdated) },
-        onRemoveLogo = { viewModel.onRemoveLogo(clubId, onChanged = onClubUpdated) },
-        onPermissionChanged = viewModel::onPermissionChanged,
-        onSavePermissionsClick = { viewModel.onSavePermissionsClicked(clubId) },
-        onRetryMembers = { viewModel.loadMembers(clubId) },
-        onInvite = { email, role, onDone -> viewModel.invite(clubId, email, role, onDone) },
-        onOpenMember = { onOpenMember(it.userId) },
-        onOpenInvite = { onOpenInvite(it.inviteId) },
-        onResend = { viewModel.resendInvite(clubId, it.inviteId, it.email) },
-        onCancelInvite = { viewModel.cancelInvite(clubId, it.inviteId, it.email) }
-    )
+        EditClubContent(
+            uiState = uiState,
+            members = members,
+            inviting = inviting,
+            snackbarHostState = snackbarHostState,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.load(clubId, force = true) },
+            onTabSelected = { viewModel.onTabSelected(it) },
+            onFormChange = { form -> viewModel.updateForm(form) },
+            onSaveClick = { viewModel.onSaveClicked(clubId, onSaved = onClubUpdated) },
+            onLogoPicked = { bytes -> viewModel.onLogoPicked(clubId, bytes, onChanged = onClubUpdated) },
+            onRemoveLogo = { viewModel.onRemoveLogo(clubId, onChanged = onClubUpdated) },
+            onPermissionChanged = viewModel::onPermissionChanged,
+            onSavePermissionsClick = { viewModel.onSavePermissionsClicked(clubId) },
+            onRetryMembers = { viewModel.loadMembers(clubId) },
+            onInvite = { email, role, onDone -> viewModel.invite(clubId, email, role, onDone) },
+            onOpenMember = { onOpenMember(it.userId) },
+            onOpenInvite = { onOpenInvite(it.inviteId) },
+            onResend = { viewModel.resendInvite(clubId, it.inviteId, it.email) },
+            onCancelInvite = { viewModel.cancelInvite(clubId, it.inviteId, it.email) }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.update
 
 /**
  * The last known colours of every club the app has loaded, by club id -- fed by My clubs, the club
- * screen and Club settings, read by navigation to draw each club's screens in its colours (§57).
+ * screen and Club settings, read by navigation to draw each club's screens in its colours (§58).
  */
 class ClubThemeStore {
     private val _themes = MutableStateFlow<Map<String, ClubTheme?>>(emptyMap())

@@ -42,6 +42,7 @@ import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.painterResource
@@ -79,10 +80,12 @@ fun MonthPlanScreen(
     refresh: Boolean = false,
     viewModel: TrainingPlansViewModel = koinViewModel()
 ) {
-    val state = viewModel.state.collectSettledState()
-    LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
-    LaunchedEffect(refresh) { if (refresh) viewModel.load(ageGroupId, force = true) }
-    MonthPlanContent(state, month, onNavigateBack, onRetry = { viewModel.load(ageGroupId, force = true) }, onEdit, onOpenWeek)
+    SquadifyClubTheme {
+        val state = viewModel.state.collectSettledState()
+        LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
+        LaunchedEffect(refresh) { if (refresh) viewModel.load(ageGroupId, force = true) }
+        MonthPlanContent(state, month, onNavigateBack, onRetry = { viewModel.load(ageGroupId, force = true) }, onEdit, onOpenWeek)
+    }
 }
 
 /** "Month plan · Sub-15 · CD Ribamar". */

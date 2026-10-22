@@ -5,7 +5,7 @@ package com.ricardofrango.squadify.model
  * values only). The most specific id wins: a match, then a team, then an age group, else the club.
  * [clubId] is always set, so the app can put the club's screen under the target (its colours, and
  * somewhere to go back to). The server builds these and the app reads them, so both use [toData] /
- * [fromData]. See TECHNICAL_DECISIONS.md §58.
+ * [fromData]. See TECHNICAL_DECISIONS.md §56.
  */
 data class PushLink(
     val clubId: String,

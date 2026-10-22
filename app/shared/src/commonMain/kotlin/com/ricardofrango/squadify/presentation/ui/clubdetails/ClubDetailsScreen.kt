@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.ui.clubdetails
 
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import squadify.app.shared.generated.resources.ic_close
 import squadify.app.shared.generated.resources.cd_disable_player
 import squadify.app.shared.generated.resources.btn_reactivate
@@ -170,208 +171,210 @@ fun ClubDetailsScreen(
     refreshClubDetails: Boolean = false,
     viewModel: ClubDetailsViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.state.collectSettledState()
-    val selectedTab = (uiState as? ClubDetailsUiState.Idle)?.selectedTab ?: CLUB_TAB_HOME
-    val clubName = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name ?: ""
-    val sport = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.sport ?: SportType.FOOTBALL
-    val canEditClub = (uiState as? ClubDetailsUiState.Idle)?.canEditClub ?: false
+    SquadifyClubTheme {
+        val uiState = viewModel.state.collectSettledState()
+        val selectedTab = (uiState as? ClubDetailsUiState.Idle)?.selectedTab ?: CLUB_TAB_HOME
+        val clubName = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name ?: ""
+        val sport = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.sport ?: SportType.FOOTBALL
+        val canEditClub = (uiState as? ClubDetailsUiState.Idle)?.canEditClub ?: false
 
-    LaunchedEffect(clubId) {
-        viewModel.loadClubDetails(clubId)
-    }
-
-    // Not saved with the back-stack entry on purpose: opening a screen from the panel leaves it open
-    // while that screen slides in over it, and coming back recreates this screen with the panel closed.
-    var moreOpen by remember { mutableStateOf(false) }
-    // The coach's age-group picker: which action it's for (Create team / Add players), or null.
-    var pickerFor by remember { mutableStateOf<StringResource?>(null) }
-    val moreAccount by viewModel.moreAccount.collectAsState()
-    LaunchedEffect(moreOpen) { if (moreOpen) viewModel.loadMoreAccount() }
-
-    LaunchedEffect(refreshClubDetails) {
-        if (refreshClubDetails) {
-            viewModel.loadClubDetails(clubId, forceReload = true)
+        LaunchedEffect(clubId) {
+            viewModel.loadClubDetails(clubId)
         }
-    }
 
-    Box(Modifier.fillMaxSize()) {
-    Scaffold(
-        topBar = {
-            FMTopBar(
-                title = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name
-                    ?: stringResource(Res.string.title_club_details),
-                showBackButton = showBackButton,
-                onNavigateBack = onNavigateBack
-                // No account icon here any more: Account lives at the top of the More panel (design 37).
-            )
-        },
-        bottomBar = {
-            // Only meaningful once the club details actually loaded -- while loading, or if the
-            // fetch failed (Idle.details stays null), there's nothing for the tabs to show.
-            if ((uiState as? ClubDetailsUiState.Idle)?.details != null) {
-                NavigationBar(
-                    containerColor = ClubChrome,
-                    tonalElevation = 0.dp,
-                    windowInsets = NavigationBarDefaults.windowInsets
-                ) {
-                    ClubTabItem(
-                        selected = selectedTab == CLUB_TAB_HOME,
-                        onClick = { viewModel.onTabSelected(CLUB_TAB_HOME) },
-                        icon = Res.drawable.ic_home,
-                        label = stringResource(Res.string.tab_home)
-                    )
-                    ClubTabItem(
-                        selected = selectedTab == CLUB_TAB_AGE_GROUPS,
-                        onClick = { viewModel.onTabSelected(CLUB_TAB_AGE_GROUPS) },
-                        icon = Res.drawable.ic_age_group,
-                        label = stringResource(Res.string.tab_age_groups)
-                    )
-                    ClubTabItem(
-                        selected = selectedTab == CLUB_TAB_TEAMS,
-                        onClick = { viewModel.onTabSelected(CLUB_TAB_TEAMS) },
-                        icon = Res.drawable.ic_teams,
-                        label = stringResource(Res.string.tab_teams)
-                    )
-                    ClubTabItem(
-                        selected = selectedTab == CLUB_TAB_MATCHES,
-                        onClick = { viewModel.onTabSelected(CLUB_TAB_MATCHES) },
-                        icon = Res.drawable.ic_calendar,
-                        label = stringResource(Res.string.tab_matches)
-                    )
+        // Not saved with the back-stack entry on purpose: opening a screen from the panel leaves it open
+        // while that screen slides in over it, and coming back recreates this screen with the panel closed.
+        var moreOpen by remember { mutableStateOf(false) }
+        // The coach's age-group picker: which action it's for (Create team / Add players), or null.
+        var pickerFor by remember { mutableStateOf<StringResource?>(null) }
+        val moreAccount by viewModel.moreAccount.collectAsState()
+        LaunchedEffect(moreOpen) { if (moreOpen) viewModel.loadMoreAccount() }
 
-                    // "More" opens the full-screen panel (design 37) -- Players, the create actions and
-                    // Account all live there. Shown as selected while the panel is open.
-                    ClubTabItem(
-                        selected = moreOpen,
-                        onClick = { moreOpen = !moreOpen },
-                        icon = Res.drawable.ic_more,
-                        label = stringResource(Res.string.tab_more)
-                    )
-                }
+        LaunchedEffect(refreshClubDetails) {
+            if (refreshClubDetails) {
+                viewModel.loadClubDetails(clubId, forceReload = true)
             }
         }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color.White)
-        ) {
-            when (val state = uiState) {
-                is ClubDetailsUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = PitchGreen)
+
+        Box(Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                FMTopBar(
+                    title = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name
+                        ?: stringResource(Res.string.title_club_details),
+                    showBackButton = showBackButton,
+                    onNavigateBack = onNavigateBack
+                    // No account icon here any more: Account lives at the top of the More panel (design 37).
+                )
+            },
+            bottomBar = {
+                // Only meaningful once the club details actually loaded -- while loading, or if the
+                // fetch failed (Idle.details stays null), there's nothing for the tabs to show.
+                if ((uiState as? ClubDetailsUiState.Idle)?.details != null) {
+                    NavigationBar(
+                        containerColor = ClubChrome,
+                        tonalElevation = 0.dp,
+                        windowInsets = NavigationBarDefaults.windowInsets
+                    ) {
+                        ClubTabItem(
+                            selected = selectedTab == CLUB_TAB_HOME,
+                            onClick = { viewModel.onTabSelected(CLUB_TAB_HOME) },
+                            icon = Res.drawable.ic_home,
+                            label = stringResource(Res.string.tab_home)
+                        )
+                        ClubTabItem(
+                            selected = selectedTab == CLUB_TAB_AGE_GROUPS,
+                            onClick = { viewModel.onTabSelected(CLUB_TAB_AGE_GROUPS) },
+                            icon = Res.drawable.ic_age_group,
+                            label = stringResource(Res.string.tab_age_groups)
+                        )
+                        ClubTabItem(
+                            selected = selectedTab == CLUB_TAB_TEAMS,
+                            onClick = { viewModel.onTabSelected(CLUB_TAB_TEAMS) },
+                            icon = Res.drawable.ic_teams,
+                            label = stringResource(Res.string.tab_teams)
+                        )
+                        ClubTabItem(
+                            selected = selectedTab == CLUB_TAB_MATCHES,
+                            onClick = { viewModel.onTabSelected(CLUB_TAB_MATCHES) },
+                            icon = Res.drawable.ic_calendar,
+                            label = stringResource(Res.string.tab_matches)
+                        )
+
+                        // "More" opens the full-screen panel (design 37) -- Players, the create actions and
+                        // Account all live there. Shown as selected while the panel is open.
+                        ClubTabItem(
+                            selected = moreOpen,
+                            onClick = { moreOpen = !moreOpen },
+                            icon = Res.drawable.ic_more,
+                            label = stringResource(Res.string.tab_more)
+                        )
                     }
                 }
+            }
+        ) { paddingValues ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(Color.White)
+            ) {
+                when (val state = uiState) {
+                    is ClubDetailsUiState.Loading -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = PitchGreen)
+                        }
+                    }
 
-                is ClubDetailsUiState.Idle -> when {
-                    state.error != null ->
-                        ErrorState(state.error, onRetry = { viewModel.loadClubDetails(clubId) })
-                    // Everything below (teams, players, filters) is season-scoped, so with no seasons
-                    // there is nothing meaningful to show. Only an admin/coordinator can fix this
-                    // (CreateSeasonUseCase requires COORDINATOR+), so they get offered a way to create
-                    // one; a plain member just sees that there are none yet.
-                    state.showNoSeasonsState ->
-                        NoSeasonsState(
-                            canEditClub = state.canEditClub,
-                            onCreateSeasonClick = { onNavigateToCreateSeason(clubName) }
-                        )
+                    is ClubDetailsUiState.Idle -> when {
+                        state.error != null ->
+                            ErrorState(state.error, onRetry = { viewModel.loadClubDetails(clubId) })
+                        // Everything below (teams, players, filters) is season-scoped, so with no seasons
+                        // there is nothing meaningful to show. Only an admin/coordinator can fix this
+                        // (CreateSeasonUseCase requires COORDINATOR+), so they get offered a way to create
+                        // one; a plain member just sees that there are none yet.
+                        state.showNoSeasonsState ->
+                            NoSeasonsState(
+                                canEditClub = state.canEditClub,
+                                onCreateSeasonClick = { onNavigateToCreateSeason(clubName) }
+                            )
 
-                    // One level down from the above: seasons exist, but nothing has been organised
-                    // into age groups yet, so teams and players still have nothing to attach to. Same
-                    // permission gate as seasons (CreateAgeGroupsUseCase also requires COORDINATOR+).
-                    state.showNoAgeGroupsState ->
-                        NoAgeGroupsState(
-                            canEditClub = state.canEditClub,
-                            onCreateAgeGroupClick = {
-                                // Whole club has no age groups yet: seed the screen's picker with the
-                                // most recently started season, still overridable there.
-                                onNavigateToCreateAgeGroups(
-                                    clubName,
-                                    sport,
-                                    state.details?.seasons?.maxByOrNull { it.startDate }?.id
-                                )
-                            }
-                        )
+                        // One level down from the above: seasons exist, but nothing has been organised
+                        // into age groups yet, so teams and players still have nothing to attach to. Same
+                        // permission gate as seasons (CreateAgeGroupsUseCase also requires COORDINATOR+).
+                        state.showNoAgeGroupsState ->
+                            NoAgeGroupsState(
+                                canEditClub = state.canEditClub,
+                                onCreateAgeGroupClick = {
+                                    // Whole club has no age groups yet: seed the screen's picker with the
+                                    // most recently started season, still overridable there.
+                                    onNavigateToCreateAgeGroups(
+                                        clubName,
+                                        sport,
+                                        state.details?.seasons?.maxByOrNull { it.startDate }?.id
+                                    )
+                                }
+                            )
 
-                    state.details != null ->
-                        ClubDetailsTabContent(
-                            state = state,
-                            selectedTab = selectedTab,
-                            clubId = clubId,
-                            viewModel = viewModel,
-                            onNavigateToTeam = onNavigateToTeam,
-                            onNavigateToPlayer = onNavigateToPlayer,
-                            onNavigateToCreateAgeGroups = onNavigateToCreateAgeGroups,
-                            onNavigateToCreateTeams = onNavigateToCreateTeams,
-                            sport = sport,
-                            onNavigateToCreatePlayers = onNavigateToCreatePlayers,
-                            onNavigateToAddPlayersToAgeGroup = onNavigateToAddPlayersToAgeGroup,
-                            onNavigateToAgeGroup = onNavigateToAgeGroup,
-                            onNavigateToMatch = onNavigateToMatch,
-                            onNavigateToEditPlan = onNavigateToEditPlan,
-                            onNavigateToRateSession = onNavigateToRateSession,
-                            clubName = clubName
-                        )
+                        state.details != null ->
+                            ClubDetailsTabContent(
+                                state = state,
+                                selectedTab = selectedTab,
+                                clubId = clubId,
+                                viewModel = viewModel,
+                                onNavigateToTeam = onNavigateToTeam,
+                                onNavigateToPlayer = onNavigateToPlayer,
+                                onNavigateToCreateAgeGroups = onNavigateToCreateAgeGroups,
+                                onNavigateToCreateTeams = onNavigateToCreateTeams,
+                                sport = sport,
+                                onNavigateToCreatePlayers = onNavigateToCreatePlayers,
+                                onNavigateToAddPlayersToAgeGroup = onNavigateToAddPlayersToAgeGroup,
+                                onNavigateToAgeGroup = onNavigateToAgeGroup,
+                                onNavigateToMatch = onNavigateToMatch,
+                                onNavigateToEditPlan = onNavigateToEditPlan,
+                                onNavigateToRateSession = onNavigateToRateSession,
+                                clubName = clubName
+                            )
+                    }
                 }
             }
         }
-    }
 
-    val details = (uiState as? ClubDetailsUiState.Idle)?.details
-    if (details != null) {
-        val groups = moreGroups(
-            details = details,
-            // Players is its own screen now; it slides in over the open panel like the other rows.
-            onPlayers = onNavigateToPlayers,
-            onOpponents = onNavigateToOpponents,
-            onClubSettings = onNavigateToEditClub,
-            onAddSeason = { onNavigateToCreateSeason(clubName) },
-            onCreateAgeGroup = { if (details.seasons.isNotEmpty()) onNavigateToCreateAgeGroups(clubName, sport, null) },
-            onCreateTeam = { scoped ->
-                when {
-                    !scoped -> onNavigateToCreateTeams(clubName, sport, null)
-                    details.createTeamAgeGroupIds.size == 1 -> onNavigateToCreateTeams(clubName, sport, details.createTeamAgeGroupIds.single())
-                    // The picker is a dialog over the club screen, so the panel closes first.
-                    else -> { moreOpen = false; pickerFor = Res.string.more_create_team }
-                }
-            },
-            onAddPlayers = { scoped ->
-                when {
-                    !scoped -> onNavigateToCreatePlayers(clubName, null)
-                    details.createPlayersAgeGroupIds.size == 1 -> onNavigateToCreatePlayers(clubName, details.createPlayersAgeGroupIds.single())
-                    else -> { moreOpen = false; pickerFor = Res.string.more_add_players }
-                }
-            },
-            onNewStaff = { onNavigateToCreateStaff(clubName) },
-            onAccount = onNavigateToAccount,
-            onSwitchClub = onSwitchClub,
-            clubCount = moreAccount?.clubCount ?: 1
-        )
-        ClubMorePanel(
-            open = moreOpen,
-            account = moreAccount,
-            viewer = MoreViewer(details.viewerRole, details.viewerAgeGroups, details.club.name),
-            groups = groups,
-            onOpenAccount = onNavigateToAccount,
-            onLogOut = { moreOpen = false; viewModel.logout(onLoggedOut) },
-            onClose = { moreOpen = false }
-        )
-        pickerFor?.let { action ->
-            val ids = if (action == Res.string.more_create_team) details.createTeamAgeGroupIds else details.createPlayersAgeGroupIds
-            AgeGroupPickerDialog(
-                title = action,
-                ageGroups = details.ageGroups.filter { it.id in ids }.sortedByDescending { it.endYear },
-                teamCount = { agId -> details.teams.count { it.ageGroupId == agId } },
-                onPick = { ag ->
-                    pickerFor = null
-                    if (action == Res.string.more_create_team) onNavigateToCreateTeams(clubName, sport, ag.id)
-                    else onNavigateToCreatePlayers(clubName, ag.id)
+        val details = (uiState as? ClubDetailsUiState.Idle)?.details
+        if (details != null) {
+            val groups = moreGroups(
+                details = details,
+                // Players is its own screen now; it slides in over the open panel like the other rows.
+                onPlayers = onNavigateToPlayers,
+                onOpponents = onNavigateToOpponents,
+                onClubSettings = onNavigateToEditClub,
+                onAddSeason = { onNavigateToCreateSeason(clubName) },
+                onCreateAgeGroup = { if (details.seasons.isNotEmpty()) onNavigateToCreateAgeGroups(clubName, sport, null) },
+                onCreateTeam = { scoped ->
+                    when {
+                        !scoped -> onNavigateToCreateTeams(clubName, sport, null)
+                        details.createTeamAgeGroupIds.size == 1 -> onNavigateToCreateTeams(clubName, sport, details.createTeamAgeGroupIds.single())
+                        // The picker is a dialog over the club screen, so the panel closes first.
+                        else -> { moreOpen = false; pickerFor = Res.string.more_create_team }
+                    }
                 },
-                onDismiss = { pickerFor = null }
+                onAddPlayers = { scoped ->
+                    when {
+                        !scoped -> onNavigateToCreatePlayers(clubName, null)
+                        details.createPlayersAgeGroupIds.size == 1 -> onNavigateToCreatePlayers(clubName, details.createPlayersAgeGroupIds.single())
+                        else -> { moreOpen = false; pickerFor = Res.string.more_add_players }
+                    }
+                },
+                onNewStaff = { onNavigateToCreateStaff(clubName) },
+                onAccount = onNavigateToAccount,
+                onSwitchClub = onSwitchClub,
+                clubCount = moreAccount?.clubCount ?: 1
             )
+            ClubMorePanel(
+                open = moreOpen,
+                account = moreAccount,
+                viewer = MoreViewer(details.viewerRole, details.viewerAgeGroups, details.club.name),
+                groups = groups,
+                onOpenAccount = onNavigateToAccount,
+                onLogOut = { moreOpen = false; viewModel.logout(onLoggedOut) },
+                onClose = { moreOpen = false }
+            )
+            pickerFor?.let { action ->
+                val ids = if (action == Res.string.more_create_team) details.createTeamAgeGroupIds else details.createPlayersAgeGroupIds
+                AgeGroupPickerDialog(
+                    title = action,
+                    ageGroups = details.ageGroups.filter { it.id in ids }.sortedByDescending { it.endYear },
+                    teamCount = { agId -> details.teams.count { it.ageGroupId == agId } },
+                    onPick = { ag ->
+                        pickerFor = null
+                        if (action == Res.string.more_create_team) onNavigateToCreateTeams(clubName, sport, ag.id)
+                        else onNavigateToCreatePlayers(clubName, ag.id)
+                    },
+                    onDismiss = { pickerFor = null }
+                )
+            }
         }
-    }
+        }
     }
 }
 

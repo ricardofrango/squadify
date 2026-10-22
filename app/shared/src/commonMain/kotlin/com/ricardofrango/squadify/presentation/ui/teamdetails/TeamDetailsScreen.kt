@@ -35,6 +35,7 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
@@ -83,32 +84,34 @@ fun TeamDetailsScreen(
     refreshOnReturn: Boolean = false,
     viewModel: TeamDetailsViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.state.collectSettledState()
-    val recordState by viewModel.record.collectAsState()
-    val tab by viewModel.tab.collectAsState()
-    val squadSort by viewModel.squadSort.collectAsState()
+    SquadifyClubTheme {
+        val uiState = viewModel.state.collectSettledState()
+        val recordState by viewModel.record.collectAsState()
+        val tab by viewModel.tab.collectAsState()
+        val squadSort by viewModel.squadSort.collectAsState()
 
-    LaunchedEffect(teamId) { viewModel.load(teamId) }
-    LaunchedEffect(refreshOnReturn) { if (refreshOnReturn) viewModel.load(teamId, forceReload = true) }
+        LaunchedEffect(teamId) { viewModel.load(teamId) }
+        LaunchedEffect(refreshOnReturn) { if (refreshOnReturn) viewModel.load(teamId, forceReload = true) }
 
-    TeamDetailsContent(
-        uiState = uiState,
-        recordState = recordState,
-        tab = tab,
-        squadSort = squadSort,
-        onTabSelected = viewModel::onTabSelected,
-        onSquadSortSelected = viewModel::onSquadSortSelected,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.load(teamId, forceReload = true) },
-        onRetryRecord = { viewModel.loadRecord(teamId) },
-        onFilterSelected = viewModel::onFilterSelected,
-        onNavigateToAgeGroup = onNavigateToAgeGroup,
-        onNavigateToPlayer = onNavigateToPlayer,
-        onScheduleMatch = onScheduleMatch,
-        onEditTeam = onEditTeam,
-        onMatchClick = onNavigateToMatch,
-        onNavigateToMember = onNavigateToMember
-    )
+        TeamDetailsContent(
+            uiState = uiState,
+            recordState = recordState,
+            tab = tab,
+            squadSort = squadSort,
+            onTabSelected = viewModel::onTabSelected,
+            onSquadSortSelected = viewModel::onSquadSortSelected,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.load(teamId, forceReload = true) },
+            onRetryRecord = { viewModel.loadRecord(teamId) },
+            onFilterSelected = viewModel::onFilterSelected,
+            onNavigateToAgeGroup = onNavigateToAgeGroup,
+            onNavigateToPlayer = onNavigateToPlayer,
+            onScheduleMatch = onScheduleMatch,
+            onEditTeam = onEditTeam,
+            onMatchClick = onNavigateToMatch,
+            onNavigateToMember = onNavigateToMember
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -48,6 +48,7 @@ import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButto
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -107,21 +108,23 @@ fun OpponentFormScreen(
     onCreated: (Opponent) -> Unit,
     viewModel: OpponentFormViewModel = koinViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
-    LaunchedEffect(clubId) { viewModel.start(clubId, ageGroupId, initialName) }
-    LaunchedEffect(viewModel) { viewModel.done.collect { onCreated(it) } }
+    SquadifyClubTheme {
+        val state by viewModel.state.collectAsState()
+        LaunchedEffect(clubId) { viewModel.start(clubId, ageGroupId, initialName) }
+        LaunchedEffect(viewModel) { viewModel.done.collect { onCreated(it) } }
 
-    OpponentFormContent(
-        state = state,
-        title = Res.string.title_create_opponent,
-        submitText = Res.string.btn_create_opponent,
-        submittingText = Res.string.btn_creating_opponent,
-        onNavigateBack = onNavigateBack,
-        onRetry = {},
-        onFormChange = viewModel::onFormChange,
-        onNameFocusLost = viewModel::onNameFocusLost,
-        onSubmit = viewModel::onSubmit
-    )
+        OpponentFormContent(
+            state = state,
+            title = Res.string.title_create_opponent,
+            submitText = Res.string.btn_create_opponent,
+            submittingText = Res.string.btn_creating_opponent,
+            onNavigateBack = onNavigateBack,
+            onRetry = {},
+            onFormChange = viewModel::onFormChange,
+            onNameFocusLost = viewModel::onNameFocusLost,
+            onSubmit = viewModel::onSubmit
+        )
+    }
 }
 
 /**
@@ -135,21 +138,23 @@ fun OpponentEditScreen(
     onSaved: () -> Unit,
     viewModel: OpponentFormViewModel = koinViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
-    LaunchedEffect(opponentId) { viewModel.startEdit(opponentId) }
-    LaunchedEffect(viewModel) { viewModel.done.collect { onSaved() } }
+    SquadifyClubTheme {
+        val state by viewModel.state.collectAsState()
+        LaunchedEffect(opponentId) { viewModel.startEdit(opponentId) }
+        LaunchedEffect(viewModel) { viewModel.done.collect { onSaved() } }
 
-    OpponentFormContent(
-        state = state,
-        title = Res.string.title_edit_opponent,
-        submitText = Res.string.btn_save_changes,
-        submittingText = Res.string.btn_saving_changes,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.startEdit(opponentId, force = true) },
-        onFormChange = viewModel::onFormChange,
-        onNameFocusLost = viewModel::onNameFocusLost,
-        onSubmit = viewModel::onSubmit
-    )
+        OpponentFormContent(
+            state = state,
+            title = Res.string.title_edit_opponent,
+            submitText = Res.string.btn_save_changes,
+            submittingText = Res.string.btn_saving_changes,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.startEdit(opponentId, force = true) },
+            onFormChange = viewModel::onFormChange,
+            onNameFocusLost = viewModel::onNameFocusLost,
+            onSubmit = viewModel::onSubmit
+        )
+    }
 }
 
 @Composable

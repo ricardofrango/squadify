@@ -34,6 +34,7 @@ import com.ricardofrango.squadify.presentation.ui.opponents.OpponentLogo
 import com.ricardofrango.squadify.presentation.ui.opponents.opponentSubline
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import squadify.app.shared.generated.resources.*
@@ -76,46 +77,48 @@ fun CreateMatchScreen(
     onCreatedOpponentShown: () -> Unit = {},
     viewModel: CreateMatchViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.state.collectSettledState()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val createdMessage = createdOpponentName?.let { stringResource(Res.string.msg_opponent_created_selected, it) }
-    LaunchedEffect(createdMessage) {
-        if (createdMessage != null) {
-            onCreatedOpponentShown()
-            snackbarHostState.showSnackbar(createdMessage)
-        }
-    }
-
-    LaunchedEffect(ageGroupId, teamId) { viewModel.load(ageGroupId, teamId) }
-    LaunchedEffect(pickedOpponentId) {
-        if (pickedOpponentId != null) {
-            viewModel.onOpponentPicked(pickedOpponentId)
-            onPickedOpponentConsumed()
-        }
-    }
-    LaunchedEffect(viewModel.navigationEvent) {
-        viewModel.navigationEvent.collect { event ->
-            when (event) {
-                CreateMatchNavigationEvent.NavigateBackWithMatchCreated -> onMatchCreated()
+    SquadifyClubTheme {
+        val uiState = viewModel.state.collectSettledState()
+        val snackbarHostState = remember { SnackbarHostState() }
+        val createdMessage = createdOpponentName?.let { stringResource(Res.string.msg_opponent_created_selected, it) }
+        LaunchedEffect(createdMessage) {
+            if (createdMessage != null) {
+                onCreatedOpponentShown()
+                snackbarHostState.showSnackbar(createdMessage)
             }
         }
-    }
 
-    CreateMatchContent(
-        uiState = uiState,
-        snackbarHostState = snackbarHostState,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.load(ageGroupId, teamId) },
-        onTeamSelected = viewModel::onTeamSelected,
-        onChooseOpponent = { state -> onChooseOpponent(state.clubId, state.ageGroupId, state.selectedOpponentId) },
-        onDateChange = viewModel::onDateChange,
-        onTimeChange = viewModel::onTimeChange,
-        onLocationChange = viewModel::onLocationChange,
-        onNotesChange = viewModel::onNotesChange,
-        onMatchTypeSelected = viewModel::onMatchTypeSelected,
-        onHalvesSelected = viewModel::onHalvesSelected,
-        onSubmit = viewModel::onSubmit
-    )
+        LaunchedEffect(ageGroupId, teamId) { viewModel.load(ageGroupId, teamId) }
+        LaunchedEffect(pickedOpponentId) {
+            if (pickedOpponentId != null) {
+                viewModel.onOpponentPicked(pickedOpponentId)
+                onPickedOpponentConsumed()
+            }
+        }
+        LaunchedEffect(viewModel.navigationEvent) {
+            viewModel.navigationEvent.collect { event ->
+                when (event) {
+                    CreateMatchNavigationEvent.NavigateBackWithMatchCreated -> onMatchCreated()
+                }
+            }
+        }
+
+        CreateMatchContent(
+            uiState = uiState,
+            snackbarHostState = snackbarHostState,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.load(ageGroupId, teamId) },
+            onTeamSelected = viewModel::onTeamSelected,
+            onChooseOpponent = { state -> onChooseOpponent(state.clubId, state.ageGroupId, state.selectedOpponentId) },
+            onDateChange = viewModel::onDateChange,
+            onTimeChange = viewModel::onTimeChange,
+            onLocationChange = viewModel::onLocationChange,
+            onNotesChange = viewModel::onNotesChange,
+            onMatchTypeSelected = viewModel::onMatchTypeSelected,
+            onHalvesSelected = viewModel::onHalvesSelected,
+            onSubmit = viewModel::onSubmit
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

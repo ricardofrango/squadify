@@ -110,7 +110,7 @@ private val StarterTheme = ClubTheme("#2E7D32", "#FFFFFF")
 private enum class ColourSlot { MAIN, SECOND }
 
 /**
- * Club settings → Details: the club's two colours (§57). A preview of the bars and a button, a tap
+ * Club settings → Details: the club's two colours (§58). A preview of the bars and a button, a tap
  * target per colour that opens the picker, Swap and Remove. Both colours or neither: "Choose club
  * colours" starts from a valid pair, and Remove clears both.
  */

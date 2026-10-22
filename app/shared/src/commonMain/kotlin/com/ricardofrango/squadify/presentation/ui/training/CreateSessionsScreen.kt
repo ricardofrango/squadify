@@ -67,6 +67,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.AmberText
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -127,20 +128,22 @@ fun CreateSessionsScreen(
     onCreated: (count: Int) -> Unit,
     viewModel: CreateSessionsViewModel = koinViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
-    LaunchedEffect(ageGroupId) { viewModel.start(ageGroupId) }
-    LaunchedEffect(viewModel) { viewModel.created.collect { onCreated(it) } }
-    CreateSessionsContent(
-        state = state,
-        onNavigateBack = { if (state.preview != null) viewModel.backToForm() else onNavigateBack() },
-        onRetry = { viewModel.start(ageGroupId, force = true) },
-        onFormChange = viewModel::onFormChange,
-        onPreview = viewModel::preview,
-        onEdit = viewModel::backToForm,
-        onCreate = viewModel::create,
-        onConfirm = viewModel::confirmCreate,
-        onDismissConfirm = viewModel::dismissConfirm
-    )
+    SquadifyClubTheme {
+        val state by viewModel.state.collectAsState()
+        LaunchedEffect(ageGroupId) { viewModel.start(ageGroupId) }
+        LaunchedEffect(viewModel) { viewModel.created.collect { onCreated(it) } }
+        CreateSessionsContent(
+            state = state,
+            onNavigateBack = { if (state.preview != null) viewModel.backToForm() else onNavigateBack() },
+            onRetry = { viewModel.start(ageGroupId, force = true) },
+            onFormChange = viewModel::onFormChange,
+            onPreview = viewModel::preview,
+            onEdit = viewModel::backToForm,
+            onCreate = viewModel::create,
+            onConfirm = viewModel::confirmCreate,
+            onDismissConfirm = viewModel::dismissConfirm
+        )
+    }
 }
 
 /** "Sub-15 · CD Ribamar". */

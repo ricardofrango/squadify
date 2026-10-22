@@ -55,6 +55,7 @@ import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -102,22 +103,24 @@ fun OpponentsScreen(
     refresh: Boolean = false,
     viewModel: OpponentsViewModel = koinViewModel()
 ) {
-    val state = viewModel.state.collectSettledState()
-    val query by viewModel.query.collectAsState()
-    LaunchedEffect(clubId, ageGroupId) { viewModel.load(clubId, ageGroupId) }
-    LaunchedEffect(refresh) { if (refresh) viewModel.load(clubId, ageGroupId, force = true) }
+    SquadifyClubTheme {
+        val state = viewModel.state.collectSettledState()
+        val query by viewModel.query.collectAsState()
+        LaunchedEffect(clubId, ageGroupId) { viewModel.load(clubId, ageGroupId) }
+        LaunchedEffect(refresh) { if (refresh) viewModel.load(clubId, ageGroupId, force = true) }
 
-    OpponentsContent(
-        state = state,
-        query = query,
-        selectMode = selectMode,
-        selectedOpponentId = selectedOpponentId,
-        onQueryChange = viewModel::onQueryChange,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.load(clubId, ageGroupId, force = true) },
-        onOpponentClick = onOpponentClick,
-        onCreateOpponent = onCreateOpponent
-    )
+        OpponentsContent(
+            state = state,
+            query = query,
+            selectMode = selectMode,
+            selectedOpponentId = selectedOpponentId,
+            onQueryChange = viewModel::onQueryChange,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.load(clubId, ageGroupId, force = true) },
+            onOpponentClick = onOpponentClick,
+            onCreateOpponent = onCreateOpponent
+        )
+    }
 }
 
 @Composable

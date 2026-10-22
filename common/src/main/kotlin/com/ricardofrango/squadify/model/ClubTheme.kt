@@ -9,7 +9,7 @@ import kotlin.math.pow
  * A club's two colours, as "#RRGGBB". Both or neither: a club either has a theme or uses Squadify's own
  * colours. [primaryColor] is the strong one -- the bars and buttons, with white text on it;
  * [secondaryColor] is the light one, used for what sits on top of the primary (the selected tab, the
- * initials on a logo placeholder). See [ClubThemeRules] and TECHNICAL_DECISIONS.md §57.
+ * initials on a logo placeholder). See [ClubThemeRules] and TECHNICAL_DECISIONS.md §58.
  */
 @Serializable
 data class ClubTheme(

@@ -37,6 +37,7 @@ import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButto
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.AmberText
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
@@ -73,16 +74,18 @@ fun SessionEditScreen(
     onSaved: () -> Unit,
     viewModel: SessionEditViewModel = koinViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
-    LaunchedEffect(ageGroupId, sessionId) { viewModel.start(ageGroupId, sessionId, date) }
-    LaunchedEffect(viewModel) { viewModel.saved.collect { onSaved() } }
-    SessionEditContent(
-        state = state,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.start(ageGroupId, sessionId, date, force = true) },
-        onFormChange = viewModel::onFormChange,
-        onSave = viewModel::save
-    )
+    SquadifyClubTheme {
+        val state by viewModel.state.collectAsState()
+        LaunchedEffect(ageGroupId, sessionId) { viewModel.start(ageGroupId, sessionId, date) }
+        LaunchedEffect(viewModel) { viewModel.saved.collect { onSaved() } }
+        SessionEditContent(
+            state = state,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.start(ageGroupId, sessionId, date, force = true) },
+            onFormChange = viewModel::onFormChange,
+            onSave = viewModel::save
+        )
+    }
 }
 
 @Composable

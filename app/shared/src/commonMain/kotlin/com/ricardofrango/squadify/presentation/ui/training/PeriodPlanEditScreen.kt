@@ -41,6 +41,7 @@ import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.StringResource
@@ -88,18 +89,20 @@ fun PeriodPlanEditScreen(
     onSaved: () -> Unit,
     viewModel: PlanEditViewModel = koinViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
-    LaunchedEffect(ageGroupId) { viewModel.start(ageGroupId, level, periodStart) }
-    LaunchedEffect(viewModel) { viewModel.saved.collect { onSaved() } }
-    PeriodPlanEditContent(
-        state = state,
-        level = level,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.start(ageGroupId, level, periodStart, force = true) },
-        onMoveTo = viewModel::moveTo,
-        onFormChange = viewModel::onFormChange,
-        onSave = viewModel::save
-    )
+    SquadifyClubTheme {
+        val state by viewModel.state.collectAsState()
+        LaunchedEffect(ageGroupId) { viewModel.start(ageGroupId, level, periodStart) }
+        LaunchedEffect(viewModel) { viewModel.saved.collect { onSaved() } }
+        PeriodPlanEditContent(
+            state = state,
+            level = level,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.start(ageGroupId, level, periodStart, force = true) },
+            onMoveTo = viewModel::moveTo,
+            onFormChange = viewModel::onFormChange,
+            onSave = viewModel::save
+        )
+    }
 }
 
 /** The periods of [level] in the season, in order. */

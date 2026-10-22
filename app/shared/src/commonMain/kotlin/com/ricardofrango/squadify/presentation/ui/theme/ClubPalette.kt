@@ -11,7 +11,7 @@ import com.ricardofrango.squadify.model.ClubTheme
 import com.ricardofrango.squadify.model.ClubThemeRules
 
 /**
- * The colours a club's screens are drawn in (TECHNICAL_DECISIONS.md §57).
+ * The colours a club's screens are drawn in (TECHNICAL_DECISIONS.md §58).
  * - [chrome]: the dark bars (top bar, bottom tabs, detail headers, More panel). White text sits on it.
  * - [accent]: buttons, selected states and links on the white screens ([PitchGreen] reads it).
  * - [accentOnChrome]: a selected tab or chip on [chrome], with [onAccentOnChrome] for text on it.
@@ -75,13 +75,6 @@ fun rgbColor(rgb: Int) = Color(0xFF000000 or rgb.toLong())
 
 /** "#E30613" as a Color, or null when it isn't one. */
 fun hexColor(hex: String): Color? = ClubThemeRules.parse(hex)?.let(::rgbColor)
-
-/** Draws [content] in [theme]'s colours, or Squadify's when it's null. */
-@Composable
-fun ProvideClubPalette(theme: ClubTheme?, content: @Composable () -> Unit) {
-    val palette = remember(theme) { theme?.toPalette() ?: SquadifyPalette }
-    CompositionLocalProvider(LocalClubPalette provides palette, content = content)
-}
 
 /** The bars' colour: [CarbonGray], or the club's main colour. */
 val ClubChrome: Color

@@ -29,6 +29,7 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -56,16 +57,18 @@ fun SeasonPlanEditScreen(
     onSaved: () -> Unit,
     viewModel: PlanEditViewModel = koinViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
-    LaunchedEffect(ageGroupId) { viewModel.start(ageGroupId, TrainingPlanLevel.SEASON, null) }
-    LaunchedEffect(viewModel) { viewModel.saved.collect { onSaved() } }
-    SeasonPlanEditContent(
-        state = state,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.start(ageGroupId, TrainingPlanLevel.SEASON, null, force = true) },
-        onFormChange = viewModel::onFormChange,
-        onSave = viewModel::save
-    )
+    SquadifyClubTheme {
+        val state by viewModel.state.collectAsState()
+        LaunchedEffect(ageGroupId) { viewModel.start(ageGroupId, TrainingPlanLevel.SEASON, null) }
+        LaunchedEffect(viewModel) { viewModel.saved.collect { onSaved() } }
+        SeasonPlanEditContent(
+            state = state,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.start(ageGroupId, TrainingPlanLevel.SEASON, null, force = true) },
+            onFormChange = viewModel::onFormChange,
+            onSave = viewModel::save
+        )
+    }
 }
 
 @Composable

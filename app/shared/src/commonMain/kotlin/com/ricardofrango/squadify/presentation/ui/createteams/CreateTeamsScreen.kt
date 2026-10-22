@@ -31,6 +31,7 @@ import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import squadify.app.shared.generated.resources.*
@@ -80,86 +81,88 @@ fun CreateTeamsScreen(
     initialAgeGroupId: String? = null,
     viewModel: CreateTeamsViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.state.collectSettledState()
+    SquadifyClubTheme {
+        val uiState = viewModel.state.collectSettledState()
 
-    // The team-size a new row starts on: the picked age group's default, or the sport's largest format
-    // when no age group is picked yet / that age group predates team sizes.
-    val defaultTeamSize = (uiState as? CreateTeamsUiState.Idle)?.let { idle ->
-        idle.ageGroupsForSeason.find { it.id == idle.selectedAgeGroupId }?.teamSize
-    } ?: sport.teamSizes.last()
+        // The team-size a new row starts on: the picked age group's default, or the sport's largest format
+        // when no age group is picked yet / that age group predates team sizes.
+        val defaultTeamSize = (uiState as? CreateTeamsUiState.Idle)?.let { idle ->
+            idle.ageGroupsForSeason.find { it.id == idle.selectedAgeGroupId }?.teamSize
+        } ?: sport.teamSizes.last()
 
-    var nextRowKey by remember { mutableStateOf(1) }
-    val rows = remember { mutableStateListOf(TeamRow(key = 0)) }
-    // Flipped true by the first CREATE press; drives the age-group and blank-name error styling until
-    // the user edits something.
-    var showValidationErrors by remember { mutableStateOf(false) }
+        var nextRowKey by remember { mutableStateOf(1) }
+        val rows = remember { mutableStateListOf(TeamRow(key = 0)) }
+        // Flipped true by the first CREATE press; drives the age-group and blank-name error styling until
+        // the user edits something.
+        var showValidationErrors by remember { mutableStateOf(false) }
 
-    LaunchedEffect(clubId) {
-        viewModel.load(clubId, initialAgeGroupId)
-    }
+        LaunchedEffect(clubId) {
+            viewModel.load(clubId, initialAgeGroupId)
+        }
 
-    LaunchedEffect(viewModel.navigationEvent) {
-        viewModel.navigationEvent.collect { event ->
-            when (event) {
-                CreateTeamsNavigationEvent.NavigateBackWithTeamsCreated -> onTeamsCreated()
+        LaunchedEffect(viewModel.navigationEvent) {
+            viewModel.navigationEvent.collect { event ->
+                when (event) {
+                    CreateTeamsNavigationEvent.NavigateBackWithTeamsCreated -> onTeamsCreated()
+                }
             }
         }
-    }
 
-    CreateTeamsContent(
-        uiState = uiState,
-        clubName = clubName,
-        rows = rows,
-        teamSizeOptions = sport.teamSizes,
-        showValidationErrors = showValidationErrors,
-        onNavigateBack = onNavigateBack,
-        onSeasonSelected = { seasonId ->
-            viewModel.onSeasonSelected(seasonId)
-            // Selecting a season clears the age group, so its team-size default is gone too -- reset
-            // the rows to the sport's largest format until an age group is picked again.
-            for (i in rows.indices) rows[i] = rows[i].copy(teamSize = sport.teamSizes.last())
-            showValidationErrors = false
-        },
-        onAgeGroupSelected = { ageGroupId ->
-            viewModel.onAgeGroupSelected(ageGroupId)
-            // Re-seed every row with the newly picked age group's default team size (overridable
-            // afterwards). Mirrors the birth-year reset on season change in CreateAgeGroupsScreen.
-            val ageGroup = (uiState as? CreateTeamsUiState.Idle)?.ageGroups?.find { it.id == ageGroupId }
-            val newDefault = ageGroup?.teamSize ?: sport.teamSizes.last()
-            for (i in rows.indices) rows[i] = rows[i].copy(teamSize = newDefault)
-            showValidationErrors = false
-        },
-        onRowNameChanged = { rowKey, name ->
-            val index = rows.indexOfFirst { it.key == rowKey }
-            if (index >= 0) rows[index] = rows[index].copy(name = name)
-            showValidationErrors = false
-            viewModel.clearSubmitError()
-        },
-        onRowTeamSizeSelected = { rowKey, teamSize ->
-            val index = rows.indexOfFirst { it.key == rowKey }
-            if (index >= 0) rows[index] = rows[index].copy(teamSize = teamSize)
-            viewModel.clearSubmitError()
-        },
-        onAddRow = {
-            rows.add(TeamRow(key = nextRowKey, teamSize = defaultTeamSize))
-            nextRowKey += 1
-        },
-        onRemoveRow = { rowKey ->
-            rows.removeAll { it.key == rowKey }
-        },
-        onCreateClick = {
-            showValidationErrors = true
-            val idle = uiState as? CreateTeamsUiState.Idle
-            val ageGroupPicked = idle?.selectedAgeGroupId != null
-            val namesFilled = rows.isNotEmpty() && rows.all { it.name.isNotBlank() }
-            if (ageGroupPicked && namesFilled) {
-                viewModel.onCreateClicked(
-                    clubId,
-                    rows.map { TeamItemRequest(name = it.name.trim(), teamSize = it.teamSize) }
-                )
+        CreateTeamsContent(
+            uiState = uiState,
+            clubName = clubName,
+            rows = rows,
+            teamSizeOptions = sport.teamSizes,
+            showValidationErrors = showValidationErrors,
+            onNavigateBack = onNavigateBack,
+            onSeasonSelected = { seasonId ->
+                viewModel.onSeasonSelected(seasonId)
+                // Selecting a season clears the age group, so its team-size default is gone too -- reset
+                // the rows to the sport's largest format until an age group is picked again.
+                for (i in rows.indices) rows[i] = rows[i].copy(teamSize = sport.teamSizes.last())
+                showValidationErrors = false
+            },
+            onAgeGroupSelected = { ageGroupId ->
+                viewModel.onAgeGroupSelected(ageGroupId)
+                // Re-seed every row with the newly picked age group's default team size (overridable
+                // afterwards). Mirrors the birth-year reset on season change in CreateAgeGroupsScreen.
+                val ageGroup = (uiState as? CreateTeamsUiState.Idle)?.ageGroups?.find { it.id == ageGroupId }
+                val newDefault = ageGroup?.teamSize ?: sport.teamSizes.last()
+                for (i in rows.indices) rows[i] = rows[i].copy(teamSize = newDefault)
+                showValidationErrors = false
+            },
+            onRowNameChanged = { rowKey, name ->
+                val index = rows.indexOfFirst { it.key == rowKey }
+                if (index >= 0) rows[index] = rows[index].copy(name = name)
+                showValidationErrors = false
+                viewModel.clearSubmitError()
+            },
+            onRowTeamSizeSelected = { rowKey, teamSize ->
+                val index = rows.indexOfFirst { it.key == rowKey }
+                if (index >= 0) rows[index] = rows[index].copy(teamSize = teamSize)
+                viewModel.clearSubmitError()
+            },
+            onAddRow = {
+                rows.add(TeamRow(key = nextRowKey, teamSize = defaultTeamSize))
+                nextRowKey += 1
+            },
+            onRemoveRow = { rowKey ->
+                rows.removeAll { it.key == rowKey }
+            },
+            onCreateClick = {
+                showValidationErrors = true
+                val idle = uiState as? CreateTeamsUiState.Idle
+                val ageGroupPicked = idle?.selectedAgeGroupId != null
+                val namesFilled = rows.isNotEmpty() && rows.all { it.name.isNotBlank() }
+                if (ageGroupPicked && namesFilled) {
+                    viewModel.onCreateClicked(
+                        clubId,
+                        rows.map { TeamItemRequest(name = it.name.trim(), teamSize = it.teamSize) }
+                    )
+                }
             }
-        }
-    )
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

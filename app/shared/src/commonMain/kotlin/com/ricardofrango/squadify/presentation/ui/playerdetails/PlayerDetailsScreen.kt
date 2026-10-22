@@ -4,6 +4,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.OnChromeAccent
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import com.ricardofrango.squadify.model.PlayerTrainingSeason
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.training.PlayerTrainingCard
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
@@ -75,29 +76,31 @@ fun PlayerDetailsScreen(
     refreshOnReturn: Boolean = false,
     viewModel: PlayerDetailsViewModel = koinViewModel()
 ) {
-    val uiState = viewModel.state.collectSettledState()
-    val statsState by viewModel.stats.collectAsState()
-    val training by viewModel.training.collectAsState()
+    SquadifyClubTheme {
+        val uiState = viewModel.state.collectSettledState()
+        val statsState by viewModel.stats.collectAsState()
+        val training by viewModel.training.collectAsState()
 
-    LaunchedEffect(playerId) {
-        viewModel.loadPlayerDetails(playerId, initialSeasonId, initialFilter)
-    }
-    LaunchedEffect(refreshOnReturn) {
-        if (refreshOnReturn) viewModel.loadPlayerDetails(playerId)
-    }
+        LaunchedEffect(playerId) {
+            viewModel.loadPlayerDetails(playerId, initialSeasonId, initialFilter)
+        }
+        LaunchedEffect(refreshOnReturn) {
+            if (refreshOnReturn) viewModel.loadPlayerDetails(playerId)
+        }
 
-    PlayerDetailsContent(
-        uiState = uiState,
-        statsState = statsState,
-        training = training,
-        onNavigateBack = onNavigateBack,
-        onRetry = { viewModel.loadPlayerDetails(playerId) },
-        onRetryStats = { viewModel.loadSeasonStats(playerId) },
-        onEditPlayer = { onEditPlayer(playerId) },
-        onSeasonSelected = viewModel::onSeasonSelected,
-        onFilterSelected = viewModel::onFilterSelected,
-        onOpenMatch = onOpenMatch
-    )
+        PlayerDetailsContent(
+            uiState = uiState,
+            statsState = statsState,
+            training = training,
+            onNavigateBack = onNavigateBack,
+            onRetry = { viewModel.loadPlayerDetails(playerId) },
+            onRetryStats = { viewModel.loadSeasonStats(playerId) },
+            onEditPlayer = { onEditPlayer(playerId) },
+            onSeasonSelected = viewModel::onSeasonSelected,
+            onFilterSelected = viewModel::onFilterSelected,
+            onOpenMatch = onOpenMatch
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
