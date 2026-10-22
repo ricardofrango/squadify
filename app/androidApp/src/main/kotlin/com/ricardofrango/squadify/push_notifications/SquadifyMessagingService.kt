@@ -22,9 +22,9 @@ import kotlin.random.Random
  * [org.koin.core.component.KoinComponent] rather than constructor injection (Koin is already started in
  * [com.ricardofrango.squadify.SquadifyApplication.onCreate] by the time this could ever fire).
  *
- * Only handles the "notification" message payload for now -- there's no structured "data" payload
- * contract yet for deep-linking a tapped notification anywhere other than opening the app to wherever
- * it was last (see ISSUES TO FIX.md).
+ * Every push also carries a [com.ricardofrango.squadify.model.PushLink] as its data -- what tapping
+ * it opens (the club, age group, team or match). This passes it on to [MainActivity] as intent
+ * extras; when the app is in the background Android shows the notification itself and does the same.
  *
  * Which channel a notification lands in is decided by the sender, not here: FCM's own
  * `notification.android_channel_id` payload field round-trips as [RemoteMessage.Notification.channelId].
@@ -66,11 +66,18 @@ class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
         val title = notification.title ?: getString(R.string.app_name)
         val body = resolveLocalizedBody(notification) ?: notification.body ?: return
 
+        // The message's data carries where tapping it goes (PushLink, §58); MainActivity reads it back
+        // from these extras. Each notification gets its own request code, so two notifications don't
+        // share one PendingIntent (and the first one's extras).
+        val notificationId = Random.nextInt()
+        val openIntent = Intent(this, MainActivity::class.java)
+            .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        message.data.forEach { (key, value) -> openIntent.putExtra(key, value) }
         val contentIntent = PendingIntent.getActivity(
             this,
-            0,
-            Intent(this, MainActivity::class.java).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
-            PendingIntent.FLAG_IMMUTABLE
+            notificationId,
+            openIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
         val notificationBuilder = NotificationCompat.Builder(this, notification.channelId ?: NOTIFICATION_CHANNEL_DEFAULT)
@@ -85,7 +92,7 @@ class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
         // API 33+) "POST_NOTIFICATIONS was never granted" -- the officially recommended guard for
         // NotificationManagerCompat.notify(), which lint requires a check for on API 33+.
         if (notificationManager.areNotificationsEnabled()) {
-            notificationManager.notify(Random.nextInt(), notificationBuilder.build())
+            notificationManager.notify(notificationId, notificationBuilder.build())
         }
     }
 

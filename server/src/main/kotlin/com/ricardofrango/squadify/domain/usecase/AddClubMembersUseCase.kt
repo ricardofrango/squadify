@@ -8,6 +8,7 @@ import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.EmailService
 import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.model.PushLink
 import com.ricardofrango.squadify.model.*
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
@@ -105,7 +106,7 @@ class AddClubMembersUseCase(
             membersAdded.forEach {
                 emailService.sendClubMembershipAdded(to = it.email, firstName = it.firstName, clubName = clubName)
                 pushTokensByUser[it.id]?.let { tokens ->
-                    pushNotificationService.sendClubMembershipAdded(tokens = tokens, clubName = clubName)
+                    pushNotificationService.sendClubMembershipAdded(tokens = tokens, link = PushLink.club(clubId), clubName = clubName)
                 }
             }
             emailsInvited.forEach {

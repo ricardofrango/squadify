@@ -46,6 +46,7 @@ import com.ricardofrango.squadify.presentation.ui.login.LoginViewModel
 import com.ricardofrango.squadify.presentation.ui.forgotpassword.ForgotPasswordViewModel
 import com.ricardofrango.squadify.presentation.ui.changeemail.ChangeEmailViewModel
 import com.ricardofrango.squadify.presentation.ui.register.RegisterViewModel
+import com.ricardofrango.squadify.presentation.navigation.PushLinkInbox
 import com.ricardofrango.squadify.presentation.ui.splash.SplashViewModel
 import com.russhwolf.settings.Settings
 import io.ktor.client.HttpClient
@@ -121,6 +122,7 @@ val dataModule = module {
 
     single<Settings> { Settings() }
     single { SessionEventBus() }
+    single { PushLinkInbox() }
     single<AuthRepository> { AuthRepositoryImpl(get(publicHttpClientQualifier), get()) }
     single<ClubRepository> { ClubRepositoryImpl(get(), get()) }
     single<TeamRepository> { TeamRepositoryImpl(get(), get()) }

@@ -535,7 +535,7 @@ graph TD
     G -- user does not exist --> I[Queue CLUB_MEMBER Invite with role]
     H --> J[Batch insert new members]
     I --> K[Batch insert invites]
-    J --> L["After commit: EmailService.sendClubMembershipAdded per new member"]
+    J --> L["After commit: EmailService.sendClubMembershipAdded per new member, and a push to their devices — PushLink.club(clubId)"]
     K --> M["After commit: EmailService.sendClubInvite per invited email"]
     L --> Z(["Return true"])
     M --> Z
@@ -765,7 +765,7 @@ graph TD
     G --> H["Fetch every active ClubMember of clubId; flatten their FcmTokenRepository tokens"]
     H --> I["Transaction commits"]
     I --> J{"Any token found?"}
-    J -- Yes --> K["PushNotificationService.sendTeamCreated(tokens, [team.name], ageGroupName, clubName) — every club member, not just this age group's staff"]
+    J -- Yes --> K["PushNotificationService.sendTeamCreated(tokens, PushLink.team(clubId, team.id), [team.name], ageGroupName, clubName) — every club member, not just this age group's staff"]
     J -- No --> Z
     K --> Z(["Return created Team"])
 ```
@@ -793,7 +793,7 @@ graph TD
     I --> J["Fetch every active ClubMember of clubId; flatten their FcmTokenRepository tokens"]
     J --> K["Transaction commits"]
     K --> L{"Any token found?"}
-    L -- Yes --> M["PushNotificationService.sendTeamCreated(tokens, createdTeams.map{name}, ageGroupName, clubName) — one push for the whole batch, every club member"]
+    L -- Yes --> M["PushNotificationService.sendTeamCreated(tokens, link: one team → PushLink.team, several → PushLink.ageGroup, createdTeams.map{name}, ageGroupName, clubName) — one push for the whole batch, every club member"]
     L -- No --> Z
     M --> Z(["Return created Teams"])
 ```
@@ -1143,7 +1143,7 @@ graph TD
     E -- user has no club role --> FB(["Throw ForbiddenException: must join club first"])
     E -- user is already a club member --> G[Build AgeGroupStaff record]
     G --> H[Batch insert AgeGroupStaff records]
-    H --> I["After commit: EmailService.sendAgeGroupStaffAdded per staff added"]
+    H --> I["After commit: EmailService.sendAgeGroupStaffAdded per staff added, and a push to their devices — PushLink.ageGroup(clubId, ageGroupId)"]
     I --> Z(["Return success"])
 ```
 
@@ -1563,7 +1563,7 @@ graph TD
     G -- empty --> X
     G -- non-empty --> H["Recalculate current score"]
     H --> I["Transaction closes"]
-    I --> J{"Which event?"}
+    I --> J{"Which event?<br/>(every send carries PushLink.match(match.clubId, matchId))"}
     J -- SCHEDULED --> K0a["PushNotificationService.sendMatchScheduled"]
     J -- RESCHEDULED --> K0b["PushNotificationService.sendMatchRescheduled"]
     J -- CANCELLED --> K0c["PushNotificationService.sendMatchCancelled"]
@@ -1583,6 +1583,8 @@ graph TD
 ```
 
 Not a route — a shared orchestrator called by §7.1 (a match created), §7.1c (a match's schedule edited), §8.0, §8.1, and §8.2 after their own transaction has already committed, so it opens a transaction of its own purely to read the data the push needs (see `TECHNICAL_DECISIONS.md` §24). Wrapped in a top-level try/catch that logs and swallows any exception (a not-found match, a repository throwing, a push send failing) — this must never propagate back to the use case that triggered it, the same "best-effort" contract as `EmailService`/`PushNotificationService` elsewhere. Recipients are **every active club member**, not scoped to the match's own age group — deliberately broader than the view/edit permissions the rest of the match domain enforces (§7–§8.2); see the developer's note on this in `TECHNICAL_DECISIONS.md` §24. Originally scoped to just the five live-match moments (hence the class's earlier name, `NotifyMatchEventUseCase`) — renamed once the three schedule-change events made "live match" no longer an accurate description of everything it sends.
+
+**Where tapping a push goes** (`TECHNICAL_DECISIONS.md` §58). Every push carries a `PushLink` as its FCM data: the club, plus the most specific of an age group, a team or a match. Every match push opens the match (Match details), including a cancelled or finished one. Being added as staff, or several teams being created at once, opens the age group. One team being created opens that team. Being added to a club opens the club. The app opens the club's screen under the target: My clubs → club → target, or club → target for a single-club user.
 
 ### 8.2c Pause Match (`PauseMatchUseCase`)
 

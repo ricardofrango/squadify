@@ -21,6 +21,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.ricardofrango.squadify.domain.service.SessionEventBus
+import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
+import kotlinx.coroutines.flow.combine
 import com.ricardofrango.squadify.model.StatsFilter
 import com.ricardofrango.squadify.model.SportType
 import org.koin.compose.koinInject
@@ -149,6 +151,25 @@ fun AppNavigation() {
         }
     }
 
+    // A push notification tapped while the app is already running (Android: MainActivity.onNewIntent)
+    // opens here, or after Login if the user is signed out. Splash opens the cold-start one itself, so
+    // nothing happens while it (or a sign-in screen) is showing. See PushLinks.kt / §58.
+    val pushLinkInbox = koinInject<PushLinkInbox>()
+    val getClubsUseCase = koinInject<GetClubsUseCase>()
+    LaunchedEffect(navController) {
+        combine(pushLinkInbox.link, navController.currentBackStackEntryFlow) { link, entry -> link != null && !entry.destination.isBeforeSignIn() }
+            .collect { ready ->
+                if (!ready) return@collect
+                val link = pushLinkInbox.take() ?: return@collect
+                val onlyClubId = try {
+                    getClubsUseCase().singleOrNull()?.id
+                } catch (e: Exception) {
+                    null
+                }
+                navController.openBackStack(pushLinkBackStack(link, onlyClubId))
+            }
+    }
+
     // One horizontal "push" for the whole app: forward, the new screen slides in from the right while
     // the one below drifts a quarter-width left and dims slightly; back is the exact reverse. Leaving
     // the splash screen stays a plain fade -- sliding in from a splash reads as odd.
@@ -194,7 +215,8 @@ fun AppNavigation() {
                     navController.navigate(route) {
                         popUpTo(Screen.Splash) { inclusive = true }
                     }
-                }
+                },
+                onNavigateToBackStack = { screens -> navController.openBackStack(screens) }
             )
         }
 

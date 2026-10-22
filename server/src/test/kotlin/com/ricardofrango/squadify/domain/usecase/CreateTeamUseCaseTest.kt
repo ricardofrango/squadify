@@ -12,6 +12,7 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
+import com.ricardofrango.squadify.model.PushLink
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubMemberSummary
@@ -239,7 +240,7 @@ class CreateTeamUseCaseTest {
 
         useCase(admin.id, request)
 
-        coVerify { pushNotificationService.sendTeamCreated(listOf("token-1"), listOf("Team 1"), "U12", "Test FC") }
+        coVerify { pushNotificationService.sendTeamCreated(listOf("token-1"), PushLink.team(clubIdA, dummyTeam.id), listOf("Team 1"), "U12", "Test FC") }
     }
 
     @Test
@@ -256,6 +257,6 @@ class CreateTeamUseCaseTest {
 
         useCase(admin.id, request)
 
-        coVerify(exactly = 0) { pushNotificationService.sendTeamCreated(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { pushNotificationService.sendTeamCreated(any(), any(), any(), any(), any()) }
     }
 }

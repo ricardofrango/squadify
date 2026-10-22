@@ -8,6 +8,7 @@ import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
+import com.ricardofrango.squadify.model.PushLink
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.CreateTeamsRequest
@@ -101,7 +102,10 @@ class CreateTeamsUseCase(
 
         // Sent after the transaction commits -- a failed/slow push must never roll back team creation.
         if (pushTokens.isNotEmpty()) {
-            pushNotificationService.sendTeamCreated(pushTokens, createdTeams.map { it.name }, ageGroupName, clubName)
+            // One team opens that team; several open their age group, where they're all listed.
+            val link = createdTeams.singleOrNull()?.let { PushLink.team(request.clubId, it.id) }
+                ?: PushLink.ageGroup(request.clubId, request.ageGroupId)
+            pushNotificationService.sendTeamCreated(pushTokens, link, createdTeams.map { it.name }, ageGroupName, clubName)
         }
 
         return createdTeams

@@ -8,6 +8,7 @@ import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.model.PushLink
 import com.ricardofrango.squadify.model.ClubMemberSummary
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Match
@@ -74,7 +75,7 @@ class NotifyMatchEventUseCaseTest {
 
         useCase(matchId, MatchNotificationEvent.KICKOFF)
 
-        coVerify { pushNotificationService.sendMatchKickedOff(listOf("token-1"), team.name, opponent.name) }
+        coVerify { pushNotificationService.sendMatchKickedOff(listOf("token-1"), PushLink.match(clubId, matchId), team.name, opponent.name) }
     }
 
     @Test
@@ -83,7 +84,7 @@ class NotifyMatchEventUseCaseTest {
 
         useCase(matchId, MatchNotificationEvent.GOAL)
 
-        coVerify { pushNotificationService.sendGoalScored(listOf("token-1"), team.name, opponent.name, MatchScore(matchId, 1, 0)) }
+        coVerify { pushNotificationService.sendGoalScored(listOf("token-1"), PushLink.match(clubId, matchId), team.name, opponent.name, MatchScore(matchId, 1, 0)) }
     }
 
     @Test
@@ -92,7 +93,7 @@ class NotifyMatchEventUseCaseTest {
 
         useCase(matchId, MatchNotificationEvent.SCHEDULED)
 
-        coVerify { pushNotificationService.sendMatchScheduled(listOf("token-1"), team.name, opponent.name) }
+        coVerify { pushNotificationService.sendMatchScheduled(listOf("token-1"), PushLink.match(clubId, matchId), team.name, opponent.name) }
     }
 
     @Test
@@ -101,7 +102,7 @@ class NotifyMatchEventUseCaseTest {
 
         useCase(matchId, MatchNotificationEvent.RESCHEDULED)
 
-        coVerify { pushNotificationService.sendMatchRescheduled(listOf("token-1"), team.name, opponent.name) }
+        coVerify { pushNotificationService.sendMatchRescheduled(listOf("token-1"), PushLink.match(clubId, matchId), team.name, opponent.name) }
     }
 
     @Test
@@ -110,7 +111,7 @@ class NotifyMatchEventUseCaseTest {
 
         useCase(matchId, MatchNotificationEvent.CANCELLED)
 
-        coVerify { pushNotificationService.sendMatchCancelled(listOf("token-1"), team.name, opponent.name) }
+        coVerify { pushNotificationService.sendMatchCancelled(listOf("token-1"), PushLink.match(clubId, matchId), team.name, opponent.name) }
     }
 
     @Test
@@ -125,7 +126,7 @@ class NotifyMatchEventUseCaseTest {
 
         useCase(matchId, MatchNotificationEvent.FULL_TIME)
 
-        coVerify(exactly = 0) { pushNotificationService.sendMatchFinished(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { pushNotificationService.sendMatchFinished(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -134,7 +135,7 @@ class NotifyMatchEventUseCaseTest {
 
         useCase("no-such-match", MatchNotificationEvent.HALF_TIME)
 
-        coVerify(exactly = 0) { pushNotificationService.sendHalfTime(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { pushNotificationService.sendHalfTime(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -145,6 +146,6 @@ class NotifyMatchEventUseCaseTest {
         // committed, so a failure here must never surface to that caller.
         useCase(matchId, MatchNotificationEvent.SECOND_HALF_STARTED)
 
-        coVerify(exactly = 0) { pushNotificationService.sendSecondHalfStarted(any(), any(), any()) }
+        coVerify(exactly = 0) { pushNotificationService.sendSecondHalfStarted(any(), any(), any(), any()) }
     }
 }

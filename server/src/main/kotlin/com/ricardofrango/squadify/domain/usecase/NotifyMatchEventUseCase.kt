@@ -9,6 +9,7 @@ import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.model.MatchScore
+import com.ricardofrango.squadify.model.PushLink
 import org.slf4j.LoggerFactory
 
 enum class MatchNotificationEvent {
@@ -44,7 +45,8 @@ class NotifyMatchEventUseCase(
         val teamName: String,
         val opponentName: String,
         val score: MatchScore,
-        val tokens: List<String>
+        val tokens: List<String>,
+        val link: PushLink
     )
 
     suspend operator fun invoke(matchId: String, event: MatchNotificationEvent) {
@@ -61,27 +63,28 @@ class NotifyMatchEventUseCase(
                     teamName = team.name,
                     opponentName = opponent.name,
                     score = matchEventRepository.getScoreByMatch(matchId),
-                    tokens = tokens
+                    tokens = tokens,
+                    link = PushLink.match(match.clubId, matchId)
                 )
             } ?: return
 
             when (event) {
                 MatchNotificationEvent.SCHEDULED ->
-                    pushNotificationService.sendMatchScheduled(context.tokens, context.teamName, context.opponentName)
+                    pushNotificationService.sendMatchScheduled(context.tokens, context.link, context.teamName, context.opponentName)
                 MatchNotificationEvent.RESCHEDULED ->
-                    pushNotificationService.sendMatchRescheduled(context.tokens, context.teamName, context.opponentName)
+                    pushNotificationService.sendMatchRescheduled(context.tokens, context.link, context.teamName, context.opponentName)
                 MatchNotificationEvent.CANCELLED ->
-                    pushNotificationService.sendMatchCancelled(context.tokens, context.teamName, context.opponentName)
+                    pushNotificationService.sendMatchCancelled(context.tokens, context.link, context.teamName, context.opponentName)
                 MatchNotificationEvent.KICKOFF ->
-                    pushNotificationService.sendMatchKickedOff(context.tokens, context.teamName, context.opponentName)
+                    pushNotificationService.sendMatchKickedOff(context.tokens, context.link, context.teamName, context.opponentName)
                 MatchNotificationEvent.HALF_TIME ->
-                    pushNotificationService.sendHalfTime(context.tokens, context.teamName, context.opponentName, context.score)
+                    pushNotificationService.sendHalfTime(context.tokens, context.link, context.teamName, context.opponentName, context.score)
                 MatchNotificationEvent.SECOND_HALF_STARTED ->
-                    pushNotificationService.sendSecondHalfStarted(context.tokens, context.teamName, context.opponentName)
+                    pushNotificationService.sendSecondHalfStarted(context.tokens, context.link, context.teamName, context.opponentName)
                 MatchNotificationEvent.FULL_TIME ->
-                    pushNotificationService.sendMatchFinished(context.tokens, context.teamName, context.opponentName, context.score)
+                    pushNotificationService.sendMatchFinished(context.tokens, context.link, context.teamName, context.opponentName, context.score)
                 MatchNotificationEvent.GOAL ->
-                    pushNotificationService.sendGoalScored(context.tokens, context.teamName, context.opponentName, context.score)
+                    pushNotificationService.sendGoalScored(context.tokens, context.link, context.teamName, context.opponentName, context.score)
             }
         } catch (e: Exception) {
             logger.error("Match notification failed for match {} / {}", matchId, event, e)

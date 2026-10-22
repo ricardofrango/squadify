@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.domain.service
 
 import com.ricardofrango.squadify.model.MatchScore
+import com.ricardofrango.squadify.model.PushLink
 
 /**
  * Best-effort push notifications (Firebase Cloud Messaging) for association events -- the push
@@ -12,6 +13,9 @@ import com.ricardofrango.squadify.model.MatchScore
  * text -- implementations localize by sending a body-localization *key* + those arguments (FCM's own
  * mechanism), letting the client render in its own device locale, rather than the server picking a
  * language. See TECHNICAL_DECISIONS.md §27.
+ *
+ * Every push also carries a [PushLink] -- what tapping it opens (the club, the age group, the team or
+ * the match), sent as the message's data. See TECHNICAL_DECISIONS.md §58.
  */
 interface PushNotificationService {
     /**
@@ -20,14 +24,14 @@ interface PushNotificationService {
      * are responsible for only invoking this with a non-empty [tokens] list (i.e. only for users who
      * actually have at least one registered device).
      */
-    suspend fun sendClubMembershipAdded(tokens: List<String>, clubName: String)
+    suspend fun sendClubMembershipAdded(tokens: List<String>, link: PushLink, clubName: String)
 
     /**
      * Sent to every device in [tokens] when an existing user is added as staff/coach to an age group
      * -- the push equivalent of [EmailService.sendAgeGroupStaffAdded]. Same non-empty-[tokens]
      * contract as [sendClubMembershipAdded].
      */
-    suspend fun sendAgeGroupStaffAdded(tokens: List<String>, ageGroupName: String, clubName: String)
+    suspend fun sendAgeGroupStaffAdded(tokens: List<String>, link: PushLink, ageGroupName: String, clubName: String)
 
     /**
      * Match events, sent to every device in [tokens] -- unlike the association pushes above, these go
@@ -38,14 +42,14 @@ interface PushNotificationService {
      * The first three are schedule changes (a fixture created, rescheduled, or cancelled); the rest
      * are live-match moments.
      */
-    suspend fun sendMatchScheduled(tokens: List<String>, teamName: String, opponentName: String)
-    suspend fun sendMatchRescheduled(tokens: List<String>, teamName: String, opponentName: String)
-    suspend fun sendMatchCancelled(tokens: List<String>, teamName: String, opponentName: String)
-    suspend fun sendMatchKickedOff(tokens: List<String>, teamName: String, opponentName: String)
-    suspend fun sendHalfTime(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore)
-    suspend fun sendSecondHalfStarted(tokens: List<String>, teamName: String, opponentName: String)
-    suspend fun sendMatchFinished(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore)
-    suspend fun sendGoalScored(tokens: List<String>, teamName: String, opponentName: String, score: MatchScore)
+    suspend fun sendMatchScheduled(tokens: List<String>, link: PushLink, teamName: String, opponentName: String)
+    suspend fun sendMatchRescheduled(tokens: List<String>, link: PushLink, teamName: String, opponentName: String)
+    suspend fun sendMatchCancelled(tokens: List<String>, link: PushLink, teamName: String, opponentName: String)
+    suspend fun sendMatchKickedOff(tokens: List<String>, link: PushLink, teamName: String, opponentName: String)
+    suspend fun sendHalfTime(tokens: List<String>, link: PushLink, teamName: String, opponentName: String, score: MatchScore)
+    suspend fun sendSecondHalfStarted(tokens: List<String>, link: PushLink, teamName: String, opponentName: String)
+    suspend fun sendMatchFinished(tokens: List<String>, link: PushLink, teamName: String, opponentName: String, score: MatchScore)
+    suspend fun sendGoalScored(tokens: List<String>, link: PushLink, teamName: String, opponentName: String, score: MatchScore)
 
     /**
      * Sent to every device in [tokens] when one or more teams are created under an age group -- like
@@ -56,5 +60,5 @@ interface PushNotificationService {
      * rather than sending one push per team when several are created at once. Same non-empty-[tokens]
      * contract as [sendClubMembershipAdded].
      */
-    suspend fun sendTeamCreated(tokens: List<String>, teamNames: List<String>, ageGroupName: String, clubName: String)
+    suspend fun sendTeamCreated(tokens: List<String>, link: PushLink, teamNames: List<String>, ageGroupName: String, clubName: String)
 }

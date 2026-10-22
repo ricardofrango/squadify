@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -14,16 +15,44 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
+import com.ricardofrango.squadify.model.PushLink
+import com.ricardofrango.squadify.presentation.navigation.PushLinkInbox
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), KoinComponent {
+
+    private val pushLinkInbox: PushLinkInbox by inject()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        // Not after a rotation or process restore: the intent is the same one, already opened.
+        if (savedInstanceState == null) takePushLink(intent)
 
         setContent {
             RequestNotificationPermission()
             App()
         }
+    }
+
+    // singleTop: a notification tapped while the app is open comes here instead of a second activity.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        takePushLink(intent)
+    }
+
+    /**
+     * A tapped push notification's link (§58), from the intent's extras: Android puts the message's
+     * data there when it shows the notification itself (app in the background), and
+     * SquadifyMessagingService copies it there when the app shows it. Removed afterwards so the same
+     * intent isn't opened twice.
+     */
+    private fun takePushLink(intent: Intent?) {
+        val extras = intent?.extras ?: return
+        val link = PushLink.fromData(PushLink.KEYS.associateWith { extras.getString(it) }) ?: return
+        PushLink.KEYS.forEach(intent::removeExtra)
+        pushLinkInbox.post(link)
     }
 }
 

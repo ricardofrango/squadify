@@ -11,7 +11,16 @@ import com.ricardofrango.squadify.domain.service.EmailService
 import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.model.AddStaffToAgeGroup
 import com.ricardofrango.squadify.model.AddStaffToAgeGroupRequest
+import com.ricardofrango.squadify.model.AgeGroup
+import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.PushLink
+import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.User
+import com.ricardofrango.squadify.model.UserStatus
+import io.mockk.coVerify
+import kotlin.time.Instant
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
@@ -62,5 +71,23 @@ class AddStaffToAgeGroupUseCaseTest {
             useCase("anyone", "no-such-age-group", AddStaffToAgeGroupRequest(staff = emptyList()))
         }
         Unit
+    }
+
+    @Test
+    fun theStaffPushOpensTheAgeGroup() = runBlocking {
+        val coordinator = User("coord", "c@test.com", firstName = "C", lastName = "O", status = UserStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0))
+        val coach = coordinator.copy(id = "coach", email = "coach@test.com")
+        coEvery { ageGroupRepository.getAgeGroupById("ag-1") } returns AgeGroup("ag-1", "club-1", "Sub-12", "s-1", 2014, 2014)
+        coEvery { clubRepository.getClubById("club-1") } returns null
+        coEvery { userRepository.findById("coord") } returns coordinator
+        coEvery { userRepository.findById("coach") } returns coach
+        coEvery { userRepository.getUserRoleInClub("coord", "club-1") } returns ClubRole.COORDINATOR
+        coEvery { userRepository.getUserRolesInClub(listOf("coach"), "club-1") } returns mapOf("coach" to ClubRole.MEMBER)
+        coEvery { ageGroupRepository.addStaffToAgeGroup(any()) } returns true
+        coEvery { fcmTokenRepository.getTokensForUsers(listOf("coach")) } returns mapOf("coach" to listOf("token-1"))
+
+        useCase("coord", "ag-1", AddStaffToAgeGroupRequest(listOf(AddStaffToAgeGroup("coach", TeamRole.COACH))))
+
+        coVerify { pushNotificationService.sendAgeGroupStaffAdded(listOf("token-1"), PushLink.ageGroup("club-1", "ag-1"), "Sub-12", any()) }
     }
 }
