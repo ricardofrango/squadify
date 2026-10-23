@@ -67,8 +67,10 @@ import com.ricardofrango.squadify.presentation.ui.theme.AmberText
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.isoDayNumber
@@ -182,7 +184,7 @@ private fun CreateSessionsContent(
             if (preview == null) {
                 BoxWithConstraints(Modifier.weight(1f)) {
                     val wide = maxWidth >= 600.dp
-                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
+                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding()) {
                         EditorColumns(
                             wide = wide,
                             left = { SlotsSection(state.form, !state.previewing, onFormChange) },
@@ -240,7 +242,7 @@ private fun CreateSessionsContent(
 @Composable
 private fun BottomBar(content: @Composable () -> Unit) {
     Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(horizontal = 20.dp, vertical = 14.dp)) { content() }
+        Column(Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 14.dp)) { content() }
     }
 }
 

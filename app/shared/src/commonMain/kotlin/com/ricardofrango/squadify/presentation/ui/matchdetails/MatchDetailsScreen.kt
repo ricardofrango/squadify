@@ -41,10 +41,12 @@ import com.ricardofrango.squadify.presentation.ui.components.TimePickerSheet
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import androidx.compose.ui.tooling.preview.Preview
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
@@ -189,7 +191,7 @@ private fun MatchDetailsContent(
                 Box(boxModifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
 
             is MatchDetailsUiState.Error ->
-                Column(boxModifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Column(boxModifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     Text(uiState.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(16.dp))
                     Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
@@ -343,13 +345,13 @@ private fun MatchBody(
         val sideCard = details.report != null && maxWidth > maxHeight && maxWidth >= 600.dp
         Row(Modifier.fillMaxSize()) {
             if (sideCard) {
-                Box(Modifier.width(344.dp).padding(start = 24.dp, top = 20.dp)) {
+                Box(Modifier.width(344.dp).padding(start = ScreenPadding.Horizontal, top = ScreenPadding.Top)) {
                     MatchReportCard(details.report!!, onOpenReport)
                 }
             }
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 32.dp),
+                contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top, bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 state.transientError?.let {

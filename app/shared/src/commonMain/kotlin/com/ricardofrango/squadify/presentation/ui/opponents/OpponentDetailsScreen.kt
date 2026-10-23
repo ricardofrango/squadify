@@ -72,6 +72,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
@@ -169,7 +170,7 @@ private fun OpponentDetailsContent(
         when (state) {
             OpponentDetailsUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
             OpponentDetailsUiState.Error -> Column(
-                modifier.padding(32.dp),
+                modifier.screenContentPadding(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -196,7 +197,7 @@ private fun OpponentDetailsContent(
                     }
                 } else {
                     Column(
-                        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         HeaderCard(d)

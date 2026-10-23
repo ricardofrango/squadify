@@ -60,6 +60,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -142,13 +143,13 @@ private fun EditTeamContent(
         val modifier = Modifier.fillMaxSize().padding(padding).background(Color.White)
         when (state) {
             EditTeamUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
-            is EditTeamUiState.Error -> Column(modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            is EditTeamUiState.Error -> Column(modifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                 Text(state.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(16.dp))
                 Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
             }
             is EditTeamUiState.Idle -> Column(
-                modifier.verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 20.dp),
+                modifier.verticalScroll(rememberScrollState()).screenContentPadding(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 OutlinedTextField(

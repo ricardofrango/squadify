@@ -40,6 +40,7 @@ import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.shared.generated.resources.Res
@@ -118,7 +119,7 @@ private fun ChangeEmailContent(
                 .imePadding()
                 .background(Color.White)
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp),
+                .screenContentPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             when (state.step) {

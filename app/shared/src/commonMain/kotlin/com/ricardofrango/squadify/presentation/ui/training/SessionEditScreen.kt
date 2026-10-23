@@ -37,8 +37,10 @@ import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButto
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.AmberText
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -118,7 +120,7 @@ private fun SessionEditContent(
         Column(modifier) {
             BoxWithConstraints(Modifier.weight(1f)) {
                 val wide = maxWidth >= 600.dp
-                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding()) {
                     EditorColumns(
                         wide = wide,
                         left = {
@@ -162,7 +164,7 @@ private fun SessionEditContent(
                 }
             }
             Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(horizontal = 20.dp, vertical = 14.dp)) {
+                Column(Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 14.dp)) {
                     PrimaryLoadingButton(
                         text = stringResource(if (editing) Res.string.btn_save_changes else Res.string.btn_add_session),
                         submittingText = stringResource(Res.string.btn_saving_changes),

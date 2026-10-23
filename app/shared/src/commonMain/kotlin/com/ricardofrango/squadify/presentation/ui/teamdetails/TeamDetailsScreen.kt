@@ -36,10 +36,12 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
@@ -207,7 +209,7 @@ private fun TeamDetailsContent(
                         Box(boxModifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
 
                     is TeamDetailsUiState.Error ->
-                        Column(boxModifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        Column(boxModifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                             Text(uiState.message, color = MaterialTheme.colorScheme.error, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                             Spacer(Modifier.height(16.dp))
                             Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
@@ -220,7 +222,7 @@ private fun TeamDetailsContent(
                         val nextHint = next?.let {
                             stringResource(Res.string.team_first_match_hint, dateLabel(it.dateTime), opponentName(opponentsById, it.opponentId))
                         }
-                        val padding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 20.dp)
+                        val padding = ScreenPadding.Values
                         val listModifier = boxModifier
                         when (tab) {
                             TeamTab.STATS -> LazyColumn(listModifier, state = listStates.getValue(TeamTab.STATS), contentPadding = padding, verticalArrangement = Arrangement.spacedBy(12.dp)) {

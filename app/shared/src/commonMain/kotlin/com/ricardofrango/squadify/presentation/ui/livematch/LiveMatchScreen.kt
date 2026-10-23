@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.livematch
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.datetime.LocalDate
@@ -55,6 +56,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import squadify.app.shared.generated.resources.*
@@ -131,7 +133,7 @@ private fun LoadingBody(onNavigateBack: () -> Unit) {
 private fun ErrorBody(message: String, onNavigateBack: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         ConsoleHeader(title = stringResource(Res.string.title_live_match), subtitle = null, onNavigateBack = onNavigateBack)
-        Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxSize().screenContentPadding(), contentAlignment = Alignment.Center) {
             Text(message, color = Color.White.copy(alpha = 0.8f), textAlign = TextAlign.Center)
         }
     }
@@ -229,7 +231,7 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
 
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(horizontal = ScreenPadding.Horizontal, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
@@ -307,7 +309,7 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
             }
         }
 
-        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 20.dp, vertical = 16.dp)) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp)) {
             state.error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(8.dp))
@@ -683,9 +685,9 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
                     Spacer(Modifier.width(10.dp))
                     clockArea(false)
                 }
-                Box(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) { tabs() }
+                Box(Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 6.dp)) { tabs() }
                 Box(Modifier.weight(1f).fillMaxWidth()) { tabContent(false) }
-                actionBar(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 20.dp, vertical = 16.dp))
+                actionBar(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp))
             }
         }
     }
@@ -793,7 +795,7 @@ private fun PlayerActionSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = CarbonGray) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp).navigationBarsPadding()) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding.Horizontal, vertical = 8.dp).navigationBarsPadding()) {
             when (sheet) {
                 is ActionSheet.PlayerActions -> {
                     val name = "${sheet.row.player.firstName} ${sheet.row.player.lastName}"
@@ -930,14 +932,14 @@ private fun buildDisplayEvents(events: List<MatchEvent>): List<DisplayEvent> {
 @Composable
 private fun EventsTab(displayEvents: List<DisplayEvent>, details: MatchDetails, onDeleteRequest: ((DisplayEvent) -> Unit)?) {
     if (displayEvents.isEmpty()) {
-        Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxSize().screenContentPadding(), contentAlignment = Alignment.Center) {
             Text(stringResource(Res.string.msg_no_events_yet), color = Color.White.copy(alpha = 0.5f), textAlign = TextAlign.Center)
         }
         return
     }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(horizontal = ScreenPadding.Horizontal, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(displayEvents, key = { it.key }) { de ->
@@ -1035,7 +1037,7 @@ private fun SummaryContent(state: LiveMatchUiState.Idle, onNavigateBack: () -> U
         )
 
         Column(
-            Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+            Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -1064,7 +1066,7 @@ private fun SummaryContent(state: LiveMatchUiState.Idle, onNavigateBack: () -> U
         // leaving the pitch -- and straight into the match report, which carries the same minutes.
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(horizontal = ScreenPadding.Horizontal, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item { CompactEvents(details, state.events) }
@@ -1087,7 +1089,7 @@ private fun SummaryContent(state: LiveMatchUiState.Idle, onNavigateBack: () -> U
 
         OutlinedButton(
             onClick = onNavigateBack,
-            modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 20.dp, vertical = 16.dp).height(52.dp),
+            modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp).height(52.dp),
             shape = RoundedCornerShape(14.dp),
             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)

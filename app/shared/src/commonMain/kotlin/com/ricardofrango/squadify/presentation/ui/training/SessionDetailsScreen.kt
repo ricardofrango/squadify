@@ -62,6 +62,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -222,7 +223,7 @@ private fun SessionDetailsContent(
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         BoxWithConstraints(modifier) {
             val wide = maxWidth >= 600.dp
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (details.session.cancelled) CancelledBanner(details, details.canEdit, onRestore)
                 // Once the session has ended, its ratings come first (design 39f).
                 val ended = details.session.ended(now)

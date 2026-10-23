@@ -55,6 +55,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
@@ -131,7 +132,7 @@ private fun SeasonPlanContent(
         val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
         BoxWithConstraints(modifier) {
             val wide = maxWidth >= 600.dp
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatsCard { SeasonTimeline(plans.season, plan?.phases.orEmpty(), today) }
                 if (plan == null) {
                     StatsCard {

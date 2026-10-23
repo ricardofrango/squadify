@@ -5,6 +5,7 @@ import kotlin.time.Instant
 import com.ricardofrango.squadify.domain.usecase.ClubDetails
 import com.ricardofrango.squadify.model.ClubStatus
 import com.ricardofrango.squadify.model.Club
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.material3.AlertDialog
@@ -57,6 +58,7 @@ import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.shared.generated.resources.Res
@@ -127,7 +129,7 @@ private fun Filters(
     onSearchChanged: (String) -> Unit
 ) {
     val details = state.details
-    Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
+    Column(Modifier.fillMaxWidth().padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top, bottom = 20.dp)) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             item {
                 FilterSelector(
@@ -193,7 +195,7 @@ private fun ClubPlayersContent(
         val modifier = Modifier.fillMaxSize().padding(padding).background(Color.White)
         when (val s = state) {
             ClubPlayersUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
-            is ClubPlayersUiState.Error -> Column(modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            is ClubPlayersUiState.Error -> Column(modifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                 Text(s.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(16.dp))
                 Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }

@@ -44,6 +44,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.format
 import kotlinx.datetime.format.MonthNames
@@ -187,7 +188,7 @@ private fun AccountContent(
                 }
             }
             is AccountUiState.Error -> {
-                Column(boxModifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Column(boxModifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     Text(uiState.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(16.dp))
                     Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
@@ -244,7 +245,7 @@ private fun AccountForm(
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .screenContentPadding(),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         ProfileHeader(state, onPhotoPicked, onRemovePhoto)

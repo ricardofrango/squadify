@@ -28,9 +28,11 @@ import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import squadify.app.shared.generated.resources.*
@@ -140,7 +142,7 @@ private fun AddPlayersToAgeGroupContent(
 
             is AddPlayersToAgeGroupUiState.Idle -> if (uiState.ageGroups.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White).padding(24.dp),
+                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White).screenContentPadding(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -165,7 +167,7 @@ private fun AddPlayersToAgeGroupContent(
                         .fillMaxSize()
                         .padding(paddingValues)
                         .background(Color.White)
-                        .padding(horizontal = 24.dp)
+                        .padding(horizontal = ScreenPadding.Horizontal)
                         .padding(top = 16.dp, bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {

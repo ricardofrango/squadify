@@ -34,6 +34,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -262,7 +263,7 @@ private fun CreateAgeGroupsContent(
 
             is CreateAgeGroupsUiState.Idle -> if (uiState.seasons.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White).padding(24.dp),
+                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White).screenContentPadding(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -282,7 +283,7 @@ private fun CreateAgeGroupsContent(
                         .padding(paddingValues)
                         .background(Color.White)
                         .verticalScroll(rememberScrollState())
-                        .padding(24.dp),
+                        .screenContentPadding(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     SeasonField(

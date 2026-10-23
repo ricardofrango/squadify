@@ -51,6 +51,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import org.jetbrains.compose.resources.painterResource
@@ -139,7 +140,7 @@ private fun EditAgeGroupContent(
         val modifier = Modifier.fillMaxSize().padding(padding).background(Color.White)
         when (state) {
             EditAgeGroupUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
-            is EditAgeGroupUiState.Error -> Column(modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            is EditAgeGroupUiState.Error -> Column(modifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                 Text(state.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(16.dp))
                 Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
@@ -165,7 +166,7 @@ private fun EditAgeGroupForm(
     val freeYears = allYears - state.usedByOthers
 
     Column(
-        modifier.verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 20.dp),
+        modifier.verticalScroll(rememberScrollState()).screenContentPadding(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         AgeGroupSpanTypeField(

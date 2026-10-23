@@ -56,8 +56,10 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.jetbrains.compose.resources.painterResource
@@ -173,7 +175,7 @@ private fun ExerciseLibraryContent(
         }
         Column(modifier) {
             if (form != null) {
-                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     state.editing?.let { Text(stringResource(Res.string.msg_used_in_sessions, it.usedCount), style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText) }
                     ExerciseFormFields(form, !state.saving, onFormChange)
                 }
@@ -182,7 +184,7 @@ private fun ExerciseLibraryContent(
             }
             FormErrorLine(state.error)
             Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(horizontal = 20.dp, vertical = 14.dp), horizontalAlignment = Alignment.End) {
+                Column(Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 14.dp), horizontalAlignment = Alignment.End) {
                     if (form != null) {
                         PrimaryLoadingButton(
                             text = stringResource(if (state.editing != null) Res.string.btn_save_changes else Res.string.btn_save_and_add),

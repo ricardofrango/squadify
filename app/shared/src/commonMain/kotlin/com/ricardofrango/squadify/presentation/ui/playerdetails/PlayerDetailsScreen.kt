@@ -5,6 +5,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.OnChromeAccent
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import com.ricardofrango.squadify.model.PlayerTrainingSeason
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.training.PlayerTrainingCard
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
@@ -41,6 +42,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
@@ -161,7 +163,7 @@ private fun PlayerDetailsContent(
                 }
             }
             is PlayerDetailsUiState.Error ->
-                Column(boxModifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Column(boxModifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     Text(uiState.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(16.dp))
                     Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
@@ -188,7 +190,7 @@ private fun PlayerDetailsContent(
 private fun PlayerHeaderBand(profile: PlayerProfile) {
     val player = profile.player
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         PersonPhoto(
@@ -278,7 +280,7 @@ private fun PlayerBody(
             PlayerTrainingCard(it)
         }
     } }
-    val padding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 24.dp)
+    val padding = ScreenPadding.Values
 
     // Landscape (30e): totals and Player info on the left, the match list beside them.
     BoxWithConstraints(modifier) {

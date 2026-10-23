@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeHighlight
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import squadify.app.shared.generated.resources.msg_player_removed_age_group
 import org.jetbrains.compose.resources.getString
@@ -31,6 +32,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -250,7 +252,7 @@ private fun AgeGroupDetailsContent(
                         Box(boxModifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
 
                     is AgeGroupDetailsUiState.Error ->
-                        Column(boxModifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        Column(boxModifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                             Text(uiState.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                             Spacer(Modifier.height(16.dp))
                             Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
@@ -269,7 +271,7 @@ private fun AgeGroupDetailsContent(
                                 opponentsById[it.opponentId]?.let { o -> o.shortName ?: o.name } ?: "—"
                             )
                         }
-                        val padding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 20.dp)
+                        val padding = ScreenPadding.Values
                         when (tab) {
                             AgeGroupTab.STATS -> AgeGroupStatsTab(
                                 details = d, recordState = recordState, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,

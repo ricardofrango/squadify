@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.ClubStatus
 import com.ricardofrango.squadify.model.Club
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
@@ -351,7 +352,7 @@ private fun AgeGroupsFilterSection(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 20.dp),
+            .padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top, bottom = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -376,7 +377,7 @@ private fun AgeGroupList(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 8.dp),
+        contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, bottom = ScreenPadding.Bottom, top = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(ageGroups) { ageGroup ->
@@ -449,7 +450,7 @@ private fun TeamFilterSection(
 ) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
+        contentPadding = ScreenPadding.Values,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -540,7 +541,7 @@ private fun TeamList(teams: List<Team>, onNavigateToTeam: (String) -> Unit) {
     // NoTeamsState (which also offers a coordinator the "create a team" action).
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 8.dp),
+        contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, bottom = ScreenPadding.Bottom, top = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(teams) { team ->
@@ -562,7 +563,7 @@ internal fun PlayerList(
     // NoPlayersState (which also offers the right "add players" action).
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 8.dp),
+        contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, bottom = ScreenPadding.Bottom, top = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(players) { player ->

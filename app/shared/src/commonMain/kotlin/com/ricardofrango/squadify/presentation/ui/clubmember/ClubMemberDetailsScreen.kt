@@ -86,6 +86,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
@@ -245,7 +246,7 @@ private fun ClubMemberDetailsContent(
                     CircularProgressIndicator(color = PitchGreen)
                 }
 
-                ClubMemberDetailsUiState.Error -> Column(Modifier.fillMaxSize().padding(16.dp)) {
+                ClubMemberDetailsUiState.Error -> Column(Modifier.fillMaxSize().screenContentPadding()) {
                     StatsCard(contentPadding = 16.dp) {
                         StatsMessage(stringResource(Res.string.member_load_failed_title), stringResource(Res.string.member_load_failed_body), onRetry = onRetry)
                     }
@@ -270,7 +271,7 @@ private fun ClubMemberDetailsContent(
                             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = inClub)
                         }
                     } else {
-                        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             contact()
                             inClub()
                         }
@@ -278,7 +279,7 @@ private fun ClubMemberDetailsContent(
                 }
 
                 is ClubMemberDetailsUiState.Invite -> Column(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 14.dp),
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     InviteCard(state, onResend, onCancelInvite)

@@ -130,6 +130,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -335,7 +336,7 @@ private fun EditClubContent(
 
                     is EditClubUiState.Error -> {
                         Column(
-                            modifier = boxModifier.padding(24.dp),
+                            modifier = boxModifier.screenContentPadding(),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
@@ -508,7 +509,7 @@ private fun PermissionsForm(
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .screenContentPadding(),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         Text(
@@ -704,7 +705,7 @@ private fun ClubDetailsForm(
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .screenContentPadding(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         ClubIdentityHeader(state = state, onLogoPicked = onLogoPicked, onRemoveLogo = onRemoveLogo)

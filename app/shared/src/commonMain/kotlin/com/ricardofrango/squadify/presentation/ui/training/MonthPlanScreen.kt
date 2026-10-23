@@ -44,6 +44,7 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -127,7 +128,7 @@ private fun MonthPlanContent(
             MonthContextStrip(plans, month)
             BoxWithConstraints(Modifier.weight(1f)) {
                 val wide = maxWidth >= 600.dp
-                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     val planPart: @Composable () -> Unit = {
                         if (plan == null) {
                             StatsCard {

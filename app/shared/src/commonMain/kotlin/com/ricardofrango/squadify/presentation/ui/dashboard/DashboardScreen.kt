@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.ui.dashboard
 
 import kotlin.time.Instant
 import com.ricardofrango.squadify.model.ClubStatus
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
@@ -28,6 +29,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.hexColor
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -67,7 +69,7 @@ fun DashboardScreen(
 private fun ClubList(clubs: List<Club>, onNavigateToClub: (String) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(24.dp),
+        contentPadding = ScreenPadding.Values,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(clubs) { club ->
@@ -150,7 +152,7 @@ private fun SportBadge(sport: SportType) {
 @Composable
 private fun ErrorState(error: String, onRetry: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier.fillMaxSize().screenContentPadding(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -229,7 +231,7 @@ private fun DashboardContent(
                                         text = state.error,
                                         color = MaterialTheme.colorScheme.error,
                                         style = MaterialTheme.typography.bodySmall,
-                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 8.dp)
                                     )
                                 }
                                 Box(modifier = Modifier.weight(1f)) {

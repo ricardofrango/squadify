@@ -56,6 +56,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.btn_create_season
 import squadify.app.shared.generated.resources.btn_creating_season
@@ -273,7 +274,7 @@ private fun CreateSeasonContent(
                         .padding(paddingValues)
                         .background(Color.White)
                         .verticalScroll(rememberScrollState())
-                        .padding(24.dp),
+                        .screenContentPadding(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     SectionLabel(stringResource(Res.string.label_season_type))

@@ -52,6 +52,7 @@ import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
@@ -125,7 +126,7 @@ private fun RatePlayersContent(
             return@Scaffold
         }
         Column(modifier) {
-            LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            LazyColumn(Modifier.weight(1f), contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 item {
                     Text(
                         stringResource(if (ratings.ratingsOpen) Res.string.msg_rate_intro else Res.string.msg_ratings_not_open),

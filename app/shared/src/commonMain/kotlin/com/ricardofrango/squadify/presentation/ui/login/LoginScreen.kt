@@ -37,6 +37,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import squadify.app.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
 
@@ -183,7 +184,7 @@ private fun LoginContent(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 32.dp, vertical = 32.dp),
+                        .padding(horizontal = ScreenPadding.Horizontal, vertical = 32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(

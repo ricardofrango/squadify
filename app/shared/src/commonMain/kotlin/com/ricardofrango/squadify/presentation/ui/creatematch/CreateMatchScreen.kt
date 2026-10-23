@@ -34,9 +34,11 @@ import com.ricardofrango.squadify.presentation.ui.opponents.OpponentLogo
 import com.ricardofrango.squadify.presentation.ui.opponents.opponentSubline
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -157,7 +159,7 @@ private fun CreateMatchContent(
 
             is CreateMatchUiState.Error ->
                 Column(
-                    boxModifier.padding(24.dp),
+                    boxModifier.screenContentPadding(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -207,7 +209,7 @@ private fun CreateMatchForm(
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .screenContentPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // ---- Team ----
@@ -322,7 +324,7 @@ private fun CreateMatchForm(
             // padded by Scaffold's own paddingValues, which (with no bottomBar slot in use) already
             // reserves the bottom system-bar inset -- adding it again pushed the button up an extra
             // inset's worth, leaving a large empty gap below it.
-            Box(Modifier.padding(24.dp)) {
+            Box(Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp)) {
                 PrimaryLoadingButton(
                     text = Res.string.btn_schedule_match,
                     submittingText = Res.string.btn_scheduling_match,

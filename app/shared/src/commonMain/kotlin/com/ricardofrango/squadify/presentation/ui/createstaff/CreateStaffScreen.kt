@@ -27,6 +27,7 @@ import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
@@ -146,7 +147,7 @@ private fun CreateStaffContent(
             // Fixed header: intro + "add row" -- stays put as the list below grows, instead of
             // scrolling out of reach.
             Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
@@ -170,7 +171,7 @@ private fun CreateStaffContent(
                     .weight(1f)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp),
+                    .padding(horizontal = ScreenPadding.Horizontal),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 rows.forEachIndexed { index, row ->
@@ -189,7 +190,7 @@ private fun CreateStaffContent(
 
             // Fixed footer: validation summary + submit -- always reachable without scrolling.
             Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (anyEmailInvalid) {
