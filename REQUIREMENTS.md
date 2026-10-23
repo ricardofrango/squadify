@@ -149,6 +149,28 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - Both can be filtered by match type (All / Official / Tournament / Friendly; unselected segments show 5 letters and a ".", the selected one its full name, animated), and ratings are shown to staff only (see `TECHNICAL_DECISIONS.md` §43).
 
     - [x] **Live minutes played** (design 36): the live console's Squad tab shows each player's minutes so far, live, with a bar against the fair share, the current spell ("on for 18'") or "off since", and amber flags for players below the share or not played yet; the bench sorts fewest minutes first. Substitutions are unlimited and in any direction (rolling subs in 7- and 9-a-side), and the substitution pickers list candidates with their minutes. Half time shows first-half totals and who's furthest below the share. The clock has a real pause button and is tapped to correct it. Full time shows a minutes table and links to the match report. See `TECHNICAL_DECISIONS.md` §45.
+    - [ ] **Live pitch view** (next; the developer's spec, 2026-10-23; design: the "Squadify Pitch View" canvas): the live console shows our team on a pitch, not only as a list.
+      - **No separate setup screen.** Opening a game that hasn't started goes straight to the live console. The game can only kick off once every position on the pitch has a player.
+        - Before kick-off the pitch starts **empty**: every slot is a dashed "+".
+        - Tapping an empty slot opens a bottom sheet of the called-up players who aren't placed yet; picking one puts them there.
+        - Tapping a placed player before kick-off lets the coach replace them or take them off the pitch.
+        - Players not placed are the bench.
+        - Next to the formation chip, a **half-length chip** ("30 min"; options 20 / 25 / 30 / 40 / 45, or the match length for a one-half game) replaces the setup screen's picker. It's gone once the game starts.
+      - **Tabs:** Pitch (opened first), Squad (the minutes list, as today) and Events (as today).
+      - **Layout:** the goalkeeper in the penalty area. The rest of the pitch is three equal zones, defence, midfield and attack. Each zone is split into as many equal slots as the formation has players there, and each player stands in the centre of their slot. For example, 2-3-1 in 7-a-side: two defenders, each centred in half of the defensive zone; three midfielders in thirds of the middle zone; one striker in the centre of the attacking zone.
+      - **Formation:** written "D-M-A" (defenders-midfielders-attackers). The three numbers plus the goalkeeper must make the team size, so 2-3-1 (6 + 1) for 7-a-side.
+      - **Default formation** for every team, from its size: 5-a-side 1-2-1, 7-a-side 2-3-1, 9-a-side 2-4-2, 11-a-side 4-4-2.
+      - **Changing formation:** the "Change" sheet has a text field, the sum as a hint, quick picks and an inline error. The new formation is refused unless the numbers add up. Saving a team's own formations comes later.
+      - **Re-shaping keeps the slot order.** Slots are numbered goalkeeper, defence, midfield, attack, and each player keeps their slot number when the formation changes. For example, going from 2-3-1 to 1-3-2: slot 3 moves from defence to midfield, slot 6 from midfield to attack, and everyone else stays put. Moving players to their right positions is up to the coach.
+      - **Saved and synced:** the formation and who is in each slot are saved with the game. Every staff device shows the same pitch live, and the starting formation fills the match report's tactic.
+      - **Player tokens:** each player on the pitch shows their photo (or the placeholder), the shirt number, the name under it, a small bar for their minutes so far and a booking mark. Tapping one opens today's player sheet: goal (then the assister), own goal, yellow, red, substitution. The sheet gets a header with the photo, number, position and minutes on the pitch.
+      - **Drag and drop:**
+        - Drag a bench player onto an empty slot to place them (before kick-off).
+        - Drag a bench player onto a player on the pitch to substitute them (during the game); the incoming player takes the outgoing player's slot.
+        - Drag one player on the pitch onto another to swap their positions.
+      - **Bench and sent off:** the bench is a row under the pitch. A sent-off player leaves the pitch, is shown apart, and leaves an empty slot.
+      - **Match buttons:** Kick-off, then Half-time, then Start 2nd half, then Full-time, as a full-width bar at the bottom, as today.
+      - **Direction:** the scoreboard keeps the app's rule (home team on the left, our club on the left on neutral ground). The pitch puts our goal on our scoreboard side: the left in landscape, the bottom in portrait. In landscape only, a flip button mirrors the pitch on that device. It never changes the scoreboard.
 - [ ] **Phase 6: Dashboards & Aggregated Summaries**: Role-specific overview endpoints.
     - [/] **Super Admin Summary**: Global platform health (Total clubs, active users, system logs).
     - [/] **Club Admin Summary**: Club overview (Total players/teams, financial status placeholder, upcoming matches).
