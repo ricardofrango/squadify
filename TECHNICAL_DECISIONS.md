@@ -2867,6 +2867,7 @@ Per the developer, 2026-10-23: screens padded their content differently (16, 20,
 Per the developer, 2026-10-23: adding or removing a player used to save straight away, one request each, and a failed request left the list in a confusing state (an optimistic change rolled back).
 
 - **Draft:** the call-up on screen (`MatchDetailsUiState.Idle.selectedIds`) starts as the saved one. Adding or removing only changes it on screen. "Save call-up" sends the whole list (`ManageCallUpsUseCase`, batch replace) and reloads, which makes it the saved call-up. A failed save keeps the draft and shows the error.
+- **Leaving with unsaved changes:** going back (the top bar's arrow or the system back) while the draft differs from the saved call-up asks "Discard unsaved changes?" first (`hasUnsavedCallUp`, `NavigationBackHandler`), like Club settings.
 - **Minimum:** the team's size (how many start, so the same number kickoff needs), or 11 for a team without one (`MatchDetails.minimumCallUp()`).
 - **The rules** (`callUpView` in `CallUpRules.kt`, tested in `CallUpRulesTest`, with a preview per case):
   - **Manages call-ups (`MANAGE_CALL_UPS`):** the editor. "Save call-up" is disabled below the minimum, with a hint saying how many are needed. It's enabled while the draft differs from the saved call-up. Once they match again, including after undoing changes, the button is "Start match" if the viewer may start the game, otherwise there's no button.
