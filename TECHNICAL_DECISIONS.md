@@ -584,7 +584,7 @@ all three without either wrongly exposing "Edit" to staff or wrongly hiding call
 them. `GetMatchDetailsUseCase` now returns two non-throwing permission probes:
 - `canManage` (coach+ only, unchanged): gates the "Edit" action on the Details section only.
 - `canManageMatchDay` (coach **or** staff, new): gates call-up management (the "Available" pool section,
-  the squad-size hint, the inert "remind" text) and the bottom action bar that opens the live match
+  the squad-size hint; an inert "Remind" link was removed on 2026-10-23, since reminders belong with the deferred parent/player notifications) and the bottom action bar that opens the live match
   screen (`onEnterLiveMatch`).
 
 Both are still further gated by `match.status != FINISHED` client-side, same as before the split -- a

@@ -383,11 +383,6 @@ private fun MatchBody(
                         Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
                         SortChip(stringResource(Res.string.label_position_field), state.sort == CallUpSort.POSITION) { onSortSelected(CallUpSort.POSITION) }
                         SortChip(stringResource(Res.string.label_sort_name), state.sort == CallUpSort.NAME) { onSortSelected(CallUpSort.NAME) }
-                        if (canManageCallUps) {
-                            Spacer(Modifier.weight(1f))
-                            // TODO: reminders aren't wired yet -- kept inert per the design.
-                            Text(stringResource(Res.string.label_remind), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = PitchGreen.copy(alpha = 0.5f))
-                        }
                     }
                 }
                 if (canManageCallUps && counts.calledUp < RECOMMENDED_SQUAD) {

@@ -369,7 +369,6 @@
     <string name="btn_save">Save</string>
     <string name="label_match_directions">Directions</string>
     <string name="label_call_up">Call-up</string>
-    <string name="label_remind">Remind</string>
     <string name="label_available">Available</string>
     <string name="label_available_from_pool">from the %1$s pool</string>
     <string name="label_callup_summary">%1$d/%2$d called up</string>
