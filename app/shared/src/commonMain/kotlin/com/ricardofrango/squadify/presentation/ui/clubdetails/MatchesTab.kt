@@ -54,7 +54,7 @@ import kotlin.time.Clock
 @Composable
 fun MatchesTab(
     state: ClubDetailsUiState.Idle,
-    viewModel: ClubDetailsViewModel,
+    actions: ClubDetailsActions,
     onGoToAgeGroups: () -> Unit,
     onNavigateToMatch: (matchId: String) -> Unit
 ) {
@@ -67,9 +67,9 @@ fun MatchesTab(
     // (re)connect so a stale list is corrected immediately rather than waiting for the next socket
     // event, since the socket only pushes -- it carries no backlog for whatever changed while away.
     DisposableEffect(details.club.id) {
-        viewModel.refreshMatches(details.club.id)
-        viewModel.connectToClubMatchesUpdates(details.club.id)
-        onDispose { viewModel.disconnectFromClubMatchesUpdates() }
+        actions.refreshMatches(details.club.id)
+        actions.connectToClubMatchesUpdates(details.club.id)
+        onDispose { actions.disconnectFromClubMatchesUpdates() }
     }
 
     // The club has no fixtures at all -- the full empty state, no filter row.
@@ -141,7 +141,7 @@ fun MatchesTab(
                         ?: stringResource(Res.string.label_all_seasons),
                     options = listOf(null to stringResource(Res.string.label_all_seasons)) +
                         details.seasons.map { it.id to it.name },
-                    onOptionSelected = viewModel::onMatchesSeasonSelected
+                    onOptionSelected = actions::onMatchesSeasonSelected
                 )
             }
             item {
@@ -150,7 +150,7 @@ fun MatchesTab(
                         ?: stringResource(Res.string.label_all_ages),
                     options = listOf(null to stringResource(Res.string.label_all_ages)) +
                         ageGroupsForSeason.map { it.id to it.name },
-                    onOptionSelected = viewModel::onMatchesAgeGroupSelected
+                    onOptionSelected = actions::onMatchesAgeGroupSelected
                 )
             }
             item {
@@ -159,7 +159,7 @@ fun MatchesTab(
                         ?: stringResource(Res.string.label_all_teams),
                     options = listOf(null to stringResource(Res.string.label_all_teams)) +
                         teamsForFilter.map { it.id to it.name },
-                    onOptionSelected = viewModel::onMatchesTeamSelected
+                    onOptionSelected = actions::onMatchesTeamSelected
                 )
             }
         }
@@ -169,13 +169,13 @@ fun MatchesTab(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             StatusChip(Res.string.matches_status_upcoming, state.matchesStatus == MatchesStatusFilter.UPCOMING) {
-                viewModel.onMatchesStatusSelected(MatchesStatusFilter.UPCOMING)
+                actions.onMatchesStatusSelected(MatchesStatusFilter.UPCOMING)
             }
             StatusChip(Res.string.matches_status_finished, state.matchesStatus == MatchesStatusFilter.FINISHED) {
-                viewModel.onMatchesStatusSelected(MatchesStatusFilter.FINISHED)
+                actions.onMatchesStatusSelected(MatchesStatusFilter.FINISHED)
             }
             StatusChip(Res.string.matches_status_all, state.matchesStatus == MatchesStatusFilter.ALL) {
-                viewModel.onMatchesStatusSelected(MatchesStatusFilter.ALL)
+                actions.onMatchesStatusSelected(MatchesStatusFilter.ALL)
             }
         }
 

@@ -1,5 +1,20 @@
 package com.ricardofrango.squadify.presentation.ui.livematch
 
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import androidx.compose.ui.tooling.preview.Preview
+import kotlinx.datetime.LocalDate
+import kotlin.time.Duration
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import com.ricardofrango.squadify.model.CallUpStatus
+import com.ricardofrango.squadify.model.MatchCallUp
+import com.ricardofrango.squadify.model.PlayerPosition
+import com.ricardofrango.squadify.model.SeasonType
+import com.ricardofrango.squadify.model.Season
+import com.ricardofrango.squadify.model.AgeGroup
+import com.ricardofrango.squadify.model.Team
+import com.ricardofrango.squadify.model.Opponent
+import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.presentation.ui.theme.OnDarkSurface
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
@@ -123,10 +138,10 @@ private fun ErrorBody(message: String, onNavigateBack: () -> Unit) {
 }
 
 @Composable
-private fun IdleBody(state: LiveMatchUiState.Idle, viewModel: LiveMatchViewModel, onNavigateBack: () -> Unit, onOpenReport: (String, Boolean) -> Unit) {
+private fun IdleBody(state: LiveMatchUiState.Idle, actions: LiveMatchActions, onNavigateBack: () -> Unit, onOpenReport: (String, Boolean) -> Unit) {
     when (state.details.match.status) {
-        MatchStatus.SCHEDULED -> PreKickoffContent(state, viewModel, onNavigateBack)
-        MatchStatus.LIVE, MatchStatus.HALF_TIME -> LiveConsoleContent(state, viewModel, onNavigateBack)
+        MatchStatus.SCHEDULED -> PreKickoffContent(state, actions, onNavigateBack)
+        MatchStatus.LIVE, MatchStatus.HALF_TIME -> LiveConsoleContent(state, actions, onNavigateBack)
         MatchStatus.FINISHED, MatchStatus.CANCELLED -> SummaryContent(state, onNavigateBack, onOpenReport)
     }
 }
@@ -192,7 +207,7 @@ private fun LiveBadge() {
 // ---------------------------------------------------------------------------------------------
 
 @Composable
-private fun PreKickoffContent(state: LiveMatchUiState.Idle, viewModel: LiveMatchViewModel, onNavigateBack: () -> Unit) {
+private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchActions, onNavigateBack: () -> Unit) {
     val details = state.details
     val canManage = details.canManageLiveMatch
     val requiredCount = details.team.teamSize ?: 11
@@ -299,7 +314,7 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, viewModel: LiveMatch
             }
             if (canManage) {
                 Button(
-                    onClick = { viewModel.onKickOff(starting.map { it.callUp.playerId }, halfLength) },
+                    onClick = { actions.onKickOff(starting.map { it.callUp.playerId }, halfLength) },
                     enabled = starting.size == requiredCount && !state.isSubmitting,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(16.dp),
@@ -447,7 +462,7 @@ private fun firstHalfLabel(halfLength: Int, endMinute: Int): String =
     if (endMinute > halfLength) "$halfLength+${endMinute - halfLength}'" else "$endMinute'"
 
 @Composable
-private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatchViewModel, onNavigateBack: () -> Unit) {
+private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchActions, onNavigateBack: () -> Unit) {
     val details = state.details
     val canManage = details.canManageLiveMatch
     val status = details.match.status
@@ -480,14 +495,14 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
     LaunchedEffect(state.flash) {
         if (state.flash != null) {
             delay(5_000)
-            viewModel.clearFlash()
+            actions.clearFlash()
         }
     }
 
     // A clock correction is server-persisted (onSetMinute) -- once applied, this recomputes straight
     // from the corrected details.match like any other change.
     // Counted on the server's clock (see LiveMatchViewModel.clockOffset), since every match timestamp is the server's.
-    val clockOffset by viewModel.clockOffset.collectAsStateWithLifecycle()
+    val clockOffset by actions.clockOffset.collectAsStateWithLifecycle()
     val displaySeconds = remember(tick, details.match, clockOffset) {
         elapsedMatchSeconds(details.match, Clock.System.now() + clockOffset)
     }
@@ -551,7 +566,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
                 enabled = !state.isSubmitting,
                 large = large,
                 onClockClick = { showClockSheet = true },
-                onPauseToggle = { if (isPaused) viewModel.onResumeClock() else viewModel.onPauseClock() }
+                onPauseToggle = { if (isPaused) actions.onResumeClock() else actions.onPauseClock() }
             )
         }
     }
@@ -568,15 +583,15 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
                     Text(details.opponent.shortName ?: details.opponent.name, color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            ScoreBox(state.score.ourScore, PitchGreen, enabled = scoreEnabled) { viewModel.onLogGoal(displayMinute, isOpponent = false) }
+            ScoreBox(state.score.ourScore, PitchGreen, enabled = scoreEnabled) { actions.onLogGoal(displayMinute, isOpponent = false) }
             Spacer(Modifier.width(6.dp))
-            ScoreBox(state.score.opponentScore, CarbonGray, enabled = scoreEnabled) { viewModel.onLogGoal(displayMinute, isOpponent = true) }
+            ScoreBox(state.score.opponentScore, CarbonGray, enabled = scoreEnabled) { actions.onLogGoal(displayMinute, isOpponent = true) }
         }
     }
     val tabs: @Composable () -> Unit = {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            TabPill(stringResource(Res.string.tab_squad), state.selectedTab == LiveMatchTab.SQUAD) { viewModel.onTabSelected(LiveMatchTab.SQUAD) }
-            TabPill(stringResource(Res.string.tab_events_count, state.events.size), state.selectedTab == LiveMatchTab.EVENTS) { viewModel.onTabSelected(LiveMatchTab.EVENTS) }
+            TabPill(stringResource(Res.string.tab_squad), state.selectedTab == LiveMatchTab.SQUAD) { actions.onTabSelected(LiveMatchTab.SQUAD) }
+            TabPill(stringResource(Res.string.tab_events_count, state.events.size), state.selectedTab == LiveMatchTab.EVENTS) { actions.onTabSelected(LiveMatchTab.EVENTS) }
         }
     }
     val tabContent: @Composable (sideBySide: Boolean) -> Unit = { sideBySide ->
@@ -608,7 +623,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
                     when {
                         // Half time: the only way on is the second half.
                         status == MatchStatus.HALF_TIME -> Button(
-                            onClick = { viewModel.onResumeSecondHalf() },
+                            onClick = { actions.onResumeSecondHalf() },
                             enabled = !state.isSubmitting,
                             modifier = Modifier.weight(1f).height(52.dp),
                             shape = RoundedCornerShape(14.dp),
@@ -680,7 +695,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
             initialMinute = displayMinute,
             isPaused = isPaused,
             onSave = {
-                viewModel.onSetMinute(it)
+                actions.onSetMinute(it)
                 showClockSheet = false
             },
             onDismiss = { showClockSheet = false }
@@ -690,7 +705,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
         ConfirmDialog(
             title = stringResource(Res.string.msg_confirm_half_time_title),
             body = stringResource(Res.string.msg_confirm_half_time_body),
-            onConfirm = { showHalfTimeConfirm = false; viewModel.onHalfTime() },
+            onConfirm = { showHalfTimeConfirm = false; actions.onHalfTime() },
             onDismiss = { showHalfTimeConfirm = false }
         )
     }
@@ -698,7 +713,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
         ConfirmDialog(
             title = stringResource(Res.string.msg_confirm_full_time_title),
             body = stringResource(Res.string.msg_confirm_full_time_body),
-            onConfirm = { showFullTimeConfirm = false; viewModel.onFullTime() },
+            onConfirm = { showFullTimeConfirm = false; actions.onFullTime() },
             onDismiss = { showFullTimeConfirm = false }
         )
     }
@@ -708,8 +723,8 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
             body = stringResource(Res.string.msg_confirm_delete_event_body),
             onConfirm = {
                 when (de) {
-                    is DisplayEvent.Simple -> viewModel.onDeleteEvent(de.event.id)
-                    is DisplayEvent.Substitution -> viewModel.onDeleteSubstitution(de.out.id, de.into.id)
+                    is DisplayEvent.Simple -> actions.onDeleteEvent(de.event.id)
+                    is DisplayEvent.Substitution -> actions.onDeleteSubstitution(de.out.id, de.into.id)
                 }
                 deletingEvent = null
             },
@@ -722,7 +737,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
             squad = squad,
             minutes = minutes,
             minute = displayMinute,
-            viewModel = viewModel,
+            actions = actions,
             enabled = !state.isSubmitting,
             onDismiss = { actionSheet = null },
             onChangeSheet = { actionSheet = it }
@@ -771,7 +786,7 @@ private fun PlayerActionSheet(
     squad: DerivedSquad,
     minutes: SquadMinutes,
     minute: Int,
-    viewModel: LiveMatchViewModel,
+    actions: LiveMatchActions,
     enabled: Boolean,
     onDismiss: () -> Unit,
     onChangeSheet: (ActionSheet?) -> Unit
@@ -795,13 +810,13 @@ private fun PlayerActionSheet(
                             onChangeSheet(ActionSheet.PickAssist(sheet.row.player.id, name, minute))
                         }
                         SheetAction(stringResource(Res.string.action_log_yellow_card), enabled = enabled) {
-                            viewModel.onLogEvent(EventType.YELLOW_CARD, sheet.row.player.id, minute); onDismiss()
+                            actions.onLogEvent(EventType.YELLOW_CARD, sheet.row.player.id, minute); onDismiss()
                         }
                         SheetAction(stringResource(Res.string.action_log_red_card), enabled = enabled) {
-                            viewModel.onLogEvent(EventType.RED_CARD, sheet.row.player.id, minute); onDismiss()
+                            actions.onLogEvent(EventType.RED_CARD, sheet.row.player.id, minute); onDismiss()
                         }
                         SheetAction(stringResource(Res.string.action_log_own_goal), enabled = enabled) {
-                            viewModel.onLogEvent(EventType.OWN_GOAL, sheet.row.player.id, minute); onDismiss()
+                            actions.onLogEvent(EventType.OWN_GOAL, sheet.row.player.id, minute); onDismiss()
                         }
                         if (squad.bench.isNotEmpty()) {
                             SheetAction(stringResource(Res.string.action_substitute_off), enabled = enabled) {
@@ -816,7 +831,7 @@ private fun PlayerActionSheet(
                 }
 
                 is ActionSheet.PickComingOn -> SubstitutionPicker(sheet.outgoing, takingOff = true, candidates = squad.bench, minutes = minutes, enabled = enabled) { incoming ->
-                    viewModel.onSubstitute(sheet.outgoing.id, incoming.id, minute); onDismiss()
+                    actions.onSubstitute(sheet.outgoing.id, incoming.id, minute); onDismiss()
                 }
 
                 is ActionSheet.PickAssist -> {
@@ -828,17 +843,17 @@ private fun PlayerActionSheet(
                     )
                     // The assist is optional: "No assist" first, then the scorer's teammates on the pitch.
                     SheetAction(stringResource(Res.string.action_no_assist), enabled = enabled) {
-                        viewModel.onLogPlayerGoal(sheet.scorerId, assistPlayerId = null, minute = sheet.minute); onDismiss()
+                        actions.onLogPlayerGoal(sheet.scorerId, assistPlayerId = null, minute = sheet.minute); onDismiss()
                     }
                     squad.onPitch.filter { it.player.id != sheet.scorerId }.forEach { row ->
                         SheetAction(pickerLabel(row.player), enabled = enabled) {
-                            viewModel.onLogPlayerGoal(sheet.scorerId, assistPlayerId = row.player.id, minute = sheet.minute); onDismiss()
+                            actions.onLogPlayerGoal(sheet.scorerId, assistPlayerId = row.player.id, minute = sheet.minute); onDismiss()
                         }
                     }
                 }
 
                 is ActionSheet.PickGoingOff -> SubstitutionPicker(sheet.incoming, takingOff = false, candidates = squad.onPitch, minutes = minutes, enabled = enabled) { outgoing ->
-                    viewModel.onSubstitute(outgoing.id, sheet.incoming.id, minute); onDismiss()
+                    actions.onSubstitute(outgoing.id, sheet.incoming.id, minute); onDismiss()
                 }
             }
         }
@@ -1100,3 +1115,71 @@ private fun NameCrest(logoUrl: String, name: String) {
     ClubLogo(logoUrl, name.take(2).uppercase(), size = 20.dp, background = Color.White, initialsColor = DeepCarbon)
     Spacer(Modifier.width(6.dp))
 }
+
+/** Does nothing: the previews' stand-in for [LiveMatchViewModel]. */
+private object PreviewLiveMatchActions : LiveMatchActions {
+    override val clockOffset: StateFlow<Duration> = MutableStateFlow(Duration.ZERO)
+    override fun clearFlash() {}
+    override fun onDeleteEvent(eventId: String) {}
+    override fun onDeleteSubstitution(outEventId: String, inEventId: String) {}
+    override fun onFullTime() {}
+    override fun onHalfTime() {}
+    override fun onKickOff(startingPlayerIds: List<String>, halfLengthMinutes: Int) {}
+    override fun onLogEvent(type: EventType, playerId: String, minute: Int) {}
+    override fun onLogGoal(minute: Int, isOpponent: Boolean) {}
+    override fun onLogPlayerGoal(scorerId: String, assistPlayerId: String?, minute: Int) {}
+    override fun onPauseClock() {}
+    override fun onResumeClock() {}
+    override fun onResumeSecondHalf() {}
+    override fun onSetMinute(minute: Int) {}
+    override fun onSubstitute(outPlayerId: String, inPlayerId: String, minute: Int) {}
+    override fun onTabSelected(tab: LiveMatchTab) {}
+}
+
+private fun previewLiveDetails(match: Match): MatchDetails {
+    fun player(id: String, first: String, last: String, number: Int?, position: PlayerPosition) =
+        Player(id, "c1", first, last, LocalDate(2011, 3, 12), shirtNumber = number, active = true, position = position)
+    val squad = listOf(
+        player("p1", "Ana", "Costa", 1, PlayerPosition.GOALKEEPER),
+        player("p2", "Tomás", "Bragança", 10, PlayerPosition.MIDFIELD),
+        player("p3", "Beatriz", "Almeida", 9, PlayerPosition.STRIKER),
+        player("p4", "Rui", "Perestrelo", null, PlayerPosition.DEFENDER)
+    )
+    return MatchDetails(
+        match = match,
+        opponent = Opponent(id = "o1", clubId = "c1", name = "Sporting Youth", shortName = "Sporting"),
+        team = Team(id = "t1", clubId = "c1", ageGroupId = "ag1", seasonId = "s1", name = "Sub-15 A", active = true, teamSize = 3),
+        ageGroup = AgeGroup(id = "ag1", clubId = "c1", name = "Sub-15", seasonId = "s1", startYear = 2011, endYear = 2011),
+        season = Season("s1", "c1", "26/27", SeasonType.EUROPEAN_YEAR, LocalDate(2026, 7, 1), LocalDate(2027, 6, 30), true),
+        callUps = squad.mapIndexed { i, p ->
+            MatchCallUpWithPlayer(MatchCallUp(id = "cu$i", matchId = match.id, playerId = p.id, status = CallUpStatus.CALLED_UP, isStarting = i < 3), p)
+        },
+        poolPlayers = emptyList(),
+        canManageMatch = true,
+        canManageCallUps = true,
+        canManageLiveMatch = true,
+        score = MatchScore(match.id, 1, 0)
+    )
+}
+
+@Preview
+@Composable
+private fun LiveMatchPreKickoffPreview() {
+    val match = Match(id = "m1", clubId = "c1", teamId = "t1", opponentId = "o1", dateTime = Instant.fromEpochMilliseconds(0), status = MatchStatus.SCHEDULED)
+    SquadifyTheme {
+        IdleBody(LiveMatchUiState.Idle(details = previewLiveDetails(match), score = MatchScore("m1", 0, 0)), PreviewLiveMatchActions, {}, { _, _ -> })
+    }
+}
+
+@Preview
+@Composable
+private fun LiveMatchConsolePreview() {
+    val match = Match(
+        id = "m1", clubId = "c1", teamId = "t1", opponentId = "o1", dateTime = Instant.fromEpochMilliseconds(0),
+        status = MatchStatus.LIVE, halfLengthMinutes = 30, kickoffAt = Instant.fromEpochMilliseconds(0)
+    )
+    SquadifyTheme {
+        IdleBody(LiveMatchUiState.Idle(details = previewLiveDetails(match), score = MatchScore("m1", 1, 0)), PreviewLiveMatchActions, {}, { _, _ -> })
+    }
+}
+

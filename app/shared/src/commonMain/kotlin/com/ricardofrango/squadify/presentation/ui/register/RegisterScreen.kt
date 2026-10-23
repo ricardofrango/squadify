@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.register
 
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.text.KeyboardActions
 import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import androidx.compose.ui.text.input.KeyboardType
@@ -56,6 +58,124 @@ fun RegisterScreen(
         }
     }
 
+    RegisterContent(
+        uiState = uiState,
+        onNavigateBack = onNavigateBack,
+        onRegister = viewModel::onRegisterClicked
+    )
+}
+
+/** One white, rounded card grouping related fields under a small caps section label. */
+@Composable
+private fun FormSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = SectionShape,
+        color = Color.White,
+        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.1f))
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = title.uppercase(),
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = CarbonGray.copy(alpha = 0.5f)
+            )
+            content()
+        }
+    }
+}
+
+@Composable
+private fun FormField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    isError: Boolean,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    isPassword: Boolean = false,
+    keyboardType: KeyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text,
+    // Set on the last field only: its keyboard key creates the account, like the button. Every other
+    // field's key moves to the next one.
+    onSubmit: (() -> Unit)? = null
+) {
+    var passwordVisible by remember { mutableStateOf(false) }
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        modifier = modifier.fillMaxWidth(),
+        visualTransformation = if (!isPassword || passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+        trailingIcon = if (isPassword) {
+            {
+                PasswordVisibilityToggle(
+                    visible = passwordVisible,
+                    onToggle = { passwordVisible = !passwordVisible }
+                )
+            }
+        } else {
+            null
+        },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = if (onSubmit != null) ImeAction.Done else ImeAction.Next),
+        keyboardActions = onSubmit?.let { submitKeyboardActions(it) } ?: KeyboardActions.Default,
+        shape = FieldShape,
+        isError = isError,
+        enabled = enabled,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = DeepCarbon,
+            unfocusedTextColor = DeepCarbon,
+            focusedBorderColor = PitchGreen,
+            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
+            focusedLabelColor = PitchGreen,
+            unfocusedLabelColor = Color.Gray
+        )
+    )
+}
+
+/** A 4-segment strength meter, filled left-to-right by how many of a handful of simple
+ * complexity checks the password passes. Purely a visual nudge -- the server is the source of
+ * truth for whether a password is actually acceptable. */
+@Composable
+private fun PasswordStrengthBar(password: String) {
+    val filledSegments = remember(password) { passwordStrengthSegments(password) }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        repeat(PASSWORD_STRENGTH_SEGMENTS) { index ->
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(4.dp)
+                    .background(
+                        color = if (index < filledSegments) PitchGreen else Color.Gray.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(2.dp)
+                    )
+            )
+        }
+    }
+}
+
+private fun passwordStrengthSegments(password: String): Int {
+    if (password.isEmpty()) return 0
+    var score = 1
+    if (password.length >= 8) score++
+    if (password.any { it.isDigit() }) score++
+    if (password.length >= 12 || password.any { !it.isLetterOrDigit() }) score++
+    return score.coerceIn(1, PASSWORD_STRENGTH_SEGMENTS)
+}
+
+/** Register's layout, without the ViewModel, so it can be previewed. */
+@Composable
+private fun RegisterContent(
+    uiState: RegisterUiState,
+    onNavigateBack: () -> Unit,
+    onRegister: (firstName: String, lastName: String, email: String, phone: String, password: String, confirmPassword: String) -> Unit
+) {
     // Local UI State for form fields
     var firstName by rememberSaveable { mutableStateOf("") }
     var lastName by rememberSaveable { mutableStateOf("") }
@@ -164,7 +284,7 @@ fun RegisterScreen(
                         isError = errorMessage != null,
                         enabled = enabled,
                         isPassword = true,
-                        onSubmit = { viewModel.onRegisterClicked(firstName, lastName, email, phone, password, confirmPassword) }
+                        onSubmit = { onRegister(firstName, lastName, email, phone, password, confirmPassword) }
                     )
                 }
 
@@ -175,7 +295,7 @@ fun RegisterScreen(
                     submittingText = Res.string.btn_registering,
                     isLoading = uiState is RegisterUiState.Loading,
                     onClick = {
-                        viewModel.onRegisterClicked(
+                        onRegister(
                             firstName, lastName, email, phone, password, confirmPassword
                         )
                     }
@@ -199,106 +319,14 @@ fun RegisterScreen(
     }
 }
 
-/** One white, rounded card grouping related fields under a small caps section label. */
+@Preview
 @Composable
-private fun FormSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = SectionShape,
-        color = Color.White,
-        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.1f))
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = title.uppercase(),
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                color = CarbonGray.copy(alpha = 0.5f)
-            )
-            content()
-        }
-    }
+private fun RegisterPreview() {
+    SquadifyTheme { RegisterContent(RegisterUiState.Idle(), {}, { _, _, _, _, _, _ -> }) }
 }
 
+@Preview
 @Composable
-private fun FormField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    isError: Boolean,
-    enabled: Boolean,
-    modifier: Modifier = Modifier,
-    isPassword: Boolean = false,
-    keyboardType: KeyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text,
-    // Set on the last field only: its keyboard key creates the account, like the button. Every other
-    // field's key moves to the next one.
-    onSubmit: (() -> Unit)? = null
-) {
-    var passwordVisible by remember { mutableStateOf(false) }
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        modifier = modifier.fillMaxWidth(),
-        visualTransformation = if (!isPassword || passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-        trailingIcon = if (isPassword) {
-            {
-                PasswordVisibilityToggle(
-                    visible = passwordVisible,
-                    onToggle = { passwordVisible = !passwordVisible }
-                )
-            }
-        } else {
-            null
-        },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = if (onSubmit != null) ImeAction.Done else ImeAction.Next),
-        keyboardActions = onSubmit?.let { submitKeyboardActions(it) } ?: KeyboardActions.Default,
-        shape = FieldShape,
-        isError = isError,
-        enabled = enabled,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = DeepCarbon,
-            unfocusedTextColor = DeepCarbon,
-            focusedBorderColor = PitchGreen,
-            unfocusedBorderColor = Color.Gray.copy(alpha = 0.3f),
-            focusedLabelColor = PitchGreen,
-            unfocusedLabelColor = Color.Gray
-        )
-    )
-}
-
-/** A 4-segment strength meter, filled left-to-right by how many of a handful of simple
- * complexity checks the password passes. Purely a visual nudge -- the server is the source of
- * truth for whether a password is actually acceptable. */
-@Composable
-private fun PasswordStrengthBar(password: String) {
-    val filledSegments = remember(password) { passwordStrengthSegments(password) }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        repeat(PASSWORD_STRENGTH_SEGMENTS) { index ->
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(4.dp)
-                    .background(
-                        color = if (index < filledSegments) PitchGreen else Color.Gray.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(2.dp)
-                    )
-            )
-        }
-    }
-}
-
-private fun passwordStrengthSegments(password: String): Int {
-    if (password.isEmpty()) return 0
-    var score = 1
-    if (password.length >= 8) score++
-    if (password.any { it.isDigit() }) score++
-    if (password.length >= 12 || password.any { !it.isLetterOrDigit() }) score++
-    return score.coerceIn(1, PASSWORD_STRENGTH_SEGMENTS)
+private fun RegisterErrorPreview() {
+    SquadifyTheme { RegisterContent(RegisterUiState.Idle(error = "An account with this email already exists"), {}, { _, _, _, _, _, _ -> }) }
 }

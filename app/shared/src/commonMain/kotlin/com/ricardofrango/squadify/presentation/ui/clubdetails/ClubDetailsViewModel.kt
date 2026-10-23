@@ -28,6 +28,27 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+/**
+ * What the club screen can ask of its ViewModel -- an interface so the screen's layout
+ * ([ClubDetailsContent]) can be previewed with a stand-in that does nothing.
+ */
+interface ClubDetailsActions {
+    fun loadClubDetails(clubId: String, forceReload: Boolean = false)
+    fun loadMoreAccount()
+    fun logout(onLoggedOut: () -> Unit)
+    fun onTabSelected(index: Int)
+    fun onSeasonSelected(seasonId: String?)
+    fun onAgeGroupSelected(ageGroupId: String?)
+    fun onAgeGroupsSeasonSelected(seasonId: String)
+    fun onMatchesSeasonSelected(seasonId: String?)
+    fun onMatchesAgeGroupSelected(ageGroupId: String?)
+    fun onMatchesTeamSelected(teamId: String?)
+    fun onMatchesStatusSelected(status: MatchesStatusFilter)
+    fun connectToClubMatchesUpdates(clubId: String)
+    fun disconnectFromClubMatchesUpdates()
+    fun refreshMatches(clubId: String)
+}
+
 class ClubDetailsViewModel(
     private val getClubDetailsUseCase: GetClubDetailsUseCase,
     private val getClubHomeUseCase: GetClubHomeUseCase,
@@ -40,7 +61,7 @@ class ClubDetailsViewModel(
     private val logoutUseCase: LogoutUseCase,
     private val appConfig: AppConfig,
     private val clubThemeStore: ClubThemeStore
-) : ViewModel() {
+) : ViewModel(), ClubDetailsActions {
 
     // ---- The "More" panel (design 37): who's signed in, how many clubs they're in, the app version ----
 
@@ -51,7 +72,7 @@ class ClubDetailsViewModel(
      * Loads the panel's account header and club count each time it opens (the photo or name may have
      * changed in Account); the last one stays on screen meanwhile.
      */
-    fun loadMoreAccount() {
+    override fun loadMoreAccount() {
         viewModelScope.launch {
             try {
                 val user = getCurrentUserUseCase()
@@ -64,7 +85,7 @@ class ClubDetailsViewModel(
     }
 
     /** Signs out (as Account does) and then calls [onLoggedOut] to leave for Sign in. */
-    fun logout(onLoggedOut: () -> Unit) {
+    override fun logout(onLoggedOut: () -> Unit) {
         viewModelScope.launch {
             try { logoutUseCase() } catch (e: Exception) { /* the session is cleared locally regardless */ }
             onLoggedOut()
@@ -85,7 +106,7 @@ class ClubDetailsViewModel(
     private val _state = MutableStateFlow<ClubDetailsUiState>(ClubDetailsUiState.Loading)
     val state: StateFlow<ClubDetailsUiState> = _state.asStateFlow()
 
-    fun loadClubDetails(clubId: String, forceReload: Boolean = false) {
+    override fun loadClubDetails(clubId: String, forceReload: Boolean) {
         val currentState = _state.value
 
         // If we already have details for this club, don't trigger a full reload/flicker -- unless the
@@ -181,7 +202,7 @@ class ClubDetailsViewModel(
      * match's own detail screen, where the club-matches socket was disconnected while away and may
      * have missed updates in the meantime (see MatchesTab's DisposableEffect).
      */
-    fun refreshMatches(clubId: String) {
+    override fun refreshMatches(clubId: String) {
         viewModelScope.launch {
             val (matches, matchScores) = fetchMatchesWithScores(clubId)
             _state.update { state ->
@@ -198,7 +219,7 @@ class ClubDetailsViewModel(
      * match). Covers both a match's own fields (status, schedule -- [ClubMatchesUpdate.match]/
      * [ClubMatchesUpdate.deletedMatchId]) and, per goal, its score badge ([ClubMatchesUpdate.score]).
      */
-    fun connectToClubMatchesUpdates(clubId: String) {
+    override fun connectToClubMatchesUpdates(clubId: String) {
         disconnectFromClubMatchesUpdates()
         clubMatchesJob = viewModelScope.launch {
             try {
@@ -233,12 +254,12 @@ class ClubDetailsViewModel(
         }
     }
 
-    fun disconnectFromClubMatchesUpdates() {
+    override fun disconnectFromClubMatchesUpdates() {
         clubMatchesJob?.cancel()
         clubMatchesJob = null
     }
 
-    fun onSeasonSelected(seasonId: String?) {
+    override fun onSeasonSelected(seasonId: String?) {
         _state.update { state ->
             if (state is ClubDetailsUiState.Idle) {
                 val newState = state.copy(selectedSeasonId = seasonId)
@@ -247,7 +268,7 @@ class ClubDetailsViewModel(
         }
     }
 
-    fun onAgeGroupSelected(ageGroupId: String?) {
+    override fun onAgeGroupSelected(ageGroupId: String?) {
         _state.update { state ->
             if (state is ClubDetailsUiState.Idle) {
                 val newState = state.copy(selectedAgeGroupId = ageGroupId)
@@ -256,7 +277,7 @@ class ClubDetailsViewModel(
         }
     }
 
-    fun onAgeGroupsSeasonSelected(seasonId: String) {
+    override fun onAgeGroupsSeasonSelected(seasonId: String) {
         _state.update { state ->
             if (state is ClubDetailsUiState.Idle) state.copy(selectedAgeGroupsSeasonId = seasonId) else state
         }
@@ -264,20 +285,20 @@ class ClubDetailsViewModel(
 
     // ---- Matches tab filters (the list itself is filtered + grouped in the screen) ----
 
-    fun onMatchesSeasonSelected(seasonId: String?) = updateMatchesIdle {
+    override fun onMatchesSeasonSelected(seasonId: String?) = updateMatchesIdle {
         // A different season -> the picked age group / team may not belong to it; reset them.
         it.copy(selectedMatchesSeasonId = seasonId, selectedMatchesAgeGroupId = null, selectedMatchesTeamId = null)
     }
 
-    fun onMatchesAgeGroupSelected(ageGroupId: String?) = updateMatchesIdle {
+    override fun onMatchesAgeGroupSelected(ageGroupId: String?) = updateMatchesIdle {
         it.copy(selectedMatchesAgeGroupId = ageGroupId, selectedMatchesTeamId = null)
     }
 
-    fun onMatchesTeamSelected(teamId: String?) = updateMatchesIdle {
+    override fun onMatchesTeamSelected(teamId: String?) = updateMatchesIdle {
         it.copy(selectedMatchesTeamId = teamId)
     }
 
-    fun onMatchesStatusSelected(status: MatchesStatusFilter) = updateMatchesIdle {
+    override fun onMatchesStatusSelected(status: MatchesStatusFilter) = updateMatchesIdle {
         it.copy(matchesStatus = status)
     }
 
@@ -285,7 +306,7 @@ class ClubDetailsViewModel(
         _state.update { if (it is ClubDetailsUiState.Idle) block(it) else it }
     }
 
-    fun onTabSelected(index: Int) {
+    override fun onTabSelected(index: Int) {
         _state.update { state ->
             if (state is ClubDetailsUiState.Idle) {
                 state.copy(selectedTab = index)
@@ -306,11 +327,7 @@ class ClubDetailsViewModel(
     }
 
     // Helper functions to get contextual options for the UI
-    fun getAvailableAgeGroupsForTeams(state: ClubDetailsUiState.Idle): List<AgeGroup> {
-        return state.details?.ageGroups?.filter { 
-            state.selectedSeasonId == null || it.seasonId == state.selectedSeasonId 
-        } ?: emptyList()
-    }
+    fun getAvailableAgeGroupsForTeams(state: ClubDetailsUiState.Idle): List<AgeGroup> = state.availableAgeGroupsForTeams()
 
     fun getAvailableTeamsForTeams(state: ClubDetailsUiState.Idle): List<Team> {
         return state.details?.teams?.filter { 
@@ -320,11 +337,5 @@ class ClubDetailsViewModel(
     }
 
     /** Age groups for the season selected on the Age Groups tab, youngest (highest birth year) first. */
-    fun getAgeGroupsForAgeGroupsTab(state: ClubDetailsUiState.Idle): List<AgeGroup> {
-        val seasonId = state.selectedAgeGroupsSeasonId ?: state.details?.seasons?.firstOrNull()?.id
-        return state.details?.ageGroups
-            ?.filter { it.seasonId == seasonId }
-            ?.sortedByDescending { it.endYear }
-            ?: emptyList()
-    }
+    fun getAgeGroupsForAgeGroupsTab(state: ClubDetailsUiState.Idle): List<AgeGroup> = state.ageGroupsForAgeGroupsTab()
 }

@@ -1,5 +1,12 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import kotlinx.datetime.LocalDate
+import kotlin.time.Instant
+import com.ricardofrango.squadify.domain.usecase.ClubDetails
+import com.ricardofrango.squadify.model.ClubStatus
+import com.ricardofrango.squadify.model.Club
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -81,7 +88,6 @@ fun ClubPlayersScreen(
         LaunchedEffect(clubId) { viewModel.load(clubId) }
         LaunchedEffect(refresh) { if (refresh) viewModel.load(clubId, force = true) }
 
-        val idle = state as? ClubPlayersUiState.Idle
         val snackbarHostState = remember { SnackbarHostState() }
         val disabledText = Res.string.msg_player_disabled
         LaunchedEffect(viewModel) {
@@ -95,76 +101,31 @@ fun ClubPlayersScreen(
                 snackbarHostState.showSnackbar(result.fold({ getString(reactivatedText, it) }, { it.message.orEmpty() }))
             }
         }
-        var confirmDisable by remember { mutableStateOf<Player?>(null) }
-        Scaffold(
-            containerColor = Color.White,
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            topBar = {
-                FMTopBar(
-                    title = stringResource(Res.string.tab_players),
-                    subtitle = idle?.details?.club?.name,
-                    onNavigateBack = onNavigateBack
-                )
-            }
-        ) { padding ->
-            val modifier = Modifier.fillMaxSize().padding(padding).background(Color.White)
-            when (val s = state) {
-                ClubPlayersUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
-                is ClubPlayersUiState.Error -> Column(modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Text(s.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(16.dp))
-                    Button(onClick = { viewModel.load(clubId, force = true) }) { Text(stringResource(Res.string.btn_retry)) }
-                }
-                is ClubPlayersUiState.Idle -> Column(modifier) {
-                    val clubName = s.details.club.name
-                    Filters(s, viewModel)
-                    when {
-                        s.seasonId != null && s.availableAgeGroups.isEmpty() ->
-                            NoAgeGroupsState(
-                                canEditClub = s.details.canEditClub,
-                                onCreateAgeGroupClick = { onCreateAgeGroups(clubName, s.details.club.sport, s.seasonId) }
-                            )
-                        s.players.isEmpty() ->
-                            NoPlayersState(
-                                canEditClub = s.details.canEditClub,
-                                hasClubPlayers = s.details.players.isNotEmpty(),
-                                onAddPlayersToClub = { onCreatePlayers(clubName) },
-                                onAddPlayersToAgeGroup = { onAddPlayersToAgeGroup(clubName) }
-                            )
-                        // Disabling and reactivating follow the club's MANAGE_PLAYER_STATUS setting, like the server.
-                        // Reactivating needs no confirmation: it only lets the player be added to a pool again.
-                        else -> PlayerList(
-                            s.players,
-                            onOpenPlayer,
-                            onDisable = if (s.details.canManagePlayerStatus) { player -> confirmDisable = player } else null,
-                            onReactivate = if (s.details.canManagePlayerStatus) { player -> viewModel.reactivate(player.id) } else null
-                        )
-                    }
-                }
-            }
-        }
-        confirmDisable?.let { player ->
-            AlertDialog(
-                onDismissRequest = { confirmDisable = null },
-                title = { Text(stringResource(Res.string.title_disable_player, "${player.firstName} ${player.lastName}")) },
-                text = { Text(stringResource(Res.string.msg_disable_player)) },
-                confirmButton = {
-                    TextButton(onClick = { confirmDisable = null; viewModel.disable(player.id) }) {
-                        Text(stringResource(Res.string.btn_disable), color = AlertRed, fontWeight = FontWeight.Bold)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { confirmDisable = null }) {
-                        Text(stringResource(Res.string.btn_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            )
-        }
+        ClubPlayersContent(
+            state = state,
+            snackbarHostState = snackbarHostState,
+            onNavigateBack = onNavigateBack,
+            onOpenPlayer = onOpenPlayer,
+            onCreateAgeGroups = onCreateAgeGroups,
+            onCreatePlayers = onCreatePlayers,
+            onAddPlayersToAgeGroup = onAddPlayersToAgeGroup,
+            onRetry = { viewModel.load(clubId, force = true) },
+            onSeasonSelected = viewModel::onSeasonSelected,
+            onAgeGroupSelected = viewModel::onAgeGroupSelected,
+            onSearchChanged = viewModel::onSearchChanged,
+            onDisable = viewModel::disable,
+            onReactivate = viewModel::reactivate
+        )
     }
 }
 
 @Composable
-private fun Filters(state: ClubPlayersUiState.Idle, viewModel: ClubPlayersViewModel) {
+private fun Filters(
+    state: ClubPlayersUiState.Idle,
+    onSeasonSelected: (String?) -> Unit,
+    onAgeGroupSelected: (String?) -> Unit,
+    onSearchChanged: (String) -> Unit
+) {
     val details = state.details
     Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -172,21 +133,21 @@ private fun Filters(state: ClubPlayersUiState.Idle, viewModel: ClubPlayersViewMo
                 FilterSelector(
                     selectedOption = details.seasons.find { it.id == state.seasonId }?.name ?: stringResource(Res.string.label_all_seasons),
                     options = listOf(null to stringResource(Res.string.label_all_seasons)) + details.seasons.map { it.id to it.name },
-                    onOptionSelected = viewModel::onSeasonSelected
+                    onOptionSelected = onSeasonSelected
                 )
             }
             item {
                 FilterSelector(
                     selectedOption = details.ageGroups.find { it.id == state.ageGroupId }?.name ?: stringResource(Res.string.label_all_ages),
                     options = listOf(null to stringResource(Res.string.label_all_ages)) + state.availableAgeGroups.map { it.id to it.name },
-                    onOptionSelected = viewModel::onAgeGroupSelected
+                    onOptionSelected = onAgeGroupSelected
                 )
             }
         }
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(
             value = state.query,
-            onValueChange = viewModel::onSearchChanged,
+            onValueChange = onSearchChanged,
             label = { Text(stringResource(Res.string.label_search_players)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -196,6 +157,119 @@ private fun Filters(state: ClubPlayersUiState.Idle, viewModel: ClubPlayersViewMo
                 focusedBorderColor = PitchGreen, unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
                 focusedLabelColor = PitchGreen, unfocusedLabelColor = CarbonGray
             )
+        )
+    }
+}
+
+/** Club players' layout, without the ViewModel, so it can be previewed. */
+@Composable
+private fun ClubPlayersContent(
+    state: ClubPlayersUiState,
+    snackbarHostState: SnackbarHostState,
+    onNavigateBack: () -> Unit,
+    onOpenPlayer: (playerId: String) -> Unit,
+    onCreateAgeGroups: (clubName: String, sport: SportType, seasonId: String?) -> Unit,
+    onCreatePlayers: (clubName: String) -> Unit,
+    onAddPlayersToAgeGroup: (clubName: String) -> Unit,
+    onRetry: () -> Unit,
+    onSeasonSelected: (String?) -> Unit,
+    onAgeGroupSelected: (String?) -> Unit,
+    onSearchChanged: (String) -> Unit,
+    onDisable: (playerId: String) -> Unit,
+    onReactivate: (playerId: String) -> Unit
+) {
+    var confirmDisable by remember { mutableStateOf<Player?>(null) }
+    Scaffold(
+        containerColor = Color.White,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            FMTopBar(
+                title = stringResource(Res.string.tab_players),
+                subtitle = (state as? ClubPlayersUiState.Idle)?.details?.club?.name,
+                onNavigateBack = onNavigateBack
+            )
+        }
+    ) { padding ->
+        val modifier = Modifier.fillMaxSize().padding(padding).background(Color.White)
+        when (val s = state) {
+            ClubPlayersUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
+            is ClubPlayersUiState.Error -> Column(modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Text(s.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
+            }
+            is ClubPlayersUiState.Idle -> Column(modifier) {
+                val clubName = s.details.club.name
+                Filters(s, onSeasonSelected, onAgeGroupSelected, onSearchChanged)
+                when {
+                    s.seasonId != null && s.availableAgeGroups.isEmpty() ->
+                        NoAgeGroupsState(
+                            canEditClub = s.details.canEditClub,
+                            onCreateAgeGroupClick = { onCreateAgeGroups(clubName, s.details.club.sport, s.seasonId) }
+                        )
+                    s.players.isEmpty() ->
+                        NoPlayersState(
+                            canEditClub = s.details.canEditClub,
+                            hasClubPlayers = s.details.players.isNotEmpty(),
+                            onAddPlayersToClub = { onCreatePlayers(clubName) },
+                            onAddPlayersToAgeGroup = { onAddPlayersToAgeGroup(clubName) }
+                        )
+                    // Disabling and reactivating follow the club's MANAGE_PLAYER_STATUS setting, like the server.
+                    // Reactivating needs no confirmation: it only lets the player be added to a pool again.
+                    else -> PlayerList(
+                        s.players,
+                        onOpenPlayer,
+                        onDisable = if (s.details.canManagePlayerStatus) { player -> confirmDisable = player } else null,
+                        onReactivate = if (s.details.canManagePlayerStatus) { player -> onReactivate(player.id) } else null
+                    )
+                }
+            }
+        }
+    }
+    confirmDisable?.let { player ->
+        AlertDialog(
+            onDismissRequest = { confirmDisable = null },
+            title = { Text(stringResource(Res.string.title_disable_player, "${player.firstName} ${player.lastName}")) },
+            text = { Text(stringResource(Res.string.msg_disable_player)) },
+            confirmButton = {
+                TextButton(onClick = { confirmDisable = null; onDisable(player.id) }) {
+                    Text(stringResource(Res.string.btn_disable), color = AlertRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDisable = null }) {
+                    Text(stringResource(Res.string.btn_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun ClubPlayersPreview() {
+    val club = Club("c1", "CD Ribamar", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL)
+    val players = listOf(
+        Player("p1", "c1", "Tomás", "Bragança", LocalDate(2012, 3, 1), shirtNumber = 10, active = true),
+        Player("p2", "c1", "Rui", "Perestrelo", LocalDate(2012, 5, 9), active = true),
+        Player("p3", "c1", "Duarte", "Nabais", LocalDate(2012, 8, 21), shirtNumber = 7, active = false)
+    )
+    val details = ClubDetails(club, emptyList(), players, emptyList(), emptyList(), emptyList(), canEditClub = true, canManagePlayerStatus = true)
+    SquadifyTheme {
+        ClubPlayersContent(
+            ClubPlayersUiState.Idle(details), remember { SnackbarHostState() },
+            {}, {}, { _, _, _ -> }, {}, {}, {}, {}, {}, {}, {}, {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun ClubPlayersErrorPreview() {
+    SquadifyTheme {
+        ClubPlayersContent(
+            ClubPlayersUiState.Error("Couldn't load the players"), remember { SnackbarHostState() },
+            {}, {}, { _, _, _ -> }, {}, {}, {}, {}, {}, {}, {}, {}
         )
     }
 }

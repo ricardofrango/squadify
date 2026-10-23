@@ -36,6 +36,8 @@ import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import squadify.app.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
 fun LoginScreen(
@@ -58,7 +60,6 @@ fun LoginScreen(
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
-    val errorMessage = (uiState as? LoginUiState.Idle)?.error
     LaunchedEffect(passwordResetEmail) {
         if (passwordResetEmail != null) { email = passwordResetEmail; password = "" }
     }
@@ -80,6 +81,37 @@ fun LoginScreen(
         }
     }
 
+    LoginContent(
+        uiState = uiState,
+        email = email,
+        password = password,
+        passwordVisible = passwordVisible,
+        passwordResetEmail = passwordResetEmail,
+        onEmailChange = { email = it },
+        onPasswordChange = { password = it },
+        onTogglePasswordVisible = { passwordVisible = !passwordVisible },
+        onLogin = { viewModel.onLoginClicked(email, password) },
+        onForgotPassword = { onNavigateToForgotPassword(email) },
+        onRegister = onNavigateToRegister
+    )
+}
+
+/** The sign-in screen's layout, without the ViewModel, so it can be previewed. */
+@Composable
+private fun LoginContent(
+    uiState: LoginUiState,
+    email: String,
+    password: String,
+    passwordVisible: Boolean,
+    passwordResetEmail: String?,
+    onEmailChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onTogglePasswordVisible: () -> Unit,
+    onLogin: () -> Unit,
+    onForgotPassword: () -> Unit,
+    onRegister: () -> Unit
+) {
+    val errorMessage = (uiState as? LoginUiState.Idle)?.error
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -100,11 +132,11 @@ fun LoginScreen(
             // to its own content (no weighted spacer above the card) so it can't blow past the
             // fixed budget a fixed-fraction card would otherwise reserve for it.
             Spacer(modifier = Modifier.height(20.dp))
-
+    
             SquadifyMark(size = 64.dp)
-
+    
             Spacer(modifier = Modifier.height(10.dp))
-
+    
             Text(
                 text = stringResource(Res.string.app_name),
                 style = MaterialTheme.typography.displaySmall.copy(
@@ -113,18 +145,18 @@ fun LoginScreen(
                     letterSpacing = 1.sp
                 )
             )
-
+    
             Spacer(modifier = Modifier.height(6.dp))
-
+    
             Text(
                 text = stringResource(Res.string.msg_precision_management),
                 style = MaterialTheme.typography.bodyLarge.copy(
                     color = Color.White.copy(alpha = 0.7f)
                 )
             )
-
+    
             Spacer(modifier = Modifier.height(20.dp))
-
+    
             // Login Card -- takes all remaining height, so it isn't pinned to a fixed fraction of
             // the screen that the header above could overflow.
             Surface(
@@ -149,9 +181,9 @@ fun LoginScreen(
                         ),
                         modifier = Modifier.align(Alignment.Start)
                     )
-
+    
                     Spacer(modifier = Modifier.height(8.dp))
-
+    
                     // Error Message, reserved space between the title and the email field so a
                     // failed login doesn't shift the fields down underneath the user's fingers.
                     Box(
@@ -174,10 +206,10 @@ fun LoginScreen(
                             )
                         }
                     }
-
+    
                     OutlinedTextField(
                         value = email,
-                        onValueChange = { email = it },
+                        onValueChange = onEmailChange,
                         label = { Text(stringResource(Res.string.label_email)) },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -201,23 +233,23 @@ fun LoginScreen(
                             unfocusedLabelColor = Color.Gray
                         )
                     )
-
+    
                     Spacer(modifier = Modifier.height(8.dp))
-
+    
                     OutlinedTextField(
                         value = password,
-                        onValueChange = { password = it },
+                        onValueChange = onPasswordChange,
                         label = { Text(stringResource(Res.string.label_password)) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .semantics { contentType = ContentType.Password },
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                        keyboardActions = submitKeyboardActions { viewModel.onLoginClicked(email, password) },
+                        keyboardActions = submitKeyboardActions { onLogin() },
                         trailingIcon = {
                             PasswordVisibilityToggle(
                                 visible = passwordVisible,
-                                onToggle = { passwordVisible = !passwordVisible }
+                                onToggle = onTogglePasswordVisible
                             )
                         },
                         singleLine = true,
@@ -238,9 +270,9 @@ fun LoginScreen(
                             unfocusedLabelColor = Color.Gray
                         )
                     )
-
+    
                     TextButton(
-                        onClick = { onNavigateToForgotPassword(email) },
+                        onClick = onForgotPassword,
                         modifier = Modifier.align(Alignment.End),
                         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                         enabled = uiState !is LoginUiState.Loading
@@ -253,18 +285,18 @@ fun LoginScreen(
                             )
                         )
                     }
-
+    
                     Spacer(modifier = Modifier.height(8.dp))
-
+    
                     PrimaryLoadingButton(
                         text = Res.string.btn_login,
                         submittingText = Res.string.btn_loging_in,
                         isLoading = uiState is LoginUiState.Loading,
-                        onClick = { viewModel.onLoginClicked(email, password) }
+                        onClick = onLogin
                     )
-
+    
                     Spacer(modifier = Modifier.height(24.dp))
-
+    
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -277,11 +309,11 @@ fun LoginScreen(
                         )
                         HorizontalDivider(modifier = Modifier.weight(1f), color = Color.Gray.copy(alpha = 0.25f))
                     }
-
+    
                     Spacer(modifier = Modifier.height(24.dp))
-
+    
                     OutlinedButton(
-                        onClick = onNavigateToRegister,
+                        onClick = onRegister,
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         enabled = uiState !is LoginUiState.Loading,
                         shape = RoundedCornerShape(16.dp),
@@ -296,5 +328,29 @@ fun LoginScreen(
                 }
             }
         }
+    }
+}
+
+@Preview
+@Composable
+private fun LoginPreview() {
+    SquadifyTheme {
+        LoginContent(LoginUiState.Idle(), "ana@clube.pt", "", false, null, {}, {}, {}, {}, {}, {})
+    }
+}
+
+@Preview
+@Composable
+private fun LoginErrorPreview() {
+    SquadifyTheme {
+        LoginContent(LoginUiState.Idle(error = "Invalid email or password"), "ana@clube.pt", "secret12", false, null, {}, {}, {}, {}, {}, {})
+    }
+}
+
+@Preview
+@Composable
+private fun LoginSigningInPreview() {
+    SquadifyTheme {
+        LoginContent(LoginUiState.Loading, "ana@clube.pt", "secret12", false, null, {}, {}, {}, {}, {}, {})
     }
 }
