@@ -2851,3 +2851,13 @@ Per the developer, 2026-10-23 (from `ISSUES TO FIX.md`): Login only tagged its f
 - **Filling:** when Login opens empty (not after a password reset, and not with anything typed), it asks for a saved account and fills in the email and password. It uses `preferImmediatelyAvailableCredentials`, so a user with nothing saved sees no sheet at all.
 - **Not testable on the JVM:** this is all platform UI; check it on a device.
 
+## 61. One Content Padding for Every Screen
+
+Per the developer, 2026-10-23: screens padded their content differently (16, 20, 24 or 32dp), and Age Group Details' smaller padding was the one to keep.
+
+- **`ScreenPadding`** (`presentation/ui/theme/Dimens.kt`): 16dp start and end, 14dp top, 20dp bottom, with `Modifier.screenContentPadding()` and `ScreenPadding.Values` (for a `LazyColumn`).
+- **Where it's used:** every screen's content, its loading and error states, and the sides of pinned bottom bars (`ScreenPadding.Horizontal`), so buttons line up with the content.
+- **Where it isn't:** the inner padding of cards, bottom sheets and dialogs stays as it was.
+- **Bigger changes:** Login's sign-in card went from 32dp to 16dp at the sides, most forms from 24dp, and the live console and the plan editors from 20dp.
+- **New screens follow it** (`AI_GUIDELINES.md`, "Screen Content Padding").
+

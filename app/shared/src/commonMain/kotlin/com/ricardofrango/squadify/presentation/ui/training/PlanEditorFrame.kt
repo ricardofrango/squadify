@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -74,7 +75,7 @@ fun PlanEditorFrame(
                 val wide = maxWidth >= 600.dp
                 // The error line sits inside the scroll, so its space scrolls with the form instead of
                 // staying fixed above Save.
-                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 12.dp)) {
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = 8.dp, bottom = 12.dp)) {
                     content(wide)
                     FormErrorLine(state.error)
                 }
