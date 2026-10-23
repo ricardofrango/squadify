@@ -2808,3 +2808,23 @@ Per the developer, 2026-10-21: a club can set its own colours. It's both colours
 
   The sheet has suggested swatches (strong ones for the main colour, light ones for the second), with those that don't fit the other colour faded but still pickable. It also has hue, saturation and lightness sliders over gradients, and a hex field. The ✓ save stays off while the pair breaks a rule, with the reason shown. On My clubs, the badge is drawn in each club's colours.
 - **Tests:** `ClubThemeRulesTest` and `UpdateClubUseCaseTest` (keep, clear, refuse, capitals, permission) on the server; `ClubThemeTest` (palette, dark lifting, request, HSL round trip) in the app.
+
+## 59. Running the Server Locally: Auto-Reload
+
+Per the developer, 2026-10-23: the local server kept running old code until it was stopped and started again, and a forgotten `-t` run kept holding port 8080.
+
+- **Why `-t :server:run` never reloaded.** Gradle's continuous mode only looks for changes once the build has finished, and `run` doesn't finish while the server is up. It also leaves the server running after Ctrl+C: the server is a child of the Gradle daemon, not of the terminal.
+- **Now:** two terminals, `./gradlew :server:run` (the server) and `./gradlew -t :server:classes` (compiles on every save). The server reloads its own code on the next request after a compile, in a fraction of a second. Stop it with Ctrl+C, like any process.
+- **How:**
+  - The `run` task sets `io.ktor.development=true`, so only local runs reload. The deployed server doesn't use that task, so it doesn't watch anything.
+  - The server watches the compiled `classes` and `resources`.
+  - The module is named in the configuration (`ktor.application.modules`), not passed as a function reference. Ktor only reloads a module it can find by name, and with today's Kotlin a function reference doesn't give it one: it would quietly keep running the old code.
+- **Owning what it opens.** A reload starts the new module before stopping the old one, and the old one's `ApplicationStopped` reaches the new one's subscribers too. So each module:
+  - creates its own Koin container (`koinApplication` + `setKoinApplication`, not the Koin plugin, which closes its container on any stop);
+  - gets its own connection pool back from `DatabaseFactory.init()`;
+  - closes both only when *it* is the application that stopped.
+
+  Otherwise a reload closed the new module's pool and Koin under it ("Scope '_root_' is closed"), or left the old pool open until the database ran out of connections.
+- **Not reloaded:** `Application.kt`'s own code (the class with `main`, loaded once). Routes, use cases, repositories and everything else are.
+- **Also:** the port can be set with `PORT` (default 8080), for example to run a second server next to yours.
+
