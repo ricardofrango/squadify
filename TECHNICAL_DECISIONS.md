@@ -2861,3 +2861,16 @@ Per the developer, 2026-10-23: screens padded their content differently (16, 20,
 - **Bigger changes:** Login's sign-in card went from 32dp to 16dp at the sides, most forms from 24dp, and the live console and the plan editors from 20dp.
 - **New screens follow it** (`AI_GUIDELINES.md`, "Screen Content Padding").
 
+## 62. Match Details: the Call-up Is a Draft Until Saved
+
+Per the developer, 2026-10-23: adding or removing a player used to save straight away, one request each, and a failed request left the list in a confusing state (an optimistic change rolled back).
+
+- **Draft:** the call-up on screen (`MatchDetailsUiState.Idle.selectedIds`) starts as the saved one. Adding or removing only changes it on screen. "Save call-up" sends the whole list (`ManageCallUpsUseCase`, batch replace) and reloads, which makes it the saved call-up. A failed save keeps the draft and shows the error.
+- **Minimum:** the team's size (how many start, so the same number kickoff needs), or 11 for a team without one (`MatchDetails.minimumCallUp()`).
+- **The rules** (`callUpView` in `CallUpRules.kt`, tested in `CallUpRulesTest`, with a preview per case):
+  - **Manages call-ups (`MANAGE_CALL_UPS`):** the editor. "Save call-up" is disabled below the minimum, with a hint saying how many are needed. It's enabled while the draft differs from the saved call-up. Once they match again, including after undoing changes, the button is "Start match" if the viewer may start the game, otherwise there's no button.
+  - **Starts the game only (`MANAGE_LIVE_MATCH`):** the saved call-up, read-only, with "Start match" when it's ready (at least the minimum). Otherwise only "The call-up isn't ready yet".
+  - **Neither:** the match details only, with no players.
+  - **Finished or cancelled:** read-only for those with either right, nothing for others, and no button. Live: "Enter live match".
+- **Spacing:** the detail rows are tighter (8dp vertical instead of 12), the list ends with the shared `ScreenPadding` bottom instead of 32dp, and the bottom bar is slimmer (12dp vertical) with `ScreenPadding`'s sides.
+

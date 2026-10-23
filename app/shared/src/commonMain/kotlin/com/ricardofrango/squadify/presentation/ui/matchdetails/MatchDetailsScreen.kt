@@ -114,6 +114,7 @@ fun MatchDetailsScreen(
             onSortSelected = viewModel::onSortSelected,
             onAddToCallUp = viewModel::onAddToCallUp,
             onRemoveFromCallUp = viewModel::onRemoveFromCallUp,
+            onSaveCallUp = viewModel::onSaveCallUp,
             onEditMatch = viewModel::onEditMatch,
             onDeleteMatch = viewModel::onDeleteMatch,
             onEnterLiveMatch = viewModel::onEnterLiveMatch,
@@ -130,10 +131,11 @@ private fun MatchDetailsContent(
     onRetry: () -> Unit,
     onSortSelected: (CallUpSort) -> Unit,
     onAddToCallUp: (Player) -> Unit,
-    onRemoveFromCallUp: (MatchCallUpWithPlayer) -> Unit,
+    onRemoveFromCallUp: (Player) -> Unit,
     onEditMatch: (UpdateMatchRequest) -> Unit,
     onDeleteMatch: () -> Unit,
     onEnterLiveMatch: () -> Unit,
+    onSaveCallUp: () -> Unit = {},
     onOpenReport: (edit: Boolean) -> Unit
 ) {
     val details = (uiState as? MatchDetailsUiState.Idle)?.details
@@ -173,13 +175,11 @@ private fun MatchDetailsContent(
             }
         },
         bottomBar = {
-            // Starting/entering the live match console is gated on live-match ops specifically --
-            // not on managing call-ups, which is now a separate, independently configurable setting.
-            if (details != null && details.canManageLiveMatch) {
-                BottomActionBar(
-                    state = uiState as MatchDetailsUiState.Idle,
-                    onEnterLiveMatch = onEnterLiveMatch
-                )
+            // Save call-up / Start match / Enter live match, by permission and call-up state (callUpView).
+            val idle = uiState as? MatchDetailsUiState.Idle
+            val button = idle?.callUpView()?.button ?: MatchDetailsButton.NONE
+            if (idle != null && button != MatchDetailsButton.NONE) {
+                BottomActionBar(state = idle, button = button, onSaveCallUp = onSaveCallUp, onEnterLiveMatch = onEnterLiveMatch)
             }
         }
     ) { paddingValues ->
@@ -226,7 +226,9 @@ private fun MatchDetailsContent(
 private fun StatusBand(details: MatchDetails) {
     val match = details.match
     val dt = match.dateTime.toLocalDateTime(TimeZone.currentSystemDefault())
-    val counts = callUpCounts(details)
+    // The saved call-up, out of the whole pool.
+    val calledUp = details.callUps.size
+    val total = details.callUps.size + details.poolPlayers.size
     Column(Modifier.background(ClubChrome).padding(start = 16.dp, end = 16.dp, bottom = 12.dp)) {
         CrestPair(details)
         // The type chip leads the status line so it lines up across states (design 29a); the line
@@ -271,7 +273,7 @@ private fun StatusBand(details: MatchDetails) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.10f)))
         Spacer(Modifier.height(8.dp))
         Text(
-            stringResource(Res.string.label_callup_summary, counts.calledUp, counts.total),
+            stringResource(Res.string.label_callup_summary, calledUp, total),
             style = MaterialTheme.typography.bodySmall,
             color = Color.White.copy(alpha = 0.6f)
         )
@@ -320,24 +322,26 @@ private fun MatchBody(
     modifier: Modifier,
     onSortSelected: (CallUpSort) -> Unit,
     onAddToCallUp: (Player) -> Unit,
-    onRemoveFromCallUp: (MatchCallUpWithPlayer) -> Unit,
+    onRemoveFromCallUp: (Player) -> Unit,
     onEditMatch: (UpdateMatchRequest) -> Unit,
     onOpenReport: (edit: Boolean) -> Unit
 ) {
     val details = state.details
-    val counts = callUpCounts(details)
+    val view = state.callUpView()
     // A finished match is a record, not something to keep editing -- call-ups, kickoff, location
     // etc. all freeze once the game is over, regardless of the viewer's role.
     val notFinished = details.match.status != MatchStatus.FINISHED
     // Cancelled is closed too: neither can be edited, the type included (the server enforces the same).
     val canEditMatch = details.canManageMatch && notFinished && details.match.status != MatchStatus.CANCELLED
-    val canManageCallUps = details.canManageCallUps && notFinished
     var showEdit by remember { mutableStateOf(false) }
 
     // The Position / Name chips order both lists -- the call-up and the Available pool below it.
     val playerOrder = playerComparator(state.sort)
-    val sortedCallUps = details.callUps.sortedWith(compareBy(playerOrder) { it.player })
-    val sortedPool = details.poolPlayers.sortedWith(playerOrder)
+    val editing = view.section == CallUpSection.EDITOR
+    // The editor lists the draft call-up; everyone else sees the saved one.
+    val calledUp = (if (editing) state.selectedPlayers else details.callUps.map { it.player }).sortedWith(playerOrder)
+    val sortedPool = state.availablePlayers.sortedWith(playerOrder)
+    val notesByPlayer = details.callUps.associate { it.player.id to it.callUp.notes }
 
     // Landscape with a report card: the card gets its own fixed 320dp left column and stays in view
     // while the rest scrolls beside it -- it's the pending task on a finished match (23c).
@@ -351,7 +355,7 @@ private fun MatchBody(
             }
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top, bottom = 32.dp),
+                contentPadding = ScreenPadding.Values,
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 state.transientError?.let {
@@ -372,48 +376,56 @@ private fun MatchBody(
                 }
                 item { DetailsCard(details, onSetType = if (canEditMatch) { { showEdit = true } } else null) }
 
-                // ---- Call-up ----
-                item {
-                    SectionHeader(
-                        title = stringResource(Res.string.label_call_up),
-                        pill = "${counts.calledUp}/${counts.total}"
-                    )
-                }
-                item {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
-                        SortChip(stringResource(Res.string.label_position_field), state.sort == CallUpSort.POSITION) { onSortSelected(CallUpSort.POSITION) }
-                        SortChip(stringResource(Res.string.label_sort_name), state.sort == CallUpSort.NAME) { onSortSelected(CallUpSort.NAME) }
+                // ---- Call-up: by who's looking (callUpView) ----
+                when (view.section) {
+                    CallUpSection.HIDDEN -> Unit
+                    CallUpSection.NOT_READY -> item {
+                        Text(stringResource(Res.string.msg_callup_not_ready), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.6f), modifier = Modifier.padding(top = 4.dp))
                     }
-                }
-                if (canManageCallUps && counts.calledUp < RECOMMENDED_SQUAD) {
-                    item {
-                        Text(
-                            stringResource(Res.string.msg_squad_hint, counts.calledUp, RECOMMENDED_SQUAD),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-                if (details.callUps.isEmpty()) {
-                    item { Text(stringResource(Res.string.msg_no_callups), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
-                } else {
-                    items(sortedCallUps, key = { it.callUp.id }) { cu ->
-                        CallUpRow(cu, onRemove = if (canManageCallUps) { { onRemoveFromCallUp(cu) } } else null)
-                    }
-                }
-
-                // ---- Available ----
-                if (canManageCallUps && details.poolPlayers.isNotEmpty()) {
-                    item {
-                        Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 12.dp)) {
-                            Text(stringResource(Res.string.label_available), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
-                            Spacer(Modifier.width(6.dp))
-                            Text(stringResource(Res.string.label_available_from_pool, details.ageGroup.name), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
+                    CallUpSection.EDITOR, CallUpSection.READ_ONLY -> {
+                        item {
+                            SectionHeader(
+                                title = stringResource(Res.string.label_call_up),
+                                pill = if (editing) "${calledUp.size}/${calledUp.size + sortedPool.size}" else calledUp.size.toString()
+                            )
                         }
-                    }
-                    items(sortedPool, key = { it.id }) { p ->
-                        PoolRow(p, onAdd = { onAddToCallUp(p) })
+                        item {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
+                                SortChip(stringResource(Res.string.label_position_field), state.sort == CallUpSort.POSITION) { onSortSelected(CallUpSort.POSITION) }
+                                SortChip(stringResource(Res.string.label_sort_name), state.sort == CallUpSort.NAME) { onSortSelected(CallUpSort.NAME) }
+                            }
+                        }
+                        if (editing && calledUp.size < RECOMMENDED_SQUAD) {
+                            item {
+                                Text(
+                                    stringResource(Res.string.msg_squad_hint, calledUp.size, RECOMMENDED_SQUAD),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                        if (calledUp.isEmpty()) {
+                            item { Text(stringResource(Res.string.msg_no_callups), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
+                        } else {
+                            items(calledUp, key = { "called-${it.id}" }) { player ->
+                                CallUpRow(player, notesByPlayer[player.id], onRemove = if (editing && !state.isSubmitting) { { onRemoveFromCallUp(player) } } else null)
+                            }
+                        }
+
+                        // ---- Available ----
+                        if (editing && sortedPool.isNotEmpty()) {
+                            item {
+                                Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 12.dp)) {
+                                    Text(stringResource(Res.string.label_available), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(stringResource(Res.string.label_available_from_pool, details.ageGroup.name), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
+                                }
+                            }
+                            items(sortedPool, key = { "pool-${it.id}" }) { p ->
+                                PoolRow(p, onAdd = { if (!state.isSubmitting) onAddToCallUp(p) })
+                            }
+                        }
                     }
                 }
             }
@@ -458,7 +470,7 @@ private fun DetailsCard(details: MatchDetails, onSetType: (() -> Unit)?) {
 
 @Composable
 private fun DetailRow(label: String, value: String, trailing: Pair<String, () -> Unit>? = null) {
-    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), modifier = Modifier.width(84.dp))
         Text(value, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, modifier = Modifier.weight(1f))
         if (trailing != null) LinkText(trailing.first, trailing.second)
@@ -471,7 +483,7 @@ private fun DetailRow(label: String, value: String, trailing: Pair<String, () ->
  */
 @Composable
 private fun TypeRow(type: MatchType?, onSetType: (() -> Unit)?) {
-    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(stringResource(Res.string.label_type_row), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), modifier = Modifier.width(84.dp))
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
             when {
@@ -489,17 +501,17 @@ private fun TypeRow(type: MatchType?, onSetType: (() -> Unit)?) {
 }
 
 @Composable
-private fun CallUpRow(cu: MatchCallUpWithPlayer, onRemove: (() -> Unit)? = null) {
+private fun CallUpRow(player: Player, notes: String?, onRemove: (() -> Unit)? = null) {
     Surface(modifier = Modifier.fillMaxWidth(), shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f))) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            PlayerBadge(cu.player.photoUrl, cu.player.shirtNumber)
+            PlayerBadge(player.photoUrl, player.shirtNumber)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
-                Text("${cu.player.firstName} ${cu.player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                cu.player.position?.let {
+                Text("${player.firstName} ${player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                player.position?.let {
                     Text(stringResource(it.labelRes()), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.55f))
                 }
-                cu.callUp.notes?.takeIf { it.isNotBlank() }?.let {
+                notes?.takeIf { it.isNotBlank() }?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
@@ -572,35 +584,39 @@ private fun LinkText(text: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun BottomActionBar(state: MatchDetailsUiState.Idle, onEnterLiveMatch: () -> Unit) {
-    val status = state.details.match.status
-    if (status != MatchStatus.SCHEDULED && status != MatchStatus.LIVE && status != MatchStatus.HALF_TIME) return
-    val scheduled = status == MatchStatus.SCHEDULED
+private fun BottomActionBar(state: MatchDetailsUiState.Idle, button: MatchDetailsButton, onSaveCallUp: () -> Unit, onEnterLiveMatch: () -> Unit) {
+    val scheduled = state.details.match.status == MatchStatus.SCHEDULED
     Surface(color = Color.White, shadowElevation = 8.dp) {
         Column(
             Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .padding(horizontal = ScreenPadding.Horizontal, vertical = 12.dp)
         ) {
-            // The live match screen owns starting the game / substitutions / events -- this button
-            // only opens it.
-            val label = if (scheduled) Res.string.btn_start_match else Res.string.btn_enter_live_match
-            PrimaryLoadingButton(
-                text = label,
-                submittingText = label,
-                isLoading = false,
-                onClick = onEnterLiveMatch
-            )
-            if (scheduled) {
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    stringResource(Res.string.msg_kickoff_countdown, relativeLabel(state.details.match.dateTime)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DeepCarbon.copy(alpha = 0.5f),
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
+            when (button) {
+                MatchDetailsButton.SAVE_CALL_UP, MatchDetailsButton.SAVE_CALL_UP_DISABLED -> PrimaryLoadingButton(
+                    text = Res.string.btn_save_callup,
+                    submittingText = Res.string.btn_saving_callup,
+                    isLoading = state.isSubmitting,
+                    enabled = button == MatchDetailsButton.SAVE_CALL_UP,
+                    onClick = onSaveCallUp
                 )
+                // The live match screen owns starting the game / substitutions / events -- this
+                // button only opens it.
+                MatchDetailsButton.START_MATCH, MatchDetailsButton.ENTER_LIVE_MATCH -> {
+                    val label = if (button == MatchDetailsButton.START_MATCH) Res.string.btn_start_match else Res.string.btn_enter_live_match
+                    PrimaryLoadingButton(text = label, submittingText = label, isLoading = false, onClick = onEnterLiveMatch)
+                }
+                MatchDetailsButton.NONE -> Unit
+            }
+            val hint = when {
+                button == MatchDetailsButton.SAVE_CALL_UP_DISABLED -> stringResource(Res.string.msg_callup_min_players, state.details.minimumCallUp())
+                scheduled -> stringResource(Res.string.msg_kickoff_countdown, relativeLabel(state.details.match.dateTime))
+                else -> null
+            }
+            hint?.let {
+                Spacer(Modifier.height(6.dp))
+                Text(it, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
             }
         }
     }
@@ -726,13 +742,6 @@ private fun editFieldColors() = OutlinedTextFieldDefaults.colors(
 // ---- Helpers ----
 
 private const val RECOMMENDED_SQUAD = 11
-
-private data class CallUpCounts(val calledUp: Int, val total: Int)
-
-private fun callUpCounts(details: MatchDetails): CallUpCounts = CallUpCounts(
-    calledUp = details.callUps.size,
-    total = details.callUps.size + details.poolPlayers.size
-)
 
 /** [PlayerPosition]'s declared order is already Goalkeeper → Defender → Midfield → Winger →
  * Striker, so its ordinal doubles as the sort rank; a player with no position sorts last. Either
@@ -878,3 +887,77 @@ private fun MatchDetailsLoadingPreview() {
         )
     }
 }
+
+// ---- The call-up's cases (CallUpRules.kt): a 5-a-side team, six players in the pool ----
+
+private val callUpSamplePlayers = listOf(
+    Player("c1", "c1", "Ana", "Costa", LocalDate(2011, 5, 2), shirtNumber = 1, active = true, position = PlayerPosition.GOALKEEPER),
+    Player("c2", "c1", "Rui", "Perestrelo", LocalDate(2011, 1, 9), shirtNumber = 4, active = true, position = PlayerPosition.DEFENDER),
+    Player("c3", "c1", "Tomás", "Bragança", LocalDate(2011, 3, 12), shirtNumber = 10, active = true, position = PlayerPosition.MIDFIELD),
+    Player("c4", "c1", "Duarte", "Nabais", LocalDate(2011, 7, 30), shirtNumber = 7, active = true, position = PlayerPosition.WINGER),
+    Player("c5", "c1", "Beatriz", "Almeida", LocalDate(2011, 9, 18), shirtNumber = 9, active = true, position = PlayerPosition.STRIKER),
+    Player("c6", "c1", "Xavier", "Boaventura", LocalDate(2011, 8, 4), active = true)
+)
+
+/** [saved] players already called up; [canManageCallUps] / [canManageLiveMatch] the viewer's rights. */
+private fun callUpSample(saved: Int, canManageCallUps: Boolean, canManageLiveMatch: Boolean): MatchDetails {
+    val base = sampleDetails(MatchStatus.SCHEDULED, canManage = canManageCallUps)
+    return base.copy(
+        team = base.team.copy(teamSize = 5),
+        callUps = callUpSamplePlayers.take(saved).map {
+            MatchCallUpWithPlayer(MatchCallUp(id = "cu-${it.id}", matchId = "m1", playerId = it.id, status = CallUpStatus.CALLED_UP), it)
+        },
+        poolPlayers = callUpSamplePlayers.drop(saved),
+        canManageCallUps = canManageCallUps,
+        canManageLiveMatch = canManageLiveMatch
+    )
+}
+
+@Composable
+private fun CallUpCasePreview(state: MatchDetailsUiState.Idle) {
+    SquadifyTheme {
+        MatchDetailsContent(
+            uiState = state,
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onRemoveFromCallUp = {}, onEditMatch = {}, onDeleteMatch = {}, onEnterLiveMatch = {}, onOpenReport = {}
+        )
+    }
+}
+
+/** Building the call-up, still below the 5 needed: "Save call-up" is disabled. */
+@Preview
+@Composable
+private fun CallUpBelowMinimumPreview() =
+    CallUpCasePreview(MatchDetailsUiState.Idle(callUpSample(saved = 3, canManageCallUps = true, canManageLiveMatch = true)))
+
+/** A saved call-up with a player added since: "Save call-up". */
+@Preview
+@Composable
+private fun CallUpUnsavedChangesPreview() {
+    val details = callUpSample(saved = 5, canManageCallUps = true, canManageLiveMatch = true)
+    CallUpCasePreview(MatchDetailsUiState.Idle(details, selectedIds = details.callUps.map { it.player.id }.toSet() + "c6"))
+}
+
+/** The call-up saved and unchanged: "Start match". */
+@Preview
+@Composable
+private fun CallUpSavedPreview() =
+    CallUpCasePreview(MatchDetailsUiState.Idle(callUpSample(saved = 5, canManageCallUps = true, canManageLiveMatch = true)))
+
+/** Can start the game but not do the call-up, and it's ready: the call-up, read-only, and "Start match". */
+@Preview
+@Composable
+private fun CallUpReadyForStarterPreview() =
+    CallUpCasePreview(MatchDetailsUiState.Idle(callUpSample(saved = 5, canManageCallUps = false, canManageLiveMatch = true)))
+
+/** Can start the game but not do the call-up, and it isn't ready: the details and "not ready yet". */
+@Preview
+@Composable
+private fun CallUpNotReadyForStarterPreview() =
+    CallUpCasePreview(MatchDetailsUiState.Idle(callUpSample(saved = 2, canManageCallUps = false, canManageLiveMatch = true)))
+
+/** Neither does the call-up nor starts the game: the details only. */
+@Preview
+@Composable
+private fun CallUpViewerPreview() =
+    CallUpCasePreview(MatchDetailsUiState.Idle(callUpSample(saved = 5, canManageCallUps = false, canManageLiveMatch = false)))
+

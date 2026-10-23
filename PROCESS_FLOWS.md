@@ -1471,6 +1471,8 @@ graph TD
 
 The same single write handles both adding and removing -- the client sends the full desired list (current call-ups minus/plus one player) and the repository diffs it against what's stored (§7.2's Exposed implementation). `MatchDetailsScreen`'s call-up rows each carry a remove ("−") button, the "Available" pool rows an add ("+") button, both wired to this one endpoint -- see `MatchDetailsViewModel.onAddToCallUp`/`onRemoveFromCallUp`. A disabled player (§5.3b) can't be newly called up; one already in the list (e.g. a played match's) can stay.
 
+
+**In the app** (Match details): the call-up is built on screen and sent in one call by "Save call-up". There's no request per added or removed player any more, so a failed save leaves the draft in place with an error. The app asks for at least the team's size (11 without one) before saving; the server doesn't check it here, only at kickoff. See `TECHNICAL_DECISIONS.md` §62.
 ### 7.2b Delete Match (`DeleteMatchUseCase`)
 
 ```mermaid

@@ -6,15 +6,13 @@ import com.ricardofrango.squadify.domain.usecase.DeleteMatchUseCase
 import com.ricardofrango.squadify.domain.usecase.GetMatchDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.ManageCallUpsUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateMatchUseCase
-import com.ricardofrango.squadify.model.CallUpStatus
-import com.ricardofrango.squadify.model.MatchCallUp
-import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.UpdateMatchRequest
 import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_failed_to_load_match
+import squadify.app.shared.generated.resources.msg_callup_save_failed
 import squadify.app.shared.generated.resources.msg_match_change_failed
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -71,69 +69,32 @@ class MatchDetailsViewModel(
 
     fun clearTransientError() = updateIdle { it.copy(transientError = null) }
 
-    /** Coach or staff adds a pool player to the call-up (batch replace under the hood). */
-    fun onAddToCallUp(player: Player) {
-        val current = idle() ?: return
-        if (!current.details.canManageCallUps) return
-
-        val optimistic = MatchCallUpWithPlayer(
-            callUp = MatchCallUp(id = "pending-${player.id}", matchId = matchId, playerId = player.id, status = CallUpStatus.CALLED_UP),
-            player = player
-        )
-        _state.update {
-            current.copy(details = current.details.copy(
-                callUps = current.details.callUps + optimistic,
-                poolPlayers = current.details.poolPlayers.filterNot { it.id == player.id }
-            ))
-        }
-        viewModelScope.launch {
-            try {
-                val playerIds = (current.details.callUps.map { it.player.id } + player.id).distinct()
-                manageCallUpsUseCase(matchId, playerIds)
-                load(matchId, forceReload = true) // pull back the real call-up ids
-            } catch (e: Exception) {
-                val message = errorMessage(e, Res.string.msg_match_change_failed)
-                _state.update {
-                    (it as? MatchDetailsUiState.Idle)?.copy(
-                        details = it.details.copy(
-                            callUps = it.details.callUps.filterNot { cu -> cu.callUp.id == optimistic.callUp.id },
-                            poolPlayers = (it.details.poolPlayers + player).distinctBy { p -> p.id }
-                        ),
-                        transientError = message
-                    ) ?: it
-                }
-            }
-        }
+    /** Adds a player to the call-up on screen; nothing is sent until [onSaveCallUp]. */
+    fun onAddToCallUp(player: Player) = updateIdle {
+        if (it.details.canManageCallUps) it.copy(selectedIds = it.selectedIds + player.id, transientError = null) else it
     }
 
-    /** Coach or staff removes an already-called-up player (batch replace under the hood, same as
-     * [onAddToCallUp] in reverse). */
-    fun onRemoveFromCallUp(callUp: MatchCallUpWithPlayer) {
-        val current = idle() ?: return
-        if (!current.details.canManageCallUps) return
+    /** Takes a player off the call-up on screen; nothing is sent until [onSaveCallUp]. */
+    fun onRemoveFromCallUp(player: Player) = updateIdle {
+        if (it.details.canManageCallUps) it.copy(selectedIds = it.selectedIds - player.id, transientError = null) else it
+    }
 
-        _state.update {
-            current.copy(details = current.details.copy(
-                callUps = current.details.callUps.filterNot { it.callUp.id == callUp.callUp.id },
-                poolPlayers = (current.details.poolPlayers + callUp.player).distinctBy { it.id }
-            ))
-        }
+    /**
+     * Sends the call-up on screen (the server replaces the saved one with it), then reloads, which
+     * makes it the saved call-up. If it fails, the draft stays on screen with the error, to try again.
+     */
+    fun onSaveCallUp() {
+        val current = idle() ?: return
+        if (!current.details.canManageCallUps || current.isSubmitting) return
+        if (current.selectedIds.size < current.details.minimumCallUp()) return
         viewModelScope.launch {
+            _state.update { current.copy(isSubmitting = true, transientError = null) }
             try {
-                val playerIds = current.details.callUps.map { it.player.id }.filterNot { it == callUp.player.id }
-                manageCallUpsUseCase(matchId, playerIds)
-                load(matchId, forceReload = true) // pull back the real call-up ids
+                manageCallUpsUseCase(matchId, current.selectedIds.toList())
+                load(matchId, forceReload = true)
             } catch (e: Exception) {
-                val message = errorMessage(e, Res.string.msg_match_change_failed)
-                _state.update {
-                    (it as? MatchDetailsUiState.Idle)?.copy(
-                        details = it.details.copy(
-                            callUps = (it.details.callUps + callUp).distinctBy { cu -> cu.callUp.id },
-                            poolPlayers = it.details.poolPlayers.filterNot { p -> p.id == callUp.player.id }
-                        ),
-                        transientError = message
-                    ) ?: it
-                }
+                val message = errorMessage(e, Res.string.msg_callup_save_failed)
+                updateIdle { it.copy(isSubmitting = false, transientError = message) }
             }
         }
     }

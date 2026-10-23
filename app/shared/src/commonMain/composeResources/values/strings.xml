@@ -1427,4 +1427,9 @@
     <string name="label_match_format">Format</string>
     <string name="match_format_value">%1$dx%1$d</string>
     <string name="msg_age_group_conflict_rows">Rows %1$s use birth years that already have an age group in this season.</string>
+    <string name="btn_save_callup">Save call-up</string>
+    <string name="btn_saving_callup">Saving call-up…</string>
+    <string name="msg_callup_min_players">Call up at least %1$d players to save.</string>
+    <string name="msg_callup_not_ready">The call-up isn\'t ready yet.</string>
+    <string name="msg_callup_save_failed">Couldn\'t save the call-up. Try again.</string>
 </resources>

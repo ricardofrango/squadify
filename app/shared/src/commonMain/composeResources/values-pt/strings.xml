@@ -1425,4 +1425,9 @@
     <string name="label_match_format">Formato</string>
     <string name="match_format_value">%1$dx%1$d</string>
     <string name="msg_age_group_conflict_rows">As linhas %1$s usam anos de nascimento que já têm escalão nesta época.</string>
+    <string name="btn_save_callup">Guardar convocatória</string>
+    <string name="btn_saving_callup">A guardar a convocatória…</string>
+    <string name="msg_callup_min_players">Convoque pelo menos %1$d jogadores para guardar.</string>
+    <string name="msg_callup_not_ready">A convocatória ainda não está pronta.</string>
+    <string name="msg_callup_save_failed">Não foi possível guardar a convocatória. Tente novamente.</string>
 </resources>
