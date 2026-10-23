@@ -402,6 +402,8 @@ private fun MatchesTab(
                     match = match,
                     opponentName = opponentName(opponentsById, match.opponentId),
                     opponentLogoUrl = opponentsById[match.opponentId]?.logoUrl,
+                    clubLogoUrl = details.club.logoUrl,
+                    teamName = details.team.name,
                     score = details.upcomingMatchScores[match.id],
                     onClick = { onMatchClick(match.id) }
                 )
@@ -427,6 +429,8 @@ private fun MatchesTab(
                     match = result.match,
                     opponentName = opponentName(opponentsById, result.match.opponentId),
                     opponentLogoUrl = opponentsById[result.match.opponentId]?.logoUrl,
+                    clubLogoUrl = details.club.logoUrl,
+                    teamName = details.team.name,
                     score = MatchScore(result.match.id, result.ourScore, result.opponentScore),
                     onClick = { onMatchClick(result.match.id) }
                 )

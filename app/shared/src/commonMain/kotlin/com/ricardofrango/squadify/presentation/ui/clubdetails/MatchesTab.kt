@@ -208,6 +208,7 @@ fun MatchesTab(
                             teamName = teamsById[match.teamId]?.name ?: "—",
                             opponentName = opponentsById[match.opponentId]?.let { it.shortName ?: it.name } ?: "—",
                             opponentLogoUrl = opponentsById[match.opponentId]?.logoUrl,
+                            clubLogoUrl = details.club.logoUrl,
                             score = state.matchScores[match.id],
                             onClick = { onNavigateToMatch(match.id) }
                         )

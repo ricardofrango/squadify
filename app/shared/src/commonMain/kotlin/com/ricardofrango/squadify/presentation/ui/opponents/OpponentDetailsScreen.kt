@@ -352,6 +352,8 @@ private fun MatchesSection(details: OpponentDetails, onOpenMatch: (String) -> Un
                 opponentName = opponentName,
                 teamName = teams[match.teamId]?.name,
                 score = scores[match.id],
+                opponentLogoUrl = details.opponent.logoUrl,
+                clubLogoUrl = details.clubLogoUrl,
                 onClick = { onOpenMatch(match.id) }
             )
         }

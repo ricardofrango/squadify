@@ -1434,4 +1434,8 @@
     <string name="venue_home">Casa</string>
     <string name="venue_away">Fora</string>
     <string name="venue_neutral">Neutro</string>
+    <string name="match_type_abbr_friendly">Ami</string>
+    <string name="match_type_abbr_championship">Cam</string>
+    <string name="match_type_abbr_tournament">Tor</string>
+    <string name="match_row_half_time">Int.</string>
 </resources>

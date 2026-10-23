@@ -549,6 +549,7 @@ internal fun AgeGroupMatchesTab(
                     match = match,
                     opponentName = opponent(match.opponentId),
                     opponentLogoUrl = opponentsById[match.opponentId]?.logoUrl,
+                    clubLogoUrl = details.club.logoUrl,
                     teamName = teamsById[match.teamId]?.name,
                     score = details.upcomingMatchScores[match.id],
                     onClick = { onOpenMatch(match.id) }
@@ -567,6 +568,7 @@ internal fun AgeGroupMatchesTab(
                     match = r.match,
                     opponentName = opponent(r.match.opponentId),
                     opponentLogoUrl = opponentsById[r.match.opponentId]?.logoUrl,
+                    clubLogoUrl = details.club.logoUrl,
                     teamName = teamsById[r.match.teamId]?.name,
                     score = MatchScore(r.match.id, r.ourScore, r.opponentScore),
                     onClick = { onOpenMatch(r.match.id) }

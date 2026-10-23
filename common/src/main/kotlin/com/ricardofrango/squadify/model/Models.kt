@@ -876,7 +876,9 @@ data class OpponentDetails(
     val scores: List<MatchScore>,
     val teams: List<Team>,
     val seasons: List<Season>,
-    val canEdit: Boolean = false
+    val canEdit: Boolean = false,
+    // Our club's logo path, for the match rows; null without one.
+    val clubLogoUrl: String? = null
 )
 
 @Serializable

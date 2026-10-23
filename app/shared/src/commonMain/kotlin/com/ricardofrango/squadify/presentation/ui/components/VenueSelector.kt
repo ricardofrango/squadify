@@ -7,10 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -89,19 +87,3 @@ fun venueLocation(venue: MatchVenue, clubLocation: String?, opponent: Opponent?)
 /** A score as football writes it, home side first: "2–1" ours at home or neutral, theirs first away. */
 fun MatchScore.homeFirst(venue: MatchVenue, separator: String = "–"): String =
     if (venue.ourSideFirst()) "$ourScore$separator$opponentScore" else "$opponentScore$separator$ourScore"
-
-/** The quiet tag a list row shows for a match that isn't at home ("Away", "Neutral"); nothing at home. */
-@Composable
-fun VenueTag(venue: MatchVenue) {
-    if (venue == MatchVenue.HOME) return
-    val grey = Color(0xFF424242)
-    Surface(shape = RoundedCornerShape(6.dp), color = CarbonGray.copy(alpha = 0.06f)) {
-        Text(
-            stringResource(venue.labelRes()),
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-            color = grey,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
-        )
-    }
-}
-
