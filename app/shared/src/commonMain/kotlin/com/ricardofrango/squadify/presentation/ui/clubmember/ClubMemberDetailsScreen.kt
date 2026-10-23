@@ -65,7 +65,7 @@ import com.ricardofrango.squadify.model.MemberLinkedPlayer
 import com.ricardofrango.squadify.model.PendingClubInvite
 import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.UserPlayerRelationship
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
@@ -229,7 +229,7 @@ private fun ClubMemberDetailsContent(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column(Modifier.background(ClubChrome)) {
-                FMTopBar(title = stringResource(Res.string.member_title), onNavigateBack = onNavigateBack)
+                SquadifyTopBar(title = stringResource(Res.string.member_title), onNavigateBack = onNavigateBack)
                 when (state) {
                     is ClubMemberDetailsUiState.Member -> MemberHeader(state)
                     is ClubMemberDetailsUiState.Invite -> InviteHeader(state.invite)

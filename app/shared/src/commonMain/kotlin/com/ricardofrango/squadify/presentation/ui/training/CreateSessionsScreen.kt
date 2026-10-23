@@ -54,7 +54,7 @@ import com.ricardofrango.squadify.model.ReplacedSession
 import com.ricardofrango.squadify.model.TrainingSessionPreviewItem
 import com.ricardofrango.squadify.model.TrainingSessions
 import com.ricardofrango.squadify.model.TrainingSessionsPreview
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
 import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
@@ -165,7 +165,7 @@ private fun CreateSessionsContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = stringResource(if (preview != null) Res.string.title_preview else Res.string.title_create_sessions),
                 subtitle = state.sessions?.subtitle(),
                 onNavigateBack = onNavigateBack

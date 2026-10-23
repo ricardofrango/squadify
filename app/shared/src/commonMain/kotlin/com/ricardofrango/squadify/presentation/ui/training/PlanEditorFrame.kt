@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import org.jetbrains.compose.resources.stringResource
@@ -61,7 +61,7 @@ fun PlanEditorFrame(
     )
     Scaffold(
         containerColor = Color.White,
-        topBar = { FMTopBar(title = title, subtitle = subtitle, onNavigateBack = leave) }
+        topBar = { SquadifyTopBar(title = title, subtitle = subtitle, onNavigateBack = leave) }
     ) { padding ->
         val modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding().background(Color.White)
         if (state.loading || state.loadFailed) {

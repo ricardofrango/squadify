@@ -43,7 +43,7 @@ import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.TrainingRating
 import com.ricardofrango.squadify.model.TrainingRatings
 import com.ricardofrango.squadify.model.TrainingSession
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
 import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
@@ -112,7 +112,7 @@ private fun RatePlayersContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = stringResource(Res.string.title_rate_players),
                 subtitle = ratings?.let { stringResource(Res.string.label_training_subtitle, sessionTitle(it.session.date), it.ageGroupName) },
                 onNavigateBack = leave

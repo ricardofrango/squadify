@@ -36,7 +36,7 @@ import com.ricardofrango.squadify.model.PlayerSeasonMatch
 import com.ricardofrango.squadify.model.PlayerSeasonStats
 import com.ricardofrango.squadify.model.StatsFilter
 import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -125,7 +125,7 @@ private fun PlayerDetailsContent(
         containerColor = WhiteSmoke,
         topBar = {
             Column(Modifier.background(ClubChrome)) {
-                FMTopBar(
+                SquadifyTopBar(
                     title = stringResource(Res.string.title_player_profile),
                     onNavigateBack = onNavigateBack,
                     actions = {

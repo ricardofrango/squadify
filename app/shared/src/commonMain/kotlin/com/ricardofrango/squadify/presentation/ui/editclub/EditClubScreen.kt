@@ -124,7 +124,7 @@ import squadify.app.shared.generated.resources.label_permission_level_admins_coo
 import squadify.app.shared.generated.resources.label_permission_level_admins_only
 import squadify.app.shared.generated.resources.msg_permission_admin_only_setting
 import com.ricardofrango.squadify.model.AgeGroupRole
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -306,7 +306,7 @@ private fun EditClubContent(
                 containerColor = if (selectedTab == EDIT_CLUB_TAB_MEMBERS) WhiteSmoke else Color.White,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 topBar = {
-                    FMTopBar(
+                    SquadifyTopBar(
                         title = idle?.form?.name?.takeIf { it.isNotBlank() } ?: stringResource(Res.string.title_club_details),
                         subtitle = stringResource(Res.string.club_settings),
                         onNavigateBack = requestBack,

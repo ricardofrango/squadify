@@ -40,7 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.domain.AgeGroupDefaults
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.createagegroups.AgeGroupSpanType
 import com.ricardofrango.squadify.presentation.ui.createagegroups.AgeGroupSpanTypeField
 import com.ricardofrango.squadify.presentation.ui.createagegroups.TeamSizeField
@@ -116,7 +116,7 @@ private fun EditAgeGroupContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = stringResource(Res.string.edit_age_group),
                 subtitle = idle?.seasonName,
                 onNavigateBack = onNavigateBack,

@@ -33,7 +33,7 @@ import org.jetbrains.compose.resources.stringResource
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FMTopBar(
+fun SquadifyTopBar(
     title: String,
     subtitle: String? = null,
     showBackButton: Boolean = true,
@@ -103,9 +103,9 @@ fun FMTopBar(
 
 @Preview
 @Composable
-fun FMTopBarPreview() {
+fun SquadifyTopBarPreview() {
     SquadifyTheme {
-        FMTopBar(
+        SquadifyTopBar(
             title = "Title",
             subtitle = "Subtitle",
             onNavigateBack = {}
@@ -115,9 +115,9 @@ fun FMTopBarPreview() {
 
 @Preview
 @Composable
-fun FMTopBarNoSubtitlePreview() {
+fun SquadifyTopBarNoSubtitlePreview() {
     SquadifyTheme {
-        FMTopBar(
+        SquadifyTopBar(
             title = "Title",
             onNavigateBack = {}
         )
@@ -126,9 +126,9 @@ fun FMTopBarNoSubtitlePreview() {
 
 @Preview
 @Composable
-fun FMTopBarLongTitlePreview() {
+fun SquadifyTopBarLongTitlePreview() {
     SquadifyTheme {
-        FMTopBar(
+        SquadifyTopBar(
             title = "Grupo Desportivo e Recreativo de Fontelas e Arredores",
             subtitle = "Sub-15 A · Época 2026/27 · Campeonato Distrital da Primeira Divisão",
             onNavigateBack = {}
@@ -138,9 +138,9 @@ fun FMTopBarLongTitlePreview() {
 
 @Preview
 @Composable
-fun FMTopBarNoBackButtonPreview() {
+fun SquadifyTopBarNoBackButtonPreview() {
     SquadifyTheme {
-        FMTopBar(
+        SquadifyTopBar(
             title = "Title",
             subtitle = "Subtitle",
             showBackButton = false

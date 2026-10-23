@@ -28,7 +28,7 @@ import com.ricardofrango.squadify.model.*
 import com.ricardofrango.squadify.presentation.ui.components.DetailBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.DetailRail
 import com.ricardofrango.squadify.presentation.ui.components.DetailTab
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.MatchRow
 import com.ricardofrango.squadify.presentation.ui.components.StatsFilterSegments
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
@@ -152,7 +152,7 @@ private fun TeamDetailsContent(
                 containerColor = WhiteSmoke,
                 topBar = {
                     Column(Modifier.background(ClubChrome)) {
-                        FMTopBar(
+                        SquadifyTopBar(
                             title = details?.team?.name ?: stringResource(Res.string.title_team_details),
                             // Landscape (32e): the Next fixture folds into the subtitle to save height.
                             subtitle = details?.let { d ->

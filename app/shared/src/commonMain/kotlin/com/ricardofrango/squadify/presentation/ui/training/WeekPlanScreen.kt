@@ -25,7 +25,7 @@ import com.ricardofrango.squadify.model.TrainingPlan
 import com.ricardofrango.squadify.model.TrainingPlanLevel
 import com.ricardofrango.squadify.model.planFor
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
 import com.ricardofrango.squadify.presentation.ui.theme.Amber
@@ -115,7 +115,7 @@ private fun WeekPlanContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = stringResource(Res.string.label_week_of, shortDateLabel(monday)),
                 subtitle = plans?.weekSubtitle(),
                 onNavigateBack = onNavigateBack,

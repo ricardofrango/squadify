@@ -35,7 +35,7 @@ import com.ricardofrango.squadify.presentation.ui.components.HalvesSelector
 import com.ricardofrango.squadify.presentation.ui.components.MatchTypeSelector
 import com.ricardofrango.squadify.presentation.ui.components.iconRes
 import com.ricardofrango.squadify.presentation.ui.components.DatePickerSheet
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.TimePickerSheet
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
@@ -140,7 +140,7 @@ private fun MatchDetailsContent(
         containerColor = Color.White,
         topBar = {
             Column(Modifier.background(ClubChrome)) {
-                FMTopBar(
+                SquadifyTopBar(
                     title = details?.let { "${it.team.name} vs ${it.opponent.shortName ?: it.opponent.name}" }
                         ?: stringResource(Res.string.title_match),
                     subtitle = details?.let { "${it.ageGroup.name} · ${it.season.name}" },

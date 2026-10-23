@@ -30,7 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.ReplacedSession
 import com.ricardofrango.squadify.model.TrainingSessions
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
 import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
@@ -100,7 +100,7 @@ private fun SessionEditContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = stringResource(if (editing) Res.string.title_edit_session else Res.string.title_add_session),
                 subtitle = state.sessions?.subtitle(),
                 onNavigateBack = onNavigateBack

@@ -46,7 +46,7 @@ import com.ricardofrango.squadify.model.TrainingSession
 import com.ricardofrango.squadify.model.TrainingSessionDetails
 import com.ricardofrango.squadify.model.mondayOf
 import com.ricardofrango.squadify.model.periodEnd
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
@@ -190,7 +190,7 @@ private fun SessionDetailsContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = details?.let { sessionTitle(it.session.date) } ?: "",
                 subtitle = details?.let { stringResource(Res.string.label_training_subtitle, it.ageGroup.name, it.clubName) },
                 onNavigateBack = onNavigateBack,

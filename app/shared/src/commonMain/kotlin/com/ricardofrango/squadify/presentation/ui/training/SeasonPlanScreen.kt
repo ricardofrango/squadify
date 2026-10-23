@@ -45,7 +45,7 @@ import com.ricardofrango.squadify.model.monthStarts
 import com.ricardofrango.squadify.model.periodEnd
 import com.ricardofrango.squadify.model.planFor
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
@@ -111,7 +111,7 @@ private fun SeasonPlanContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = stringResource(Res.string.title_season_plan),
                 subtitle = plans?.subtitle(),
                 onNavigateBack = onNavigateBack,

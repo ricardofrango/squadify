@@ -33,7 +33,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
 import com.ricardofrango.squadify.presentation.ui.components.FormIntro
 import com.ricardofrango.squadify.presentation.ui.components.FormTextField
@@ -107,7 +107,7 @@ private fun ChangeEmailContent(
     val sendCode = { onSendCode(newEmail, password) }
 
     Scaffold(
-        topBar = { FMTopBar(title = stringResource(Res.string.btn_change_email), onNavigateBack = onNavigateBack) }
+        topBar = { SquadifyTopBar(title = stringResource(Res.string.btn_change_email), onNavigateBack = onNavigateBack) }
     ) { padding ->
         Column(
             Modifier

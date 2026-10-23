@@ -32,7 +32,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.PlayerPosition
 import com.ricardofrango.squadify.presentation.ui.components.DatePickerSheet
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.PhotoActions
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
@@ -147,7 +147,7 @@ private fun EditPlayerContent(
         containerColor = Color.White,
         topBar = {
             Column(Modifier.background(ClubChrome)) {
-                FMTopBar(
+                SquadifyTopBar(
                     title = stringResource(Res.string.title_edit_player),
                     subtitle = idle?.let { subtitleLine(it) },
                     onNavigateBack = onNavigateBack,

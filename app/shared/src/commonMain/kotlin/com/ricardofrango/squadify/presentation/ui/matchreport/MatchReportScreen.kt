@@ -74,7 +74,7 @@ import com.ricardofrango.squadify.model.MatchReportDetails
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.PlayerPosition
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -202,7 +202,7 @@ private fun MatchReportContent(
             },
             topBar = {
                 Column(Modifier.background(ClubChrome)) {
-                    FMTopBar(
+                    SquadifyTopBar(
                         // The no-permission screen drops the subtitle so it doesn't reveal the match (26f).
                         title = stringResource(Res.string.report_title),
                         subtitle = idle?.let { subtitle(it.details) },

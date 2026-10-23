@@ -22,7 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.SportType
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.ClubLogo
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -179,7 +179,7 @@ private fun DashboardContent(
     val isRefreshing = (uiState as? DashboardUiState.Idle)?.isRefreshing == true
         Scaffold(
             topBar = {
-                FMTopBar(
+                SquadifyTopBar(
                     title = stringResource(Res.string.title_my_clubs),
                     showBackButton = false,
                     actions = {

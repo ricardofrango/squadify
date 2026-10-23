@@ -80,7 +80,7 @@ import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.presentation.ui.components.EmptyStateCallToAction
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
@@ -810,7 +810,7 @@ private fun ClubDetailsContent(
     Box(Modifier.fillMaxSize()) {
     Scaffold(
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name
                     ?: stringResource(Res.string.title_club_details),
                 showBackButton = showBackButton,
