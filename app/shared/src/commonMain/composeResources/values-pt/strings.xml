@@ -380,8 +380,6 @@
     <!-- Live Match Console -->
     <string name="msg_live_match_action_failed">Ocorreu um erro. Por favor, tente novamente.</string>
     <string name="msg_live_match_read_only">Pode acompanhar aqui, mas só um treinador ou membro da equipa técnica pode iniciar o jogo, registar eventos ou gerir o cronómetro.</string>
-    <string name="msg_kickoff_time_location">Início às %1$s · %2$s</string>
-    <string name="msg_kickoff_time_only">Início às %1$s</string>
     <string name="label_half_length">Duração da parte</string>
     <string name="label_starting_xi">Onze inicial</string>
     <string name="label_bench">Suplentes</string>
@@ -389,7 +387,6 @@
     <string name="btn_kick_off">Iniciar jogo</string>
     <string name="msg_pick_more_to_kick_off">Escolha mais %1$d para iniciar. Partes de %2$d minutos.</string>
     <string name="msg_ready_to_kick_off">Partes de %1$d minutos.</string>
-    <string name="label_live_badge">AO VIVO</string>
     <string name="label_half_time_badge">INTERVALO</string>
     <string name="label_first_half">1ª parte</string>
     <string name="label_second_half">2ª parte</string>
@@ -1466,8 +1463,6 @@
     <string name="lm_zone_midfield">Meio-campo</string>
     <string name="lm_zone_attack">Ataque</string>
     <string name="lm_fill_more_to_kick_off">Preencha mais %1$d posições para iniciar. Partes de %2$d minutos.</string>
-    <string name="lm_pitch_hint">Toque numa posição para escolher quem joga, ou mantenha premido um jogador e arraste.</string>
-    <string name="lm_pitch_hint_live">Toque num jogador para registar. Mantenha premido e arraste para substituir ou trocar de lugar.</string>
     <string name="lm_flip_pitch">Inverter o campo</string>
     <string name="lm_sent_off_list">Expulsos: %1$s</string>
     <string name="lm_on_the_pitch_for">%1$s em campo</string>

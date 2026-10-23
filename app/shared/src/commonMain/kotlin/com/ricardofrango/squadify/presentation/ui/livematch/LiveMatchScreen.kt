@@ -191,24 +191,6 @@ private fun ConsoleHeader(
     }
 }
 
-@Composable
-private fun LiveBadge() {
-    Surface(shape = RoundedCornerShape(6.dp), color = LiveRed) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(Modifier.size(6.dp).background(Color.White, CircleShape))
-            Spacer(Modifier.width(4.dp))
-            Text(
-                stringResource(Res.string.label_live_badge),
-                color = Color.White,
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
-            )
-        }
-    }
-}
-
 // ---------------------------------------------------------------------------------------------
 // Pre-kickoff: placing the starters on the pitch (the live pitch view)
 // ---------------------------------------------------------------------------------------------
@@ -304,12 +286,8 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
-        Column(Modifier.fillMaxSize()) {
-            ConsoleHeader(
-                title = "${details.team.name} vs ${details.opponent.name}",
-                subtitle = matchSubtitle(details),
-                onNavigateBack = onNavigateBack
-            )
+        // No app bar: the pitch gets the room (system back leaves the screen).
+        Column(Modifier.fillMaxSize().statusBarsPadding().padding(top = 8.dp)) {
             if (details.callUps.isEmpty()) {
                 Text(
                     stringResource(Res.string.msg_no_callups),
@@ -342,7 +320,7 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
                         if (landscape) FlipPitchButton { flipped = !flipped }
                     }
                 },
-                hint = if (editable) stringResource(Res.string.lm_pitch_hint) else null,
+                hint = null,
                 modifier = Modifier.weight(1f).fillMaxWidth().then(if (landscape) Modifier.padding(horizontal = 16.dp, vertical = 8.dp) else Modifier),
                 footer = if (landscape) { { kickOffBar(Modifier.fillMaxWidth().navigationBarsPadding()) } } else null
             )
@@ -377,19 +355,6 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
         PreKickoffSheet.Formation -> FormationSheet(formationText, teamSize, onApply = { actions.onSetLineup(it, slotIds); sheet = null }, onDismiss = { sheet = null })
         null -> Unit
     }
-}
-
-@Composable
-private fun matchSubtitle(details: MatchDetails): String {
-    val time = timeOfDay(details.match.dateTime)
-    return details.match.location?.takeIf { it.isNotBlank() }
-        ?.let { stringResource(Res.string.msg_kickoff_time_location, time, it) }
-        ?: stringResource(Res.string.msg_kickoff_time_only, time)
-}
-
-private fun timeOfDay(instant: Instant): String {
-    val dt = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    return "${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}"
 }
 
 // elapsedMatchSeconds(match, now) itself now lives in common/model/Models.kt -- shared with MatchRow's
@@ -591,7 +556,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
                         }
                     },
                     // A substitution or clock correction just made is confirmed here, as on the Squad tab.
-                    hint = flashText ?: if (canManage) stringResource(Res.string.lm_pitch_hint_live) else null,
+                    hint = flashText,
                     modifier = Modifier.fillMaxSize().padding(top = 4.dp).then(if (sideBySide) Modifier.padding(horizontal = 16.dp, vertical = 8.dp) else Modifier)
                 )
             }
@@ -678,8 +643,8 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
                 Box(Modifier.weight(1f).fillMaxWidth()) { tabContent(true) }
             }
         } else {
-            Column(Modifier.fillMaxSize()) {
-                ConsoleHeader(title = "${details.ageGroup.name} · ${details.season.name}", subtitle = null, onNavigateBack = onNavigateBack, trailing = { LiveBadge() })
+            // No app bar: the scoreboard sits at the top (system back leaves the screen).
+            Column(Modifier.fillMaxSize().statusBarsPadding().padding(top = 8.dp)) {
                 ScoreboardCard(home, away, clock, Modifier.padding(horizontal = ScreenPadding.Horizontal))
                 tabs(Modifier.padding(horizontal = ScreenPadding.Horizontal).padding(top = 12.dp))
                 Box(Modifier.weight(1f).fillMaxWidth().padding(top = 6.dp)) { tabContent(false) }
