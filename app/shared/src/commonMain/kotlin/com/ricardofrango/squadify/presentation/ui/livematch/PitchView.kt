@@ -469,9 +469,14 @@ internal fun PitchPanel(
         val crowd = maxOf(1, formation.maxOrNull() ?: 1)
         val cell = (if (horizontal) maxHeight else maxWidth) / crowd
         val photo = (cell - if (horizontal) 36.dp else 26.dp).coerceIn(26.dp, 44.dp)
-        val overlays = listOfNotNull(
+        // Upright the chips sit in the bottom corners, on our goal line (pushed in by the field's
+        // margin); lying down, beside the goalkeeper.
+        val overlays = if (horizontal) listOfNotNull(
             PitchOverlay(KeeperDepth, 0.8f) { FormationChip(formationLabel, onFormationClick) },
             besideKeeper?.let { PitchOverlay(KeeperDepth, 0.2f, it) }
+        ) else listOfNotNull(
+            PitchOverlay(0f, 1f) { Box(Modifier.padding(12.dp)) { FormationChip(formationLabel, onFormationClick) } },
+            besideKeeper?.let { content -> PitchOverlay(0f, 0f) { Box(Modifier.padding(12.dp)) { content() } } }
         )
         PitchField(formation, horizontal, ourGoalAtStart, Modifier.fillMaxSize(), overlays) { slot ->
             val key = PitchDropKey.Slot(slot)
@@ -502,13 +507,6 @@ internal fun PitchPanel(
             modifier = Modifier.pitchDrag(drag, key, player, dragEnabled, onDrop)
         )
     }
-    val benchLabel: @Composable () -> Unit = {
-        Text(
-            stringResource(Res.string.lm_bench_count, bench.size).uppercase(),
-            color = Color.White.copy(alpha = 0.55f),
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.6.sp)
-        )
-    }
     val sentOffLine: @Composable () -> Unit = {
         if (sentOff.isNotEmpty()) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.alpha(0.6f)) {
@@ -533,7 +531,6 @@ internal fun PitchPanel(
                 pitch(Modifier.weight(1f).fillMaxHeight())
                 Column(Modifier.width(232.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     header?.invoke()
-                    benchLabel()
                     Column(benchArea.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         bench.forEach { player ->
                             val key = PitchDropKey.Bench(player.id)
@@ -560,7 +557,6 @@ internal fun PitchPanel(
                 pitch(Modifier.weight(1f).fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal))
                 Column(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal).padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     hintLine()
-                    benchLabel()
                     Row(
                         benchArea.fillMaxWidth().height(64.dp).horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)

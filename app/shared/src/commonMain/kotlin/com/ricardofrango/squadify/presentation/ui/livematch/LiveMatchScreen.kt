@@ -631,7 +631,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
                     }
                     ScoreboardBar(home, away, clock, Modifier.weight(1f))
                 }
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 2.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     tabs(Modifier.widthIn(max = 380.dp).weight(1f))
                     Spacer(Modifier.width(16.dp))
                     actionBar(Modifier.width(300.dp), true)
@@ -642,7 +642,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
             // No app bar: the scoreboard sits at the top (system back leaves the screen).
             Column(Modifier.fillMaxSize().statusBarsPadding().padding(top = 8.dp)) {
                 ScoreboardCard(home, away, clock, Modifier.padding(horizontal = ScreenPadding.Horizontal))
-                tabs(Modifier.padding(horizontal = ScreenPadding.Horizontal).padding(top = 12.dp))
+                tabs(Modifier.padding(horizontal = ScreenPadding.Horizontal).padding(top = 2.dp))
                 Box(Modifier.weight(1f).fillMaxWidth().padding(top = 6.dp)) { tabContent(false) }
                 actionBar(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp), false)
             }
