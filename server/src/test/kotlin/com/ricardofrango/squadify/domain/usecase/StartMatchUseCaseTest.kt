@@ -73,9 +73,9 @@ class StartMatchUseCaseTest {
 
     private fun coach() = User("coach", "coach@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
 
-    private fun callUp(playerId: String, status: CallUpStatus = CallUpStatus.CALLED_UP) =
+    private fun callUp(playerId: String, status: CallUpStatus = CallUpStatus.CALLED_UP, pitchSlot: Int? = null) =
         MatchCallUpWithPlayer(
-            callUp = MatchCallUp("cu-$playerId", matchId, playerId, status),
+            callUp = MatchCallUp("cu-$playerId", matchId, playerId, status, pitchSlot = pitchSlot),
             player = Player(playerId, clubId, "First", "Last", birthDate = kotlinx.datetime.LocalDate(2015, 1, 1), shirtNumber = null, photoUrl = null, active = true)
         )
 
@@ -93,14 +93,14 @@ class StartMatchUseCaseTest {
         stubCoachPermission(coach)
         val calledUpIds = (1..8).map { "p$it" }
         coEvery { matchRepository.getCallUpsForMatch(matchId) } returns calledUpIds.map { callUp(it) }
-        coEvery { matchRepository.startMatch(matchId, any(), 30) } returns true
+        coEvery { matchRepository.startMatch(matchId, any(), 30, any()) } returns true
         coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 0, 0)
 
         val starting = calledUpIds.take(7)
         val result = useCase(coach.id, matchId, StartMatchRequest(starting, 30))
 
         assertEquals(true, result)
-        coVerify { matchRepository.startMatch(matchId, starting, 30) }
+        coVerify { matchRepository.startMatch(matchId, starting, 30, "2-3-1") }
         coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.KICKOFF) }
         coVerify { clubMatchesBus.publish(clubId, com.ricardofrango.squadify.model.ClubMatchesUpdate(match = match)) }
     }
@@ -156,7 +156,7 @@ class StartMatchUseCaseTest {
         coEvery { teamRepository.getTeamById(teamId) } returns team7aside
         val calledUpIds = (1..7).map { "p$it" }
         coEvery { matchRepository.getCallUpsForMatch(matchId) } returns calledUpIds.map { callUp(it) }
-        coEvery { matchRepository.startMatch(matchId, calledUpIds, 30) } returns true
+        coEvery { matchRepository.startMatch(matchId, calledUpIds, 30, any()) } returns true
         coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 0, 0)
 
         val result = useCase(staff.id, matchId, StartMatchRequest(calledUpIds, 30))
@@ -178,5 +178,39 @@ class StartMatchUseCaseTest {
             useCase(member.id, matchId, StartMatchRequest((1..7).map { "p$it" }, 30))
         }
         Unit
+    }
+
+    @Test
+    fun kicksOffInTheChosenFormationAndKeepsItAsTheStartingOne() = runBlocking {
+        val coach = coach()
+        coEvery { matchRepository.getMatchById(matchId) } returns match
+        stubCoachPermission(coach)
+        val ids = (1..7).map { "p$it" }
+        coEvery { matchRepository.getCallUpsForMatch(matchId) } returns ids.mapIndexed { i, id -> callUp(id, pitchSlot = i) }
+        coEvery { matchRepository.startMatch(matchId, any(), 30, any()) } returns true
+        coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 0, 0)
+
+        useCase(coach.id, matchId, StartMatchRequest(ids, 30, formation = "3-2-1"))
+
+        coVerify { matchRepository.startMatch(matchId, ids, 30, "3-2-1") }
+    }
+
+    @Test
+    fun aFormationThatDoesNotAddUpOrStartersOffThePitchAreRefused() = runBlocking {
+        val coach = coach()
+        coEvery { matchRepository.getMatchById(matchId) } returns match
+        stubCoachPermission(coach)
+        val ids = (1..8).map { "p$it" }
+        // p1..p7 placed on the pitch, p8 on the bench.
+        coEvery { matchRepository.getCallUpsForMatch(matchId) } returns ids.mapIndexed { i, id -> callUp(id, pitchSlot = i.takeIf { it < 7 }) }
+
+        assertFailsWith<ValidationException> {
+            useCase(coach.id, matchId, StartMatchRequest(ids.take(7), 30, formation = "2-3-2"))
+        }
+        // p8 is on the bench, so it can't start instead of p7.
+        assertFailsWith<ValidationException> {
+            useCase(coach.id, matchId, StartMatchRequest(ids.take(6) + "p8", 30))
+        }
+        coVerify(exactly = 0) { matchRepository.startMatch(any(), any(), any(), any()) }
     }
 }

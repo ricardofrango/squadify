@@ -15,7 +15,7 @@ interface MatchRepository {
     suspend fun updateMatchStatus(matchId: String, status: MatchStatus): Boolean
     // Kicks off: sets isStarting=true on [startingPlayerIds]' call-ups (false on every other call-up
     // of this match), and sets the match's status to LIVE and its half length -- all in one write.
-    suspend fun startMatch(matchId: String, startingPlayerIds: List<String>, halfLengthMinutes: Int): Boolean
+    suspend fun startMatch(matchId: String, startingPlayerIds: List<String>, halfLengthMinutes: Int, formation: String): Boolean
     // Records the wall-clock instant the second half resumed -- see UpdateMatchStatusUseCase, which
     // calls this on a HALF_TIME -> LIVE transition so the client can derive the running clock from it.
     suspend fun markSecondHalfStarted(matchId: String, at: kotlin.time.Instant): Boolean
@@ -35,6 +35,9 @@ interface MatchRepository {
     // status -- unlike resumeMatch, this must work while paused (correcting a frozen display) without
     // side-effecting a resume. See SetMatchMinuteUseCase, which computes the shift.
     suspend fun adjustMatchClock(matchId: String, kickoffAt: kotlin.time.Instant, secondHalfStartedAt: kotlin.time.Instant?): Boolean
+
+    // Saves the formation and who stands in each slot, clearing every other call-up's slot (the bench).
+    suspend fun setLineup(matchId: String, formation: String, slots: Map<Int, String>): Boolean
 
     suspend fun getCallUpsForMatch(matchId: String): List<MatchCallUpWithPlayer>
     suspend fun countCallUpsByPlayer(playerId: String): Long

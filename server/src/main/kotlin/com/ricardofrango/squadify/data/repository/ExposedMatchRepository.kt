@@ -95,7 +95,8 @@ class ExposedMatchRepository : MatchRepository {
     override suspend fun startMatch(
         matchId: String,
         startingPlayerIds: List<String>,
-        halfLengthMinutes: Int
+        halfLengthMinutes: Int,
+        formation: String
     ): Boolean {
         val matchUuid = matchId.toUuid()
         val startingUuids = startingPlayerIds.map(String::toUuid)
@@ -110,6 +111,8 @@ class ExposedMatchRepository : MatchRepository {
         return MatchesTable.update({ MatchesTable.id eq matchUuid }) {
             it[status] = MatchStatus.LIVE
             it[MatchesTable.halfLengthMinutes] = halfLengthMinutes
+            it[MatchesTable.formation] = formation
+            it[startingFormation] = formation
             it[kickoffAt] = Instant.fromEpochMilliseconds(System.currentTimeMillis())
         } > 0
     }
@@ -162,6 +165,19 @@ class ExposedMatchRepository : MatchRepository {
 
     override suspend fun countCallUpsByPlayer(playerId: String): Long =
         CallUpsTable.selectAll().where { CallUpsTable.playerId eq playerId.toUuid() }.count()
+
+    override suspend fun setLineup(matchId: String, formation: String, slots: Map<Int, String>): Boolean {
+        val matchUuid = matchId.toUuid()
+        // Every slot cleared first: one player per position (unique_match_pitch_slot) would otherwise
+        // refuse two players swapping places.
+        CallUpsTable.update({ CallUpsTable.matchId eq matchUuid }) { it[pitchSlot] = null }
+        slots.forEach { (slot, playerId) ->
+            CallUpsTable.update({ (CallUpsTable.matchId eq matchUuid) and (CallUpsTable.playerId eq playerId.toUuid()) }) {
+                it[pitchSlot] = slot
+            }
+        }
+        return MatchesTable.update({ MatchesTable.id eq matchUuid }) { it[MatchesTable.formation] = formation } > 0
+    }
 
     override suspend fun getCallUpMatchIdsByPlayer(playerId: String): List<String> =
         CallUpsTable.selectAll().where { CallUpsTable.playerId eq playerId.toUuid() }
@@ -242,7 +258,9 @@ class ExposedMatchRepository : MatchRepository {
         secondHalfStartedAt = row[MatchesTable.secondHalfStartedAt],
         pausedAt = row[MatchesTable.pausedAt],
         firstHalfEndMinute = row[MatchesTable.firstHalfEndMinute],
-        fullTimeMinute = row[MatchesTable.fullTimeMinute]
+        fullTimeMinute = row[MatchesTable.fullTimeMinute],
+        formation = row[MatchesTable.formation],
+        startingFormation = row[MatchesTable.startingFormation]
     )
 
     private fun toOpponent(row: ResultRow): Opponent = Opponent(
@@ -259,7 +277,8 @@ class ExposedMatchRepository : MatchRepository {
         playerId = row[CallUpsTable.playerId].toString(),
         status = row[CallUpsTable.status],
         notes = row[CallUpsTable.notes],
-        isStarting = row[CallUpsTable.isStarting]
+        isStarting = row[CallUpsTable.isStarting],
+        pitchSlot = row[CallUpsTable.pitchSlot]
     )
 
     private fun toPlayer(row: ResultRow): Player = Player(

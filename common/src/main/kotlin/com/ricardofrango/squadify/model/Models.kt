@@ -228,7 +228,9 @@ data class LiveMatchUpdate(
     val match: Match? = null,
     // Set instead of [event] when this update is announcing that an event was removed (see
     // DeleteMatchEventUseCase) -- listeners drop it from their local event list.
-    val deletedEventId: String? = null
+    val deletedEventId: String? = null,
+    // Set when the coach rearranges the pitch (SetMatchLineupUseCase): the whole new arrangement.
+    val lineup: MatchLineup? = null
 )
 
 /**
@@ -924,7 +926,12 @@ data class Match(
     // match whose MatchPlayerStats were computed (matches finished before this existed have neither).
     val fullTimeMinute: Int? = null,
     // Home, away or neutral (see MatchVenue); every match has one.
-    val venue: MatchVenue = MatchVenue.HOME
+    val venue: MatchVenue = MatchVenue.HOME,
+    // The live pitch view's formation ("2-3-1", see Formation.kt): [formation] is the current one,
+    // [startingFormation] the one at kickoff (it prefills the match report's tactic). Null until the
+    // coach sets one -- the team size's default applies -- and for matches played before this.
+    val formation: String? = null,
+    val startingFormation: String? = null
 )
 
 /**
@@ -1058,7 +1065,12 @@ data class MatchCallUp(
     // True for the players picked into the Starting XI at kickoff (StartMatchUseCase); false for
     // everyone else called up (the bench). Meaningless before kickoff -- the live match console's
     // pre-kickoff screen builds the XI/bench split itself from `status` alone, not this flag.
-    val isStarting: Boolean = false
+    val isStarting: Boolean = false,
+    // The position this player holds on the live pitch view, as the coach last arranged it (0 is the
+    // goalkeeper, then defence, midfield and attack -- see Formation.kt). Null for the bench. During
+    // the game, substitutions and red cards since that arrangement are applied on top of it
+    // (currentPitchSlots), so this alone isn't who stands where now.
+    val pitchSlot: Int? = null
 )
 
 @Serializable
@@ -1200,7 +1212,10 @@ data class SetMatchMinuteRequest(
 @Serializable
 data class StartMatchRequest(
     val startingPlayerIds: List<String>,
-    val halfLengthMinutes: Int
+    val halfLengthMinutes: Int,
+    // The formation kicked off in ("2-3-1"). Optional: an app from before the pitch view sends none,
+    // and the match keeps whatever was saved (or the team size's default).
+    val formation: String? = null
 )
 
 @Serializable

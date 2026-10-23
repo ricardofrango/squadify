@@ -263,6 +263,10 @@ object Matches : Table("matches") {
     // fullTimeMinute). Used to compute minutes played, including stoppage time.
     val firstHalfEndMinute = integer("first_half_end_minute").nullable()
     val fullTimeMinute = integer("full_time_minute").nullable()
+    // V25: the formation now ("2-3-1", it can change during the game) and the one at kickoff. Null
+    // before the pitch view existed; see Formation.kt.
+    val formation = varchar("formation", 20).nullable()
+    val startingFormation = varchar("starting_formation", 20).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -276,6 +280,9 @@ object MatchCallUps : Table("match_call_ups") {
     // True for the Starting XI at kickoff (StartMatchUseCase), false for the bench. Meaningless
     // before kickoff.
     val isStarting = bool("is_starting").default(false)
+    // V25: the position this player holds on the pitch (0 = goalkeeper, then defence, midfield,
+    // attack -- see Formation.kt), as the coach last arranged it. Null for the bench.
+    val pitchSlot = integer("pitch_slot").nullable()
 
     override val primaryKey = PrimaryKey(id)
 
