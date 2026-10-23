@@ -316,7 +316,6 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
                 onFormationClick = if (editable) { { sheet = PreKickoffSheet.Formation } } else null,
                 onFlip = if (landscape) { { flipped = !flipped } } else null,
                 besideKeeper = { HalfLengthChip(halfLength, HALF_LENGTH_OPTIONS, enabled = canManage) { halfLength = it } },
-                hint = null,
                 modifier = Modifier.weight(1f).fillMaxWidth().then(if (landscape) Modifier.padding(horizontal = 16.dp, vertical = 8.dp) else Modifier),
                 footer = if (landscape) { { kickOffBar(Modifier.fillMaxWidth().navigationBarsPadding()) } } else null
             )
@@ -549,8 +548,6 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
                     formationLabel = formationText,
                     onFormationClick = if (editable) { { showFormationSheet = true } } else null,
                     onFlip = if (sideBySide) { { flipped = !flipped } } else null,
-                    // A substitution or clock correction just made is confirmed here, as on the Squad tab.
-                    hint = flashText,
                     modifier = Modifier.fillMaxSize().padding(top = 4.dp)
                 )
             }

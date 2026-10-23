@@ -454,7 +454,6 @@ internal fun PitchPanel(
     onFormationClick: (() -> Unit)?,
     // Lying down: turns the pitch round (a button on the pitch's top corner at the far end).
     onFlip: (() -> Unit)?,
-    hint: String?,
     modifier: Modifier = Modifier,
     footer: (@Composable ColumnScope.() -> Unit)? = null,
     // Before kickoff: the half-length chip, on the pitch on the goalkeeper's other side.
@@ -524,9 +523,6 @@ internal fun PitchPanel(
             }
         }
     }
-    val hintLine: @Composable () -> Unit = {
-        hint?.let { Text(it, color = Color.White.copy(alpha = 0.45f), style = MaterialTheme.typography.labelSmall) }
-    }
     val benchArea = Modifier.pitchDrag(drag, PitchDropKey.BenchArea, null, false, onDrop)
 
     Box(modifier.onGloballyPositioned { host = it }) {
@@ -538,7 +534,6 @@ internal fun PitchPanel(
             Column(stackModifier) {
                 pitch(Modifier.weight(1f).fillMaxWidth().padding(horizontal = side))
                 Column(Modifier.fillMaxWidth().padding(horizontal = side).padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    hintLine()
                     Row(
                         benchArea.fillMaxWidth().height(64.dp).horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
