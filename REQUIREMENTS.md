@@ -163,11 +163,11 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Authentication flows (Login/Register): login, register, session check on launch, automatic token refresh on 401, logout, and **Forgot password**. Forgot password emails a 6-digit code (15 minutes, 5 tries, one per minute) that sets a new password and signs the account out everywhere. An email with no account is reported straight away. See `TECHNICAL_DECISIONS.md` §48.
     - [x] Account Management: User profile viewing and editing. The Account screen edits name and phone and changes the password (`TECHNICAL_DECISIONS.md` §33), and changes the email (next item).
     - [x] **Change email**: from Account, enter the new address and the current password. A 6-digit code goes to the new address, and entering it switches the account. It reuses the Forgot-password code rules: 15 minutes, 5 tries, one per minute. The address can't belong to another account. Every other session is signed out, and the old address is told about the change. See `TECHNICAL_DECISIONS.md` §49.
-    - [/] **Logo and photo upload** (clubs, opponents, players, users):
+    - [x] **Logo and photo upload** (clubs, opponents, players, users):
       - **Done (clubs):** "Add logo" / "Change logo" / "Remove" in Club settings → Details, for coordinators and admins. The server resizes it to a 512×512 PNG and stores it in a Railway Storage Bucket (the disk in dev). Each change gets a new file name and the old file is deleted first. Shown in Club settings and My clubs. See `TECHNICAL_DECISIONS.md` §57.
       - **Done (opponents):** "Add logo" / "Change logo" / "Remove" on Create and Edit opponent, saved with the form, for whoever can edit opponents. The same storage and rules as the club's. Shown on the Opponents list, Opponent details and Schedule match.
       - **Done (players and users):** a player's photo on Edit player, for whoever can edit the player, and the user's own photo on Account. Both are saved straight away and cropped to a square. They show on Player details, Account and the More panel.
-      - **Still pending:** showing them in more places. See the next item.
+      - **Shown** wherever they belong. See the next item.
     - [x] **Logos and photos everywhere they belong.** Wherever an image is set it's shown; where it isn't, the screen looks as before, apart from player rows. See `TECHNICAL_DECISIONS.md` §57.
       - **Opponent logo** before "vs" on every match card (Matches tab, Team and Age Group Details) and on Home's next-up card.
       - **Club and opponent logos** side by side at the top of Match details, and before each side's name on the live console's scoreboard.
