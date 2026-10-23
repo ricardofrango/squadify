@@ -32,6 +32,8 @@ import com.ricardofrango.squadify.presentation.ui.components.MatchRow
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
@@ -75,7 +77,7 @@ fun MatchesTab(
     // The club has no fixtures at all -- the full empty state, no filter row.
     if (state.matches.isEmpty()) {
         Column(
-            modifier = Modifier.fillMaxSize().background(Color.White).padding(24.dp),
+            modifier = Modifier.fillMaxSize().background(Color.White).screenContentPadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -131,7 +133,7 @@ fun MatchesTab(
     Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
+            contentPadding = PaddingValues(horizontal = ScreenPadding.Horizontal, vertical = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -165,7 +167,7 @@ fun MatchesTab(
         }
 
         Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, bottom = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             StatusChip(Res.string.matches_status_upcoming, state.matchesStatus == MatchesStatusFilter.UPCOMING) {
@@ -180,7 +182,7 @@ fun MatchesTab(
         }
 
         if (groups.isEmpty()) {
-            Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().screenContentPadding(), contentAlignment = Alignment.Center) {
                 Text(
                     stringResource(Res.string.msg_no_matches_for_filters),
                     style = MaterialTheme.typography.bodyMedium,
@@ -190,7 +192,7 @@ fun MatchesTab(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 32.dp),
+                contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = 4.dp, bottom = ScreenPadding.Bottom),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 groups.forEachIndexed { index, group ->
