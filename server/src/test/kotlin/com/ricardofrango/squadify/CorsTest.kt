@@ -16,8 +16,8 @@ class CorsTest {
 
     private val webApp = "https://app.example.test"
 
-    private fun preflight(method: String, origin: String = webApp) = testApplication {
-        application { configureCors(webApp) }
+    private fun preflight(method: String, origin: String = webApp, allowAnyLocalhost: Boolean = false) = testApplication {
+        application { configureCors(webApp, allowAnyLocalhost) }
         val response = client.options("/matches/m1/report") {
             header(HttpHeaders.Origin, origin)
             header(HttpHeaders.AccessControlRequestMethod, method)
@@ -38,6 +38,33 @@ class CorsTest {
         val response = client.options("/matches/m1/report") {
             header(HttpHeaders.Origin, "https://elsewhere.test")
             header(HttpHeaders.AccessControlRequestMethod, "PUT")
+        }
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
+    fun devAcceptsLocalhostOnAnyPort() {
+        listOf("http://localhost:8082", "http://localhost:3000", "http://127.0.0.1:8081").forEach {
+            preflight("POST", origin = it, allowAnyLocalhost = true)
+        }
+    }
+
+    @Test
+    fun outsideDevAnotherLocalhostPortIsRefused() = testApplication {
+        application { configureCors(webApp) }
+        val response = client.options("/auth/login") {
+            header(HttpHeaders.Origin, "http://localhost:8082")
+            header(HttpHeaders.AccessControlRequestMethod, "POST")
+        }
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
+    fun devStillRefusesOtherHosts() = testApplication {
+        application { configureCors(webApp, allowAnyLocalhost = true) }
+        val response = client.options("/auth/login") {
+            header(HttpHeaders.Origin, "http://localhost.evil.test:8082")
+            header(HttpHeaders.AccessControlRequestMethod, "POST")
         }
         assertEquals(HttpStatusCode.Forbidden, response.status)
     }

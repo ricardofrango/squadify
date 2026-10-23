@@ -18,6 +18,7 @@ import com.ricardofrango.squadify.domain.usecase.SeedPlatformAdminUseCase
 import com.ricardofrango.squadify.security.JwtConfig
 import com.ricardofrango.squadify.model.ErrorResponse
 import com.ricardofrango.squadify.exception.*
+import com.ricardofrango.squadify.config.AppEnvironment
 import com.ricardofrango.squadify.config.ServerConfig
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
@@ -74,7 +75,7 @@ fun Application.module() {
     // environment's web client URL". java.net.URI.authority preserves the string's own port (or lack of
     // one) as written, unlike Ktor's Url.hostWithPort, which always forces one in -- allowHost needs to
     // match the browser's actual Origin header ("https://host", no ":443") exactly.
-    configureCors(ServerConfig.webAppBaseUrl)
+    configureCors(ServerConfig.webAppBaseUrl, allowAnyLocalhost = ServerConfig.environment == AppEnvironment.DEV)
 
     install(Authentication) {
         jwt("auth-jwt") {
@@ -183,9 +184,16 @@ fun Application.module() {
  * Every method a repository uses has to be listed: a browser refuses anything else at the preflight
  * and the app only sees "Failed to fetch" (PUT was missing, so saving a match report, a training plan,
  * session ratings or exercises failed on web only).
+ *
+ * In dev ([allowAnyLocalhost]) the web app is also accepted from localhost on any port: the webpack
+ * dev server moves to the next free port (8082, ...) when 8081 is taken, and the browser then sent an
+ * origin the server refused.
  */
-fun Application.configureCors(webAppBaseUrl: String) {
+fun Application.configureCors(webAppBaseUrl: String, allowAnyLocalhost: Boolean = false) {
     install(CORS) {
+        if (allowAnyLocalhost) {
+            allowOrigins { origin -> LOCALHOST_ORIGIN.matches(origin) }
+        }
         val webAppUri = java.net.URI(webAppBaseUrl)
         val webAppAuthority = webAppUri.authority
             ?: throw IllegalStateException(
@@ -204,3 +212,5 @@ fun Application.configureCors(webAppBaseUrl: String) {
         allowNonSimpleContentTypes = true
     }
 }
+
+private val LOCALHOST_ORIGIN = Regex("""http://(localhost|127\.0\.0\.1)(:\d+)?""")
