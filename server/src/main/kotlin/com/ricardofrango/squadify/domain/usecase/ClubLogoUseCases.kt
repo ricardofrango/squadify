@@ -11,21 +11,27 @@ import com.ricardofrango.squadify.util.LogoImage
 import kotlin.uuid.Uuid
 
 /**
- * Where a club's logo lives. Each upload gets a new image id, so the path changes with the logo and an
- * app can cache a logo forever: `clubs/{clubId}/logo/{imageId}.png` in storage, and the same path under
- * the API (`/clubs/{clubId}/logo/{imageId}.png`) in `clubs.logo_url`.
+ * Where a logo lives. Each upload gets a new image id, so the path changes with the logo and an app can
+ * cache a logo forever: `{kind}/{ownerId}/logo/{imageId}.png` in storage, and the same path under the
+ * API (`/{kind}/{ownerId}/logo/{imageId}.png`) in the owner's `logo_url`.
  */
-object ClubLogos {
-    fun key(clubId: String, imageId: String) = "clubs/$clubId/logo/$imageId.png"
-    fun url(clubId: String, imageId: String) = "/${key(clubId, imageId)}"
+class LogoPaths(private val kind: String) {
+    fun key(ownerId: String, imageId: String) = "$kind/$ownerId/logo/$imageId.png"
+    fun url(ownerId: String, imageId: String) = "/${key(ownerId, imageId)}"
 
-    /** The storage key behind a club's `logo_url`, or null when it isn't one of ours. */
-    fun keyOf(clubId: String, logoUrl: String): String? {
-        val imageId = logoUrl.removePrefix("/clubs/$clubId/logo/").removeSuffix(".png")
+    /** The storage key behind an owner's `logo_url`, or null when it isn't one of ours. */
+    fun keyOf(ownerId: String, logoUrl: String): String? {
+        val imageId = logoUrl.removePrefix("/$kind/$ownerId/logo/").removeSuffix(".png")
         if (imageId == logoUrl || imageId.isEmpty()) return null
-        return runCatching { Uuid.parse(imageId) }.getOrNull()?.let { key(clubId, imageId) }
+        return runCatching { Uuid.parse(imageId) }.getOrNull()?.let { key(ownerId, imageId) }
     }
 }
+
+/** A club's logo: `clubs/{clubId}/logo/{imageId}.png`. */
+val ClubLogos = LogoPaths("clubs")
+
+/** An opponent's logo: `opponents/{opponentId}/logo/{imageId}.png`. See OpponentLogoUseCases. */
+val OpponentLogos = LogoPaths("opponents")
 
 private suspend fun loadClubAsCoordinator(
     clubRepository: ClubRepository,

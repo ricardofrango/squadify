@@ -49,7 +49,8 @@ class UpdateOpponentUseCase(
         val updatedOpponent = existingOpponent.copy(
             name = name,
             shortName = if (request.shortName != null) normalizeShortName(request.shortName) else existingOpponent.shortName,
-            logoUrl = if (request.logoUrl != null) request.logoUrl.cleaned() else existingOpponent.logoUrl,
+            // Only the logo upload sets it (UploadOpponentLogoUseCase), never a URL sent here.
+            logoUrl = existingOpponent.logoUrl,
             stadiumName = if (request.stadiumName != null) request.stadiumName.cleaned() else existingOpponent.stadiumName,
             stadiumAddress = if (request.stadiumAddress != null) request.stadiumAddress.cleaned() else existingOpponent.stadiumAddress,
             contactEmail = if (request.contactEmail != null) request.contactEmail.cleaned() else existingOpponent.contactEmail,

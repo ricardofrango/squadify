@@ -75,7 +75,16 @@ import squadify.app.shared.generated.resources.label_opponent_stadium_section
 import squadify.app.shared.generated.resources.label_optional_placeholder
 import squadify.app.shared.generated.resources.label_stadium_address_field
 import squadify.app.shared.generated.resources.label_stadium_name_field
-import squadify.app.shared.generated.resources.msg_logo_coming_soon
+import squadify.app.shared.generated.resources.msg_opponent_logo_hint
+import squadify.app.shared.generated.resources.label_change_logo
+import squadify.app.shared.generated.resources.btn_remove_logo
+import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.readBytes
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import squadify.app.shared.generated.resources.msg_opponent_name_taken
 import squadify.app.shared.generated.resources.msg_opponent_short_name_helper
 import squadify.app.shared.generated.resources.msg_stadium_address_helper
@@ -93,7 +102,7 @@ import squadify.app.shared.generated.resources.msg_opponent_load_failed
 import squadify.app.shared.generated.resources.title_edit_opponent
 
 /**
- * Create opponent (design 38e): logo (upload not available yet), IDENTITY, STADIUM, CONTACT and NOTES,
+ * Create opponent (design 38e): logo, IDENTITY, STADIUM, CONTACT and NOTES,
  * with the button pinned at the bottom. Only Name is required; a name the club already has shows
  * inline under it and keeps the button disabled. Next moves field to field and Done on Phone submits;
  * Notes is multi-line and reached by tapping. [initialName] prefills Name (the search that found
@@ -122,7 +131,9 @@ fun OpponentFormScreen(
             onRetry = {},
             onFormChange = viewModel::onFormChange,
             onNameFocusLost = viewModel::onNameFocusLost,
-            onSubmit = viewModel::onSubmit
+            onSubmit = viewModel::onSubmit,
+            onLogoPicked = viewModel::onLogoPicked,
+            onRemoveLogo = viewModel::onRemoveLogo
         )
     }
 }
@@ -152,7 +163,9 @@ fun OpponentEditScreen(
             onRetry = { viewModel.startEdit(opponentId, force = true) },
             onFormChange = viewModel::onFormChange,
             onNameFocusLost = viewModel::onNameFocusLost,
-            onSubmit = viewModel::onSubmit
+            onSubmit = viewModel::onSubmit,
+            onLogoPicked = viewModel::onLogoPicked,
+            onRemoveLogo = viewModel::onRemoveLogo
         )
     }
 }
@@ -167,7 +180,9 @@ private fun OpponentFormContent(
     onRetry: () -> Unit,
     onFormChange: (OpponentForm) -> Unit,
     onNameFocusLost: () -> Unit,
-    onSubmit: () -> Unit
+    onSubmit: () -> Unit,
+    onLogoPicked: (ByteArray) -> Unit = {},
+    onRemoveLogo: () -> Unit = {}
 ) {
     Scaffold(
         containerColor = Color.White,
@@ -201,7 +216,7 @@ private fun OpponentFormContent(
                     if (wide) {
                         Row(Modifier.padding(24.dp), horizontalArrangement = Arrangement.spacedBy(32.dp)) {
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                LogoHeader(state.form)
+                                LogoHeader(state, onLogoPicked, onRemoveLogo)
                                 IdentitySection(state, onFormChange, onNameFocusLost)
                                 StadiumSection(state, onFormChange)
                             }
@@ -213,7 +228,7 @@ private fun OpponentFormContent(
                         }
                     } else {
                         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            LogoHeader(state.form)
+                            LogoHeader(state, onLogoPicked, onRemoveLogo)
                             IdentitySection(state, onFormChange, onNameFocusLost)
                             StadiumSection(state, onFormChange)
                             ContactSection(state, onFormChange, onSubmit)
@@ -239,20 +254,40 @@ private fun OpponentFormContent(
     }
 }
 
+/**
+ * The logo (or initials) with "Add logo" / "Change logo" and "Remove". The picker opens the platform's
+ * gallery; the image is shown straight away and saved with the form.
+ */
 @Composable
-private fun LogoHeader(form: OpponentForm) {
+private fun LogoHeader(state: OpponentFormUiState, onLogoPicked: (ByteArray) -> Unit, onRemoveLogo: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    val picker = rememberFilePickerLauncher(type = FileKitType.Image) { file ->
+        if (file != null) scope.launch { onLogoPicked(file.readBytes()) }
+    }
+    val enabled = !state.submitting
     Row(verticalAlignment = Alignment.CenterVertically) {
-        OpponentLogo(form.name.ifBlank { "?" }, form.shortName, size = 64.dp)
+        OpponentLogo(state.form.name.ifBlank { "?" }, state.form.shortName, logoUrl = state.logo.shownUrl, size = 64.dp, picked = state.logo.picked)
         Spacer(Modifier.width(16.dp))
         Column {
-            // Upload isn't available yet, so "Add logo" is shown disabled.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(if (state.logo.hasLogo) Res.string.label_change_logo else Res.string.label_add_logo),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = if (enabled) PitchGreen else PitchGreen.copy(alpha = 0.4f),
+                    modifier = Modifier.clickable(enabled = enabled) { picker.launch() }.padding(vertical = 4.dp)
+                )
+                if (state.logo.hasLogo) {
+                    Text(" · ", color = DeepCarbon.copy(alpha = 0.3f))
+                    Text(
+                        stringResource(Res.string.btn_remove_logo),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = if (enabled) AlertRed else AlertRed.copy(alpha = 0.4f),
+                        modifier = Modifier.clickable(enabled = enabled, onClick = onRemoveLogo).padding(vertical = 4.dp)
+                    )
+                }
+            }
             Text(
-                stringResource(Res.string.label_add_logo),
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                color = DeepCarbon.copy(alpha = 0.35f)
-            )
-            Text(
-                stringResource(Res.string.msg_logo_coming_soon),
+                stringResource(Res.string.msg_opponent_logo_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = DeepCarbon.copy(alpha = 0.5f)
             )

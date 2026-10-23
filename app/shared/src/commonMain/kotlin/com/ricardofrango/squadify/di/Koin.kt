@@ -202,6 +202,8 @@ val domainModule = module {
     factory { GetOpponentDetailsUseCase(get()) }
     factory { CreateOpponentUseCase(get()) }
     factory { UpdateOpponentUseCase(get()) }
+    factory { UploadOpponentLogoUseCase(get()) }
+    factory { DeleteOpponentLogoUseCase(get()) }
     factory { CreateMatchUseCase(get()) }
     factory { GetMatchesUseCase(get()) }
     factory { GetMatchDetailsUseCase(get()) }

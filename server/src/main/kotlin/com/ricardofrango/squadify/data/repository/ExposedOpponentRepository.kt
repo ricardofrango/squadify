@@ -41,17 +41,20 @@ class ExposedOpponentRepository : OpponentRepository {
             ?.let(::toOpponent)
             ?: throw DatabaseException("Failed to create opponent")
 
+    // The logo is left alone: only updateLogoUrl changes it, so saving the other fields can't undo an upload.
     override suspend fun updateOpponent(opponent: Opponent): Boolean =
         OpponentsTable.update({ OpponentsTable.id eq opponent.id.toUuid() }) {
             it[name] = opponent.name
             it[shortName] = opponent.shortName
-            it[logoUrl] = opponent.logoUrl
             it[stadiumName] = opponent.stadiumName
             it[stadiumAddress] = opponent.stadiumAddress
             it[contactEmail] = opponent.contactEmail
             it[contactPhone] = opponent.contactPhone
             it[notes] = opponent.notes
         } > 0
+
+    override suspend fun updateLogoUrl(opponentId: String, logoUrl: String?): Boolean =
+        OpponentsTable.update({ OpponentsTable.id eq opponentId.toUuid() }) { it[OpponentsTable.logoUrl] = logoUrl } > 0
 
     override suspend fun deleteOpponent(id: String): Boolean =
         OpponentsTable.deleteWhere { OpponentsTable.id eq id.toUuid() } > 0

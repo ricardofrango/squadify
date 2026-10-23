@@ -463,7 +463,7 @@ graph TD
 
 ### 3.4c Club Logo (`UploadClubLogoUseCase` / `DeleteClubLogoUseCase` / `GetClubLogoUseCase`)
 
-`PUT /clubs/{clubId}/logo` (raw PNG or JPEG body, at most 5 MB) → `ClubLogoResponse(logoUrl)`; `DELETE /clubs/{clubId}/logo` (204); `GET /clubs/{clubId}/logo/{imageId}.png` (the image, `Cache-Control: private, max-age=31536000, immutable`). Storage key `clubs/{clubId}/logo/{imageId}.png`; `clubs.logo_url` holds the same path under the API. See `TECHNICAL_DECISIONS.md` §57.
+`PUT /clubs/{clubId}/logo` (raw PNG or JPEG body, at most 5 MB) → `LogoResponse(logoUrl)`; `DELETE /clubs/{clubId}/logo` (204); `GET /clubs/{clubId}/logo/{imageId}.png` (the image, `Cache-Control: private, max-age=31536000, immutable`). Storage key `clubs/{clubId}/logo/{imageId}.png`; `clubs.logo_url` holds the same path under the API. See `TECHNICAL_DECISIONS.md` §57.
 
 ```mermaid
 graph TD
@@ -1191,7 +1191,7 @@ Someone not yet a club member can't be picked there, so that screen also has a "
 
 ```mermaid
 graph TD
-    A[Start: userId, clubId, name, shortName, logoUrl, stadiumName, stadiumAddress, contactEmail, contactPhone, notes, ageGroupId?] --> AG{ageGroupId supplied?}
+    A[Start: userId, clubId, name, shortName, stadiumName, stadiumAddress, contactEmail, contactPhone, notes, ageGroupId?] --> AG{ageGroupId supplied?}
     AG -- Yes --> AGF[Fetch AgeGroup by id]
     AGF -- not found --> N(["Throw NotFoundException"])
     AGF -- found, wrong club --> FB(["Throw ForbiddenException"])
@@ -1204,7 +1204,7 @@ graph TD
     DUP -- Yes --> CF(["Throw ConflictException (409)"])
     DUP -- No --> SN{"shortName, trimmed and uppercased, longer than 5?"}
     SN -- Yes --> VE2(["Throw ValidationException"])
-    SN -- No --> C["Create Opponent record (optional fields trimmed, blank ones null)"]
+    SN -- No --> C["Create Opponent record (optional fields trimmed, blank ones null; no logo, a sent logoUrl is ignored)"]
     C --> Z(["Persist Opponent"])
 ```
 
@@ -1233,7 +1233,7 @@ graph TD
     V -- Yes --> VE(["Throw ValidationException"])
     V -- No --> DUP{"name changed (ignoring case) and another opponent of the club has it?"}
     DUP -- Yes --> CF(["Throw ConflictException (409)"])
-    DUP -- No --> D["Merge patch fields: null keeps a field, a blank optional field clears it; shortName uppercased, at most 5"]
+    DUP -- No --> D["Merge patch fields: null keeps a field, a blank optional field clears it; shortName uppercased, at most 5; the logo is never changed here"]
     D --> Z(["Persist updated Opponent"])
 ```
 
@@ -1281,6 +1281,37 @@ graph TD
 `GET /opponents/{opponentId}` feeds Opponent details (design 38f). The client works out the head-to-head
 for whichever season is picked from `matches`, `scores` and each team's season, so changing season needs no
 request. `getScoresByMatches` reads the goal events of all the matches at once instead of one query per match.
+
+### 6.5 Opponent Logo (`UploadOpponentLogoUseCase` / `DeleteOpponentLogoUseCase` / `GetOpponentLogoUseCase`)
+
+`PUT /opponents/{opponentId}/logo?ageGroupId=` (raw PNG or JPEG body, at most 5 MB) → `LogoResponse(logoUrl)`; `DELETE /opponents/{opponentId}/logo?ageGroupId=` (204); `GET /opponents/{opponentId}/logo/{imageId}.png` (the image, cached for good). Storage key `opponents/{opponentId}/logo/{imageId}.png`; `opponents.logo_url` holds the same path under the API. See `TECHNICAL_DECISIONS.md` §57.
+
+```mermaid
+graph TD
+    A[Start: userId, opponentId, ageGroupId?, image bytes] --> B[Fetch Opponent by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> AG{ageGroupId supplied?}
+    AG -- Yes --> AGF[Fetch AgeGroup by id]
+    AGF -- not found --> N2(["Throw NotFoundException"])
+    AGF -- found, wrong club --> FB(["Throw ForbiddenException"])
+    AGF -- found, right club --> C
+    AG -- No --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=EDIT_OPPONENT, ageGroupId]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> S{Image storage available?}
+    S -- No --> V0(["Throw ValidationException: uploads aren't set up"])
+    S -- Yes --> P["LogoImage.toPng (as for the club logo, §3.4c)"]
+    P -- bad image --> V(["Throw ValidationException (current logo untouched)"])
+    P -- ok --> D["Delete the current logo's file, if any"]
+    D --> G["New imageId (UUID)"]
+    G --> PUT["Store opponents/{opponentId}/logo/{imageId}.png"]
+    PUT -- fails --> X["opponents.logo_url = null"] --> E(["Rethrow"])
+    PUT -- ok --> U["opponents.logo_url = /opponents/{opponentId}/logo/{imageId}.png"]
+    U --> Z(["Return the new logoUrl"])
+```
+
+The same rules as the club logo (§3.4c), behind Edit opponent's gate (§6.2): `EDIT_OPPONENT`, with `ageGroupId` letting that age group's coaches in. Delete: same gate; removes the file and clears `logo_url`. Get: anyone who can see the opponent's club (`minClubRole=MEMBER`, `allowPlayerOrParentAccess`), and only the **current** image id.
+
+In the app the logo is part of the Create / Edit opponent form and is saved with it, after the other fields: on create, the opponent is created first and the logo uploaded to it (with the form's `ageGroupId`). If the logo fails, the opponent stays saved and the form carries on as an edit of it, so trying again only redoes the logo.
 
 ---
 

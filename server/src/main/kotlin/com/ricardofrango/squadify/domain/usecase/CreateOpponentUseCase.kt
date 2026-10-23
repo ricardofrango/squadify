@@ -47,7 +47,8 @@ class CreateOpponentUseCase(
             clubId = clubId,
             name = name,
             shortName = normalizeShortName(request.shortName),
-            logoUrl = request.logoUrl.cleaned(),
+            // Only the logo upload sets it (UploadOpponentLogoUseCase), never a URL sent here.
+            logoUrl = null,
             stadiumName = request.stadiumName.cleaned(),
             stadiumAddress = request.stadiumAddress.cleaned(),
             contactEmail = request.contactEmail.cleaned(),

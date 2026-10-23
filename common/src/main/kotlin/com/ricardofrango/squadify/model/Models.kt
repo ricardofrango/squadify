@@ -598,9 +598,12 @@ data class UpdatePlayerRequest(
     val ageGroupId: String? = null
 )
 
-/** `PUT /clubs/{clubId}/logo` -- the new logo's path (`/clubs/{clubId}/logo/{imageId}.png`). */
+/**
+ * `PUT /clubs/{clubId}/logo` and `PUT /opponents/{opponentId}/logo` -- the new logo's path
+ * (`/clubs/{clubId}/logo/{imageId}.png`, `/opponents/{opponentId}/logo/{imageId}.png`).
+ */
 @Serializable
-data class ClubLogoResponse(val logoUrl: String)
+data class LogoResponse(val logoUrl: String)
 
 @Serializable
 data class UpdateClubRequest(
