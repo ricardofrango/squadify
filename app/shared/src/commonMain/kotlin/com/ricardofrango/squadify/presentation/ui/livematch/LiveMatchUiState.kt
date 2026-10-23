@@ -4,7 +4,7 @@ import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchScore
 
-enum class LiveMatchTab { SQUAD, EVENTS }
+enum class LiveMatchTab { PITCH, SQUAD, EVENTS }
 
 /** A one-line confirmation shown above the squad for a few seconds (design 36b/36c). */
 sealed class LiveFlash {
@@ -27,7 +27,7 @@ sealed class LiveMatchUiState {
         val details: MatchDetails,
         val events: List<MatchEvent> = emptyList(),
         val score: MatchScore,
-        val selectedTab: LiveMatchTab = LiveMatchTab.SQUAD,
+        val selectedTab: LiveMatchTab = LiveMatchTab.PITCH,
         // In-flight kickoff / half-time / full-time / substitution calls -- disables the triggering
         // control so a slow connection can't be double-tapped.
         val isSubmitting: Boolean = false,

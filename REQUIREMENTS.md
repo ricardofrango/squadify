@@ -149,7 +149,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - Both can be filtered by match type (All / Official / Tournament / Friendly; unselected segments show 5 letters and a ".", the selected one its full name, animated), and ratings are shown to staff only (see `TECHNICAL_DECISIONS.md` §43).
 
     - [x] **Live minutes played** (design 36): the live console's Squad tab shows each player's minutes so far, live, with a bar against the fair share, the current spell ("on for 18'") or "off since", and amber flags for players below the share or not played yet; the bench sorts fewest minutes first. Substitutions are unlimited and in any direction (rolling subs in 7- and 9-a-side), and the substitution pickers list candidates with their minutes. Half time shows first-half totals and who's furthest below the share. The clock has a real pause button and is tapped to correct it. Full time shows a minutes table and links to the match report. See `TECHNICAL_DECISIONS.md` §45.
-    - [ ] **Live pitch view** (next; the developer's spec, 2026-10-23; design: the "Squadify Pitch View" canvas): the live console shows our team on a pitch, not only as a list.
+    - [x] **Live pitch view** (the developer's spec, 2026-10-23; design: the "Squadify Pitch View" canvas; see TECHNICAL_DECISIONS §64): the live console shows our team on a pitch, not only as a list.
       - **No separate setup screen.** Opening a game that hasn't started goes straight to the live console. The game can only kick off once every position on the pitch has a player.
         - Before kick-off the pitch starts **empty**: every slot is a dashed "+".
         - Tapping an empty slot opens a bottom sheet of the called-up players who aren't placed yet; picking one puts them there.
@@ -171,6 +171,10 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - **Bench and sent off:** the bench is a row under the pitch. A sent-off player leaves the pitch, is shown apart, and leaves an empty slot.
       - **Match buttons:** Kick-off, then Half-time, then Start 2nd half, then Full-time, as a full-width bar at the bottom, as today.
       - **Direction:** the scoreboard keeps the app's rule (home team on the left, our club on the left on neutral ground). The pitch puts our goal on our scoreboard side: the left in landscape, the bottom in portrait. In landscape only, a flip button mirrors the pitch on that device. It never changes the scoreboard.
+      - **As built, beyond the spec:**
+        - Tapping a bench player before kick-off puts them in the first empty position.
+        - During the game, the player sheet gains "Change position" (swap with someone, or move into an empty position), and tapping an empty position asks who moves there.
+        - The report's tactic shows the starting formation only until the report is first saved.
 - [ ] **Phase 6: Dashboards & Aggregated Summaries**: Role-specific overview endpoints.
     - [/] **Super Admin Summary**: Global platform health (Total clubs, active users, system logs).
     - [/] **Club Admin Summary**: Club overview (Total players/teams, financial status placeholder, upcoming matches).

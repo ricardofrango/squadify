@@ -13,6 +13,8 @@ import com.ricardofrango.squadify.model.SaveMatchReportRequest
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.StartMatchRequest
+import com.ricardofrango.squadify.model.SetMatchLineupRequest
+import com.ricardofrango.squadify.model.MatchLineup
 import com.ricardofrango.squadify.model.UpdateMatchRequest
 import kotlinx.coroutines.flow.Flow
 
@@ -24,6 +26,7 @@ interface MatchRepository {
     suspend fun deleteMatch(matchId: String)
     suspend fun updateMatchStatus(matchId: String, status: MatchStatus)
     suspend fun startMatch(matchId: String, request: StartMatchRequest)
+    suspend fun setLineup(matchId: String, request: SetMatchLineupRequest): MatchLineup
     suspend fun pauseMatch(matchId: String)
     suspend fun resumeMatch(matchId: String)
     suspend fun setMatchMinute(matchId: String, minute: Int)

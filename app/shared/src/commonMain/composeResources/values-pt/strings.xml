@@ -1439,4 +1439,37 @@
     <string name="match_type_abbr_tournament">Tor</string>
     <string name="match_row_half_time">Int.</string>
     <string name="msg_callup_discard">As alterações à convocatória não foram guardadas e vão perder-se.</string>
+    <!-- Live pitch view -->
+    <string name="tab_pitch">Campo</string>
+    <string name="lm_formation">Formação</string>
+    <string name="lm_change">Alterar</string>
+    <string name="lm_change_formation">Alterar formação</string>
+    <string name="lm_formation_format">Defesas-médios-avançados</string>
+    <string name="lm_formation_adds_up">Soma %1$d + guarda-redes</string>
+    <string name="lm_formation_wrong_sum">%1$s soma %2$d. Precisa de %3$d (sem contar o guarda-redes).</string>
+    <string name="lm_formation_wrong_format">Escreva três números, como %1$s.</string>
+    <string name="lm_quick_picks">Atalhos</string>
+    <string name="btn_apply">Aplicar</string>
+    <string name="lm_minutes_chip">%1$d min</string>
+    <string name="lm_half_length_cd">Duração da parte: %1$d minutos</string>
+    <string name="lm_empty_position">Vago</string>
+    <string name="lm_who_plays_here">Quem joga aqui?</string>
+    <string name="lm_everyone_placed">Todos os convocados já estão em campo.</string>
+    <string name="lm_take_off_pitch">Tirar do campo</string>
+    <string name="lm_put_in_instead">Pôr no lugar</string>
+    <string name="lm_swap_with">Trocar de lugar com</string>
+    <string name="lm_change_position">Mudar de posição</string>
+    <string name="lm_who_moves_here">Quem passa para aqui?</string>
+    <string name="lm_empty_in_zone">Posição vaga · %1$s</string>
+    <string name="lm_zone_goal">Baliza</string>
+    <string name="lm_zone_defence">Defesa</string>
+    <string name="lm_zone_midfield">Meio-campo</string>
+    <string name="lm_zone_attack">Ataque</string>
+    <string name="lm_fill_more_to_kick_off">Preencha mais %1$d posições para iniciar. Partes de %2$d minutos.</string>
+    <string name="lm_pitch_hint">Toque numa posição para escolher quem joga, ou mantenha premido um jogador e arraste.</string>
+    <string name="lm_pitch_hint_live">Toque num jogador para registar. Mantenha premido e arraste para substituir ou trocar de lugar.</string>
+    <string name="lm_flip_pitch">Inverter o campo</string>
+    <string name="lm_sent_off_list">Expulsos: %1$s</string>
+    <string name="lm_on_the_pitch_for">%1$s em campo</string>
+    <string name="lm_bench_count">Suplentes · %1$d</string>
 </resources>

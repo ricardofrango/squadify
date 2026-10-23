@@ -26,8 +26,13 @@ data class ReportFields(
     val isEmpty: Boolean get() = teamFilled == 0 && opponentFilled == 0
 
     companion object {
-        fun from(report: MatchReport?) = ReportFields(
-            tactic = report?.tactic.orEmpty(),
+        /**
+         * [startingFormation]: the formation the match kicked off in on the pitch view, our tactic until
+         * the report is first saved (it's saved with it). After that the report's own tactic stands,
+         * even cleared.
+         */
+        fun from(report: MatchReport?, startingFormation: String? = null) = ReportFields(
+            tactic = if (report == null) startingFormation.orEmpty() else report.tactic.orEmpty(),
             positiveAspects = report?.positiveAspects.orEmpty(),
             lessPositiveAspects = report?.lessPositiveAspects.orEmpty(),
             aspectsToImprove = report?.aspectsToImprove.orEmpty(),

@@ -1441,4 +1441,37 @@
     <string name="match_type_abbr_tournament">Tou</string>
     <string name="match_row_half_time">HT</string>
     <string name="msg_callup_discard">Your changes to the call-up haven\'t been saved and will be lost.</string>
+    <!-- Live pitch view -->
+    <string name="tab_pitch">Pitch</string>
+    <string name="lm_formation">Formation</string>
+    <string name="lm_change">Change</string>
+    <string name="lm_change_formation">Change formation</string>
+    <string name="lm_formation_format">Defenders-midfielders-attackers</string>
+    <string name="lm_formation_adds_up">Adds up to %1$d + goalkeeper</string>
+    <string name="lm_formation_wrong_sum">%1$s adds up to %2$d. It needs %3$d (not counting the goalkeeper).</string>
+    <string name="lm_formation_wrong_format">Write three numbers, like %1$s.</string>
+    <string name="lm_quick_picks">Quick picks</string>
+    <string name="btn_apply">Apply</string>
+    <string name="lm_minutes_chip">%1$d min</string>
+    <string name="lm_half_length_cd">Half length: %1$d minutes</string>
+    <string name="lm_empty_position">Empty</string>
+    <string name="lm_who_plays_here">Who plays here?</string>
+    <string name="lm_everyone_placed">Everyone called up is already on the pitch.</string>
+    <string name="lm_take_off_pitch">Take off the pitch</string>
+    <string name="lm_put_in_instead">Put in instead</string>
+    <string name="lm_swap_with">Swap places with</string>
+    <string name="lm_change_position">Change position</string>
+    <string name="lm_who_moves_here">Who moves here?</string>
+    <string name="lm_empty_in_zone">Empty position · %1$s</string>
+    <string name="lm_zone_goal">Goal</string>
+    <string name="lm_zone_defence">Defence</string>
+    <string name="lm_zone_midfield">Midfield</string>
+    <string name="lm_zone_attack">Attack</string>
+    <string name="lm_fill_more_to_kick_off">Fill %1$d more positions to kick off. %2$d-minute halves.</string>
+    <string name="lm_pitch_hint">Tap a position to pick who plays there, or hold a player and drag.</string>
+    <string name="lm_pitch_hint_live">Tap a player to log. Hold and drag to substitute or swap places.</string>
+    <string name="lm_flip_pitch">Flip the pitch</string>
+    <string name="lm_sent_off_list">Sent off: %1$s</string>
+    <string name="lm_on_the_pitch_for">%1$s on the pitch</string>
+    <string name="lm_bench_count">Bench · %1$d</string>
 </resources>

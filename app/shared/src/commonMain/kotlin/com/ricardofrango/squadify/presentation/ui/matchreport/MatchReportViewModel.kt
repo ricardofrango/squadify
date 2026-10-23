@@ -45,8 +45,8 @@ class MatchReportViewModel(
                     MatchReportUiState.Idle(
                         details = details,
                         editing = editing,
-                        originalFields = ReportFields.from(details.report),
-                        fields = ReportFields.from(details.report),
+                        originalFields = ReportFields.from(details.report, details.match.startingFormation),
+                        fields = ReportFields.from(details.report, details.match.startingFormation),
                         originalRatings = ratings,
                         ratings = ratings,
                         // Design 24e: open on Players while anyone is unrated, otherwise Team.
@@ -112,8 +112,8 @@ class MatchReportViewModel(
                             }
                         ),
                         // The server trims text and turns blanks into nulls -- adopt its version.
-                        originalFields = ReportFields.from(saved),
-                        fields = ReportFields.from(saved),
+                        originalFields = ReportFields.from(saved, state.details.match.startingFormation),
+                        fields = ReportFields.from(saved, state.details.match.startingFormation),
                         originalRatings = state.ratings,
                         saving = null,
                         failedAction = null,
