@@ -68,12 +68,13 @@ class GetPlayerSeasonStatsUseCaseTest {
     private val oldTeam = Team("t-old", clubId, "ag-old", oldSeason.id, "Sub-13 A", "A", active = true)
     private val team = Team("t-now", clubId, "ag-now", currentSeason.id, "Sub-15 A", "A", active = true)
 
-    private fun match(id: String, teamId: String, day: Int, type: MatchType?, fullTime: Int? = 70) = Match(
+    private fun match(id: String, teamId: String, day: Int, type: MatchType?, fullTime: Int? = 70, venue: com.ricardofrango.squadify.model.MatchVenue = com.ricardofrango.squadify.model.MatchVenue.HOME) = Match(
         id, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(day * 86_400_000L),
-        status = MatchStatus.FINISHED, type = type, fullTimeMinute = fullTime
+        status = MatchStatus.FINISHED, type = type, fullTimeMinute = fullTime, venue = venue
     )
 
-    private val m1 = match("m1", team.id, 30, MatchType.CHAMPIONSHIP)
+    // Away: the row names the home side (the opponent) first.
+    private val m1 = match("m1", team.id, 30, MatchType.CHAMPIONSHIP, venue = com.ricardofrango.squadify.model.MatchVenue.AWAY)
     private val m2 = match("m2", team.id, 20, MatchType.FRIENDLY)
     private val mOld = match("m-old", oldTeam.id, 10, null, fullTime = null)
 
@@ -121,6 +122,7 @@ class GetPlayerSeasonStatsUseCaseTest {
         assertEquals(listOf("m1", "m2"), now.matches.map { it.matchId })
         assertEquals("AD Fontelas", now.matches.first().opponentName)
         assertEquals("Sub-15 A", now.matches.first().teamName)
+        assertEquals(com.ricardofrango.squadify.model.MatchVenue.AWAY, now.matches.first { it.matchId == "m1" }.venue)
         assertEquals(9, now.matches[0].rating)
         assertNull(now.matches[1].rating) // draft report
         assertEquals(0, now.preStatsMatchCount)

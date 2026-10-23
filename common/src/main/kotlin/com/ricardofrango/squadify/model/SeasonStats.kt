@@ -44,7 +44,9 @@ data class PlayerSeasonMatch(
     val redCards: Int,
     val rating: Int? = null,
     // The team he played for in that match ("Sub-15 A"), so A and B are never ambiguous.
-    val teamName: String = ""
+    val teamName: String = "",
+    // Home first in the row's "Team vs Opponent" (MatchVenue.ourSideFirst).
+    val venue: MatchVenue = MatchVenue.HOME
 )
 
 /**

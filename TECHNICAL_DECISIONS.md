@@ -2906,6 +2906,6 @@ Per the developer, 2026-10-23: a match didn't say whether it was at home or away
   - **Middle:** the home side's line over the away side's, each with its logo when set. No "vs" and no subtitle line. Once a game is finished, the winner's name is bold; on a draw, or before the end, neither is.
   - **Right:** the kickoff time ("10:30") before the game. After it, one score per side, level with its name: black when finished, red while live with the minute ("30'") beside it, and yellow at half time with "HT" / "Int.". "Cancelled" for a cancelled game. The old "Live" badge and the win/draw/loss colours and labels are gone.
   - **Spacing:** the gap between the date column and the names went from 14dp to 10dp. Callers now always pass our team's name and the club's logo (`OpponentDetails.clubLogoUrl` was added for that).
-- **Not yet ordered by venue:** the season stats' per-match rows and the team's form strip, which carry no venue.
+- **Season stats:** the player's per-game rows read home first ("AD Fontelas vs Sub-15 A" away), from `PlayerSeasonMatch.venue`. The team's form strip has no names or scores on screen, only W/D/L. Its spoken description stays from our side ("Won 3–1 vs …"), which is how a result is said.
 - **Tests:** `CreateMatchUseCaseTest` and `UpdateMatchUseCaseTest` (saved, defaulted, changed, kept) on the server; `MatchVenueTest` (location prefill, home-first score, Schedule needs a venue) in the app.
 
