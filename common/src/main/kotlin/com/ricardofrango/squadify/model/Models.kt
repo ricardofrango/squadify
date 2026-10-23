@@ -605,6 +605,13 @@ data class UpdatePlayerRequest(
 @Serializable
 data class LogoResponse(val logoUrl: String)
 
+/**
+ * `PUT /players/{playerId}/photo` and `PUT /users/me/avatar` -- the new photo's path
+ * (`/players/{playerId}/photo/{imageId}.png`, `/users/{userId}/avatar/{imageId}.png`).
+ */
+@Serializable
+data class PhotoResponse(val photoUrl: String)
+
 @Serializable
 data class UpdateClubRequest(
     val name: String? = null,

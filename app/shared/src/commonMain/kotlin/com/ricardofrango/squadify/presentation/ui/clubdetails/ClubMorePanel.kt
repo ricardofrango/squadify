@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.theme.OnChromeAccent
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
@@ -309,9 +310,14 @@ private fun AccountBlock(account: MoreAccount?, viewer: MoreViewer, onOpenAccoun
             Modifier.fillMaxWidth().clickable(onClick = onOpenAccount).padding(horizontal = 20.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(Modifier.size(52.dp).background(ChromeAccent.copy(alpha = 0.25f), CircleShape), contentAlignment = Alignment.Center) {
-                Text(account?.let { initialsOf(it.name) } ?: "", color = ChromeAccent, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black))
-            }
+            PersonPhoto(
+                photoUrl = account?.avatarUrl,
+                initials = account?.let { initialsOf(it.name) } ?: "",
+                size = 52.dp,
+                background = ChromeAccent.copy(alpha = 0.25f),
+                initialsColor = ChromeAccent,
+                initialsStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black)
+            )
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(account?.name ?: "", color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)

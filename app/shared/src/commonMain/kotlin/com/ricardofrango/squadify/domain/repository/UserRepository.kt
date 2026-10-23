@@ -12,4 +12,7 @@ interface UserRepository {
     suspend fun changePassword(request: ChangePasswordRequest)
     suspend fun requestEmailChange(request: EmailChangeRequest)
     suspend fun confirmEmailChange(request: EmailChangeConfirmRequest): User
+    /** Uploads [bytes] (PNG or JPEG) as the user's own photo; returns the new photo path. */
+    suspend fun uploadAvatar(bytes: ByteArray): String
+    suspend fun deleteAvatar()
 }

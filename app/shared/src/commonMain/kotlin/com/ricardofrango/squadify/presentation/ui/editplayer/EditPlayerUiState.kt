@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editplayer
 
+import com.ricardofrango.squadify.presentation.ui.components.PhotoState
 import com.ricardofrango.squadify.model.PlayerPosition
 import com.ricardofrango.squadify.model.UpdatePlayerRequest
 import kotlinx.datetime.LocalDate
@@ -50,7 +51,9 @@ sealed class EditPlayerUiState {
         val original: PlayerFormFields,
         val form: PlayerFormFields,
         val isSubmitting: Boolean = false,
-        val submitError: String? = null
+        val submitError: String? = null,
+        // The player's photo, saved straight away (not with Save).
+        val photo: PhotoState = PhotoState()
     ) : EditPlayerUiState() {
         val isDirty: Boolean get() = form != original
         val isValid: Boolean get() = form.firstName.isNotBlank() && form.lastName.isNotBlank() && form.birthDateIso != null

@@ -163,16 +163,17 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Authentication flows (Login/Register): login, register, session check on launch, automatic token refresh on 401, logout, and **Forgot password**. Forgot password emails a 6-digit code (15 minutes, 5 tries, one per minute) that sets a new password and signs the account out everywhere. An email with no account is reported straight away. See `TECHNICAL_DECISIONS.md` §48.
     - [x] Account Management: User profile viewing and editing. The Account screen edits name and phone and changes the password (`TECHNICAL_DECISIONS.md` §33), and changes the email (next item).
     - [x] **Change email**: from Account, enter the new address and the current password. A 6-digit code goes to the new address, and entering it switches the account. It reuses the Forgot-password code rules: 15 minutes, 5 tries, one per minute. The address can't belong to another account. Every other session is signed out, and the old address is told about the change. See `TECHNICAL_DECISIONS.md` §49.
-    - [/] **Club and opponent logo upload**:
+    - [/] **Logo and photo upload** (clubs, opponents, players, users):
       - **Done (clubs):** "Add logo" / "Change logo" / "Remove" in Club settings → Details, for coordinators and admins. The server resizes it to a 512×512 PNG and stores it in a Railway Storage Bucket (the disk in dev). Each change gets a new file name and the old file is deleted first. Shown in Club settings and My clubs. See `TECHNICAL_DECISIONS.md` §57.
       - **Done (opponents):** "Add logo" / "Change logo" / "Remove" on Create and Edit opponent, saved with the form, for whoever can edit opponents. The same storage and rules as the club's. Shown on the Opponents list, Opponent details and Schedule match.
-      - **Still pending:** showing the club and opponent logos in more places (match cards, Match details).
+      - **Done (players and users):** a player's photo on Edit player, for whoever can edit the player, and the user's own photo on Account. Both are saved straight away and cropped to a square. They show on Player details, Account and the More panel.
+      - **Still pending:** showing logos and photos in more places (match cards, Match details, squad lists, club members, staff).
     - [x] Client-side Architecture (MVVM, Koin, UseCases).
     - [x] API Integration (Ktor Client): every screen talks to the server through repositories over a shared authenticated Ktor client (bearer tokens, refresh on 401), plus WebSockets for the live match and the club's Matches tab.
     - [/] Role-specific Dashboards:
       - **Done:** "My clubs" lists the user's clubs (opening straight into the only one when there's just one). Each club opens on a Home tab with the season's headline numbers (teams, players, coaches, matches this week), what's next up, and alerts for the people who manage it (e.g. a match missing call-ups or a report).
       - **Still pending:** the server's super-admin, club-admin and parent dashboard endpoints (Phase 6) have no client screens yet.
-    - [x] **Opponents** (design 38), with logos (see Club and opponent logo upload):
+    - [x] **Opponents** (design 38), with logos (see Logo and photo upload):
       - [x] **List:** a searchable list (name or short name, ignoring accents) used to pick an opponent on Schedule match and to browse them from More → Opponents. See `TECHNICAL_DECISIONS.md` §51.
       - [x] **Create opponent:** from the list, with stadium, contact and notes. A name the club already has is refused. Created while picking for a match, it comes back selected.
       - [x] **Opponent details:** stadium with directions, head-to-head by season (W/D/L, goals, last five) and every match against them, plus contact and notes.

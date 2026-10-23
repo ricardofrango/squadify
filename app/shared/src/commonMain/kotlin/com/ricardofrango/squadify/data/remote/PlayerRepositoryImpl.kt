@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.data.remote
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.model.CreatePlayersRequest
+import com.ricardofrango.squadify.model.PhotoResponse
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.PlayerProfile
 import com.ricardofrango.squadify.model.PlayerSeasonStats
@@ -10,6 +11,7 @@ import com.ricardofrango.squadify.model.UpdatePlayerRequest
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import io.ktor.http.content.ByteArrayContent
 
 class PlayerRepositoryImpl(
     private val httpClient: HttpClient,
@@ -46,5 +48,14 @@ class PlayerRepositoryImpl(
 
     override suspend fun reactivatePlayer(playerId: String) {
         httpClient.post("${appConfig.baseUrl}/players/$playerId/reactivate").handleResponse<Unit>()
+    }
+
+    override suspend fun uploadPlayerPhoto(playerId: String, bytes: ByteArray): String =
+        httpClient.put("${appConfig.baseUrl}/players/$playerId/photo") {
+            setBody(ByteArrayContent(bytes, ContentType.Application.OctetStream))
+        }.handleResponse<PhotoResponse>().photoUrl
+
+    override suspend fun deletePlayerPhoto(playerId: String) {
+        httpClient.delete("${appConfig.baseUrl}/players/$playerId/photo").handleResponse<Unit>()
     }
 }

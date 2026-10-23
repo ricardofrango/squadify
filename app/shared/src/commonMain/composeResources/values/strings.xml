@@ -1418,4 +1418,11 @@
     <string name="label_colour_hex">Hex code</string>
     <string name="btn_use_colour">Use this colour</string>
     <string name="label_colour_preview">Preview</string>
+    <string name="label_add_photo">Add photo</string>
+    <string name="label_change_photo">Change photo</string>
+    <string name="btn_remove_photo">Remove</string>
+    <string name="msg_photo_hint">PNG or JPEG, up to 5 MB. Saved straight away.</string>
+    <string name="msg_photo_saving">Saving the photo…</string>
+    <string name="msg_photo_upload_failed">Couldn\'t upload the photo. Try again.</string>
+    <string name="msg_photo_remove_failed">Couldn\'t remove the photo. Try again.</string>
 </resources>

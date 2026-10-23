@@ -56,7 +56,8 @@ class CreatePlayersUseCase(
                 lastName = it.lastName,
                 birthDate = it.birthDate,
                 shirtNumber = it.shirtNumber,
-                photoUrl = it.photoUrl,
+                // Only the photo upload sets it (UploadPlayerPhotoUseCase), never a URL sent here.
+                photoUrl = null,
                 active = true,
                 position = it.position,
                 heightCm = it.heightCm,

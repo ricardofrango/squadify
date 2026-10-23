@@ -204,6 +204,10 @@ val domainModule = module {
     factory { UpdateOpponentUseCase(get()) }
     factory { UploadOpponentLogoUseCase(get()) }
     factory { DeleteOpponentLogoUseCase(get()) }
+    factory { UploadUserAvatarUseCase(get()) }
+    factory { DeleteUserAvatarUseCase(get()) }
+    factory { UploadPlayerPhotoUseCase(get()) }
+    factory { DeletePlayerPhotoUseCase(get()) }
     factory { CreateMatchUseCase(get()) }
     factory { GetMatchesUseCase(get()) }
     factory { GetMatchDetailsUseCase(get()) }

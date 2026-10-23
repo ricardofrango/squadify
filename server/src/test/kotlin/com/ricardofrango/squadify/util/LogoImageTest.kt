@@ -49,4 +49,26 @@ class LogoImageTest {
         assertFailsWith<ValidationException> { LogoImage.toPng(ByteArray(LogoImage.MAX_UPLOAD_BYTES + 1)) }
         assertFailsWith<ValidationException> { LogoImage.toPng(image(7000, 10, "png")) }
     }
+
+    @Test
+    fun aPhotoIsCutToACentredSquareThatFillsIt() {
+        // Left third blue, the rest red: cutting the 1500×1000 photo to its centred 1000×1000 square
+        // drops the blue edge (x < 250), so the whole square is red, with no transparent bars.
+        val img = BufferedImage(1500, 1000, BufferedImage.TYPE_INT_RGB)
+        img.createGraphics().apply { color = Color.RED; fillRect(0, 0, 1500, 1000); color = Color.BLUE; fillRect(0, 0, 200, 1000); dispose() }
+        val jpeg = ByteArrayOutputStream().use { ImageIO.write(img, "png", it); it.toByteArray() }
+
+        val out = read(LogoImage.toPhotoPng(jpeg))
+        assertEquals(512, out.width)
+        assertEquals(512, out.height)
+        assertEquals(255, out.getRGB(2, 256) ushr 24)
+        assertEquals(Color.RED.rgb, out.getRGB(2, 256) or (0xFF shl 24))
+    }
+
+    @Test
+    fun aSmallPhotoIsNotEnlarged() {
+        val out = read(LogoImage.toPhotoPng(image(300, 200, "png")))
+        assertEquals(200, out.width)
+        assertEquals(200, out.height)
+    }
 }

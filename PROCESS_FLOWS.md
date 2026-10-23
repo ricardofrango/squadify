@@ -249,6 +249,26 @@ graph TD
 
 `email`, `status`, and `isPlatformAdmin` aren't fields on `UpdateProfileRequest` at all — there's no self-service path to them through this use case, by construction rather than by an extra check.
 
+### 2.7b Own Profile Photo (`UploadUserAvatarUseCase` / `DeleteUserAvatarUseCase` / `GetUserAvatarUseCase`)
+
+`PUT /users/me/avatar` (raw PNG or JPEG body, at most 5 MB) → `PhotoResponse(photoUrl)`; `DELETE /users/me/avatar` (204); `GET /users/{userId}/avatar/{imageId}.png` (cached for good). Storage key `users/{userId}/avatar/{imageId}.png`; `users.avatar_url` holds the same path under the API. See `TECHNICAL_DECISIONS.md` §57.
+
+```mermaid
+graph TD
+    A[Start: userId from JWT, image bytes] --> B[Find user by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> S{Image storage available?}
+    S -- No --> V0(["Throw ValidationException: uploads aren't set up"])
+    S -- Yes --> P["LogoImage.toPhotoPng (as for a player's photo, §5.2b)"]
+    P -- bad image --> V(["Throw ValidationException (current photo untouched)"])
+    P -- ok --> D["Delete the current photo's file, if any"]
+    D --> G["New imageId (UUID)"] --> PUT["Store users/{userId}/avatar/{imageId}.png"]
+    PUT -- fails --> X["users.avatar_url = null"] --> E(["Rethrow"])
+    PUT -- ok --> U["users.avatar_url = /users/{userId}/avatar/{imageId}.png"] --> Z(["Return the new photoUrl"])
+```
+
+Self-service only: the JWT's user, never a path id. Delete removes the file and clears `avatar_url`. Get is the one route that names another user: any signed-in user, but only that user's **current** image id. It's an adult's photo shown next to their name, and the random id is only handed out with the user's details.
+
 ### 2.8 Change Password (`ChangePasswordUseCase`)
 
 ```mermaid
@@ -1038,7 +1058,7 @@ graph TD
     AGF -- found, right club --> C
     AG -- No --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=EDIT_PLAYER, ageGroupId]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D["Merge patch fields (name, birthDate, shirtNumber, photoUrl, position, heightCm, weightKg, emergencyContact)"]
+    C -- allowed --> D["Merge patch fields (name, birthDate, shirtNumber, position, heightCm, weightKg, emergencyContact); the photo is never changed here (§5.2b)"]
     D --> E[Persist updated Player]
     E --> G{email provided in request?}
     G -- yes, user exists --> H[Add as ClubMember, role MEMBER]
@@ -1078,6 +1098,30 @@ required. The rest can wait.") shows when the player's optional fields were neve
 button (and a matching header checkmark) stay disabled until the form is both valid (name + DOB present)
 and different from what was loaded. Saving flags `KEY_CLUB_STRUCTURE_CHANGED` so the profile screen
 reloads on return, same cascade pattern as the other create/edit screens (`AppNavigation.kt`).
+
+### 5.2b Player Photo (`UploadPlayerPhotoUseCase` / `DeletePlayerPhotoUseCase` / `GetPlayerPhotoUseCase`)
+
+`PUT /players/{playerId}/photo` (raw PNG or JPEG body, at most 5 MB) → `PhotoResponse(photoUrl)`; `DELETE /players/{playerId}/photo` (204); `GET /players/{playerId}/photo/{imageId}.png` (cached for good). Storage key `players/{playerId}/photo/{imageId}.png`; `players.photo_url` holds the same path under the API. See `TECHNICAL_DECISIONS.md` §57.
+
+```mermaid
+graph TD
+    A[Start: userId, playerId, image bytes] --> B[Fetch Player by id]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C["CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=EDIT_PLAYER, ageGroupId = the player's age group"]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> S{Image storage available?}
+    S -- No --> V0(["Throw ValidationException: uploads aren't set up"])
+    S -- Yes --> P["LogoImage.toPhotoPng: PNG/JPEG only, ≤ 5 MB, ≤ 6000×6000; the centred square, at most 512×512 (never enlarged)"]
+    P -- bad image --> V(["Throw ValidationException (current photo untouched)"])
+    P -- ok --> D["Delete the current photo's file, if any"]
+    D --> G["New imageId (UUID)"]
+    G --> PUT["Store players/{playerId}/photo/{imageId}.png"]
+    PUT -- fails --> X["players.photo_url = null"] --> E(["Rethrow"])
+    PUT -- ok --> U["players.photo_url = /players/{playerId}/photo/{imageId}.png"]
+    U --> Z(["Return the new photoUrl"])
+```
+
+The gate is Edit player's (`PlayerProfile.canEdit`): the player's own age group comes from the server, so the app sends none. Delete: same gate; removes the file and clears `photo_url`. Get: the club's members (`minClubRole=MEMBER`, like the player's profile, §5.1b; players are usually minors, so not every family in the club), and only the **current** image id. `CreatePlayer.photoUrl` and `UpdatePlayerRequest.photoUrl` are ignored, and saving the player never touches `photo_url`.
 
 ### 5.3 Add Players to Age Group (`AddPlayersToAgeGroupUseCase`) — with age eligibility
 

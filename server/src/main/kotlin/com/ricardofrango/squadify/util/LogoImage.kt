@@ -10,8 +10,11 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
- * Turns an uploaded logo (PNG or JPEG) into the stored one: fitted inside [LOGO_SIZE]×[LOGO_SIZE] (never
- * enlarged), centred on a transparent square, saved as PNG so transparent crests stay transparent.
+ * Turns an uploaded image (PNG or JPEG) into the stored one, a PNG of at most [LOGO_SIZE]×[LOGO_SIZE]:
+ * - a logo ([toPng]) is fitted inside it (never enlarged) and centred on a transparent square, so
+ *   transparent crests stay transparent;
+ * - a photo of a person ([toPhotoPng]) is cut to a centred square that fills it (never enlarged), since
+ *   it's always shown in a circle and bars around a face would show.
  */
 object LogoImage {
     const val LOGO_SIZE = 512
@@ -45,6 +48,19 @@ object LogoImage {
         }
         return ByteArrayOutputStream().use { out ->
             ImageIO.write(square, "png", out)
+            out.toByteArray()
+        }
+    }
+
+    fun toPhotoPng(bytes: ByteArray): ByteArray {
+        if (bytes.isEmpty()) throw ValidationException("The image is empty")
+        if (bytes.size > MAX_UPLOAD_BYTES) throw ValidationException("The image is larger than 5 MB")
+        val source = decode(bytes)
+        val crop = minOf(source.width, source.height)
+        val square = source.getSubimage((source.width - crop) / 2, (source.height - crop) / 2, crop, crop)
+        val side = minOf(LOGO_SIZE, crop)
+        return ByteArrayOutputStream().use { out ->
+            ImageIO.write(downscale(square, side, side), "png", out)
             out.toByteArray()
         }
     }

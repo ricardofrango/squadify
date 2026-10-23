@@ -10,6 +10,8 @@ interface PlayerRepository {
     suspend fun createPlayers(players: List<Player>): List<Player>
     suspend fun getPlayerById(id: String): Player?
     suspend fun updatePlayer(player: Player): Boolean
+    /** Sets (or clears, with null) only the player's photo path. */
+    suspend fun updatePhotoUrl(playerId: String, photoUrl: String?): Boolean
     suspend fun getPlayersData(playerIds: List<String>): List<Player>
     suspend fun addPlayersToAgeGroup(links: List<AgeGroupPlayer>): List<AgeGroupPlayer>
     suspend fun getPlayersByAgeGroup(ageGroupId: String): List<Player>

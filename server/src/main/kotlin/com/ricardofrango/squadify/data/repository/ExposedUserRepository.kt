@@ -71,6 +71,9 @@ class ExposedUserRepository : UserRepository {
             it[Users.phone] = phone
         } > 0
 
+    override suspend fun updateAvatarUrl(userId: String, avatarUrl: String?): Boolean =
+        Users.update({ Users.id eq userId.toUuid() }) { it[Users.avatarUrl] = avatarUrl } > 0
+
     override suspend fun updatePasswordHash(userId: String, passwordHash: String): Boolean =
         Users.update({ Users.id eq userId.toUuid() }) {
             it[Users.passwordHash] = passwordHash

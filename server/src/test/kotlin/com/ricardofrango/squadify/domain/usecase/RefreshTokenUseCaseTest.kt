@@ -133,6 +133,7 @@ private class FakeUserRepository : UserRepository {
     override suspend fun findPasswordHashByEmail(email: String): String? = null
     override suspend fun createUser(user: User, passwordHash: String): User = user
     override suspend fun updateProfile(userId: String, firstName: String, lastName: String, phone: String?): Boolean = false
+    override suspend fun updateAvatarUrl(userId: String, avatarUrl: String?): Boolean = false
     override suspend fun updatePasswordHash(userId: String, passwordHash: String): Boolean = false
     override suspend fun getUserRoleInClub(userId: String, clubId: String): ClubRole? = null
     override suspend fun getUserRolesInClub(userIds: List<String>, clubId: String): Map<String, ClubRole> = emptyMap()
