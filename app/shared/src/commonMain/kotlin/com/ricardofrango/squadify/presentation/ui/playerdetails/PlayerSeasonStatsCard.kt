@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.model.ourSideFirst
 import com.ricardofrango.squadify.presentation.ui.components.emptyStatsRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -252,8 +253,14 @@ private fun PlayerMatchRow(m: PlayerSeasonMatch, showRating: Boolean, onClick: (
         }
         Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f)) {
-            // "Sub-15 A vs AD Fontelas": which of the age group's teams he played for.
-            Text(if (m.teamName.isNotEmpty()) "${m.teamName} vs ${m.opponentName}" else "vs ${m.opponentName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp), color = DeepCarbon)
+            // "Sub-15 A vs AD Fontelas": which of the age group's teams he played for. The home side first,
+            // as a fixture reads ("AD Fontelas vs Sub-15 A" away); our team first on neutral ground.
+            val fixture = when {
+                m.teamName.isEmpty() -> "vs ${m.opponentName}"
+                m.venue.ourSideFirst() -> "${m.teamName} vs ${m.opponentName}"
+                else -> "${m.opponentName} vs ${m.teamName}"
+            }
+            Text(fixture, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp), color = DeepCarbon)
             Spacer(Modifier.height(4.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(4.dp), itemVerticalAlignment = Alignment.CenterVertically) {
                 m.matchType?.takeIf(MatchType::isTaggedInLists)?.let { MatchTypeTag(it) }

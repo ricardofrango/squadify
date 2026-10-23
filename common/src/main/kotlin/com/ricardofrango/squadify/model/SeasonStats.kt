@@ -44,7 +44,9 @@ data class PlayerSeasonMatch(
     val redCards: Int,
     val rating: Int? = null,
     // The team he played for in that match ("Sub-15 A"), so A and B are never ambiguous.
-    val teamName: String = ""
+    val teamName: String = "",
+    // Home first in the row's "Team vs Opponent" (MatchVenue.ourSideFirst).
+    val venue: MatchVenue = MatchVenue.HOME
 )
 
 /**
@@ -208,12 +210,12 @@ fun TeamSeasonRecord.totals(filter: StatsFilter): TeamRecordTotals {
 }
 
 const val FORM_LENGTH = 5
-const val LEADERS_SHOWN = 3
+const val LEADERS_SHOWN = 5
 // One 9 shouldn't top the rating table (design 31a).
 const val MIN_RATED_MATCHES_FOR_LEADERS = 2
 
 /** [value] is the raw number: a count, minutes, or an average rating (one decimal). */
-data class LeaderEntry(val rank: Int, val playerId: String, val name: String, val value: Double)
+data class LeaderEntry(val rank: Int, val playerId: String, val name: String, val value: Double, val photoUrl: String? = null)
 
 data class TeamLeaders(
     val goals: List<LeaderEntry>,
@@ -224,13 +226,14 @@ data class TeamLeaders(
 )
 
 /**
- * Top three per category within [filter]. Players on zero are left out, so a list can be shorter
- * than three. Ties share a rank (three players on 4 goals are all #1) and are listed by name.
+ * Top five per category within [filter]. Players on zero are left out, so a list can be shorter
+ * than five. Ties share a rank (three players on 4 goals are all #1) and are listed by name.
  */
 fun TeamSeasonRecord.leaders(filter: StatsFilter): TeamLeaders {
     val matchIds = matches.filter { filter.includes(it.matchType) }.map { it.matchId }.toSet()
     val lines = playerLines.filter { it.matchId in matchIds }.groupBy { it.playerId }
     val names = players.associate { it.id to it.name }
+    val photos = players.associate { it.id to it.photoUrl }
 
     fun board(value: (List<TeamSeasonPlayerLine>) -> Double?): List<LeaderEntry> {
         val scored = lines.mapNotNull { (playerId, rows) ->
@@ -240,7 +243,7 @@ fun TeamSeasonRecord.leaders(filter: StatsFilter): TeamLeaders {
         return scored.map { (id, name, v) ->
             // Standard competition ranking: 1, 1, 1, 4 ...
             val rank = scored.indexOfFirst { it.third == v } + 1
-            LeaderEntry(rank, id, name, v)
+            LeaderEntry(rank, id, name, v, photos[id])
         }.take(LEADERS_SHOWN)
     }
 

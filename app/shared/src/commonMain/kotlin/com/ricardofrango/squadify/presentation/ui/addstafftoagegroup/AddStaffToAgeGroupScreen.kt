@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.addstafftoagegroup
 
+import com.ricardofrango.squadify.presentation.ui.components.initialsOf
+import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -338,7 +340,10 @@ private fun MemberRow(
             modifier = Modifier.padding(12.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
+            // Their photo when they've set one; the initials circle otherwise.
+            member.avatarUrl?.let {
+                PersonPhoto(it, initialsOf(member.firstName, member.lastName), 40.dp, CarbonGray.copy(alpha = 0.1f), DeepCarbon)
+            } ?: Box(
                 modifier = Modifier.size(40.dp)
                     .background(CarbonGray.copy(alpha = 0.1f), CircleShape),
                 contentAlignment = Alignment.Center

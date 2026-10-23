@@ -26,6 +26,9 @@ sealed class MatchDetailsUiState {
         /** The draft call-up's players, and the pool players not in it. */
         val selectedPlayers get() = allPlayers.filter { it.id in selectedIds }
         val availablePlayers get() = allPlayers.filterNot { it.id in selectedIds }
+
+        /** The call-up on screen differs from the saved one: leaving asks before throwing it away. */
+        val hasUnsavedCallUp: Boolean get() = details.canManageCallUps && selectedIds != savedIds
     }
 }
 

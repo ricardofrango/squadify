@@ -727,7 +727,9 @@ data class ClubMemberSummary(
     val firstName: String,
     val lastName: String,
     val email: String,
-    val role: ClubRole
+    val role: ClubRole,
+    // Their own profile photo's path, when they've set one.
+    val avatarUrl: String? = null
 )
 
 @Serializable

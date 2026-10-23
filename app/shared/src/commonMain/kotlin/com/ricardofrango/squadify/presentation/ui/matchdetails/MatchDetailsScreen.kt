@@ -5,6 +5,11 @@ import com.ricardofrango.squadify.presentation.ui.components.VenueSelector
 import com.ricardofrango.squadify.presentation.ui.theme.IsClubThemed
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
+import androidx.navigationevent.compose.rememberNavigationEventState
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.NavigationEventInfo
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardOptions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
@@ -142,6 +147,15 @@ private fun MatchDetailsContent(
 ) {
     val details = (uiState as? MatchDetailsUiState.Idle)?.details
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    // Leaving with a call-up that hasn't been saved asks first (the top bar's back and the system's).
+    val callUpUnsaved = (uiState as? MatchDetailsUiState.Idle)?.hasUnsavedCallUp == true
+    var showDiscard by remember { mutableStateOf(false) }
+    val requestBack = { if (callUpUnsaved) showDiscard = true else onNavigateBack() }
+    NavigationBackHandler(
+        state = rememberNavigationEventState(NavigationEventInfo.None),
+        isBackEnabled = callUpUnsaved,
+        onBackCompleted = { showDiscard = true }
+    )
     Scaffold(
         containerColor = Color.White,
         topBar = {
@@ -150,7 +164,7 @@ private fun MatchDetailsContent(
                 SquadifyTopBar(
                     title = details?.let { whenLabel(it.match.dateTime) } ?: stringResource(Res.string.title_match),
                     subtitle = details?.let { matchSubtitle(it) },
-                    onNavigateBack = onNavigateBack,
+                    onNavigateBack = requestBack,
                     actions = {
                         // Delete is the menu's only item, and a played (FINISHED) match can't be deleted.
                         if (details != null && details.canManageMatch && details.match.status != MatchStatus.FINISHED) {
@@ -211,6 +225,22 @@ private fun MatchDetailsContent(
         }
     }
 
+    if (showDiscard) {
+        AlertDialog(
+            onDismissRequest = { showDiscard = false },
+            containerColor = Color.White,
+            titleContentColor = DeepCarbon,
+            textContentColor = DeepCarbon.copy(alpha = 0.75f),
+            title = { Text(stringResource(Res.string.club_discard_title)) },
+            text = { Text(stringResource(Res.string.msg_callup_discard)) },
+            confirmButton = {
+                TextButton(onClick = { showDiscard = false; onNavigateBack() }) {
+                    Text(stringResource(Res.string.club_discard_confirm), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = { showDiscard = false }) { Text(stringResource(Res.string.btn_keep_editing), color = CarbonGray) } }
+        )
+    }
     if (showDeleteConfirm) {
         ConfirmDialog(
             title = stringResource(Res.string.msg_confirm_delete_match_title),

@@ -88,7 +88,8 @@ class GetPlayerSeasonStatsUseCase(
                 yellowCards = line.yellowCards,
                 redCards = line.redCards,
                 rating = rating,
-                teamName = team.name
+                teamName = team.name,
+                venue = match.venue
             ))
         }.groupBy({ it.first }, { it.second })
 

@@ -693,8 +693,8 @@
     <string name="record_team_leaders">Team leaders</string>
     <string name="record_leaders_goals">Goals</string>
     <string name="record_leaders_assists">Assists</string>
-    <string name="record_leaders_minutes">Minutes</string>
-    <string name="record_leaders_rating">Avg rating</string>
+    <string name="record_leaders_minutes">Time</string>
+    <string name="record_leaders_rating">Ranking</string>
     <string name="record_leaders_not_enough_rated">Not enough rated matches</string>
     <string name="record_no_results_title">No results yet</string>
     <string name="record_no_results_body">The record and team leaders appear after %1$s\'s first finished match.</string>
@@ -1440,4 +1440,5 @@
     <string name="match_type_abbr_championship">Cha</string>
     <string name="match_type_abbr_tournament">Tou</string>
     <string name="match_row_half_time">HT</string>
+    <string name="msg_callup_discard">Your changes to the call-up haven\'t been saved and will be lost.</string>
 </resources>

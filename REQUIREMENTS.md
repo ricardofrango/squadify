@@ -136,7 +136,14 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] The running clock formula is shared (`elapsedMatchSeconds` in `common/model/Models.kt`) between the live match console and the Matches list's live badge, so the two can never disagree, and both reflect a paused clock identically. See `TECHNICAL_DECISIONS.md` §29.
     - [x] Historical match statistics (Post-match analysis): per-player stats (started, minutes played including stoppage time, goals, assists, own goals, cards) are stored for every finished match, and a played match can no longer be deleted or have its events changed. The coach's post-match report (analysis plus 0–10 player ratings) has its editor, read view, Match Details card and Home to-do, and ratings are shown next to each player's stats. See `TECHNICAL_DECISIONS.md` §41. Season stats are shown outside the report too:
       - Player Details has season totals and a per-match list, with a season switcher.
-      - Team Details has a season record (W/D/L, goals, form) and team leaders.
+      - Team Details has a season record (W/D/L, goals, form) and team leaders: one list under the other, Ranking (average rating, staff only), Goals, Assists, Time, each the top five, every row with the player's photo or a placeholder.
+      - [ ] **Full stats screen** (future): every player's stats in one table, for a team and for an age group, opened from Team leaders. Team leaders only shows the top five of four categories.
+        - **Columns:** goals, assists, minutes, games ranking (average match rating), training ranking (average session rating), final ranking, games won, games lost, games drawn, yellow cards, red cards. Ratings and rankings are for staff only, as everywhere.
+        - **Final ranking:** the sum of every game and training rating in the period, divided by how many there are. For example, a week with one game and three trainings is (game + training 1 + training 2 + training 3) ÷ 4. Only ratings the player actually has count: an absent training (rated 0) is left out, as in the training average today.
+        - **Won / lost / drawn:** the games the player took part in.
+        - **Show and hide columns:** the coach picks which stats are shown, e.g. hiding goals. The choice is remembered on the device.
+        - **Filters:** a date range (from / to, e.g. last Friday to today, for "this week's ranking"), as well as the season and the match type (All / Official / Tournament / Friendly).
+        - **Sorting** by any column, and tapping a row opens the player.
       - Team Details is split into Stats · Matches · Members tabs. The Members tab lists only the players who played for that team.
       - Age Group Details is split into Stats · Teams · Matches · Members tabs. Stats shows results by team and how minutes are spread across the pool.
       - Both can be filtered by match type (All / Official / Tournament / Friendly; unselected segments show 5 letters and a ".", the selected one its full name, animated), and ratings are shown to staff only (see `TECHNICAL_DECISIONS.md` §43).
@@ -174,7 +181,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - **Player rows** start with one badge: the photo with the shirt number under it, only the photo or only the number (centred), or a head-and-shoulders placeholder when there's neither. Used in call-ups and the pool (Match details), Age Group and Team members, Club players, Add players, the line-up picker and the live console's squad and minutes rows, the match report's ratings, and training ratings.
       - **People's photos** in Club settings → Members, Member details and age group staff.
       - **Club logo on push notifications** (Android), when the club has one and the server has a public address.
-      - **Not yet:** the stats tables (season stats, training stats) and Add staff's picker still show names only.
+      - **Stats and pickers:** the team leaders card (photo, or the placeholder, before every name), the training stats table (the player badge) and Add staff's picker (the photo in the initials circle).
       - **To decide:** whether a user's own photo should only be visible to people who share a club with them. Today any signed-in user can fetch the current one by its random id.
     - [x] Client-side Architecture (MVVM, Koin, UseCases).
     - [x] API Integration (Ktor Client): every screen talks to the server through repositories over a shared authenticated Ktor client (bearer tokens, refresh on 401), plus WebSockets for the live match and the club's Matches tab.

@@ -128,7 +128,8 @@ class ExposedClubRepository : ClubRepository {
                     firstName = it[Users.firstName],
                     lastName = it[Users.lastName],
                     email = it[Users.email],
-                    role = it[ClubMembers.role]
+                    role = it[ClubMembers.role],
+                    avatarUrl = it[Users.avatarUrl]
                 )
             }
 

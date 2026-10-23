@@ -691,8 +691,8 @@
     <string name="record_team_leaders">Destaques</string>
     <string name="record_leaders_goals">Golos</string>
     <string name="record_leaders_assists">Assistências</string>
-    <string name="record_leaders_minutes">Minutos</string>
-    <string name="record_leaders_rating">Avaliação média</string>
+    <string name="record_leaders_minutes">Tempo de jogo</string>
+    <string name="record_leaders_rating">Classificação</string>
     <string name="record_leaders_not_enough_rated">Sem jogos avaliados suficientes</string>
     <string name="record_no_results_title">Ainda sem resultados</string>
     <string name="record_no_results_body">A época e os destaques aparecem depois do primeiro jogo terminado de %1$s.</string>
@@ -1438,4 +1438,5 @@
     <string name="match_type_abbr_championship">Cam</string>
     <string name="match_type_abbr_tournament">Tor</string>
     <string name="match_row_half_time">Int.</string>
+    <string name="msg_callup_discard">As alterações à convocatória não foram guardadas e vão perder-se.</string>
 </resources>

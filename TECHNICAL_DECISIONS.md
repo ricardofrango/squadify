@@ -2260,6 +2260,8 @@ Every match is typified as **Friendly**, **Championship** or **Tournament** (`Ma
 
 Player Details shows a **Season stats** card with a per-match list (design 30), and Team Details a **Season record** and **Team leaders** cards (design 31). Both are fed by the per-player `match_player_stats` lines from §41.
 
+**Team leaders, revised (2026-10-23, the developer's call):** it was a 2x2 grid of top threes, and with photos it read as confusing. It's now one list under the other, in the order Ranking (the average rating, staff only), Goals, Assists, Time. Each shows the top five (`LEADERS_SHOWN`), and every row has the player's photo or the head-and-shoulders placeholder, so the names line up. The whole table is a future Full stats screen (REQUIREMENTS).
+
 **Rows from the server, totals on the client.**
 - **Two read endpoints:**
   - `GET /players/{id}/season-stats` returns every season the player was registered in, each with his per-match lines.
@@ -2777,7 +2779,7 @@ Per the developer, 2026-10-21: club logos first (opponents later), stored on Rai
   - **Logos on matches:** the opponent's logo goes before "vs" on `MatchRow` and Home's next-up card (`ClubHomeNextUp.opponentLogoUrl`). The club's and the opponent's go side by side at the top of Match details, and before each side's name on the live console (`MatchDetails.clubLogoUrl`, on a white disc so any crest reads on the dark console).
   - **Player rows** (developer's call, 2026-10-23): every player row starts with the same `PlayerBadge`, a fixed width so names line up. It shows the photo with the shirt number under it; or only the photo, or only the number, centred; or, with neither, a head-and-shoulders placeholder. This is the one place an image *is* drawn when none is set. The choice is `PlayerBadgeContent.of`, tested in `PlayerBadgeTest`.
   - **Other people** (members, staff, Member details): the photo inside the existing initials circle when there is one, else the circle as before.
-  - **Data:** it was mostly there already. `ClubMemberEntry.avatarUrl` and `TeamSeasonPlayer.photoUrl` were added.
+  - **Data:** it was mostly there already. `ClubMemberEntry.avatarUrl`, `ClubMemberSummary.avatarUrl` (Add staff's picker), `TeamSeasonPlayer.photoUrl` and `LeaderEntry.photoUrl` (the team leaders card) were added. The training stats table uses `PlayerBadge`.
 - **Club logo on push notifications** (Android). The notification's image (`AndroidNotification.image`) is the club's logo: Android shows it itself in the background, and the app adds it as the large icon in the foreground.
   - **Public address:** the phone downloads that image without signing in, so it comes from the one image route that needs no sign-in, `GET /v1/public/clubs/{clubId}/logo/{imageId}.png` (`GetPublicClubLogoUseCase`). It serves only the club's current random id, which is only handed out with the club's details and in its pushes. A crest isn't sensitive, unlike players' photos, which are never public.
   - **Base address:** the server needs its own public URL for this. `PUBLIC_BASE_URL`, else Railway's `RAILWAY_PUBLIC_DOMAIN` over https. Without either (locally), pushes go without a picture.
@@ -2867,6 +2869,7 @@ Per the developer, 2026-10-23: screens padded their content differently (16, 20,
 Per the developer, 2026-10-23: adding or removing a player used to save straight away, one request each, and a failed request left the list in a confusing state (an optimistic change rolled back).
 
 - **Draft:** the call-up on screen (`MatchDetailsUiState.Idle.selectedIds`) starts as the saved one. Adding or removing only changes it on screen. "Save call-up" sends the whole list (`ManageCallUpsUseCase`, batch replace) and reloads, which makes it the saved call-up. A failed save keeps the draft and shows the error.
+- **Leaving with unsaved changes:** going back (the top bar's arrow or the system back) while the draft differs from the saved call-up asks "Discard unsaved changes?" first (`hasUnsavedCallUp`, `NavigationBackHandler`), like Club settings.
 - **Minimum:** the team's size (how many start, so the same number kickoff needs), or 11 for a team without one (`MatchDetails.minimumCallUp()`).
 - **The rules** (`callUpView` in `CallUpRules.kt`, tested in `CallUpRulesTest`, with a preview per case):
   - **Manages call-ups (`MANAGE_CALL_UPS`):** the editor. "Save call-up" is disabled below the minimum, with a hint saying how many are needed. It's enabled while the draft differs from the saved call-up. Once they match again, including after undoing changes, the button is "Start match" if the viewer may start the game, otherwise there's no button.
@@ -2905,6 +2908,6 @@ Per the developer, 2026-10-23: a match didn't say whether it was at home or away
   - **Middle:** the home side's line over the away side's, each with its logo when set. No "vs" and no subtitle line. Once a game is finished, the winner's name is bold; on a draw, or before the end, neither is.
   - **Right:** the kickoff time ("10:30") before the game. After it, one score per side, level with its name: black when finished, red while live with the minute ("30'") beside it, and yellow at half time with "HT" / "Int.". "Cancelled" for a cancelled game. The old "Live" badge and the win/draw/loss colours and labels are gone.
   - **Spacing:** the gap between the date column and the names went from 14dp to 10dp. Callers now always pass our team's name and the club's logo (`OpponentDetails.clubLogoUrl` was added for that).
-- **Not yet ordered by venue:** the season stats' per-match rows and the team's form strip, which carry no venue.
+- **Season stats:** the player's per-game rows read home first ("AD Fontelas vs Sub-15 A" away), from `PlayerSeasonMatch.venue`. The team's form strip has no names or scores on screen, only W/D/L. Its spoken description stays from our side ("Won 3–1 vs …"), which is how a result is said.
 - **Tests:** `CreateMatchUseCaseTest` and `UpdateMatchUseCaseTest` (saved, defaulted, changed, kept) on the server; `MatchVenueTest` (location prefill, home-first score, Schedule needs a venue) in the app.
 
