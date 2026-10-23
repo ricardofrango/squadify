@@ -9,9 +9,9 @@
 
 A concrete set of test personas and scenarios covering every user type described in the domain model — admin, coordinator, member (with and without team assignments, single- and multi-club), player, and parent — so the whole authorization surface can be validated in one pass. Each scenario lists what the code actually does **today** versus what it **should** do per the requirements discussed (see `issues to fix.md` for the underlying bugs); use this to drive new/rewritten unit tests.
 
-## Before you write these as tests: the existing permission test file doesn't compile
+## The permission tests today
 
-`server/src/test/kotlin/.../domain/usecase/CheckUserPermissionUseCaseTest.kt` tests an obsolete shape of the permission model: a single unified `Role` enum, a `TeamRepository.isUserStaffOfTeam(...): Boolean`, and a `CheckUserPermissionUseCase` that takes two constructor args and *returns* the resolved role. None of that exists anymore — the model has since split into `ClubRole`/`TeamRole`, `TeamRepository.getUserRoleInTeam(...): TeamRole?`, a three-arg constructor (`userRepository, teamRepository, transactionManager`), and a `Unit`-returning use case. This file will not compile against the current `core`/`domain` code. Any new test work needs to replace it, not extend it — worth adding to `issues to fix.md` as its own item.
+`server/src/test/kotlin/.../domain/usecase/CheckUserPermissionUseCaseTest.kt` covers these personas against the current permission model (`ClubRole`/`TeamRole`, configurable permissions), with 22 tests. It once targeted an obsolete model and didn't compile; it has since been rewritten (see `ISSUES TO FIX.md`). New scenarios from this matrix belong there.
 
 ## 1. Test personas
 
