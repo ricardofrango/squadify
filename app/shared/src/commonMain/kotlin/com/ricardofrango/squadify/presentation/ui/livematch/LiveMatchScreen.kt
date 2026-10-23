@@ -515,67 +515,33 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
     }
 
     val scoreEnabled = canManage && status == MatchStatus.LIVE && !isPaused && !state.isSubmitting
-    val clockArea: @Composable (large: Boolean) -> Unit = { large ->
-        if (status == MatchStatus.HALF_TIME) {
-            // At half time there's nothing to pause or correct (36c).
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    stringResource(Res.string.label_half_time_badge),
-                    color = Color.White,
-                    style = (if (large) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium).copy(fontWeight = FontWeight.Black)
-                )
-                Text(
-                    stringResource(Res.string.lm_half_time_sub, firstHalfLabel(halfLength, firstHalfEnd)),
-                    color = Color.White.copy(alpha = 0.55f),
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-        } else {
-            ClockBlock(
-                clock = formatMatchClock(displaySeconds),
-                label = if (large && canManage && !isPaused) "$clockLabel · ${stringResource(Res.string.lm_tap_to_correct)}" else clockLabel,
-                isPaused = isPaused,
-                canManage = canManage,
-                enabled = !state.isSubmitting,
-                large = large,
-                onClockClick = { showClockSheet = true },
-                onPauseToggle = { if (isPaused) actions.onResumeClock() else actions.onPauseClock() }
-            )
-        }
-    }
-    val scoreRow: @Composable () -> Unit = {
-        // Home first (on top, and the left score box), as football reads it; our club at home or on
-        // neutral ground. Each box still logs a goal for its own side.
-        val ourFirst = details.match.venue.ourSideFirst()
-        val ourName: @Composable () -> Unit = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                details.clubLogoUrl?.let { NameCrest(it, details.team.name) }
-                Text(details.team.name, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-        val theirName: @Composable () -> Unit = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                details.opponent.logoUrl?.let { NameCrest(it, details.opponent.name) }
-                Text(details.opponent.shortName ?: details.opponent.name, color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-        val ourBox: @Composable () -> Unit = { ScoreBox(state.score.ourScore, PitchGreen, enabled = scoreEnabled) { actions.onLogGoal(displayMinute, isOpponent = false) } }
-        val theirBox: @Composable () -> Unit = { ScoreBox(state.score.opponentScore, CarbonGray, enabled = scoreEnabled) { actions.onLogGoal(displayMinute, isOpponent = true) } }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                if (ourFirst) { ourName(); theirName() } else { theirName(); ourName() }
-            }
-            if (ourFirst) ourBox() else theirBox()
-            Spacer(Modifier.width(6.dp))
-            if (ourFirst) theirBox() else ourBox()
-        }
-    }
-    val tabs: @Composable () -> Unit = {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            TabPill(stringResource(Res.string.tab_pitch), state.selectedTab == LiveMatchTab.PITCH) { actions.onTabSelected(LiveMatchTab.PITCH) }
-            TabPill(stringResource(Res.string.tab_squad), state.selectedTab == LiveMatchTab.SQUAD) { actions.onTabSelected(LiveMatchTab.SQUAD) }
-            TabPill(stringResource(Res.string.tab_events_count, state.events.size), state.selectedTab == LiveMatchTab.EVENTS) { actions.onTabSelected(LiveMatchTab.EVENTS) }
-        }
+    // The scoreboard (design "Squadify Pitch View"): home first, as football reads it, our club first
+    // on neutral ground. Each score box logs a goal for its own side.
+    val ourFirst = details.match.venue.ourSideFirst()
+    val ours = ScoreSide(details.team.name, details.clubLogoUrl, state.score.ourScore, if (scoreEnabled) { { actions.onLogGoal(displayMinute, isOpponent = false) } } else null)
+    val theirs = ScoreSide(details.opponent.shortName ?: details.opponent.name, details.opponent.logoUrl, state.score.opponentScore, if (scoreEnabled) { { actions.onLogGoal(displayMinute, isOpponent = true) } } else null)
+    val home = if (ourFirst) ours else theirs
+    val away = if (ourFirst) theirs else ours
+    val clock = ClockState(
+        clock = formatMatchClock(displaySeconds),
+        label = clockLabel,
+        paused = isPaused,
+        // At half time there's nothing to pause or correct (36c).
+        halfTimeNote = if (status == MatchStatus.HALF_TIME) stringResource(Res.string.lm_half_time_sub, firstHalfLabel(halfLength, firstHalfEnd)) else null,
+        onClockClick = if (canManage && !state.isSubmitting) { { showClockSheet = true } } else null,
+        onPauseToggle = if (canManage && status == MatchStatus.LIVE) { { if (!state.isSubmitting) { if (isPaused) actions.onResumeClock() else actions.onPauseClock() } } } else null
+    )
+    val tabs: @Composable (Modifier) -> Unit = { modifier ->
+        ConsoleTabs(
+            listOf(
+                stringResource(Res.string.tab_pitch) to null,
+                stringResource(Res.string.tab_squad) to null,
+                stringResource(Res.string.lm_tab_events) to state.events.size.toString()
+            ),
+            selected = state.selectedTab.ordinal,
+            onSelect = { actions.onTabSelected(LiveMatchTab.entries[it]) },
+            modifier = modifier
+        )
     }
     val tabContent: @Composable (sideBySide: Boolean) -> Unit = { sideBySide ->
         when (state.selectedTab) {
@@ -645,7 +611,8 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
             LiveMatchTab.EVENTS -> EventsTab(displayEvents, details, onDeleteRequest = if (canManage) { { deletingEvent = it } } else null)
         }
     }
-    val actionBar: @Composable (Modifier) -> Unit = { modifier ->
+    val actionBar: @Composable (Modifier, Boolean) -> Unit = { modifier, compact ->
+        val buttonHeight = if (compact) 40.dp else 52.dp
         Column(modifier) {
             state.error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -658,7 +625,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
                         status == MatchStatus.HALF_TIME -> Button(
                             onClick = { actions.onResumeSecondHalf() },
                             enabled = !state.isSubmitting,
-                            modifier = Modifier.weight(1f).height(52.dp),
+                            modifier = Modifier.weight(1f).height(buttonHeight),
                             shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)
                         ) { Text(stringResource(Res.string.btn_start_second_half), fontWeight = FontWeight.Bold) }
@@ -669,7 +636,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
                                 OutlinedButton(
                                     onClick = { showHalfTimeConfirm = true },
                                     enabled = !state.isSubmitting,
-                                    modifier = Modifier.weight(1f).height(52.dp),
+                                    modifier = Modifier.weight(1f).height(buttonHeight),
                                     shape = RoundedCornerShape(14.dp),
                                     border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
                                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
@@ -678,7 +645,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
                             OutlinedButton(
                                 onClick = { showFullTimeConfirm = true },
                                 enabled = !state.isSubmitting,
-                                modifier = Modifier.weight(1f).height(52.dp),
+                                modifier = Modifier.weight(1f).height(buttonHeight),
                                 shape = RoundedCornerShape(14.dp),
                                 border = BorderStroke(1.dp, LiveRed),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = LiveRed)
@@ -693,32 +660,30 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
         if (landscape) {
-            // Landscape (36f): the status block is a left column with a larger clock and the match
-            // controls; On pitch and Bench sit side by side on the right.
-            Row(Modifier.fillMaxSize()) {
-                Column(Modifier.width(320.dp).fillMaxHeight()) {
-                    ConsoleHeader(title = "${details.ageGroup.name} · ${details.season.name}", subtitle = null, onNavigateBack = onNavigateBack, trailing = { LiveBadge() })
-                    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        scoreRow()
-                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) { clockArea(true) }
-                        tabs()
+            // Lying down (design "Squadify Pitch View"): one scoreboard bar across the top, then the
+            // tabs with the match buttons beside them, and the tab's content (the pitch with the bench
+            // in a column beside it) below.
+            Column(Modifier.fillMaxSize().navigationBarsPadding()) {
+                Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 4.dp, end = 16.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(painterResource(Res.drawable.ic_back), contentDescription = stringResource(Res.string.label_back), tint = Color.White)
                     }
-                    Spacer(Modifier.weight(1f))
-                    actionBar(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp))
+                    ScoreboardBar(home, away, clock, Modifier.weight(1f))
                 }
-                Box(Modifier.weight(1f).fillMaxHeight().statusBarsPadding()) { tabContent(true) }
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    tabs(Modifier.widthIn(max = 380.dp).weight(1f))
+                    Spacer(Modifier.width(16.dp))
+                    actionBar(Modifier.width(300.dp), true)
+                }
+                Box(Modifier.weight(1f).fillMaxWidth()) { tabContent(true) }
             }
         } else {
             Column(Modifier.fillMaxSize()) {
                 ConsoleHeader(title = "${details.ageGroup.name} · ${details.season.name}", subtitle = null, onNavigateBack = onNavigateBack, trailing = { LiveBadge() })
-                Row(Modifier.padding(start = 20.dp, end = 12.dp, top = 4.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.weight(1f)) { scoreRow() }
-                    Spacer(Modifier.width(10.dp))
-                    clockArea(false)
-                }
-                Box(Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 6.dp)) { tabs() }
-                Box(Modifier.weight(1f).fillMaxWidth()) { tabContent(false) }
-                actionBar(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp))
+                ScoreboardCard(home, away, clock, Modifier.padding(horizontal = ScreenPadding.Horizontal))
+                tabs(Modifier.padding(horizontal = ScreenPadding.Horizontal).padding(top = 12.dp))
+                Box(Modifier.weight(1f).fillMaxWidth().padding(top = 6.dp)) { tabContent(false) }
+                actionBar(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp), false)
             }
         }
     }
@@ -783,36 +748,6 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
     }
 }
 
-@Composable
-private fun ScoreBox(score: Int, color: Color, enabled: Boolean, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        enabled = enabled,
-        shape = RoundedCornerShape(10.dp),
-        color = color
-    ) {
-        Text(
-            score.toString(),
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp).widthIn(min = 20.dp),
-            color = Color.White,
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            textAlign = TextAlign.Center
-        )
-    }
-}
-
-@Composable
-private fun TabPill(label: String, selected: Boolean, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = RoundedCornerShape(10.dp), color = if (selected) Color.White else CarbonGray) {
-        Text(
-            label,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            color = if (selected) DeepCarbon else Color.White,
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-        )
-    }
-}
-
 // ---------------------------------------------------------------------------------------------
 // Tap-a-player action sheet
 // ---------------------------------------------------------------------------------------------
@@ -835,53 +770,61 @@ private fun PlayerActionSheet(
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding.Horizontal, vertical = 8.dp).navigationBarsPadding()) {
             when (sheet) {
                 is ActionSheet.PlayerActions -> {
-                    val name = "${sheet.row.player.firstName} ${sheet.row.player.lastName}"
-                    Row(Modifier.padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        TokenPhoto(sheet.row.player, 44.dp, BorderStroke(2.dp, Color.White))
+                    val player = sheet.row.player
+                    val name = "${player.firstName} ${player.lastName}"
+                    // Design "Squadify Pitch View": photo, name and "#10 · Midfield · 37' on the pitch", OK to close.
+                    Row(Modifier.fillMaxWidth().padding(bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        TokenPhoto(player, 44.dp, BorderStroke(2.dp, Color.White))
                         Spacer(Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                stringResource(Res.string.title_log_event_for, name),
-                                color = Color.White,
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                            // "#10 · Midfield · 37' on the pitch"
+                        Column(Modifier.weight(1f)) {
+                            Text(name, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             val detail = listOfNotNull(
-                                sheet.row.player.shirtNumber?.let { "#$it" },
-                                sheet.row.player.position?.let { stringResource(it.labelRes()) },
-                                if (sheet.onPitch) stringResource(Res.string.lm_on_the_pitch_for, mins(minutes.minutes(sheet.row.player.id))) else null
+                                player.shirtNumber?.let { "#$it" },
+                                player.position?.let { stringResource(it.labelRes()) },
+                                if (sheet.onPitch) stringResource(Res.string.lm_on_the_pitch_for, mins(minutes.minutes(player.id))) else null
                             ).joinToString(" · ")
                             if (detail.isNotEmpty()) Text(detail, color = Color.White.copy(alpha = 0.55f), style = MaterialTheme.typography.bodySmall)
                         }
+                        TextButton(onClick = onDismiss) { Text(stringResource(Res.string.btn_ok), color = PitchGreen) }
                     }
                     if (sheet.onPitch) {
-                        // A goal goes on to an optional "who assisted?" step; assists are only logged
-                        // that way, attached to their goal.
-                        SheetAction(stringResource(Res.string.action_log_goal), enabled = enabled) {
-                            onChangeSheet(ActionSheet.PickAssist(sheet.row.player.id, name, minute))
+                        ActionTileRow {
+                            // A goal goes on to an optional "who assisted?" step; assists are only logged
+                            // that way, attached to their goal.
+                            ActionTile(stringResource(Res.string.lm_action_goal), ActionTone.GOAL, enabled, Modifier.weight(1f)) {
+                                onChangeSheet(ActionSheet.PickAssist(player.id, name, minute))
+                            }
+                            ActionTile(stringResource(Res.string.action_log_own_goal), ActionTone.PLAIN, enabled, Modifier.weight(1f)) {
+                                actions.onLogEvent(EventType.OWN_GOAL, player.id, minute); onDismiss()
+                            }
                         }
-                        SheetAction(stringResource(Res.string.action_log_yellow_card), enabled = enabled) {
-                            actions.onLogEvent(EventType.YELLOW_CARD, sheet.row.player.id, minute); onDismiss()
-                        }
-                        SheetAction(stringResource(Res.string.action_log_red_card), enabled = enabled) {
-                            actions.onLogEvent(EventType.RED_CARD, sheet.row.player.id, minute); onDismiss()
-                        }
-                        SheetAction(stringResource(Res.string.action_log_own_goal), enabled = enabled) {
-                            actions.onLogEvent(EventType.OWN_GOAL, sheet.row.player.id, minute); onDismiss()
+                        ActionTileRow {
+                            ActionTile(stringResource(Res.string.lm_action_yellow), ActionTone.YELLOW, enabled, Modifier.weight(1f)) {
+                                actions.onLogEvent(EventType.YELLOW_CARD, player.id, minute); onDismiss()
+                            }
+                            ActionTile(stringResource(Res.string.lm_action_red), ActionTone.RED, enabled, Modifier.weight(1f)) {
+                                actions.onLogEvent(EventType.RED_CARD, player.id, minute); onDismiss()
+                            }
                         }
                         if (squad.bench.isNotEmpty()) {
-                            SheetAction(stringResource(Res.string.action_substitute_off), enabled = enabled) {
-                                onChangeSheet(ActionSheet.PickComingOn(sheet.row.player))
+                            ActionTileRow {
+                                ActionTile(stringResource(Res.string.lm_action_substitution), ActionTone.PLAIN, enabled, Modifier.weight(1f)) {
+                                    onChangeSheet(ActionSheet.PickComingOn(player))
+                                }
                             }
                         }
                         if (squad.onPitch.size > 1 || pitch.slots.size < pitch.formation.sum() + 1) {
-                            SheetAction(stringResource(Res.string.lm_change_position), enabled = enabled) {
-                                onChangeSheet(ActionSheet.ChangePosition(sheet.row.player))
+                            ActionTileRow {
+                                ActionTile(stringResource(Res.string.lm_change_position), ActionTone.PLAIN, enabled, Modifier.weight(1f)) {
+                                    onChangeSheet(ActionSheet.ChangePosition(player))
+                                }
                             }
                         }
                     } else if (squad.onPitch.isNotEmpty()) {
-                        SheetAction(stringResource(Res.string.action_substitute_on), enabled = enabled) {
-                            onChangeSheet(ActionSheet.PickGoingOff(sheet.row.player))
+                        ActionTileRow {
+                            ActionTile(stringResource(Res.string.action_substitute_on), ActionTone.PLAIN, enabled, Modifier.weight(1f)) {
+                                onChangeSheet(ActionSheet.PickGoingOff(player))
+                            }
                         }
                     }
                 }

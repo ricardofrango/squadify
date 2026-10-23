@@ -519,9 +519,19 @@ internal fun PitchPanel(
                     header()
                     benchLabel()
                     Column(benchArea.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        @OptIn(ExperimentalLayoutApi::class)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            bench.forEach { benchToken(it) }
+                        bench.forEach { player ->
+                            val key = PitchDropKey.Bench(player.id)
+                            BenchRowToken(
+                                number = player.shirtNumber,
+                                photo = { TokenPhoto(player, 26.dp, null) },
+                                name = names[player.id] ?: player.firstName,
+                                minutesFraction = tokenInfo(player).minutesFraction,
+                                highlighted = hovered == key,
+                                modifier = Modifier
+                                    .alpha(if (drag.source == key) 0.35f else 1f)
+                                    .then(if (onBenchTap != null) Modifier.clickable { onBenchTap(player) } else Modifier)
+                                    .pitchDrag(drag, key, player, dragEnabled, onDrop)
+                            )
                         }
                     }
                     sentOffLine()
@@ -665,52 +675,59 @@ internal fun FormationSheet(current: String, teamSize: Int, onApply: (String) ->
         else -> stringResource(Res.string.lm_formation_wrong_format, defaultFormation(teamSize).formationText())
     }
     val apply = { parsed?.let { onApply(it.formationText()) } }
+    val muted = Color.White.copy(alpha = 0.55f)
+    // Design "Squadify Pitch View": title with the team size, a filled field (red edge when wrong),
+    // the sum, the error, quick picks, and flat Cancel / Apply.
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = CarbonGray) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp).navigationBarsPadding()) {
-            Text(stringResource(Res.string.lm_change_formation), color = Color.White, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
-            Spacer(Modifier.height(16.dp))
-            Text(stringResource(Res.string.lm_formation_format).uppercase(), color = Color.White.copy(alpha = 0.55f), style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.6.sp))
-            Spacer(Modifier.height(6.dp))
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 20.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(Res.string.lm_change_formation), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text(stringResource(Res.string.lm_team_size_side, teamSize), color = muted, fontSize = 12.sp)
+            }
+            Text(stringResource(Res.string.lm_formation_format).uppercase(), color = muted, fontSize = 12.sp, letterSpacing = 0.5.sp)
             OutlinedTextField(
                 value = text,
                 onValueChange = { new -> if (new.length <= 8 && new.all { it.isDigit() || it == '-' || it == ' ' }) text = new },
                 singleLine = true,
                 isError = error != null,
+                shape = RoundedCornerShape(10.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Done),
                 keyboardActions = submitKeyboardActions { apply() },
-                textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black, color = Color.White),
+                textStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium, color = Color.White),
                 modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PitchGreen, unfocusedBorderColor = Color.White.copy(alpha = 0.3f), cursorColor = PitchGreen)
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color(0xFF2C2C2E),
+                    unfocusedContainerColor = Color(0xFF2C2C2E),
+                    errorContainerColor = Color(0xFF2C2C2E),
+                    focusedBorderColor = PitchGreen,
+                    unfocusedBorderColor = Color.Transparent,
+                    errorBorderColor = Color(0xFFC62828),
+                    cursorColor = PitchGreen,
+                    errorCursorColor = PitchGreen
+                )
             )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                error ?: stringResource(Res.string.lm_formation_adds_up, outfield),
-                color = if (error != null) MaterialTheme.colorScheme.error else Color.White.copy(alpha = 0.6f),
-                style = MaterialTheme.typography.bodySmall
-            )
-            Spacer(Modifier.height(18.dp))
-            Text(stringResource(Res.string.lm_quick_picks).uppercase(), color = Color.White.copy(alpha = 0.55f), style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.6.sp))
-            Spacer(Modifier.height(8.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(Res.string.lm_formation_adds_up, outfield), color = muted, fontSize = 12.sp)
+                error?.let { Text(it, color = Color(0xFFFF8A80), fontSize = 12.sp) }
+            }
+            Text(stringResource(Res.string.lm_quick_picks).uppercase(), color = muted, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 quickFormations(teamSize).forEach { f ->
                     val label = f.formationText()
                     val selected = parsed?.formationText() == label
-                    Surface(
-                        onClick = { text = label },
-                        shape = RoundedCornerShape(16.dp),
-                        color = if (selected) PitchGreen else Color.White.copy(alpha = 0.06f)
-                    ) {
-                        Text(label, color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                    Surface(onClick = { text = label }, shape = RoundedCornerShape(16.dp), color = if (selected) PitchGreen else Color.White.copy(alpha = 0.06f)) {
+                        Text(label, color = Color.White, fontSize = 14.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                     }
                 }
             }
-            Spacer(Modifier.height(24.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Surface(onClick = onDismiss, shape = RoundedCornerShape(14.dp), color = Color.Transparent, border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)), modifier = Modifier.weight(1f).height(52.dp)) {
-                    Box(contentAlignment = Alignment.Center) { Text(stringResource(Res.string.btn_cancel), color = Color.White, fontWeight = FontWeight.Bold) }
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Surface(onClick = onDismiss, shape = RoundedCornerShape(10.dp), color = Color.White.copy(alpha = 0.06f), modifier = Modifier.weight(1f).height(46.dp)) {
+                    Box(contentAlignment = Alignment.Center) { Text(stringResource(Res.string.btn_cancel), color = muted, fontSize = 14.sp, fontWeight = FontWeight.Medium) }
                 }
-                Surface(onClick = { apply() }, enabled = parsed != null, shape = RoundedCornerShape(14.dp), color = if (parsed != null) PitchGreen else PitchGreen.copy(alpha = 0.4f), modifier = Modifier.weight(1f).height(52.dp)) {
-                    Box(contentAlignment = Alignment.Center) { Text(stringResource(Res.string.btn_apply), color = Color.White, fontWeight = FontWeight.Bold) }
+                Surface(onClick = { apply() }, enabled = parsed != null, shape = RoundedCornerShape(10.dp), color = PitchGreen.copy(alpha = if (parsed != null) 1f else 0.35f), modifier = Modifier.weight(1f).height(46.dp)) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(stringResource(Res.string.btn_apply), color = Color.White.copy(alpha = if (parsed != null) 1f else 0.4f), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }

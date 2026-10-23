@@ -1474,4 +1474,10 @@
     <string name="lm_sent_off_list">Sent off: %1$s</string>
     <string name="lm_on_the_pitch_for">%1$s on the pitch</string>
     <string name="lm_bench_count">Bench · %1$d</string>
+    <string name="lm_tab_events">Events</string>
+    <string name="lm_action_goal">Goal</string>
+    <string name="lm_action_yellow">Yellow</string>
+    <string name="lm_action_red">Red</string>
+    <string name="lm_action_substitution">Substitution</string>
+    <string name="lm_team_size_side">%1$d-a-side</string>
 </resources>

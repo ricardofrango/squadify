@@ -1471,5 +1471,11 @@
     <string name="lm_flip_pitch">Inverter o campo</string>
     <string name="lm_sent_off_list">Expulsos: %1$s</string>
     <string name="lm_on_the_pitch_for">%1$s em campo</string>
-    <string name="lm_bench_count">Suplentes · %1$d</string>
+    <string name="lm_bench_count">Banco · %1$d</string>
+    <string name="lm_tab_events">Eventos</string>
+    <string name="lm_action_goal">Golo</string>
+    <string name="lm_action_yellow">Amarelo</string>
+    <string name="lm_action_red">Vermelho</string>
+    <string name="lm_action_substitution">Substituição</string>
+    <string name="lm_team_size_side">%1$d a jogar</string>
 </resources>
