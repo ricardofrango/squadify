@@ -36,7 +36,7 @@ Almost every use case starts by fetching a parent resource for context, then del
 
 ```mermaid
 graph TD
-    A[Start: userId, clubId, minClubRole?, minTeamRole?, configurablePermission?, teamId?, ageGroupId?] --> B[Load user by id]
+    A[Start: userId, clubId, minClubRole?, minAgeGroupRole?, configurablePermission?, teamId?, ageGroupId?] --> B[Load user by id]
     B -- not found --> X1(["Throw ForbiddenException: User not found"])
     B -- found --> C{user.isPlatformAdmin?}
     C -- Yes --> ALLOW(["Allow — God Mode"])
@@ -55,11 +55,11 @@ graph TD
     G -- No --> RESOLVE
     F -- No --> I{minClubRole == MEMBER AND role.level >= MEMBER.level AND no age-group context?}
     I -- Yes --> ALLOW
-    I -- No --> RESOLVE["configurablePermission given? resolve effective minTeamRole: club's override if a row exists (its minTeamRole as-is, even null) else the action's default; else use the literal minTeamRole as passed"]
-    RESOLVE --> H{age-group context AND effective minTeamRole not null?}
+    I -- No --> RESOLVE["configurablePermission given? resolve effective minAgeGroupRole: club's override if a row exists (its minAgeGroupRole as-is, even null) else the action's default; else use the literal minAgeGroupRole as passed"]
+    RESOLVE --> H{age-group context AND effective minAgeGroupRole not null?}
     H -- No --> P{allowPlayerOrParentAccess?}
     H -- Yes --> J["Get user's role in the age group (age_group_staff)"]
-    J --> K{role exists AND level >= effective minTeamRole.level?}
+    J --> K{role exists AND level >= effective minAgeGroupRole.level?}
     K -- Yes --> ALLOW
     K -- No --> P
     P -- No --> DENY(["Throw ForbiddenException: errorMessage"])
@@ -71,7 +71,7 @@ graph TD
     M -- No --> DENY
 ```
 
-Key behaviours baked into this one function: Platform Admins bypass everything ("God Mode"); a club-level `CLUB_ADMIN`/`COORDINATOR` role satisfies almost any check without needing a lower-level role; a plain `MEMBER` role is only sufficient when no age-group-specific check is requested; `COACH`/`STAFF` roles are validated per **age group** via `age_group_staff` (a `teamId` passed by a caller is resolved to its age group first); the opt-in player/parent path grants a read when a linked player sits in the relevant age group's pool. `configurablePermission` (mutually exclusive with a literal `minTeamRole` at any one call site) resolves the effective staff-role threshold from the club's own `ClubPermissionOverrides` setting instead of a hardcoded constant — see `TECHNICAL_DECISIONS.md` §35 for the full configurable-permissions design, including which actions are (and deliberately aren't) configurable, and the `ClubPermissionRepository.getOverride` row-exists-vs-null distinction that a naive `?:` chain would get wrong. A **club-level** configurable action (`ConfigurablePermission.isClubLevel`, today only `MANAGE_PLAYER_STATUS`) is checked before all of that: its setting is a minimum **club** role (`minClubRole`: `COORDINATOR` by default, or `CLUB_ADMIN`), it replaces the caller's `minClubRole`, and no age-group role passes it (`TECHNICAL_DECISIONS.md` §55).
+Key behaviours baked into this one function: Platform Admins bypass everything ("God Mode"); a club-level `CLUB_ADMIN`/`COORDINATOR` role satisfies almost any check without needing a lower-level role; a plain `MEMBER` role is only sufficient when no age-group-specific check is requested; `COACH`/`STAFF` roles are validated per **age group** via `age_group_staff` (a `teamId` passed by a caller is resolved to its age group first); the opt-in player/parent path grants a read when a linked player sits in the relevant age group's pool. `configurablePermission` (mutually exclusive with a literal `minAgeGroupRole` at any one call site) resolves the effective staff-role threshold from the club's own `ClubPermissionOverrides` setting instead of a hardcoded constant — see `TECHNICAL_DECISIONS.md` §35 for the full configurable-permissions design, including which actions are (and deliberately aren't) configurable, and the `ClubPermissionRepository.getOverride` row-exists-vs-null distinction that a naive `?:` chain would get wrong. A **club-level** configurable action (`ConfigurablePermission.isClubLevel`, today only `MANAGE_PLAYER_STATUS`) is checked before all of that: its setting is a minimum **club** role (`minClubRole`: `COORDINATOR` by default, or `CLUB_ADMIN`), it replaces the caller's `minClubRole`, and no age-group role passes it (`TECHNICAL_DECISIONS.md` §55).
 
 ### 1.2 `CheckUserIsAdminUseCase` — platform-level gate
 
@@ -516,7 +516,7 @@ graph TD
     A[Start: userId, clubId] --> B[CheckUserPermissionUseCase — minClubRole=MEMBER]
     B -- denied --> F(["Throw ForbiddenException"])
     B -- allowed --> C[Fetch this club's explicit overrides]
-    C --> D["For each ConfigurablePermission value: the override if a row exists, else the action's default (defaultSetting: minTeamRole, or minClubRole = COORDINATOR for a club-level action)"]
+    C --> D["For each ConfigurablePermission value: the override if a row exists, else the action's default (defaultSetting: minAgeGroupRole, or minClubRole = COORDINATOR for a club-level action)"]
     D --> Z(["Return one ClubPermissionSetting per action"])
 ```
 
@@ -526,7 +526,7 @@ graph TD
     B2 -- denied --> F2(["Throw ForbiddenException"])
     B2 -- allowed --> C2{Any duplicate action in the settings list?}
     C2 -- Yes --> V2(["Throw ValidationException"])
-    C2 -- No --> CV{"A club-level action without minClubRole COORDINATOR/CLUB_ADMIN (or with a minTeamRole), or an age-group action with a minClubRole?"}
+    C2 -- No --> CV{"A club-level action without minClubRole COORDINATOR/CLUB_ADMIN (or with a minAgeGroupRole), or an age-group action with a minClubRole?"}
     CV -- Yes --> V3(["Throw ValidationException"])
     CV -- No --> K2["Add back the current override of any club-level action left out of the request"]
     K2 --> CH{"A club-level action's minClubRole changes?"}
@@ -765,7 +765,7 @@ The aggregate behind the age-group detail screen. Follows the standard permissio
 graph TD
     A[Start: userId, ageGroupId] --> B[Fetch AgeGroup by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER, minTeamRole=STAFF, ageGroupId, allowPlayerOrParentAccess]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER, minAgeGroupRole=STAFF, ageGroupId, allowPlayerOrParentAccess]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D[Fetch club + season]
     D --> E[teams = club teams filtered to this age group]
@@ -864,7 +864,7 @@ Whole batch runs in one transaction (all or nothing), mirroring `CreateAgeGroups
 graph TD
     A[Start: userId, teamId, patch] --> B[Fetch Team by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C["CheckUserPermissionUseCase — minClubRole=COORDINATOR, minTeamRole=COACH (this team)"]
+    B -- found --> C["CheckUserPermissionUseCase — minClubRole=COORDINATOR, minAgeGroupRole=COACH (this team)"]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> V{"name blank, or teamSize not in club.sport.teamSizes?"}
     V -- yes --> VE(["Throw ValidationException"])
@@ -908,7 +908,7 @@ The aggregate behind the team detail screen. A team is only a scheduling handle,
 graph TD
     A[Start: userId, teamId] --> B[Fetch Team by id]
     B -- not found --> N(["Throw ValidationException"])
-    B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER, minTeamRole=STAFF, teamId, allowPlayerOrParentAccess]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER, minAgeGroupRole=STAFF, teamId, allowPlayerOrParentAccess]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D[Fetch club + age group + season]
     D --> G["canManageMatch = non-throwing probe of configurablePermission=MANAGE_MATCH on teamId"]
@@ -931,9 +931,9 @@ graph TD
 graph TD
     A[Start: userId, teamId] --> B[Fetch Team by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — same gate as §4.6b: MEMBER, minTeamRole=STAFF, teamId, allowPlayerOrParentAccess]
+    B -- found --> C[CheckUserPermissionUseCase — same gate as §4.6b: MEMBER, minAgeGroupRole=STAFF, teamId, allowPlayerOrParentAccess]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> R["canSeeRatings = non-throwing probe of the report's read gate: minClubRole=COORDINATOR, minTeamRole=STAFF, teamId"]
+    C -- allowed --> R["canSeeRatings = non-throwing probe of the report's read gate: minClubRole=COORDINATOR, minAgeGroupRole=STAFF, teamId"]
     R --> M["matches = the team's FINISHED matches, newest first, each with its score (getScoreByMatch) and type"]
     M --> L["playerLines = match_player_stats of those matches (getByMatches): minutes, goals, assists, rating"]
     L --> K{"canSeeRatings AND the match's report is completed?"}
@@ -1231,7 +1231,7 @@ graph TD
 
 Every staff member added here already has an account (club membership is a precondition — see the ForbiddenException branch above), so this is always the "existing user" email, never an invite. Sent after commit, same timing as §3.1/§3.6 — see TECHNICAL_DECISIONS.md §14.
 
-Since staff must already be a club member, the client's **Add Staff to Age Group** screen (reached from an age group's own "Add staff" button/menu entry) needs a way to list them: `GetClubMembersUseCase` (`GET /v1/clubs/{clubId}/members`, same `minClubRole=COORDINATOR` gate) returns every active `ClubMemberSummary` (name, email, club role) for the picker. The screen then works like Add Players to Age Group — pick an age group, search the list, pick who to add — except each row picks a `TeamRole` (Coach/Staff) rather than being a plain toggle, and the eligible list excludes members already staffing that age group (fetched via `GetAgeGroupStaffUseCase`, `GET /v1/age-groups/{ageGroupId}/staff`, client-side only, no new endpoint).
+Since staff must already be a club member, the client's **Add Staff to Age Group** screen (reached from an age group's own "Add staff" button/menu entry) needs a way to list them: `GetClubMembersUseCase` (`GET /v1/clubs/{clubId}/members`, same `minClubRole=COORDINATOR` gate) returns every active `ClubMemberSummary` (name, email, club role) for the picker. The screen then works like Add Players to Age Group — pick an age group, search the list, pick who to add — except each row picks a `AgeGroupRole` (Coach/Staff) rather than being a plain toggle, and the eligible list excludes members already staffing that age group (fetched via `GetAgeGroupStaffUseCase`, `GET /v1/age-groups/{ageGroupId}/staff`, client-side only, no new endpoint).
 
 Someone not yet a club member can't be picked there, so that screen also has a "New staff member" shortcut to the **Create Staff** screen (Club Details overflow menu, and the shortcut above) -- this is just `AddClubMembersUseCase` (`POST /v1/clubs/{clubId}/members`, the existing club-member-invite flow, previously unused by the client) presented as a batch-of-emails form matching Create Players' shape. An email already tied to an account is added to the club immediately as a `MEMBER`; an unknown one gets an `Invite` row (`InviteType.CLUB_MEMBER`) so they land as a `MEMBER` once they register -- no new fields, no new backend behaviour, just the client screen that was missing. Either way they then show up in Add Staff to Age Group's picker.
 
@@ -1303,7 +1303,7 @@ graph TD
     AGF -- not found --> N(["Throw NotFoundException"])
     AGF -- found, wrong club --> FB(["Throw ForbiddenException"])
     AGF -- found, right club --> B
-    AG -- No --> B[CheckUserPermissionUseCase — minClubRole=MEMBER, minTeamRole=COACH, ageGroupId]
+    AG -- No --> B[CheckUserPermissionUseCase — minClubRole=MEMBER, minAgeGroupRole=COACH, ageGroupId]
     B -- denied --> F(["Throw ForbiddenException"])
     B -- allowed --> C["Club name; the club's opponents sorted by name"]
     C --> D["canCreate: non-throwing probe — minClubRole=COORDINATOR, configurablePermission=CREATE_OPPONENT, ageGroupId"]
@@ -1410,7 +1410,7 @@ The aggregate behind the match screen. Standard permission-gated read (§1.3, `M
 graph TD
     A[Start: userId, matchId] --> B[Fetch Match by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER, minTeamRole=STAFF, teamId=match.teamId, allowPlayerOrParentAccess]
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER, minAgeGroupRole=STAFF, teamId=match.teamId, allowPlayerOrParentAccess]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D[Fetch opponent + team + age group + season]
     D --> E["callUps = call-ups for the match; poolPlayers = age group's players MINUS whoever is already called up"]
@@ -1819,7 +1819,7 @@ The coach's post-match report for a `FINISHED` match. It has two parts:
 graph TD
     A[Start: userId, matchId] --> B[Fetch Match by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C["CheckUserPermissionUseCase — minClubRole=COORDINATOR, minTeamRole=STAFF, teamId (no player/parent access)"]
+    B -- found --> C["CheckUserPermissionUseCase — minClubRole=COORDINATOR, minAgeGroupRole=STAFF, teamId (no player/parent access)"]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D{status == FINISHED?}
     D -- No --> V(["Throw ValidationException"])
@@ -1910,7 +1910,7 @@ This is the **only** use case in the codebase that never calls `CheckUserPermiss
 graph TD
     A[Start: userId, ageGroupId] --> B[Fetch AgeGroup by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C["CheckUserPermissionUseCase — minClubRole=MEMBER, minTeamRole=STAFF, ageGroupId (no player/parent path)"]
+    B -- found --> C["CheckUserPermissionUseCase — minClubRole=MEMBER, minAgeGroupRole=STAFF, ageGroupId (no player/parent path)"]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D["canEdit: non-throwing probe — minClubRole=COORDINATOR, configurablePermission=MANAGE_TRAINING, ageGroupId"]
     D --> Z(["Return TrainingPlans: ageGroup, clubName, season, every plan of the age group, canEdit"])
@@ -1953,7 +1953,7 @@ crosses two months belongs to the month of its Monday.
 graph TD
     A[Start: userId, ageGroupId] --> B[Fetch AgeGroup by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C["CheckUserPermissionUseCase — minClubRole=MEMBER, minTeamRole=STAFF, ageGroupId, allowPlayerOrParentAccess=true"]
+    B -- found --> C["CheckUserPermissionUseCase — minClubRole=MEMBER, minAgeGroupRole=STAFF, ageGroupId, allowPlayerOrParentAccess=true"]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D["canEdit (MANAGE_TRAINING) and canRate (coordinator, or coach/staff of the age group): non-throwing probes"]
     D --> E["Every session of the age group by date; exercise counts in one query; the canceller's name for cancelled ones"]
@@ -2210,7 +2210,7 @@ erDiagram
         uuid id PK
         uuid club_id FK
         varchar permission "ConfigurablePermission, unique with club_id"
-        varchar min_team_role "TeamRole, nullable -- null means coordinator-only"
+        varchar min_team_role "AgeGroupRole, nullable -- null means coordinator-only"
         varchar min_club_role "ClubRole, nullable -- club-level actions only: COORDINATOR or CLUB_ADMIN (V22)"
     }
     SEASONS {
@@ -2264,7 +2264,7 @@ erDiagram
         uuid id PK
         uuid age_group_id FK
         uuid user_id FK
-        enum role "TeamRole"
+        enum role "AgeGroupRole"
     }
     USER_PLAYERS {
         uuid id PK
@@ -2426,7 +2426,7 @@ erDiagram
 | `ClubStatus` | `ACTIVE`, `INACTIVE`, `PENDING` | `clubs.status` (default `ACTIVE`) |
 | `SportType` | `FOOTBALL`, `FUTSAL` | `clubs.sport` (default `FOOTBALL`); required in `ProvisionClubRequest`. Each constant also carries a code-level `teamSizes: List<Int>` (FOOTBALL → 4/5/7/9/11, FUTSAL → 4/5) — the allowed a-side counts for `age_groups.team_size` / `teams.team_size`; not persisted, not configurable per club. |
 | `ClubRole` | `CLUB_ADMIN`(5), `COORDINATOR`(4), `MEMBER`(1) | `club_members.role`, `invites.role` |
-| `TeamRole` | `COACH`(3), `STAFF`(2) | `age_group_staff.role` |
+| `AgeGroupRole` | `COACH`(3), `STAFF`(2) | `age_group_staff.role` |
 | `SeasonType` | `CALENDAR_YEAR`, `EUROPEAN_YEAR` | `seasons.type` (default `EUROPEAN_YEAR`) |
 | `UserPlayerRelationship` | `FATHER`, `MOTHER`, `GUARDIAN`, `OTHER` | `user_players.relationship`, `invites.relationship` |
 | `InviteType` | `CLUB_MEMBER`, `PARENT_PLAYER` | `invites.type` |
@@ -2437,7 +2437,7 @@ erDiagram
 | `TrainingIntensity` | `LOW`, `MEDIUM`, `HIGH` | `training_plans.intensity` (weeks only) |
 | `PlayerPosition` | `GOALKEEPER`, `DEFENDER`, `MIDFIELD`, `WINGER`, `STRIKER` | `players.position` (nullable) |
 
-`TeamRole` is now `COACH`/`STAFF` only — the unused `PARENT`/`PLAYER` values were removed when coaches/staff moved from teams to age groups (`age_group_staff`). Players and family members are modelled entirely through `age_group_players` / `user_players` and never appear in a staff table. The enum keeps the name `TeamRole` for now; `CheckUserPermissionUseCase`'s `minTeamRole` parameter is interpreted as the minimum age-group staff role.
+`AgeGroupRole` is now `COACH`/`STAFF` only — the unused `PARENT`/`PLAYER` values were removed when coaches/staff moved from teams to age groups (`age_group_staff`). Players and family members are modelled entirely through `age_group_players` / `user_players` and never appear in a staff table. The enum keeps the name `AgeGroupRole` for now; `CheckUserPermissionUseCase`'s `minAgeGroupRole` parameter is interpreted as the minimum age-group staff role.
 
 ### 12.4 Current persistence setup
 

@@ -674,7 +674,7 @@ internal fun AgeGroupMembersTab(
                             Column(Modifier.weight(1f)) {
                                 Text("${member.firstName} ${member.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.5.sp), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text(
-                                    stringResource(if (member.role == TeamRole.COACH) Res.string.label_role_coach else Res.string.label_role_staff),
+                                    stringResource(if (member.role == AgeGroupRole.COACH) Res.string.label_role_coach else Res.string.label_role_staff),
                                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp), color = StatsSecondaryText
                                 )
                             }

@@ -22,7 +22,7 @@ import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -96,7 +96,7 @@ class GetPlayerSeasonStatsUseCaseTest {
         coEvery { reportRepository.getCompletedMatchIds(any()) } returns setOf("m1")
     }
 
-    private fun stubUser(clubRole: ClubRole, ageGroupRole: TeamRole?): User {
+    private fun stubUser(clubRole: ClubRole, ageGroupRole: AgeGroupRole?): User {
         val user = User("u", "u@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
         coEvery { userRepository.findById(user.id) } returns user
         coEvery { userRepository.getUserRoleInClub(user.id, clubId) } returns clubRole
@@ -108,7 +108,7 @@ class GetPlayerSeasonStatsUseCaseTest {
     @Test
     fun coachSeesSeasonsNewestFirstWithOnlyFinalRatings() = runBlocking {
         stubData()
-        val coach = stubUser(ClubRole.MEMBER, TeamRole.COACH)
+        val coach = stubUser(ClubRole.MEMBER, AgeGroupRole.COACH)
 
         val result = useCase(coach.id, "p1")
 
@@ -149,7 +149,7 @@ class GetPlayerSeasonStatsUseCaseTest {
         stubData()
         coEvery { statsRepository.getByPlayer("p1") } returns emptyList()
         coEvery { reportRepository.getCompletedMatchIds(any()) } returns emptySet()
-        val coach = stubUser(ClubRole.MEMBER, TeamRole.COACH)
+        val coach = stubUser(ClubRole.MEMBER, AgeGroupRole.COACH)
 
         assertTrue(useCase(coach.id, "p1").canSeeRatings)
     }

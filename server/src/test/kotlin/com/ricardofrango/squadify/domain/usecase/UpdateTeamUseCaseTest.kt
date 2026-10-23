@@ -15,7 +15,7 @@ import com.ricardofrango.squadify.model.SportType
 import io.mockk.coVerify
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.UpdateTeamRequest
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
@@ -31,7 +31,7 @@ import kotlin.time.Instant
  * coordinator can update any team in the club; a team's own coach can update that team (name, etc.);
  * everyone else -- including a coach of a *different* team -- is denied. UpdateTeamUseCase previously
  * required CLUB_ADMIN/COORDINATOR only, with no team-role path at all, which meant a coach could never
- * edit their own team. Fixed by adding `minTeamRole = TeamRole.COACH` alongside the existing club-role
+ * edit their own team. Fixed by adding `minAgeGroupRole = AgeGroupRole.COACH` alongside the existing club-role
  * check, mirroring the pattern already used by CreateMatchUseCase / AddPlayersToTeamUseCase / etc.
  */
 class UpdateTeamUseCaseTest {
@@ -91,7 +91,7 @@ class UpdateTeamUseCaseTest {
         coEvery { teamRepository.getTeamById(team1) } returns team
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "age-group-1") } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "age-group-1") } returns AgeGroupRole.COACH
         coEvery { teamRepository.updateTeam(any()) } returns true
 
         useCase(coach.id, team1, UpdateTeamRequest(name = "New Name"))
@@ -113,7 +113,7 @@ class UpdateTeamUseCaseTest {
     }
 
     @Test
-    fun plainMemberWithNoTeamRoleIsDenied() = runBlocking {
+    fun plainMemberWithNoAgeGroupRoleIsDenied() = runBlocking {
         val member = user("p4-plain-member")
         coEvery { teamRepository.getTeamById(team1) } returns team
         coEvery { userRepository.findById(member.id) } returns member

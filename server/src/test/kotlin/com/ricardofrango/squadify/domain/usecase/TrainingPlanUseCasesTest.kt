@@ -21,7 +21,7 @@ import com.ricardofrango.squadify.model.SaveTrainingPlanRequest
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.model.SportType
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.TrainingIntensity
 import com.ricardofrango.squadify.model.TrainingPhase
 import com.ricardofrango.squadify.model.TrainingPlan
@@ -73,7 +73,7 @@ class TrainingPlanUseCasesTest {
         coEvery { trainingPlanRepository.save(capture(saved), any()) } answers { firstArg() }
     }
 
-    private fun user(clubRole: ClubRole?, teamRole: TeamRole? = null): String {
+    private fun user(clubRole: ClubRole?, teamRole: AgeGroupRole? = null): String {
         val u = User("u-$clubRole-$teamRole", "u@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
         coEvery { userRepository.findById(u.id) } returns u
         coEvery { userRepository.getUserRoleInClub(u.id, clubId) } returns clubRole
@@ -86,16 +86,16 @@ class TrainingPlanUseCasesTest {
 
     @Test
     fun aCoachCanEditByDefaultAndStaffCanOnlyRead() = runBlocking<Unit> {
-        assertTrue(getPlans(user(null, TeamRole.COACH), ag.id).canEdit)
-        assertFalse(getPlans(user(null, TeamRole.STAFF), ag.id).canEdit)
-        assertFailsWith<ForbiddenException> { savePlan(user(null, TeamRole.STAFF), ag.id, month()) }
+        assertTrue(getPlans(user(null, AgeGroupRole.COACH), ag.id).canEdit)
+        assertFalse(getPlans(user(null, AgeGroupRole.STAFF), ag.id).canEdit)
+        assertFailsWith<ForbiddenException> { savePlan(user(null, AgeGroupRole.STAFF), ag.id, month()) }
     }
 
     @Test
     fun aClubSetToCoordinatorsOnlyKeepsCoachesOut() = runBlocking<Unit> {
         coEvery { clubPermissionRepository.getOverride(clubId, ConfigurablePermission.MANAGE_TRAINING) } returns
-            ClubPermissionSetting(ConfigurablePermission.MANAGE_TRAINING, minTeamRole = null)
-        assertFailsWith<ForbiddenException> { savePlan(user(null, TeamRole.COACH), ag.id, month()) }
+            ClubPermissionSetting(ConfigurablePermission.MANAGE_TRAINING, minAgeGroupRole = null)
+        assertFailsWith<ForbiddenException> { savePlan(user(null, AgeGroupRole.COACH), ag.id, month()) }
     }
 
     @Test

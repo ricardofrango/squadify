@@ -10,7 +10,7 @@ import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.model.ClubPermissionSetting
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -54,12 +54,12 @@ class GetClubPermissionsUseCaseTest {
 
         assertEquals(ConfigurablePermission.entries.size, response.settings.size)
         val byAction = response.settings.associateBy { it.action }
-        assertEquals(null, byAction.getValue(ConfigurablePermission.CREATE_PLAYERS).minTeamRole)
-        assertEquals(TeamRole.COACH, byAction.getValue(ConfigurablePermission.CREATE_OPPONENT).minTeamRole)
-        assertEquals(TeamRole.STAFF, byAction.getValue(ConfigurablePermission.MANAGE_LIVE_MATCH).minTeamRole)
+        assertEquals(null, byAction.getValue(ConfigurablePermission.CREATE_PLAYERS).minAgeGroupRole)
+        assertEquals(AgeGroupRole.COACH, byAction.getValue(ConfigurablePermission.CREATE_OPPONENT).minAgeGroupRole)
+        assertEquals(AgeGroupRole.STAFF, byAction.getValue(ConfigurablePermission.MANAGE_LIVE_MATCH).minAgeGroupRole)
         // The club-level one defaults to admins and coordinators, with no age-group role.
         val playerStatus = byAction.getValue(ConfigurablePermission.MANAGE_PLAYER_STATUS)
-        assertEquals(null, playerStatus.minTeamRole)
+        assertEquals(null, playerStatus.minAgeGroupRole)
         assertEquals(ClubRole.COORDINATOR, playerStatus.minClubRole)
     }
 

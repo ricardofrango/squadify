@@ -56,7 +56,7 @@ private val DayMonthYear = LocalDate.Format {
 /**
  * Schedule one fixture, matching `CreateMatchRequest`. Built to the "Schedule match" artboard
  * (13A / 13B) of the design canvas in AI_GUIDELINES.md. Reached only from a `canManage`-gated
- * button, so there is no permission state -- the server still enforces `minTeamRole = COACH`.
+ * button, so there is no permission state -- the server still enforces `minAgeGroupRole = COACH`.
  *
  * Two entry shapes: from an age group the team is chosen here (from that age group's teams); from a
  * team it's fixed and shown locked. The age group / season are read-only context in both.

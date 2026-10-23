@@ -12,7 +12,7 @@ import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Player
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.UpdatePlayerRequest
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
@@ -77,7 +77,7 @@ class PersonPhotoUseCasesTest {
         }
     }
 
-    private fun user(id: String, role: ClubRole?, ageGroupRole: TeamRole? = null): String {
+    private fun user(id: String, role: ClubRole?, ageGroupRole: AgeGroupRole? = null): String {
         users[id] = User(id, "$id@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
         coEvery { userRepository.getUserRoleInClub(id, clubId) } returns role
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(id, ag1) } returns ageGroupRole
@@ -107,7 +107,7 @@ class PersonPhotoUseCasesTest {
     @Test
     fun thePlayersAgeGroupCoachCanChangeItAMemberCannot() = runBlocking<Unit> {
         val storage = FakeStorage()
-        val coach = user("coach", ClubRole.MEMBER, TeamRole.COACH)
+        val coach = user("coach", ClubRole.MEMBER, AgeGroupRole.COACH)
         val url = uploadPhoto(storage)(coach, playerId, png)
         assertEquals(url, player.photoUrl)
 

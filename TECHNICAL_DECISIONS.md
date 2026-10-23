@@ -568,9 +568,9 @@ details response, and confirmed the removed status route now 404s.
 
 ## 19. Match-Day Permissions Opened to Staff (not just Coach)
 
-Per the developer, 2026-09-18: age-group **staff** (`TeamRole.STAFF`, level 2) can now do match-day
-operations that were previously coach-only (`TeamRole.COACH`, level 3) -- managing call-ups, starting a
-match, and updating its status. Lowered `minTeamRole` from `COACH` to `STAFF` in `ManageCallUpsUseCase`,
+Per the developer, 2026-09-18: age-group **staff** (`AgeGroupRole.STAFF`, level 2) can now do match-day
+operations that were previously coach-only (`AgeGroupRole.COACH`, level 3) -- managing call-ups, starting a
+match, and updating its status. Lowered `minAgeGroupRole` from `COACH` to `STAFF` in `ManageCallUpsUseCase`,
 `StartMatchUseCase`, and `UpdateMatchStatusUseCase`. Deliberately **not** extended to everything
 match-related: scheduling/editing a match (`CreateMatchUseCase`, `UpdateMatchUseCase`) and logging/
 deleting match events (`AddMatchEventUseCase`, `DeleteMatchEventUseCase`) all stay coach-only -- the
@@ -600,7 +600,7 @@ Covered by `ManageCallUpsUseCaseTest` (new file), and new staff-allowed cases ad
 Per the developer, 2026-09-19: two gaps on the match details screen.
 
 **Delete match.** No use case, repository method, or route for permanently removing a match existed
-before this -- `DeleteMatchUseCase` is new (coach-only, same `minTeamRole` gate as editing a match; see
+before this -- `DeleteMatchUseCase` is new (coach-only, same `minAgeGroupRole` gate as editing a match; see
 §19 for why deletion wasn't grouped with the match-day operations opened to staff). Neither
 `MatchCallUps.matchId` nor `MatchEvents.matchId` has `ON DELETE CASCADE`, so the use case explicitly
 clears both (`matchEventRepository.deleteEventsByMatch` -- new method -- then
@@ -1221,7 +1221,7 @@ separate "total paused duration" counter:
   unmodified, since `status` itself never changes.
 
 **Server**: `PauseMatchUseCase`/`ResumeMatchUseCase` (new, mirroring `StartMatchUseCase`'s/
-`UpdateMatchStatusUseCase`'s shape exactly -- same `TeamRole.STAFF` match-day gate, same "must be LIVE"
+`UpdateMatchStatusUseCase`'s shape exactly -- same `AgeGroupRole.STAFF` match-day gate, same "must be LIVE"
 guard) call `MatchRepository.pauseMatch`/`resumeMatch`, then publish the updated `Match` to both
 `LiveMatchBus` (the console) and `ClubMatchesBus` (§28's list broadcast) -- pause/resume needed no changes
 to either bus or to `ClubMatchesUpdate`'s shape, since both already carry a whole `Match`. New routes
@@ -1573,8 +1573,8 @@ staging/production boot after this change ships (can't be verified from this rep
 
 ## 35. Configurable Club Permissions
 
-**Problem**: every write action's minimum role was a hardcoded constant in its use case (`minTeamRole =
-TeamRole.COACH`, etc.) -- fine for a single club, but the developer wants each club's admin/coordinator to
+**Problem**: every write action's minimum role was a hardcoded constant in its use case (`minAgeGroupRole =
+AgeGroupRole.COACH`, etc.) -- fine for a single club, but the developer wants each club's admin/coordinator to
 tune *some* of these thresholds themselves (e.g. "let any staff member log match events" vs. "coaches
 only" vs. "coordinators only"), while others stay fixed. Design worked out with the developer over several
 rounds before implementation: a full audit of every `checkUserPermissionUseCase(...)` call site first (see
@@ -1609,24 +1609,24 @@ Platform admins are untouched by any of this -- `CheckUserPermissionUseCase`'s v
 the developer's explicit confirmation that admins "do not suffer permission changes."
 
 **Data model**: `ConfigurablePermission` (8-value enum, one per configurable action above) and
-`ClubPermissionSetting(action, minTeamRole: TeamRole?)` in `common` Models.kt -- `minTeamRole = null` is a
+`ClubPermissionSetting(action, minAgeGroupRole: AgeGroupRole?)` in `common` Models.kt -- `minAgeGroupRole = null` is a
 real, distinct value meaning "coordinator-only" (the age-group-staff path disabled entirely for that
 action), not "no opinion". A new `club_permission_overrides` table (`V2__club_permission_overrides.sql`,
 see §34) stores only the **explicit overrides** a club has actually made: **no row for a
-(club_id, permission) pair means "use `ConfigurablePermission.defaultMinTeamRole`"** (`STAFF` for live
+(club_id, permission) pair means "use `ConfigurablePermission.defaultMinAgeGroupRole`"** (`STAFF` for live
 match operations, `COACH` for the other seven, matching every action's pre-existing hardcoded behavior
 exactly, so shipping this changes nothing for a club that never touches the new setting) -- a row only
 gets written once a coordinator/admin actually changes something away from default.
 
 **`CheckUserPermissionUseCase` gained one new optional parameter, `configurablePermission`, rather than
-each of the 16 affected use cases resolving its own threshold and passing a literal `minTeamRole`**: the
+each of the 16 affected use cases resolving its own threshold and passing a literal `minAgeGroupRole`**: the
 two are mutually exclusive at a call site (pass one or the other). When `configurablePermission` is given,
-it fetches the club's override (`ClubPermissionRepository.getOverride`) and uses its `minTeamRole` value
+it fetches the club's override (`ClubPermissionRepository.getOverride`) and uses its `minAgeGroupRole` value
 *as-is* --including `null`-- only falling back to the action's default when the override row is
 genuinely absent; a bug caught during testing (see below) is a direct consequence of this "row exists but
 is null" vs. "row absent" distinction being easy to collapse incorrectly with a careless `?:` chain. This
 keeps the blast radius small: 14 of the 16 affected use cases needed only a one-line change to their
-existing `checkUserPermissionUseCase(...)` call (swap a literal `minTeamRole =` for
+existing `checkUserPermissionUseCase(...)` call (swap a literal `minAgeGroupRole =` for
 `configurablePermission =`, add `minClubRole = ClubRole.COORDINATOR` to the three that lacked it); only
 `CheckUserPermissionUseCase` itself gained a new constructor dependency
 (`ClubPermissionRepository`) plus the two genuinely new use cases,
@@ -1642,7 +1642,7 @@ exercising the new parameter. It wasn't: MockK's relaxer, needing to return *som
 `ClubPermissionSetting?` return type, synthesized a **non-null** object instead of returning `null` --
 which this use case's logic treats as a real override, not "no override" -- and one test
 (`DeleteMatchUseCaseTest.ageGroupStaffIsDenied`) started passing a caller it should have denied because
-the fabricated object's `minTeamRole` field happened to resolve to a value at or below the caller's actual
+the fabricated object's `minAgeGroupRole` field happened to resolve to a value at or below the caller's actual
 role. Fixed by giving every one of those test files an explicit
 `init { coEvery { clubPermissionRepository.getOverride(any(), any()) } returns null }` right after the
 mock's declaration -- deterministic "no override" behavior instead of relying on relaxed-mock defaults,
@@ -1705,7 +1705,7 @@ to staff so a parent-coach isn't blocked mid-game waiting on the one person with
 `ConfigurablePermission` is still an 8-value enum (`CREATE_PLAYERS`, `EDIT_PLAYER`,
 `ASSIGN_PLAYERS_TO_AGE_GROUP`, `CREATE_OPPONENT`, `EDIT_OPPONENT`, `MANAGE_MATCH`, `MANAGE_CALL_UPS`,
 `MANAGE_LIVE_MATCH`) -- one value removed (`LOG_MATCH_EVENT`), one added (`MANAGE_CALL_UPS`), net count
-unchanged. `defaultMinTeamRole`'s logic didn't need to change at all (`STAFF` for `MANAGE_LIVE_MATCH`,
+unchanged. `defaultMinAgeGroupRole`'s logic didn't need to change at all (`STAFF` for `MANAGE_LIVE_MATCH`,
 `COACH` for everything else) since `MANAGE_CALL_UPS` falls into the same "everything else" bucket that
 already defaulted to `COACH`. Three use cases moved to the new enum values: `ManageCallUpsUseCase` now
 passes `configurablePermission = MANAGE_CALL_UPS` (was `MANAGE_LIVE_MATCH`), `AddMatchEventUseCase` and
@@ -1736,7 +1736,7 @@ single-button fix.
 
 **Root cause #1, a real correctness bug, not just a missing feature**: `GetMatchDetailsUseCase` computed
 its client-facing visibility flags (`canManage`/`canManageMatchDay`) using **hardcoded literal
-`minTeamRole` checks** (`minTeamRole = TeamRole.COACH` / `TeamRole.STAFF`) -- left over from before §35
+`minAgeGroupRole` checks** (`minAgeGroupRole = AgeGroupRole.COACH` / `AgeGroupRole.STAFF`) -- left over from before §35
 made these actions club-configurable. The real use cases (`ManageCallUpsUseCase`, `AddMatchEventUseCase`,
 etc.) all resolve their threshold via `configurablePermission`, which can be overridden per club. So the
 two computations could simply disagree: a club that opened call-ups to staff, or restricted live-match
@@ -1748,7 +1748,7 @@ gates), `GetTeamDetailsUseCase` (`TeamDetails.canManage`, gating "Schedule match
 instead of `MANAGE_MATCH`), and `GetPlayerUseCase` (`PlayerProfile.canManage`, a plain coordinator-only
 check standing in for `EDIT_PLAYER`, which defaults to Coach).
 
-**Fix, applied identically everywhere this pattern was found**: replace every literal `minTeamRole`
+**Fix, applied identically everywhere this pattern was found**: replace every literal `minAgeGroupRole`
 probe with a `configurablePermission` probe resolved against the *specific* action it actually gates, and
 split one bundled boolean into as many independent flags as there are genuinely distinct gates -- never
 let one flag's "yes" imply another's, since a club can now configure them to disagree on purpose.
@@ -1848,7 +1848,7 @@ assigning them to an age group, scheduling a match, and so on) -- the original b
 misjudgment, not a deliberate restriction the developer still wanted.
 
 **Fix**: added `ConfigurablePermission.CREATE_TEAM` as a ninth value, defaulting to Coach like every
-other "create" action (`defaultMinTeamRole`'s existing `if (MANAGE_LIVE_MATCH) STAFF else COACH` logic
+other "create" action (`defaultMinAgeGroupRole`'s existing `if (MANAGE_LIVE_MATCH) STAFF else COACH` logic
 needed no change). `CreateTeamUseCase`/`CreateTeamsUseCase` now pass
 `configurablePermission = ConfigurablePermission.CREATE_TEAM, ageGroupId = request.ageGroupId` instead of
 a literal `minClubRole = ClubRole.COORDINATOR` with no team-role path at all. This required reordering
@@ -2719,7 +2719,7 @@ Per the developer, 2026-10-20: disabling and reactivating a player should be a p
 - **Club-level, not age-group:** every other configurable action sets a minimum *age-group* role (Staff, Coach, or coordinators only), with coordinators and admins always allowed. That can't express "not coordinators". This action acts on the whole club, so its threshold is a minimum *club* role: **Admins and coordinators** (`COORDINATOR`, the default, which keeps the old behaviour) or **Admins only** (`CLUB_ADMIN`). `ConfigurablePermission.isClubLevel` marks it, and `ClubPermissionSetting` gained `minClubRole` (null on age-group actions; `min_club_role` column, `V22__club_level_permissions.sql`). No age-group role ever passes it.
 - **Check:** `CheckUserPermissionUseCase` handles a club-level action first: the override's `minClubRole`, else `COORDINATOR`, replaces the caller's `minClubRole`; a platform admin still passes. `GetClubDetailsUseCase` probes it as `canManagePlayerStatus`, which the Players screen uses for the ✕ and "Reactivate" (instead of `canEditClub`).
 - **Only an admin changes it.** Changing the settings stays coordinator-or-above (§35), but if a coordinator could change this one they could hand themselves back what the admin took away. So `UpdateClubPermissionsUseCase` requires `CLUB_ADMIN` when a club-level action's value changes. A coordinator can still save the rest of the form; a request that leaves the action out keeps its current value (an app that predates it can't reset it to the default). The Permissions tab shows it read-only to a coordinator, with "Only a club admin can change this".
-- **Validation:** a club-level setting must carry `COORDINATOR` or `CLUB_ADMIN` and no `minTeamRole`; an age-group setting must carry no `minClubRole`.
+- **Validation:** a club-level setting must carry `COORDINATOR` or `CLUB_ADMIN` and no `minAgeGroupRole`; an age-group setting must carry no `minClubRole`.
 - **Tests:** `CheckUserPermissionUseCaseTest` (default, admins only, a coach never), `UpdateClubPermissionsUseCaseTest` (only an admin changes it, a coordinator can't undo it, kept when left out, validation), `GetClubPermissionsUseCaseTest` (default), `GetClubDetailsUseCaseTest` (`canManagePlayerStatus`), `RemoveAndDisablePlayerUseCasesTest` (admins only blocks a coordinator from both).
 
 ## 56. Push Notifications: What Tapping One Opens

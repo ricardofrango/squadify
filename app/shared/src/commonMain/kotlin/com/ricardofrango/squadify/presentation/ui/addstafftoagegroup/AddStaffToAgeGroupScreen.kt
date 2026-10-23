@@ -23,7 +23,7 @@ import com.ricardofrango.squadify.model.ClubMemberSummary
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
@@ -41,7 +41,7 @@ private val FormRoundedShape = RoundedCornerShape(18.dp)
 
 /**
  * Assigns club members as an age group's coaches/staff. Same shape as AddPlayersToAgeGroupScreen
- * (age-group picker, search, scrollable eligible list), except each row picks a [TeamRole] rather
+ * (age-group picker, search, scrollable eligible list), except each row picks a [AgeGroupRole] rather
  * than being a plain toggle -- staff must already be a club member (`AddStaffToAgeGroupUseCase`
  * requires it), so the eligible list is club members not already staff of the selected age group.
  */
@@ -102,7 +102,7 @@ private fun AddStaffToAgeGroupContent(
     onNavigateBack: () -> Unit,
     onSearchChange: (String) -> Unit,
     onAgeGroupSelected: (String) -> Unit,
-    onRoleTapped: (userId: String, role: TeamRole) -> Unit,
+    onRoleTapped: (userId: String, role: AgeGroupRole) -> Unit,
     onAddNewStaff: () -> Unit,
     onAddClick: () -> Unit
 ) {
@@ -323,8 +323,8 @@ private fun AgeGroupPicker(
 @Composable
 private fun MemberRow(
     member: ClubMemberSummary,
-    selectedRole: TeamRole?,
-    onRoleTapped: (TeamRole) -> Unit
+    selectedRole: AgeGroupRole?,
+    onRoleTapped: (AgeGroupRole) -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -357,12 +357,12 @@ private fun MemberRow(
                 overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.width(8.dp))
-            RolePill(stringResource(Res.string.label_role_coach), selectedRole == TeamRole.COACH) {
-                onRoleTapped(TeamRole.COACH)
+            RolePill(stringResource(Res.string.label_role_coach), selectedRole == AgeGroupRole.COACH) {
+                onRoleTapped(AgeGroupRole.COACH)
             }
             Spacer(modifier = Modifier.width(6.dp))
-            RolePill(stringResource(Res.string.label_role_staff), selectedRole == TeamRole.STAFF) {
-                onRoleTapped(TeamRole.STAFF)
+            RolePill(stringResource(Res.string.label_role_staff), selectedRole == AgeGroupRole.STAFF) {
+                onRoleTapped(AgeGroupRole.STAFF)
             }
         }
     }
@@ -448,7 +448,7 @@ private fun AddStaffToAgeGroupContentPreview() {
                     previewMember("p1", "Nuno", "Faria"),
                     previewMember("p2", "Rita", "Sousa")
                 ),
-                selectedRoles = mapOf("p1" to TeamRole.COACH)
+                selectedRoles = mapOf("p1" to AgeGroupRole.COACH)
             ),
             searchQuery = "",
             onNavigateBack = {},

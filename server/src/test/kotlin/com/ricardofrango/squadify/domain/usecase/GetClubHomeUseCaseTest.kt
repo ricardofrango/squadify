@@ -26,7 +26,7 @@ import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import com.ricardofrango.squadify.domain.repository.TrainingPlanRepository
@@ -146,7 +146,7 @@ class GetClubHomeUseCaseTest {
         coEvery { matchRepository.getMatchesByTeam(teamB.id) } returns emptyList()
         coEvery { matchRepository.getCallUpsForMatch("m-a") } returns emptyList()
         coEvery { ageGroupRepository.getAgeGroupStaff(any()) } returns
-            listOf(AgeGroupStaffMember("c1", "Nuno", "F", TeamRole.COACH))
+            listOf(AgeGroupStaffMember("c1", "Nuno", "F", AgeGroupRole.COACH))
 
         val home = useCase(u, clubId)
 
@@ -170,7 +170,7 @@ class GetClubHomeUseCaseTest {
         coEvery { matchRepository.getMatchesByClub(clubId) } returns emptyList()
         coEvery { matchRepository.getMatchesByTeam(any()) } returns emptyList()
         coEvery { ageGroupRepository.getAgeGroupStaff(ag1) } returns
-            listOf(AgeGroupStaffMember("c1", "Nuno", "F", TeamRole.COACH))
+            listOf(AgeGroupStaffMember("c1", "Nuno", "F", AgeGroupRole.COACH))
         coEvery { ageGroupRepository.getAgeGroupStaff(ag2) } returns emptyList()
 
         val alerts = useCase(u, clubId).alerts
@@ -184,7 +184,7 @@ class GetClubHomeUseCaseTest {
     fun coachSeesMatchesInsideFiveDaysWithNoCallUps() = runBlocking {
         val u = "coach"
         baseStubs(u, ClubRole.MEMBER)
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns AgeGroupRole.COACH
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag2) } returns null
         coEvery { ageGroupRepository.getAgeGroupStaff(any()) } returns emptyList()
 
@@ -211,7 +211,7 @@ class GetClubHomeUseCaseTest {
     fun coachSeesFinishedMatchesWhoseReportIsNotCompleted() = runBlocking {
         val u = "coach"
         baseStubs(u, ClubRole.MEMBER)
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns AgeGroupRole.COACH
         val pending = match("m-pending", teamA.id, (-2).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 92)
         val done = match("m-done", teamA.id, (-9).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
         // Finished before post-match stats existed: no full-time minute, no to-do.
@@ -234,7 +234,7 @@ class GetClubHomeUseCaseTest {
         val u = "coord"
         baseStubs(u, ClubRole.COORDINATOR)
         coEvery { ageGroupRepository.getAgeGroupStaff(any()) } returns
-            listOf(AgeGroupStaffMember("c1", "Nuno", "F", TeamRole.COACH))
+            listOf(AgeGroupStaffMember("c1", "Nuno", "F", AgeGroupRole.COACH))
         val a = match("m-a", teamA.id, (-2).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 92)
         val b = match("m-b", teamB.id, (-5).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
         coEvery { matchRepository.getMatchesByClub(clubId) } returns listOf(a, b)
@@ -252,7 +252,7 @@ class GetClubHomeUseCaseTest {
         baseStubs(u, null)
         coEvery { userRepository.findById(u) } returns user(u, admin = true)
         coEvery { ageGroupRepository.getAgeGroupStaff(any()) } returns
-            listOf(AgeGroupStaffMember("c1", "Nuno", "F", TeamRole.COACH))
+            listOf(AgeGroupStaffMember("c1", "Nuno", "F", AgeGroupRole.COACH))
         val pending = match("m-p", teamB.id, (-1).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
         val noCallUps = match("m-s", teamA.id, 2.days)
         coEvery { matchRepository.getMatchesByClub(clubId) } returns listOf(pending, noCallUps)
@@ -269,7 +269,7 @@ class GetClubHomeUseCaseTest {
         // MANAGE_MATCH defaults to Coach, so a staff member can't fill the report and isn't nagged.
         val u = "staff"
         baseStubs(u, ClubRole.MEMBER)
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns TeamRole.STAFF
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns AgeGroupRole.STAFF
         val pending = match("m-p", teamA.id, (-1).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
         coEvery { matchRepository.getMatchesByClub(clubId) } returns listOf(pending)
         coEvery { matchRepository.getMatchesByTeam(any()) } returns emptyList()
@@ -281,9 +281,9 @@ class GetClubHomeUseCaseTest {
     fun ageGroupStaffSeeReportsWhenTheClubOpensManageMatchToStaff() = runBlocking {
         val u = "staff"
         baseStubs(u, ClubRole.MEMBER)
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns TeamRole.STAFF
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns AgeGroupRole.STAFF
         coEvery { clubPermissionRepository.getOverride(clubId, ConfigurablePermission.MANAGE_MATCH) } returns
-            ClubPermissionSetting(ConfigurablePermission.MANAGE_MATCH, TeamRole.STAFF)
+            ClubPermissionSetting(ConfigurablePermission.MANAGE_MATCH, AgeGroupRole.STAFF)
         val mine = match("m-mine", teamA.id, (-1).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
         val other = match("m-other", teamB.id, (-1).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
         coEvery { matchRepository.getMatchesByClub(clubId) } returns listOf(mine, other)
@@ -298,7 +298,7 @@ class GetClubHomeUseCaseTest {
     fun aCoachDoesntSeeReportsWhenTheClubMakesThemCoordinatorOnly() = runBlocking {
         val u = "coach"
         baseStubs(u, ClubRole.MEMBER)
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns AgeGroupRole.COACH
         coEvery { clubPermissionRepository.getOverride(clubId, ConfigurablePermission.MANAGE_MATCH) } returns
             ClubPermissionSetting(ConfigurablePermission.MANAGE_MATCH, null)
         val pending = match("m-p", teamA.id, (-1).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
@@ -311,7 +311,7 @@ class GetClubHomeUseCaseTest {
     private fun quietMatches() {
         coEvery { matchRepository.getMatchesByClub(clubId) } returns emptyList()
         coEvery { matchRepository.getMatchesByTeam(any()) } returns emptyList()
-        coEvery { ageGroupRepository.getAgeGroupStaff(any()) } returns listOf(AgeGroupStaffMember("c1", "Nuno", "F", TeamRole.COACH))
+        coEvery { ageGroupRepository.getAgeGroupStaff(any()) } returns listOf(AgeGroupStaffMember("c1", "Nuno", "F", AgeGroupRole.COACH))
     }
 
     @Test
@@ -344,7 +344,7 @@ class GetClubHomeUseCaseTest {
         val u = "coach"
         baseStubs(u, ClubRole.MEMBER)
         quietMatches()
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns AgeGroupRole.COACH
         coEvery { trainingPlanRepository.getByAgeGroups(any()) } returns emptyList()
 
         val alerts = useCase(u, clubId).alerts
@@ -358,7 +358,7 @@ class GetClubHomeUseCaseTest {
         val u = "staff"
         baseStubs(u, ClubRole.MEMBER)
         quietMatches()
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns TeamRole.STAFF
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns AgeGroupRole.STAFF
         coEvery { trainingPlanRepository.getByAgeGroups(any()) } returns emptyList()
 
         assertTrue(useCase(u, clubId).alerts.none { it.type.name.endsWith("PLAN_MISSING") })
@@ -369,7 +369,7 @@ class GetClubHomeUseCaseTest {
         val u = "staff-rate"
         baseStubs(u, ClubRole.MEMBER)
         quietMatches()
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns TeamRole.STAFF
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns AgeGroupRole.STAFF
         val past = today.minus(2, kotlinx.datetime.DateTimeUnit.DAY)
         val ended = com.ricardofrango.squadify.model.TrainingSession("ts", ag1, past, kotlinx.datetime.LocalTime(18, 0), kotlinx.datetime.LocalTime(19, 0))
         val fullyRated = ended.copy(id = "done")

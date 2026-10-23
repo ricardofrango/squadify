@@ -12,7 +12,7 @@ import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.TrainingPlanLevel
 import com.ricardofrango.squadify.model.TrainingSessionDetails
 import com.ricardofrango.squadify.model.monthStartOf
@@ -42,7 +42,7 @@ class GetTrainingSessionUseCase(
         checkUserPermissionUseCase(
             userId, ageGroup.clubId,
             minClubRole = ClubRole.MEMBER,
-            minTeamRole = TeamRole.STAFF,
+            minAgeGroupRole = AgeGroupRole.STAFF,
             ageGroupId = ageGroup.id,
             allowPlayerOrParentAccess = true
         )

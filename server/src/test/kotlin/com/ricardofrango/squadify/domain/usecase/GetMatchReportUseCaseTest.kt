@@ -22,7 +22,7 @@ import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -69,7 +69,7 @@ class GetMatchReportUseCaseTest {
     private val finished = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.FINISHED)
     private val player = Player("p1", clubId, "Ana", "Costa", LocalDate(2011, 1, 1), active = true)
 
-    private fun stubRole(role: TeamRole?): User {
+    private fun stubRole(role: AgeGroupRole?): User {
         val user = User("u-${role?.name}", "u@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
         coEvery { userRepository.findById(user.id) } returns user
         coEvery { userRepository.getUserRoleInClub(user.id, clubId) } returns ClubRole.MEMBER
@@ -89,7 +89,7 @@ class GetMatchReportUseCaseTest {
 
     @Test
     fun aCoachReadsTheStatsWithPlayersAndCanEdit() = runBlocking {
-        val coach = stubRole(TeamRole.COACH)
+        val coach = stubRole(AgeGroupRole.COACH)
         stubData()
 
         val details = useCase(coach.id, matchId)
@@ -104,7 +104,7 @@ class GetMatchReportUseCaseTest {
 
     @Test
     fun ageGroupStaffCanReadButNotEditByDefault() = runBlocking {
-        val staff = stubRole(TeamRole.STAFF)
+        val staff = stubRole(AgeGroupRole.STAFF)
         stubData()
 
         assertFalse(useCase(staff.id, matchId).canEdit)
@@ -121,7 +121,7 @@ class GetMatchReportUseCaseTest {
 
     @Test
     fun anUnfinishedMatchHasNoReport() = runBlocking {
-        val coach = stubRole(TeamRole.COACH)
+        val coach = stubRole(AgeGroupRole.COACH)
         coEvery { matchRepository.getMatchById(matchId) } returns finished.copy(status = MatchStatus.LIVE)
 
         assertFailsWith<ValidationException> { useCase(coach.id, matchId) }

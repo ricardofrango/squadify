@@ -22,7 +22,7 @@ import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.CreateTeamsRequest
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.TeamItemRequest
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -136,7 +136,7 @@ class CreateTeamsUseCaseTest {
         val coach = user("p8-coach")
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "age-group-1") } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "age-group-1") } returns AgeGroupRole.COACH
         coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns consistentAgeGroup
         val created = slot<List<Team>>()
         coEvery { teamRepository.createTeams(capture(created)) } answers { created.captured }
@@ -152,7 +152,7 @@ class CreateTeamsUseCaseTest {
         val staff = user("p9-staff")
         coEvery { userRepository.findById(staff.id) } returns staff
         coEvery { userRepository.getUserRoleInClub(staff.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, "age-group-1") } returns TeamRole.STAFF
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, "age-group-1") } returns AgeGroupRole.STAFF
         coEvery { ageGroupRepository.getAgeGroupById("age-group-1") } returns consistentAgeGroup
 
         assertFailsWith<ForbiddenException> {

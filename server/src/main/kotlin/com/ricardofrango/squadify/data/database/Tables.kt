@@ -190,7 +190,7 @@ object AgeGroupStaff : Table("age_group_staff") {
     val id = uuid("id")
     val ageGroupId = uuid("age_group_id").references(AgeGroups.id)
     val userId = uuid("user_id").references(Users.id)
-    val role = enumerationByName("role", 50, TeamRole::class)
+    val role = enumerationByName("role", 50, AgeGroupRole::class)
 
     override val primaryKey = PrimaryKey(id)
 }
@@ -344,7 +344,7 @@ object MatchReports : Table("match_reports") {
 }
 
 // A club's overrides for `ConfigurablePermission` (see Models.kt). No row for a given
-// (club_id, permission) pair means "use ConfigurablePermission.defaultMinTeamRole" -- a row exists only
+// (club_id, permission) pair means "use ConfigurablePermission.defaultMinAgeGroupRole" -- a row exists only
 // once a coordinator/admin has actually changed that action away from its default. min_team_role itself
 // being NULL is a real, distinct value (not "no override"): it means "coordinator-only", i.e. the
 // age-group-staff path is disabled entirely for that action.
@@ -352,7 +352,7 @@ object ClubPermissionOverrides : Table("club_permission_overrides") {
     val id = uuid("id")
     val clubId = uuid("club_id").references(Clubs.id)
     val permission = enumerationByName("permission", 50, ConfigurablePermission::class)
-    val minTeamRole = enumerationByName("min_team_role", 50, TeamRole::class).nullable()
+    val minAgeGroupRole = enumerationByName("min_team_role", 50, AgeGroupRole::class).nullable()
     // Club-level actions only (ConfigurablePermission.isClubLevel): COORDINATOR or CLUB_ADMIN. See V22.
     val minClubRole = enumerationByName("min_club_role", 50, ClubRole::class).nullable()
 

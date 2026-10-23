@@ -5,7 +5,7 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.AgeGroupStaffMember
 import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 
 class GetAgeGroupStaffUseCase(
     private val ageGroupRepository: AgeGroupRepository,
@@ -20,7 +20,7 @@ class GetAgeGroupStaffUseCase(
             userId = userId,
             clubId = ageGroup.clubId,
             minClubRole = ClubRole.MEMBER,
-            minTeamRole = TeamRole.STAFF,
+            minAgeGroupRole = AgeGroupRole.STAFF,
             ageGroupId = ageGroupId,
             allowPlayerOrParentAccess = true
         )

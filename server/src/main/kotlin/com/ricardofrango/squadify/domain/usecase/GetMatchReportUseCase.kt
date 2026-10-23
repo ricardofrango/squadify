@@ -15,7 +15,7 @@ import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchPlayerStatsWithPlayer
 import com.ricardofrango.squadify.model.MatchReportDetails
 import com.ricardofrango.squadify.model.MatchStatus
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 
 /**
  * The match report screen's data: the report (null until first saved), each called-up player's
@@ -41,7 +41,7 @@ class GetMatchReportUseCase(
             userId = userId,
             clubId = match.clubId,
             minClubRole = ClubRole.COORDINATOR,
-            minTeamRole = TeamRole.STAFF,
+            minAgeGroupRole = AgeGroupRole.STAFF,
             teamId = match.teamId,
             errorMessage = "Only admins, coordinators, or this age group's staff can read the match report"
         )

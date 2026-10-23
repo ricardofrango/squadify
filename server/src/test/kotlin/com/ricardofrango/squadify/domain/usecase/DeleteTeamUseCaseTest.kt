@@ -15,7 +15,7 @@ import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -52,7 +52,7 @@ class DeleteTeamUseCaseTest {
     private val played = Match("m-1", clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.FINISHED)
     private val upcoming = Match("m-2", clubId, teamId, "opp-2", dateTime = Instant.fromEpochMilliseconds(2))
 
-    private fun user(id: String, clubRole: ClubRole, teamRole: TeamRole? = null): User {
+    private fun user(id: String, clubRole: ClubRole, teamRole: AgeGroupRole? = null): User {
         val user = User(id, "$id@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
         coEvery { userRepository.findById(id) } returns user
         coEvery { userRepository.getUserRoleInClub(id, clubId) } returns clubRole
@@ -80,13 +80,13 @@ class DeleteTeamUseCaseTest {
 
     @Test
     fun theAgeGroupsCoachCanDeleteATeamByDefault() = runBlocking {
-        val coach = user("coach", ClubRole.MEMBER, TeamRole.COACH)
+        val coach = user("coach", ClubRole.MEMBER, AgeGroupRole.COACH)
         assertEquals(2, useCase(coach.id, teamId))
     }
 
     @Test
     fun staffCannotDeleteATeamAndNothingIsTouched() = runBlocking<Unit> {
-        val staff = user("staff", ClubRole.MEMBER, TeamRole.STAFF)
+        val staff = user("staff", ClubRole.MEMBER, AgeGroupRole.STAFF)
         assertFailsWith<ForbiddenException> { useCase(staff.id, teamId) }
         coVerify(exactly = 0) { teamRepository.deleteTeam(any()) }
     }

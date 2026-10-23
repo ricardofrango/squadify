@@ -43,7 +43,7 @@ import com.ricardofrango.squadify.model.AgeGroupStaffMember
 import com.ricardofrango.squadify.model.BenchEntry
 import com.ricardofrango.squadify.model.SquadEntry
 import com.ricardofrango.squadify.model.SquadSort
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.presentation.ui.components.RatingPill
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
@@ -237,7 +237,7 @@ internal fun AgeGroupContextCard(
                 StatsHeading(stringResource(Res.string.squad_staff_title), Modifier.padding(bottom = 8.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     staff.forEach { member ->
-                        val role = stringResource(if (member.role == TeamRole.COACH) Res.string.label_role_coach else Res.string.label_role_staff)
+                        val role = stringResource(if (member.role == AgeGroupRole.COACH) Res.string.label_role_coach else Res.string.label_role_staff)
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = CarbonGray.copy(alpha = 0.06f),

@@ -23,7 +23,7 @@ import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -91,7 +91,7 @@ class GetTeamSeasonRecordUseCaseTest {
         coEvery { playerRepository.getPlayersData(listOf("p1")) } returns listOf(tomas)
     }
 
-    private fun stubUser(ageGroupRole: TeamRole?, linkedToPool: Boolean = false): User {
+    private fun stubUser(ageGroupRole: AgeGroupRole?, linkedToPool: Boolean = false): User {
         val user = User("u", "u@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
         coEvery { userRepository.findById(user.id) } returns user
         coEvery { userRepository.getUserRoleInClub(user.id, clubId) } returns ClubRole.MEMBER
@@ -104,7 +104,7 @@ class GetTeamSeasonRecordUseCaseTest {
     @Test
     fun coachGetsFinishedMatchesNewestFirstWithFinalRatingsOnly() = runBlocking {
         stubData()
-        val coach = stubUser(TeamRole.COACH)
+        val coach = stubUser(AgeGroupRole.COACH)
 
         val record = useCase(coach.id, team.id)
 
@@ -133,7 +133,7 @@ class GetTeamSeasonRecordUseCaseTest {
     @Test
     fun aPlayerNoLongerInThePoolDropsOutOfThePlayerStatsButNotTheResults() = runBlocking {
         stubData()
-        val coach = stubUser(TeamRole.COACH)
+        val coach = stubUser(AgeGroupRole.COACH)
         // Tomás was removed from the age group after playing both matches.
         coEvery { playerRepository.getPlayersByAgeGroup("ag-1") } returns emptyList()
         coEvery { playerRepository.getPlayersData(emptyList()) } returns emptyList()

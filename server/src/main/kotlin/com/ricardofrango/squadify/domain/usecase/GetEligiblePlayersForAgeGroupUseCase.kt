@@ -6,7 +6,7 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Player
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 
 /**
  * The players a coordinator or an age-group coach may pick from when adding to this age group: every
@@ -26,7 +26,7 @@ class GetEligiblePlayersForAgeGroupUseCase(
             userId = userId,
             clubId = ageGroup.clubId,
             minClubRole = ClubRole.MEMBER,
-            minTeamRole = TeamRole.STAFF,
+            minAgeGroupRole = AgeGroupRole.STAFF,
             ageGroupId = ageGroupId
         )
 

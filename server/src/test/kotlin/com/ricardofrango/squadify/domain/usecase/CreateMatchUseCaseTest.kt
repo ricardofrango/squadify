@@ -18,7 +18,7 @@ import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchType
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -66,7 +66,7 @@ class CreateMatchUseCaseTest {
         coEvery { teamRepository.getTeamById(teamId) } returns team
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
         coEvery { opponentRepository.getOpponentById("opp-1") } returns opponent
         coEvery { matchRepository.createMatch(any()) } answers { firstArg() }
 
@@ -84,7 +84,7 @@ class CreateMatchUseCaseTest {
         coEvery { teamRepository.getTeamById(teamId) } returns team
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
         coEvery { opponentRepository.getOpponentById("opp-other") } returns Opponent("opp-other", "other-club", "X")
 
         assertFailsWith<ForbiddenException> {
@@ -109,7 +109,7 @@ class CreateMatchUseCaseTest {
         coEvery { teamRepository.getTeamById(teamId) } returns team
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
         coEvery { opponentRepository.getOpponentById("opp-1") } returns opponent
         coEvery { matchRepository.createMatch(any()) } answers { firstArg() }
 

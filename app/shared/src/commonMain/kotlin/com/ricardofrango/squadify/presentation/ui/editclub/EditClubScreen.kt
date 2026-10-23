@@ -123,7 +123,7 @@ import squadify.app.shared.generated.resources.msg_permission_manage_player_stat
 import squadify.app.shared.generated.resources.label_permission_level_admins_coordinators
 import squadify.app.shared.generated.resources.label_permission_level_admins_only
 import squadify.app.shared.generated.resources.msg_permission_admin_only_setting
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
@@ -527,7 +527,7 @@ private fun PermissionsForm(
             } else {
                 PermissionRow(
                     setting = setting,
-                    onChange = { newValue -> onPermissionChanged(setting.copy(minTeamRole = newValue)) }
+                    onChange = { newValue -> onPermissionChanged(setting.copy(minAgeGroupRole = newValue)) }
                 )
             }
         }
@@ -579,23 +579,23 @@ private fun permissionDescription(action: ConfigurablePermission) = when (action
 }
 
 // null means "coordinator-only" -- the age-group-staff path is disabled entirely for this action.
-private fun levelLabel(minTeamRole: TeamRole?) = when (minTeamRole) {
-    TeamRole.STAFF -> Res.string.label_permission_level_staff
-    TeamRole.COACH -> Res.string.label_permission_level_coach
+private fun levelLabel(minAgeGroupRole: AgeGroupRole?) = when (minAgeGroupRole) {
+    AgeGroupRole.STAFF -> Res.string.label_permission_level_staff
+    AgeGroupRole.COACH -> Res.string.label_permission_level_coach
     null -> Res.string.label_permission_level_coordinator_only
 }
 
 @Composable
 private fun PermissionRow(
     setting: ClubPermissionSetting,
-    onChange: (TeamRole?) -> Unit
+    onChange: (AgeGroupRole?) -> Unit
 ) {
     PermissionCard(
         action = setting.action,
-        selected = stringResource(levelLabel(setting.minTeamRole)),
+        selected = stringResource(levelLabel(setting.minAgeGroupRole)),
         options = listOf(
-            Res.string.label_permission_level_staff to { onChange(TeamRole.STAFF) },
-            Res.string.label_permission_level_coach to { onChange(TeamRole.COACH) },
+            Res.string.label_permission_level_staff to { onChange(AgeGroupRole.STAFF) },
+            Res.string.label_permission_level_coach to { onChange(AgeGroupRole.COACH) },
             Res.string.label_permission_level_coordinator_only to { onChange(null) }
         )
     )
@@ -1055,7 +1055,7 @@ private fun EditClubPermissionsTabDirtyPreview() {
                 form = fields,
                 originalPermissions = permissions,
                 permissions = permissions.map {
-                    if (it.action == ConfigurablePermission.MANAGE_MATCH) it.copy(minTeamRole = null) else it
+                    if (it.action == ConfigurablePermission.MANAGE_MATCH) it.copy(minAgeGroupRole = null) else it
                 }
             ),
             onNavigateBack = {},
@@ -1107,7 +1107,7 @@ internal fun sampleMembersOverview(): ClubMembersOverview {
     val joined = Instant.parse("2025-08-01T10:00:00Z")
     fun member(id: String, first: String, last: String, role: ClubRole, roles: List<MemberAgeGroupRole> = emptyList(), linked: List<MemberLinkedPlayer> = emptyList()) =
         ClubMemberEntry(id, first, last, "${first.lowercase()}.${last.lowercase()}@gmail.com", null, role, roles, linked, joined)
-    fun coach(name: String) = MemberAgeGroupRole("ag-$name", name, "2025/26", TeamRole.COACH, currentSeason = true)
+    fun coach(name: String) = MemberAgeGroupRole("ag-$name", name, "2025/26", AgeGroupRole.COACH, currentSeason = true)
     return ClubMembersOverview(
         members = listOf(
             member("u1", "Ricardo", "Frango", ClubRole.CLUB_ADMIN, listOf(coach("Sub-15"))),

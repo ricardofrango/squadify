@@ -14,7 +14,7 @@ import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.AgeGroupSeasonRecord
 import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 
 /**
  * Age Group Details' Stats and Members data (design 33): every team's season record (see
@@ -43,7 +43,7 @@ class GetAgeGroupSeasonRecordUseCase(
             userId = userId,
             clubId = ageGroup.clubId,
             minClubRole = ClubRole.MEMBER,
-            minTeamRole = TeamRole.STAFF,
+            minAgeGroupRole = AgeGroupRole.STAFF,
             ageGroupId = ageGroupId,
             allowPlayerOrParentAccess = true
         )
@@ -53,7 +53,7 @@ class GetAgeGroupSeasonRecordUseCase(
                 userId = userId,
                 clubId = ageGroup.clubId,
                 minClubRole = ClubRole.COORDINATOR,
-                minTeamRole = TeamRole.STAFF,
+                minAgeGroupRole = AgeGroupRole.STAFF,
                 ageGroupId = ageGroupId
             )
             true

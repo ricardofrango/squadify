@@ -3,7 +3,7 @@ package com.ricardofrango.squadify.presentation.ui.addstafftoagegroup
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.ClubMemberSummary
 import com.ricardofrango.squadify.model.Season
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 
 sealed class AddStaffToAgeGroupUiState {
     data object Loading : AddStaffToAgeGroupUiState()
@@ -18,7 +18,7 @@ sealed class AddStaffToAgeGroupUiState {
         val loadingEligible: Boolean = false,
         // Selected member userIds mapped to the role they'll be added with -- presence in the map is
         // the selection itself, so picking a role also picks the member.
-        val selectedRoles: Map<String, TeamRole> = emptyMap(),
+        val selectedRoles: Map<String, AgeGroupRole> = emptyMap(),
         val isSubmitting: Boolean = false,
         // Generic failure -- localized copy only, never a raw exception message. See AI_GUIDELINES.md
         // "No Raw Exception Messages in UI".

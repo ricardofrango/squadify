@@ -405,8 +405,8 @@ private fun sampleDetails(populated: Boolean, canManage: Boolean): AgeGroupDetai
             p("p4", "Duarte", "Meireles", 2015, 9, PlayerPosition.DEFENDER).copy(active = false)
         ) else emptyList(),
         staff = if (populated) listOf(
-            AgeGroupStaffMember("u1", "Nuno", "Faria", TeamRole.COACH),
-            AgeGroupStaffMember("u2", "Rita", "Sousa", TeamRole.STAFF)
+            AgeGroupStaffMember("u1", "Nuno", "Faria", AgeGroupRole.COACH),
+            AgeGroupStaffMember("u2", "Rita", "Sousa", AgeGroupRole.STAFF)
         ) else emptyList(),
         teams = if (populated) listOf(
             Team("t1", "c1", "ag1", "s1", "Sub 2015 A", "A", true),

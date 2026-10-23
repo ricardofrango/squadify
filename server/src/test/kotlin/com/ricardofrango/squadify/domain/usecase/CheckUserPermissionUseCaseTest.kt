@@ -13,7 +13,7 @@ import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -124,13 +124,13 @@ class CheckUserPermissionUseCaseTest {
     }
 
     @Test
-    fun ageGroupCoachPassesWhenCallerSuppliesMinTeamRole() = runBlocking {
+    fun ageGroupCoachPassesWhenCallerSuppliesMinAgeGroupRole() = runBlocking {
         val coach = user("p5-coach-ag1")
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
 
-        useCase(coach.id, clubIdA, minClubRole = ClubRole.MEMBER, minTeamRole = TeamRole.COACH, ageGroupId = ag1)
+        useCase(coach.id, clubIdA, minClubRole = ClubRole.MEMBER, minAgeGroupRole = AgeGroupRole.COACH, ageGroupId = ag1)
         Unit
     }
 
@@ -142,7 +142,7 @@ class CheckUserPermissionUseCaseTest {
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, ag1) } returns null
 
         assertFailsWith<ForbiddenException> {
-            useCase(staff.id, clubIdA, minClubRole = ClubRole.MEMBER, minTeamRole = TeamRole.STAFF, ageGroupId = ag1)
+            useCase(staff.id, clubIdA, minClubRole = ClubRole.MEMBER, minAgeGroupRole = AgeGroupRole.STAFF, ageGroupId = ag1)
         }
         Unit
     }
@@ -158,9 +158,9 @@ class CheckUserPermissionUseCaseTest {
         coEvery { teamRepository.getTeamById(team1) } returns Team(
             id = team1, clubId = clubIdA, ageGroupId = ag1, seasonId = "s1", name = "AG1 A", code = null, active = true
         )
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
 
-        useCase(coach.id, clubIdA, minClubRole = ClubRole.MEMBER, minTeamRole = TeamRole.COACH, teamId = team1)
+        useCase(coach.id, clubIdA, minClubRole = ClubRole.MEMBER, minAgeGroupRole = AgeGroupRole.COACH, teamId = team1)
         Unit
     }
 
@@ -169,14 +169,14 @@ class CheckUserPermissionUseCaseTest {
         val member = user("p7-multi-role")
         coEvery { userRepository.findById(member.id) } returns member
         coEvery { userRepository.getUserRoleInClub(member.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(member.id, ag1) } returns TeamRole.COACH
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(member.id, ag2) } returns TeamRole.STAFF
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(member.id, ag1) } returns AgeGroupRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(member.id, ag2) } returns AgeGroupRole.STAFF
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(member.id, ag3) } returns null
 
-        useCase(member.id, clubIdA, minClubRole = ClubRole.MEMBER, minTeamRole = TeamRole.COACH, ageGroupId = ag1)
-        useCase(member.id, clubIdA, minClubRole = ClubRole.MEMBER, minTeamRole = TeamRole.STAFF, ageGroupId = ag2)
+        useCase(member.id, clubIdA, minClubRole = ClubRole.MEMBER, minAgeGroupRole = AgeGroupRole.COACH, ageGroupId = ag1)
+        useCase(member.id, clubIdA, minClubRole = ClubRole.MEMBER, minAgeGroupRole = AgeGroupRole.STAFF, ageGroupId = ag2)
         assertFailsWith<ForbiddenException> {
-            useCase(member.id, clubIdA, minClubRole = ClubRole.MEMBER, minTeamRole = TeamRole.STAFF, ageGroupId = ag3)
+            useCase(member.id, clubIdA, minClubRole = ClubRole.MEMBER, minAgeGroupRole = AgeGroupRole.STAFF, ageGroupId = ag3)
         }
         Unit
     }
@@ -187,14 +187,14 @@ class CheckUserPermissionUseCaseTest {
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdB) } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag5) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag5) } returns AgeGroupRole.COACH
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag3) } returns null
 
-        useCase(coach.id, clubIdA, minClubRole = ClubRole.MEMBER, minTeamRole = TeamRole.COACH, ageGroupId = ag1)
-        useCase(coach.id, clubIdB, minClubRole = ClubRole.MEMBER, minTeamRole = TeamRole.COACH, ageGroupId = ag5)
+        useCase(coach.id, clubIdA, minClubRole = ClubRole.MEMBER, minAgeGroupRole = AgeGroupRole.COACH, ageGroupId = ag1)
+        useCase(coach.id, clubIdB, minClubRole = ClubRole.MEMBER, minAgeGroupRole = AgeGroupRole.COACH, ageGroupId = ag5)
         assertFailsWith<ForbiddenException> {
-            useCase(coach.id, clubIdA, minClubRole = ClubRole.MEMBER, minTeamRole = TeamRole.COACH, ageGroupId = ag3)
+            useCase(coach.id, clubIdA, minClubRole = ClubRole.MEMBER, minAgeGroupRole = AgeGroupRole.COACH, ageGroupId = ag3)
         }
         Unit
     }
@@ -295,7 +295,7 @@ class CheckUserPermissionUseCaseTest {
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
         coEvery { clubPermissionRepository.getOverride(clubIdA, ConfigurablePermission.CREATE_PLAYERS) } returns null
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
 
         useCase(
             coach.id, clubIdA,
@@ -314,8 +314,8 @@ class CheckUserPermissionUseCaseTest {
         coEvery { userRepository.findById(staff.id) } returns staff
         coEvery { userRepository.getUserRoleInClub(staff.id, clubIdA) } returns ClubRole.MEMBER
         coEvery { clubPermissionRepository.getOverride(clubIdA, ConfigurablePermission.MANAGE_LIVE_MATCH) } returns
-            ClubPermissionSetting(ConfigurablePermission.MANAGE_LIVE_MATCH, TeamRole.STAFF)
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, ag1) } returns TeamRole.STAFF
+            ClubPermissionSetting(ConfigurablePermission.MANAGE_LIVE_MATCH, AgeGroupRole.STAFF)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, ag1) } returns AgeGroupRole.STAFF
 
         useCase(
             staff.id, clubIdA,
@@ -328,14 +328,14 @@ class CheckUserPermissionUseCaseTest {
 
     @Test
     fun configurablePermissionOverrideToCoordinatorOnlyDeniesACoachWhoWouldOtherwisePass() = runBlocking {
-        // An override row with minTeamRole = null means "coordinator-only" -- must NOT be treated the
+        // An override row with minAgeGroupRole = null means "coordinator-only" -- must NOT be treated the
         // same as "no override" (which would fall back to the COACH default and admit this coach).
         val coach = user("coach-locked-out")
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
         coEvery { clubPermissionRepository.getOverride(clubIdA, ConfigurablePermission.CREATE_PLAYERS) } returns
             ClubPermissionSetting(ConfigurablePermission.CREATE_PLAYERS, null)
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
 
         assertFailsWith<ForbiddenException> {
             useCase(
@@ -383,7 +383,7 @@ class CheckUserPermissionUseCaseTest {
         val coach = user("coach-status")
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, any()) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, any()) } returns AgeGroupRole.COACH
         assertFailsWith<ForbiddenException> { managePlayerStatus(coach.id) }
     }
 

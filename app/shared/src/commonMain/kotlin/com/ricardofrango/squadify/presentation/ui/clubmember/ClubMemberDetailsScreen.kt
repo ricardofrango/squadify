@@ -63,7 +63,7 @@ import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.MemberAgeGroupRole
 import com.ricardofrango.squadify.model.MemberLinkedPlayer
 import com.ricardofrango.squadify.model.PendingClubInvite
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.UserPlayerRelationship
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
@@ -474,7 +474,7 @@ private fun InClubCard(member: ClubMemberEntry, onOpenAgeGroup: (String) -> Unit
         member.ageGroupRoles.forEach { role ->
             if (!first) HorizontalDivider(color = CarbonGray.copy(alpha = 0.07f))
             first = false
-            val roleName = stringResource(if (role.role == TeamRole.COACH) Res.string.member_role_coach else Res.string.member_role_staff)
+            val roleName = stringResource(if (role.role == AgeGroupRole.COACH) Res.string.member_role_coach else Res.string.member_role_staff)
             LinkRow("$roleName · ${role.ageGroupName} · ${role.seasonName}", meta = null) { onOpenAgeGroup(role.ageGroupId) }
         }
         member.linkedPlayers.forEach { link ->
@@ -590,8 +590,8 @@ private fun PreviewFrame(state: ClubMemberDetailsUiState) {
 private fun richMember(overview: ClubMembersOverview) = overview.members.first { it.userId == "u3" }.copy(
     phone = "+351 913 222 401",
     ageGroupRoles = listOf(
-        MemberAgeGroupRole("ag15", "Sub-15", "26/27", TeamRole.COACH, currentSeason = true),
-        MemberAgeGroupRole("ag11", "Sub-11", "26/27", TeamRole.STAFF, currentSeason = true)
+        MemberAgeGroupRole("ag15", "Sub-15", "26/27", AgeGroupRole.COACH, currentSeason = true),
+        MemberAgeGroupRole("ag11", "Sub-11", "26/27", AgeGroupRole.STAFF, currentSeason = true)
     ),
     linkedPlayers = listOf(MemberLinkedPlayer("p2", "Duarte Vilaça", UserPlayerRelationship.MOTHER, "Sub-15", 2))
 )

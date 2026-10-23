@@ -22,7 +22,7 @@ import com.ricardofrango.squadify.model.InviteType
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserPlayerRelationship
 import com.ricardofrango.squadify.model.UserStatus
@@ -78,8 +78,8 @@ class GetClubMembersOverviewUseCaseTest {
             AgeGroup("ag-old", clubId, "Sub-13", "s-old", 2013, 2013),
             AgeGroup("ag-now", clubId, "Sub-15", "s-now", 2011, 2011)
         )
-        coEvery { ageGroupRepository.getAgeGroupStaff("ag-old") } returns listOf(AgeGroupStaffMember("coach", "Joao", "L", TeamRole.STAFF))
-        coEvery { ageGroupRepository.getAgeGroupStaff("ag-now") } returns listOf(AgeGroupStaffMember("coach", "Joao", "L", TeamRole.COACH))
+        coEvery { ageGroupRepository.getAgeGroupStaff("ag-old") } returns listOf(AgeGroupStaffMember("coach", "Joao", "L", AgeGroupRole.STAFF))
+        coEvery { ageGroupRepository.getAgeGroupStaff("ag-now") } returns listOf(AgeGroupStaffMember("coach", "Joao", "L", AgeGroupRole.COACH))
         val tomas = Player("p1", clubId, "Tomás", "Bragança", LocalDate(2011, 3, 12), shirtNumber = 10, active = true)
         coEvery { playerRepository.getAgeGroupPlayersByClub(clubId) } returns listOf(AgeGroupPlayer("x", "ag-now", "p1"))
         coEvery { playerRepository.getUserPlayerLinksByClub(clubId) } returns listOf(Triple("coach", tomas, UserPlayerRelationship.FATHER))
@@ -94,7 +94,7 @@ class GetClubMembersOverviewUseCaseTest {
         val overview = useCase("viewer", clubId)
 
         val coach = overview.members.single { it.userId == "coach" }
-        assertEquals(listOf("Sub-15" to TeamRole.COACH, "Sub-13" to TeamRole.STAFF), coach.ageGroupRoles.map { it.ageGroupName to it.role })
+        assertEquals(listOf("Sub-15" to AgeGroupRole.COACH, "Sub-13" to AgeGroupRole.STAFF), coach.ageGroupRoles.map { it.ageGroupName to it.role })
         assertEquals("Tomás Bragança", coach.linkedPlayers.single().name)
         assertEquals("Sub-15", coach.linkedPlayers.single().ageGroupName)
         assertEquals("912", coach.phone)

@@ -7,7 +7,7 @@ import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.Match
 
 class GetMatchesUseCase(
@@ -27,7 +27,7 @@ class GetMatchesUseCase(
                 userId = userId,
                 clubId = clubId,
                 minClubRole = ClubRole.MEMBER,
-                minTeamRole = TeamRole.STAFF,
+                minAgeGroupRole = AgeGroupRole.STAFF,
                 teamId = teamId,
                 allowPlayerOrParentAccess = true
             )
@@ -36,7 +36,7 @@ class GetMatchesUseCase(
         } else {
             // No team filter: club admins/coordinators see every match in the club. Everyone else --
             // plain member, coach/staff, player, parent -- only sees matches for teams they actually have
-            // access to (a TeamRole assignment or a linked player via TeamPlayers/UserPlayers). See
+            // access to (a AgeGroupRole assignment or a linked player via TeamPlayers/UserPlayers). See
             // "issues to fix.md" -- "A plain club member sees the whole club, not just 'the club.'"
             checkUserPermissionUseCase(userId, clubId, minClubRole = ClubRole.MEMBER, allowPlayerOrParentAccess = true)
 

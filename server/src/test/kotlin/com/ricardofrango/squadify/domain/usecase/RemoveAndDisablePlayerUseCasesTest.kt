@@ -22,7 +22,7 @@ import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -65,7 +65,7 @@ class RemoveAndDisablePlayerUseCasesTest {
     private fun callUp(matchId: String, p: Player) = MatchCallUpWithPlayer(MatchCallUp("c-$matchId-${p.id}", matchId, p.id, CallUpStatus.CALLED_UP), p)
     private val teammate = player.copy(id = "p-2", firstName = "Gil")
 
-    private fun user(id: String, clubRole: ClubRole, teamRole: TeamRole? = null): String {
+    private fun user(id: String, clubRole: ClubRole, teamRole: AgeGroupRole? = null): String {
         coEvery { userRepository.findById(id) } returns User(id, "$id@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
         coEvery { userRepository.getUserRoleInClub(id, clubId) } returns clubRole
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(id, any()) } returns teamRole
@@ -86,7 +86,7 @@ class RemoveAndDisablePlayerUseCasesTest {
 
     @Test
     fun theAgeGroupsCoachRemovesAPlayerFromThePoolAndUpcomingCallUpsOnly() = runBlocking {
-        remove(user("coach", ClubRole.MEMBER, TeamRole.COACH), ag.id, player.id)
+        remove(user("coach", ClubRole.MEMBER, AgeGroupRole.COACH), ag.id, player.id)
 
         coVerify { playerRepository.removePlayerFromAgeGroup(ag.id, player.id) }
         // Still in the club: not disabled.
@@ -98,7 +98,7 @@ class RemoveAndDisablePlayerUseCasesTest {
 
     @Test
     fun staffCannotRemoveAPlayer() = runBlocking<Unit> {
-        assertFailsWith<ForbiddenException> { remove(user("staff", ClubRole.MEMBER, TeamRole.STAFF), ag.id, player.id) }
+        assertFailsWith<ForbiddenException> { remove(user("staff", ClubRole.MEMBER, AgeGroupRole.STAFF), ag.id, player.id) }
         coVerify(exactly = 0) { playerRepository.removePlayerFromAgeGroup(any(), any()) }
     }
 
@@ -122,7 +122,7 @@ class RemoveAndDisablePlayerUseCasesTest {
 
     @Test
     fun onlyCoordinatorsAndAdminsCanDisableEvenTheAgeGroupsCoachCant() = runBlocking<Unit> {
-        assertFailsWith<ForbiddenException> { disable(user("coach", ClubRole.MEMBER, TeamRole.COACH), player.id) }
+        assertFailsWith<ForbiddenException> { disable(user("coach", ClubRole.MEMBER, AgeGroupRole.COACH), player.id) }
         coVerify(exactly = 0) { playerRepository.updateActiveStatus(any(), any()) }
     }
 
@@ -146,7 +146,7 @@ class RemoveAndDisablePlayerUseCasesTest {
     @Test
     fun onlyCoordinatorsAndAdminsCanReactivate() = runBlocking<Unit> {
         coEvery { playerRepository.getPlayerById(player.id) } returns player.copy(active = false)
-        assertFailsWith<ForbiddenException> { reactivate(user("coach", ClubRole.MEMBER, TeamRole.COACH), player.id) }
+        assertFailsWith<ForbiddenException> { reactivate(user("coach", ClubRole.MEMBER, AgeGroupRole.COACH), player.id) }
         coVerify(exactly = 0) { playerRepository.updateActiveStatus(any(), any()) }
     }
 

@@ -568,10 +568,10 @@ private fun sampleDetails(populated: Boolean, canManage: Boolean): TeamDetails {
         poolSize = 14,
         siblingTeamNames = if (populated) listOf("Sub-15 B") else emptyList(),
         staff = if (populated) listOf(
-            AgeGroupStaffMember("u1", "João", "Camelo", TeamRole.COACH),
-            AgeGroupStaffMember("u2", "Rita", "Sá", TeamRole.COACH),
-            AgeGroupStaffMember("u3", "Paulo", "Mesquita", TeamRole.STAFF)
-        ) else listOf(AgeGroupStaffMember("u1", "Mário", "Aleixo", TeamRole.COACH)),
+            AgeGroupStaffMember("u1", "João", "Camelo", AgeGroupRole.COACH),
+            AgeGroupStaffMember("u2", "Rita", "Sá", AgeGroupRole.COACH),
+            AgeGroupStaffMember("u3", "Paulo", "Mesquita", AgeGroupRole.STAFF)
+        ) else listOf(AgeGroupStaffMember("u1", "Mário", "Aleixo", AgeGroupRole.COACH)),
         upcomingMatches = if (populated) listOf(
             match("m1", "o1", MatchStatus.SCHEDULED, "Campo do Ribamar"),
             match("m2", "o2", MatchStatus.SCHEDULED, "Away")
