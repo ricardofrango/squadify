@@ -16,7 +16,12 @@ import org.slf4j.LoggerFactory
 object DatabaseFactory : TransactionManager {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun init() {
+    /**
+     * Connects (migrating first) and returns the connection pool, for the caller to close when the
+     * server stops. Each module closes its own: a reload in development starts the new one before
+     * stopping the old one.
+     */
+    fun init(): HikariDataSource {
         try {
             val driverClassName = "org.postgresql.Driver"
             val jdbcURL = "jdbc:postgresql://${ServerConfig.databaseHost}:${ServerConfig.databasePort}/${ServerConfig.databaseName}"
@@ -63,6 +68,7 @@ object DatabaseFactory : TransactionManager {
                 )
             }
             logger.info("Database '${ServerConfig.databaseName}' initialized successfully")
+            return dataSource
         } catch (e: Exception) {
             logger.error("Failed to initialize database", e)
             throw e

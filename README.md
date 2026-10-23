@@ -26,7 +26,10 @@ Use the run configurations provided by the run widget in your IDE's toolbar. You
 - Desktop app:
   - Hot reload: `./gradlew :app:desktopApp:hotRun --auto`
   - Standard run: `./gradlew :app:desktopApp:run`
-- Server: `./gradlew :server:run`
+- Server, in two terminals:
+  - `./gradlew :server:run` runs the server (port 8080, or `SERVER_PORT`). Stop it with Ctrl+C.
+  - `./gradlew -t :server:classes` compiles on every save; the running server reloads the new code by itself (see `TECHNICAL_DECISIONS.md` §59).
+  - Don't use `./gradlew -t :server:run`: it never reloads, and it can leave a server holding port 8080 after Ctrl+C. To free the port: `lsof -ti tcp:8080 | xargs kill`.
 - Web app:
   - Wasm target (faster, modern browsers): `./gradlew :app:webApp:wasmJsBrowserDevelopmentRun`
   - JS target (slower, supports older browsers): `./gradlew :app:webApp:jsBrowserDevelopmentRun`

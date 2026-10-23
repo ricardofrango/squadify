@@ -24,10 +24,15 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStopped
+import io.ktor.server.application.serverConfig
 import io.ktor.server.application.install
+import io.ktor.server.config.MapApplicationConfig
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
+import io.ktor.server.engine.applicationEnvironment
+import io.ktor.server.engine.connector
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.BadRequestException
@@ -48,20 +53,46 @@ import io.ktor.server.routing.routing
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.koin.ktor.ext.getKoin
-import org.koin.ktor.plugin.Koin
+import org.koin.dsl.koinApplication
+import org.koin.ktor.plugin.setKoinApplication
 import org.koin.logger.slf4jLogger
 
 fun main() {
-    embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
-        .start(wait = true)
+    // The module is named in the configuration, not passed as a function reference: in development
+    // (`./gradlew :server:run` sets io.ktor.development) the server reloads its own code whenever the
+    // compiled classes change -- keep `./gradlew -t :server:classes` running next to it -- and Ktor
+    // can only reload a module it finds by name. Elsewhere the watch is off. See TECHNICAL_DECISIONS.md §59.
+    val environment = applicationEnvironment {
+        config = MapApplicationConfig().apply { put("ktor.application.modules", listOf("com.ricardofrango.squadify.ApplicationKt.module")) }
+    }
+    embeddedServer(
+        Netty,
+        rootConfig = serverConfig(environment) { watchPaths = listOf("classes", "resources") },
+        configure = {
+            connector {
+                port = System.getenv("SERVER_PORT")?.toIntOrNull() ?: 8080
+                host = "0.0.0.0"
+            }
+        }
+    ).start(wait = true)
 }
 
 fun Application.module() {
-    DatabaseFactory.init()
-
-    install(Koin) {
+    // Each module owns its connection pool and its Koin container (not the process-wide one), and
+    // closes them when *it* stops. In development a reload starts the new module before stopping the
+    // old one, and the old one's ApplicationStopped reaches the new one's subscribers too -- so the
+    // check on which application stopped, and no Koin plugin (it closes its container on any stop).
+    val connectionPool = DatabaseFactory.init()
+    val koinApplication = koinApplication {
         slf4jLogger()
         modules(appModule)
+    }
+    setKoinApplication(koinApplication)
+    monitor.subscribe(ApplicationStopped) { stopped ->
+        if (stopped === this) {
+            koinApplication.close()
+            connectionPool.close()
+        }
     }
 
     // One-shot: guarantee a platform-admin account exists so a freshly-wiped dev database is usable
