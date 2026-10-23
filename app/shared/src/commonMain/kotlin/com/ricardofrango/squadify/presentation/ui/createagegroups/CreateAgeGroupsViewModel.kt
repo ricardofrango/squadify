@@ -11,6 +11,7 @@ import com.ricardofrango.squadify.model.CreateAgeGroupsRequest
 import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_age_group_conflict
+import squadify.app.shared.generated.resources.msg_age_group_conflict_rows
 import squadify.app.shared.generated.resources.msg_create_age_groups_failed
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,13 +69,13 @@ class CreateAgeGroupsViewModel(
 
     fun onSeasonSelected(seasonId: String) {
         _state.update { state ->
-            if (state is CreateAgeGroupsUiState.Idle) state.copy(selectedSeasonId = seasonId, error = null) else state
+            if (state is CreateAgeGroupsUiState.Idle) state.copy(selectedSeasonId = seasonId, error = null, conflictRows = emptySet()) else state
         }
     }
 
     fun clearSubmitError() {
         _state.update { state ->
-            if (state is CreateAgeGroupsUiState.Idle) state.copy(error = null) else state
+            if (state is CreateAgeGroupsUiState.Idle) state.copy(error = null, conflictRows = emptySet()) else state
         }
     }
 
@@ -83,20 +84,20 @@ class CreateAgeGroupsViewModel(
         val seasonId = current.selectedSeasonId ?: return
 
         viewModelScope.launch {
-            _state.update { current.copy(isSubmitting = true, error = null) }
+            _state.update { current.copy(isSubmitting = true, error = null, conflictRows = emptySet()) }
             try {
                 createAgeGroupsUseCase(CreateAgeGroupsRequest(clubId, seasonId, items))
                 _navigationEvent.emit(CreateAgeGroupsNavigationEvent.NavigateBackWithAgeGroupsCreated)
             } catch (e: Exception) {
-                // The server can only report the first conflicting row today (see ISSUES TO FIX.md),
-                // so this can't name a specific row the way the season screen's conflict message does
-                // -- it just points back at the birth year fields to review.
-                val message = if (e is ApiException && e.statusCode == 409) {
-                    getString(Res.string.msg_age_group_conflict)
-                } else {
-                    errorMessage(e, Res.string.msg_create_age_groups_failed)
+                // The server reports every clashing row (ApiException.rows): they're marked, and named
+                // in the message. An older server without them gets the general message.
+                val rows = (e as? ApiException)?.takeIf { it.statusCode == 409 }?.rows.orEmpty()
+                val message = when {
+                    rows.isNotEmpty() -> getString(Res.string.msg_age_group_conflict_rows, rows.joinToString(", ") { (it + 1).toString() })
+                    e is ApiException && e.statusCode == 409 -> getString(Res.string.msg_age_group_conflict)
+                    else -> errorMessage(e, Res.string.msg_create_age_groups_failed)
                 }
-                _state.update { current.copy(isSubmitting = false, error = message) }
+                _state.update { current.copy(isSubmitting = false, error = message, conflictRows = rows.toSet()) }
             }
         }
     }

@@ -310,6 +310,7 @@ private fun CreateAgeGroupsContent(
                         AgeGroupRowCard(
                             index = index + 1,
                             row = row,
+                            conflict = index in uiState.conflictRows,
                             availableYears = availableYears,
                             allYearOptions = allYearOptions,
                             teamSizeOptions = teamSizeOptions,
@@ -428,6 +429,8 @@ private fun SeasonField(
 private fun AgeGroupRowCard(
     index: Int,
     row: AgeGroupRow,
+    // The server said this row's birth years clash with another age group: red border and number.
+    conflict: Boolean = false,
     availableYears: List<Int>,
     allYearOptions: List<Int>,
     teamSizeOptions: List<Int>,
@@ -447,18 +450,18 @@ private fun AgeGroupRowCard(
         modifier = Modifier.fillMaxWidth(),
         shape = FormRoundedShape,
         color = Color.White,
-        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
+        border = if (conflict) BorderStroke(2.dp, MaterialTheme.colorScheme.error) else BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
-                    modifier = Modifier.size(24.dp).background(CarbonGray.copy(alpha = 0.1f), CircleShape),
+                    modifier = Modifier.size(24.dp).background(if (conflict) MaterialTheme.colorScheme.error else CarbonGray.copy(alpha = 0.1f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = index.toString(),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = DeepCarbon
+                        color = if (conflict) Color.White else DeepCarbon
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))

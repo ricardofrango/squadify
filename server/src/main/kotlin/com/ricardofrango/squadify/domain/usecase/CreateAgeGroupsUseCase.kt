@@ -39,8 +39,12 @@ class CreateAgeGroupsUseCase(
         // too -- not just a clash with an age group already in the database. Any shared birth year
         // collides, not only an identical span (2011 vs 2011-2010 overlaps on 2011).
         val takenRanges = existingAgeGroups.map { it.startYear to it.endYear }.toMutableList()
+        // Every clashing item is collected, not just the first, so the screen can mark them all at once
+        // (ConflictException.rows, 0-based in request order). Within the batch, the later item of two
+        // that share a year is the one reported.
+        val conflictingRows = mutableListOf<Int>()
 
-        val newAgeGroups = request.items.map { item ->
+        val newAgeGroups = request.items.mapIndexed { index, item ->
             if (item.name.isBlank()) {
                 throw ValidationException("Age group name cannot be empty")
             }
@@ -48,9 +52,10 @@ class CreateAgeGroupsUseCase(
                 throw ValidationException("Start year cannot be before end year")
             }
             if (takenRanges.any { (start, end) -> birthYearsOverlap(item.startYear, item.endYear, start, end) }) {
-                throw ConflictException("An age group already covers some of ${item.startYear}-${item.endYear} in this season")
+                conflictingRows += index
+            } else {
+                takenRanges += item.startYear to item.endYear
             }
-            takenRanges += item.startYear to item.endYear
             if (item.teamSize != null && item.teamSize !in club.sport.teamSizes) {
                 throw ValidationException("Team size ${item.teamSize} is not valid for ${club.sport}")
             }
@@ -63,6 +68,13 @@ class CreateAgeGroupsUseCase(
                 startYear = item.startYear,
                 endYear = item.endYear,
                 teamSize = item.teamSize
+            )
+        }
+
+        if (conflictingRows.isNotEmpty()) {
+            throw ConflictException(
+                "Some birth years already have an age group in this season (items ${conflictingRows.joinToString { (it + 1).toString() }})",
+                rows = conflictingRows
             )
         }
 

@@ -1426,4 +1426,5 @@
     <string name="msg_photo_remove_failed">Couldn\'t remove the photo. Try again.</string>
     <string name="label_match_format">Format</string>
     <string name="match_format_value">%1$dx%1$d</string>
+    <string name="msg_age_group_conflict_rows">Rows %1$s use birth years that already have an age group in this season.</string>
 </resources>

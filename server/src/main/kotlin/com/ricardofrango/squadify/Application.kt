@@ -164,7 +164,7 @@ fun Application.module() {
                 is DatabaseException -> HttpStatusCode.InternalServerError
                 else -> HttpStatusCode.BadRequest
             }
-            call.respond(status, ErrorResponse(cause.message, cause.code))
+            call.respond(status, ErrorResponse(cause.message, cause.code, (cause as? ConflictException)?.rows))
         }
         exception<BadRequestException> { call, cause ->
             cause.printStackTrace()

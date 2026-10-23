@@ -708,11 +708,17 @@ graph TD
     G -- name blank --> V2(["Throw ValidationException"])
     G -- startYear < endYear --> V2c(["Throw ValidationException: inverted range"])
     G -- teamSize set AND not in club.sport.teamSizes --> V2(["Throw ValidationException"])
-    G -- "shares any birth year with a taken span (in the DB, or an earlier item in this request) — birthYearsOverlap" --> CN(["Throw ConflictException: overlapping range"])
+    G -- "shares any birth year with a taken span (in the DB, or an earlier item in this request) — birthYearsOverlap" --> CR[Note the item's index as clashing; don't mark its range taken]
     G -- valid --> H[Mark range as taken; build AgeGroup entity — teamSize nullable]
-    H --> I[Batch insert all AgeGroups]
+    CR --> G
+    H --> G
+    G -- all items checked --> K{any clashing items?}
+    K -- Yes --> CN(["Throw ConflictException(rows = every clashing index, 0-based) — 409 ErrorResponse.rows"])
+    K -- No --> I[Batch insert all AgeGroups]
     I --> Z(["Return created AgeGroups"])
 ```
+
+Every clashing item is reported, not only the first. The 409's `ErrorResponse.rows` lists them (0-based, in request order), so Create age groups marks each of those rows in red and names them in its message. Within the batch, the later of two items sharing a year is the one reported. The other row checks (blank name, inverted range, invalid team size) still stop at the first, and the screen prevents them before submitting.
 
 Each item carries a `startYear`/`endYear` birth-year span rather than a single birth year: most age groups (football) are single-year, sent as `startYear == endYear`; some (typically futsal) span two consecutive birth years to have enough players for a squad -- e.g. a Benjamins group covering 2016 and 2017 is `startYear = 2017, endYear = 2016`. Eligibility and the inferred "Sub N" name are always derived from `endYear` (the oldest birth year the group allows), exactly mirroring the old single `birthYear` field's role -- see §5.3. Each item also carries an optional `teamSize` (an a-side count like 7 or 11). It's the default the age group's teams play; a team can override it (§4.5 / §4.5b). When set it must be one of the values the club's `sport` allows (`SportType.teamSizes` — a code-level constant, not a DB config). The client's Create Age Groups screen shows a per-row span-type radio (single year vs. two years) and a per-row team-size picker seeded from the sport's largest format.
 

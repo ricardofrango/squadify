@@ -30,7 +30,8 @@ class ValidationException(message: String) :
 class IllegalIdFormatException(message: String = "Invalid ID format") :
     SquadifyException(message, "VAL_002")
 
-class ConflictException(message: String) : 
+/** [rows]: for a batch request, the items (0-based, in request order) that conflict. */
+class ConflictException(message: String, val rows: List<Int>? = null) :
     SquadifyException(message, "DATA_001")
 
 class NotFoundException(message: String) : 

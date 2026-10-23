@@ -1424,4 +1424,5 @@
     <string name="msg_photo_remove_failed">Não foi possível remover a foto. Tente novamente.</string>
     <string name="label_match_format">Formato</string>
     <string name="match_format_value">%1$dx%1$d</string>
+    <string name="msg_age_group_conflict_rows">As linhas %1$s usam anos de nascimento que já têm escalão nesta época.</string>
 </resources>
