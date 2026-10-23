@@ -436,6 +436,8 @@ private fun DetailsCard(details: MatchDetails, onSetType: (() -> Unit)?) {
         Column(Modifier.padding(vertical = 4.dp)) {
             DetailRow(stringResource(Res.string.label_opponent_field), details.opponent.name)
             TypeRow(m.type, onSetType)
+            // The format is the team's (how many a side it plays): 5x5, 7x7, 9x9, 11x11.
+            DetailRow(stringResource(Res.string.label_match_format), details.team.teamSize?.let { stringResource(Res.string.match_format_value, it) } ?: "—")
             DetailRow(stringResource(Res.string.label_match_date), m.dateTime.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(DayMonthYear))
             DetailRow(stringResource(Res.string.label_match_kickoff), timeLabel(m.dateTime))
             DetailRow(

@@ -193,7 +193,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - **Players:** the club's player list opens as its own screen, with season, age-group and search filters.
     - [x] Match center (Live updates & History):
       - **Matches tab:** the club's Matches tab updates live.
-      - **Match Details:** line-ups, call-ups, events and score.
+      - **Match Details:** line-ups, call-ups, events and score, plus the details card (opponent, type, format such as 7x7 from the team's size, date, kickoff, location, notes).
       - **Live match console:** for coaches and staff.
       - **After the match:** finished results stay as history, with the post-match report and per-player stats. Season stats live on Player, Team and Age Group Details (see Phase 5).
 - [x] **Phase 8: Training & Periodization** (see §5b). Not yet: drag-to-reorder (up/down buttons on a session's exercises; objectives and phases keep the order they were added) and remembering List / Calendar.

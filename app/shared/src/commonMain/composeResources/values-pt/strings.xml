@@ -1422,4 +1422,6 @@
     <string name="msg_photo_saving">A guardar a foto…</string>
     <string name="msg_photo_upload_failed">Não foi possível carregar a foto. Tente novamente.</string>
     <string name="msg_photo_remove_failed">Não foi possível remover a foto. Tente novamente.</string>
+    <string name="label_match_format">Formato</string>
+    <string name="match_format_value">%1$dx%1$d</string>
 </resources>

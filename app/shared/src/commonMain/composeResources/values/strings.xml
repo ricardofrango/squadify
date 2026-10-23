@@ -1424,4 +1424,6 @@
     <string name="msg_photo_saving">Saving the photo…</string>
     <string name="msg_photo_upload_failed">Couldn\'t upload the photo. Try again.</string>
     <string name="msg_photo_remove_failed">Couldn\'t remove the photo. Try again.</string>
+    <string name="label_match_format">Format</string>
+    <string name="match_format_value">%1$dx%1$d</string>
 </resources>
