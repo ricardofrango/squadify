@@ -59,7 +59,8 @@ class CreateMatchUseCase(
                 status = MatchStatus.SCHEDULED,
                 notes = request.notes,
                 type = request.type,
-                halves = request.halves
+                halves = request.halves,
+                venue = request.venue ?: MatchVenue.HOME
             )
 
             matchRepository.createMatch(match)

@@ -125,7 +125,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Edit age group: name, birth-year span and default team size, from Age Group Details, for coordinators. A span that would leave players already in the pool ineligible is refused.
 - [x] **Phase 4: Match & Call-ups**: Calendar and attendance management.
     - [x] Opponent management (dedicated entity and table).
-    - [x] Match creation and listing.
+    - [x] Match creation and listing. A new match must say where it's played: Home, Away or Neutral, with no default. That prefills the location (our ground, the opponent's, or none), which stays editable, and can be changed in Edit match. The home side is shown first everywhere, and our club on neutral ground. See `TECHNICAL_DECISIONS.md` §63.
     - [x] Call-up management (batch player assignment). On Match details the call-up is a draft saved with "Save call-up", available once it has the team's minimum (its size). Saved and unchanged, the button becomes "Start match". Who sees what depends on their rights: the editor, the ready call-up and "Start match", a "not ready yet" message, or the details only. See `TECHNICAL_DECISIONS.md` §62.
 - [x] **Phase 5: Live Match & Stats**: Real-time events and automated statistics calculation.
     - [x] Real-time broadcasting via **WebSockets**.

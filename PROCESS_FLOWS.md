@@ -1429,6 +1429,8 @@ The use case composes `MatchDetails` itself now — the old `MatchRepository.get
 
 The bottom button just opens the live match screen; starting the game and recording events all live there. If the match is already LIVE/HALF_TIME when this screen loads (tapped in from a list, or discovered on a reload), the client redirects straight to the live match screen instead of rendering the details view -- see `MatchDetailsViewModel.load()` / `AppNavigation.kt`'s `Screen.MatchDetails` route, which pops this screen off the back stack when redirecting (rather than stacking under it) so back-navigation from the live screen doesn't bounce straight back into another redirect.
 
+**Venue** (`MatchVenue`, V24): HOME, AWAY or NEUTRAL, saved from `CreateMatchRequest.venue`. The app requires it; one from an app that predates it arrives null and is saved as HOME. In the app, picking it prefills the location: the club's ground (stadium location, else address) at home, the opponent's stadium address (else its name) away, and nothing on neutral ground. The location can still be edited. Wherever a match is shown with both sides, the home side goes first (left of the score, on top in a list), and our club goes first on neutral ground (`MatchVenue.ourSideFirst()`). See `TECHNICAL_DECISIONS.md` §63.
+
 ### 7.1c Update Match (`UpdateMatchUseCase`)
 
 ```mermaid
@@ -1455,6 +1457,8 @@ graph TD
     L --> Z(["Return success"])
 ```
 
+
+`venue`: null keeps the match's, like the other fields. `location`: null keeps it, but a blank one now clears it, so moving a match to neutral ground in Edit match leaves it empty.
 ### 7.2 Manage Call-ups (`ManageCallUpsUseCase`) — batch replace
 
 ```mermaid
@@ -2306,6 +2310,7 @@ erDiagram
         enum status "MatchStatus, default SCHEDULED"
         text notes "nullable"
         integer halves "1 or 2, default 2 (V10; existing matches backfilled to 2)"
+        varchar venue "HOME / AWAY / NEUTRAL, not null, default HOME (V24; existing matches became HOME)"
         integer half_length_minutes "nullable -- set at kickoff by StartMatchUseCase"
         timestamp kickoff_at "nullable -- wall-clock instant of kickoff, set by StartMatchUseCase"
         timestamp second_half_started_at "nullable -- wall-clock instant the 2nd half resumed, set by UpdateMatchStatusUseCase on HALF_TIME -> LIVE"

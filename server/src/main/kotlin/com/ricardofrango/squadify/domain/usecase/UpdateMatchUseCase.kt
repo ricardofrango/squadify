@@ -8,6 +8,7 @@ import com.ricardofrango.squadify.exception.ConflictException
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
+import com.ricardofrango.squadify.model.MatchVenue
 import com.ricardofrango.squadify.model.ClubMatchesUpdate
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
@@ -72,10 +73,12 @@ class UpdateMatchUseCase(
             val merged = match.copy(
                 opponentId = request.opponentId ?: match.opponentId,
                 dateTime = request.dateTime ?: match.dateTime,
-                location = request.location ?: match.location,
+                // Null keeps it; blank clears it (a match moved to neutral ground has none).
+                location = request.location.let { if (it != null) it.trim().ifBlank { null } else match.location },
                 notes = request.notes ?: match.notes,
                 type = request.type ?: match.type,
-                halves = request.halves ?: match.halves
+                halves = request.halves ?: match.halves,
+                venue = request.venue ?: match.venue
             )
 
             // Only the schedule-relevant fields warrant a "match updated" push -- a notes-only edit

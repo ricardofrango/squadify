@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.venueLocation
+import com.ricardofrango.squadify.presentation.ui.components.VenueSelector
 import com.ricardofrango.squadify.presentation.ui.theme.IsClubThemed
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
@@ -233,26 +235,32 @@ private fun StatusBand(details: MatchDetails) {
     val hasScore = status == MatchStatus.FINISHED || status == MatchStatus.LIVE || status == MatchStatus.HALF_TIME
     val nameStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
     val nameColor = Color.White.copy(alpha = if (status == MatchStatus.CANCELLED) 0.55f else 1f)
+    // Home on the left, as football reads a score; our club at home or on neutral ground.
+    val us = BandSide(details.team.name, details.clubLogoUrl, details.score.ourScore)
+    val them = BandSide(details.opponent.shortName ?: details.opponent.name, details.opponent.logoUrl, details.score.opponentScore)
+    val (left, right) = if (details.match.venue.ourSideFirst()) us to them else them to us
     Row(
         Modifier.fillMaxWidth().background(ClubChrome).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-            details.clubLogoUrl?.let { BandCrest(it, details.team.name); Spacer(Modifier.width(8.dp)) }
-            Text(details.team.name, style = nameStyle, color = nameColor, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
+            left.logoUrl?.let { BandCrest(it, left.name); Spacer(Modifier.width(8.dp)) }
+            Text(left.name, style = nameStyle, color = nameColor, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
         }
         Text(
-            if (hasScore) "${details.score.ourScore} – ${details.score.opponentScore}" else "vs",
+            if (hasScore) "${left.score} – ${right.score}" else "vs",
             style = if (hasScore) MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black) else MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
             color = if (hasScore) Color.White else Color.White.copy(alpha = 0.6f),
             modifier = Modifier.padding(horizontal = 12.dp)
         )
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            Text(details.opponent.shortName ?: details.opponent.name, style = nameStyle, color = nameColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            details.opponent.logoUrl?.let { Spacer(Modifier.width(8.dp)); BandCrest(it, details.opponent.name) }
+            Text(right.name, style = nameStyle, color = nameColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            right.logoUrl?.let { Spacer(Modifier.width(8.dp)); BandCrest(it, right.name) }
         }
     }
 }
+
+private data class BandSide(val name: String, val logoUrl: String?, val score: Int)
 
 /** A side's logo on the band, on a white disc so any crest reads on the bar's colour. */
 @Composable
@@ -608,6 +616,7 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
     var notes by remember { mutableStateOf(details.match.notes.orEmpty()) }
     var type by remember { mutableStateOf(details.match.type) }
     var halves by remember { mutableStateOf(details.match.halves) }
+    var venue by remember { mutableStateOf(details.match.venue) }
     // The number of halves drives the live console, so it's only changeable before kickoff.
     val canChangeHalves = details.match.status == MatchStatus.SCHEDULED
     var showDate by remember { mutableStateOf(false) }
@@ -634,6 +643,11 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
                 Text(stringResource(Res.string.label_halves).uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon.copy(alpha = 0.55f))
                 HalvesSelector(halves = halves, onSelected = { halves = it })
             }
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(stringResource(Res.string.label_venue).uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon.copy(alpha = 0.55f))
+                // Changing where it's played moves the location with it; it can still be edited after.
+                VenueSelector(selected = venue, onSelected = { venue = it; location = venueLocation(it, details.clubLocation, details.opponent) })
+            }
             ValueField(stringResource(Res.string.label_match_date), date.format(DayMonthYear)) { showDate = true }
             ValueField(stringResource(Res.string.label_match_kickoff), timeOf(time)) { showTime = true }
             OutlinedTextField(
@@ -658,9 +672,11 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
                     onSave(
                         UpdateMatchRequest(
                             dateTime = date.atTime(time).toInstant(tz),
-                            location = location.trim().ifBlank { null },
+                            // Sent even when emptied: blank clears it (neutral ground), null would keep it.
+                            location = location.trim(),
                             notes = notes.trim().ifBlank { null },
                             type = type,
+                            venue = venue,
                             halves = halves.takeIf { canChangeHalves }
                         )
                     )

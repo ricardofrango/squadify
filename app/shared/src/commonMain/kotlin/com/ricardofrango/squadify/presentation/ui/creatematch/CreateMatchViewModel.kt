@@ -2,6 +2,8 @@ package com.ricardofrango.squadify.presentation.ui.creatematch
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ricardofrango.squadify.presentation.ui.components.venueLocation
+import com.ricardofrango.squadify.model.MatchVenue
 import com.ricardofrango.squadify.domain.usecase.CreateMatchUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetOpponentsUseCase
@@ -55,7 +57,8 @@ class CreateMatchViewModel(
         val ageGroupName: String,
         val seasonName: String,
         val teams: List<Team>,
-        val teamFixed: Boolean
+        val teamFixed: Boolean,
+        val clubLocation: String?
     )
 
     fun load(ageGroupId: String?, teamId: String?) {
@@ -66,10 +69,10 @@ class CreateMatchViewModel(
             try {
                 val ctx = when {
                     teamId != null -> getTeamDetailsUseCase(teamId).let { d ->
-                        Context(d.club.id, d.club.name, d.ageGroup.id, d.ageGroup.name, d.season.name, listOf(d.team), teamFixed = true)
+                        Context(d.club.id, d.club.name, d.ageGroup.id, d.ageGroup.name, d.season.name, listOf(d.team), teamFixed = true, clubLocation = d.club.stadiumLocation ?: d.club.address)
                     }
                     ageGroupId != null -> getAgeGroupDetailsUseCase(ageGroupId).let { d ->
-                        Context(d.club.id, d.club.name, d.ageGroup.id, d.ageGroup.name, d.season.name, d.teams, teamFixed = false)
+                        Context(d.club.id, d.club.name, d.ageGroup.id, d.ageGroup.name, d.season.name, d.teams, teamFixed = false, clubLocation = d.club.stadiumLocation ?: d.club.address)
                     }
                     else -> {
                         _state.update { CreateMatchUiState.Error(getString(Res.string.msg_failed_to_load_match_form)) }
@@ -92,6 +95,7 @@ class CreateMatchViewModel(
                         teams = ctx.teams,
                         selectedTeamId = if (ctx.teamFixed || ctx.teams.size == 1) ctx.teams.firstOrNull()?.id else null,
                         opponents = opponents,
+                        clubLocation = ctx.clubLocation,
                         date = nextSaturday(),
                         time = LocalTime(10, 30)
                     )
@@ -114,7 +118,7 @@ class CreateMatchViewModel(
      */
     fun onOpponentPicked(opponentId: String) {
         val current = _state.value as? CreateMatchUiState.Idle ?: return
-        updateIdle { it.copy(selectedOpponentId = opponentId, error = null) }
+        updateIdle { it.copy(selectedOpponentId = opponentId, error = null).withAwayLocation() }
         if (current.opponents.any { it.id == opponentId }) return
         viewModelScope.launch {
             val opponents = try {
@@ -122,9 +126,18 @@ class CreateMatchViewModel(
             } catch (e: Exception) {
                 return@launch
             }
-            updateIdle { it.copy(opponents = opponents) }
+            updateIdle { it.copy(opponents = opponents).withAwayLocation() }
         }
     }
+
+    /** Picking where it's played prefills the location: the club's ground, the opponent's, or none. */
+    fun onVenueSelected(venue: MatchVenue) = updateIdle {
+        it.copy(venue = venue, venueError = false, error = null, location = venueLocation(venue, it.clubLocation, it.selectedOpponent))
+    }
+
+    // An away match follows the opponent: picking another one moves the location to their ground.
+    private fun CreateMatchUiState.Idle.withAwayLocation() =
+        if (venue == MatchVenue.AWAY) copy(location = venueLocation(MatchVenue.AWAY, clubLocation, selectedOpponent)) else this
 
     fun onMatchTypeSelected(type: MatchType) = updateIdle { it.copy(matchType = type, matchTypeError = false, error = null) }
 
@@ -144,10 +157,12 @@ class CreateMatchViewModel(
         val current = _state.value as? CreateMatchUiState.Idle ?: return
         val teamId = current.selectedTeamId ?: return
         val opponentId = current.selectedOpponentId ?: return
-        val matchType = current.matchType ?: run {
-            updateIdle { it.copy(matchTypeError = true) }
+        // A missing type or venue is pointed out (red) rather than silently ignored.
+        if (current.matchType == null || current.venue == null) {
+            updateIdle { it.copy(matchTypeError = it.matchType == null, venueError = it.venue == null) }
             return
         }
+        val matchType = current.matchType
         if (!current.canSubmit) return
 
         viewModelScope.launch {
@@ -165,7 +180,8 @@ class CreateMatchViewModel(
                         dateTime = dateTime,
                         notes = current.notes.trim().ifBlank { null },
                         type = matchType,
-                        halves = current.halves
+                        halves = current.halves,
+                        venue = current.venue
                     )
                 )
                 _navigationEvent.emit(CreateMatchNavigationEvent.NavigateBackWithMatchCreated)

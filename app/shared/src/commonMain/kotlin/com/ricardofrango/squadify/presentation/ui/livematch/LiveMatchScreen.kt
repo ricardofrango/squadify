@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.livematch
 
+import com.ricardofrango.squadify.presentation.ui.components.homeFirst
+import com.ricardofrango.squadify.model.ourSideFirst
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
@@ -573,21 +575,30 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
         }
     }
     val scoreRow: @Composable () -> Unit = {
+        // Home first (on top, and the left score box), as football reads it; our club at home or on
+        // neutral ground. Each box still logs a goal for its own side.
+        val ourFirst = details.match.venue.ourSideFirst()
+        val ourName: @Composable () -> Unit = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                details.clubLogoUrl?.let { NameCrest(it, details.team.name) }
+                Text(details.team.name, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+        val theirName: @Composable () -> Unit = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                details.opponent.logoUrl?.let { NameCrest(it, details.opponent.name) }
+                Text(details.opponent.shortName ?: details.opponent.name, color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+        val ourBox: @Composable () -> Unit = { ScoreBox(state.score.ourScore, PitchGreen, enabled = scoreEnabled) { actions.onLogGoal(displayMinute, isOpponent = false) } }
+        val theirBox: @Composable () -> Unit = { ScoreBox(state.score.opponentScore, CarbonGray, enabled = scoreEnabled) { actions.onLogGoal(displayMinute, isOpponent = true) } }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                // Each side's logo before its name, only when it has one.
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    details.clubLogoUrl?.let { NameCrest(it, details.team.name) }
-                    Text(details.team.name, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    details.opponent.logoUrl?.let { NameCrest(it, details.opponent.name) }
-                    Text(details.opponent.shortName ?: details.opponent.name, color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
+                if (ourFirst) { ourName(); theirName() } else { theirName(); ourName() }
             }
-            ScoreBox(state.score.ourScore, PitchGreen, enabled = scoreEnabled) { actions.onLogGoal(displayMinute, isOpponent = false) }
+            if (ourFirst) ourBox() else theirBox()
             Spacer(Modifier.width(6.dp))
-            ScoreBox(state.score.opponentScore, CarbonGray, enabled = scoreEnabled) { actions.onLogGoal(displayMinute, isOpponent = true) }
+            if (ourFirst) theirBox() else ourBox()
         }
     }
     val tabs: @Composable () -> Unit = {
@@ -1040,14 +1051,16 @@ private fun SummaryContent(state: LiveMatchUiState.Idle, onNavigateBack: () -> U
             Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Home on top and its score first; our club at home or on neutral ground.
+            val ourFirst = details.match.venue.ourSideFirst()
             Text(
-                details.team.name,
+                if (ourFirst) details.team.name else details.opponent.name,
                 color = Color.White,
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                "${state.score.ourScore}-${state.score.opponentScore}",
+                state.score.homeFirst(details.match.venue, separator = "-"),
                 color = Color.White,
                 style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Black)
             )
@@ -1059,7 +1072,7 @@ private fun SummaryContent(state: LiveMatchUiState.Idle, onNavigateBack: () -> U
                 )
             }
             Spacer(Modifier.height(4.dp))
-            Text(details.opponent.name, color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.bodyMedium)
+            Text(if (ourFirst) details.opponent.name else details.team.name, color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.bodyMedium)
         }
 
         // Design 36e: the goals in one line, then everyone's minutes -- the spread at a glance before

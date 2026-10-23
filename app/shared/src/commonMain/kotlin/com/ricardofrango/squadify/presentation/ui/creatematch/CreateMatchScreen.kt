@@ -2,6 +2,8 @@ package com.ricardofrango.squadify.presentation.ui.creatematch
 
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardOptions
+import com.ricardofrango.squadify.presentation.ui.components.VenueSelector
+import com.ricardofrango.squadify.model.MatchVenue
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -118,6 +120,7 @@ fun CreateMatchScreen(
             onNotesChange = viewModel::onNotesChange,
             onMatchTypeSelected = viewModel::onMatchTypeSelected,
             onHalvesSelected = viewModel::onHalvesSelected,
+            onVenueSelected = viewModel::onVenueSelected,
             onSubmit = viewModel::onSubmit
         )
     }
@@ -138,6 +141,7 @@ private fun CreateMatchContent(
     onNotesChange: (String) -> Unit,
     onMatchTypeSelected: (MatchType) -> Unit,
     onHalvesSelected: (Int) -> Unit = {},
+    onVenueSelected: (MatchVenue) -> Unit = {},
     onSubmit: () -> Unit
 ) {
     val clubName = (uiState as? CreateMatchUiState.Idle)?.clubName
@@ -179,6 +183,7 @@ private fun CreateMatchContent(
                 onNotesChange = onNotesChange,
                 onMatchTypeSelected = onMatchTypeSelected,
                 onHalvesSelected = onHalvesSelected,
+                onVenueSelected = onVenueSelected,
                 onSubmit = onSubmit
             )
         }
@@ -197,6 +202,7 @@ private fun CreateMatchForm(
     onNotesChange: (String) -> Unit,
     onMatchTypeSelected: (MatchType) -> Unit,
     onHalvesSelected: (Int) -> Unit = {},
+    onVenueSelected: (MatchVenue) -> Unit = {},
     onSubmit: () -> Unit
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
@@ -241,6 +247,11 @@ private fun CreateMatchForm(
             // ---- Match type (required, no default) ----
             FieldCard(label = stringResource(Res.string.label_match_type), required = true) {
                 MatchTypeSelector(selected = state.matchType, onSelected = onMatchTypeSelected, error = state.matchTypeError)
+            }
+
+            // ---- Where (required, no default): prefills the location below ----
+            FieldCard(label = stringResource(Res.string.label_venue), required = true) {
+                VenueSelector(selected = state.venue, onSelected = onVenueSelected, error = state.venueError)
             }
 
             // ---- Halves (two by default; one is a single period with no half time) ----
@@ -332,9 +343,9 @@ private fun CreateMatchForm(
                     enabled = state.canSubmit,
                     onClick = onSubmit
                 )
-                // The button stays disabled until a type is picked, but a tap on it still has to say
-                // why (design 28b): onSubmit flags the missing type instead of scheduling.
-                if (!state.canSubmit && state.matchType == null) {
+                // The button stays disabled until a type and a venue are picked, but a tap on it still
+                // has to say why (design 28b): onSubmit flags what's missing instead of scheduling.
+                if (!state.canSubmit && (state.matchType == null || state.venue == null)) {
                     Box(
                         Modifier
                             .matchParentSize()

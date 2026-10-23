@@ -2878,3 +2878,27 @@ Per the developer, 2026-10-23: adding or removing a player used to save straight
   - **Finished games:** no call-up count at all.
 - **Spacing:** the detail rows are tighter (8dp vertical instead of 12), the list ends with the shared `ScreenPadding` bottom instead of 32dp, and the bottom bar is slimmer (12dp vertical) with `ScreenPadding`'s sides.
 
+## 63. Home, Away or Neutral
+
+Per the developer, 2026-10-23: a match didn't say whether it was at home or away.
+
+- **Model:** `MatchVenue { HOME, AWAY, NEUTRAL }` on `Match.venue`, in a new not-null column, `matches.venue`, defaulting to HOME (V24). Every existing match became HOME (the developer's call).
+  - `CreateMatchRequest.venue` and `UpdateMatchRequest.venue` are optional on the wire, so app builds from before still work. On create, a missing venue means HOME; on edit, it keeps the match's.
+- **Create match:** a required Home / Away / Neutral picker (`VenueSelector`), with none selected. Schedule stays disabled until one is picked, and a tap on the disabled button marks the picker red, like the type.
+- **Prefilled location** (`venueLocation`):
+  - **Home:** the club's ground (its stadium location, else its address).
+  - **Away:** the opponent's stadium address (else its stadium name). Picking another opponent while away moves it.
+  - **Neutral:** nothing.
+
+  The location always stays editable.
+- **Edit match:** the same picker, showing the match's venue. Changing it updates the location the same way. A blank location now clears it on the server (null still keeps it), so neutral really leaves it empty. `MatchDetails.clubLocation` carries the club's ground for this.
+- **Home side first**, as football writes a score (`MatchVenue.ourSideFirst()`, `MatchScore.homeFirst`). Our club goes first at home and on neutral ground (the developer's call), the opponent first away. It applies to:
+  - Match details' scoreboard (left of the score);
+  - the live console's scoreboard (on top, and the left score box) and its full-time summary;
+  - `MatchRow` in every list (on top, with "vs" the other side, and the score home-first; on screens that don't name our team, an "Away" / "Neutral" tag);
+  - Home's next-up card (`ClubHomeNextUp.venue`).
+
+  Results keep their win/draw/loss colour from our side.
+- **Not yet ordered by venue:** the season stats' per-match rows and the team's form strip, which carry no venue.
+- **Tests:** `CreateMatchUseCaseTest` and `UpdateMatchUseCaseTest` (saved, defaulted, changed, kept) on the server; `MatchVenueTest` (location prefill, home-first score, Schedule needs a venue) in the app.
+

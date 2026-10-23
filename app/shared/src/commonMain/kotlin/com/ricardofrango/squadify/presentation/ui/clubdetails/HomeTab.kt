@@ -376,8 +376,9 @@ private fun NextUpRow(item: ClubHomeNextUp, onClick: () -> Unit) {
                         OpponentLogo(item.opponentName, null, it, size = 20.dp)
                         Spacer(Modifier.width(6.dp))
                     }
+                    // Home first, as a fixture reads.
                     Text(
-                        "${item.teamName} · ${item.opponentName}",
+                        if (item.venue.ourSideFirst()) "${item.teamName} · ${item.opponentName}" else "${item.opponentName} · ${item.teamName}",
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                         color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis
                     )

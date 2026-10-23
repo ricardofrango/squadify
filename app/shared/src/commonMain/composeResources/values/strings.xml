@@ -1432,4 +1432,8 @@
     <string name="msg_callup_min_players">Call up at least %1$d players to save.</string>
     <string name="msg_callup_not_ready">The call-up isn\'t ready yet.</string>
     <string name="msg_callup_save_failed">Couldn\'t save the call-up. Try again.</string>
+    <string name="label_venue">Where</string>
+    <string name="venue_home">Home</string>
+    <string name="venue_away">Away</string>
+    <string name="venue_neutral">Neutral</string>
 </resources>

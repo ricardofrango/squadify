@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.ricardofrango.squadify.model.ourSideFirst
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
@@ -98,32 +99,54 @@ fun MatchRow(
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                if (teamName != null && teamName.isNotEmpty()) {
-                    Text(
-                        teamName,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                        color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis
-                    )
-                }
-                // Friendlies and tournaments get a small tag after the opponent; it wraps under the
-                // name on narrow widths instead of squeezing it (design 29f).
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    itemVerticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (opponentLogoUrl != null) OpponentLogo(opponentName, null, opponentLogoUrl, size = 20.dp)
-                    Text(
-                        "vs $opponentName",
-                        style = if (teamName != null && teamName.isNotEmpty()) {
-                            MaterialTheme.typography.bodyMedium
-                        } else {
-                            MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-                        },
-                        color = if (teamName != null && teamName.isNotEmpty()) DeepCarbon.copy(alpha = 0.8f) else DeepCarbon,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis
-                    )
-                    match.type?.takeIf { it.isTaggedInLists }?.let { MatchTypeTag(it) }
+                // Home on top, as football lists a fixture. Away, the opponent comes first and our team
+                // second; on screens that don't name our team, a tag says "Away" / "Neutral".
+                val hasTeam = teamName != null && teamName.isNotEmpty()
+                if (hasTeam && !match.venue.ourSideFirst()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (opponentLogoUrl != null) {
+                            OpponentLogo(opponentName, null, opponentLogoUrl, size = 20.dp)
+                            Spacer(Modifier.width(6.dp))
+                        }
+                        Text(
+                            opponentName,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                            color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        itemVerticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("vs $teamName", style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.8f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        match.type?.takeIf { it.isTaggedInLists }?.let { MatchTypeTag(it) }
+                    }
+                } else {
+                    if (hasTeam) {
+                        Text(
+                            teamName,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                            color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    // Friendlies and tournaments get a small tag after the opponent; it wraps under the
+                    // name on narrow widths instead of squeezing it (design 29f).
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        itemVerticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (opponentLogoUrl != null) OpponentLogo(opponentName, null, opponentLogoUrl, size = 20.dp)
+                        Text(
+                            "vs $opponentName",
+                            style = if (hasTeam) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                            color = if (hasTeam) DeepCarbon.copy(alpha = 0.8f) else DeepCarbon,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis
+                        )
+                        match.type?.takeIf { it.isTaggedInLists }?.let { MatchTypeTag(it) }
+                        if (!hasTeam) VenueTag(match.venue)
+                    }
                 }
                 Text(
                     subtitleFor(match, live, finished),
@@ -138,7 +161,7 @@ fun MatchRow(
                         val accent = resultColor(score)
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                "${score.ourScore}–${score.opponentScore}",
+                                score.homeFirst(match.venue),
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = accent
                             )
@@ -163,7 +186,7 @@ fun MatchRow(
                     // Not decided yet -- show the running score itself, no WIN/LOSS/DRAW label.
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        "${score.ourScore}–${score.opponentScore}",
+                        score.homeFirst(match.venue),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = resultColor(score)
                     )

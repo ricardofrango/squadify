@@ -16,6 +16,7 @@ import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.CreateMatchRequest
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchType
+import com.ricardofrango.squadify.model.MatchVenue
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.AgeGroupRole
@@ -121,5 +122,22 @@ class CreateMatchUseCaseTest {
             useCase(coach.id, CreateMatchRequest(teamId = teamId, opponentId = "opp-1", dateTime = Instant.fromEpochMilliseconds(1), type = MatchType.FRIENDLY, halves = 3))
         }
         Unit
+    }
+
+    @Test
+    fun theVenueIsSavedAndAnOldAppsMatchIsAtHome() = runBlocking {
+        val coach = coach()
+        coEvery { teamRepository.getTeamById(teamId) } returns team
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
+        coEvery { opponentRepository.getOpponentById("opp-1") } returns opponent
+        coEvery { matchRepository.createMatch(any()) } answers { firstArg() }
+
+        val away = useCase(coach.id, CreateMatchRequest(teamId = teamId, opponentId = "opp-1", dateTime = Instant.fromEpochMilliseconds(1), type = MatchType.FRIENDLY, venue = MatchVenue.AWAY))
+        assertEquals(MatchVenue.AWAY, away.venue)
+        // An app from before the venue sends none: the match is at home.
+        val old = useCase(coach.id, CreateMatchRequest(teamId = teamId, opponentId = "opp-1", dateTime = Instant.fromEpochMilliseconds(1), type = MatchType.FRIENDLY))
+        assertEquals(MatchVenue.HOME, old.venue)
     }
 }

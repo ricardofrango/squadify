@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.creatematch
 
 import com.ricardofrango.squadify.model.MatchType
+import com.ricardofrango.squadify.model.MatchVenue
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.Team
 import kotlinx.datetime.LocalDate
@@ -37,6 +38,12 @@ sealed class CreateMatchUiState {
         val matchTypeError: Boolean = false,
         // 2 halves unless switched to a single period (no half time).
         val halves: Int = 2,
+        // Home, away or neutral -- no default, it has to be picked; it prefills [location].
+        val venue: MatchVenue? = null,
+        // Set when Schedule is tapped with no venue picked, like matchTypeError.
+        val venueError: Boolean = false,
+        // The club's ground (stadium location, else its address), for a home match's location.
+        val clubLocation: String? = null,
         val date: LocalDate,
         val time: LocalTime,
         val location: String = "",
@@ -51,7 +58,7 @@ sealed class CreateMatchUiState {
         val selectedOpponent: Opponent? get() = opponents.find { it.id == selectedOpponentId }
 
         val canSubmit: Boolean
-            get() = selectedTeamId != null && selectedOpponentId != null && matchType != null
+            get() = selectedTeamId != null && selectedOpponentId != null && matchType != null && venue != null
     }
 }
 

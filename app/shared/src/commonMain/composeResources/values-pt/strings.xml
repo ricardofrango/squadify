@@ -1430,4 +1430,8 @@
     <string name="msg_callup_min_players">Convoque pelo menos %1$d jogadores para guardar.</string>
     <string name="msg_callup_not_ready">A convocatória ainda não está pronta.</string>
     <string name="msg_callup_save_failed">Não foi possível guardar a convocatória. Tente novamente.</string>
+    <string name="label_venue">Onde</string>
+    <string name="venue_home">Casa</string>
+    <string name="venue_away">Fora</string>
+    <string name="venue_neutral">Neutro</string>
 </resources>

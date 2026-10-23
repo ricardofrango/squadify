@@ -157,6 +157,16 @@ enum class SeasonType {
 @Serializable
 enum class MatchType { FRIENDLY, CHAMPIONSHIP, TOURNAMENT }
 
+/**
+ * Where a match is played, from our side. Home goes first in a score ("Home 2 – 1 Away"); at a neutral
+ * ground our club does. Matches scheduled before this existed are HOME (V24).
+ */
+@Serializable
+enum class MatchVenue { HOME, AWAY, NEUTRAL }
+
+/** Whether our team is shown first (left of the score, on top in a list): at home or on neutral ground. */
+fun MatchVenue.ourSideFirst(): Boolean = this != MatchVenue.AWAY
+
 @Serializable
 enum class MatchStatus {
     SCHEDULED,
@@ -908,7 +918,9 @@ data class Match(
     val firstHalfEndMinute: Int? = null,
     // Match-clock minute at full time -- set on the -> FINISHED transition. Its presence also marks a
     // match whose MatchPlayerStats were computed (matches finished before this existed have neither).
-    val fullTimeMinute: Int? = null
+    val fullTimeMinute: Int? = null,
+    // Home, away or neutral (see MatchVenue); every match has one.
+    val venue: MatchVenue = MatchVenue.HOME
 )
 
 /**
@@ -1091,7 +1103,9 @@ data class MatchDetails(
     // live console measures the difference with [estimateServerClockOffset] and counts with it.
     val serverNow: Instant? = null,
     // The club's own logo path, for the match header next to the opponent's; null without one.
-    val clubLogoUrl: String? = null
+    val clubLogoUrl: String? = null,
+    // The club's ground (stadium location, else address), to prefill a home match's location on edit.
+    val clubLocation: String? = null
 )
 
 @Serializable
@@ -1118,7 +1132,9 @@ data class UpdateMatchRequest(
     val notes: String? = null,
     val type: MatchType? = null,
     // 1 or 2 (see Match.halves). Only changeable before kickoff.
-    val halves: Int? = null
+    val halves: Int? = null,
+    // Null keeps the match's venue.
+    val venue: MatchVenue? = null
 )
 
 @Serializable
@@ -1148,7 +1164,9 @@ data class CreateMatchRequest(
     // Required: every new match is typified when it's scheduled.
     val type: MatchType,
     // 2 halves unless the match is a single period (Match.halves).
-    val halves: Int = 2
+    val halves: Int = 2,
+    // Required in the app; null only from an app that predates it, taken as HOME.
+    val venue: MatchVenue? = null
 )
 
 @Serializable
@@ -1233,7 +1251,9 @@ data class ClubHomeNextUp(
     val dateTime: Instant,
     val callUpsTotal: Int,
     // The opponent's logo path, when they have one.
-    val opponentLogoUrl: String? = null
+    val opponentLogoUrl: String? = null,
+    // Decides which side is named first on the card.
+    val venue: MatchVenue = MatchVenue.HOME
 )
 
 @Serializable

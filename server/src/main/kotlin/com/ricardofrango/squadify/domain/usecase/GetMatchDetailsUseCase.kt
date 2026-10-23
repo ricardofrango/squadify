@@ -118,6 +118,7 @@ class GetMatchDetailsUseCase(
             )
         } else null
 
+        val club = clubRepository.getClubById(match.clubId)
         MatchDetails(
             match = match,
             opponent = opponent,
@@ -132,7 +133,8 @@ class GetMatchDetailsUseCase(
             score = matchEventRepository.getScoreByMatch(matchId),
             report = report,
             serverNow = kotlin.time.Clock.System.now(),
-            clubLogoUrl = clubRepository.getClubById(match.clubId)?.logoUrl
+            clubLogoUrl = club?.logoUrl,
+            clubLocation = club?.let { it.stadiumLocation ?: it.address }
         )
     }
 }

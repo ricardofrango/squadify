@@ -110,7 +110,8 @@ class GetClubHomeUseCase(
                 location = next.location,
                 dateTime = next.dateTime,
                 callUpsTotal = callUps.size,
-                opponentLogoUrl = opponentsById[next.opponentId]?.logoUrl
+                opponentLogoUrl = opponentsById[next.opponentId]?.logoUrl,
+                venue = next.venue
             )
         }.sortedBy { it.dateTime }
 
