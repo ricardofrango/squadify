@@ -210,7 +210,7 @@ fun TeamSeasonRecord.totals(filter: StatsFilter): TeamRecordTotals {
 }
 
 const val FORM_LENGTH = 5
-const val LEADERS_SHOWN = 3
+const val LEADERS_SHOWN = 5
 // One 9 shouldn't top the rating table (design 31a).
 const val MIN_RATED_MATCHES_FOR_LEADERS = 2
 
@@ -226,8 +226,8 @@ data class TeamLeaders(
 )
 
 /**
- * Top three per category within [filter]. Players on zero are left out, so a list can be shorter
- * than three. Ties share a rank (three players on 4 goals are all #1) and are listed by name.
+ * Top five per category within [filter]. Players on zero are left out, so a list can be shorter
+ * than five. Ties share a rank (three players on 4 goals are all #1) and are listed by name.
  */
 fun TeamSeasonRecord.leaders(filter: StatsFilter): TeamLeaders {
     val matchIds = matches.filter { filter.includes(it.matchType) }.map { it.matchId }.toSet()

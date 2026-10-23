@@ -693,8 +693,8 @@
     <string name="record_team_leaders">Team leaders</string>
     <string name="record_leaders_goals">Goals</string>
     <string name="record_leaders_assists">Assists</string>
-    <string name="record_leaders_minutes">Minutes</string>
-    <string name="record_leaders_rating">Avg rating</string>
+    <string name="record_leaders_minutes">Time</string>
+    <string name="record_leaders_rating">Ranking</string>
     <string name="record_leaders_not_enough_rated">Not enough rated matches</string>
     <string name="record_no_results_title">No results yet</string>
     <string name="record_no_results_body">The record and team leaders appear after %1$s\'s first finished match.</string>

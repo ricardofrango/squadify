@@ -2260,6 +2260,8 @@ Every match is typified as **Friendly**, **Championship** or **Tournament** (`Ma
 
 Player Details shows a **Season stats** card with a per-match list (design 30), and Team Details a **Season record** and **Team leaders** cards (design 31). Both are fed by the per-player `match_player_stats` lines from §41.
 
+**Team leaders, revised (2026-10-23, the developer's call):** it was a 2x2 grid of top threes, and with photos it read as confusing. It's now one list under the other, in the order Ranking (the average rating, staff only), Goals, Assists, Time. Each shows the top five (`LEADERS_SHOWN`), and every row has the player's photo or the head-and-shoulders placeholder, so the names line up. The whole table is a future Full stats screen (REQUIREMENTS).
+
 **Rows from the server, totals on the client.**
 - **Two read endpoints:**
   - `GET /players/{id}/season-stats` returns every season the player was registered in, each with his per-match lines.

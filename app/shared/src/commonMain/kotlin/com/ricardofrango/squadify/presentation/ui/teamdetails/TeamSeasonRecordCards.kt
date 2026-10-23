@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.ui.teamdetails
 
 import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
+import com.ricardofrango.squadify.presentation.ui.components.PersonPlaceholder
 import com.ricardofrango.squadify.presentation.ui.components.emptyStatsRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -217,41 +218,35 @@ internal fun FormSquare(entry: TeamFormEntry, onClick: () -> Unit) {
 private data class Quad(val bg: Color, val fg: Color, val letter: StringResource, val word: StringResource)
 
 /**
- * Team leaders (design 31a): a two-column grid of top-three lists -- Goals, Assists, Minutes, and Avg
- * rating for staff only (members get three categories, no empty slot). Tapping a name opens the
- * player on this season and filter.
+ * Team leaders: one list under the other -- Ranking (average rating, staff only), Goals, Assists,
+ * Time -- each the top five (the developer's call, 2026-10-23; it was a 2x2 grid of top threes).
+ * Every row shows the player's photo, or the head-and-shoulders placeholder. Tapping a name opens
+ * the player on this season and filter. The full table is a future Team stats screen (REQUIREMENTS).
  */
 @Composable
 internal fun TeamLeadersCard(state: TeamRecordUiState.Loaded, onOpenPlayer: (String) -> Unit) {
     val leaders = state.record.leaders(state.filter)
     val categories = buildList {
+        if (state.record.canSeeRatings) add(Triple(Res.string.record_leaders_rating, leaders.averageRating) { e: LeaderEntry -> e.value.oneDecimal() })
         add(Triple(Res.string.record_leaders_goals, leaders.goals) { e: LeaderEntry -> e.value.roundToInt().toString() })
         add(Triple(Res.string.record_leaders_assists, leaders.assists) { e: LeaderEntry -> e.value.roundToInt().toString() })
         add(Triple(Res.string.record_leaders_minutes, leaders.minutes) { e: LeaderEntry -> "${e.value.roundToInt()}'" })
-        if (state.record.canSeeRatings) add(Triple(Res.string.record_leaders_rating, leaders.averageRating) { e: LeaderEntry -> e.value.oneDecimal() })
     }
     StatsCard {
         StatsHeading(stringResource(Res.string.record_team_leaders), Modifier.padding(bottom = 10.dp))
-        categories.chunked(2).forEachIndexed { i, pair ->
-            if (i > 0) Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                pair.forEach { (title, entries, format) ->
-                    Column(Modifier.weight(1f)) {
-                        Text(stringResource(title), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp), color = StatsSecondaryText)
-                        Spacer(Modifier.height(2.dp))
-                        if (entries.isEmpty()) {
-                            Text(
-                                if (title == Res.string.record_leaders_rating) stringResource(Res.string.record_leaders_not_enough_rated) else "—",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = StatsSecondaryText,
-                                modifier = Modifier.padding(vertical = 6.dp)
-                            )
-                        }
-                        entries.forEach { e -> LeaderRow(e, format(e)) { onOpenPlayer(e.playerId) } }
-                    }
-                }
-                if (pair.size == 1) Spacer(Modifier.weight(1f))
+        categories.forEachIndexed { i, (title, entries, format) ->
+            if (i > 0) Spacer(Modifier.height(14.dp))
+            Text(stringResource(title), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp), color = StatsSecondaryText)
+            Spacer(Modifier.height(2.dp))
+            if (entries.isEmpty()) {
+                Text(
+                    if (title == Res.string.record_leaders_rating) stringResource(Res.string.record_leaders_not_enough_rated) else "—",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = StatsSecondaryText,
+                    modifier = Modifier.padding(vertical = 6.dp)
+                )
             }
+            entries.forEach { e -> LeaderRow(e, format(e)) { onOpenPlayer(e.playerId) } }
         }
     }
 }
@@ -261,17 +256,16 @@ private fun LeaderRow(entry: LeaderEntry, value: String, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(entry.rank.toString(), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp), color = StatsSecondaryText, modifier = Modifier.width(14.dp))
         Spacer(Modifier.width(6.dp))
-        // The player's photo before the name, only when they have one.
-        entry.photoUrl?.let {
-            PersonPhoto(it, initialsOf(entry.name, ""), 20.dp, CarbonGray.copy(alpha = 0.08f), DeepCarbon)
-            Spacer(Modifier.width(6.dp))
-        }
+        // The player's photo, or the placeholder: every row has one, so the names line up.
+        entry.photoUrl?.let { PersonPhoto(it, initialsOf(entry.name, ""), 24.dp, CarbonGray.copy(alpha = 0.08f), DeepCarbon) }
+            ?: PersonPlaceholder(24.dp, DeepCarbon.copy(alpha = 0.3f))
+        Spacer(Modifier.width(8.dp))
         Text(
             entry.name,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
             color = DeepCarbon,
             modifier = Modifier.weight(1f),
-            maxLines = 2,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
         Spacer(Modifier.width(6.dp))
