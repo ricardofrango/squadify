@@ -104,8 +104,11 @@ fun MatchRow(
             DateBlock(match, muted = finished || cancelled)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                SideLine(home, faded = cancelled)
-                SideLine(away, faded = cancelled)
+                // The winner's name in bold once the game is over; neither on a draw or before the end.
+                val homeWon = finished && home.score != null && away.score != null && home.score > away.score
+                val awayWon = finished && home.score != null && away.score != null && away.score > home.score
+                SideLine(home, faded = cancelled, bold = homeWon)
+                SideLine(away, faded = cancelled, bold = awayWon)
             }
             Spacer(Modifier.width(8.dp))
             when {
@@ -141,7 +144,7 @@ private data class RowSide(val name: String, val logoUrl: String?, val score: In
 private val SideLineHeight = 24.dp
 
 @Composable
-private fun SideLine(side: RowSide, faded: Boolean) {
+private fun SideLine(side: RowSide, faded: Boolean, bold: Boolean) {
     Row(Modifier.height(SideLineHeight), verticalAlignment = Alignment.CenterVertically) {
         side.logoUrl?.let {
             ClubLogo(it, side.name.take(2).uppercase(), size = 20.dp, background = CarbonGray.copy(alpha = 0.08f), initialsColor = DeepCarbon)
@@ -149,7 +152,7 @@ private fun SideLine(side: RowSide, faded: Boolean) {
         }
         Text(
             side.name,
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal),
             color = DeepCarbon.copy(alpha = if (faded) 0.5f else 1f),
             maxLines = 1, overflow = TextOverflow.Ellipsis
         )

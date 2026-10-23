@@ -2901,7 +2901,7 @@ Per the developer, 2026-10-23: a match didn't say whether it was at home or away
   Results keep their win/draw/loss colour from our side.
 - **The match row** (`MatchRow`, every list; the developer's design, 2026-10-23):
   - **Left:** the weekday, "24 Oct" in the day's big type (it used to be just the day, with the date repeated under the names), and the type in three letters (Fri / Cha / Tou, Ami / Cam / Tor), with no type icon.
-  - **Middle:** the home side's line over the away side's, each with its logo when set. No "vs" and no subtitle line.
+  - **Middle:** the home side's line over the away side's, each with its logo when set. No "vs" and no subtitle line. Once a game is finished, the winner's name is bold; on a draw, or before the end, neither is.
   - **Right:** the kickoff time ("10:30") before the game. After it, one score per side, level with its name: black when finished, red while live with the minute ("30'") beside it, and yellow at half time with "HT" / "Int.". "Cancelled" for a cancelled game. The old "Live" badge and the win/draw/loss colours and labels are gone.
   - **Spacing:** the gap between the date column and the names went from 14dp to 10dp. Callers now always pass our team's name and the club's logo (`OpponentDetails.clubLogoUrl` was added for that).
 - **Not yet ordered by venue:** the season stats' per-match rows and the team's form strip, which carry no venue.
