@@ -289,10 +289,12 @@ private fun TeamHeader(details: TeamDetails, recordState: TeamRecordUiState, sho
     val opponentsById = remember(details.opponents) { details.opponents.associateBy { it.id } }
     val next = details.upcomingMatches.firstOrNull()
     val playersUsed = (recordState as? TeamRecordUiState.Loaded)?.record?.squad(StatsFilter.ALL)?.used?.size
-    Column(Modifier.fillMaxWidth().background(ClubChrome).padding(start = 14.dp, end = 14.dp, bottom = 12.dp)) {
+    // No padding around the stat cells: each one reaches the strip's edges. The Next card and the line
+    // above the cells keep their inset.
+    Column(Modifier.fillMaxWidth().background(ClubChrome)) {
         if (next != null && showNext) {
             Row(
-                Modifier.fillMaxWidth().padding(top = 4.dp).background(Color.White.copy(alpha = 0.07f), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 9.dp),
+                Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 4.dp).background(Color.White.copy(alpha = 0.07f), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(stringResource(Res.string.label_next).uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp), color = ChromeHighlight)
@@ -305,7 +307,7 @@ private fun TeamHeader(details: TeamDetails, recordState: TeamRecordUiState, sho
             }
             Spacer(Modifier.height(12.dp))
         }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.12f)))
+        Box(Modifier.fillMaxWidth().padding(horizontal = 14.dp).height(1.dp).background(Color.White.copy(alpha = 0.12f)))
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
             StripStat(details.upcomingMatches.size.toString(), stringResource(Res.string.label_upcoming), highlight = details.upcomingMatches.isNotEmpty(), modifier = Modifier.weight(1f)) { onSelect(TeamTab.MATCHES) }
             StripDivider()
@@ -318,7 +320,8 @@ private fun TeamHeader(details: TeamDetails, recordState: TeamRecordUiState, sho
 
 @Composable
 private fun StripStat(value: String, label: String, modifier: Modifier, highlight: Boolean = false, onClick: () -> Unit) {
-    Column(modifier.clickable(onClick = onClick).padding(top = 9.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    // The whole cell is the tap target, down to the strip's bottom edge, so its ripple fills it.
+    Column(modifier.clickable(onClick = onClick).padding(top = 9.dp, bottom = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 17.sp), color = if (highlight) ChromeHighlight else Color.White)
         Text(label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp), color = Color.White.copy(alpha = 0.62f), maxLines = 1)
     }
@@ -326,7 +329,8 @@ private fun StripStat(value: String, label: String, modifier: Modifier, highligh
 
 @Composable
 private fun StripDivider() {
-    Box(Modifier.width(1.dp).fillMaxHeight().background(Color.White.copy(alpha = 0.12f)))
+    // Stops above the cells' bottom padding, so it's no longer than the numbers it separates.
+    Box(Modifier.width(1.dp).fillMaxHeight().padding(bottom = 12.dp).background(Color.White.copy(alpha = 0.12f)))
 }
 
 // ---- Navigation ----

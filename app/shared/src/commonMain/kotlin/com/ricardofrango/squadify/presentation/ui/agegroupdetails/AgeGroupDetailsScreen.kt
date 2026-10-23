@@ -352,8 +352,9 @@ private fun OverflowMenu(
 /** Teams · Players · Staff · Upcoming -- each switches to its tab (Players and Staff both open Members). */
 @Composable
 private fun AgeGroupStrip(details: AgeGroupDetails, onSelect: (AgeGroupTab) -> Unit) {
-    Column(Modifier.fillMaxWidth().background(ClubChrome).padding(start = 14.dp, end = 14.dp, bottom = 12.dp)) {
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.12f)))
+    // No padding around the cells: each one reaches the strip's edges. The line above keeps its inset.
+    Column(Modifier.fillMaxWidth().background(ClubChrome)) {
+        Box(Modifier.fillMaxWidth().padding(horizontal = 14.dp).height(1.dp).background(Color.White.copy(alpha = 0.12f)))
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
             StripStat(details.teams.size.toString(), stringResource(Res.string.tab_teams), Modifier.weight(1f)) { onSelect(AgeGroupTab.TEAMS) }
             StripDivider()
@@ -368,7 +369,8 @@ private fun AgeGroupStrip(details: AgeGroupDetails, onSelect: (AgeGroupTab) -> U
 
 @Composable
 private fun StripStat(value: String, label: String, modifier: Modifier, highlight: Boolean = false, onClick: () -> Unit) {
-    Column(modifier.clickable(onClick = onClick).padding(top = 9.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    // The whole cell is the tap target, down to the strip's bottom edge, so its ripple fills it.
+    Column(modifier.clickable(onClick = onClick).padding(top = 9.dp, bottom = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 17.sp), color = if (highlight) ChromeHighlight else Color.White)
         Text(label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp), color = Color.White.copy(alpha = 0.62f), textAlign = TextAlign.Center)
     }
@@ -376,7 +378,8 @@ private fun StripStat(value: String, label: String, modifier: Modifier, highligh
 
 @Composable
 private fun StripDivider() {
-    Box(Modifier.width(1.dp).fillMaxHeight().background(Color.White.copy(alpha = 0.12f)))
+    // Stops above the cells' bottom padding, so it's no longer than the numbers it separates.
+    Box(Modifier.width(1.dp).fillMaxHeight().padding(bottom = 12.dp).background(Color.White.copy(alpha = 0.12f)))
 }
 
 /** "2012", or "2011–2012" for an age group spanning two birth years. */
