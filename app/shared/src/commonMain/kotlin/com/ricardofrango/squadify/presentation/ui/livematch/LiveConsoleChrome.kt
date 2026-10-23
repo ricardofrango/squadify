@@ -200,38 +200,59 @@ internal fun ScoreboardCard(home: ScoreSide, away: ScoreSide, clock: ClockState,
     }
 }
 
-/** Lying down: one bar -- home, the scores, away, then the clock in a pill. */
+/** One side's score box; tapping it logs a goal for that side when [ScoreSide.onGoal] is set. */
 @Composable
-internal fun ScoreboardBar(home: ScoreSide, away: ScoreSide, clock: ClockState, modifier: Modifier = Modifier) {
-    Row(
-        modifier.fillMaxWidth().heightIn(min = 44.dp).background(CarbonGray, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            SideCrest(home, 22.dp)
-            Spacer(Modifier.width(6.dp))
-            Text(home.name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        ScoreBoxes(home, away, 20.sp, 30.dp)
-        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
-            Text(away.name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-            Spacer(Modifier.width(6.dp))
-            SideCrest(away, 22.dp)
-        }
-        Row(
-            Modifier
-                .background(if (clock.paused) PausedAmber.copy(alpha = 0.14f) else CarbonGray, RoundedCornerShape(10.dp))
-                .border(1.dp, if (clock.paused) PausedAmber.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.14f), RoundedCornerShape(10.dp))
-                .padding(start = 8.dp, end = 3.dp, top = 2.dp, bottom = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+private fun ScoreBox(side: ScoreSide, fontSize: TextUnit, minWidth: Dp) {
+    Surface(onClick = side.onGoal ?: {}, enabled = side.onGoal != null, shape = RoundedCornerShape(8.dp), color = PitchGreen) {
+        Text(
+            side.score.toString(),
+            modifier = Modifier.widthIn(min = minWidth).padding(horizontal = 8.dp, vertical = 2.dp),
+            color = Color.White,
+            fontSize = fontSize,
+            fontWeight = FontWeight.Black,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+/**
+ * Lying down, beside the pitch: the clock band on top (the clock and pause button, the half under
+ * them), then the home side's row over the away side's, each crest, name and score.
+ */
+@Composable
+internal fun ScoreboardColumn(home: ScoreSide, away: ScoreSide, clock: ClockState, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth()) {
+        Column(
+            Modifier.fillMaxWidth()
+                .background(if (clock.paused) PausedAmber.copy(alpha = 0.14f) else CarbonGray, RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (clock.halfTimeNote != null) {
-                Text(stringResource(Res.string.label_half_time_badge), color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp, modifier = Modifier.padding(end = 6.dp, top = 4.dp, bottom = 4.dp))
+                Text(stringResource(Res.string.label_half_time_badge), color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                Text(clock.halfTimeNote, color = Color.White.copy(alpha = 0.55f), fontSize = 12.sp)
             } else {
-                ClockText(clock, 17.sp)
-                clock.onPauseToggle?.let { PauseButton(clock.paused, 26.dp, it) } ?: Spacer(Modifier.width(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ClockText(clock, 20.sp)
+                    clock.onPauseToggle?.let { PauseButton(clock.paused, 30.dp, it) }
+                }
+                Text(clock.label, color = if (clock.paused) PausedAmber else Color.White.copy(alpha = 0.55f), fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            }
+        }
+        Column(
+            Modifier.fillMaxWidth()
+                .background(CarbonGray, RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            listOf(home, away).forEach { side ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    SideCrest(side, 22.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text(side.name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    Spacer(Modifier.width(8.dp))
+                    ScoreBox(side, 22.sp, 34.dp)
+                }
             }
         }
     }
@@ -290,31 +311,4 @@ internal fun ActionTile(label: String, tone: ActionTone, enabled: Boolean, modif
 @Composable
 internal fun ActionTileRow(content: @Composable RowScope.() -> Unit) {
     Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), content = content)
-}
-
-/** Lying down, the bench is a column of rows: number (or photo), name, and the minutes bar along the foot. */
-@Composable
-internal fun BenchRowToken(number: Int?, photo: @Composable () -> Unit, name: String, minutesFraction: Float?, highlighted: Boolean, modifier: Modifier) {
-    Box(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
-            .background(Color.White.copy(alpha = 0.06f))
-            .then(if (highlighted) Modifier.border(BorderStroke(2.dp, PitchGreen), RoundedCornerShape(8.dp)) else Modifier)
-    ) {
-        Row(Modifier.padding(horizontal = 8.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (number != null) {
-                Box(Modifier.size(26.dp).background(Color(0xFF2C2C2E), CircleShape), contentAlignment = Alignment.Center) {
-                    Text(number.toString(), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                }
-            } else {
-                photo()
-            }
-            Spacer(Modifier.width(8.dp))
-            Text(name, color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        minutesFraction?.let { fraction ->
-            Box(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(3.dp).background(Color.White.copy(alpha = 0.18f))) {
-                Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).height(3.dp).background(PitchGreen))
-            }
-        }
-    }
 }

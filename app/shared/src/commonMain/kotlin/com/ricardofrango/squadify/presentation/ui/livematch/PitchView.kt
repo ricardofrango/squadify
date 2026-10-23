@@ -432,9 +432,9 @@ private fun BenchToken(player: Player, name: String, info: PitchTokenInfo, highl
 }
 
 /**
- * The pitch, the bench and anyone sent off. Upright (a phone held up) the bench is a row under the
- * pitch; lying down ([horizontal]) the pitch fills the width and the bench is a column beside it,
- * under [header], with [footer] (the kick-off button) at its foot.
+ * The pitch, the bench and anyone sent off: the bench is a row under the pitch either way. Lying down
+ * ([horizontal]) the pitch is drawn across, with the flip button on it, and [footer] (the kick-off
+ * button, before kickoff) is a column to the right.
  */
 @Composable
 internal fun PitchPanel(
@@ -452,8 +452,8 @@ internal fun PitchPanel(
     // The formation chip, on the pitch beside the goalkeeper (on our right); tapping it changes the formation.
     formationLabel: String,
     onFormationClick: (() -> Unit)?,
-    // Lying down: above the bench (the flip button). Upright: above the pitch, when set.
-    header: (@Composable () -> Unit)?,
+    // Lying down: turns the pitch round (a button on the pitch's top corner at the far end).
+    onFlip: (() -> Unit)?,
     hint: String?,
     modifier: Modifier = Modifier,
     footer: (@Composable ColumnScope.() -> Unit)? = null,
@@ -479,7 +479,8 @@ internal fun PitchPanel(
         val halfLengthAt = if (horizontal) Offset(ourEndX, 0f) else Offset(0f, 1f)
         val overlays = listOfNotNull(
             PitchOverlay(formationAt.x, formationAt.y) { Box(Modifier.padding(6.dp)) { FormationChip(formationLabel, onFormationClick) } },
-            besideKeeper?.let { content -> PitchOverlay(halfLengthAt.x, halfLengthAt.y) { Box(Modifier.padding(6.dp)) { content() } } }
+            besideKeeper?.let { content -> PitchOverlay(halfLengthAt.x, halfLengthAt.y) { Box(Modifier.padding(6.dp)) { content() } } },
+            onFlip?.takeIf { horizontal }?.let { flip -> PitchOverlay(1f - ourEndX, 0f) { Box(Modifier.padding(6.dp)) { FlipPitchButton(flip) } } }
         )
         PitchField(formation, horizontal, ourGoalAtStart, Modifier.fillMaxSize(), overlays) { slot ->
             val key = PitchDropKey.Slot(slot)
@@ -529,36 +530,14 @@ internal fun PitchPanel(
     val benchArea = Modifier.pitchDrag(drag, PitchDropKey.BenchArea, null, false, onDrop)
 
     Box(modifier.onGloballyPositioned { host = it }) {
-        if (horizontal) {
-            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                pitch(Modifier.weight(1f).fillMaxHeight())
-                Column(Modifier.width(232.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    header?.invoke()
-                    Column(benchArea.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        bench.forEach { player ->
-                            val key = PitchDropKey.Bench(player.id)
-                            BenchRowToken(
-                                number = player.shirtNumber,
-                                photo = { TokenPhoto(player, 26.dp, null) },
-                                name = names[player.id] ?: player.firstName,
-                                minutesFraction = tokenInfo(player).minutesFraction,
-                                highlighted = hovered == key,
-                                modifier = Modifier
-                                    .alpha(if (drag.source == key) 0.35f else 1f)
-                                    .then(if (onBenchTap != null) Modifier.clickable { onBenchTap(player) } else Modifier)
-                                    .pitchDrag(drag, key, player, dragEnabled, onDrop)
-                            )
-                        }
-                    }
-                    sentOffLine()
-                    footer?.invoke(this)
-                }
-            }
-        } else {
-            Column(Modifier.fillMaxSize()) {
-                header?.let { Box(Modifier.padding(horizontal = ScreenPadding.Horizontal)) { it() } }
-                pitch(Modifier.weight(1f).fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal))
-                Column(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal).padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // The pitch, with the bench in a row under it (and anyone sent off). Upright the screen's side
+        // padding applies here; lying down the caller pads. Before kickoff, lying down, [footer] (the
+        // kick-off button) is a column to the right.
+        val side = if (horizontal) 0.dp else ScreenPadding.Horizontal
+        val stack: @Composable (Modifier) -> Unit = { stackModifier ->
+            Column(stackModifier) {
+                pitch(Modifier.weight(1f).fillMaxWidth().padding(horizontal = side))
+                Column(Modifier.fillMaxWidth().padding(horizontal = side).padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     hintLine()
                     Row(
                         benchArea.fillMaxWidth().height(64.dp).horizontalScroll(rememberScrollState()),
@@ -567,6 +546,14 @@ internal fun PitchPanel(
                     sentOffLine()
                 }
             }
+        }
+        if (horizontal && footer != null) {
+            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                stack(Modifier.weight(1f).fillMaxHeight())
+                Column(Modifier.width(240.dp).fillMaxHeight(), verticalArrangement = Arrangement.Bottom) { footer() }
+            }
+        } else {
+            stack(Modifier.fillMaxSize())
         }
 
         // The player being dragged follows the finger.

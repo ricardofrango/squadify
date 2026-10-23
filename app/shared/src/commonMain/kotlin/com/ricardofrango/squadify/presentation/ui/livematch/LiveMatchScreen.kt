@@ -316,7 +316,7 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
                 onDrop = onDrop,
                 formationLabel = formationText,
                 onFormationClick = if (editable) { { sheet = PreKickoffSheet.Formation } } else null,
-                header = if (landscape) { { FlipPitchButton { flipped = !flipped } } } else null,
+                onFlip = if (landscape) { { flipped = !flipped } } else null,
                 besideKeeper = { HalfLengthChip(halfLength, HALF_LENGTH_OPTIONS, enabled = canManage) { halfLength = it } },
                 hint = null,
                 modifier = Modifier.weight(1f).fillMaxWidth().then(if (landscape) Modifier.padding(horizontal = 16.dp, vertical = 8.dp) else Modifier),
@@ -550,10 +550,10 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
                     onDrop = onDrop,
                     formationLabel = formationText,
                     onFormationClick = if (editable) { { showFormationSheet = true } } else null,
-                    header = if (sideBySide) { { FlipPitchButton { flipped = !flipped } } } else null,
+                    onFlip = if (sideBySide) { { flipped = !flipped } } else null,
                     // A substitution or clock correction just made is confirmed here, as on the Squad tab.
                     hint = flashText,
-                    modifier = Modifier.fillMaxSize().padding(top = 4.dp).then(if (sideBySide) Modifier.padding(horizontal = 16.dp, vertical = 8.dp) else Modifier)
+                    modifier = Modifier.fillMaxSize().padding(top = 4.dp)
                 )
             }
             LiveMatchTab.SQUAD -> SquadMinutesTab(
@@ -572,46 +572,60 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
             LiveMatchTab.EVENTS -> EventsTab(displayEvents, details, onDeleteRequest = if (canManage) { { deletingEvent = it } } else null)
         }
     }
-    val actionBar: @Composable (Modifier, Boolean) -> Unit = { modifier, compact ->
-        val buttonHeight = if (compact) 40.dp else 52.dp
+    // Half time / Full time (or Start 2nd half): side by side upright, stacked under the scoreboard lying down.
+    val actionBar: @Composable (Modifier, Boolean) -> Unit = { modifier, stacked ->
+        val buttons = buildList<@Composable (Modifier) -> Unit> {
+            if (status == MatchStatus.HALF_TIME) {
+                // Half time: the only way on is the second half.
+                add { m ->
+                    Button(
+                        onClick = { actions.onResumeSecondHalf() },
+                        enabled = !state.isSubmitting,
+                        modifier = m,
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)
+                    ) { Text(stringResource(Res.string.btn_start_second_half), fontWeight = FontWeight.Bold) }
+                }
+            } else {
+                // There's no second interval: once the second half has started, only Full time.
+                // One-half matches have no interval at all.
+                if (!isSecondHalf && !oneHalf) {
+                    add { m ->
+                        OutlinedButton(
+                            onClick = { showHalfTimeConfirm = true },
+                            enabled = !state.isSubmitting,
+                            modifier = m,
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                        ) { Text(stringResource(Res.string.btn_half_time), fontWeight = FontWeight.Bold) }
+                    }
+                }
+                add { m ->
+                    OutlinedButton(
+                        onClick = { showFullTimeConfirm = true },
+                        enabled = !state.isSubmitting,
+                        modifier = m,
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, LiveRed),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = LiveRed)
+                    ) { Text(stringResource(Res.string.btn_full_time), fontWeight = FontWeight.Bold) }
+                }
+            }
+        }
         Column(modifier) {
             state.error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(8.dp))
             }
             if (canManage) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    when {
-                        // Half time: the only way on is the second half.
-                        status == MatchStatus.HALF_TIME -> Button(
-                            onClick = { actions.onResumeSecondHalf() },
-                            enabled = !state.isSubmitting,
-                            modifier = Modifier.weight(1f).height(buttonHeight),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)
-                        ) { Text(stringResource(Res.string.btn_start_second_half), fontWeight = FontWeight.Bold) }
-                        else -> {
-                            // There's no second interval: once the second half has started, only Full time.
-                            // One-half matches have no interval at all.
-                            if (!isSecondHalf && !oneHalf) {
-                                OutlinedButton(
-                                    onClick = { showHalfTimeConfirm = true },
-                                    enabled = !state.isSubmitting,
-                                    modifier = Modifier.weight(1f).height(buttonHeight),
-                                    shape = RoundedCornerShape(14.dp),
-                                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
-                                ) { Text(stringResource(Res.string.btn_half_time), fontWeight = FontWeight.Bold) }
-                            }
-                            OutlinedButton(
-                                onClick = { showFullTimeConfirm = true },
-                                enabled = !state.isSubmitting,
-                                modifier = Modifier.weight(1f).height(buttonHeight),
-                                shape = RoundedCornerShape(14.dp),
-                                border = BorderStroke(1.dp, LiveRed),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = LiveRed)
-                            ) { Text(stringResource(Res.string.btn_full_time), fontWeight = FontWeight.Bold) }
-                        }
+                if (stacked) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        buttons.forEach { it(Modifier.fillMaxWidth().height(46.dp)) }
+                    }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        buttons.forEach { it(Modifier.weight(1f).height(52.dp)) }
                     }
                 }
             }
@@ -621,19 +635,21 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
         if (landscape) {
-            // Lying down (design "Squadify Pitch View"): one scoreboard bar across the top (no back
-            // button), then the
-            // tabs with the match buttons beside them, and the tab's content (the pitch with the bench
-            // in a column beside it) below.
-            Column(Modifier.fillMaxSize().navigationBarsPadding()) {
-                // No back button: system back leaves the screen, as upright.
-                ScoreboardBar(home, away, clock, Modifier.statusBarsPadding().padding(start = 16.dp, end = 16.dp, top = 8.dp))
-                Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 2.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    tabs(Modifier.widthIn(max = 380.dp).weight(1f))
-                    Spacer(Modifier.width(16.dp))
-                    actionBar(Modifier.width(300.dp), true)
+            // Lying down (the developer's layout, 2026-10-23): on the left the tabs, then the tab (the
+            // pitch with the bench under it); on the right the scoreboard as a column -- the clock on
+            // top, home over away -- with the match buttons under it. No back button: system back.
+            Row(
+                Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Column(Modifier.weight(1f).fillMaxHeight()) {
+                    tabs(Modifier.fillMaxWidth())
+                    Box(Modifier.weight(1f).fillMaxWidth().padding(top = 6.dp)) { tabContent(true) }
                 }
-                Box(Modifier.weight(1f).fillMaxWidth()) { tabContent(true) }
+                Column(Modifier.width(260.dp).fillMaxHeight().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    ScoreboardColumn(home, away, clock)
+                    actionBar(Modifier.fillMaxWidth(), true)
+                }
             }
         } else {
             // No app bar: the scoreboard sits at the top (system back leaves the screen).
