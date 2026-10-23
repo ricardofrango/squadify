@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.ClubStatus
 import com.ricardofrango.squadify.model.Club
+import com.ricardofrango.squadify.presentation.ui.theme.FilterRowPadding
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
@@ -353,7 +354,7 @@ private fun AgeGroupsFilterSection(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top, bottom = 20.dp),
+            .padding(FilterRowPadding),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -451,7 +452,7 @@ private fun TeamFilterSection(
 ) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
-        contentPadding = ScreenPadding.Values,
+        contentPadding = FilterRowPadding,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

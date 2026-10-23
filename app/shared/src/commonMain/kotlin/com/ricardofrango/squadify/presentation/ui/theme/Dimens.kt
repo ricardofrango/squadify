@@ -20,5 +20,12 @@ object ScreenPadding {
     val Values = PaddingValues(start = Horizontal, end = Horizontal, top = Top, bottom = Bottom)
 }
 
+/**
+ * A row of filters at the top of a list (the club screen's Age groups, Teams and Games tabs): the
+ * screen's sides and top, and a short gap before what follows -- the same on every tab, so switching
+ * tabs doesn't make the filters jump.
+ */
+val FilterRowPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top, bottom = 8.dp)
+
 /** [ScreenPadding] around a screen's content (a scrolling column, or a centred loading/error state). */
 fun Modifier.screenContentPadding(): Modifier = padding(ScreenPadding.Values)

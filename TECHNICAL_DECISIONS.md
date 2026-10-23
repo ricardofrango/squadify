@@ -2860,6 +2860,7 @@ Per the developer, 2026-10-23: screens padded their content differently (16, 20,
 - **Where it isn't:** the inner padding of cards, bottom sheets and dialogs stays as it was.
 - **Bigger changes:** Login's sign-in card went from 32dp to 16dp at the sides, most forms from 24dp, and the live console and the plan editors from 20dp.
 - **New screens follow it** (`AI_GUIDELINES.md`, "Screen Content Padding").
+- **Filter rows** (`FilterRowPadding`): the club screen's Age groups, Teams and Games tabs start their filters at the same place (the screen's sides and top, then 8dp before what follows). Games used to start 2dp lower, so its season filter jumped when switching tabs. The gaps under the filters are tighter, too.
 
 ## 62. Match Details: the Call-up Is a Draft Until Saved
 

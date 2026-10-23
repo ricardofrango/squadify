@@ -32,6 +32,7 @@ import com.ricardofrango.squadify.presentation.ui.components.MatchRow
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.FilterRowPadding
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.*
@@ -133,7 +134,7 @@ fun MatchesTab(
     Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = ScreenPadding.Horizontal, vertical = 16.dp),
+            contentPadding = FilterRowPadding,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -167,7 +168,7 @@ fun MatchesTab(
         }
 
         Row(
-            modifier = Modifier.fillMaxWidth().padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, bottom = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, bottom = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             StatusChip(Res.string.matches_status_upcoming, state.matchesStatus == MatchesStatusFilter.UPCOMING) {
@@ -192,7 +193,7 @@ fun MatchesTab(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = 4.dp, bottom = ScreenPadding.Bottom),
+                contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = 0.dp, bottom = ScreenPadding.Bottom),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 groups.forEachIndexed { index, group ->
@@ -201,7 +202,8 @@ fun MatchesTab(
                             stringResource(group.label).uppercase(),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             color = DeepCarbon.copy(alpha = 0.5f),
-                            modifier = Modifier.padding(top = 12.dp, bottom = 2.dp)
+                            // The first group's label sits just under the status chips; later ones keep a gap.
+                            modifier = Modifier.padding(top = if (index == 0) 4.dp else 12.dp, bottom = 2.dp)
                         )
                     }
                     items(group.matches, key = { it.id }) { match ->
