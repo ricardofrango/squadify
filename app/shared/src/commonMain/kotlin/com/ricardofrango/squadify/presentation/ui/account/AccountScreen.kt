@@ -1,5 +1,10 @@
 package com.ricardofrango.squadify.presentation.ui.account
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import com.ricardofrango.squadify.presentation.credentials.rememberCredentialStore
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import com.ricardofrango.squadify.presentation.ui.components.SignedOutAlert
@@ -90,6 +95,21 @@ fun AccountScreen(
             SignedOutAlert(onConfirm = { viewModel.onLogoutClicked() })
         }
 
+        // After a password change, the new password is offered to the password manager (Android's
+        // Credential Manager; nothing elsewhere). It's taken from the form as it's sent, since the
+        // form is cleared on success.
+        val credentialStore = rememberCredentialStore()
+        var sentPassword by remember { mutableStateOf<String?>(null) }
+        val passwordChanged = (uiState as? AccountUiState.Idle)?.passwordChanged == true
+        LaunchedEffect(passwordChanged) {
+            val email = (uiState as? AccountUiState.Idle)?.email
+            val password = sentPassword
+            if (passwordChanged && email != null && password != null) {
+                sentPassword = null
+                credentialStore.save(email, password)
+            }
+        }
+
         fun currentForm() = (viewModel.state.value as? AccountUiState.Idle)?.form
 
         AccountContent(
@@ -101,7 +121,10 @@ fun AccountScreen(
             onPhoneChange = { value -> currentForm()?.let { viewModel.updateProfileForm(it.copy(phone = value)) } },
             onSaveProfileClick = { viewModel.onSaveProfileClicked() },
             onPasswordFormChange = { form -> viewModel.updatePasswordForm(form) },
-            onChangePasswordClick = { viewModel.onChangePasswordClicked() },
+            onChangePasswordClick = {
+                sentPassword = (viewModel.state.value as? AccountUiState.Idle)?.passwordForm?.newPassword
+                viewModel.onChangePasswordClicked()
+            },
             onChangeEmailClick = onNavigateToChangeEmail,
             onLogoutClick = { viewModel.onLogoutClicked() },
             onPhotoPicked = viewModel::onPhotoPicked,

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.login
 
+import com.ricardofrango.squadify.presentation.credentials.rememberCredentialStore
 import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
@@ -54,6 +55,9 @@ fun LoginScreen(
     // Lets the platform password manager offer to save the entered credentials once login succeeds
     // (null on targets without an autofill service, e.g. desktop/web/iOS).
     val autofillManager = LocalAutofillManager.current
+    // Android's Credential Manager: the "save password?" sheet after signing in, and a saved account
+    // to sign in with when the screen opens. Elsewhere it does nothing and autofill does the saving.
+    val credentialStore = rememberCredentialStore()
 
     // Local UI State for input fields
     var email by rememberSaveable { mutableStateOf("") }
@@ -63,18 +67,27 @@ fun LoginScreen(
     LaunchedEffect(passwordResetEmail) {
         if (passwordResetEmail != null) { email = passwordResetEmail; password = "" }
     }
+    // Offers a saved account on a fresh, empty screen (not after a reset, or once something's typed).
+    LaunchedEffect(Unit) {
+        if (passwordResetEmail == null && email.isEmpty() && password.isEmpty()) {
+            credentialStore.pick()?.let { email = it.email; password = it.password }
+        }
+    }
+    suspend fun offerToSavePassword() {
+        if (credentialStore.isAvailable) credentialStore.save(email, password) else autofillManager?.commit()
+    }
 
     // Observe Navigation Events
     LaunchedEffect(viewModel.navigationEvent) {
         viewModel.navigationEvent.collect { event ->
             when (event) {
+                // The "save password?" sheet first, so it isn't cut off by leaving this screen.
                 LoginNavigationEvent.NavigateToDashboard -> {
-                    // Commit the autofill session so the OS shows its "save password?" prompt.
-                    autofillManager?.commit()
+                    offerToSavePassword()
                     onNavigateToDashboard()
                 }
                 is LoginNavigationEvent.NavigateToOnlyClub -> {
-                    autofillManager?.commit()
+                    offerToSavePassword()
                     onNavigateToOnlyClub(event.clubId)
                 }
             }

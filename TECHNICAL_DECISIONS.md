@@ -2836,3 +2836,18 @@ Per the developer, 2026-10-23: the local server kept running old code until it w
 - **Not reloaded:** `Application.kt`'s own code (the class with `main`, loaded once). Routes, use cases, repositories and everything else are.
 - **Also:** the port can be set with `SERVER_PORT` (default 8080), for example to run a second server next to yours. Not `PORT`: Railway sets that one itself, and the deployed server must keep listening on 8080, where its domain points.
 
+## 60. Saved Passwords: Credential Manager
+
+Per the developer, 2026-10-23 (from `ISSUES TO FIX.md`): Login only tagged its fields for autofill. Saving and filling passwords now goes through Jetpack **Credential Manager** on Android (`androidx.credentials` with `credentials-play-services-auth`).
+
+- **`CredentialStore`** (`presentation/credentials/`): `save(email, password)` and `pick()`, plus `isAvailable`, behind an `expect fun rememberCredentialStore()`.
+  - **Android:** the real implementation, `CredentialStore.android.kt`. It uses the screen's Activity context, which Credential Manager needs to show its sheets.
+  - **iOS, desktop and web:** `NoCredentialStore`, which does nothing.
+  - Neither call ever throws: being dismissed, or having no provider, simply does nothing.
+- **Saving:** Android shows its "save password?" sheet:
+  - **Login:** after a successful sign-in. The sheet comes first, then the app moves on, so leaving the screen can't cut it off. Where no store is available, Login falls back to committing the autofill session as before.
+  - **Register:** after a successful registration, with the email and password that were sent.
+  - **Account:** after changing the password, with the new one. It's taken from the form as it's sent, since the form is cleared on success.
+- **Filling:** when Login opens empty (not after a password reset, and not with anything typed), it asks for a saved account and fills in the email and password. It uses `preferImmediatelyAvailableCredentials`, so a user with nothing saved sees no sheet at all.
+- **Not testable on the JVM:** this is all platform UI; check it on a device.
+

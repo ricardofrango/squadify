@@ -63,6 +63,10 @@ kotlin {
             // checkServerTrusted(X509Certificate[], String, String) is used". OkHttp's SSLSocket-based
             // stack handles this correctly; this is Ktor's own documented workaround for Android.
             implementation(libs.ktor.client.okhttp)
+            // Credential Manager: the system's "save password?" sheet and saved-account sign-in
+            // (CredentialStore.android.kt). play-services-auth is what serves it on Android 13 and below.
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.playServicesAuth)
         }
         iosMain.dependencies {
             // Ktor's HttpClient() picks its engine at runtime from whatever engine artifacts are

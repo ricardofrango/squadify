@@ -1,5 +1,10 @@
 package com.ricardofrango.squadify.presentation.ui.register
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import com.ricardofrango.squadify.presentation.credentials.rememberCredentialStore
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.text.KeyboardActions
@@ -47,13 +52,19 @@ fun RegisterScreen(
     viewModel: RegisterViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+    // The email and password last sent, so the new account can be offered to the password manager.
+    var lastAttempt by remember { mutableStateOf<Pair<String, String>?>(null) }
+    val credentialStore = rememberCredentialStore()
 
     // Observe Navigation Events
     LaunchedEffect(viewModel.navigationEvent) {
         viewModel.navigationEvent.collect { event ->
             when (event) {
                 RegisterNavigationEvent.NavigateBackToLogin -> onNavigateBack()
-                RegisterNavigationEvent.NavigateToDashboard -> onNavigateToDashboard()
+                RegisterNavigationEvent.NavigateToDashboard -> {
+                    lastAttempt?.let { (email, password) -> credentialStore.save(email, password) }
+                    onNavigateToDashboard()
+                }
             }
         }
     }
@@ -61,7 +72,10 @@ fun RegisterScreen(
     RegisterContent(
         uiState = uiState,
         onNavigateBack = onNavigateBack,
-        onRegister = viewModel::onRegisterClicked
+        onRegister = { firstName, lastName, email, phone, password, confirmPassword ->
+            lastAttempt = email.trim() to password
+            viewModel.onRegisterClicked(firstName, lastName, email, phone, password, confirmPassword)
+        }
     )
 }
 
