@@ -2872,5 +2872,9 @@ Per the developer, 2026-10-23: adding or removing a player used to save straight
   - **Starts the game only (`MANAGE_LIVE_MATCH`):** the saved call-up, read-only, with "Start match" when it's ready (at least the minimum). Otherwise only "The call-up isn't ready yet".
   - **Neither:** the match details only, with no players.
   - **Finished or cancelled:** read-only for those with either right, nothing for others, and no button. Live: "Enter live match".
+- **Header** (2026-10-23, the developer's call): the top bar says when and what kind of game, "Sat 24 Oct · 10:30", over "Championship · in 3 days" (or "Cancelled", "Live", "1 half").
+  - **Scoreboard band:** below the bar, one line as football shows it, `[logo] Team 2 – 1 Opponent [logo]`. Each logo only when it's set, the score only once there is one, and "vs" before that, in small type so both names fit.
+  - **Dropped from the band:** no "Victory/Defeat" pill (the score says it), the "X/Y called up" line and its divider (the count sits next to the Call-up title), and the location (the Details card has it, with directions).
+  - **Finished games:** no call-up count at all.
 - **Spacing:** the detail rows are tighter (8dp vertical instead of 12), the list ends with the shared `ScreenPadding` bottom instead of 32dp, and the bottom bar is slimmer (12dp vertical) with `ScreenPadding`'s sides.
 

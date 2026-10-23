@@ -144,10 +144,10 @@ private fun MatchDetailsContent(
         containerColor = Color.White,
         topBar = {
             Column(Modifier.background(ClubChrome)) {
+                // The teams and the score are the band below; the bar says when and what kind of game.
                 SquadifyTopBar(
-                    title = details?.let { "${it.team.name} vs ${it.opponent.shortName ?: it.opponent.name}" }
-                        ?: stringResource(Res.string.title_match),
-                    subtitle = details?.let { "${it.ageGroup.name} · ${it.season.name}" },
+                    title = details?.let { whenLabel(it.match.dateTime) } ?: stringResource(Res.string.title_match),
+                    subtitle = details?.let { matchSubtitle(it) },
                     onNavigateBack = onNavigateBack,
                     actions = {
                         // Delete is the menu's only item, and a played (FINISHED) match can't be deleted.
@@ -222,96 +222,63 @@ private fun MatchDetailsContent(
 // ---- Header ----
 
 @OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun StatusBand(details: MatchDetails) {
-    val match = details.match
-    val dt = match.dateTime.toLocalDateTime(TimeZone.currentSystemDefault())
-    // The saved call-up, out of the whole pool.
-    val calledUp = details.callUps.size
-    val total = details.callUps.size + details.poolPlayers.size
-    Column(Modifier.background(ClubChrome).padding(start = 16.dp, end = 16.dp, bottom = 12.dp)) {
-        CrestPair(details)
-        // The type chip leads the status line so it lines up across states (design 29a); the line
-        // wraps rather than truncating when a long type name and the date don't fit together.
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            itemVerticalAlignment = Alignment.CenterVertically
-        ) {
-            match.type?.let { MatchTypeChip(it, muted = match.status == MatchStatus.CANCELLED) }
-            Text(
-                "${dt.date.format(WeekdayDayMonth)} · ${timeLabel(match.dateTime)}",
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                color = Color.White
-            )
-            // Two halves is the norm and goes unsaid; a single-period match says so.
-            if (match.halves == 1) {
-                Text(stringResource(Res.string.halves_one), style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f))
-            }
-            if (match.status == MatchStatus.LIVE || match.status == MatchStatus.HALF_TIME) {
-                Pill(stringResource(Res.string.matches_live), LossRed, Color.White)
-            } else if (match.status == MatchStatus.SCHEDULED) {
-                Pill(relativeLabel(match.dateTime), ChromeAccent.copy(alpha = 0.25f), ChromeAccent)
-            } else if (match.status == MatchStatus.FINISHED) {
-                // On a club's colours a tinted green or red can vanish (green on a green club), so the
-                // pill goes solid with white text.
-                val (bg, fg) = if (IsClubThemed) solidResultPillColors(details.score) else resultPillColors(details.score)
-                Pill(stringResource(resultLabel(details.score)), bg, fg)
-            }
-        }
-        if (match.status == MatchStatus.FINISHED) {
-            Text(
-                "${details.score.ourScore} – ${details.score.opponentScore}",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                color = if (IsClubThemed) Color.White else resultAccent(details.score)
-            )
-        }
-        match.location?.takeIf { it.isNotBlank() }?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
-        }
-        Spacer(Modifier.height(8.dp))
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.10f)))
-        Spacer(Modifier.height(8.dp))
-        Text(
-            stringResource(Res.string.label_callup_summary, calledUp, total),
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.6f)
-        )
-    }
-}
-
 /**
- * The club's and the opponent's logos side by side, above the status line. Only the logos that are
- * set: nothing at all when neither side has one, and "vs" only between two.
+ * The scoreboard line under the top bar, as football shows it: "[logo] Team 2 – 1 Opponent [logo]".
+ * Each logo only when it's set, the score only once there is one (live or finished) -- before that,
+ * "vs". Small enough for both names to fit; a long one is cut with "…".
  */
 @Composable
-private fun CrestPair(details: MatchDetails) {
-    val clubLogo = details.clubLogoUrl
-    val opponentLogo = details.opponent.logoUrl
-    if (clubLogo == null && opponentLogo == null) return
-    Row(Modifier.padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        if (clubLogo != null) {
-            ClubLogo(clubLogo, details.team.name.take(2).uppercase(), size = 40.dp, background = Color.White, initialsColor = DeepCarbon)
+private fun StatusBand(details: MatchDetails) {
+    val status = details.match.status
+    val hasScore = status == MatchStatus.FINISHED || status == MatchStatus.LIVE || status == MatchStatus.HALF_TIME
+    val nameStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+    val nameColor = Color.White.copy(alpha = if (status == MatchStatus.CANCELLED) 0.55f else 1f)
+    Row(
+        Modifier.fillMaxWidth().background(ClubChrome).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+            details.clubLogoUrl?.let { BandCrest(it, details.team.name); Spacer(Modifier.width(8.dp)) }
+            Text(details.team.name, style = nameStyle, color = nameColor, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
         }
-        if (clubLogo != null && opponentLogo != null) {
-            Text("vs", color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(horizontal = 12.dp))
-        }
-        if (opponentLogo != null) {
-            ClubLogo(opponentLogo, details.opponent.name.take(2).uppercase(), size = 40.dp, background = Color.White, initialsColor = DeepCarbon)
+        Text(
+            if (hasScore) "${details.score.ourScore} – ${details.score.opponentScore}" else "vs",
+            style = if (hasScore) MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black) else MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+            color = if (hasScore) Color.White else Color.White.copy(alpha = 0.6f),
+            modifier = Modifier.padding(horizontal = 12.dp)
+        )
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            Text(details.opponent.shortName ?: details.opponent.name, style = nameStyle, color = nameColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            details.opponent.logoUrl?.let { Spacer(Modifier.width(8.dp)); BandCrest(it, details.opponent.name) }
         }
     }
 }
 
+/** A side's logo on the band, on a white disc so any crest reads on the bar's colour. */
 @Composable
-private fun Pill(text: String, bg: Color, fg: Color) {
-    Surface(shape = RoundedCornerShape(8.dp), color = bg) {
-        Text(
-            text,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-            color = fg
-        )
-    }
+private fun BandCrest(logoUrl: String, name: String) =
+    ClubLogo(logoUrl, name.take(2).uppercase(), size = 28.dp, background = Color.White, initialsColor = DeepCarbon)
+
+/** "Sat 24 Oct · 10:30": the top bar's title. */
+@Composable
+private fun whenLabel(instant: Instant): String =
+    "${instant.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(WeekdayDayMonth)} · ${timeLabel(instant)}"
+
+/** The type, then what's notable: "Championship · in 3 days", "Friendly · Cancelled", "… · 1 half". */
+@Composable
+private fun matchSubtitle(details: MatchDetails): String {
+    val match = details.match
+    return listOfNotNull(
+        match.type?.let { stringResource(it.labelRes()) },
+        when (match.status) {
+            MatchStatus.SCHEDULED -> relativeLabel(match.dateTime)
+            MatchStatus.CANCELLED -> stringResource(Res.string.status_cancelled)
+            MatchStatus.LIVE, MatchStatus.HALF_TIME -> stringResource(Res.string.matches_live)
+            else -> null
+        },
+        // Two halves is the norm and goes unsaid; a single-period match says so.
+        if (match.halves == 1) stringResource(Res.string.halves_one) else null
+    ).joinToString(" · ").ifEmpty { "${details.ageGroup.name} · ${details.season.name}" }
 }
 
 // ---- Body ----
@@ -388,7 +355,12 @@ private fun MatchBody(
                         item {
                             SectionHeader(
                                 title = stringResource(Res.string.label_call_up),
-                                pill = if (editing) "${calledUp.size}/${calledUp.size + sortedPool.size}" else calledUp.size.toString()
+                                // Once the game is played the count says nothing more; it's dropped.
+                                pill = when {
+                                    details.match.status == MatchStatus.FINISHED -> null
+                                    editing -> "${calledUp.size}/${calledUp.size + sortedPool.size}"
+                                    else -> calledUp.size.toString()
+                                }
                             )
                         }
                         item {
@@ -760,30 +732,6 @@ internal fun playerComparator(sort: CallUpSort): Comparator<Player> = when (sort
         { it.firstName.lowercase() },
         { it.lastName.lowercase() }
     )
-}
-
-private fun resultAccent(score: MatchScore): Color = when {
-    score.ourScore > score.opponentScore -> SuccessGreen
-    score.ourScore < score.opponentScore -> LossRed
-    else -> Color.White.copy(alpha = 0.75f)
-}
-
-private fun solidResultPillColors(score: MatchScore): Pair<Color, Color> = when {
-    score.ourScore > score.opponentScore -> SuccessGreen to Color.White
-    score.ourScore < score.opponentScore -> LossRed to Color.White
-    else -> Color.White.copy(alpha = 0.2f) to Color.White
-}
-
-private fun resultPillColors(score: MatchScore): Pair<Color, Color> = when {
-    score.ourScore > score.opponentScore -> SuccessGreen.copy(alpha = 0.25f) to SuccessGreen
-    score.ourScore < score.opponentScore -> LossRed.copy(alpha = 0.25f) to LossRed
-    else -> Color.White.copy(alpha = 0.15f) to Color.White.copy(alpha = 0.75f)
-}
-
-private fun resultLabel(score: MatchScore): StringResource = when {
-    score.ourScore > score.opponentScore -> Res.string.label_result_win
-    score.ourScore < score.opponentScore -> Res.string.label_result_loss
-    else -> Res.string.label_result_draw
 }
 
 private fun timeLabel(instant: Instant): String {
