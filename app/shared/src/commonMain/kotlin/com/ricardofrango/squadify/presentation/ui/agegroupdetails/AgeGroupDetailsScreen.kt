@@ -352,9 +352,9 @@ private fun OverflowMenu(
 /** Teams · Players · Staff · Upcoming -- each switches to its tab (Players and Staff both open Members). */
 @Composable
 private fun AgeGroupStrip(details: AgeGroupDetails, onSelect: (AgeGroupTab) -> Unit) {
-    // No padding around the cells: each one reaches the strip's edges. The line above keeps its inset.
+    // No padding around the cells or the lines: they all reach the strip's edges.
     Column(Modifier.fillMaxWidth().background(ClubChrome)) {
-        Box(Modifier.fillMaxWidth().padding(horizontal = 14.dp).height(1.dp).background(Color.White.copy(alpha = 0.12f)))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.12f)))
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
             StripStat(details.teams.size.toString(), stringResource(Res.string.tab_teams), Modifier.weight(1f)) { onSelect(AgeGroupTab.TEAMS) }
             StripDivider()
@@ -378,8 +378,8 @@ private fun StripStat(value: String, label: String, modifier: Modifier, highligh
 
 @Composable
 private fun StripDivider() {
-    // Stops above the cells' bottom padding, so it's no longer than the numbers it separates.
-    Box(Modifier.width(1.dp).fillMaxHeight().padding(bottom = 12.dp).background(Color.White.copy(alpha = 0.12f)))
+    // Runs the strip's full height, down to its bottom edge.
+    Box(Modifier.width(1.dp).fillMaxHeight().background(Color.White.copy(alpha = 0.12f)))
 }
 
 /** "2012", or "2011–2012" for an age group spanning two birth years. */

@@ -289,8 +289,8 @@ private fun TeamHeader(details: TeamDetails, recordState: TeamRecordUiState, sho
     val opponentsById = remember(details.opponents) { details.opponents.associateBy { it.id } }
     val next = details.upcomingMatches.firstOrNull()
     val playersUsed = (recordState as? TeamRecordUiState.Loaded)?.record?.squad(StatsFilter.ALL)?.used?.size
-    // No padding around the stat cells: each one reaches the strip's edges. The Next card and the line
-    // above the cells keep their inset.
+    // No padding around the stat cells or the lines: they all reach the strip's edges. Only the Next
+    // card keeps its inset.
     Column(Modifier.fillMaxWidth().background(ClubChrome)) {
         if (next != null && showNext) {
             Row(
@@ -307,7 +307,7 @@ private fun TeamHeader(details: TeamDetails, recordState: TeamRecordUiState, sho
             }
             Spacer(Modifier.height(12.dp))
         }
-        Box(Modifier.fillMaxWidth().padding(horizontal = 14.dp).height(1.dp).background(Color.White.copy(alpha = 0.12f)))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.12f)))
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
             StripStat(details.upcomingMatches.size.toString(), stringResource(Res.string.label_upcoming), highlight = details.upcomingMatches.isNotEmpty(), modifier = Modifier.weight(1f)) { onSelect(TeamTab.MATCHES) }
             StripDivider()
@@ -329,8 +329,8 @@ private fun StripStat(value: String, label: String, modifier: Modifier, highligh
 
 @Composable
 private fun StripDivider() {
-    // Stops above the cells' bottom padding, so it's no longer than the numbers it separates.
-    Box(Modifier.width(1.dp).fillMaxHeight().padding(bottom = 12.dp).background(Color.White.copy(alpha = 0.12f)))
+    // Runs the strip's full height, down to its bottom edge.
+    Box(Modifier.width(1.dp).fillMaxHeight().background(Color.White.copy(alpha = 0.12f)))
 }
 
 // ---- Navigation ----
