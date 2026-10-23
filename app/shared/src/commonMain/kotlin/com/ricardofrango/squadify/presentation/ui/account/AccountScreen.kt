@@ -30,6 +30,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.UserStatus
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
+import com.ricardofrango.squadify.presentation.ui.components.PhotoActions
 import com.ricardofrango.squadify.presentation.ui.components.PasswordVisibilityToggle
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
@@ -101,7 +103,9 @@ fun AccountScreen(
             onPasswordFormChange = { form -> viewModel.updatePasswordForm(form) },
             onChangePasswordClick = { viewModel.onChangePasswordClicked() },
             onChangeEmailClick = onNavigateToChangeEmail,
-            onLogoutClick = { viewModel.onLogoutClicked() }
+            onLogoutClick = { viewModel.onLogoutClicked() },
+            onPhotoPicked = viewModel::onPhotoPicked,
+            onRemovePhoto = viewModel::onRemovePhoto
         )
     }
 }
@@ -119,7 +123,9 @@ private fun AccountContent(
     onPasswordFormChange: (PasswordFormFields) -> Unit,
     onChangePasswordClick: () -> Unit,
     onChangeEmailClick: (String) -> Unit = {},
-    onLogoutClick: () -> Unit
+    onLogoutClick: () -> Unit,
+    onPhotoPicked: (ByteArray) -> Unit = {},
+    onRemovePhoto: () -> Unit = {}
 ) {
     val idle = uiState as? AccountUiState.Idle
 
@@ -175,7 +181,9 @@ private fun AccountContent(
                     onChangePasswordClick = onChangePasswordClick,
                     onChangeEmailClick = onChangeEmailClick,
                     onSaveProfileClick = onSaveProfileClick,
-                    onLogoutClick = onLogoutClick
+                    onLogoutClick = onLogoutClick,
+                    onPhotoPicked = onPhotoPicked,
+                    onRemovePhoto = onRemovePhoto
                 )
             }
         }
@@ -203,7 +211,9 @@ private fun AccountForm(
     onChangePasswordClick: () -> Unit,
     onChangeEmailClick: (String) -> Unit,
     onSaveProfileClick: () -> Unit,
-    onLogoutClick: () -> Unit
+    onLogoutClick: () -> Unit,
+    onPhotoPicked: (ByteArray) -> Unit,
+    onRemovePhoto: () -> Unit
 ) {
     val form = state.form
     val passwordForm = state.passwordForm
@@ -214,7 +224,7 @@ private fun AccountForm(
             .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        ProfileHeader(state)
+        ProfileHeader(state, onPhotoPicked, onRemovePhoto)
 
         FormField(
             value = form.firstName,
@@ -274,17 +284,17 @@ private fun AccountForm(
 }
 
 @Composable
-private fun ProfileHeader(state: AccountUiState.Idle) {
+private fun ProfileHeader(state: AccountUiState.Idle, onPhotoPicked: (ByteArray) -> Unit, onRemovePhoto: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier.size(56.dp).background(PitchGreen.copy(alpha = 0.15f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = state.initials,
-                color = PitchGreen,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+        Box(contentAlignment = Alignment.Center) {
+            PersonPhoto(
+                photoUrl = state.photo.url,
+                initials = state.initials,
+                size = 56.dp,
+                background = PitchGreen.copy(alpha = 0.15f),
+                initialsColor = PitchGreen
             )
+            if (state.photo.isUpdating) CircularProgressIndicator(Modifier.size(56.dp), color = PitchGreen, strokeWidth = 2.dp)
         }
         Spacer(Modifier.width(16.dp))
         Column {
@@ -293,13 +303,14 @@ private fun ProfileHeader(state: AccountUiState.Idle) {
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                 color = DeepCarbon.copy(alpha = 0.6f)
             )
-            Text(
-                text = stringResource(
-                    if (state.isDirty) Res.string.msg_unsaved_profile_changes else Res.string.msg_no_profile_changes
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = DeepCarbon.copy(alpha = 0.5f)
-            )
+            if (state.isDirty) {
+                Text(
+                    text = stringResource(Res.string.msg_unsaved_profile_changes),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DeepCarbon.copy(alpha = 0.5f)
+                )
+            }
+            PhotoActions(state.photo, onPicked = onPhotoPicked, onRemove = onRemovePhoto)
         }
     }
 }

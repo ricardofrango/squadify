@@ -12,6 +12,9 @@ interface PlayerRepository {
     suspend fun getPlayerSeasonStats(playerId: String): PlayerSeasonStats
     suspend fun createPlayers(request: CreatePlayersRequest): List<Player>
     suspend fun updatePlayer(playerId: String, request: UpdatePlayerRequest)
+    /** Uploads [bytes] (PNG or JPEG) as the player's photo; returns the new photo path. */
+    suspend fun uploadPlayerPhoto(playerId: String, bytes: ByteArray): String
+    suspend fun deletePlayerPhoto(playerId: String)
     // Disabled in the club: still in their age groups, out of upcoming call-ups; the data stays.
     suspend fun disablePlayer(playerId: String)
     // Active again.

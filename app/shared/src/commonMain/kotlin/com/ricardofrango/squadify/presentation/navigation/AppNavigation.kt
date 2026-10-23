@@ -1101,6 +1101,12 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
                     navController.popBackStack()
+                },
+                // Saved straight away: the screen below reloads when it's back on top.
+                onPhotoChanged = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
                 }
             )
         }

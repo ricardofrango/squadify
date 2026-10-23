@@ -34,7 +34,7 @@ import kotlinx.io.readByteArray
 import com.ricardofrango.squadify.domain.usecase.UploadClubLogoUseCase
 import com.ricardofrango.squadify.domain.usecase.DeleteClubLogoUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubLogoUseCase
-import com.ricardofrango.squadify.model.ClubLogoResponse
+import com.ricardofrango.squadify.model.LogoResponse
 import com.ricardofrango.squadify.util.LogoImage
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
@@ -133,7 +133,7 @@ fun Route.clubRoutes() {
                     val currentUserId = call.userId ?: return@put call.respond(HttpStatusCode.Unauthorized)
                     // One byte over the limit is enough to know it's too big, without reading the rest.
                     val bytes = call.receiveChannel().readRemaining(LogoImage.MAX_UPLOAD_BYTES + 1L).readByteArray()
-                    call.respond(ClubLogoResponse(uploadClubLogoUseCase(currentUserId, clubId, bytes)))
+                    call.respond(LogoResponse(uploadClubLogoUseCase(currentUserId, clubId, bytes)))
                 }
 
                 delete("/logo") {

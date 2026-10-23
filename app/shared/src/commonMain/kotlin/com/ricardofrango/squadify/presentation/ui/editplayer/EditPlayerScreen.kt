@@ -1,5 +1,11 @@
 package com.ricardofrango.squadify.presentation.ui.editplayer
 
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.CircularProgressIndicator
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import androidx.compose.foundation.text.KeyboardActions
@@ -27,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.PlayerPosition
 import com.ricardofrango.squadify.presentation.ui.components.DatePickerSheet
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
+import com.ricardofrango.squadify.presentation.ui.components.PhotoActions
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
@@ -65,6 +73,7 @@ fun EditPlayerScreen(
     playerId: String,
     onNavigateBack: () -> Unit,
     onPlayerUpdated: () -> Unit,
+    onPhotoChanged: () -> Unit = {},
     viewModel: EditPlayerViewModel = koinViewModel()
 ) {
     SquadifyClubTheme {
@@ -93,7 +102,9 @@ fun EditPlayerScreen(
             onHeightChange = { value -> viewModel.updateForm { it.copy(heightCm = value) } },
             onWeightChange = { value -> viewModel.updateForm { it.copy(weightKg = value) } },
             onEmergencyContactChange = { value -> viewModel.updateForm { it.copy(emergencyContact = value) } },
-            onSaveClick = { viewModel.onSaveClicked(playerId) }
+            onSaveClick = { viewModel.onSaveClicked(playerId) },
+            onPhotoPicked = { bytes -> viewModel.onPhotoPicked(playerId, bytes, onPhotoChanged) },
+            onRemovePhoto = { viewModel.onRemovePhoto(playerId, onPhotoChanged) }
         )
 
         val idle = uiState as? EditPlayerUiState.Idle
@@ -126,7 +137,9 @@ private fun EditPlayerContent(
     onHeightChange: (Int?) -> Unit,
     onWeightChange: (Int?) -> Unit,
     onEmergencyContactChange: (String) -> Unit,
-    onSaveClick: () -> Unit
+    onSaveClick: () -> Unit,
+    onPhotoPicked: (ByteArray) -> Unit = {},
+    onRemovePhoto: () -> Unit = {}
 ) {
     val idle = uiState as? EditPlayerUiState.Idle
 
@@ -177,7 +190,9 @@ private fun EditPlayerContent(
                     onHeightChange = onHeightChange,
                     onWeightChange = onWeightChange,
                     onEmergencyContactChange = onEmergencyContactChange,
-                    onSaveClick = onSaveClick
+                    onSaveClick = onSaveClick,
+                    onPhotoPicked = onPhotoPicked,
+                    onRemovePhoto = onRemovePhoto
                 )
             }
         }
@@ -200,7 +215,9 @@ private fun EditPlayerForm(
     onHeightChange: (Int?) -> Unit,
     onWeightChange: (Int?) -> Unit,
     onEmergencyContactChange: (String) -> Unit,
-    onSaveClick: () -> Unit
+    onSaveClick: () -> Unit,
+    onPhotoPicked: (ByteArray) -> Unit,
+    onRemovePhoto: () -> Unit
 ) {
     val form = state.form
 
@@ -213,6 +230,8 @@ private fun EditPlayerForm(
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            PlayerPhotoHeader(state, onPhotoPicked, onRemovePhoto)
+
             if (state.optionalFieldsNeverSet) {
                 OptionalFieldsBanner()
             }
@@ -314,6 +333,25 @@ private fun EditPlayerForm(
                 )
             }
         }
+    }
+}
+
+/** The player's photo (or initials) with "Add photo" / "Change photo" and "Remove", saved straight away. */
+@Composable
+private fun PlayerPhotoHeader(state: EditPlayerUiState.Idle, onPhotoPicked: (ByteArray) -> Unit, onRemovePhoto: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(contentAlignment = Alignment.Center) {
+            PersonPhoto(
+                photoUrl = state.photo.url,
+                initials = listOf(state.original.firstName, state.original.lastName).mapNotNull { it.trim().firstOrNull()?.uppercaseChar() }.joinToString(""),
+                size = 56.dp,
+                background = PitchGreen.copy(alpha = 0.15f),
+                initialsColor = PitchGreen
+            )
+            if (state.photo.isUpdating) CircularProgressIndicator(Modifier.size(56.dp), color = PitchGreen, strokeWidth = 2.dp)
+        }
+        Spacer(Modifier.width(16.dp))
+        PhotoActions(state.photo, onPicked = onPhotoPicked, onRemove = onRemovePhoto)
     }
 }
 

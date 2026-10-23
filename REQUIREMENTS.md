@@ -163,17 +163,25 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Authentication flows (Login/Register): login, register, session check on launch, automatic token refresh on 401, logout, and **Forgot password**. Forgot password emails a 6-digit code (15 minutes, 5 tries, one per minute) that sets a new password and signs the account out everywhere. An email with no account is reported straight away. See `TECHNICAL_DECISIONS.md` §48.
     - [x] Account Management: User profile viewing and editing. The Account screen edits name and phone and changes the password (`TECHNICAL_DECISIONS.md` §33), and changes the email (next item).
     - [x] **Change email**: from Account, enter the new address and the current password. A 6-digit code goes to the new address, and entering it switches the account. It reuses the Forgot-password code rules: 15 minutes, 5 tries, one per minute. The address can't belong to another account. Every other session is signed out, and the old address is told about the change. See `TECHNICAL_DECISIONS.md` §49.
-    - [/] **Club logo upload**:
+    - [/] **Logo and photo upload** (clubs, opponents, players, users):
       - **Done (clubs):** "Add logo" / "Change logo" / "Remove" in Club settings → Details, for coordinators and admins. The server resizes it to a 512×512 PNG and stores it in a Railway Storage Bucket (the disk in dev). Each change gets a new file name and the old file is deleted first. Shown in Club settings and My clubs. See `TECHNICAL_DECISIONS.md` §57.
-      - **Still pending:** opponent logos (the Create/Edit opponent form's "Add logo" is still inert) and showing the club logo in more places.
+      - **Done (opponents):** "Add logo" / "Change logo" / "Remove" on Create and Edit opponent, saved with the form, for whoever can edit opponents. The same storage and rules as the club's. Shown on the Opponents list, Opponent details and Schedule match.
+      - **Done (players and users):** a player's photo on Edit player, for whoever can edit the player, and the user's own photo on Account. Both are saved straight away and cropped to a square. They show on Player details, Account and the More panel.
+      - **Still pending:** showing them in more places. See the next item.
+    - [ ] **Logos and photos everywhere they belong** (future). They can be uploaded, but most screens still show initials or names only. Same components as today: `ClubLogo`, `OpponentLogo` and `PersonPhoto`.
+      - **Opponent logo on match cards and Match details:** Matches tab, Home's next-up card, Team and Age Group Details' match lists, Match details' header and the live console. `Match` has only the opponent's id and name, so it needs the opponent's `logoUrl` (or the list responses do).
+      - **Club logo next to the opponent's:** on Match details and the live console, so the two sides read as a pair.
+      - **Player photos in squads:** Members tabs (Team, Age Group), Club players, call-ups, line-ups and the live console's Squad tab, the report's ratings, and the stats tables. Their responses already carry `Player.photoUrl`; some only carry names and need it added.
+      - **User photos for people:** Club settings → Members (`ClubMemberEntry` has no `avatarUrl` yet), Club member details, and age group staff (`AgeGroupStaffMember.avatarUrl` is already sent but not shown).
+      - **To decide then:** whether a user's own photo should only be visible to people who share a club with them. Today any signed-in user can fetch the current one by its random id (`TECHNICAL_DECISIONS.md` §57).
     - [x] Client-side Architecture (MVVM, Koin, UseCases).
     - [x] API Integration (Ktor Client): every screen talks to the server through repositories over a shared authenticated Ktor client (bearer tokens, refresh on 401), plus WebSockets for the live match and the club's Matches tab.
     - [/] Role-specific Dashboards:
       - **Done:** "My clubs" lists the user's clubs (opening straight into the only one when there's just one). Each club opens on a Home tab with the season's headline numbers (teams, players, coaches, matches this week), what's next up, and alerts for the people who manage it (e.g. a match missing call-ups or a report).
       - **Still pending:** the server's super-admin, club-admin and parent dashboard endpoints (Phase 6) have no client screens yet.
-    - [x] **Opponents** (design 38). Logo upload is still pending (see Club logo upload):
+    - [x] **Opponents** (design 38), with logos (see Logo and photo upload):
       - [x] **List:** a searchable list (name or short name, ignoring accents) used to pick an opponent on Schedule match and to browse them from More → Opponents. See `TECHNICAL_DECISIONS.md` §51.
-      - [x] **Create opponent:** from the list, with stadium, contact and notes. A name the club already has is refused. Created while picking for a match, it comes back selected. Logo upload is still pending.
+      - [x] **Create opponent:** from the list, with stadium, contact and notes. A name the club already has is refused. Created while picking for a match, it comes back selected.
       - [x] **Opponent details:** stadium with directions, head-to-head by season (W/D/L, goals, last five) and every match against them, plus contact and notes.
       - [x] **Edit opponent:** from the details, for those allowed to edit opponents. Emptying a field clears it.
     - [x] Club "More" panel (design 37): a full-screen panel that slides in from the right, replacing the old "More" dropdown and the header's account icon.

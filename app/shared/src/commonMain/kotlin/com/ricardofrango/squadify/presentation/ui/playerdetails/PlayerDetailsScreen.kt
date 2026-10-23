@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.theme.OnChromeAccent
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
@@ -189,15 +190,14 @@ private fun PlayerHeaderBand(profile: PlayerProfile) {
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Surface(modifier = Modifier.size(64.dp), shape = CircleShape, color = ChromeAccent.copy(alpha = 0.25f)) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    "${player.firstName.take(1)}${player.lastName.take(1)}",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = ChromeAccent
-                )
-            }
-        }
+        PersonPhoto(
+            photoUrl = player.photoUrl,
+            initials = "${player.firstName.take(1)}${player.lastName.take(1)}",
+            size = 64.dp,
+            background = ChromeAccent.copy(alpha = 0.25f),
+            initialsColor = ChromeAccent,
+            initialsStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+        )
         Spacer(Modifier.width(16.dp))
         Column {
             Text(

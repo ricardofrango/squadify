@@ -47,14 +47,16 @@ class ClubDetailsViewModel(
     private val _moreAccount = MutableStateFlow<MoreAccount?>(null)
     val moreAccount: StateFlow<MoreAccount?> = _moreAccount.asStateFlow()
 
-    /** Loads the panel's account header and club count, once; the panel shows its rows meanwhile. */
+    /**
+     * Loads the panel's account header and club count each time it opens (the photo or name may have
+     * changed in Account); the last one stays on screen meanwhile.
+     */
     fun loadMoreAccount() {
-        if (_moreAccount.value != null) return
         viewModelScope.launch {
             try {
                 val user = getCurrentUserUseCase()
                 val clubs = try { getClubsUseCase().size } catch (e: Exception) { 1 }
-                _moreAccount.value = MoreAccount("${user.firstName} ${user.lastName}".trim(), user.email, clubs, appConfig.appVersion)
+                _moreAccount.value = MoreAccount("${user.firstName} ${user.lastName}".trim(), user.email, clubs, appConfig.appVersion, user.avatarUrl)
             } catch (e: Exception) {
                 // Best-effort: the panel still works without the header details.
             }

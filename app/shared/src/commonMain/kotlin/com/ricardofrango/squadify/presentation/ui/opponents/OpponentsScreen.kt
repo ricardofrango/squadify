@@ -294,7 +294,7 @@ private fun OpponentRow(opponent: Opponent, selectMode: Boolean, selected: Boole
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            OpponentLogo(opponent.name, opponent.shortName)
+            OpponentLogo(opponent.name, opponent.shortName, opponent.logoUrl)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(

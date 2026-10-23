@@ -59,18 +59,21 @@ class ExposedPlayerRepository : PlayerRepository {
             this[Players.emergencyContact] = it.emergencyContact
         }.map(::toPlayer)
 
+    override suspend fun updatePhotoUrl(playerId: String, photoUrl: String?): Boolean =
+        Players.update({ Players.id eq playerId.toUuid() }) { it[Players.photoUrl] = photoUrl } > 0
+
     override suspend fun getPlayerById(id: String): Player? =
         Players.selectAll().where { Players.id eq id.toUuid() }
             .map(::toPlayer)
             .singleOrNull()
 
+    // The photo is left alone: only updatePhotoUrl changes it, so saving the other fields can't undo an upload.
     override suspend fun updatePlayer(player: Player): Boolean =
         Players.update({ Players.id eq player.id.toUuid() }) {
             it[firstName] = player.firstName
             it[lastName] = player.lastName
             it[birthDate] = player.birthDate
             it[shirtNumber] = player.shirtNumber
-            it[photoUrl] = player.photoUrl
             it[active] = player.active
             it[position] = player.position
             it[heightCm] = player.heightCm

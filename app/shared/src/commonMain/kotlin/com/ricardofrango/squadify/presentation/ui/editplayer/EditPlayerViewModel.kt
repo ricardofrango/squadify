@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.presentation.ui.editplayer
 
+import com.ricardofrango.squadify.domain.usecase.DeletePlayerPhotoUseCase
+import com.ricardofrango.squadify.domain.usecase.UploadPlayerPhotoUseCase
+import com.ricardofrango.squadify.presentation.PhotoChanger
+import com.ricardofrango.squadify.presentation.ui.components.PhotoState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.GetPlayerDetailsUseCase
@@ -20,7 +24,9 @@ import org.jetbrains.compose.resources.getString
 
 class EditPlayerViewModel(
     private val getPlayerDetailsUseCase: GetPlayerDetailsUseCase,
-    private val updatePlayerUseCase: UpdatePlayerUseCase
+    private val updatePlayerUseCase: UpdatePlayerUseCase,
+    private val uploadPlayerPhotoUseCase: UploadPlayerPhotoUseCase,
+    private val deletePlayerPhotoUseCase: DeletePlayerPhotoUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<EditPlayerUiState>(EditPlayerUiState.Loading)
@@ -50,7 +56,8 @@ class EditPlayerViewModel(
                         ageGroupLabel = profile.ageGroupLabel,
                         seasonLabel = profile.seasonLabel,
                         original = fields,
-                        form = fields
+                        form = fields,
+                        photo = PhotoState(url = profile.player.photoUrl)
                     )
                 }
             } catch (e: Exception) {
@@ -59,6 +66,19 @@ class EditPlayerViewModel(
             }
         }
     }
+
+    private val photoChanger = PhotoChanger(
+        scope = viewModelScope,
+        read = { (_state.value as? EditPlayerUiState.Idle)?.photo },
+        write = { change -> _state.update { (it as? EditPlayerUiState.Idle)?.let { idle -> idle.copy(photo = change(idle.photo)) } ?: it } }
+    )
+
+    /** Saves the photo straight away; [onChanged] tells the screens below (Player details) to reload. */
+    fun onPhotoPicked(playerId: String, bytes: ByteArray, onChanged: () -> Unit) =
+        photoChanger.upload(bytes, { uploadPlayerPhotoUseCase(playerId, it) }, onChanged)
+
+    fun onRemovePhoto(playerId: String, onChanged: () -> Unit) =
+        photoChanger.remove({ deletePlayerPhotoUseCase(playerId) }, onChanged)
 
     fun updateForm(transform: (PlayerFormFields) -> PlayerFormFields) {
         _state.update { current ->

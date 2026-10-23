@@ -1039,7 +1039,8 @@
     <!-- Create / Edit opponent (design 38e) -->
     <string name="title_create_opponent">Criar adversário</string>
     <string name="btn_creating_opponent">A criar…</string>
-    <string name="msg_logo_coming_soon">O envio de logótipo estará disponível em breve.</string>
+    <string name="msg_opponent_logo_hint">PNG ou JPEG, até 5 MB. Guardado com o adversário.</string>
+    <string name="msg_opponent_logo_failed">Guardado, mas não foi possível carregar o logótipo. Tente novamente.</string>
     <string name="label_opponent_stadium_section">ESTÁDIO</string>
     <string name="label_opponent_contact_section">CONTACTO · OPCIONAL</string>
     <string name="label_opponent_notes_section">NOTAS · OPCIONAL</string>
@@ -1415,4 +1416,11 @@
     <string name="label_colour_hex">Código hex</string>
     <string name="btn_use_colour">Usar esta cor</string>
     <string name="label_colour_preview">Pré-visualização</string>
+    <string name="label_add_photo">Adicionar foto</string>
+    <string name="label_change_photo">Alterar foto</string>
+    <string name="btn_remove_photo">Remover</string>
+    <string name="msg_photo_hint">PNG ou JPEG, até 5 MB. Guardada de imediato.</string>
+    <string name="msg_photo_saving">A guardar a foto…</string>
+    <string name="msg_photo_upload_failed">Não foi possível carregar a foto. Tente novamente.</string>
+    <string name="msg_photo_remove_failed">Não foi possível remover a foto. Tente novamente.</string>
 </resources>

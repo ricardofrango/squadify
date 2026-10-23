@@ -473,7 +473,7 @@ private fun OpponentField(opponent: Opponent?, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (opponent != null) {
-                OpponentLogo(opponent.name, opponent.shortName, size = 36.dp)
+                OpponentLogo(opponent.name, opponent.shortName, opponent.logoUrl, size = 36.dp)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(

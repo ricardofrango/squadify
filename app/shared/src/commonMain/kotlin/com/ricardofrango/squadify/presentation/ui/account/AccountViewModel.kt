@@ -7,9 +7,13 @@ import com.ricardofrango.squadify.presentation.ui.components.isSignedOutForWrong
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.ChangePasswordUseCase
+import com.ricardofrango.squadify.domain.usecase.DeleteUserAvatarUseCase
 import com.ricardofrango.squadify.domain.usecase.GetCurrentUserUseCase
 import com.ricardofrango.squadify.domain.usecase.LogoutUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateProfileUseCase
+import com.ricardofrango.squadify.domain.usecase.UploadUserAvatarUseCase
+import com.ricardofrango.squadify.presentation.PhotoChanger
+import com.ricardofrango.squadify.presentation.ui.components.PhotoState
 import com.ricardofrango.squadify.model.ChangePasswordRequest
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.presentation.errorMessage
@@ -26,7 +30,9 @@ class AccountViewModel(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val updateProfileUseCase: UpdateProfileUseCase,
     private val changePasswordUseCase: ChangePasswordUseCase,
-    private val logoutUseCase: LogoutUseCase
+    private val logoutUseCase: LogoutUseCase,
+    private val uploadUserAvatarUseCase: UploadUserAvatarUseCase,
+    private val deleteUserAvatarUseCase: DeleteUserAvatarUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<AccountUiState>(AccountUiState.Loading)
@@ -67,11 +73,22 @@ class AccountViewModel(
             memberSince = user.createdAt.toLocalDateTime(TimeZone.currentSystemDefault()).date,
             status = user.status,
             original = fields,
-            form = fields
+            form = fields,
+            photo = PhotoState(url = user.avatarUrl)
         )
     }
 
-    private inline fun updateIdle(block: (AccountUiState.Idle) -> AccountUiState.Idle) {
+    private val photoChanger = PhotoChanger(
+        scope = viewModelScope,
+        read = { (_state.value as? AccountUiState.Idle)?.photo },
+        write = { change -> updateIdle { it.copy(photo = change(it.photo)) } }
+    )
+
+    fun onPhotoPicked(bytes: ByteArray) = photoChanger.upload(bytes, { uploadUserAvatarUseCase(it) })
+
+    fun onRemovePhoto() = photoChanger.remove({ deleteUserAvatarUseCase() })
+
+    private fun updateIdle(block: (AccountUiState.Idle) -> AccountUiState.Idle) {
         val current = _state.value as? AccountUiState.Idle ?: return
         _state.value = block(current)
     }

@@ -5,8 +5,14 @@ import com.ricardofrango.squadify.model.*
 import com.ricardofrango.squadify.security.userId
 import io.ktor.http.*
 import io.ktor.server.auth.authenticate
+import com.ricardofrango.squadify.util.LogoImage
 import io.ktor.server.request.receive
+import io.ktor.server.request.receiveChannel
+import io.ktor.server.response.header
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondBytes
+import io.ktor.utils.io.readRemaining
+import kotlinx.io.readByteArray
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
 
@@ -19,6 +25,9 @@ fun Route.playerRoutes() {
     val updatePlayerUseCase by inject<UpdatePlayerUseCase>()
     val disablePlayerUseCase by inject<DisablePlayerUseCase>()
     val reactivatePlayerUseCase by inject<ReactivatePlayerUseCase>()
+    val uploadPlayerPhotoUseCase by inject<UploadPlayerPhotoUseCase>()
+    val deletePlayerPhotoUseCase by inject<DeletePlayerPhotoUseCase>()
+    val getPlayerPhotoUseCase by inject<GetPlayerPhotoUseCase>()
 
     authenticate("auth-jwt") {
         route("/players") {
@@ -109,6 +118,32 @@ fun Route.playerRoutes() {
                     val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                     reactivatePlayerUseCase(currentUserId, playerId)
                     call.respond(HttpStatusCode.NoContent)
+                }
+
+                // The photo: the image is the raw request body (PNG or JPEG, at most 5 MB). See PersonPhotoUseCases.
+                put("/photo") {
+                    val playerId = call.parameters["playerId"] ?: return@put call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                    // One byte over the limit is enough to know it's too big, without reading the rest.
+                    val bytes = call.receiveChannel().readRemaining(LogoImage.MAX_UPLOAD_BYTES + 1L).readByteArray()
+                    call.respond(PhotoResponse(uploadPlayerPhotoUseCase(currentUserId, playerId, bytes)))
+                }
+
+                delete("/photo") {
+                    val playerId = call.parameters["playerId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                    deletePlayerPhotoUseCase(currentUserId, playerId)
+                    call.respond(HttpStatusCode.NoContent)
+                }
+
+                // A new image id on every upload, so the file never changes under a path: cache it for good.
+                get("/photo/{file}") {
+                    val playerId = call.parameters["playerId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                    val imageId = call.parameters["file"]?.removeSuffix(".png") ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val bytes = getPlayerPhotoUseCase(currentUserId, playerId, imageId)
+                    call.response.header(HttpHeaders.CacheControl, "private, max-age=31536000, immutable")
+                    call.respondBytes(bytes, ContentType.Image.PNG)
                 }
             }
         }

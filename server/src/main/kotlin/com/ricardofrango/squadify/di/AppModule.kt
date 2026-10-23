@@ -104,6 +104,15 @@ val appModule = module {
     factory { UploadClubLogoUseCase(get(), get(), get(), get()) }
     factory { DeleteClubLogoUseCase(get(), get(), get(), get()) }
     factory { GetClubLogoUseCase(get(), get(), get(), get()) }
+    factory { UploadOpponentLogoUseCase(get(), get(), get(), get(), get()) }
+    factory { DeleteOpponentLogoUseCase(get(), get(), get(), get(), get()) }
+    factory { GetOpponentLogoUseCase(get(), get(), get(), get()) }
+    factory { UploadPlayerPhotoUseCase(get(), get(), get(), get()) }
+    factory { DeletePlayerPhotoUseCase(get(), get(), get(), get()) }
+    factory { GetPlayerPhotoUseCase(get(), get(), get(), get()) }
+    factory { UploadUserAvatarUseCase(get(), get(), get()) }
+    factory { DeleteUserAvatarUseCase(get(), get(), get()) }
+    factory { GetUserAvatarUseCase(get(), get(), get()) }
 
     factory { CreateTeamUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { CreateTeamsUseCase(get(), get(), get(), get(), get(), get(), get()) }

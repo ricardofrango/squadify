@@ -65,5 +65,5 @@ sealed class ClubDetailsUiState {
 }
 
 /** The More panel's account header: who's signed in, how many clubs they belong to, the app version. */
-data class MoreAccount(val name: String, val email: String, val clubCount: Int, val appVersion: String?)
+data class MoreAccount(val name: String, val email: String, val clubCount: Int, val appVersion: String?, val avatarUrl: String? = null)
 

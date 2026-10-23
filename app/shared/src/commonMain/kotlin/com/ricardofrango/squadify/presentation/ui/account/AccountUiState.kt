@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.ui.account
 
 import com.ricardofrango.squadify.model.UpdateProfileRequest
 import com.ricardofrango.squadify.model.UserStatus
+import com.ricardofrango.squadify.presentation.ui.components.PhotoState
 import kotlinx.datetime.LocalDate
 
 /** Everything `UpdateProfileRequest` can carry, held as plain editable fields (phone as a raw string,
@@ -57,7 +58,9 @@ sealed class AccountUiState {
         // Just back from Change email: shows "Email changed" under the email.
         val emailChanged: Boolean = false,
         // Third wrong current password on Change password: signed out; the screen shows SignedOutAlert.
-        val signedOut: Boolean = false
+        val signedOut: Boolean = false,
+        // The user's own photo, saved straight away (not with the ✓).
+        val photo: PhotoState = PhotoState()
     ) : AccountUiState() {
         val isDirty: Boolean get() = form != original
         val isValid: Boolean get() = form.firstName.isNotBlank() && form.lastName.isNotBlank()

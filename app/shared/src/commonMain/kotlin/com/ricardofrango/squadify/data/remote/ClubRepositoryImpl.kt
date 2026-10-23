@@ -17,7 +17,7 @@ import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.http.content.ByteArrayContent
-import com.ricardofrango.squadify.model.ClubLogoResponse
+import com.ricardofrango.squadify.model.LogoResponse
 
 class ClubRepositoryImpl(
     private val httpClient: HttpClient,
@@ -75,7 +75,7 @@ class ClubRepositoryImpl(
     override suspend fun uploadClubLogo(clubId: String, bytes: ByteArray): String =
         httpClient.put("${appConfig.baseUrl}/clubs/$clubId/logo") {
             setBody(ByteArrayContent(bytes, ContentType.Application.OctetStream))
-        }.handleResponse<ClubLogoResponse>().logoUrl
+        }.handleResponse<LogoResponse>().logoUrl
 
     override suspend fun deleteClubLogo(clubId: String) {
         httpClient.delete("${appConfig.baseUrl}/clubs/$clubId/logo").handleResponse<Unit>()

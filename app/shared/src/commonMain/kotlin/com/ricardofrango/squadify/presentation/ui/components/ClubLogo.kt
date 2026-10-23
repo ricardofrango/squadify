@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -37,7 +38,9 @@ fun ClubLogo(
     size: Dp = 48.dp,
     shape: Shape = CircleShape,
     background: Color,
-    initialsColor: Color
+    initialsColor: Color,
+    contentScale: ContentScale = ContentScale.Fit,
+    initialsStyle: TextStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
 ) {
     var failed by remember(logoUrl) { mutableStateOf(false) }
     Box(modifier.size(size).clip(shape).background(background), contentAlignment = Alignment.Center) {
@@ -46,12 +49,12 @@ fun ClubLogo(
             AsyncImage(
                 model = baseUrl + logoUrl,
                 contentDescription = null,
-                contentScale = ContentScale.Fit,
+                contentScale = contentScale,
                 onError = { failed = true },
                 modifier = Modifier.size(size)
             )
         } else {
-            Text(initials, color = initialsColor, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+            Text(initials, color = initialsColor, style = initialsStyle)
         }
     }
 }

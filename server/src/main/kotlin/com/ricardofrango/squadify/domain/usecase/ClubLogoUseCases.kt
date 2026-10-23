@@ -10,23 +10,6 @@ import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.util.LogoImage
 import kotlin.uuid.Uuid
 
-/**
- * Where a club's logo lives. Each upload gets a new image id, so the path changes with the logo and an
- * app can cache a logo forever: `clubs/{clubId}/logo/{imageId}.png` in storage, and the same path under
- * the API (`/clubs/{clubId}/logo/{imageId}.png`) in `clubs.logo_url`.
- */
-object ClubLogos {
-    fun key(clubId: String, imageId: String) = "clubs/$clubId/logo/$imageId.png"
-    fun url(clubId: String, imageId: String) = "/${key(clubId, imageId)}"
-
-    /** The storage key behind a club's `logo_url`, or null when it isn't one of ours. */
-    fun keyOf(clubId: String, logoUrl: String): String? {
-        val imageId = logoUrl.removePrefix("/clubs/$clubId/logo/").removeSuffix(".png")
-        if (imageId == logoUrl || imageId.isEmpty()) return null
-        return runCatching { Uuid.parse(imageId) }.getOrNull()?.let { key(clubId, imageId) }
-    }
-}
-
 private suspend fun loadClubAsCoordinator(
     clubRepository: ClubRepository,
     checkUserPermissionUseCase: CheckUserPermissionUseCase,

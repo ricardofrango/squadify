@@ -53,7 +53,8 @@ class UpdatePlayerUseCase(
             lastName = request.lastName ?: existingPlayer.lastName,
             birthDate = request.birthDate ?: existingPlayer.birthDate,
             shirtNumber = request.shirtNumber ?: existingPlayer.shirtNumber,
-            photoUrl = request.photoUrl ?: existingPlayer.photoUrl,
+            // Only the photo upload sets it (UploadPlayerPhotoUseCase), never a URL sent here.
+            photoUrl = existingPlayer.photoUrl,
             position = request.position ?: existingPlayer.position,
             heightCm = request.heightCm ?: existingPlayer.heightCm,
             weightKg = request.weightKg ?: existingPlayer.weightKg,

@@ -5,11 +5,13 @@ import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.model.ChangePasswordRequest
 import com.ricardofrango.squadify.model.EmailChangeConfirmRequest
 import com.ricardofrango.squadify.model.EmailChangeRequest
+import com.ricardofrango.squadify.model.PhotoResponse
 import com.ricardofrango.squadify.model.UpdateProfileRequest
 import com.ricardofrango.squadify.model.User
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import io.ktor.http.content.ByteArrayContent
 
 class UserRepositoryImpl(
     private val httpClient: HttpClient,
@@ -44,4 +46,13 @@ class UserRepositoryImpl(
             contentType(ContentType.Application.Json)
             setBody(request)
         }.handleResponse()
+
+    override suspend fun uploadAvatar(bytes: ByteArray): String =
+        httpClient.put("${appConfig.baseUrl}/users/me/avatar") {
+            setBody(ByteArrayContent(bytes, ContentType.Application.OctetStream))
+        }.handleResponse<PhotoResponse>().photoUrl
+
+    override suspend fun deleteAvatar() {
+        httpClient.delete("${appConfig.baseUrl}/users/me/avatar").handleResponse<Unit>()
+    }
 }

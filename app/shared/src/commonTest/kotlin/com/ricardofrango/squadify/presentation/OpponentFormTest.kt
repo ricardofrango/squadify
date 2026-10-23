@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.presentation
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentForm
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentFormUiState
+import com.ricardofrango.squadify.presentation.ui.opponents.OpponentLogoDraft
 import com.ricardofrango.squadify.presentation.ui.opponents.isDuplicateOpponentName
 import com.ricardofrango.squadify.presentation.ui.opponents.toCreateRequest
 import com.ricardofrango.squadify.presentation.ui.opponents.toForm
@@ -58,5 +59,35 @@ class OpponentFormTest {
         val request = OpponentForm(name = "AD Fontelas", shortName = "ADF", stadiumAddress = "").toUpdateRequest()
         assertEquals("", request.stadiumAddress)
         assertEquals("ADF", request.shortName)
+    }
+
+    // The logo is saved with the form: picking or removing it is a change on its own.
+    @Test
+    fun pickingOrRemovingTheLogoIsEnoughToSave() {
+        val form = OpponentForm(name = "CD Mafra")
+        val editing = OpponentFormUiState(form = form, original = form, logo = OpponentLogoDraft("/opponents/o1/logo/a.png"))
+        assertFalse(editing.canSubmit)
+        assertTrue(editing.copy(logo = editing.logo.pick(byteArrayOf(1))).canSubmit)
+        assertTrue(editing.copy(logo = editing.logo.remove()).canSubmit)
+    }
+
+    @Test
+    fun aPickedLogoReplacesTheShownOneAndRemovingItGoesBackToNone() {
+        val current = OpponentLogoDraft("/opponents/o1/logo/a.png")
+        val picked = current.pick(byteArrayOf(1))
+        assertNull(picked.shownUrl)
+        assertTrue(picked.hasLogo)
+
+        val removed = picked.remove()
+        assertNull(removed.picked)
+        assertTrue(removed.removed)
+        assertFalse(removed.hasLogo)
+    }
+
+    @Test
+    fun removingAPickedLogoWhenThereWasNoneLeavesNothingToDo() {
+        val draft = OpponentLogoDraft().pick(byteArrayOf(1)).remove()
+        assertFalse(draft.changed)
+        assertFalse(draft.hasLogo)
     }
 }

@@ -217,7 +217,7 @@ private fun HeaderCard(details: OpponentDetails) {
     val opponent = details.opponent
     StatsCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OpponentLogo(opponent.name, opponent.shortName, size = 64.dp)
+            OpponentLogo(opponent.name, opponent.shortName, opponent.logoUrl, size = 64.dp)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(
