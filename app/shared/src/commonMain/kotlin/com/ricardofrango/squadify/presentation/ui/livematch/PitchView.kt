@@ -177,8 +177,11 @@ internal fun slotPoint(formation: List<Int>, slot: Int, horizontal: Boolean, our
     return pitchPoint(along, across, horizontal, ourGoalAtStart)
 }
 
-/** Something drawn on the pitch itself (the formation chip), centred at [along] / [across] like a slot. */
-internal class PitchOverlay(val along: Float, val across: Float, val content: @Composable () -> Unit)
+/**
+ * Something drawn on the pitch itself (the formation chip), at [x] / [y] as fractions of the pitch as
+ * shown (0,0 top-left), kept inside it: (1, 1) is the bottom-right corner.
+ */
+internal class PitchOverlay(val x: Float, val y: Float, val content: @Composable () -> Unit)
 
 /** The pitch with one [slotContent] per position, each centred on its spot, plus any [overlays]. */
 @Composable
@@ -211,7 +214,7 @@ internal fun PitchField(
             lines.place(0, 0)
             tokens.forEachIndexed { index, token ->
                 val p = if (index < slots) slotPoint(formation, index, horizontal, ourGoalAtStart)
-                else overlays[index - slots].let { pitchPoint(it.along, it.across, horizontal, ourGoalAtStart) }
+                else overlays[index - slots].let { Offset(it.x, it.y) }
                 val x = (p.x * w - token.width / 2f).roundToInt().coerceIn(0, maxOf(0, w - token.width))
                 val y = (p.y * h - token.height / 2f).roundToInt().coerceIn(0, maxOf(0, h - token.height))
                 token.place(x, y)
@@ -469,14 +472,14 @@ internal fun PitchPanel(
         val crowd = maxOf(1, formation.maxOrNull() ?: 1)
         val cell = (if (horizontal) maxHeight else maxWidth) / crowd
         val photo = (cell - if (horizontal) 36.dp else 26.dp).coerceIn(26.dp, 44.dp)
-        // Upright the chips sit in the bottom corners, on our goal line (pushed in by the field's
-        // margin); lying down, beside the goalkeeper.
-        val overlays = if (horizontal) listOfNotNull(
-            PitchOverlay(KeeperDepth, 0.8f) { FormationChip(formationLabel, onFormationClick) },
-            besideKeeper?.let { PitchOverlay(KeeperDepth, 0.2f, it) }
-        ) else listOfNotNull(
-            PitchOverlay(0f, 1f) { Box(Modifier.padding(12.dp)) { FormationChip(formationLabel, onFormationClick) } },
-            besideKeeper?.let { content -> PitchOverlay(0f, 0f) { Box(Modifier.padding(12.dp)) { content() } } }
+        // The chips sit in the pitch's corners at our goal's end, the formation chip always at the
+        // bottom: upright, the two bottom corners; lying down, the bottom and top corners of our end.
+        val ourEndX = if (!horizontal || ourGoalAtStart) 0f else 1f
+        val formationAt = if (horizontal) Offset(ourEndX, 1f) else Offset(1f, 1f)
+        val halfLengthAt = if (horizontal) Offset(ourEndX, 0f) else Offset(0f, 1f)
+        val overlays = listOfNotNull(
+            PitchOverlay(formationAt.x, formationAt.y) { Box(Modifier.padding(6.dp)) { FormationChip(formationLabel, onFormationClick) } },
+            besideKeeper?.let { content -> PitchOverlay(halfLengthAt.x, halfLengthAt.y) { Box(Modifier.padding(6.dp)) { content() } } }
         )
         PitchField(formation, horizontal, ourGoalAtStart, Modifier.fillMaxSize(), overlays) { slot ->
             val key = PitchDropKey.Slot(slot)

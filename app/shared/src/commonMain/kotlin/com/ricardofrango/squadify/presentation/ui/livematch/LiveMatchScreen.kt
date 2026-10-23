@@ -621,16 +621,13 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
         if (landscape) {
-            // Lying down (design "Squadify Pitch View"): one scoreboard bar across the top, then the
+            // Lying down (design "Squadify Pitch View"): one scoreboard bar across the top (no back
+            // button), then the
             // tabs with the match buttons beside them, and the tab's content (the pitch with the bench
             // in a column beside it) below.
             Column(Modifier.fillMaxSize().navigationBarsPadding()) {
-                Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 4.dp, end = 16.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(painterResource(Res.drawable.ic_back), contentDescription = stringResource(Res.string.label_back), tint = Color.White)
-                    }
-                    ScoreboardBar(home, away, clock, Modifier.weight(1f))
-                }
+                // No back button: system back leaves the screen, as upright.
+                ScoreboardBar(home, away, clock, Modifier.statusBarsPadding().padding(start = 16.dp, end = 16.dp, top = 8.dp))
                 Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 2.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     tabs(Modifier.widthIn(max = 380.dp).weight(1f))
                     Spacer(Modifier.width(16.dp))
