@@ -31,6 +31,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ricardofrango.squadify.model.MatchPlayerStatsWithPlayer
+import com.ricardofrango.squadify.presentation.ui.components.RowPhoto
+import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.Amber
@@ -132,6 +134,7 @@ internal fun PlayerStatsHeader(row: MatchPlayerStatsWithPlayer, modifier: Modifi
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
             color = PitchGreen
         )
+        RowPhoto(p.photoUrl, initialsOf(p.firstName, p.lastName))
         Column(Modifier.weight(1f)) {
             Text(
                 "${p.firstName} ${p.lastName}",

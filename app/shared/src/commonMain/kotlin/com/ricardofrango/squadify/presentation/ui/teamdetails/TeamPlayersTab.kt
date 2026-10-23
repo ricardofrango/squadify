@@ -45,6 +45,7 @@ import com.ricardofrango.squadify.model.SquadEntry
 import com.ricardofrango.squadify.model.SquadSort
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.presentation.ui.components.RatingPill
+import com.ricardofrango.squadify.presentation.ui.components.RowPhoto
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
@@ -162,6 +163,7 @@ private fun SquadRow(entry: SquadEntry, staff: Boolean, onClick: () -> Unit) {
     ) {
         ShirtNumber(entry.player.shirtNumber, muted = false)
         Spacer(Modifier.width(11.dp))
+        RowPhoto(entry.player.photoUrl, entry.player.name.split(" ").mapNotNull { it.firstOrNull()?.uppercaseChar() }.take(2).joinToString(""))
         Column(Modifier.weight(1f)) {
             Text(entry.player.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.5.sp), color = DeepCarbon)
             Spacer(Modifier.height(3.dp))
@@ -208,6 +210,7 @@ private fun BenchRow(entry: BenchEntry, onClick: () -> Unit) {
     ) {
         ShirtNumber(entry.player.shirtNumber, muted = true)
         Spacer(Modifier.width(11.dp))
+        RowPhoto(entry.player.photoUrl, entry.player.name.split(" ").mapNotNull { it.firstOrNull()?.uppercaseChar() }.take(2).joinToString(""))
         Column(Modifier.weight(1f)) {
             Text(entry.player.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp), color = DeepCarbon.copy(alpha = 0.7f))
             Text(stringResource(Res.string.squad_bench_row, entry.calledUp), style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp), color = StatsSecondaryText)

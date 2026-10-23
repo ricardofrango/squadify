@@ -83,7 +83,8 @@ class GetClubMembersOverviewUseCase(
                 ageGroupRoles = rolesByUser[user.id].orEmpty()
                     .sortedWith(compareByDescending<MemberAgeGroupRole> { it.currentSeason }.thenByDescending { it.seasonName }.thenBy { it.ageGroupName }),
                 linkedPlayers = linksByUser[user.id].orEmpty().sortedBy { it.name },
-                accountCreatedAt = user.createdAt
+                accountCreatedAt = user.createdAt,
+                avatarUrl = user.avatarUrl
             )
         }
 

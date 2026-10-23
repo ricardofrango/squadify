@@ -62,6 +62,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -71,6 +72,8 @@ import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.presentation.ui.components.EmptyStateCallToAction
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
+import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
@@ -784,7 +787,9 @@ private fun PlayerCard(player: Player, onClick: () -> Unit, onDisable: (() -> Un
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
+            player.photoUrl?.let {
+                PersonPhoto(it, initialsOf(player.firstName, player.lastName), 40.dp, CarbonGray.copy(alpha = 0.1f), DeepCarbon, Modifier.alpha(faded))
+            } ?: Box(
                 modifier = Modifier.size(40.dp)
                     .background(CarbonGray.copy(alpha = 0.1f), RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center

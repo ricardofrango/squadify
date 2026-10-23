@@ -50,6 +50,7 @@ import com.ricardofrango.squadify.model.ClubMembersOverview
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.PendingClubInvite
 import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
@@ -385,7 +386,12 @@ private fun FilterList(overview: ClubMembersOverview, selected: MembersFilter, o
 }
 
 @Composable
-internal fun MemberAvatar(initials: String, size: Int = 36) {
+internal fun MemberAvatar(initials: String, size: Int = 36, photoUrl: String? = null) {
+    // Their photo when they've set one; the initials circle otherwise, as before.
+    if (photoUrl != null) {
+        PersonPhoto(photoUrl, initials, size.dp, PitchGreen.copy(alpha = 0.15f), PitchGreen)
+        return
+    }
     Box(Modifier.size(size.dp).background(PitchGreen.copy(alpha = 0.15f), CircleShape), contentAlignment = Alignment.Center) {
         Text(initials, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, fontSize = (size * 0.36f).sp), color = PitchGreen)
     }
@@ -394,7 +400,7 @@ internal fun MemberAvatar(initials: String, size: Int = 36) {
 @Composable
 private fun MemberRow(member: ClubMemberEntry, isYou: Boolean, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        MemberAvatar(member.initials())
+        MemberAvatar(member.initials(), photoUrl = member.avatarUrl)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(

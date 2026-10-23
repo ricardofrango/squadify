@@ -28,14 +28,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.*
+import com.ricardofrango.squadify.presentation.ui.components.ClubLogo
 import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.components.MatchTypeChip
 import com.ricardofrango.squadify.presentation.ui.components.HalvesSelector
 import com.ricardofrango.squadify.presentation.ui.components.MatchTypeSelector
 import com.ricardofrango.squadify.presentation.ui.components.iconRes
+import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.components.DatePickerSheet
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
+import com.ricardofrango.squadify.presentation.ui.components.RowPhoto
 import com.ricardofrango.squadify.presentation.ui.components.TimePickerSheet
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -224,6 +227,7 @@ private fun StatusBand(details: MatchDetails) {
     val dt = match.dateTime.toLocalDateTime(TimeZone.currentSystemDefault())
     val counts = callUpCounts(details)
     Column(Modifier.background(ClubChrome).padding(start = 16.dp, end = 16.dp, bottom = 12.dp)) {
+        CrestPair(details)
         // The type chip leads the status line so it lines up across states (design 29a); the line
         // wraps rather than truncating when a long type name and the date don't fit together.
         FlowRow(
@@ -270,6 +274,28 @@ private fun StatusBand(details: MatchDetails) {
             style = MaterialTheme.typography.bodySmall,
             color = Color.White.copy(alpha = 0.6f)
         )
+    }
+}
+
+/**
+ * The club's and the opponent's logos side by side, above the status line. Only the logos that are
+ * set: nothing at all when neither side has one, and "vs" only between two.
+ */
+@Composable
+private fun CrestPair(details: MatchDetails) {
+    val clubLogo = details.clubLogoUrl
+    val opponentLogo = details.opponent.logoUrl
+    if (clubLogo == null && opponentLogo == null) return
+    Row(Modifier.padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (clubLogo != null) {
+            ClubLogo(clubLogo, details.team.name.take(2).uppercase(), size = 40.dp, background = Color.White, initialsColor = DeepCarbon)
+        }
+        if (clubLogo != null && opponentLogo != null) {
+            Text("vs", color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(horizontal = 12.dp))
+        }
+        if (opponentLogo != null) {
+            ClubLogo(opponentLogo, details.opponent.name.take(2).uppercase(), size = 40.dp, background = Color.White, initialsColor = DeepCarbon)
+        }
     }
 }
 
@@ -474,6 +500,7 @@ private fun CallUpRow(cu: MatchCallUpWithPlayer, onRemove: (() -> Unit)? = null)
                 color = PitchGreen, modifier = Modifier.width(28.dp)
             )
             Spacer(Modifier.width(8.dp))
+            RowPhoto(cu.player.photoUrl, initialsOf(cu.player.firstName, cu.player.lastName))
             Column(Modifier.weight(1f)) {
                 Text("${cu.player.firstName} ${cu.player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 cu.player.position?.let {
@@ -500,6 +527,7 @@ private fun PoolRow(player: Player, onAdd: () -> Unit) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(player.shirtNumber?.toString() ?: "—", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = PitchGreen, modifier = Modifier.width(28.dp))
             Spacer(Modifier.width(8.dp))
+            RowPhoto(player.photoUrl, initialsOf(player.firstName, player.lastName))
             Column(Modifier.weight(1f)) {
                 Text("${player.firstName} ${player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 player.position?.let {

@@ -49,6 +49,7 @@ import com.ricardofrango.squadify.presentation.ui.createstaff.CreateStaffScreen
 import com.ricardofrango.squadify.presentation.ui.agegroupdetails.AgeGroupDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.createagegroups.CreateAgeGroupsScreen
 import com.ricardofrango.squadify.presentation.ui.teamdetails.TeamDetailsScreen
+import com.ricardofrango.squadify.presentation.ui.theme.ClubThemeStore
 import com.ricardofrango.squadify.presentation.ui.creatematch.CreateMatchScreen
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentEditScreen
@@ -156,13 +157,15 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
     // nothing happens while it (or a sign-in screen) is showing. See PushLinks.kt / §56.
     val pushLinkInbox = koinInject<PushLinkInbox>()
     val getClubsUseCase = koinInject<GetClubsUseCase>()
+    val clubThemeStore = koinInject<ClubThemeStore>()
     LaunchedEffect(navController) {
         combine(pushLinkInbox.link, navController.currentBackStackEntryFlow) { link, entry -> link != null && !entry.destination.isBeforeSignIn() }
             .collect { ready ->
                 if (!ready) return@collect
                 val link = pushLinkInbox.take() ?: return@collect
+                // Keeps the clubs' colours, so the screens opened below wear their club's (§58).
                 val onlyClubId = try {
-                    getClubsUseCase().singleOrNull()?.id
+                    getClubsUseCase().also(clubThemeStore::remember).singleOrNull()?.id
                 } catch (e: Exception) {
                     null
                 }

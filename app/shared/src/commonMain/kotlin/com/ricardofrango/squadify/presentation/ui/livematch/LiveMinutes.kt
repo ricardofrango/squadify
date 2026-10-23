@@ -1,6 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.livematch
 
 import androidx.compose.ui.text.input.ImeAction
+import com.ricardofrango.squadify.presentation.ui.components.RowPhoto
+import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -510,6 +512,7 @@ private fun MinutesRow(row: SquadPlayerRow, kind: RowKind, minutes: SquadMinutes
                     modifier = Modifier.width(28.dp)
                 )
                 Spacer(Modifier.width(6.dp))
+                RowPhoto(row.player.photoUrl, initialsOf(row.player.firstName, row.player.lastName), size = if (compact) 24.dp else 28.dp)
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -680,6 +683,7 @@ internal fun MinutesTable(details: MatchDetails, minutes: SquadMinutes) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(player.shirtNumber?.toString() ?: "-", color = PitchGreen, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Black), textAlign = TextAlign.Center, modifier = Modifier.width(26.dp))
                     Spacer(Modifier.width(6.dp))
+                    RowPhoto(player.photoUrl, initialsOf(player.firstName, player.lastName), size = 24.dp)
                     Column(Modifier.weight(1f)) {
                         Text("${player.firstName} ${player.lastName}", color = Color.White, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Spacer(Modifier.height(3.dp))

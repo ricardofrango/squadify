@@ -101,3 +101,28 @@ class GetClubLogoUseCase(
         return imageStorage.get(ClubLogos.key(clubId, imageId)) ?: throw NotFoundException("Logo not found")
     }
 }
+
+/**
+ * The club's current logo for a push notification: the phone downloads a notification's image without
+ * signing in, so this is served to anyone -- but only the current random image id, which is only
+ * handed out with the club's details and in its own pushes (`/v1/public/clubs/{clubId}/logo/{imageId}.png`).
+ */
+class GetPublicClubLogoUseCase(
+    private val clubRepository: ClubRepository,
+    private val transactionManager: TransactionManager,
+    private val imageStorage: ImageStorage
+) {
+    suspend operator fun invoke(clubId: String, imageId: String): ByteArray {
+        val club = transactionManager.runInTransaction { clubRepository.getClubById(clubId) } ?: throw NotFoundException("Logo not found")
+        if (club.logoUrl != ClubLogos.url(clubId, imageId)) throw NotFoundException("Logo not found")
+        return imageStorage.get(ClubLogos.key(clubId, imageId)) ?: throw NotFoundException("Logo not found")
+    }
+
+    companion object {
+        /** The public address of a club's [logoUrl] on this server at [publicBaseUrl]; null when either is missing. */
+        fun publicUrl(publicBaseUrl: String?, clubId: String, logoUrl: String?): String? {
+            if (publicBaseUrl == null || logoUrl == null || ClubLogos.keyOf(clubId, logoUrl) == null) return null
+            return "$publicBaseUrl/v1/public$logoUrl"
+        }
+    }
+}

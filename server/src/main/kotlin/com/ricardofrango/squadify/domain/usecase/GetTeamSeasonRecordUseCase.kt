@@ -146,4 +146,4 @@ internal suspend fun buildTeamSeasonRecord(
     )
 }
 
-internal fun Player.toSeasonPlayer() = TeamSeasonPlayer(id, "$firstName $lastName", shirtNumber, position)
+internal fun Player.toSeasonPlayer() = TeamSeasonPlayer(id, "$firstName $lastName", shirtNumber, position, photoUrl)

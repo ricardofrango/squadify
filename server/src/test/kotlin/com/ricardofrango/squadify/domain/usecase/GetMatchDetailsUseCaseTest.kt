@@ -11,11 +11,14 @@ import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
+import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.CallUpStatus
+import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ClubStatus
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.MatchReportStatus
@@ -28,6 +31,7 @@ import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
+import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.User
@@ -63,10 +67,11 @@ class GetMatchDetailsUseCaseTest {
     )
     private val matchReportRepository = mockk<MatchReportRepository>()
     private val matchPlayerStatsRepository = mockk<MatchPlayerStatsRepository>()
+    private val clubRepository = mockk<ClubRepository>()
     private val useCase = GetMatchDetailsUseCase(
         matchRepository, opponentRepository, teamRepository, ageGroupRepository, seasonRepository,
         playerRepository, matchEventRepository, matchReportRepository, matchPlayerStatsRepository, userRepository,
-        checkUserPermissionUseCase, transactionManager
+        checkUserPermissionUseCase, transactionManager, clubRepository
     )
 
     private val clubId = "club-1"
@@ -84,6 +89,10 @@ class GetMatchDetailsUseCaseTest {
     private fun player(id: String) = Player(id, clubId, id, "P", LocalDate(2012, 1, 1), null, null, true)
 
     private fun baseStubs() {
+        coEvery { clubRepository.getClubById(clubId) } returns Club(
+            clubId, "CD Ribamar", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL,
+            logoUrl = "/clubs/club-1/logo/00000000-0000-0000-0000-000000000001.png"
+        )
         coEvery { matchRepository.getMatchById(matchId) } returns match
         coEvery { opponentRepository.getOpponentById("opp-1") } returns opponent
         coEvery { teamRepository.getTeamById(teamId) } returns team
@@ -117,6 +126,8 @@ class GetMatchDetailsUseCaseTest {
         assertTrue(d.canManageCallUps)
         assertTrue(d.canManageLiveMatch)
         assertEquals(MatchScore(matchId, 2, 1), d.score)
+        // The club's logo, for the header next to the opponent's.
+        assertEquals("/clubs/club-1/logo/00000000-0000-0000-0000-000000000001.png", d.clubLogoUrl)
     }
 
     @Test

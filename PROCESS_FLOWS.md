@@ -440,7 +440,7 @@ graph TD
     B -- denied --> F(["Throw ForbiddenException"])
     B -- allowed --> C[Fetch club; resolve role + season (active, else latest-ending)]
     C --> D["Counts: teams, players, coaches; matchesThisWeek = club matches whose date is in the Mon–Sun week containing today"]
-    D --> E["Next up: per team, soonest SCHEDULED future match → opponent name + call-up count"]
+    D --> E["Next up: per team, soonest SCHEDULED future match → opponent name and logo + call-up count"]
     E --> G{role >= COORDINATOR or platform admin?}
     G -- Yes --> H["alert per season age group with no COACH in age_group_staff (AGE_GROUP_NEEDS_COACH)"]
     G -- No --> I
@@ -504,6 +504,8 @@ graph TD
 ```
 
 The old file is deleted **before** the new one is stored, so files never pile up, and every upload gets a new id, so a cached logo can never be stale. If storing the new one fails, the club is left with no logo rather than a link to a deleted file. Delete: same gate; removes the file and clears `logo_url`. Get: anyone who can see the club (`minClubRole=MEMBER`, `allowPlayerOrParentAccess`, like §3.3), and only the club's **current** image id; an old id is a 404.
+
+**Public logo, for push notifications** (`GetPublicClubLogoUseCase`): `GET /v1/public/clubs/{clubId}/logo/{imageId}.png`, the one image route with no sign-in. Android downloads a notification's image itself. Club not found, or `imageId` isn't its current one → 404; otherwise the bytes (`Cache-Control: public, immutable`). Every push of a club with a logo carries this address as its image, when the server knows its public URL (`PUBLIC_BASE_URL` / `RAILWAY_PUBLIC_DOMAIN`). See `TECHNICAL_DECISIONS.md` §57.
 
 ### 3.4b Get / Update Club Permissions (`GetClubPermissionsUseCase` / `UpdateClubPermissionsUseCase`)
 
@@ -1413,7 +1415,7 @@ graph TD
     H --> R{"status == FINISHED and caller clears the report read gate (COORDINATOR, or age-group STAFF)?"}
     R -- Yes --> R2["report = MatchReportSummary: status NOT_STARTED/DRAFT/COMPLETED, updatedAt, updatedByName, ratedPlayers / ratablePlayers, canEdit = canManageMatch"]
     R -- No --> R3["report = null"]
-    R2 --> Z(["Return MatchDetails: match, opponent, team, ageGroup, season, callUps, poolPlayers, canManageMatch, canManageCallUps, canManageLiveMatch, score, report"])
+    R2 --> Z(["Return MatchDetails: match, opponent, team, ageGroup, season, callUps, poolPlayers, canManageMatch, canManageCallUps, canManageLiveMatch, score, report, clubLogoUrl (the club's logo, for the header)"])
     R3 --> Z
 ```
 
@@ -1688,6 +1690,8 @@ graph TD
 ```
 
 Not a route — a shared orchestrator called by §7.1 (a match created), §7.1c (a match's schedule edited), §8.0, §8.1, and §8.2 after their own transaction has already committed, so it opens a transaction of its own purely to read the data the push needs (see `TECHNICAL_DECISIONS.md` §24). Wrapped in a top-level try/catch that logs and swallows any exception (a not-found match, a repository throwing, a push send failing) — this must never propagate back to the use case that triggered it, the same "best-effort" contract as `EmailService`/`PushNotificationService` elsewhere. Recipients are **every active club member**, not scoped to the match's own age group — deliberately broader than the view/edit permissions the rest of the match domain enforces (§7–§8.2); see the developer's note on this in `TECHNICAL_DECISIONS.md` §24. Originally scoped to just the five live-match moments (hence the class's earlier name, `NotifyMatchEventUseCase`) — renamed once the three schedule-change events made "live match" no longer an accurate description of everything it sends.
+
+**The club's logo on a push** (`TECHNICAL_DECISIONS.md` §57). When the push's club has a logo and the server knows its public URL, the notification carries the public logo address (§3.4c) as its image. Android shows it in the background, and the app sets it as the large icon in the foreground. Without one, the push is unchanged.
 
 **Where tapping a push goes** (`TECHNICAL_DECISIONS.md` §56). Every push carries a `PushLink` as its FCM data: the club, plus the most specific of an age group, a team or a match. Every match push opens the match (Match details), including a cancelled or finished one. Being added as staff, or several teams being created at once, opens the age group. One team being created opens that team. Being added to a club opens the club. The app opens the club's screen under the target: My clubs → club → target, or club → target for a single-club user.
 

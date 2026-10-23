@@ -67,6 +67,7 @@ import com.ricardofrango.squadify.model.PendingClubInvite
 import com.ricardofrango.squadify.model.TeamRole
 import com.ricardofrango.squadify.model.UserPlayerRelationship
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
@@ -318,9 +319,11 @@ private fun ClubMemberEntry.fullName() = "$firstName $lastName"
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun HeaderBand(initials: String, title: String, chip: String, line: String) {
+private fun HeaderBand(initials: String, title: String, chip: String, line: String, photoUrl: String? = null) {
     Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(60.dp).background(ChromeAccent.copy(alpha = 0.25f), CircleShape), contentAlignment = Alignment.Center) {
+        photoUrl?.let {
+            PersonPhoto(it, initials, 60.dp, ChromeAccent.copy(alpha = 0.25f), ChromeAccent)
+        } ?: Box(Modifier.size(60.dp).background(ChromeAccent.copy(alpha = 0.25f), CircleShape), contentAlignment = Alignment.Center) {
             Text(initials, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = ChromeAccent)
         }
         Spacer(Modifier.width(16.dp))
@@ -346,7 +349,8 @@ private fun MemberHeader(state: ClubMemberDetailsUiState.Member) {
         initials = m.initials(),
         title = if (state.isYou) "${m.fullName()} ${stringResource(Res.string.members_you)}" else m.fullName(),
         chip = stringResource(m.role.labelRes()),
-        line = stringResource(Res.string.member_account_created, "${shortDateLabel(created)} ${created.year}")
+        line = stringResource(Res.string.member_account_created, "${shortDateLabel(created)} ${created.year}"),
+        photoUrl = m.avatarUrl
     )
 }
 

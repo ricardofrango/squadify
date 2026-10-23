@@ -32,7 +32,10 @@ import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.elapsedMatchSeconds
+import com.ricardofrango.squadify.presentation.ui.components.ClubLogo
 import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
+import com.ricardofrango.squadify.presentation.ui.components.RowPhoto
+import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
@@ -379,6 +382,7 @@ private fun CallUpToggleRow(player: Player, selected: Boolean, onClick: (() -> U
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier.width(28.dp)
             )
+            RowPhoto(player.photoUrl, initialsOf(player.firstName, player.lastName))
             Column(Modifier.weight(1f)) {
                 Text(
                     "${player.firstName} ${player.lastName}",
@@ -554,8 +558,15 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
     val scoreRow: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(details.team.name, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(details.opponent.shortName ?: details.opponent.name, color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                // Each side's logo before its name, only when it has one.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    details.clubLogoUrl?.let { NameCrest(it, details.team.name) }
+                    Text(details.team.name, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    details.opponent.logoUrl?.let { NameCrest(it, details.opponent.name) }
+                    Text(details.opponent.shortName ?: details.opponent.name, color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
             ScoreBox(state.score.ourScore, PitchGreen, enabled = scoreEnabled) { viewModel.onLogGoal(displayMinute, isOpponent = false) }
             Spacer(Modifier.width(6.dp))
@@ -1081,4 +1092,11 @@ private fun ResultBadge(label: org.jetbrains.compose.resources.StringResource, c
             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
         )
     }
+}
+
+/** A small logo before a side's name on the scoreboard, on a white disc so any crest reads on the dark console. */
+@Composable
+private fun NameCrest(logoUrl: String, name: String) {
+    ClubLogo(logoUrl, name.take(2).uppercase(), size = 20.dp, background = Color.White, initialsColor = DeepCarbon)
+    Spacer(Modifier.width(6.dp))
 }

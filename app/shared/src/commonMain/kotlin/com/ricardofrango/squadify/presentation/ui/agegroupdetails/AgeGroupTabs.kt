@@ -44,12 +44,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ricardofrango.squadify.model.*
 import com.ricardofrango.squadify.presentation.ui.components.MatchRow
+import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.RatingPill
+import com.ricardofrango.squadify.presentation.ui.components.RowPhoto
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.components.StatsFilterSegments
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
+import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.oneDecimal
 import com.ricardofrango.squadify.presentation.ui.teamdetails.FormSquare
@@ -545,6 +548,7 @@ internal fun AgeGroupMatchesTab(
                 MatchRow(
                     match = match,
                     opponentName = opponent(match.opponentId),
+                    opponentLogoUrl = opponentsById[match.opponentId]?.logoUrl,
                     teamName = teamsById[match.teamId]?.name,
                     score = details.upcomingMatchScores[match.id],
                     onClick = { onOpenMatch(match.id) }
@@ -562,6 +566,7 @@ internal fun AgeGroupMatchesTab(
                 MatchRow(
                     match = r.match,
                     opponentName = opponent(r.match.opponentId),
+                    opponentLogoUrl = opponentsById[r.match.opponentId]?.logoUrl,
                     teamName = teamsById[r.match.teamId]?.name,
                     score = MatchScore(r.match.id, r.ourScore, r.opponentScore),
                     onClick = { onOpenMatch(r.match.id) }
@@ -660,7 +665,9 @@ internal fun AgeGroupMembersTab(
                                 .padding(horizontal = 14.dp, vertical = 11.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(Modifier.size(36.dp).background(CarbonGray.copy(alpha = 0.08f), CircleShape), contentAlignment = Alignment.Center) {
+                            member.avatarUrl?.let {
+                                PersonPhoto(it, initialsOf(member.firstName, member.lastName), 36.dp, CarbonGray.copy(alpha = 0.08f), DeepCarbon)
+                            } ?: Box(Modifier.size(36.dp).background(CarbonGray.copy(alpha = 0.08f), CircleShape), contentAlignment = Alignment.Center) {
                                 Text("${member.firstName.take(1)}${member.lastName.take(1)}", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
                             }
                             Spacer(Modifier.width(11.dp))
@@ -782,6 +789,7 @@ private fun MemberRow(player: Player, season: MemberSeason?, seasonKnown: Boolea
             )
         }
         Spacer(Modifier.width(10.dp))
+        RowPhoto(player.photoUrl, initialsOf(player.firstName, player.lastName))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("${player.firstName} ${player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.5.sp), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false).then(faded))

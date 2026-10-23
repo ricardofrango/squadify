@@ -63,7 +63,14 @@ val appModule = module {
             else -> UnavailableImageStorage
         }
     }
-    single<PushNotificationService> { FirebaseAdminPushNotificationService() }
+    single<PushNotificationService> {
+        val clubRepository = get<ClubRepository>()
+        val transactionManager = get<TransactionManager>()
+        FirebaseAdminPushNotificationService(clubLogoUrl = { clubId ->
+            val logoUrl = transactionManager.runInTransaction { clubRepository.getClubById(clubId)?.logoUrl }
+            GetPublicClubLogoUseCase.publicUrl(ServerConfig.publicBaseUrl, clubId, logoUrl)
+        })
+    }
 
     // Use Cases
     factory { GetClubsUseCase(get(), get(), get()) }
@@ -104,6 +111,7 @@ val appModule = module {
     factory { UploadClubLogoUseCase(get(), get(), get(), get()) }
     factory { DeleteClubLogoUseCase(get(), get(), get(), get()) }
     factory { GetClubLogoUseCase(get(), get(), get(), get()) }
+    factory { GetPublicClubLogoUseCase(get(), get(), get()) }
     factory { UploadOpponentLogoUseCase(get(), get(), get(), get(), get()) }
     factory { DeleteOpponentLogoUseCase(get(), get(), get(), get(), get()) }
     factory { GetOpponentLogoUseCase(get(), get(), get(), get()) }
@@ -159,7 +167,7 @@ val appModule = module {
     factory { GetTeamsUseCase(get(), get(), get(), get(), get(), get()) }
     factory { CreateMatchUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { GetMatchesUseCase(get(), get(), get(), get(), get(), get(), get()) }
-    factory { GetMatchDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { GetMatchDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { UpdateMatchUseCase(get(), get(), get(), get(), get(), get()) }
     factory { DeleteMatchUseCase(get(), get(), get(), get()) }
     factory { GetMatchReportUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }

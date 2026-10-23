@@ -1087,7 +1087,9 @@ data class MatchDetails(
     // clock correction) is the server's, so a device whose clock is a few seconds off would show the
     // running clock off by that much (e.g. the second half starting at 29:4x instead of 30:00). The
     // live console measures the difference with [estimateServerClockOffset] and counts with it.
-    val serverNow: Instant? = null
+    val serverNow: Instant? = null,
+    // The club's own logo path, for the match header next to the opponent's; null without one.
+    val clubLogoUrl: String? = null
 )
 
 @Serializable
@@ -1227,7 +1229,9 @@ data class ClubHomeNextUp(
     val opponentName: String,
     val location: String? = null,
     val dateTime: Instant,
-    val callUpsTotal: Int
+    val callUpsTotal: Int,
+    // The opponent's logo path, when they have one.
+    val opponentLogoUrl: String? = null
 )
 
 @Serializable
@@ -1336,7 +1340,9 @@ data class ClubMemberEntry(
     val role: ClubRole,
     val ageGroupRoles: List<MemberAgeGroupRole> = emptyList(),
     val linkedPlayers: List<MemberLinkedPlayer> = emptyList(),
-    val accountCreatedAt: Instant
+    val accountCreatedAt: Instant,
+    // Their own profile photo's path, when they've set one.
+    val avatarUrl: String? = null
 )
 
 /** An email invited to join the club as [role] that hasn't registered yet. */

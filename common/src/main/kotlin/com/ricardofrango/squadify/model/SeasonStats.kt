@@ -150,7 +150,9 @@ data class TeamSeasonPlayer(
     val id: String,
     val name: String,
     val shirtNumber: Int? = null,
-    val position: PlayerPosition? = null
+    val position: PlayerPosition? = null,
+    // The player's photo path, when they have one.
+    val photoUrl: String? = null
 )
 
 /** Everything behind Team Details' season record and team leaders cards. [matches] newest first. */

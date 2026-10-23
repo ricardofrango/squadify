@@ -2,6 +2,8 @@ package com.ricardofrango.squadify.push_notifications
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -9,6 +11,8 @@ import com.google.firebase.messaging.RemoteMessage
 import com.ricardofrango.squadify.MainActivity
 import com.ricardofrango.squadify.R
 import com.ricardofrango.squadify.domain.usecase.RegisterFcmTokenUseCase
+import java.net.HttpURLConnection
+import java.net.URL
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -86,6 +90,8 @@ class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
             .setContentText(body)
             .setAutoCancel(true)
             .setContentIntent(contentIntent)
+        // The club's logo, when the server sent one (§57). In the background Android shows it itself.
+        notification.imageUrl?.let(::downloadImage)?.let { notificationBuilder.setLargeIcon(it) }
 
         val notificationManager = NotificationManagerCompat.from(this)
         // areNotificationsEnabled() covers both "user disabled notifications for this app" and (on
@@ -94,6 +100,23 @@ class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
         if (notificationManager.areNotificationsEnabled()) {
             notificationManager.notify(notificationId, notificationBuilder.build())
         }
+    }
+
+    /**
+     * The notification's image (a club logo, public), or null if it can't be fetched quickly. This runs
+     * on FCM's background thread, which may block, but only for a few seconds.
+     */
+    private fun downloadImage(uri: android.net.Uri): Bitmap? = try {
+        val connection = URL(uri.toString()).openConnection() as HttpURLConnection
+        connection.connectTimeout = 5_000
+        connection.readTimeout = 5_000
+        try {
+            connection.inputStream.use(BitmapFactory::decodeStream)
+        } finally {
+            connection.disconnect()
+        }
+    } catch (e: Exception) {
+        null
     }
 
     // Resource IDs are compile-time constants, not lookupable by the loc key's own string value without

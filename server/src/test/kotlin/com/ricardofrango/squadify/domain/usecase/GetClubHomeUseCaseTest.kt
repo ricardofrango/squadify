@@ -124,7 +124,7 @@ class GetClubHomeUseCaseTest {
         coEvery { seasonRepository.getSeasonsByClub(clubId) } returns listOf(season)
         coEvery { teamRepository.getTeamsByClub(clubId) } returns listOf(teamA, teamB)
         coEvery { opponentRepository.getOpponentsByClub(clubId) } returns
-            listOf(Opponent("opp-1", clubId, "AD Fontelas", "AD Fontelas", null))
+            listOf(Opponent("opp-1", clubId, "AD Fontelas", "AD Fontelas", "/opponents/opp-1/logo/00000000-0000-0000-0000-000000000001.png"))
         coEvery { playerRepository.countPlayersByClub(clubId) } returns 118
         coEvery { ageGroupRepository.countCoachesByClub(clubId) } returns 9
         coEvery { ageGroupRepository.getAgeGroupsByClub(clubId) } returns listOf(
@@ -157,6 +157,8 @@ class GetClubHomeUseCaseTest {
         // Only teamA has an upcoming match -> exactly one Next up row, none for teamB.
         assertEquals(listOf("Sub-15 A"), home.nextUp.map { it.teamName })
         assertEquals("AD Fontelas", home.nextUp.first().opponentName)
+        // Their logo rides along for the card.
+        assertEquals("/opponents/opp-1/logo/00000000-0000-0000-0000-000000000001.png", home.nextUp.first().opponentLogoUrl)
         // Admins see everything pending in the club: the in-window match has no call-ups yet.
         assertEquals(listOf(ClubHomeAlertType.CALLUPS_UNSENT), home.alerts.map { it.type })
     }

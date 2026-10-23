@@ -25,7 +25,9 @@ import com.ricardofrango.squadify.model.PlayerPosition
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
+import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
@@ -344,7 +346,9 @@ private fun PlayerRow(
             modifier = Modifier.padding(12.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
+            player.photoUrl?.let {
+                PersonPhoto(it, initialsOf(player.firstName, player.lastName), 40.dp, CarbonGray.copy(alpha = 0.1f), DeepCarbon)
+            } ?: Box(
                 modifier = Modifier.size(40.dp)
                     .background(CarbonGray.copy(alpha = 0.1f), CircleShape),
                 contentAlignment = Alignment.Center

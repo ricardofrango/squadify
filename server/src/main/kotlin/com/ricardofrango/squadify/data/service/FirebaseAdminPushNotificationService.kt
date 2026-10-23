@@ -30,7 +30,12 @@ import java.io.ByteArrayInputStream
  * the same reason: [com.ricardofrango.squadify]'s Android client already falls back to its own
  * (correctly per-flavor-named) app name locally when no title is sent.
  */
-class FirebaseAdminPushNotificationService : PushNotificationService {
+/**
+ * [clubLogoUrl] gives the public address of a club's logo (or null), shown as the notification's image.
+ */
+class FirebaseAdminPushNotificationService(
+    private val clubLogoUrl: suspend (clubId: String) -> String? = { null }
+) : PushNotificationService {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     init {
@@ -106,6 +111,14 @@ class FirebaseAdminPushNotificationService : PushNotificationService {
             logger.warn("FIREBASE_SERVICE_ACCOUNT_JSON not set -- skipping push to {} device(s) ({})", tokens.size, bodyLocKey)
             return
         }
+        // The club's logo, when it has one and this server has a public address (§57). Best effort:
+        // without it the push still goes, just without the picture.
+        val image = try {
+            clubLogoUrl(link.clubId)
+        } catch (e: Exception) {
+            logger.warn("Couldn't look up club {}'s logo for a push", link.clubId, e)
+            null
+        }
         try {
             // A single MulticastMessage tops out at 500 tokens -- club-wide live-match pushes are the
             // one caller here that can plausibly exceed that, so this chunks rather than assuming the
@@ -124,6 +137,7 @@ class FirebaseAdminPushNotificationService : PushNotificationService {
                                     .setChannelId(channelId)
                                     .setBodyLocalizationKey(bodyLocKey)
                                     .addAllBodyLocalizationArgs(bodyLocArgs)
+                                    .apply { image?.let(::setImage) }
                                     .build()
                             )
                             .build()
