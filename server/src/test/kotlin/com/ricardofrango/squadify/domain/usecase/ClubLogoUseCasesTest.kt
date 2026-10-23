@@ -156,4 +156,31 @@ class ClubLogoUseCasesTest {
         assertNull(ClubLogos.keyOf(clubId, "/clubs/$clubId/logo/../../etc.png"))
         assertNull(ClubLogos.keyOf(clubId, "/clubs/other/logo/00000000-0000-0000-0000-000000000001.png"))
     }
+
+    // The logo on a push notification: the phone downloads it without signing in (§57).
+    @Test
+    fun thePublicLogoIsOnlyTheCurrentOne() = runBlocking<Unit> {
+        val storage = FakeStorage()
+        val coord = user("coord", ClubRole.COORDINATOR)
+        val old = upload(storage)(coord, clubId, png).substringAfterLast('/').removeSuffix(".png")
+        val current = upload(storage)(coord, clubId, png).substringAfterLast('/').removeSuffix(".png")
+        coEvery { clubRepository.getClubById("nope") } returns null
+        val get = GetPublicClubLogoUseCase(clubRepository, transactionManager, storage)
+
+        assertContentEquals(storage.files.values.single(), get(clubId, current))
+        assertFailsWith<NotFoundException> { get(clubId, old) }
+        assertFailsWith<NotFoundException> { get("nope", current) }
+    }
+
+    @Test
+    fun aPushCarriesThePublicAddressOnlyWhenThereIsALogoAndAPublicServer() {
+        val logo = "/clubs/$clubId/logo/00000000-0000-0000-0000-000000000001.png"
+        assertEquals(
+            "https://api.example.test/v1/public/clubs/$clubId/logo/00000000-0000-0000-0000-000000000001.png",
+            GetPublicClubLogoUseCase.publicUrl("https://api.example.test", clubId, logo)
+        )
+        assertNull(GetPublicClubLogoUseCase.publicUrl(null, clubId, logo))
+        assertNull(GetPublicClubLogoUseCase.publicUrl("https://api.example.test", clubId, null))
+        assertNull(GetPublicClubLogoUseCase.publicUrl("https://api.example.test", clubId, "https://elsewhere.test/x.png"))
+    }
 }

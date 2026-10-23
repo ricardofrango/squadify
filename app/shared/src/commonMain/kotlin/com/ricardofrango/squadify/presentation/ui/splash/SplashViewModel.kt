@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
 import com.ricardofrango.squadify.domain.usecase.RegisterCurrentFcmTokenUseCase
 import com.ricardofrango.squadify.presentation.navigation.PushLinkInbox
 import com.ricardofrango.squadify.presentation.navigation.pushLinkBackStack
+import com.ricardofrango.squadify.presentation.ui.theme.ClubThemeStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -17,7 +18,8 @@ class SplashViewModel(
     private val checkAndRefreshSessionUseCase: CheckAndRefreshSessionUseCase,
     private val getClubsUseCase: GetClubsUseCase,
     private val registerCurrentFcmTokenUseCase: RegisterCurrentFcmTokenUseCase,
-    private val pushLinkInbox: PushLinkInbox
+    private val pushLinkInbox: PushLinkInbox,
+    private val clubThemeStore: ClubThemeStore
 ) : ViewModel() {
 
     // Set once, before the first collection of [navigationEvent] -- see SplashScreen. Not a constructor
@@ -55,8 +57,10 @@ class SplashViewModel(
                 // itself (DashboardViewModel.NavigateToOnlyClub, kept as a fallback), but only after
                 // mounting, which is visible as a brief flash of the clubs list. A fetch failure here
                 // just falls back to Dashboard, which has its own retry-capable error state.
+                // The clubs' colours are kept too: a screen opened from a push notification below
+                // never shows My clubs or the club screen, which would otherwise have stored them.
                 val onlyClub = try {
-                    getClubsUseCase().singleOrNull()
+                    getClubsUseCase().also(clubThemeStore::remember).singleOrNull()
                 } catch (e: Exception) {
                     null
                 }

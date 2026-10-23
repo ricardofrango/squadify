@@ -168,12 +168,14 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - **Done (opponents):** "Add logo" / "Change logo" / "Remove" on Create and Edit opponent, saved with the form, for whoever can edit opponents. The same storage and rules as the club's. Shown on the Opponents list, Opponent details and Schedule match.
       - **Done (players and users):** a player's photo on Edit player, for whoever can edit the player, and the user's own photo on Account. Both are saved straight away and cropped to a square. They show on Player details, Account and the More panel.
       - **Still pending:** showing them in more places. See the next item.
-    - [ ] **Logos and photos everywhere they belong** (future). They can be uploaded, but most screens still show initials or names only. Same components as today: `ClubLogo`, `OpponentLogo` and `PersonPhoto`.
-      - **Opponent logo on match cards and Match details:** Matches tab, Home's next-up card, Team and Age Group Details' match lists, Match details' header and the live console. `Match` has only the opponent's id and name, so it needs the opponent's `logoUrl` (or the list responses do).
-      - **Club logo next to the opponent's:** on Match details and the live console, so the two sides read as a pair.
-      - **Player photos in squads:** Members tabs (Team, Age Group), Club players, call-ups, line-ups and the live console's Squad tab, the report's ratings, and the stats tables. Their responses already carry `Player.photoUrl`; some only carry names and need it added.
-      - **User photos for people:** Club settings → Members (`ClubMemberEntry` has no `avatarUrl` yet), Club member details, and age group staff (`AgeGroupStaffMember.avatarUrl` is already sent but not shown).
-      - **To decide then:** whether a user's own photo should only be visible to people who share a club with them. Today any signed-in user can fetch the current one by its random id (`TECHNICAL_DECISIONS.md` §57).
+    - [x] **Logos and photos everywhere they belong.** Wherever an image is set it's shown; where it isn't, the screen looks as before, apart from player rows. See `TECHNICAL_DECISIONS.md` §57.
+      - **Opponent logo** before "vs" on every match card (Matches tab, Team and Age Group Details) and on Home's next-up card.
+      - **Club and opponent logos** side by side at the top of Match details, and before each side's name on the live console's scoreboard.
+      - **Player rows** start with one badge: the photo with the shirt number under it, only the photo or only the number (centred), or a head-and-shoulders placeholder when there's neither. Used in call-ups and the pool (Match details), Age Group and Team members, Club players, Add players, the line-up picker and the live console's squad and minutes rows, the match report's ratings, and training ratings.
+      - **People's photos** in Club settings → Members, Member details and age group staff.
+      - **Club logo on push notifications** (Android), when the club has one and the server has a public address.
+      - **Not yet:** the stats tables (season stats, training stats) and Add staff's picker still show names only.
+      - **To decide:** whether a user's own photo should only be visible to people who share a club with them. Today any signed-in user can fetch the current one by its random id.
     - [x] Client-side Architecture (MVVM, Koin, UseCases).
     - [x] API Integration (Ktor Client): every screen talks to the server through repositories over a shared authenticated Ktor client (bearer tokens, refresh on 401), plus WebSockets for the live match and the club's Matches tab.
     - [/] Role-specific Dashboards:
@@ -191,7 +193,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - **Players:** the club's player list opens as its own screen, with season, age-group and search filters.
     - [x] Match center (Live updates & History):
       - **Matches tab:** the club's Matches tab updates live.
-      - **Match Details:** line-ups, call-ups, events and score.
+      - **Match Details:** line-ups, call-ups, events and score, plus the details card (opponent, type, format such as 7x7 from the team's size, date, kickoff, location, notes).
       - **Live match console:** for coaches and staff.
       - **After the match:** finished results stay as history, with the post-match report and per-player stats. Season stats live on Player, Team and Age Group Details (see Phase 5).
 - [x] **Phase 8: Training & Periodization** (see §5b). Not yet: drag-to-reorder (up/down buttons on a session's exercises; objectives and phases keep the order they were added) and remembering List / Calendar.

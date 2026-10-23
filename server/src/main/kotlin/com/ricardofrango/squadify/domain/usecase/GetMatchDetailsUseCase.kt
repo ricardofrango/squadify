@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
+import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
@@ -33,7 +34,8 @@ class GetMatchDetailsUseCase(
     private val matchPlayerStatsRepository: MatchPlayerStatsRepository,
     private val userRepository: UserRepository,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
-    private val transactionManager: TransactionManager
+    private val transactionManager: TransactionManager,
+    private val clubRepository: ClubRepository
 ) {
     suspend operator fun invoke(userId: String, matchId: String): MatchDetails = transactionManager.runInTransaction {
         val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
@@ -129,7 +131,8 @@ class GetMatchDetailsUseCase(
             canManageLiveMatch = canDo(ConfigurablePermission.MANAGE_LIVE_MATCH),
             score = matchEventRepository.getScoreByMatch(matchId),
             report = report,
-            serverNow = kotlin.time.Clock.System.now()
+            serverNow = kotlin.time.Clock.System.now(),
+            clubLogoUrl = clubRepository.getClubById(match.clubId)?.logoUrl
         )
     }
 }

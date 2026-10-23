@@ -50,6 +50,7 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.oneDecimal
+import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import com.ricardofrango.squadify.presentation.ui.matchreport.MiniPill
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -160,8 +161,8 @@ private fun SquadRow(entry: SquadEntry, staff: Boolean, onClick: () -> Unit) {
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 14.dp, end = 12.dp, top = 11.dp, bottom = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        ShirtNumber(entry.player.shirtNumber, muted = false)
-        Spacer(Modifier.width(11.dp))
+        PlayerBadge(entry.player.photoUrl, entry.player.shirtNumber, numberStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 16.sp))
+        Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Text(entry.player.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.5.sp), color = DeepCarbon)
             Spacer(Modifier.height(3.dp))
@@ -206,24 +207,13 @@ private fun BenchRow(entry: BenchEntry, onClick: () -> Unit) {
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        ShirtNumber(entry.player.shirtNumber, muted = true)
-        Spacer(Modifier.width(11.dp))
+        PlayerBadge(entry.player.photoUrl, entry.player.shirtNumber, numberColor = DeepCarbon.copy(alpha = 0.35f), numberStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 16.sp))
+        Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Text(entry.player.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp), color = DeepCarbon.copy(alpha = 0.7f))
             Text(stringResource(Res.string.squad_bench_row, entry.calledUp), style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp), color = StatsSecondaryText)
         }
     }
-}
-
-@Composable
-private fun ShirtNumber(number: Int?, muted: Boolean) {
-    Text(
-        number?.toString() ?: "—",
-        modifier = Modifier.width(24.dp),
-        textAlign = TextAlign.End,
-        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 16.sp),
-        color = if (muted) DeepCarbon.copy(alpha = 0.35f) else PitchGreen
-    )
 }
 
 /**

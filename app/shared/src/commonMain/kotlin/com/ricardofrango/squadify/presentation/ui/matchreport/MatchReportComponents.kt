@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ricardofrango.squadify.model.MatchPlayerStatsWithPlayer
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
+import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.Amber
 import com.ricardofrango.squadify.presentation.ui.theme.AmberText
@@ -126,12 +127,8 @@ internal fun PlayerStatsHeader(row: MatchPlayerStatsWithPlayer, modifier: Modifi
         return
     }
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            p.shirtNumber?.toString() ?: "—",
-            modifier = Modifier.width(30.dp),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
-            color = PitchGreen
-        )
+        PlayerBadge(p.photoUrl, p.shirtNumber)
+        Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Text(
                 "${p.firstName} ${p.lastName}",

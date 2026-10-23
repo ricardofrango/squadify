@@ -164,6 +164,15 @@ object ServerConfig {
         ?: "http://localhost:8081"
 
     /**
+     * This server's own public address (no trailing slash), for links that leave the app: the club
+     * logo on a push notification, which the phone downloads without signing in. `PUBLIC_BASE_URL`
+     * if set, else Railway's own `RAILWAY_PUBLIC_DOMAIN` (over https). Null locally: a phone can't
+     * reach localhost, so pushes go without the logo.
+     */
+    val publicBaseUrl: String? = System.getenv("PUBLIC_BASE_URL")?.trim()?.trimEnd('/')?.takeIf { it.isNotBlank() }
+        ?: System.getenv("RAILWAY_PUBLIC_DOMAIN")?.trim()?.takeIf { it.isNotBlank() }?.let { "https://$it" }
+
+    /**
      * A Firebase service-account key (the raw JSON content, not a file path -- there's no reliable
      * place to mount a file on Railway, which is why the env var takes priority) used by
      * [com.ricardofrango.squadify.data.service.FirebaseAdminPushNotificationService] to send push

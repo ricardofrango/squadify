@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.*
 import com.ricardofrango.squadify.presentation.ui.components.daysAgoLabel
 import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
+import com.ricardofrango.squadify.presentation.ui.opponents.OpponentLogo
 import com.ricardofrango.squadify.presentation.ui.theme.Amber
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -370,11 +371,17 @@ private fun NextUpRow(item: ClubHomeNextUp, onClick: () -> Unit) {
             DateBlock(item.dateTime)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(
-                    "${item.teamName} · ${item.opponentName}",
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                    color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    item.opponentLogoUrl?.let {
+                        OpponentLogo(item.opponentName, null, it, size = 20.dp)
+                        Spacer(Modifier.width(6.dp))
+                    }
+                    Text(
+                        "${item.teamName} · ${item.opponentName}",
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                        color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
+                }
                 Text(
                     listOfNotNull(timeLabel(item.dateTime), item.location?.takeIf { it.isNotBlank() })
                         .joinToString(" · "),

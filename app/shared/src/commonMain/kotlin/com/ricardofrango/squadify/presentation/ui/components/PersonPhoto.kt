@@ -56,6 +56,10 @@ fun PersonPhoto(
     initialsStyle = initialsStyle
 )
 
+/** The initials for a photo's fallback: the first letter of each name. */
+fun initialsOf(firstName: String, lastName: String): String =
+    listOf(firstName, lastName).mapNotNull { it.trim().firstOrNull()?.uppercaseChar() }.joinToString("")
+
 /** A photo that's saved straight away (Account, Edit player): its path, while it's saving, the last error. */
 data class PhotoState(
     val url: String? = null,

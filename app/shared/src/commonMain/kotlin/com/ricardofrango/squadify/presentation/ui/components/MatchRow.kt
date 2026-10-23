@@ -32,6 +32,7 @@ import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.elapsedMatchSeconds
+import com.ricardofrango.squadify.presentation.ui.opponents.OpponentLogo
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -75,6 +76,8 @@ fun MatchRow(
     opponentName: String,
     teamName: String? = null,
     score: MatchScore? = null,
+    // The opponent's logo path, shown before "vs" when they have one; without it the row is unchanged.
+    opponentLogoUrl: String? = null,
     onClick: () -> Unit
 ) {
     val live = match.status == MatchStatus.LIVE || match.status == MatchStatus.HALF_TIME
@@ -109,6 +112,7 @@ fun MatchRow(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     itemVerticalAlignment = Alignment.CenterVertically
                 ) {
+                    if (opponentLogoUrl != null) OpponentLogo(opponentName, null, opponentLogoUrl, size = 20.dp)
                     Text(
                         "vs $opponentName",
                         style = if (teamName != null && teamName.isNotEmpty()) {

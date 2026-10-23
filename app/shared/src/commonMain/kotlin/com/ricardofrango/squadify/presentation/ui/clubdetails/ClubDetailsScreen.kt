@@ -62,6 +62,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,6 +76,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
+import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.more_add_players
 import squadify.app.shared.generated.resources.more_create_team
@@ -784,16 +786,7 @@ private fun PlayerCard(player: Player, onClick: () -> Unit, onDisable: (() -> Un
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier.size(40.dp)
-                    .background(CarbonGray.copy(alpha = 0.1f), RoundedCornerShape(20.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "${player.firstName.take(1)}${player.lastName.take(1)}",
-                    color = DeepCarbon.copy(alpha = faded)
-                )
-            }
+            PlayerBadge(player.photoUrl, player.shirtNumber, Modifier.alpha(faded), photoSize = 40.dp)
             Spacer(modifier = Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Text(

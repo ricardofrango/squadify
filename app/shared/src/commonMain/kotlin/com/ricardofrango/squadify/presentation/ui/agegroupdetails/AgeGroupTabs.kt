@@ -44,14 +44,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ricardofrango.squadify.model.*
 import com.ricardofrango.squadify.presentation.ui.components.MatchRow
+import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.RatingPill
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.components.StatsFilterSegments
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
+import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.oneDecimal
+import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import com.ricardofrango.squadify.presentation.ui.teamdetails.FormSquare
 import com.ricardofrango.squadify.presentation.ui.teamdetails.ViewMatchButton
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
@@ -545,6 +548,7 @@ internal fun AgeGroupMatchesTab(
                 MatchRow(
                     match = match,
                     opponentName = opponent(match.opponentId),
+                    opponentLogoUrl = opponentsById[match.opponentId]?.logoUrl,
                     teamName = teamsById[match.teamId]?.name,
                     score = details.upcomingMatchScores[match.id],
                     onClick = { onOpenMatch(match.id) }
@@ -562,6 +566,7 @@ internal fun AgeGroupMatchesTab(
                 MatchRow(
                     match = r.match,
                     opponentName = opponent(r.match.opponentId),
+                    opponentLogoUrl = opponentsById[r.match.opponentId]?.logoUrl,
                     teamName = teamsById[r.match.teamId]?.name,
                     score = MatchScore(r.match.id, r.ourScore, r.opponentScore),
                     onClick = { onOpenMatch(r.match.id) }
@@ -660,7 +665,9 @@ internal fun AgeGroupMembersTab(
                                 .padding(horizontal = 14.dp, vertical = 11.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(Modifier.size(36.dp).background(CarbonGray.copy(alpha = 0.08f), CircleShape), contentAlignment = Alignment.Center) {
+                            member.avatarUrl?.let {
+                                PersonPhoto(it, initialsOf(member.firstName, member.lastName), 36.dp, CarbonGray.copy(alpha = 0.08f), DeepCarbon)
+                            } ?: Box(Modifier.size(36.dp).background(CarbonGray.copy(alpha = 0.08f), CircleShape), contentAlignment = Alignment.Center) {
                                 Text("${member.firstName.take(1)}${member.lastName.take(1)}", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
                             }
                             Spacer(Modifier.width(11.dp))
@@ -773,14 +780,7 @@ private fun MemberRow(player: Player, season: MemberSeason?, seasonKnown: Boolea
     // A disabled player (own section, see AgeGroupMembersTab): faded, with a red "Disabled" chip. The ✕ stays fully visible.
     val faded = Modifier.alpha(if (player.active) 1f else 0.45f)
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 10.dp, end = 12.dp, top = 11.dp, bottom = 11.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.width(32.dp).then(faded), contentAlignment = Alignment.Center) {
-            Text(
-                player.shirtNumber?.toString() ?: "—",
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 16.sp),
-                color = if (player.shirtNumber != null) PitchGreen else DeepCarbon.copy(alpha = 0.35f)
-            )
-        }
+        PlayerBadge(player.photoUrl, player.shirtNumber, faded)
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

@@ -422,7 +422,7 @@ private fun sampleDetails(populated: Boolean, canManage: Boolean): AgeGroupDetai
 
 
 private fun sampleRecord(details: AgeGroupDetails, staff: Boolean): AgeGroupSeasonRecord {
-    val pool = details.players.map { TeamSeasonPlayer(it.id, "${it.firstName} ${it.lastName}", it.shirtNumber, it.position) }
+    val pool = details.players.map { TeamSeasonPlayer(it.id, "${it.firstName} ${it.lastName}", it.shirtNumber, it.position, it.photoUrl) }
     fun m(id: String, day: Int, type: MatchType?, us: Int, them: Int) =
         TeamSeasonMatch(id, Instant.fromEpochMilliseconds(1_790_000_000_000L - day * 86_400_000L), "AD Fontelas", type, us, them)
     val teams = details.teams.mapIndexed { t, team ->

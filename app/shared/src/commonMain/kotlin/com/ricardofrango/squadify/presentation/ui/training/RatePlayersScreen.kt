@@ -48,6 +48,7 @@ import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
 import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
+import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -182,9 +183,7 @@ private fun PlayerRatingRow(
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(36.dp).background(CarbonGray.copy(alpha = 0.08f), CircleShape), contentAlignment = Alignment.Center) {
-                Text(player.shirtNumber?.toString() ?: "${player.firstName.take(1)}${player.lastName.take(1)}", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
-            }
+            PlayerBadge(player.photoUrl, player.shirtNumber)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text("${player.firstName} ${player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = DeepCarbon)

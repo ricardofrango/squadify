@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.*
+import com.ricardofrango.squadify.presentation.ui.components.ClubLogo
 import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.components.MatchTypeChip
 import com.ricardofrango.squadify.presentation.ui.components.HalvesSelector
@@ -46,6 +47,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
+import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -224,6 +226,7 @@ private fun StatusBand(details: MatchDetails) {
     val dt = match.dateTime.toLocalDateTime(TimeZone.currentSystemDefault())
     val counts = callUpCounts(details)
     Column(Modifier.background(ClubChrome).padding(start = 16.dp, end = 16.dp, bottom = 12.dp)) {
+        CrestPair(details)
         // The type chip leads the status line so it lines up across states (design 29a); the line
         // wraps rather than truncating when a long type name and the date don't fit together.
         FlowRow(
@@ -270,6 +273,28 @@ private fun StatusBand(details: MatchDetails) {
             style = MaterialTheme.typography.bodySmall,
             color = Color.White.copy(alpha = 0.6f)
         )
+    }
+}
+
+/**
+ * The club's and the opponent's logos side by side, above the status line. Only the logos that are
+ * set: nothing at all when neither side has one, and "vs" only between two.
+ */
+@Composable
+private fun CrestPair(details: MatchDetails) {
+    val clubLogo = details.clubLogoUrl
+    val opponentLogo = details.opponent.logoUrl
+    if (clubLogo == null && opponentLogo == null) return
+    Row(Modifier.padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (clubLogo != null) {
+            ClubLogo(clubLogo, details.team.name.take(2).uppercase(), size = 40.dp, background = Color.White, initialsColor = DeepCarbon)
+        }
+        if (clubLogo != null && opponentLogo != null) {
+            Text("vs", color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(horizontal = 12.dp))
+        }
+        if (opponentLogo != null) {
+            ClubLogo(opponentLogo, details.opponent.name.take(2).uppercase(), size = 40.dp, background = Color.White, initialsColor = DeepCarbon)
+        }
     }
 }
 
@@ -357,11 +382,6 @@ private fun MatchBody(
                         Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
                         SortChip(stringResource(Res.string.label_position_field), state.sort == CallUpSort.POSITION) { onSortSelected(CallUpSort.POSITION) }
                         SortChip(stringResource(Res.string.label_sort_name), state.sort == CallUpSort.NAME) { onSortSelected(CallUpSort.NAME) }
-                        if (canManageCallUps) {
-                            Spacer(Modifier.weight(1f))
-                            // TODO: reminders aren't wired yet -- kept inert per the design.
-                            Text(stringResource(Res.string.label_remind), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = PitchGreen.copy(alpha = 0.5f))
-                        }
                     }
                 }
                 if (canManageCallUps && counts.calledUp < RECOMMENDED_SQUAD) {
@@ -416,6 +436,8 @@ private fun DetailsCard(details: MatchDetails, onSetType: (() -> Unit)?) {
         Column(Modifier.padding(vertical = 4.dp)) {
             DetailRow(stringResource(Res.string.label_opponent_field), details.opponent.name)
             TypeRow(m.type, onSetType)
+            // The format is the team's (how many a side it plays): 5x5, 7x7, 9x9, 11x11.
+            DetailRow(stringResource(Res.string.label_match_format), details.team.teamSize?.let { stringResource(Res.string.match_format_value, it) } ?: "—")
             DetailRow(stringResource(Res.string.label_match_date), m.dateTime.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(DayMonthYear))
             DetailRow(stringResource(Res.string.label_match_kickoff), timeLabel(m.dateTime))
             DetailRow(
@@ -468,12 +490,8 @@ private fun TypeRow(type: MatchType?, onSetType: (() -> Unit)?) {
 private fun CallUpRow(cu: MatchCallUpWithPlayer, onRemove: (() -> Unit)? = null) {
     Surface(modifier = Modifier.fillMaxWidth(), shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f))) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                cu.player.shirtNumber?.toString() ?: "—",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = PitchGreen, modifier = Modifier.width(28.dp)
-            )
-            Spacer(Modifier.width(8.dp))
+            PlayerBadge(cu.player.photoUrl, cu.player.shirtNumber)
+            Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text("${cu.player.firstName} ${cu.player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 cu.player.position?.let {
@@ -498,8 +516,8 @@ private fun CallUpRow(cu: MatchCallUpWithPlayer, onRemove: (() -> Unit)? = null)
 private fun PoolRow(player: Player, onAdd: () -> Unit) {
     Surface(modifier = Modifier.fillMaxWidth(), shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f))) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(player.shirtNumber?.toString() ?: "—", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = PitchGreen, modifier = Modifier.width(28.dp))
-            Spacer(Modifier.width(8.dp))
+            PlayerBadge(player.photoUrl, player.shirtNumber)
+            Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text("${player.firstName} ${player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 player.position?.let {

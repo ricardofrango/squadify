@@ -109,7 +109,8 @@ class GetClubHomeUseCase(
                 opponentName = opponentsById[next.opponentId]?.let { it.shortName ?: it.name } ?: "—",
                 location = next.location,
                 dateTime = next.dateTime,
-                callUpsTotal = callUps.size
+                callUpsTotal = callUps.size,
+                opponentLogoUrl = opponentsById[next.opponentId]?.logoUrl
             )
         }.sortedBy { it.dateTime }
 

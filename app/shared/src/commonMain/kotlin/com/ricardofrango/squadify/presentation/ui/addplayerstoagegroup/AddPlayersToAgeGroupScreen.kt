@@ -32,6 +32,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
+import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.painterResource
@@ -344,17 +345,7 @@ private fun PlayerRow(
             modifier = Modifier.padding(12.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier.size(40.dp)
-                    .background(CarbonGray.copy(alpha = 0.1f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "${player.firstName.take(1)}${player.lastName.take(1)}",
-                    color = DeepCarbon,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            PlayerBadge(player.photoUrl, player.shirtNumber, photoSize = 40.dp)
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
