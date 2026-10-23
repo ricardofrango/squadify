@@ -12,7 +12,8 @@ import com.ricardofrango.squadify.model.*
 
 /**
  * Kicks off a SCHEDULED match: locks in the Starting XI (the rest of the called-up squad becomes the
- * bench) and the half length, then flips the match to LIVE. This is the "KICK OFF" action on the
+ * bench), the half length and the formation (also kept as the starting formation, for the match
+ * report's tactic), then flips the match to LIVE. This is the "KICK OFF" action on the
  * live match console's pre-kickoff screen -- see PROCESS_FLOWS.md.
  */
 class StartMatchUseCase(
@@ -67,14 +68,22 @@ class StartMatchUseCase(
             }
 
             // Every call-up is CALLED_UP -- there's no other status to filter on (see CallUpStatus).
-            val eligiblePlayerIds = matchRepository.getCallUpsForMatch(matchId)
-                .map { it.callUp.playerId }
-                .toSet()
+            val callUps = matchRepository.getCallUpsForMatch(matchId).map { it.callUp }
+            val eligiblePlayerIds = callUps.map { it.playerId }.toSet()
             if (!eligiblePlayerIds.containsAll(startingIds)) {
                 throw ValidationException("The starting line-up can only include players called up for this match")
             }
+            // With the pitch view the starters are the players placed on the pitch (SetMatchLineupUseCase);
+            // an app from before it places nobody, and its starters stand as they are.
+            val placedIds = callUps.filter { it.pitchSlot != null }.map { it.playerId }.toSet()
+            if (placedIds.isNotEmpty() && placedIds != startingIds.toSet()) {
+                throw ValidationException("The starting line-up must be the players placed on the pitch")
+            }
+            val formation = request.formation
+                ?.let { parseFormation(it, requiredCount) ?: throw ValidationException("The formation must add up to $requiredCount players with the goalkeeper") }
+                ?: matchFormation(match.formation, requiredCount)
 
-            val started = matchRepository.startMatch(matchId, startingIds, request.halfLengthMinutes)
+            val started = matchRepository.startMatch(matchId, startingIds, request.halfLengthMinutes, formation.formationText())
             if (started) {
                 // Re-fetch (kickoffAt/halfLengthMinutes were just set by startMatch above, not
                 // available on the pre-kickoff `match` read at the top) -- must happen inside this

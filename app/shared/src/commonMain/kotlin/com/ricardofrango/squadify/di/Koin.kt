@@ -217,6 +217,7 @@ val domainModule = module {
     factory { SaveMatchReportUseCase(get()) }
     factory { UpdateMatchStatusUseCase(get()) }
     factory { StartMatchUseCase(get()) }
+    factory { SetMatchLineupUseCase(get()) }
     factory { PauseMatchUseCase(get()) }
     factory { ResumeMatchUseCase(get()) }
     factory { SetMatchMinuteUseCase(get()) }

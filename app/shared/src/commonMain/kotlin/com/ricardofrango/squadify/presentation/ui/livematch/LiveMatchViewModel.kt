@@ -11,6 +11,7 @@ import com.ricardofrango.squadify.domain.usecase.ObserveLiveMatchUseCase
 import com.ricardofrango.squadify.domain.usecase.PauseMatchUseCase
 import com.ricardofrango.squadify.domain.usecase.ResumeMatchUseCase
 import com.ricardofrango.squadify.domain.usecase.SetMatchMinuteUseCase
+import com.ricardofrango.squadify.domain.usecase.SetMatchLineupUseCase
 import com.ricardofrango.squadify.domain.usecase.StartMatchUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateMatchStatusUseCase
 import com.ricardofrango.squadify.model.CreateMatchEventRequest
@@ -20,6 +21,8 @@ import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.estimateServerClockOffset
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.StartMatchRequest
+import com.ricardofrango.squadify.model.MatchLineup
+import com.ricardofrango.squadify.model.SetMatchLineupRequest
 import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_failed_to_load_match
@@ -56,7 +59,10 @@ interface LiveMatchActions {
     fun onDeleteSubstitution(outEventId: String, inEventId: String)
     fun onFullTime()
     fun onHalfTime()
-    fun onKickOff(startingPlayerIds: List<String>, halfLengthMinutes: Int)
+    /** Kicks off with the players placed on the pitch, in its formation. */
+    fun onKickOff(halfLengthMinutes: Int)
+    /** Saves the pitch's formation and who stands in each position (slot -> player id). */
+    fun onSetLineup(formation: String, slots: Map<Int, String>)
     fun onLogEvent(type: EventType, playerId: String, minute: Int)
     fun onLogGoal(minute: Int, isOpponent: Boolean)
     fun onLogPlayerGoal(scorerId: String, assistPlayerId: String?, minute: Int)
@@ -79,7 +85,8 @@ class LiveMatchViewModel(
     private val setMatchMinuteUseCase: SetMatchMinuteUseCase,
     private val addMatchEventUseCase: AddMatchEventUseCase,
     private val deleteMatchEventUseCase: DeleteMatchEventUseCase,
-    private val observeLiveMatchUseCase: ObserveLiveMatchUseCase
+    private val observeLiveMatchUseCase: ObserveLiveMatchUseCase,
+    private val setMatchLineupUseCase: SetMatchLineupUseCase
 ) : ViewModel(), LiveMatchActions {
 
     private val _state = MutableStateFlow<LiveMatchUiState>(LiveMatchUiState.Loading)
@@ -141,6 +148,9 @@ class LiveMatchViewModel(
                         update.match?.let { match ->
                             next = next.copy(details = next.details.copy(match = match))
                         }
+                        update.lineup?.let { lineup ->
+                            next = next.copy(details = next.details.withLineup(lineup))
+                        }
                         next
                     }
                 }
@@ -160,8 +170,9 @@ class LiveMatchViewModel(
         _state.update { if (it is LiveMatchUiState.Idle) it.copy(error = null) else it }
     }
 
-    override fun onKickOff(startingPlayerIds: List<String>, halfLengthMinutes: Int) = runSubmitting { current ->
-        startMatchUseCase(matchId, StartMatchRequest(startingPlayerIds, halfLengthMinutes))
+    override fun onKickOff(halfLengthMinutes: Int) = runSubmitting { current ->
+        val lineup = current.details.storedLineup()
+        startMatchUseCase(matchId, StartMatchRequest(lineup.slots.values.toList(), halfLengthMinutes, lineup.formation))
         val details = fetchDetails()
         subscribeToLiveUpdates()
         current.copy(details = details, events = emptyList(), score = MatchScore(matchId, 0, 0), isSubmitting = false)
@@ -191,6 +202,25 @@ class LiveMatchViewModel(
     override fun onFullTime() = runSubmitting { current ->
         updateMatchStatusUseCase(matchId, MatchStatus.FINISHED)
         current.copy(details = fetchDetails(), isSubmitting = false)
+    }
+
+    /**
+     * Shown at once and saved in the background: placing players before kickoff is many quick taps,
+     * which shouldn't wait on the network. A refused save puts the pitch back as it was.
+     */
+    override fun onSetLineup(formation: String, slots: Map<Int, String>) {
+        val current = _state.value as? LiveMatchUiState.Idle ?: return
+        val before = current.details.storedLineup()
+        val lineup = MatchLineup(formation, slots)
+        _state.update { (it as? LiveMatchUiState.Idle)?.copy(details = it.details.withLineup(lineup), error = null) ?: it }
+        viewModelScope.launch {
+            try {
+                setMatchLineupUseCase(matchId, SetMatchLineupRequest(formation, slots))
+            } catch (e: Exception) {
+                val message = errorMessage(e, Res.string.msg_live_match_action_failed)
+                _state.update { (it as? LiveMatchUiState.Idle)?.copy(details = it.details.withLineup(before), error = message) ?: it }
+            }
+        }
     }
 
     override fun clearFlash() {

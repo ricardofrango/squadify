@@ -18,6 +18,8 @@ import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.SetMatchMinuteRequest
 import com.ricardofrango.squadify.model.StartMatchRequest
+import com.ricardofrango.squadify.model.SetMatchLineupRequest
+import com.ricardofrango.squadify.model.MatchLineup
 import com.ricardofrango.squadify.model.UpdateMatchRequest
 import com.ricardofrango.squadify.model.UpdateMatchStatusRequest
 import io.ktor.client.*
@@ -82,6 +84,11 @@ class MatchRepositoryImpl(
             contentType(ContentType.Application.Json); setBody(request)
         }.handleResponse<Unit>()
     }
+
+    override suspend fun setLineup(matchId: String, request: SetMatchLineupRequest): MatchLineup =
+        httpClient.put("${appConfig.baseUrl}/matches/$matchId/lineup") {
+            contentType(ContentType.Application.Json); setBody(request)
+        }.handleResponse()
 
     override suspend fun pauseMatch(matchId: String) {
         httpClient.post("${appConfig.baseUrl}/matches/$matchId/pause").handleResponse<Unit>()

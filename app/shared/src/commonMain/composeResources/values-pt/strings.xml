@@ -380,8 +380,6 @@
     <!-- Live Match Console -->
     <string name="msg_live_match_action_failed">Ocorreu um erro. Por favor, tente novamente.</string>
     <string name="msg_live_match_read_only">Pode acompanhar aqui, mas só um treinador ou membro da equipa técnica pode iniciar o jogo, registar eventos ou gerir o cronómetro.</string>
-    <string name="msg_kickoff_time_location">Início às %1$s · %2$s</string>
-    <string name="msg_kickoff_time_only">Início às %1$s</string>
     <string name="label_half_length">Duração da parte</string>
     <string name="label_starting_xi">Onze inicial</string>
     <string name="label_bench">Suplentes</string>
@@ -389,7 +387,6 @@
     <string name="btn_kick_off">Iniciar jogo</string>
     <string name="msg_pick_more_to_kick_off">Escolha mais %1$d para iniciar. Partes de %2$d minutos.</string>
     <string name="msg_ready_to_kick_off">Partes de %1$d minutos.</string>
-    <string name="label_live_badge">AO VIVO</string>
     <string name="label_half_time_badge">INTERVALO</string>
     <string name="label_first_half">1ª parte</string>
     <string name="label_second_half">2ª parte</string>
@@ -1439,4 +1436,38 @@
     <string name="match_type_abbr_tournament">Tor</string>
     <string name="match_row_half_time">Int.</string>
     <string name="msg_callup_discard">As alterações à convocatória não foram guardadas e vão perder-se.</string>
+    <!-- Live pitch view -->
+    <string name="tab_pitch">Campo</string>
+    <string name="lm_change_formation">Alterar formação</string>
+    <string name="lm_formation_format">Defesas-médios-avançados</string>
+    <string name="lm_formation_adds_up">Soma %1$d + guarda-redes</string>
+    <string name="lm_formation_wrong_sum">%1$s soma %2$d. Precisa de %3$d (sem contar o guarda-redes).</string>
+    <string name="lm_formation_wrong_format">Escreva três números, como %1$s.</string>
+    <string name="lm_quick_picks">Atalhos</string>
+    <string name="btn_apply">Aplicar</string>
+    <string name="lm_minutes_chip">%1$d min</string>
+    <string name="lm_half_length_cd">Duração da parte: %1$d minutos</string>
+    <string name="lm_empty_position">Vago</string>
+    <string name="lm_who_plays_here">Quem joga aqui?</string>
+    <string name="lm_everyone_placed">Todos os convocados já estão em campo.</string>
+    <string name="lm_take_off_pitch">Tirar do campo</string>
+    <string name="lm_put_in_instead">Pôr no lugar</string>
+    <string name="lm_swap_with">Trocar de lugar com</string>
+    <string name="lm_change_position">Mudar de posição</string>
+    <string name="lm_who_moves_here">Quem passa para aqui?</string>
+    <string name="lm_empty_in_zone">Posição vaga · %1$s</string>
+    <string name="lm_zone_goal">Baliza</string>
+    <string name="lm_zone_defence">Defesa</string>
+    <string name="lm_zone_midfield">Meio-campo</string>
+    <string name="lm_zone_attack">Ataque</string>
+    <string name="lm_fill_more_to_kick_off">Preencha mais %1$d posições para iniciar. Partes de %2$d minutos.</string>
+    <string name="lm_flip_pitch">Inverter o campo</string>
+    <string name="lm_sent_off_list">Expulsos: %1$s</string>
+    <string name="lm_on_the_pitch_for">%1$s em campo</string>
+    <string name="lm_tab_events">Eventos</string>
+    <string name="lm_action_goal">Golo</string>
+    <string name="lm_action_yellow">Amarelo</string>
+    <string name="lm_action_red">Vermelho</string>
+    <string name="lm_action_substitution">Substituição</string>
+    <string name="lm_team_size_side">%1$d a jogar</string>
 </resources>

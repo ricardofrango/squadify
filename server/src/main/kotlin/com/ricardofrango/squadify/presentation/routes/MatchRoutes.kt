@@ -27,6 +27,7 @@ fun Route.matchRoutes() {
     val getMatchScoreUseCase by inject<GetMatchScoreUseCase>()
     val getLiveMatchUpdatesUseCase by inject<GetLiveMatchUpdatesUseCase>()
     val startMatchUseCase by inject<StartMatchUseCase>()
+    val setMatchLineupUseCase by inject<SetMatchLineupUseCase>()
     val pauseMatchUseCase by inject<PauseMatchUseCase>()
     val resumeMatchUseCase by inject<ResumeMatchUseCase>()
     val setMatchMinuteUseCase by inject<SetMatchMinuteUseCase>()
@@ -125,6 +126,14 @@ fun Route.matchRoutes() {
                     } else {
                         call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to start match"))
                     }
+                }
+
+                // The live pitch view: the formation and who stands in each position (see Formation.kt).
+                put("/lineup") {
+                    val currentUserId = call.userId ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                    val matchId = call.parameters["matchId"] ?: return@put call.respond(HttpStatusCode.BadRequest)
+                    val request = call.receive<SetMatchLineupRequest>()
+                    call.respond(setMatchLineupUseCase(currentUserId, matchId, request))
                 }
 
                 post("/pause") {

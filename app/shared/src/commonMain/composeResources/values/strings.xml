@@ -382,8 +382,6 @@
     <!-- Live Match Console -->
     <string name="msg_live_match_action_failed">Something went wrong. Please try again.</string>
     <string name="msg_live_match_read_only">You can follow along here, but only a coach or staff member can start the match, log events, or manage the clock.</string>
-    <string name="msg_kickoff_time_location">Kick-off %1$s · %2$s</string>
-    <string name="msg_kickoff_time_only">Kick-off %1$s</string>
     <string name="label_half_length">Half length</string>
     <string name="label_starting_xi">Starting XI</string>
     <string name="label_bench">Bench</string>
@@ -391,7 +389,6 @@
     <string name="btn_kick_off">Kick off</string>
     <string name="msg_pick_more_to_kick_off">Pick %1$d more to kick off. %2$d-minute halves.</string>
     <string name="msg_ready_to_kick_off">%1$d-minute halves.</string>
-    <string name="label_live_badge">LIVE</string>
     <string name="label_half_time_badge">HALF TIME</string>
     <string name="label_first_half">1st half</string>
     <string name="label_second_half">2nd half</string>
@@ -1441,4 +1438,38 @@
     <string name="match_type_abbr_tournament">Tou</string>
     <string name="match_row_half_time">HT</string>
     <string name="msg_callup_discard">Your changes to the call-up haven\'t been saved and will be lost.</string>
+    <!-- Live pitch view -->
+    <string name="tab_pitch">Pitch</string>
+    <string name="lm_change_formation">Change formation</string>
+    <string name="lm_formation_format">Defenders-midfielders-attackers</string>
+    <string name="lm_formation_adds_up">Adds up to %1$d + goalkeeper</string>
+    <string name="lm_formation_wrong_sum">%1$s adds up to %2$d. It needs %3$d (not counting the goalkeeper).</string>
+    <string name="lm_formation_wrong_format">Write three numbers, like %1$s.</string>
+    <string name="lm_quick_picks">Quick picks</string>
+    <string name="btn_apply">Apply</string>
+    <string name="lm_minutes_chip">%1$d min</string>
+    <string name="lm_half_length_cd">Half length: %1$d minutes</string>
+    <string name="lm_empty_position">Empty</string>
+    <string name="lm_who_plays_here">Who plays here?</string>
+    <string name="lm_everyone_placed">Everyone called up is already on the pitch.</string>
+    <string name="lm_take_off_pitch">Take off the pitch</string>
+    <string name="lm_put_in_instead">Put in instead</string>
+    <string name="lm_swap_with">Swap places with</string>
+    <string name="lm_change_position">Change position</string>
+    <string name="lm_who_moves_here">Who moves here?</string>
+    <string name="lm_empty_in_zone">Empty position · %1$s</string>
+    <string name="lm_zone_goal">Goal</string>
+    <string name="lm_zone_defence">Defence</string>
+    <string name="lm_zone_midfield">Midfield</string>
+    <string name="lm_zone_attack">Attack</string>
+    <string name="lm_fill_more_to_kick_off">Fill %1$d more positions to kick off. %2$d-minute halves.</string>
+    <string name="lm_flip_pitch">Flip the pitch</string>
+    <string name="lm_sent_off_list">Sent off: %1$s</string>
+    <string name="lm_on_the_pitch_for">%1$s on the pitch</string>
+    <string name="lm_tab_events">Events</string>
+    <string name="lm_action_goal">Goal</string>
+    <string name="lm_action_yellow">Yellow</string>
+    <string name="lm_action_red">Red</string>
+    <string name="lm_action_substitution">Substitution</string>
+    <string name="lm_team_size_side">%1$d-a-side</string>
 </resources>
