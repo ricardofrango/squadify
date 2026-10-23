@@ -174,7 +174,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - **Player rows** start with one badge: the photo with the shirt number under it, only the photo or only the number (centred), or a head-and-shoulders placeholder when there's neither. Used in call-ups and the pool (Match details), Age Group and Team members, Club players, Add players, the line-up picker and the live console's squad and minutes rows, the match report's ratings, and training ratings.
       - **People's photos** in Club settings → Members, Member details and age group staff.
       - **Club logo on push notifications** (Android), when the club has one and the server has a public address.
-      - **Not yet:** the stats tables (season stats, training stats) and Add staff's picker still show names only.
+      - **Stats and pickers:** the team leaders card (photo before the name), the training stats table (the player badge) and Add staff's picker (the photo in the initials circle).
       - **To decide:** whether a user's own photo should only be visible to people who share a club with them. Today any signed-in user can fetch the current one by its random id.
     - [x] Client-side Architecture (MVVM, Koin, UseCases).
     - [x] API Integration (Ktor Client): every screen talks to the server through repositories over a shared authenticated Ktor client (bearer tokens, refresh on 401), plus WebSockets for the live match and the club's Matches tab.

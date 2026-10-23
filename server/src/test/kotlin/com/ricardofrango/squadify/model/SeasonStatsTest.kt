@@ -123,7 +123,7 @@ class SeasonStatsTest {
             teamId = "t", seasonId = "s", seasonName = "2026/27", canSeeRatings = true,
             matches = listOf(match("a", 1, MatchType.CHAMPIONSHIP, 4, 0), match("b", 2, MatchType.FRIENDLY, 3, 0)),
             players = listOf(
-                TeamSeasonPlayer("p1", "Tomás"), TeamSeasonPlayer("p2", "Gil"),
+                TeamSeasonPlayer("p1", "Tomás", photoUrl = "/players/p1/photo/a.png"), TeamSeasonPlayer("p2", "Gil"),
                 TeamSeasonPlayer("p3", "Francisco"), TeamSeasonPlayer("p4", "Bruno"), TeamSeasonPlayer("p5", "Rui")
             ),
             playerLines = listOf(
@@ -138,6 +138,8 @@ class SeasonStatsTest {
         // Three on 4 goals share #1, listed by name; Rui (1) falls outside the top three rows.
         assertEquals(listOf(1, 1, 1), leaders.goals.map { it.rank })
         assertEquals(listOf("Francisco", "Gil", "Tomás"), leaders.goals.map { it.name })
+        // Each entry keeps the player's photo, for the leaders card.
+        assertEquals(listOf(null, null, "/players/p1/photo/a.png"), leaders.goals.map { it.photoUrl })
         // Zero-assist players are left out, so the list is shorter than three.
         assertEquals(listOf("Francisco" to 1, "Bruno" to 2), leaders.assists.map { it.name to it.rank })
         assertEquals("Bruno", leaders.minutes.first().name)

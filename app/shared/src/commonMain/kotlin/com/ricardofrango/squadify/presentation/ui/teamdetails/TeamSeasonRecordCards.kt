@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.initialsOf
+import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.emptyStatsRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -259,6 +261,11 @@ private fun LeaderRow(entry: LeaderEntry, value: String, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(entry.rank.toString(), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp), color = StatsSecondaryText, modifier = Modifier.width(14.dp))
         Spacer(Modifier.width(6.dp))
+        // The player's photo before the name, only when they have one.
+        entry.photoUrl?.let {
+            PersonPhoto(it, initialsOf(entry.name, ""), 20.dp, CarbonGray.copy(alpha = 0.08f), DeepCarbon)
+            Spacer(Modifier.width(6.dp))
+        }
         Text(
             entry.name,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 13.sp),

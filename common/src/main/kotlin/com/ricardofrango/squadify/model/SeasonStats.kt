@@ -215,7 +215,7 @@ const val LEADERS_SHOWN = 3
 const val MIN_RATED_MATCHES_FOR_LEADERS = 2
 
 /** [value] is the raw number: a count, minutes, or an average rating (one decimal). */
-data class LeaderEntry(val rank: Int, val playerId: String, val name: String, val value: Double)
+data class LeaderEntry(val rank: Int, val playerId: String, val name: String, val value: Double, val photoUrl: String? = null)
 
 data class TeamLeaders(
     val goals: List<LeaderEntry>,
@@ -233,6 +233,7 @@ fun TeamSeasonRecord.leaders(filter: StatsFilter): TeamLeaders {
     val matchIds = matches.filter { filter.includes(it.matchType) }.map { it.matchId }.toSet()
     val lines = playerLines.filter { it.matchId in matchIds }.groupBy { it.playerId }
     val names = players.associate { it.id to it.name }
+    val photos = players.associate { it.id to it.photoUrl }
 
     fun board(value: (List<TeamSeasonPlayerLine>) -> Double?): List<LeaderEntry> {
         val scored = lines.mapNotNull { (playerId, rows) ->
@@ -242,7 +243,7 @@ fun TeamSeasonRecord.leaders(filter: StatsFilter): TeamLeaders {
         return scored.map { (id, name, v) ->
             // Standard competition ranking: 1, 1, 1, 4 ...
             val rank = scored.indexOfFirst { it.third == v } + 1
-            LeaderEntry(rank, id, name, v)
+            LeaderEntry(rank, id, name, v, photos[id])
         }.take(LEADERS_SHOWN)
     }
 

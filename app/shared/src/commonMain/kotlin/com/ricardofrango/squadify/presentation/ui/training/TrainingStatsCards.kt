@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import com.ricardofrango.squadify.presentation.ui.theme.IsClubThemed
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.foundation.background
@@ -135,8 +136,11 @@ fun AgeGroupTrainingStatsCard(stats: AgeGroupTrainingStats, onOpenPlayer: (Strin
         trainingTable(stats, month, sort).forEach { row ->
             val low = row.sessions > 0 && row.percent < LOW_ATTENDANCE_PERCENT
             Row(Modifier.fillMaxWidth().clickable { onOpenPlayer(row.player.id) }.padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+                // The player badge (photo and number, as in every player row), then the name.
+                PlayerBadge(row.player.photoUrl, row.player.shirtNumber, photoSize = 24.dp, numberStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Black))
+                Spacer(Modifier.width(6.dp))
                 Text(
-                    listOfNotNull(row.player.shirtNumber?.toString(), "${row.player.firstName} ${row.player.lastName}").joinToString("  "),
+                    "${row.player.firstName} ${row.player.lastName}",
                     style = MaterialTheme.typography.bodyMedium, color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
                 )
                 Text("${row.attended}/${row.sessions} · ${row.percent}%", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = if (low) AmberText else DeepCarbon, modifier = Modifier.width(110.dp))
