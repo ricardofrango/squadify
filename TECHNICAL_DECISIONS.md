@@ -2826,5 +2826,5 @@ Per the developer, 2026-10-23: the local server kept running old code until it w
 
   Otherwise a reload closed the new module's pool and Koin under it ("Scope '_root_' is closed"), or left the old pool open until the database ran out of connections.
 - **Not reloaded:** `Application.kt`'s own code (the class with `main`, loaded once). Routes, use cases, repositories and everything else are.
-- **Also:** the port can be set with `PORT` (default 8080), for example to run a second server next to yours.
+- **Also:** the port can be set with `SERVER_PORT` (default 8080), for example to run a second server next to yours. Not `PORT`: Railway sets that one itself, and the deployed server must keep listening on 8080, where its domain points.
 

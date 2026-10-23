@@ -70,7 +70,7 @@ fun main() {
         rootConfig = serverConfig(environment) { watchPaths = listOf("classes", "resources") },
         configure = {
             connector {
-                port = System.getenv("PORT")?.toIntOrNull() ?: 8080
+                port = System.getenv("SERVER_PORT")?.toIntOrNull() ?: 8080
                 host = "0.0.0.0"
             }
         }
