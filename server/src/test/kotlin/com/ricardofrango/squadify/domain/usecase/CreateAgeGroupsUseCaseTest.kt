@@ -226,4 +226,31 @@ class CreateAgeGroupsUseCaseTest {
         )
         assertEquals(1, result.size)
     }
+
+    // Every clashing row is reported, so the screen can mark them all at once.
+    @Test
+    fun reportsEveryClashingRowNotJustTheFirst() = runBlocking {
+        val coord = coordinator()
+        coEvery { clubRepository.getClubById(clubId) } returns club
+        coEvery { ageGroupRepository.findByClubAndSeason(clubId, seasonId) } returns listOf(
+            AgeGroup(id = "existing", clubId = clubId, name = "Sub 8", seasonId = seasonId, startYear = 2018, endYear = 2018)
+        )
+
+        val error = assertFailsWith<ConflictException> {
+            useCase(
+                coord.id,
+                CreateAgeGroupsRequest(
+                    clubId = clubId, seasonId = seasonId,
+                    items = listOf(
+                        AgeGroupItemRequest(name = "Sub 8 B", startYear = 2018, endYear = 2018), // clashes with the existing one
+                        AgeGroupItemRequest(name = "Sub 9", startYear = 2017, endYear = 2017), // fine
+                        AgeGroupItemRequest(name = "Sub 9 B", startYear = 2017, endYear = 2016), // clashes with the row above
+                        AgeGroupItemRequest(name = "Sub 11", startYear = 2015, endYear = 2015) // fine
+                    )
+                )
+            )
+        }
+        assertEquals(listOf(0, 2), error.rows)
+        coVerify(exactly = 0) { ageGroupRepository.createAgeGroups(any()) }
+    }
 }

@@ -45,7 +45,7 @@ import com.ricardofrango.squadify.model.monthStarts
 import com.ricardofrango.squadify.model.periodEnd
 import com.ricardofrango.squadify.model.planFor
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
@@ -55,6 +55,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
@@ -111,7 +112,7 @@ private fun SeasonPlanContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = stringResource(Res.string.title_season_plan),
                 subtitle = plans?.subtitle(),
                 onNavigateBack = onNavigateBack,
@@ -131,7 +132,7 @@ private fun SeasonPlanContent(
         val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
         BoxWithConstraints(modifier) {
             val wide = maxWidth >= 600.dp
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatsCard { SeasonTimeline(plans.season, plan?.phases.orEmpty(), today) }
                 if (plan == null) {
                     StatsCard {

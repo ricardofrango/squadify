@@ -23,12 +23,12 @@ import com.ricardofrango.squadify.model.ClubHomeNextUp
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchStatus
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.TrainingPlanLevel
 import com.ricardofrango.squadify.model.monthStartOf
 import com.ricardofrango.squadify.model.mondayOf
 import com.ricardofrango.squadify.model.planFor
-import com.ricardofrango.squadify.model.defaultMinTeamRole
+import com.ricardofrango.squadify.model.defaultMinAgeGroupRole
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
@@ -110,7 +110,8 @@ class GetClubHomeUseCase(
                 location = next.location,
                 dateTime = next.dateTime,
                 callUpsTotal = callUps.size,
-                opponentLogoUrl = opponentsById[next.opponentId]?.logoUrl
+                opponentLogoUrl = opponentsById[next.opponentId]?.logoUrl,
+                venue = next.venue
             )
         }.sortedBy { it.dateTime }
 
@@ -121,7 +122,7 @@ class GetClubHomeUseCase(
 
         if (isAdmin || role.level >= ClubRole.COORDINATOR.level) {
             ageGroups.forEach { ag ->
-                val hasCoach = ageGroupRepository.getAgeGroupStaff(ag.id).any { it.role == TeamRole.COACH }
+                val hasCoach = ageGroupRepository.getAgeGroupStaff(ag.id).any { it.role == AgeGroupRole.COACH }
                 if (!hasCoach) {
                     alerts += ClubHomeAlert(
                         type = ClubHomeAlertType.AGE_GROUP_NEEDS_COACH,
@@ -139,13 +140,13 @@ class GetClubHomeUseCase(
         // MANAGE_MATCH for pending reports (both Coach by default; see ConfigurablePermission).
         val seesWholeClub = isAdmin || role.level >= ClubRole.COORDINATOR.level
         val seasonTeams = teams.filter { team -> ageGroups.any { it.id == team.ageGroupId } }
-        val staffRoleByAgeGroup: Map<String, TeamRole?> =
+        val staffRoleByAgeGroup: Map<String, AgeGroupRole?> =
             if (seesWholeClub) emptyMap() else ageGroups.associate { it.id to ageGroupRepository.getUserRoleInAgeGroup(userId, it.id) }
 
         // One lookup per setting. An override row with a null role means coordinator-only.
-        suspend fun minStaffRole(permission: ConfigurablePermission): TeamRole? {
+        suspend fun minStaffRole(permission: ConfigurablePermission): AgeGroupRole? {
             val override = clubPermissionRepository.getOverride(clubId, permission)
-            return if (override != null) override.minTeamRole else permission.defaultMinTeamRole
+            return if (override != null) override.minAgeGroupRole else permission.defaultMinAgeGroupRole
         }
 
         suspend fun alertTeamIds(permission: ConfigurablePermission): Set<String> {

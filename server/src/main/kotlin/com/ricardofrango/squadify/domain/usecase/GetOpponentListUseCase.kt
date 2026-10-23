@@ -9,7 +9,7 @@ import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.OpponentList
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 
 /**
  * The Opponents screen (design 38): the club's opponents by name and whether the caller may create one.
@@ -35,7 +35,7 @@ class GetOpponentListUseCase(
         checkUserPermissionUseCase(
             userId, clubId,
             minClubRole = ClubRole.MEMBER,
-            minTeamRole = TeamRole.COACH,
+            minAgeGroupRole = AgeGroupRole.COACH,
             ageGroupId = ageGroupId
         )
 

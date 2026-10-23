@@ -1,5 +1,12 @@
 package com.ricardofrango.squadify.presentation.ui.register
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import com.ricardofrango.squadify.presentation.credentials.rememberCredentialStore
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.text.KeyboardActions
 import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import androidx.compose.ui.text.input.KeyboardType
@@ -21,13 +28,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PasswordVisibilityToggle
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -43,159 +52,32 @@ fun RegisterScreen(
     onNavigateToDashboard: () -> Unit,
     viewModel: RegisterViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
+    // The email and password last sent, so the new account can be offered to the password manager.
+    var lastAttempt by remember { mutableStateOf<Pair<String, String>?>(null) }
+    val credentialStore = rememberCredentialStore()
 
     // Observe Navigation Events
     LaunchedEffect(viewModel.navigationEvent) {
         viewModel.navigationEvent.collect { event ->
             when (event) {
                 RegisterNavigationEvent.NavigateBackToLogin -> onNavigateBack()
-                RegisterNavigationEvent.NavigateToDashboard -> onNavigateToDashboard()
-            }
-        }
-    }
-
-    // Local UI State for form fields
-    var firstName by rememberSaveable { mutableStateOf("") }
-    var lastName by rememberSaveable { mutableStateOf("") }
-    var email by rememberSaveable { mutableStateOf("") }
-    var phone by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    var confirmPassword by rememberSaveable { mutableStateOf("") }
-
-    val errorMessage = (uiState as? RegisterUiState.Idle)?.error
-    val enabled = uiState !is RegisterUiState.Loading
-
-    Scaffold(
-        topBar = {
-            FMTopBar(
-                title = stringResource(Res.string.title_register),
-                onNavigateBack = onNavigateBack
-            )
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(WhiteSmoke)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = stringResource(Res.string.btn_register),
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = CarbonGray
-                    )
-                )
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(20.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    if (errorMessage != null) {
-                        Text(
-                            text = errorMessage,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-
-                FormSection(title = stringResource(Res.string.label_section_your_name)) {
-                    FormField(
-                        value = firstName,
-                        onValueChange = { firstName = it },
-                        label = stringResource(Res.string.label_first_name),
-                        isError = errorMessage != null,
-                        enabled = enabled
-                    )
-                    FormField(
-                        value = lastName,
-                        onValueChange = { lastName = it },
-                        label = stringResource(Res.string.label_last_name),
-                        isError = errorMessage != null,
-                        enabled = enabled
-                    )
-                }
-
-                FormSection(title = stringResource(Res.string.label_section_how_we_reach_you)) {
-                    FormField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = stringResource(Res.string.label_email),
-                        isError = errorMessage != null,
-                        enabled = enabled,
-                        keyboardType = KeyboardType.Email
-                    )
-                    FormField(
-                        value = phone,
-                        onValueChange = { phone = it },
-                        label = stringResource(Res.string.label_phone),
-                        isError = errorMessage != null,
-                        enabled = enabled,
-                        keyboardType = KeyboardType.Phone
-                    )
-                }
-
-                FormSection(title = stringResource(Res.string.label_section_password)) {
-                    FormField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = stringResource(Res.string.label_password),
-                        isError = errorMessage != null,
-                        enabled = enabled,
-                        isPassword = true
-                    )
-                    PasswordStrengthBar(password)
-                    FormField(
-                        value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
-                        label = stringResource(Res.string.label_confirm_password),
-                        isError = errorMessage != null,
-                        enabled = enabled,
-                        isPassword = true,
-                        onSubmit = { viewModel.onRegisterClicked(firstName, lastName, email, phone, password, confirmPassword) }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                PrimaryLoadingButton(
-                    text = Res.string.btn_register,
-                    submittingText = Res.string.btn_registering,
-                    isLoading = uiState is RegisterUiState.Loading,
-                    onClick = {
-                        viewModel.onRegisterClicked(
-                            firstName, lastName, email, phone, password, confirmPassword
-                        )
-                    }
-                )
-
-                TextButton(
-                    onClick = onNavigateBack,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = enabled
-                ) {
-                    Text(
-                        text = stringResource(Res.string.msg_already_have_account),
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = CarbonGray,
-                            fontWeight = FontWeight.Bold
-                        )
-                    )
+                RegisterNavigationEvent.NavigateToDashboard -> {
+                    lastAttempt?.let { (email, password) -> credentialStore.save(email, password) }
+                    onNavigateToDashboard()
                 }
             }
         }
     }
+
+    RegisterContent(
+        uiState = uiState,
+        onNavigateBack = onNavigateBack,
+        onRegister = { firstName, lastName, email, phone, password, confirmPassword ->
+            lastAttempt = email.trim() to password
+            viewModel.onRegisterClicked(firstName, lastName, email, phone, password, confirmPassword)
+        }
+    )
 }
 
 /** One white, rounded card grouping related fields under a small caps section label. */
@@ -300,4 +182,166 @@ private fun passwordStrengthSegments(password: String): Int {
     if (password.any { it.isDigit() }) score++
     if (password.length >= 12 || password.any { !it.isLetterOrDigit() }) score++
     return score.coerceIn(1, PASSWORD_STRENGTH_SEGMENTS)
+}
+
+/** Register's layout, without the ViewModel, so it can be previewed. */
+@Composable
+private fun RegisterContent(
+    uiState: RegisterUiState,
+    onNavigateBack: () -> Unit,
+    onRegister: (firstName: String, lastName: String, email: String, phone: String, password: String, confirmPassword: String) -> Unit
+) {
+    // Local UI State for form fields
+    var firstName by rememberSaveable { mutableStateOf("") }
+    var lastName by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var phone by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var confirmPassword by rememberSaveable { mutableStateOf("") }
+
+    val errorMessage = (uiState as? RegisterUiState.Idle)?.error
+    val enabled = uiState !is RegisterUiState.Loading
+
+    Scaffold(
+        topBar = {
+            SquadifyTopBar(
+                title = stringResource(Res.string.title_register),
+                onNavigateBack = onNavigateBack
+            )
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(WhiteSmoke)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .screenContentPadding(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = stringResource(Res.string.btn_register),
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = CarbonGray
+                    )
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(20.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (errorMessage != null) {
+                        Text(
+                            text = errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+
+                FormSection(title = stringResource(Res.string.label_section_your_name)) {
+                    FormField(
+                        value = firstName,
+                        onValueChange = { firstName = it },
+                        label = stringResource(Res.string.label_first_name),
+                        isError = errorMessage != null,
+                        enabled = enabled
+                    )
+                    FormField(
+                        value = lastName,
+                        onValueChange = { lastName = it },
+                        label = stringResource(Res.string.label_last_name),
+                        isError = errorMessage != null,
+                        enabled = enabled
+                    )
+                }
+
+                FormSection(title = stringResource(Res.string.label_section_how_we_reach_you)) {
+                    FormField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = stringResource(Res.string.label_email),
+                        isError = errorMessage != null,
+                        enabled = enabled,
+                        keyboardType = KeyboardType.Email
+                    )
+                    FormField(
+                        value = phone,
+                        onValueChange = { phone = it },
+                        label = stringResource(Res.string.label_phone),
+                        isError = errorMessage != null,
+                        enabled = enabled,
+                        keyboardType = KeyboardType.Phone
+                    )
+                }
+
+                FormSection(title = stringResource(Res.string.label_section_password)) {
+                    FormField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = stringResource(Res.string.label_password),
+                        isError = errorMessage != null,
+                        enabled = enabled,
+                        isPassword = true
+                    )
+                    PasswordStrengthBar(password)
+                    FormField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it },
+                        label = stringResource(Res.string.label_confirm_password),
+                        isError = errorMessage != null,
+                        enabled = enabled,
+                        isPassword = true,
+                        onSubmit = { onRegister(firstName, lastName, email, phone, password, confirmPassword) }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                PrimaryLoadingButton(
+                    text = Res.string.btn_register,
+                    submittingText = Res.string.btn_registering,
+                    isLoading = uiState is RegisterUiState.Loading,
+                    onClick = {
+                        onRegister(
+                            firstName, lastName, email, phone, password, confirmPassword
+                        )
+                    }
+                )
+
+                TextButton(
+                    onClick = onNavigateBack,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = enabled
+                ) {
+                    Text(
+                        text = stringResource(Res.string.msg_already_have_account),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = CarbonGray,
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun RegisterPreview() {
+    SquadifyTheme { RegisterContent(RegisterUiState.Idle(), {}, { _, _, _, _, _, _ -> }) }
+}
+
+@Preview
+@Composable
+private fun RegisterErrorPreview() {
+    SquadifyTheme { RegisterContent(RegisterUiState.Idle(error = "An account with this email already exists"), {}, { _, _, _, _, _, _ -> }) }
 }

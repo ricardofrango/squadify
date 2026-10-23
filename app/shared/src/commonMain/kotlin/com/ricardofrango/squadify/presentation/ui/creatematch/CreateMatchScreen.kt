@@ -2,6 +2,8 @@ package com.ricardofrango.squadify.presentation.ui.creatematch
 
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardOptions
+import com.ricardofrango.squadify.presentation.ui.components.VenueSelector
+import com.ricardofrango.squadify.model.MatchVenue
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -27,16 +29,18 @@ import com.ricardofrango.squadify.presentation.ui.components.MatchTypeSelector
 import com.ricardofrango.squadify.model.MatchType
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.presentation.ui.components.DatePickerSheet
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.TimePickerSheet
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentLogo
 import com.ricardofrango.squadify.presentation.ui.opponents.opponentSubline
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -56,7 +60,7 @@ private val DayMonthYear = LocalDate.Format {
 /**
  * Schedule one fixture, matching `CreateMatchRequest`. Built to the "Schedule match" artboard
  * (13A / 13B) of the design canvas in AI_GUIDELINES.md. Reached only from a `canManage`-gated
- * button, so there is no permission state -- the server still enforces `minTeamRole = COACH`.
+ * button, so there is no permission state -- the server still enforces `minAgeGroupRole = COACH`.
  *
  * Two entry shapes: from an age group the team is chosen here (from that age group's teams); from a
  * team it's fixed and shown locked. The age group / season are read-only context in both.
@@ -116,6 +120,7 @@ fun CreateMatchScreen(
             onNotesChange = viewModel::onNotesChange,
             onMatchTypeSelected = viewModel::onMatchTypeSelected,
             onHalvesSelected = viewModel::onHalvesSelected,
+            onVenueSelected = viewModel::onVenueSelected,
             onSubmit = viewModel::onSubmit
         )
     }
@@ -136,6 +141,7 @@ private fun CreateMatchContent(
     onNotesChange: (String) -> Unit,
     onMatchTypeSelected: (MatchType) -> Unit,
     onHalvesSelected: (Int) -> Unit = {},
+    onVenueSelected: (MatchVenue) -> Unit = {},
     onSubmit: () -> Unit
 ) {
     val clubName = (uiState as? CreateMatchUiState.Idle)?.clubName
@@ -143,7 +149,7 @@ private fun CreateMatchContent(
         containerColor = Color.White,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = stringResource(Res.string.title_schedule_match),
                 subtitle = clubName,
                 onNavigateBack = onNavigateBack
@@ -157,7 +163,7 @@ private fun CreateMatchContent(
 
             is CreateMatchUiState.Error ->
                 Column(
-                    boxModifier.padding(24.dp),
+                    boxModifier.screenContentPadding(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -177,6 +183,7 @@ private fun CreateMatchContent(
                 onNotesChange = onNotesChange,
                 onMatchTypeSelected = onMatchTypeSelected,
                 onHalvesSelected = onHalvesSelected,
+                onVenueSelected = onVenueSelected,
                 onSubmit = onSubmit
             )
         }
@@ -195,6 +202,7 @@ private fun CreateMatchForm(
     onNotesChange: (String) -> Unit,
     onMatchTypeSelected: (MatchType) -> Unit,
     onHalvesSelected: (Int) -> Unit = {},
+    onVenueSelected: (MatchVenue) -> Unit = {},
     onSubmit: () -> Unit
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
@@ -207,7 +215,7 @@ private fun CreateMatchForm(
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .screenContentPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // ---- Team ----
@@ -239,6 +247,11 @@ private fun CreateMatchForm(
             // ---- Match type (required, no default) ----
             FieldCard(label = stringResource(Res.string.label_match_type), required = true) {
                 MatchTypeSelector(selected = state.matchType, onSelected = onMatchTypeSelected, error = state.matchTypeError)
+            }
+
+            // ---- Where (required, no default): prefills the location below ----
+            FieldCard(label = stringResource(Res.string.label_venue), required = true) {
+                VenueSelector(selected = state.venue, onSelected = onVenueSelected, error = state.venueError)
             }
 
             // ---- Halves (two by default; one is a single period with no half time) ----
@@ -322,7 +335,7 @@ private fun CreateMatchForm(
             // padded by Scaffold's own paddingValues, which (with no bottomBar slot in use) already
             // reserves the bottom system-bar inset -- adding it again pushed the button up an extra
             // inset's worth, leaving a large empty gap below it.
-            Box(Modifier.padding(24.dp)) {
+            Box(Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp)) {
                 PrimaryLoadingButton(
                     text = Res.string.btn_schedule_match,
                     submittingText = Res.string.btn_scheduling_match,
@@ -330,9 +343,9 @@ private fun CreateMatchForm(
                     enabled = state.canSubmit,
                     onClick = onSubmit
                 )
-                // The button stays disabled until a type is picked, but a tap on it still has to say
-                // why (design 28b): onSubmit flags the missing type instead of scheduling.
-                if (!state.canSubmit && state.matchType == null) {
+                // The button stays disabled until a type and a venue are picked, but a tap on it still
+                // has to say why (design 28b): onSubmit flags what's missing instead of scheduling.
+                if (!state.canSubmit && (state.matchType == null || state.venue == null)) {
                     Box(
                         Modifier
                             .matchParentSize()

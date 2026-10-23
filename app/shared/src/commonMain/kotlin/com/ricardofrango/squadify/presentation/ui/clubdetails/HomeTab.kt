@@ -40,6 +40,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -75,7 +76,7 @@ fun HomeTab(
 ) {
     if (home == null) {
         Column(
-            modifier = Modifier.fillMaxSize().background(Color.White).padding(24.dp),
+            modifier = Modifier.fillMaxSize().background(Color.White).screenContentPadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -96,7 +97,7 @@ fun HomeTab(
             .fillMaxSize()
             .background(Color.White)
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
+            .screenContentPadding(),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         home.seasonName?.let { season ->
@@ -376,8 +377,9 @@ private fun NextUpRow(item: ClubHomeNextUp, onClick: () -> Unit) {
                         OpponentLogo(item.opponentName, null, it, size = 20.dp)
                         Spacer(Modifier.width(6.dp))
                     }
+                    // Home first, as a fixture reads.
                     Text(
-                        "${item.teamName} · ${item.opponentName}",
+                        if (item.venue.ourSideFirst()) "${item.teamName} · ${item.opponentName}" else "${item.opponentName} · ${item.teamName}",
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                         color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis
                     )

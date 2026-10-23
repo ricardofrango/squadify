@@ -23,7 +23,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,6 +35,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
@@ -43,7 +43,7 @@ import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.TrainingRating
 import com.ricardofrango.squadify.model.TrainingRatings
 import com.ricardofrango.squadify.model.TrainingSession
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
 import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
@@ -52,6 +52,7 @@ import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
@@ -84,7 +85,7 @@ fun RatePlayersScreen(
     viewModel: RatePlayersViewModel = koinViewModel()
 ) {
     SquadifyClubTheme {
-        val state by viewModel.state.collectAsState()
+        val state by viewModel.state.collectAsStateWithLifecycle()
         LaunchedEffect(sessionId) { viewModel.start(sessionId) }
         LaunchedEffect(viewModel) { viewModel.saved.collect { onSaved() } }
         RatePlayersContent(
@@ -112,7 +113,7 @@ private fun RatePlayersContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = stringResource(Res.string.title_rate_players),
                 subtitle = ratings?.let { stringResource(Res.string.label_training_subtitle, sessionTitle(it.session.date), it.ageGroupName) },
                 onNavigateBack = leave
@@ -125,7 +126,7 @@ private fun RatePlayersContent(
             return@Scaffold
         }
         Column(modifier) {
-            LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            LazyColumn(Modifier.weight(1f), contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 item {
                     Text(
                         stringResource(if (ratings.ratingsOpen) Res.string.msg_rate_intro else Res.string.msg_ratings_not_open),

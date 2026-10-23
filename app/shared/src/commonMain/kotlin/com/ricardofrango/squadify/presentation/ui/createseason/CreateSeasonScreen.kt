@@ -34,7 +34,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,12 +50,13 @@ import com.ricardofrango.squadify.domain.SeasonDateDefaults
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.DatePickerSheet
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.btn_create_season
 import squadify.app.shared.generated.resources.btn_creating_season
@@ -249,7 +249,7 @@ private fun CreateSeasonContent(
         // DeepCarbon background here instead.
         containerColor = Color.White,
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = stringResource(Res.string.title_create_season),
                 subtitle = clubName,
                 onNavigateBack = onNavigateBack
@@ -274,7 +274,7 @@ private fun CreateSeasonContent(
                         .padding(paddingValues)
                         .background(Color.White)
                         .verticalScroll(rememberScrollState())
-                        .padding(24.dp),
+                        .screenContentPadding(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     SectionLabel(stringResource(Res.string.label_season_type))

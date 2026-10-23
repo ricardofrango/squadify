@@ -20,7 +20,7 @@ import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchReportStatus
 import com.ricardofrango.squadify.model.MatchReportSummary
 import com.ricardofrango.squadify.model.MatchStatus
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 
 class GetMatchDetailsUseCase(
     private val matchRepository: MatchRepository,
@@ -44,7 +44,7 @@ class GetMatchDetailsUseCase(
             userId,
             match.clubId,
             minClubRole = ClubRole.MEMBER,
-            minTeamRole = TeamRole.STAFF,
+            minAgeGroupRole = AgeGroupRole.STAFF,
             teamId = match.teamId,
             allowPlayerOrParentAccess = true
         )
@@ -71,7 +71,7 @@ class GetMatchDetailsUseCase(
         // rather than one implying another, since a club can now override each of the three away from
         // its default and have them disagree (e.g. call-ups open to staff but live-match ops
         // coordinator-only). See TECHNICAL_DECISIONS.md §35 on why these must track the real
-        // configurable thresholds instead of a literal minTeamRole.
+        // configurable thresholds instead of a literal minAgeGroupRole.
         suspend fun canDo(permission: ConfigurablePermission): Boolean = try {
             checkUserPermissionUseCase(
                 userId = userId,
@@ -94,7 +94,7 @@ class GetMatchDetailsUseCase(
                 userId = userId,
                 clubId = match.clubId,
                 minClubRole = ClubRole.COORDINATOR,
-                minTeamRole = TeamRole.STAFF,
+                minAgeGroupRole = AgeGroupRole.STAFF,
                 teamId = match.teamId
             )
             true
@@ -118,6 +118,7 @@ class GetMatchDetailsUseCase(
             )
         } else null
 
+        val club = clubRepository.getClubById(match.clubId)
         MatchDetails(
             match = match,
             opponent = opponent,
@@ -132,7 +133,8 @@ class GetMatchDetailsUseCase(
             score = matchEventRepository.getScoreByMatch(matchId),
             report = report,
             serverNow = kotlin.time.Clock.System.now(),
-            clubLogoUrl = clubRepository.getClubById(match.clubId)?.logoUrl
+            clubLogoUrl = club?.logoUrl,
+            clubLocation = club?.let { it.stadiumLocation ?: it.address }
         )
     }
 }

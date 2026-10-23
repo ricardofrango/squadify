@@ -23,11 +23,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ricardofrango.squadify.model.*
 import com.ricardofrango.squadify.presentation.ui.components.DetailBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.DetailRail
 import com.ricardofrango.squadify.presentation.ui.components.DetailTab
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.MatchRow
 import com.ricardofrango.squadify.presentation.ui.components.StatsFilterSegments
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
@@ -35,10 +36,12 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
@@ -86,9 +89,9 @@ fun TeamDetailsScreen(
 ) {
     SquadifyClubTheme {
         val uiState = viewModel.state.collectSettledState()
-        val recordState by viewModel.record.collectAsState()
-        val tab by viewModel.tab.collectAsState()
-        val squadSort by viewModel.squadSort.collectAsState()
+        val recordState by viewModel.record.collectAsStateWithLifecycle()
+        val tab by viewModel.tab.collectAsStateWithLifecycle()
+        val squadSort by viewModel.squadSort.collectAsStateWithLifecycle()
 
         LaunchedEffect(teamId) { viewModel.load(teamId) }
         LaunchedEffect(refreshOnReturn) { if (refreshOnReturn) viewModel.load(teamId, forceReload = true) }
@@ -151,7 +154,7 @@ private fun TeamDetailsContent(
                 containerColor = WhiteSmoke,
                 topBar = {
                     Column(Modifier.background(ClubChrome)) {
-                        FMTopBar(
+                        SquadifyTopBar(
                             title = details?.team?.name ?: stringResource(Res.string.title_team_details),
                             // Landscape (32e): the Next fixture folds into the subtitle to save height.
                             subtitle = details?.let { d ->
@@ -206,7 +209,7 @@ private fun TeamDetailsContent(
                         Box(boxModifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
 
                     is TeamDetailsUiState.Error ->
-                        Column(boxModifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        Column(boxModifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                             Text(uiState.message, color = MaterialTheme.colorScheme.error, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                             Spacer(Modifier.height(16.dp))
                             Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
@@ -219,7 +222,7 @@ private fun TeamDetailsContent(
                         val nextHint = next?.let {
                             stringResource(Res.string.team_first_match_hint, dateLabel(it.dateTime), opponentName(opponentsById, it.opponentId))
                         }
-                        val padding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 20.dp)
+                        val padding = ScreenPadding.Values
                         val listModifier = boxModifier
                         when (tab) {
                             TeamTab.STATS -> LazyColumn(listModifier, state = listStates.getValue(TeamTab.STATS), contentPadding = padding, verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -288,10 +291,12 @@ private fun TeamHeader(details: TeamDetails, recordState: TeamRecordUiState, sho
     val opponentsById = remember(details.opponents) { details.opponents.associateBy { it.id } }
     val next = details.upcomingMatches.firstOrNull()
     val playersUsed = (recordState as? TeamRecordUiState.Loaded)?.record?.squad(StatsFilter.ALL)?.used?.size
-    Column(Modifier.fillMaxWidth().background(ClubChrome).padding(start = 14.dp, end = 14.dp, bottom = 12.dp)) {
+    // No padding around the stat cells or the lines: they all reach the strip's edges. Only the Next
+    // card keeps its inset.
+    Column(Modifier.fillMaxWidth().background(ClubChrome)) {
         if (next != null && showNext) {
             Row(
-                Modifier.fillMaxWidth().padding(top = 4.dp).background(Color.White.copy(alpha = 0.07f), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 9.dp),
+                Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 4.dp).background(Color.White.copy(alpha = 0.07f), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(stringResource(Res.string.label_next).uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.5.sp), color = ChromeHighlight)
@@ -317,7 +322,8 @@ private fun TeamHeader(details: TeamDetails, recordState: TeamRecordUiState, sho
 
 @Composable
 private fun StripStat(value: String, label: String, modifier: Modifier, highlight: Boolean = false, onClick: () -> Unit) {
-    Column(modifier.clickable(onClick = onClick).padding(top = 9.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    // The whole cell is the tap target, down to the strip's bottom edge, so its ripple fills it.
+    Column(modifier.clickable(onClick = onClick).padding(top = 9.dp, bottom = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 17.sp), color = if (highlight) ChromeHighlight else Color.White)
         Text(label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp), color = Color.White.copy(alpha = 0.62f), maxLines = 1)
     }
@@ -325,6 +331,7 @@ private fun StripStat(value: String, label: String, modifier: Modifier, highligh
 
 @Composable
 private fun StripDivider() {
+    // Runs the strip's full height, down to its bottom edge.
     Box(Modifier.width(1.dp).fillMaxHeight().background(Color.White.copy(alpha = 0.12f)))
 }
 
@@ -395,6 +402,8 @@ private fun MatchesTab(
                     match = match,
                     opponentName = opponentName(opponentsById, match.opponentId),
                     opponentLogoUrl = opponentsById[match.opponentId]?.logoUrl,
+                    clubLogoUrl = details.club.logoUrl,
+                    teamName = details.team.name,
                     score = details.upcomingMatchScores[match.id],
                     onClick = { onMatchClick(match.id) }
                 )
@@ -420,6 +429,8 @@ private fun MatchesTab(
                     match = result.match,
                     opponentName = opponentName(opponentsById, result.match.opponentId),
                     opponentLogoUrl = opponentsById[result.match.opponentId]?.logoUrl,
+                    clubLogoUrl = details.club.logoUrl,
+                    teamName = details.team.name,
                     score = MatchScore(result.match.id, result.ourScore, result.opponentScore),
                     onClick = { onMatchClick(result.match.id) }
                 )
@@ -567,10 +578,10 @@ private fun sampleDetails(populated: Boolean, canManage: Boolean): TeamDetails {
         poolSize = 14,
         siblingTeamNames = if (populated) listOf("Sub-15 B") else emptyList(),
         staff = if (populated) listOf(
-            AgeGroupStaffMember("u1", "João", "Camelo", TeamRole.COACH),
-            AgeGroupStaffMember("u2", "Rita", "Sá", TeamRole.COACH),
-            AgeGroupStaffMember("u3", "Paulo", "Mesquita", TeamRole.STAFF)
-        ) else listOf(AgeGroupStaffMember("u1", "Mário", "Aleixo", TeamRole.COACH)),
+            AgeGroupStaffMember("u1", "João", "Camelo", AgeGroupRole.COACH),
+            AgeGroupStaffMember("u2", "Rita", "Sá", AgeGroupRole.COACH),
+            AgeGroupStaffMember("u3", "Paulo", "Mesquita", AgeGroupRole.STAFF)
+        ) else listOf(AgeGroupStaffMember("u1", "Mário", "Aleixo", AgeGroupRole.COACH)),
         upcomingMatches = if (populated) listOf(
             match("m1", "o1", MatchStatus.SCHEDULED, "Campo do Ribamar"),
             match("m2", "o2", MatchStatus.SCHEDULED, "Away")

@@ -15,7 +15,7 @@ import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.CreateOpponentRequest
 import com.ricardofrango.squadify.model.Opponent
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.UpdateOpponentRequest
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
@@ -74,7 +74,7 @@ class OpponentLogoUseCasesTest {
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(any(), any()) } returns null
     }
 
-    private fun user(id: String, role: ClubRole?, ageGroupRole: TeamRole? = null): String {
+    private fun user(id: String, role: ClubRole?, ageGroupRole: AgeGroupRole? = null): String {
         coEvery { userRepository.findById(id) } returns User(id, "$id@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
         coEvery { userRepository.getUserRoleInClub(id, clubId) } returns role
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(id, ag1) } returns ageGroupRole
@@ -106,7 +106,7 @@ class OpponentLogoUseCasesTest {
 
     @Test
     fun theAgeGroupsCoachCanSetIt() = runBlocking {
-        val coach = user("coach", ClubRole.MEMBER, TeamRole.COACH)
+        val coach = user("coach", ClubRole.MEMBER, AgeGroupRole.COACH)
         val url = upload(FakeStorage())(coach, opponentId, ag1, png)
         assertEquals(url, opponent.logoUrl)
     }
@@ -124,7 +124,7 @@ class OpponentLogoUseCasesTest {
     @Test
     fun anAgeGroupOfAnotherClubIsRefused() = runBlocking<Unit> {
         coEvery { ageGroupRepository.getAgeGroupById("ag-other") } returns AgeGroup("ag-other", "club-2", "U12", "s-2", 2013, 2013)
-        val coach = user("coach", ClubRole.MEMBER, TeamRole.COACH)
+        val coach = user("coach", ClubRole.MEMBER, AgeGroupRole.COACH)
         assertFailsWith<ForbiddenException> { upload(FakeStorage())(coach, opponentId, "ag-other", png) }
     }
 

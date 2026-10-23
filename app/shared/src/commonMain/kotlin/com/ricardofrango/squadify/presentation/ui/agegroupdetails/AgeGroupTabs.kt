@@ -549,6 +549,7 @@ internal fun AgeGroupMatchesTab(
                     match = match,
                     opponentName = opponent(match.opponentId),
                     opponentLogoUrl = opponentsById[match.opponentId]?.logoUrl,
+                    clubLogoUrl = details.club.logoUrl,
                     teamName = teamsById[match.teamId]?.name,
                     score = details.upcomingMatchScores[match.id],
                     onClick = { onOpenMatch(match.id) }
@@ -567,6 +568,7 @@ internal fun AgeGroupMatchesTab(
                     match = r.match,
                     opponentName = opponent(r.match.opponentId),
                     opponentLogoUrl = opponentsById[r.match.opponentId]?.logoUrl,
+                    clubLogoUrl = details.club.logoUrl,
                     teamName = teamsById[r.match.teamId]?.name,
                     score = MatchScore(r.match.id, r.ourScore, r.opponentScore),
                     onClick = { onOpenMatch(r.match.id) }
@@ -674,7 +676,7 @@ internal fun AgeGroupMembersTab(
                             Column(Modifier.weight(1f)) {
                                 Text("${member.firstName} ${member.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.5.sp), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text(
-                                    stringResource(if (member.role == TeamRole.COACH) Res.string.label_role_coach else Res.string.label_role_staff),
+                                    stringResource(if (member.role == AgeGroupRole.COACH) Res.string.label_role_coach else Res.string.label_role_staff),
                                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp), color = StatsSecondaryText
                                 )
                             }

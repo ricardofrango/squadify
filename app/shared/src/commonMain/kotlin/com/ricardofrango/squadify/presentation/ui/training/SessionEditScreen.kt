@@ -18,7 +18,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,18 +26,21 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.ReplacedSession
 import com.ricardofrango.squadify.model.TrainingSessions
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
 import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.AmberText
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -75,7 +77,7 @@ fun SessionEditScreen(
     viewModel: SessionEditViewModel = koinViewModel()
 ) {
     SquadifyClubTheme {
-        val state by viewModel.state.collectAsState()
+        val state by viewModel.state.collectAsStateWithLifecycle()
         LaunchedEffect(ageGroupId, sessionId) { viewModel.start(ageGroupId, sessionId, date) }
         LaunchedEffect(viewModel) { viewModel.saved.collect { onSaved() } }
         SessionEditContent(
@@ -100,7 +102,7 @@ private fun SessionEditContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = stringResource(if (editing) Res.string.title_edit_session else Res.string.title_add_session),
                 subtitle = state.sessions?.subtitle(),
                 onNavigateBack = onNavigateBack
@@ -118,7 +120,7 @@ private fun SessionEditContent(
         Column(modifier) {
             BoxWithConstraints(Modifier.weight(1f)) {
                 val wide = maxWidth >= 600.dp
-                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding()) {
                     EditorColumns(
                         wide = wide,
                         left = {
@@ -162,7 +164,7 @@ private fun SessionEditContent(
                 }
             }
             Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(horizontal = 20.dp, vertical = 14.dp)) {
+                Column(Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 14.dp)) {
                     PrimaryLoadingButton(
                         text = stringResource(if (editing) Res.string.btn_save_changes else Res.string.btn_add_session),
                         submittingText = stringResource(Res.string.btn_saving_changes),

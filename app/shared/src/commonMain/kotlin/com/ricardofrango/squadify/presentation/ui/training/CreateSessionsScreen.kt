@@ -34,7 +34,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +46,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Country
 import com.ricardofrango.squadify.model.Holiday
@@ -54,7 +54,7 @@ import com.ricardofrango.squadify.model.ReplacedSession
 import com.ricardofrango.squadify.model.TrainingSessionPreviewItem
 import com.ricardofrango.squadify.model.TrainingSessions
 import com.ricardofrango.squadify.model.TrainingSessionsPreview
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
 import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
@@ -67,8 +67,10 @@ import com.ricardofrango.squadify.presentation.ui.theme.AmberText
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.isoDayNumber
@@ -129,7 +131,7 @@ fun CreateSessionsScreen(
     viewModel: CreateSessionsViewModel = koinViewModel()
 ) {
     SquadifyClubTheme {
-        val state by viewModel.state.collectAsState()
+        val state by viewModel.state.collectAsStateWithLifecycle()
         LaunchedEffect(ageGroupId) { viewModel.start(ageGroupId) }
         LaunchedEffect(viewModel) { viewModel.created.collect { onCreated(it) } }
         CreateSessionsContent(
@@ -165,7 +167,7 @@ private fun CreateSessionsContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = stringResource(if (preview != null) Res.string.title_preview else Res.string.title_create_sessions),
                 subtitle = state.sessions?.subtitle(),
                 onNavigateBack = onNavigateBack
@@ -182,7 +184,7 @@ private fun CreateSessionsContent(
             if (preview == null) {
                 BoxWithConstraints(Modifier.weight(1f)) {
                     val wide = maxWidth >= 600.dp
-                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
+                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding()) {
                         EditorColumns(
                             wide = wide,
                             left = { SlotsSection(state.form, !state.previewing, onFormChange) },
@@ -240,7 +242,7 @@ private fun CreateSessionsContent(
 @Composable
 private fun BottomBar(content: @Composable () -> Unit) {
     Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(horizontal = 20.dp, vertical = 14.dp)) { content() }
+        Column(Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 14.dp)) { content() }
     }
 }
 

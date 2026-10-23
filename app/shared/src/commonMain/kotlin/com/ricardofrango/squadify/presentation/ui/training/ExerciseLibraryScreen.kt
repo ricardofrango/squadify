@@ -32,7 +32,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,11 +42,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.TrainingExercise
 import com.ricardofrango.squadify.model.TrainingSession
 import com.ricardofrango.squadify.model.TrainingSessionDetails
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
 import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
@@ -56,8 +56,10 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.jetbrains.compose.resources.painterResource
@@ -107,7 +109,7 @@ fun ExerciseLibraryScreen(
     viewModel: ExerciseLibraryViewModel = koinViewModel()
 ) {
     SquadifyClubTheme {
-        val state by viewModel.state.collectAsState()
+        val state by viewModel.state.collectAsStateWithLifecycle()
         LaunchedEffect(sessionId) { viewModel.start(sessionId) }
         LaunchedEffect(viewModel) { viewModel.done.collect { onAdded() } }
         ExerciseLibraryContent(
@@ -144,7 +146,7 @@ private fun ExerciseLibraryContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = stringResource(
                     when {
                         form == null -> Res.string.title_add_exercises
@@ -173,7 +175,7 @@ private fun ExerciseLibraryContent(
         }
         Column(modifier) {
             if (form != null) {
-                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     state.editing?.let { Text(stringResource(Res.string.msg_used_in_sessions, it.usedCount), style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText) }
                     ExerciseFormFields(form, !state.saving, onFormChange)
                 }
@@ -182,7 +184,7 @@ private fun ExerciseLibraryContent(
             }
             FormErrorLine(state.error)
             Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(horizontal = 20.dp, vertical = 14.dp), horizontalAlignment = Alignment.End) {
+                Column(Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 14.dp), horizontalAlignment = Alignment.End) {
                     if (form != null) {
                         PrimaryLoadingButton(
                             text = stringResource(if (state.editing != null) Res.string.btn_save_changes else Res.string.btn_save_and_add),

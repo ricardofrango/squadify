@@ -44,6 +44,30 @@ import kotlin.time.Duration
  * A dropped socket is not retried -- see PROCESS_FLOWS.md's live match console notes -- REST calls
  * keep working regardless, just without cross-device echo until the screen is reopened.
  */
+/**
+ * What the live console can ask of its ViewModel -- an interface so the console's layout can be
+ * previewed with a stand-in that does nothing.
+ */
+interface LiveMatchActions {
+    /** How far the device's clock is from the server's; the running clock counts with it. */
+    val clockOffset: StateFlow<Duration>
+    fun clearFlash()
+    fun onDeleteEvent(eventId: String)
+    fun onDeleteSubstitution(outEventId: String, inEventId: String)
+    fun onFullTime()
+    fun onHalfTime()
+    fun onKickOff(startingPlayerIds: List<String>, halfLengthMinutes: Int)
+    fun onLogEvent(type: EventType, playerId: String, minute: Int)
+    fun onLogGoal(minute: Int, isOpponent: Boolean)
+    fun onLogPlayerGoal(scorerId: String, assistPlayerId: String?, minute: Int)
+    fun onPauseClock()
+    fun onResumeClock()
+    fun onResumeSecondHalf()
+    fun onSetMinute(minute: Int)
+    fun onSubstitute(outPlayerId: String, inPlayerId: String, minute: Int)
+    fun onTabSelected(tab: LiveMatchTab)
+}
+
 class LiveMatchViewModel(
     private val getMatchDetailsUseCase: GetMatchDetailsUseCase,
     private val getMatchEventsUseCase: GetMatchEventsUseCase,
@@ -56,7 +80,7 @@ class LiveMatchViewModel(
     private val addMatchEventUseCase: AddMatchEventUseCase,
     private val deleteMatchEventUseCase: DeleteMatchEventUseCase,
     private val observeLiveMatchUseCase: ObserveLiveMatchUseCase
-) : ViewModel() {
+) : ViewModel(), LiveMatchActions {
 
     private val _state = MutableStateFlow<LiveMatchUiState>(LiveMatchUiState.Loading)
     val state: StateFlow<LiveMatchUiState> = _state.asStateFlow()
@@ -68,7 +92,7 @@ class LiveMatchViewModel(
     // the running clock counts with `now + clockOffset` -- otherwise a device a few seconds behind the
     // server shows the second half starting at 29:4x instead of 30:00. Re-measured on every fetch.
     private val _clockOffset = MutableStateFlow(Duration.ZERO)
-    val clockOffset: StateFlow<Duration> = _clockOffset.asStateFlow()
+    override val clockOffset: StateFlow<Duration> = _clockOffset.asStateFlow()
 
     /** The server's "now", as best this device can tell. */
     private fun serverNow() = Clock.System.now() + _clockOffset.value
@@ -128,7 +152,7 @@ class LiveMatchViewModel(
         }
     }
 
-    fun onTabSelected(tab: LiveMatchTab) {
+    override fun onTabSelected(tab: LiveMatchTab) {
         _state.update { if (it is LiveMatchUiState.Idle) it.copy(selectedTab = tab) else it }
     }
 
@@ -136,7 +160,7 @@ class LiveMatchViewModel(
         _state.update { if (it is LiveMatchUiState.Idle) it.copy(error = null) else it }
     }
 
-    fun onKickOff(startingPlayerIds: List<String>, halfLengthMinutes: Int) = runSubmitting { current ->
+    override fun onKickOff(startingPlayerIds: List<String>, halfLengthMinutes: Int) = runSubmitting { current ->
         startMatchUseCase(matchId, StartMatchRequest(startingPlayerIds, halfLengthMinutes))
         val details = fetchDetails()
         subscribeToLiveUpdates()
@@ -145,12 +169,12 @@ class LiveMatchViewModel(
 
     // Refetched rather than patched locally: the server records where the first half ended
     // (firstHalfEndMinute, including stoppage time), which the half-time minutes totals need.
-    fun onHalfTime() = runSubmitting { current ->
+    override fun onHalfTime() = runSubmitting { current ->
         updateMatchStatusUseCase(matchId, MatchStatus.HALF_TIME)
         current.copy(details = fetchDetails(), isSubmitting = false)
     }
 
-    fun onResumeSecondHalf() = runSubmitting { current ->
+    override fun onResumeSecondHalf() = runSubmitting { current ->
         updateMatchStatusUseCase(matchId, MatchStatus.LIVE)
         // Mirrors what the server just persisted (UpdateMatchStatusUseCase sets this on the same
         // HALF_TIME -> LIVE transition) so the running clock picks it up immediately rather than
@@ -164,12 +188,12 @@ class LiveMatchViewModel(
     }
 
     // Refetched for the full-time minute and the match report card the summary links to.
-    fun onFullTime() = runSubmitting { current ->
+    override fun onFullTime() = runSubmitting { current ->
         updateMatchStatusUseCase(matchId, MatchStatus.FINISHED)
         current.copy(details = fetchDetails(), isSubmitting = false)
     }
 
-    fun clearFlash() {
+    override fun clearFlash() {
         _state.update { if (it is LiveMatchUiState.Idle) it.copy(flash = null) else it }
     }
 
@@ -180,12 +204,12 @@ class LiveMatchViewModel(
      * clock-skew risk from trusting this device's own `now()` for either the pause instant or the
      * resume-time shift math (see PauseMatchUseCase/ResumeMatchUseCase).
      */
-    fun onPauseClock() = runSubmitting { current ->
+    override fun onPauseClock() = runSubmitting { current ->
         pauseMatchUseCase(matchId)
         current.copy(details = fetchDetails(), isSubmitting = false)
     }
 
-    fun onResumeClock() = runSubmitting { current ->
+    override fun onResumeClock() = runSubmitting { current ->
         resumeMatchUseCase(matchId)
         current.copy(details = fetchDetails(), isSubmitting = false)
     }
@@ -196,26 +220,26 @@ class LiveMatchViewModel(
      * or any other device watching the same match). Refetches for the same reason as [onPauseClock]/
      * [onResumeClock]: the server computes the actual shift, this device's own clock is never trusted.
      */
-    fun onSetMinute(minute: Int) = runSubmitting { current ->
+    override fun onSetMinute(minute: Int) = runSubmitting { current ->
         setMatchMinuteUseCase(matchId, minute)
         current.copy(details = fetchDetails(), isSubmitting = false, flash = LiveFlash.ClockSet(minute))
     }
 
     /** Our score box (unattributed) or the opponent's -- see LiveMatchScreen's score row. */
-    fun onLogGoal(minute: Int, isOpponent: Boolean) = addEvent(CreateMatchEventRequest(EventType.GOAL, minute, isOpponent = isOpponent))
+    override fun onLogGoal(minute: Int, isOpponent: Boolean) = addEvent(CreateMatchEventRequest(EventType.GOAL, minute, isOpponent = isOpponent))
 
-    fun onLogEvent(type: EventType, playerId: String, minute: Int) = addEvent(CreateMatchEventRequest(type, minute, playerId = playerId))
+    override fun onLogEvent(type: EventType, playerId: String, minute: Int) = addEvent(CreateMatchEventRequest(type, minute, playerId = playerId))
 
     /** One of our players scored; [assistPlayerId] is optional. The server saves the goal and its assist
      * together, so the event list is refetched to pick up the assist alongside the goal. */
-    fun onLogPlayerGoal(scorerId: String, assistPlayerId: String?, minute: Int) = runSubmitting { current ->
+    override fun onLogPlayerGoal(scorerId: String, assistPlayerId: String?, minute: Int) = runSubmitting { current ->
         addMatchEventUseCase(matchId, CreateMatchEventRequest(EventType.GOAL, minute, playerId = scorerId, assistPlayerId = assistPlayerId))
         val events = getMatchEventsUseCase(matchId)
         val score = getMatchScoreUseCase(matchId)
         current.copy(events = events.sortedBy { it.minute }, score = score, isSubmitting = false)
     }
 
-    fun onSubstitute(outPlayerId: String, inPlayerId: String, minute: Int) = runSubmitting { current ->
+    override fun onSubstitute(outPlayerId: String, inPlayerId: String, minute: Int) = runSubmitting { current ->
         val outEvent = addMatchEventUseCase(matchId, CreateMatchEventRequest(EventType.SUBSTITUTION_OUT, minute, playerId = outPlayerId))
         val inEvent = addMatchEventUseCase(matchId, CreateMatchEventRequest(EventType.SUBSTITUTION_IN, minute, playerId = inPlayerId))
         current.copy(
@@ -225,7 +249,7 @@ class LiveMatchViewModel(
         )
     }
 
-    fun onDeleteEvent(eventId: String) = runSubmitting { current ->
+    override fun onDeleteEvent(eventId: String) = runSubmitting { current ->
         deleteMatchEventUseCase(matchId, eventId)
         val score = getMatchScoreUseCase(matchId)
         // Deleting a goal also removes its linked assist on the server -- drop both here.
@@ -233,7 +257,7 @@ class LiveMatchViewModel(
     }
 
     /** Deletes both halves of a logged substitution together -- see LiveMatchScreen's paired row. */
-    fun onDeleteSubstitution(outEventId: String, inEventId: String) = runSubmitting { current ->
+    override fun onDeleteSubstitution(outEventId: String, inEventId: String) = runSubmitting { current ->
         deleteMatchEventUseCase(matchId, outEventId)
         deleteMatchEventUseCase(matchId, inEventId)
         current.copy(events = current.events.filterNot { it.id == outEventId || it.id == inEventId }, isSubmitting = false)

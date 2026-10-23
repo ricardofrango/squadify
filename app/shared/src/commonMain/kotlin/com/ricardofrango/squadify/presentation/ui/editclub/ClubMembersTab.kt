@@ -49,7 +49,7 @@ import com.ricardofrango.squadify.model.ClubMemberEntry
 import com.ricardofrango.squadify.model.ClubMembersOverview
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.PendingClubInvite
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
@@ -136,8 +136,8 @@ internal fun ClubMemberEntry.initials(): String =
 @Composable
 internal fun memberLine(member: ClubMemberEntry): String {
     val current = member.ageGroupRoles.filter { it.currentSeason }
-    val coach = current.filter { it.role == TeamRole.COACH }.map { it.ageGroupName }.distinct()
-    val staff = current.filter { it.role == TeamRole.STAFF }.map { it.ageGroupName }.distinct()
+    val coach = current.filter { it.role == AgeGroupRole.COACH }.map { it.ageGroupName }.distinct()
+    val staff = current.filter { it.role == AgeGroupRole.STAFF }.map { it.ageGroupName }.distinct()
     return when {
         coach.isNotEmpty() -> stringResource(Res.string.members_line_coach, coach.joinToString(", "))
         staff.isNotEmpty() -> stringResource(Res.string.members_line_staff, staff.joinToString(", "))

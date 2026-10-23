@@ -24,7 +24,7 @@ import com.ricardofrango.squadify.model.SaveTrainingSessionRequest
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.model.SportType
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.TrainingSession
 import com.ricardofrango.squadify.model.TrainingSlot
 import com.ricardofrango.squadify.model.User
@@ -104,7 +104,7 @@ class TrainingSessionUseCasesTest {
         coEvery { clubRepository.getClubById(clubId) } returns Club(clubId, "CD Ribamar", stadiumLocation = "Campo do Ribamar", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL)
     }
 
-    private fun user(clubRole: ClubRole?, teamRole: TeamRole? = null, linkedPlayer: Boolean = false): String {
+    private fun user(clubRole: ClubRole?, teamRole: AgeGroupRole? = null, linkedPlayer: Boolean = false): String {
         val u = User("u-$clubRole-$teamRole-$linkedPlayer", "u@t.com", firstName = "Ricardo", lastName = "Frango", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
         coEvery { userRepository.findById(u.id) } returns u
         coEvery { userRepository.getUserRoleInClub(u.id, clubId) } returns clubRole
@@ -182,7 +182,7 @@ class TrainingSessionUseCasesTest {
 
     @Test
     fun staffCannotCreateButCanSeeAndRate() = runBlocking<Unit> {
-        val staff = user(null, TeamRole.STAFF)
+        val staff = user(null, AgeGroupRole.STAFF)
         assertFailsWith<ForbiddenException> { create.preview(staff, ag.id, design) }
         val sessions = get(staff, ag.id)
         assertFalse(sessions.canEdit)
@@ -192,7 +192,7 @@ class TrainingSessionUseCasesTest {
 
     @Test
     fun aCoachCanManageTrainingByDefault() = runBlocking<Unit> {
-        val sessions = get(user(null, TeamRole.COACH), ag.id)
+        val sessions = get(user(null, AgeGroupRole.COACH), ag.id)
         assertTrue(sessions.canEdit)
     }
 
@@ -235,7 +235,7 @@ class TrainingSessionUseCasesTest {
     @Test
     fun staffCannotCancel() = runBlocking<Unit> {
         existing("s1", LocalDate(2026, 10, 22), LocalTime(18, 30))
-        assertFailsWith<ForbiddenException> { change.cancel(user(null, TeamRole.STAFF), "s1") }
+        assertFailsWith<ForbiddenException> { change.cancel(user(null, AgeGroupRole.STAFF), "s1") }
     }
 
     @Test
@@ -248,7 +248,7 @@ class TrainingSessionUseCasesTest {
         val player = com.ricardofrango.squadify.model.Player("p1", clubId, "Tomás", "B", LocalDate(2012, 1, 1), active = true)
         coEvery { playerRepository.getPlayersByAgeGroup(ag.id) } returns listOf(player)
 
-        val staffView = details(user(null, TeamRole.STAFF), "s1")
+        val staffView = details(user(null, AgeGroupRole.STAFF), "s1")
         assertEquals("Playing out", staffView.weekPlan?.focus)
         assertEquals("Building from the back", staffView.monthPlan?.focus)
         assertEquals(1, staffView.poolSize)
@@ -269,7 +269,7 @@ class TrainingSessionUseCasesTest {
     @Test
     fun theLibraryIsMostUsedFirstAndForStaffOnly() = runBlocking<Unit> {
         library("a", "b", "c")
-        assertEquals(listOf("c", "b", "a"), exercisesUseCase.library(user(null, TeamRole.STAFF), ag.id).map { it.id })
+        assertEquals(listOf("c", "b", "a"), exercisesUseCase.library(user(null, AgeGroupRole.STAFF), ag.id).map { it.id })
         assertFailsWith<ForbiddenException> { exercisesUseCase.library(user(ClubRole.MEMBER), ag.id) }
     }
 
@@ -303,7 +303,7 @@ class TrainingSessionUseCasesTest {
     fun staffCannotChangeASessionsExercises() = runBlocking<Unit> {
         existing("s1", LocalDate(2026, 10, 15), LocalTime(18, 30))
         library("a")
-        assertFailsWith<ForbiddenException> { exercisesUseCase.setForSession(user(null, TeamRole.STAFF), "s1", listOf("a")) }
+        assertFailsWith<ForbiddenException> { exercisesUseCase.setForSession(user(null, AgeGroupRole.STAFF), "s1", listOf("a")) }
     }
 
     private val pool = listOf(
@@ -313,7 +313,7 @@ class TrainingSessionUseCasesTest {
 
     @Test
     fun ratingsOpenOnlyAfterTheSessionEndsAndNotWhenCancelled() = runBlocking<Unit> {
-        val staff = user(null, TeamRole.STAFF)
+        val staff = user(null, AgeGroupRole.STAFF)
         coEvery { playerRepository.getPlayersByAgeGroup(ag.id) } returns pool
         existing("future", LocalDate(2026, 10, 22), LocalTime(18, 0))
         existing("today", LocalDate(2026, 10, 20), LocalTime(18, 0))
@@ -329,7 +329,7 @@ class TrainingSessionUseCasesTest {
 
     @Test
     fun aRatingIsZeroToTenWithOneDecimalForPoolPlayersOnly() = runBlocking<Unit> {
-        val coach = user(null, TeamRole.COACH)
+        val coach = user(null, AgeGroupRole.COACH)
         coEvery { playerRepository.getPlayersByAgeGroup(ag.id) } returns pool
         existing("past", LocalDate(2026, 10, 15), LocalTime(18, 0))
         fun req(player: String, rating: Double?) = com.ricardofrango.squadify.model.SaveTrainingRatingsRequest(listOf(com.ricardofrango.squadify.model.TrainingRatingChange(player, rating)))
@@ -349,7 +349,7 @@ class TrainingSessionUseCasesTest {
         val parent = user(null)
         coEvery { playerRepository.getPlayersByUser(parent) } returns listOf(pool[0])
         assertFailsWith<ForbiddenException> { ratingsUseCase.get(parent, "past") }
-        val ratings = ratingsUseCase.get(user(null, TeamRole.STAFF), "past")
+        val ratings = ratingsUseCase.get(user(null, AgeGroupRole.STAFF), "past")
         assertEquals(listOf("p2", "p1"), ratings.players.map { it.id })
         assertTrue(ratings.ratingsOpen)
     }
@@ -360,7 +360,7 @@ class TrainingSessionUseCasesTest {
         coEvery { ratingRepository.getForSessions(any()) } returns mapOf("past" to listOf(
             com.ricardofrango.squadify.model.TrainingRating("p1", 8.0), com.ricardofrango.squadify.model.TrainingRating("p2", 0.0)
         ))
-        val staffView = get(user(null, TeamRole.STAFF), ag.id).sessions.single()
+        val staffView = get(user(null, AgeGroupRole.STAFF), ag.id).sessions.single()
         assertEquals(2, staffView.ratedCount)
         assertEquals(8.0, staffView.averageRating)
         val parent = user(null)
@@ -381,7 +381,7 @@ class TrainingSessionUseCasesTest {
             "s1" to listOf(com.ricardofrango.squadify.model.TrainingRating("p1", 8.0), com.ricardofrango.squadify.model.TrainingRating("p2", 0.0)),
             "s2" to listOf(com.ricardofrango.squadify.model.TrainingRating("p1", 7.0))
         )
-        val staff = user(null, TeamRole.STAFF)
+        val staff = user(null, AgeGroupRole.STAFF)
         assertEquals(listOf("s1", "s2"), statsUseCase.ageGroup(staff, ag.id).sessions.map { it.id })
 
         coEvery { playerRepository.getPlayerById("p1") } returns pool[0]

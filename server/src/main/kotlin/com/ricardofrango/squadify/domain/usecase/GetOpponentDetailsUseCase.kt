@@ -54,6 +54,7 @@ class GetOpponentDetailsUseCase(
         OpponentDetails(
             opponent = opponent,
             clubName = club.name,
+            clubLogoUrl = club.logoUrl,
             matches = matches,
             scores = matchEventRepository.getScoresByMatches(started).values.toList(),
             teams = teamRepository.getTeamsByClub(opponent.clubId).filter { it.id in teamIds },

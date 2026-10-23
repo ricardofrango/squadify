@@ -40,7 +40,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,9 +63,9 @@ import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.MemberAgeGroupRole
 import com.ricardofrango.squadify.model.MemberLinkedPlayer
 import com.ricardofrango.squadify.model.PendingClubInvite
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.UserPlayerRelationship
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
@@ -87,6 +86,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
@@ -230,7 +230,7 @@ private fun ClubMemberDetailsContent(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column(Modifier.background(ClubChrome)) {
-                FMTopBar(title = stringResource(Res.string.member_title), onNavigateBack = onNavigateBack)
+                SquadifyTopBar(title = stringResource(Res.string.member_title), onNavigateBack = onNavigateBack)
                 when (state) {
                     is ClubMemberDetailsUiState.Member -> MemberHeader(state)
                     is ClubMemberDetailsUiState.Invite -> InviteHeader(state.invite)
@@ -246,7 +246,7 @@ private fun ClubMemberDetailsContent(
                     CircularProgressIndicator(color = PitchGreen)
                 }
 
-                ClubMemberDetailsUiState.Error -> Column(Modifier.fillMaxSize().padding(16.dp)) {
+                ClubMemberDetailsUiState.Error -> Column(Modifier.fillMaxSize().screenContentPadding()) {
                     StatsCard(contentPadding = 16.dp) {
                         StatsMessage(stringResource(Res.string.member_load_failed_title), stringResource(Res.string.member_load_failed_body), onRetry = onRetry)
                     }
@@ -271,7 +271,7 @@ private fun ClubMemberDetailsContent(
                             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = inClub)
                         }
                     } else {
-                        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             contact()
                             inClub()
                         }
@@ -279,7 +279,7 @@ private fun ClubMemberDetailsContent(
                 }
 
                 is ClubMemberDetailsUiState.Invite -> Column(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 14.dp),
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     InviteCard(state, onResend, onCancelInvite)
@@ -475,7 +475,7 @@ private fun InClubCard(member: ClubMemberEntry, onOpenAgeGroup: (String) -> Unit
         member.ageGroupRoles.forEach { role ->
             if (!first) HorizontalDivider(color = CarbonGray.copy(alpha = 0.07f))
             first = false
-            val roleName = stringResource(if (role.role == TeamRole.COACH) Res.string.member_role_coach else Res.string.member_role_staff)
+            val roleName = stringResource(if (role.role == AgeGroupRole.COACH) Res.string.member_role_coach else Res.string.member_role_staff)
             LinkRow("$roleName · ${role.ageGroupName} · ${role.seasonName}", meta = null) { onOpenAgeGroup(role.ageGroupId) }
         }
         member.linkedPlayers.forEach { link ->
@@ -591,8 +591,8 @@ private fun PreviewFrame(state: ClubMemberDetailsUiState) {
 private fun richMember(overview: ClubMembersOverview) = overview.members.first { it.userId == "u3" }.copy(
     phone = "+351 913 222 401",
     ageGroupRoles = listOf(
-        MemberAgeGroupRole("ag15", "Sub-15", "26/27", TeamRole.COACH, currentSeason = true),
-        MemberAgeGroupRole("ag11", "Sub-11", "26/27", TeamRole.STAFF, currentSeason = true)
+        MemberAgeGroupRole("ag15", "Sub-15", "26/27", AgeGroupRole.COACH, currentSeason = true),
+        MemberAgeGroupRole("ag11", "Sub-11", "26/27", AgeGroupRole.STAFF, currentSeason = true)
     ),
     linkedPlayers = listOf(MemberLinkedPlayer("p2", "Duarte Vilaça", UserPlayerRelationship.MOTHER, "Sub-15", 2))
 )

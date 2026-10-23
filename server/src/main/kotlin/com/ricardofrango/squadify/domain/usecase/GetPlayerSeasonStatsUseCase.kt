@@ -16,7 +16,7 @@ import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.PlayerSeason
 import com.ricardofrango.squadify.model.PlayerSeasonMatch
 import com.ricardofrango.squadify.model.PlayerSeasonStats
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 
 /**
  * Player Details' season stats (design 30): every season the player was registered in, newest first,
@@ -57,7 +57,7 @@ class GetPlayerSeasonStatsUseCase(
                 userId = userId,
                 clubId = player.clubId,
                 minClubRole = ClubRole.COORDINATOR,
-                minTeamRole = TeamRole.STAFF,
+                minAgeGroupRole = AgeGroupRole.STAFF,
                 teamId = teamId,
                 ageGroupId = ageGroupId
             )

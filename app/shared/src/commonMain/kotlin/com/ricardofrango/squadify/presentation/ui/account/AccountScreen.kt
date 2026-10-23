@@ -1,5 +1,10 @@
 package com.ricardofrango.squadify.presentation.ui.account
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import com.ricardofrango.squadify.presentation.credentials.rememberCredentialStore
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import com.ricardofrango.squadify.presentation.ui.components.SignedOutAlert
@@ -29,7 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.UserStatus
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.PhotoActions
 import com.ricardofrango.squadify.presentation.ui.components.PasswordVisibilityToggle
@@ -39,6 +44,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.format
 import kotlinx.datetime.format.MonthNames
@@ -90,6 +96,21 @@ fun AccountScreen(
             SignedOutAlert(onConfirm = { viewModel.onLogoutClicked() })
         }
 
+        // After a password change, the new password is offered to the password manager (Android's
+        // Credential Manager; nothing elsewhere). It's taken from the form as it's sent, since the
+        // form is cleared on success.
+        val credentialStore = rememberCredentialStore()
+        var sentPassword by remember { mutableStateOf<String?>(null) }
+        val passwordChanged = (uiState as? AccountUiState.Idle)?.passwordChanged == true
+        LaunchedEffect(passwordChanged) {
+            val email = (uiState as? AccountUiState.Idle)?.email
+            val password = sentPassword
+            if (passwordChanged && email != null && password != null) {
+                sentPassword = null
+                credentialStore.save(email, password)
+            }
+        }
+
         fun currentForm() = (viewModel.state.value as? AccountUiState.Idle)?.form
 
         AccountContent(
@@ -101,7 +122,10 @@ fun AccountScreen(
             onPhoneChange = { value -> currentForm()?.let { viewModel.updateProfileForm(it.copy(phone = value)) } },
             onSaveProfileClick = { viewModel.onSaveProfileClicked() },
             onPasswordFormChange = { form -> viewModel.updatePasswordForm(form) },
-            onChangePasswordClick = { viewModel.onChangePasswordClicked() },
+            onChangePasswordClick = {
+                sentPassword = (viewModel.state.value as? AccountUiState.Idle)?.passwordForm?.newPassword
+                viewModel.onChangePasswordClicked()
+            },
             onChangeEmailClick = onNavigateToChangeEmail,
             onLogoutClick = { viewModel.onLogoutClicked() },
             onPhotoPicked = viewModel::onPhotoPicked,
@@ -133,7 +157,7 @@ private fun AccountContent(
         containerColor = Color.White,
         topBar = {
             Column(Modifier.background(ClubChrome)) {
-                FMTopBar(
+                SquadifyTopBar(
                     title = stringResource(Res.string.title_account),
                     subtitle = idle?.let {
                         stringResource(
@@ -164,7 +188,7 @@ private fun AccountContent(
                 }
             }
             is AccountUiState.Error -> {
-                Column(boxModifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Column(boxModifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     Text(uiState.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(16.dp))
                     Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
@@ -221,7 +245,7 @@ private fun AccountForm(
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .screenContentPadding(),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         ProfileHeader(state, onPhotoPicked, onRemovePhoto)

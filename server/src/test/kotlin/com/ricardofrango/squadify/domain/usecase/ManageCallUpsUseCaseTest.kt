@@ -19,7 +19,7 @@ import com.ricardofrango.squadify.exception.ValidationException
 import kotlinx.datetime.LocalDate
 import io.mockk.coVerify
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -65,7 +65,7 @@ class ManageCallUpsUseCaseTest {
         coEvery { matchRepository.getMatchById(matchId) } returns match
         coEvery { userRepository.findById(staff.id) } returns staff
         coEvery { userRepository.getUserRoleInClub(staff.id, clubId) } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, ag1) } returns TeamRole.STAFF
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, ag1) } returns AgeGroupRole.STAFF
         coEvery { teamRepository.getTeamById(teamId) } returns team
 
         assertFailsWith<ForbiddenException> {
@@ -80,7 +80,7 @@ class ManageCallUpsUseCaseTest {
         coEvery { matchRepository.getMatchById(matchId) } returns match
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
         coEvery { teamRepository.getTeamById(teamId) } returns team
         coEvery { matchRepository.manageCallUps(matchId, listOf("p1")) } returns true
         coEvery { matchRepository.getCallUpsForMatch(matchId) } returns emptyList()

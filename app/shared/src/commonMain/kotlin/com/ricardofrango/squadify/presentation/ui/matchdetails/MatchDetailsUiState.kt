@@ -13,8 +13,20 @@ sealed class MatchDetailsUiState {
         // A call-up / status / manage write is in flight (edits are applied optimistically first).
         val isSubmitting: Boolean = false,
         // An optimistic write was rolled back -- shown as a transient message, not a full error state.
-        val transientError: String? = null
-    ) : MatchDetailsUiState()
+        val transientError: String? = null,
+        // The call-up on screen: a draft until "Save call-up" sends it. Starts as the saved one.
+        val selectedIds: Set<String> = details.callUps.map { it.player.id }.toSet()
+    ) : MatchDetailsUiState() {
+        /** The call-up as the server has it. */
+        val savedIds: Set<String> get() = details.callUps.map { it.player.id }.toSet()
+
+        /** Every player who can be called up: the saved call-up and the rest of the pool. */
+        private val allPlayers get() = (details.callUps.map { it.player } + details.poolPlayers).distinctBy { it.id }
+
+        /** The draft call-up's players, and the pool players not in it. */
+        val selectedPlayers get() = allPlayers.filter { it.id in selectedIds }
+        val availablePlayers get() = allPlayers.filterNot { it.id in selectedIds }
+    }
 }
 
 /** Ordering of the called-up list. Local screen state, not persisted. */

@@ -32,6 +32,9 @@ import com.ricardofrango.squadify.presentation.ui.components.MatchRow
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.FilterRowPadding
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
@@ -54,7 +57,7 @@ import kotlin.time.Clock
 @Composable
 fun MatchesTab(
     state: ClubDetailsUiState.Idle,
-    viewModel: ClubDetailsViewModel,
+    actions: ClubDetailsActions,
     onGoToAgeGroups: () -> Unit,
     onNavigateToMatch: (matchId: String) -> Unit
 ) {
@@ -67,15 +70,15 @@ fun MatchesTab(
     // (re)connect so a stale list is corrected immediately rather than waiting for the next socket
     // event, since the socket only pushes -- it carries no backlog for whatever changed while away.
     DisposableEffect(details.club.id) {
-        viewModel.refreshMatches(details.club.id)
-        viewModel.connectToClubMatchesUpdates(details.club.id)
-        onDispose { viewModel.disconnectFromClubMatchesUpdates() }
+        actions.refreshMatches(details.club.id)
+        actions.connectToClubMatchesUpdates(details.club.id)
+        onDispose { actions.disconnectFromClubMatchesUpdates() }
     }
 
     // The club has no fixtures at all -- the full empty state, no filter row.
     if (state.matches.isEmpty()) {
         Column(
-            modifier = Modifier.fillMaxSize().background(Color.White).padding(24.dp),
+            modifier = Modifier.fillMaxSize().background(Color.White).screenContentPadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -131,7 +134,7 @@ fun MatchesTab(
     Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
+            contentPadding = FilterRowPadding,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -141,7 +144,7 @@ fun MatchesTab(
                         ?: stringResource(Res.string.label_all_seasons),
                     options = listOf(null to stringResource(Res.string.label_all_seasons)) +
                         details.seasons.map { it.id to it.name },
-                    onOptionSelected = viewModel::onMatchesSeasonSelected
+                    onOptionSelected = actions::onMatchesSeasonSelected
                 )
             }
             item {
@@ -150,7 +153,7 @@ fun MatchesTab(
                         ?: stringResource(Res.string.label_all_ages),
                     options = listOf(null to stringResource(Res.string.label_all_ages)) +
                         ageGroupsForSeason.map { it.id to it.name },
-                    onOptionSelected = viewModel::onMatchesAgeGroupSelected
+                    onOptionSelected = actions::onMatchesAgeGroupSelected
                 )
             }
             item {
@@ -159,28 +162,28 @@ fun MatchesTab(
                         ?: stringResource(Res.string.label_all_teams),
                     options = listOf(null to stringResource(Res.string.label_all_teams)) +
                         teamsForFilter.map { it.id to it.name },
-                    onOptionSelected = viewModel::onMatchesTeamSelected
+                    onOptionSelected = actions::onMatchesTeamSelected
                 )
             }
         }
 
         Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, bottom = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             StatusChip(Res.string.matches_status_upcoming, state.matchesStatus == MatchesStatusFilter.UPCOMING) {
-                viewModel.onMatchesStatusSelected(MatchesStatusFilter.UPCOMING)
+                actions.onMatchesStatusSelected(MatchesStatusFilter.UPCOMING)
             }
             StatusChip(Res.string.matches_status_finished, state.matchesStatus == MatchesStatusFilter.FINISHED) {
-                viewModel.onMatchesStatusSelected(MatchesStatusFilter.FINISHED)
+                actions.onMatchesStatusSelected(MatchesStatusFilter.FINISHED)
             }
             StatusChip(Res.string.matches_status_all, state.matchesStatus == MatchesStatusFilter.ALL) {
-                viewModel.onMatchesStatusSelected(MatchesStatusFilter.ALL)
+                actions.onMatchesStatusSelected(MatchesStatusFilter.ALL)
             }
         }
 
         if (groups.isEmpty()) {
-            Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().screenContentPadding(), contentAlignment = Alignment.Center) {
                 Text(
                     stringResource(Res.string.msg_no_matches_for_filters),
                     style = MaterialTheme.typography.bodyMedium,
@@ -190,7 +193,7 @@ fun MatchesTab(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 32.dp),
+                contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = 0.dp, bottom = ScreenPadding.Bottom),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 groups.forEachIndexed { index, group ->
@@ -199,7 +202,8 @@ fun MatchesTab(
                             stringResource(group.label).uppercase(),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             color = DeepCarbon.copy(alpha = 0.5f),
-                            modifier = Modifier.padding(top = 12.dp, bottom = 2.dp)
+                            // The first group's label sits just under the status chips; later ones keep a gap.
+                            modifier = Modifier.padding(top = if (index == 0) 4.dp else 12.dp, bottom = 2.dp)
                         )
                     }
                     items(group.matches, key = { it.id }) { match ->
@@ -208,6 +212,7 @@ fun MatchesTab(
                             teamName = teamsById[match.teamId]?.name ?: "—",
                             opponentName = opponentsById[match.opponentId]?.let { it.shortName ?: it.name } ?: "—",
                             opponentLogoUrl = opponentsById[match.opponentId]?.logoUrl,
+                            clubLogoUrl = details.club.logoUrl,
                             score = state.matchScores[match.id],
                             onClick = { onNavigateToMatch(match.id) }
                         )

@@ -13,7 +13,7 @@ import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.MatchStatus
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.Season
@@ -51,7 +51,7 @@ class GetTeamSeasonRecordUseCase(
             userId = userId,
             clubId = team.clubId,
             minClubRole = ClubRole.MEMBER,
-            minTeamRole = TeamRole.STAFF,
+            minAgeGroupRole = AgeGroupRole.STAFF,
             teamId = teamId,
             allowPlayerOrParentAccess = true
         )
@@ -61,7 +61,7 @@ class GetTeamSeasonRecordUseCase(
                 userId = userId,
                 clubId = team.clubId,
                 minClubRole = ClubRole.COORDINATOR,
-                minTeamRole = TeamRole.STAFF,
+                minAgeGroupRole = AgeGroupRole.STAFF,
                 teamId = teamId
             )
             true

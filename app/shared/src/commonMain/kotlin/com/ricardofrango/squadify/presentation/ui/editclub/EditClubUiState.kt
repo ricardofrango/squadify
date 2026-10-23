@@ -7,7 +7,7 @@ import com.ricardofrango.squadify.model.ClubTheme
 import com.ricardofrango.squadify.model.ClubThemeProblem
 import com.ricardofrango.squadify.model.ClubThemeRules
 import com.ricardofrango.squadify.model.ConfigurablePermission
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.UpdateClubRequest
 
 // Club settings tabs (design 34): Details · Members · Permissions. Always opens on Details.
@@ -108,7 +108,7 @@ sealed class EditClubUiState {
         val permissionsDirty: Boolean get() = permissions != originalPermissions
         val canSavePermissions: Boolean get() = permissionsDirty && !isSubmittingPermissions
 
-        fun minTeamRoleFor(action: ConfigurablePermission): TeamRole? =
-            permissions.first { it.action == action }.minTeamRole
+        fun minTeamRoleFor(action: ConfigurablePermission): AgeGroupRole? =
+            permissions.first { it.action == action }.minAgeGroupRole
     }
 }

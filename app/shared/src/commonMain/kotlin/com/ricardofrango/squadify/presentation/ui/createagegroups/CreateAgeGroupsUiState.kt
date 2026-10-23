@@ -19,7 +19,9 @@ sealed class CreateAgeGroupsUiState {
         // Generic failure (network, unexpected server error, a 409 the client couldn't preempt, etc.)
         // -- localized copy only, never a raw exception message. See AI_GUIDELINES.md "No Raw
         // Exception Messages in UI".
-        val error: String? = null
+        val error: String? = null,
+        // The rows (0-based) the server said clash with a birth year already used, marked in red.
+        val conflictRows: Set<Int> = emptySet()
     ) : CreateAgeGroupsUiState() {
 
         val selectedSeason: Season? get() = seasons.find { it.id == selectedSeasonId }

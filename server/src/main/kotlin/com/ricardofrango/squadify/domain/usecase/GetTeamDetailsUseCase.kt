@@ -17,7 +17,7 @@ import com.ricardofrango.squadify.model.MatchOutcome
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.TeamDetails
 import com.ricardofrango.squadify.model.TeamMatchResult
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import kotlin.time.Clock
 
 /**
@@ -48,7 +48,7 @@ class GetTeamDetailsUseCase(
             userId = userId,
             clubId = team.clubId,
             minClubRole = ClubRole.MEMBER,
-            minTeamRole = TeamRole.STAFF,
+            minAgeGroupRole = AgeGroupRole.STAFF,
             teamId = teamId,
             allowPlayerOrParentAccess = true
         )
@@ -87,7 +87,7 @@ class GetTeamDetailsUseCase(
                 userId = userId,
                 clubId = team.clubId,
                 minClubRole = ClubRole.COORDINATOR,
-                minTeamRole = TeamRole.COACH,
+                minAgeGroupRole = AgeGroupRole.COACH,
                 teamId = teamId
             )
             true

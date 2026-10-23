@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.venueLocation
+import com.ricardofrango.squadify.presentation.ui.components.VenueSelector
 import com.ricardofrango.squadify.presentation.ui.theme.IsClubThemed
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
@@ -35,16 +37,18 @@ import com.ricardofrango.squadify.presentation.ui.components.HalvesSelector
 import com.ricardofrango.squadify.presentation.ui.components.MatchTypeSelector
 import com.ricardofrango.squadify.presentation.ui.components.iconRes
 import com.ricardofrango.squadify.presentation.ui.components.DatePickerSheet
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.TimePickerSheet
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import androidx.compose.ui.tooling.preview.Preview
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
@@ -112,6 +116,7 @@ fun MatchDetailsScreen(
             onSortSelected = viewModel::onSortSelected,
             onAddToCallUp = viewModel::onAddToCallUp,
             onRemoveFromCallUp = viewModel::onRemoveFromCallUp,
+            onSaveCallUp = viewModel::onSaveCallUp,
             onEditMatch = viewModel::onEditMatch,
             onDeleteMatch = viewModel::onDeleteMatch,
             onEnterLiveMatch = viewModel::onEnterLiveMatch,
@@ -128,10 +133,11 @@ private fun MatchDetailsContent(
     onRetry: () -> Unit,
     onSortSelected: (CallUpSort) -> Unit,
     onAddToCallUp: (Player) -> Unit,
-    onRemoveFromCallUp: (MatchCallUpWithPlayer) -> Unit,
+    onRemoveFromCallUp: (Player) -> Unit,
     onEditMatch: (UpdateMatchRequest) -> Unit,
     onDeleteMatch: () -> Unit,
     onEnterLiveMatch: () -> Unit,
+    onSaveCallUp: () -> Unit = {},
     onOpenReport: (edit: Boolean) -> Unit
 ) {
     val details = (uiState as? MatchDetailsUiState.Idle)?.details
@@ -140,10 +146,10 @@ private fun MatchDetailsContent(
         containerColor = Color.White,
         topBar = {
             Column(Modifier.background(ClubChrome)) {
-                FMTopBar(
-                    title = details?.let { "${it.team.name} vs ${it.opponent.shortName ?: it.opponent.name}" }
-                        ?: stringResource(Res.string.title_match),
-                    subtitle = details?.let { "${it.ageGroup.name} · ${it.season.name}" },
+                // The teams and the score are the band below; the bar says when and what kind of game.
+                SquadifyTopBar(
+                    title = details?.let { whenLabel(it.match.dateTime) } ?: stringResource(Res.string.title_match),
+                    subtitle = details?.let { matchSubtitle(it) },
                     onNavigateBack = onNavigateBack,
                     actions = {
                         // Delete is the menu's only item, and a played (FINISHED) match can't be deleted.
@@ -171,13 +177,11 @@ private fun MatchDetailsContent(
             }
         },
         bottomBar = {
-            // Starting/entering the live match console is gated on live-match ops specifically --
-            // not on managing call-ups, which is now a separate, independently configurable setting.
-            if (details != null && details.canManageLiveMatch) {
-                BottomActionBar(
-                    state = uiState as MatchDetailsUiState.Idle,
-                    onEnterLiveMatch = onEnterLiveMatch
-                )
+            // Save call-up / Start match / Enter live match, by permission and call-up state (callUpView).
+            val idle = uiState as? MatchDetailsUiState.Idle
+            val button = idle?.callUpView()?.button ?: MatchDetailsButton.NONE
+            if (idle != null && button != MatchDetailsButton.NONE) {
+                BottomActionBar(state = idle, button = button, onSaveCallUp = onSaveCallUp, onEnterLiveMatch = onEnterLiveMatch)
             }
         }
     ) { paddingValues ->
@@ -189,7 +193,7 @@ private fun MatchDetailsContent(
                 Box(boxModifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
 
             is MatchDetailsUiState.Error ->
-                Column(boxModifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Column(boxModifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     Text(uiState.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(16.dp))
                     Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
@@ -220,94 +224,69 @@ private fun MatchDetailsContent(
 // ---- Header ----
 
 @OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun StatusBand(details: MatchDetails) {
-    val match = details.match
-    val dt = match.dateTime.toLocalDateTime(TimeZone.currentSystemDefault())
-    val counts = callUpCounts(details)
-    Column(Modifier.background(ClubChrome).padding(start = 16.dp, end = 16.dp, bottom = 12.dp)) {
-        CrestPair(details)
-        // The type chip leads the status line so it lines up across states (design 29a); the line
-        // wraps rather than truncating when a long type name and the date don't fit together.
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            itemVerticalAlignment = Alignment.CenterVertically
-        ) {
-            match.type?.let { MatchTypeChip(it, muted = match.status == MatchStatus.CANCELLED) }
-            Text(
-                "${dt.date.format(WeekdayDayMonth)} · ${timeLabel(match.dateTime)}",
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                color = Color.White
-            )
-            // Two halves is the norm and goes unsaid; a single-period match says so.
-            if (match.halves == 1) {
-                Text(stringResource(Res.string.halves_one), style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f))
-            }
-            if (match.status == MatchStatus.LIVE || match.status == MatchStatus.HALF_TIME) {
-                Pill(stringResource(Res.string.matches_live), LossRed, Color.White)
-            } else if (match.status == MatchStatus.SCHEDULED) {
-                Pill(relativeLabel(match.dateTime), ChromeAccent.copy(alpha = 0.25f), ChromeAccent)
-            } else if (match.status == MatchStatus.FINISHED) {
-                // On a club's colours a tinted green or red can vanish (green on a green club), so the
-                // pill goes solid with white text.
-                val (bg, fg) = if (IsClubThemed) solidResultPillColors(details.score) else resultPillColors(details.score)
-                Pill(stringResource(resultLabel(details.score)), bg, fg)
-            }
-        }
-        if (match.status == MatchStatus.FINISHED) {
-            Text(
-                "${details.score.ourScore} – ${details.score.opponentScore}",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                color = if (IsClubThemed) Color.White else resultAccent(details.score)
-            )
-        }
-        match.location?.takeIf { it.isNotBlank() }?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
-        }
-        Spacer(Modifier.height(8.dp))
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.10f)))
-        Spacer(Modifier.height(8.dp))
-        Text(
-            stringResource(Res.string.label_callup_summary, counts.calledUp, counts.total),
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.6f)
-        )
-    }
-}
-
 /**
- * The club's and the opponent's logos side by side, above the status line. Only the logos that are
- * set: nothing at all when neither side has one, and "vs" only between two.
+ * The scoreboard line under the top bar, as football shows it: "[logo] Team 2 – 1 Opponent [logo]".
+ * Each logo only when it's set, the score only once there is one (live or finished) -- before that,
+ * "vs". Small enough for both names to fit; a long one is cut with "…".
  */
 @Composable
-private fun CrestPair(details: MatchDetails) {
-    val clubLogo = details.clubLogoUrl
-    val opponentLogo = details.opponent.logoUrl
-    if (clubLogo == null && opponentLogo == null) return
-    Row(Modifier.padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        if (clubLogo != null) {
-            ClubLogo(clubLogo, details.team.name.take(2).uppercase(), size = 40.dp, background = Color.White, initialsColor = DeepCarbon)
+private fun StatusBand(details: MatchDetails) {
+    val status = details.match.status
+    val hasScore = status == MatchStatus.FINISHED || status == MatchStatus.LIVE || status == MatchStatus.HALF_TIME
+    val nameStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+    val nameColor = Color.White.copy(alpha = if (status == MatchStatus.CANCELLED) 0.55f else 1f)
+    // Home on the left, as football reads a score; our club at home or on neutral ground.
+    val us = BandSide(details.team.name, details.clubLogoUrl, details.score.ourScore)
+    val them = BandSide(details.opponent.shortName ?: details.opponent.name, details.opponent.logoUrl, details.score.opponentScore)
+    val (left, right) = if (details.match.venue.ourSideFirst()) us to them else them to us
+    Row(
+        Modifier.fillMaxWidth().background(ClubChrome).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+            left.logoUrl?.let { BandCrest(it, left.name); Spacer(Modifier.width(8.dp)) }
+            Text(left.name, style = nameStyle, color = nameColor, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
         }
-        if (clubLogo != null && opponentLogo != null) {
-            Text("vs", color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(horizontal = 12.dp))
-        }
-        if (opponentLogo != null) {
-            ClubLogo(opponentLogo, details.opponent.name.take(2).uppercase(), size = 40.dp, background = Color.White, initialsColor = DeepCarbon)
+        Text(
+            if (hasScore) "${left.score} – ${right.score}" else "vs",
+            style = if (hasScore) MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black) else MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+            color = if (hasScore) Color.White else Color.White.copy(alpha = 0.6f),
+            modifier = Modifier.padding(horizontal = 12.dp)
+        )
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            Text(right.name, style = nameStyle, color = nameColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            right.logoUrl?.let { Spacer(Modifier.width(8.dp)); BandCrest(it, right.name) }
         }
     }
 }
 
+private data class BandSide(val name: String, val logoUrl: String?, val score: Int)
+
+/** A side's logo on the band, on a white disc so any crest reads on the bar's colour. */
 @Composable
-private fun Pill(text: String, bg: Color, fg: Color) {
-    Surface(shape = RoundedCornerShape(8.dp), color = bg) {
-        Text(
-            text,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-            color = fg
-        )
-    }
+private fun BandCrest(logoUrl: String, name: String) =
+    ClubLogo(logoUrl, name.take(2).uppercase(), size = 28.dp, background = Color.White, initialsColor = DeepCarbon)
+
+/** "Sat 24 Oct · 10:30": the top bar's title. */
+@Composable
+private fun whenLabel(instant: Instant): String =
+    "${instant.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(WeekdayDayMonth)} · ${timeLabel(instant)}"
+
+/** The type, then what's notable: "Championship · in 3 days", "Friendly · Cancelled", "… · 1 half". */
+@Composable
+private fun matchSubtitle(details: MatchDetails): String {
+    val match = details.match
+    return listOfNotNull(
+        match.type?.let { stringResource(it.labelRes()) },
+        when (match.status) {
+            MatchStatus.SCHEDULED -> relativeLabel(match.dateTime)
+            MatchStatus.CANCELLED -> stringResource(Res.string.status_cancelled)
+            MatchStatus.LIVE, MatchStatus.HALF_TIME -> stringResource(Res.string.matches_live)
+            else -> null
+        },
+        // Two halves is the norm and goes unsaid; a single-period match says so.
+        if (match.halves == 1) stringResource(Res.string.halves_one) else null
+    ).joinToString(" · ").ifEmpty { "${details.ageGroup.name} · ${details.season.name}" }
 }
 
 // ---- Body ----
@@ -318,24 +297,26 @@ private fun MatchBody(
     modifier: Modifier,
     onSortSelected: (CallUpSort) -> Unit,
     onAddToCallUp: (Player) -> Unit,
-    onRemoveFromCallUp: (MatchCallUpWithPlayer) -> Unit,
+    onRemoveFromCallUp: (Player) -> Unit,
     onEditMatch: (UpdateMatchRequest) -> Unit,
     onOpenReport: (edit: Boolean) -> Unit
 ) {
     val details = state.details
-    val counts = callUpCounts(details)
+    val view = state.callUpView()
     // A finished match is a record, not something to keep editing -- call-ups, kickoff, location
     // etc. all freeze once the game is over, regardless of the viewer's role.
     val notFinished = details.match.status != MatchStatus.FINISHED
     // Cancelled is closed too: neither can be edited, the type included (the server enforces the same).
     val canEditMatch = details.canManageMatch && notFinished && details.match.status != MatchStatus.CANCELLED
-    val canManageCallUps = details.canManageCallUps && notFinished
     var showEdit by remember { mutableStateOf(false) }
 
     // The Position / Name chips order both lists -- the call-up and the Available pool below it.
     val playerOrder = playerComparator(state.sort)
-    val sortedCallUps = details.callUps.sortedWith(compareBy(playerOrder) { it.player })
-    val sortedPool = details.poolPlayers.sortedWith(playerOrder)
+    val editing = view.section == CallUpSection.EDITOR
+    // The editor lists the draft call-up; everyone else sees the saved one.
+    val calledUp = (if (editing) state.selectedPlayers else details.callUps.map { it.player }).sortedWith(playerOrder)
+    val sortedPool = state.availablePlayers.sortedWith(playerOrder)
+    val notesByPlayer = details.callUps.associate { it.player.id to it.callUp.notes }
 
     // Landscape with a report card: the card gets its own fixed 320dp left column and stays in view
     // while the rest scrolls beside it -- it's the pending task on a finished match (23c).
@@ -343,13 +324,13 @@ private fun MatchBody(
         val sideCard = details.report != null && maxWidth > maxHeight && maxWidth >= 600.dp
         Row(Modifier.fillMaxSize()) {
             if (sideCard) {
-                Box(Modifier.width(344.dp).padding(start = 24.dp, top = 20.dp)) {
+                Box(Modifier.width(344.dp).padding(start = ScreenPadding.Horizontal, top = ScreenPadding.Top)) {
                     MatchReportCard(details.report!!, onOpenReport)
                 }
             }
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 32.dp),
+                contentPadding = ScreenPadding.Values,
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 state.transientError?.let {
@@ -365,53 +346,68 @@ private fun MatchBody(
                 item {
                     SectionHeader(
                         title = stringResource(Res.string.label_details_section),
-                        trailing = if (canEditMatch) stringResource(Res.string.label_edit) to { showEdit = true } else null
+                        trailing = if (canEditMatch) stringResource(Res.string.label_edit) to { showEdit = true } else null,
+                        // First in the list unless an error or the report card comes before it.
+                        first = state.transientError == null && (sideCard || details.report == null)
                     )
                 }
                 item { DetailsCard(details, onSetType = if (canEditMatch) { { showEdit = true } } else null) }
 
-                // ---- Call-up ----
-                item {
-                    SectionHeader(
-                        title = stringResource(Res.string.label_call_up),
-                        pill = "${counts.calledUp}/${counts.total}"
-                    )
-                }
-                item {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
-                        SortChip(stringResource(Res.string.label_position_field), state.sort == CallUpSort.POSITION) { onSortSelected(CallUpSort.POSITION) }
-                        SortChip(stringResource(Res.string.label_sort_name), state.sort == CallUpSort.NAME) { onSortSelected(CallUpSort.NAME) }
+                // ---- Call-up: by who's looking (callUpView) ----
+                when (view.section) {
+                    CallUpSection.HIDDEN -> Unit
+                    CallUpSection.NOT_READY -> item {
+                        Text(stringResource(Res.string.msg_callup_not_ready), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.6f), modifier = Modifier.padding(top = 4.dp))
                     }
-                }
-                if (canManageCallUps && counts.calledUp < RECOMMENDED_SQUAD) {
-                    item {
-                        Text(
-                            stringResource(Res.string.msg_squad_hint, counts.calledUp, RECOMMENDED_SQUAD),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-                if (details.callUps.isEmpty()) {
-                    item { Text(stringResource(Res.string.msg_no_callups), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
-                } else {
-                    items(sortedCallUps, key = { it.callUp.id }) { cu ->
-                        CallUpRow(cu, onRemove = if (canManageCallUps) { { onRemoveFromCallUp(cu) } } else null)
-                    }
-                }
-
-                // ---- Available ----
-                if (canManageCallUps && details.poolPlayers.isNotEmpty()) {
-                    item {
-                        Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 12.dp)) {
-                            Text(stringResource(Res.string.label_available), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
-                            Spacer(Modifier.width(6.dp))
-                            Text(stringResource(Res.string.label_available_from_pool, details.ageGroup.name), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
+                    CallUpSection.EDITOR, CallUpSection.READ_ONLY -> {
+                        item {
+                            SectionHeader(
+                                title = stringResource(Res.string.label_call_up),
+                                // Once the game is played the count says nothing more; it's dropped.
+                                pill = when {
+                                    details.match.status == MatchStatus.FINISHED -> null
+                                    editing -> "${calledUp.size}/${calledUp.size + sortedPool.size}"
+                                    else -> calledUp.size.toString()
+                                }
+                            )
                         }
-                    }
-                    items(sortedPool, key = { it.id }) { p ->
-                        PoolRow(p, onAdd = { onAddToCallUp(p) })
+                        item {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
+                                SortChip(stringResource(Res.string.label_position_field), state.sort == CallUpSort.POSITION) { onSortSelected(CallUpSort.POSITION) }
+                                SortChip(stringResource(Res.string.label_sort_name), state.sort == CallUpSort.NAME) { onSortSelected(CallUpSort.NAME) }
+                            }
+                        }
+                        if (editing && calledUp.size < RECOMMENDED_SQUAD) {
+                            item {
+                                Text(
+                                    stringResource(Res.string.msg_squad_hint, calledUp.size, RECOMMENDED_SQUAD),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                        if (calledUp.isEmpty()) {
+                            item { Text(stringResource(Res.string.msg_no_callups), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
+                        } else {
+                            items(calledUp, key = { "called-${it.id}" }) { player ->
+                                CallUpRow(player, notesByPlayer[player.id], onRemove = if (editing && !state.isSubmitting) { { onRemoveFromCallUp(player) } } else null)
+                            }
+                        }
+
+                        // ---- Available ----
+                        if (editing && sortedPool.isNotEmpty()) {
+                            item {
+                                Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 12.dp)) {
+                                    Text(stringResource(Res.string.label_available), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(stringResource(Res.string.label_available_from_pool, details.ageGroup.name), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
+                                }
+                            }
+                            items(sortedPool, key = { "pool-${it.id}" }) { p ->
+                                PoolRow(p, onAdd = { if (!state.isSubmitting) onAddToCallUp(p) })
+                            }
+                        }
                     }
                 }
             }
@@ -456,7 +452,7 @@ private fun DetailsCard(details: MatchDetails, onSetType: (() -> Unit)?) {
 
 @Composable
 private fun DetailRow(label: String, value: String, trailing: Pair<String, () -> Unit>? = null) {
-    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), modifier = Modifier.width(84.dp))
         Text(value, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, modifier = Modifier.weight(1f))
         if (trailing != null) LinkText(trailing.first, trailing.second)
@@ -469,7 +465,7 @@ private fun DetailRow(label: String, value: String, trailing: Pair<String, () ->
  */
 @Composable
 private fun TypeRow(type: MatchType?, onSetType: (() -> Unit)?) {
-    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(stringResource(Res.string.label_type_row), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), modifier = Modifier.width(84.dp))
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
             when {
@@ -487,17 +483,17 @@ private fun TypeRow(type: MatchType?, onSetType: (() -> Unit)?) {
 }
 
 @Composable
-private fun CallUpRow(cu: MatchCallUpWithPlayer, onRemove: (() -> Unit)? = null) {
+private fun CallUpRow(player: Player, notes: String?, onRemove: (() -> Unit)? = null) {
     Surface(modifier = Modifier.fillMaxWidth(), shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f))) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            PlayerBadge(cu.player.photoUrl, cu.player.shirtNumber)
+            PlayerBadge(player.photoUrl, player.shirtNumber)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
-                Text("${cu.player.firstName} ${cu.player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                cu.player.position?.let {
+                Text("${player.firstName} ${player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                player.position?.let {
                     Text(stringResource(it.labelRes()), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.55f))
                 }
-                cu.callUp.notes?.takeIf { it.isNotBlank() }?.let {
+                notes?.takeIf { it.isNotBlank() }?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
@@ -533,8 +529,9 @@ private fun PoolRow(player: Player, onAdd: () -> Unit) {
 }
 
 @Composable
-private fun SectionHeader(title: String, pill: String? = null, trailing: Pair<String, () -> Unit>? = null) {
-    Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun SectionHeader(title: String, pill: String? = null, trailing: Pair<String, () -> Unit>? = null, first: Boolean = false) {
+    // The gap above separates a section from the one before; the list's first header doesn't need it.
+    Row(modifier = Modifier.fillMaxWidth().padding(top = if (first) 0.dp else 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
         if (pill != null) {
             Spacer(Modifier.width(8.dp))
@@ -570,35 +567,39 @@ private fun LinkText(text: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun BottomActionBar(state: MatchDetailsUiState.Idle, onEnterLiveMatch: () -> Unit) {
-    val status = state.details.match.status
-    if (status != MatchStatus.SCHEDULED && status != MatchStatus.LIVE && status != MatchStatus.HALF_TIME) return
-    val scheduled = status == MatchStatus.SCHEDULED
+private fun BottomActionBar(state: MatchDetailsUiState.Idle, button: MatchDetailsButton, onSaveCallUp: () -> Unit, onEnterLiveMatch: () -> Unit) {
+    val scheduled = state.details.match.status == MatchStatus.SCHEDULED
     Surface(color = Color.White, shadowElevation = 8.dp) {
         Column(
             Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .padding(horizontal = ScreenPadding.Horizontal, vertical = 12.dp)
         ) {
-            // The live match screen owns starting the game / substitutions / events -- this button
-            // only opens it.
-            val label = if (scheduled) Res.string.btn_start_match else Res.string.btn_enter_live_match
-            PrimaryLoadingButton(
-                text = label,
-                submittingText = label,
-                isLoading = false,
-                onClick = onEnterLiveMatch
-            )
-            if (scheduled) {
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    stringResource(Res.string.msg_kickoff_countdown, relativeLabel(state.details.match.dateTime)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DeepCarbon.copy(alpha = 0.5f),
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
+            when (button) {
+                MatchDetailsButton.SAVE_CALL_UP, MatchDetailsButton.SAVE_CALL_UP_DISABLED -> PrimaryLoadingButton(
+                    text = Res.string.btn_save_callup,
+                    submittingText = Res.string.btn_saving_callup,
+                    isLoading = state.isSubmitting,
+                    enabled = button == MatchDetailsButton.SAVE_CALL_UP,
+                    onClick = onSaveCallUp
                 )
+                // The live match screen owns starting the game / substitutions / events -- this
+                // button only opens it.
+                MatchDetailsButton.START_MATCH, MatchDetailsButton.ENTER_LIVE_MATCH -> {
+                    val label = if (button == MatchDetailsButton.START_MATCH) Res.string.btn_start_match else Res.string.btn_enter_live_match
+                    PrimaryLoadingButton(text = label, submittingText = label, isLoading = false, onClick = onEnterLiveMatch)
+                }
+                MatchDetailsButton.NONE -> Unit
+            }
+            val hint = when {
+                button == MatchDetailsButton.SAVE_CALL_UP_DISABLED -> stringResource(Res.string.msg_callup_min_players, state.details.minimumCallUp())
+                scheduled -> stringResource(Res.string.msg_kickoff_countdown, relativeLabel(state.details.match.dateTime))
+                else -> null
+            }
+            hint?.let {
+                Spacer(Modifier.height(6.dp))
+                Text(it, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
             }
         }
     }
@@ -615,6 +616,7 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
     var notes by remember { mutableStateOf(details.match.notes.orEmpty()) }
     var type by remember { mutableStateOf(details.match.type) }
     var halves by remember { mutableStateOf(details.match.halves) }
+    var venue by remember { mutableStateOf(details.match.venue) }
     // The number of halves drives the live console, so it's only changeable before kickoff.
     val canChangeHalves = details.match.status == MatchStatus.SCHEDULED
     var showDate by remember { mutableStateOf(false) }
@@ -641,6 +643,11 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
                 Text(stringResource(Res.string.label_halves).uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon.copy(alpha = 0.55f))
                 HalvesSelector(halves = halves, onSelected = { halves = it })
             }
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(stringResource(Res.string.label_venue).uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon.copy(alpha = 0.55f))
+                // Changing where it's played moves the location with it; it can still be edited after.
+                VenueSelector(selected = venue, onSelected = { venue = it; location = venueLocation(it, details.clubLocation, details.opponent) })
+            }
             ValueField(stringResource(Res.string.label_match_date), date.format(DayMonthYear)) { showDate = true }
             ValueField(stringResource(Res.string.label_match_kickoff), timeOf(time)) { showTime = true }
             OutlinedTextField(
@@ -665,9 +672,11 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
                     onSave(
                         UpdateMatchRequest(
                             dateTime = date.atTime(time).toInstant(tz),
-                            location = location.trim().ifBlank { null },
+                            // Sent even when emptied: blank clears it (neutral ground), null would keep it.
+                            location = location.trim(),
                             notes = notes.trim().ifBlank { null },
                             type = type,
+                            venue = venue,
                             halves = halves.takeIf { canChangeHalves }
                         )
                     )
@@ -725,13 +734,6 @@ private fun editFieldColors() = OutlinedTextFieldDefaults.colors(
 
 private const val RECOMMENDED_SQUAD = 11
 
-private data class CallUpCounts(val calledUp: Int, val total: Int)
-
-private fun callUpCounts(details: MatchDetails): CallUpCounts = CallUpCounts(
-    calledUp = details.callUps.size,
-    total = details.callUps.size + details.poolPlayers.size
-)
-
 /** [PlayerPosition]'s declared order is already Goalkeeper → Defender → Midfield → Winger →
  * Striker, so its ordinal doubles as the sort rank; a player with no position sorts last. Either
  * sort falls back to last/first name as a tiebreaker (and as the sole key for [CallUpSort.NAME]). */
@@ -746,30 +748,6 @@ internal fun playerComparator(sort: CallUpSort): Comparator<Player> = when (sort
         { it.firstName.lowercase() },
         { it.lastName.lowercase() }
     )
-}
-
-private fun resultAccent(score: MatchScore): Color = when {
-    score.ourScore > score.opponentScore -> SuccessGreen
-    score.ourScore < score.opponentScore -> LossRed
-    else -> Color.White.copy(alpha = 0.75f)
-}
-
-private fun solidResultPillColors(score: MatchScore): Pair<Color, Color> = when {
-    score.ourScore > score.opponentScore -> SuccessGreen to Color.White
-    score.ourScore < score.opponentScore -> LossRed to Color.White
-    else -> Color.White.copy(alpha = 0.2f) to Color.White
-}
-
-private fun resultPillColors(score: MatchScore): Pair<Color, Color> = when {
-    score.ourScore > score.opponentScore -> SuccessGreen.copy(alpha = 0.25f) to SuccessGreen
-    score.ourScore < score.opponentScore -> LossRed.copy(alpha = 0.25f) to LossRed
-    else -> Color.White.copy(alpha = 0.15f) to Color.White.copy(alpha = 0.75f)
-}
-
-private fun resultLabel(score: MatchScore): StringResource = when {
-    score.ourScore > score.opponentScore -> Res.string.label_result_win
-    score.ourScore < score.opponentScore -> Res.string.label_result_loss
-    else -> Res.string.label_result_draw
 }
 
 private fun timeLabel(instant: Instant): String {
@@ -876,3 +854,77 @@ private fun MatchDetailsLoadingPreview() {
         )
     }
 }
+
+// ---- The call-up's cases (CallUpRules.kt): a 5-a-side team, six players in the pool ----
+
+private val callUpSamplePlayers = listOf(
+    Player("c1", "c1", "Ana", "Costa", LocalDate(2011, 5, 2), shirtNumber = 1, active = true, position = PlayerPosition.GOALKEEPER),
+    Player("c2", "c1", "Rui", "Perestrelo", LocalDate(2011, 1, 9), shirtNumber = 4, active = true, position = PlayerPosition.DEFENDER),
+    Player("c3", "c1", "Tomás", "Bragança", LocalDate(2011, 3, 12), shirtNumber = 10, active = true, position = PlayerPosition.MIDFIELD),
+    Player("c4", "c1", "Duarte", "Nabais", LocalDate(2011, 7, 30), shirtNumber = 7, active = true, position = PlayerPosition.WINGER),
+    Player("c5", "c1", "Beatriz", "Almeida", LocalDate(2011, 9, 18), shirtNumber = 9, active = true, position = PlayerPosition.STRIKER),
+    Player("c6", "c1", "Xavier", "Boaventura", LocalDate(2011, 8, 4), active = true)
+)
+
+/** [saved] players already called up; [canManageCallUps] / [canManageLiveMatch] the viewer's rights. */
+private fun callUpSample(saved: Int, canManageCallUps: Boolean, canManageLiveMatch: Boolean): MatchDetails {
+    val base = sampleDetails(MatchStatus.SCHEDULED, canManage = canManageCallUps)
+    return base.copy(
+        team = base.team.copy(teamSize = 5),
+        callUps = callUpSamplePlayers.take(saved).map {
+            MatchCallUpWithPlayer(MatchCallUp(id = "cu-${it.id}", matchId = "m1", playerId = it.id, status = CallUpStatus.CALLED_UP), it)
+        },
+        poolPlayers = callUpSamplePlayers.drop(saved),
+        canManageCallUps = canManageCallUps,
+        canManageLiveMatch = canManageLiveMatch
+    )
+}
+
+@Composable
+private fun CallUpCasePreview(state: MatchDetailsUiState.Idle) {
+    SquadifyTheme {
+        MatchDetailsContent(
+            uiState = state,
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onRemoveFromCallUp = {}, onEditMatch = {}, onDeleteMatch = {}, onEnterLiveMatch = {}, onOpenReport = {}
+        )
+    }
+}
+
+/** Building the call-up, still below the 5 needed: "Save call-up" is disabled. */
+@Preview
+@Composable
+private fun CallUpBelowMinimumPreview() =
+    CallUpCasePreview(MatchDetailsUiState.Idle(callUpSample(saved = 3, canManageCallUps = true, canManageLiveMatch = true)))
+
+/** A saved call-up with a player added since: "Save call-up". */
+@Preview
+@Composable
+private fun CallUpUnsavedChangesPreview() {
+    val details = callUpSample(saved = 5, canManageCallUps = true, canManageLiveMatch = true)
+    CallUpCasePreview(MatchDetailsUiState.Idle(details, selectedIds = details.callUps.map { it.player.id }.toSet() + "c6"))
+}
+
+/** The call-up saved and unchanged: "Start match". */
+@Preview
+@Composable
+private fun CallUpSavedPreview() =
+    CallUpCasePreview(MatchDetailsUiState.Idle(callUpSample(saved = 5, canManageCallUps = true, canManageLiveMatch = true)))
+
+/** Can start the game but not do the call-up, and it's ready: the call-up, read-only, and "Start match". */
+@Preview
+@Composable
+private fun CallUpReadyForStarterPreview() =
+    CallUpCasePreview(MatchDetailsUiState.Idle(callUpSample(saved = 5, canManageCallUps = false, canManageLiveMatch = true)))
+
+/** Can start the game but not do the call-up, and it isn't ready: the details and "not ready yet". */
+@Preview
+@Composable
+private fun CallUpNotReadyForStarterPreview() =
+    CallUpCasePreview(MatchDetailsUiState.Idle(callUpSample(saved = 2, canManageCallUps = false, canManageLiveMatch = true)))
+
+/** Neither does the call-up nor starts the game: the details only. */
+@Preview
+@Composable
+private fun CallUpViewerPreview() =
+    CallUpCasePreview(MatchDetailsUiState.Idle(callUpSample(saved = 5, canManageCallUps = false, canManageLiveMatch = false)))
+

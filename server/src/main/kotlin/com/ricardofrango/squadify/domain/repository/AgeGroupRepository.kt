@@ -3,7 +3,7 @@ package com.ricardofrango.squadify.domain.repository
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.AgeGroupStaff
 import com.ricardofrango.squadify.model.AgeGroupStaffMember
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 
 interface AgeGroupRepository {
     suspend fun getAgeGroupsByClub(clubId: String): List<AgeGroup>
@@ -15,7 +15,7 @@ interface AgeGroupRepository {
     suspend fun findByClubAndSeason(clubId: String, seasonId: String): List<AgeGroup>
 
     // Age-group staff (coaches / support staff). Teams no longer carry their own staff.
-    suspend fun getUserRoleInAgeGroup(userId: String, ageGroupId: String): TeamRole?
+    suspend fun getUserRoleInAgeGroup(userId: String, ageGroupId: String): AgeGroupRole?
     suspend fun addStaffToAgeGroup(staff: List<AgeGroupStaff>): Boolean
     suspend fun getAgeGroupStaff(ageGroupId: String): List<AgeGroupStaffMember>
     /** Drops [userId] from the staff of every age group of [clubId], in every season; returns how many rows went. */

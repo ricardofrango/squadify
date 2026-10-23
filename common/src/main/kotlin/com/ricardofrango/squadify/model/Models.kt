@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.model
 
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
@@ -17,7 +18,7 @@ enum class ClubRole(val level: Int) {
  * family members are modelled entirely through `AgeGroupPlayer` / `UserPlayer` and never appear here.
  */
 @Serializable
-enum class TeamRole(val level: Int) {
+enum class AgeGroupRole(val level: Int) {
     COACH(3),
     STAFF(2)
 }
@@ -25,9 +26,9 @@ enum class TeamRole(val level: Int) {
 /**
  * Actions a club admin/coordinator can tune the minimum age-group-staff role for (see
  * `TECHNICAL_DECISIONS.md` on configurable permissions). Each maps to one or more server use cases that
- * already gate on a [TeamRole] threshold today -- this just makes that threshold a per-club setting
+ * already gate on a [AgeGroupRole] threshold today -- this just makes that threshold a per-club setting
  * instead of a hardcoded constant. Deliberately NOT configurable, by design: who may change these
- * settings (always `ClubRole.COORDINATOR`+, never a [TeamRole]), and every *other* structural club-setup
+ * settings (always `ClubRole.COORDINATOR`+, never a [AgeGroupRole]), and every *other* structural club-setup
  * action (seasons/age groups/members/staff assignment), which stays coordinator-only -- creating a team
  * used to be in that fixed group too, until a coach who'd just finished setting up an age group turned
  * out to have no way to add a second team to it themselves (§37).
@@ -69,11 +70,11 @@ val ConfigurablePermission.isClubLevel: Boolean
     get() = this == ConfigurablePermission.MANAGE_PLAYER_STATUS
 
 /** The threshold each [ConfigurablePermission] falls back to until a club explicitly overrides it (null for club-level actions). */
-val ConfigurablePermission.defaultMinTeamRole: TeamRole?
+val ConfigurablePermission.defaultMinAgeGroupRole: AgeGroupRole?
     get() = when {
         isClubLevel -> null
-        this == ConfigurablePermission.MANAGE_LIVE_MATCH -> TeamRole.STAFF
-        else -> TeamRole.COACH
+        this == ConfigurablePermission.MANAGE_LIVE_MATCH -> AgeGroupRole.STAFF
+        else -> AgeGroupRole.COACH
     }
 
 /** A club-level action's default threshold: coordinators and admins. Null for age-group actions. */
@@ -81,10 +82,10 @@ val ConfigurablePermission.defaultMinClubRole: ClubRole?
     get() = if (isClubLevel) ClubRole.COORDINATOR else null
 
 /** The setting a club has until it overrides [this]. */
-fun ConfigurablePermission.defaultSetting() = ClubPermissionSetting(this, defaultMinTeamRole, defaultMinClubRole)
+fun ConfigurablePermission.defaultSetting() = ClubPermissionSetting(this, defaultMinAgeGroupRole, defaultMinClubRole)
 
 /**
- * One club's setting for one [ConfigurablePermission]. [minTeamRole] `null` means "coordinator-only" --
+ * One club's setting for one [ConfigurablePermission]. [minAgeGroupRole] `null` means "coordinator-only" --
  * the age-group-staff path is disabled entirely for this action, leaving only the (fixed) `COORDINATOR`+
  * club-role floor every configurable action also always carries.
  *
@@ -94,7 +95,8 @@ fun ConfigurablePermission.defaultSetting() = ClubPermissionSetting(this, defaul
 @Serializable
 data class ClubPermissionSetting(
     val action: ConfigurablePermission,
-    val minTeamRole: TeamRole?,
+    // Kept as "minTeamRole" on the wire, so apps from before the rename still read it.
+    @SerialName("minTeamRole") val minAgeGroupRole: AgeGroupRole?,
     val minClubRole: ClubRole? = null
 )
 
@@ -154,6 +156,16 @@ enum class SeasonType {
 /** What kind of fixture a match is -- chosen when scheduling it. */
 @Serializable
 enum class MatchType { FRIENDLY, CHAMPIONSHIP, TOURNAMENT }
+
+/**
+ * Where a match is played, from our side. Home goes first in a score ("Home 2 – 1 Away"); at a neutral
+ * ground our club does. Matches scheduled before this existed are HOME (V24).
+ */
+@Serializable
+enum class MatchVenue { HOME, AWAY, NEUTRAL }
+
+/** Whether our team is shown first (left of the score, on top in a list): at home or on neutral ground. */
+fun MatchVenue.ourSideFirst(): Boolean = this != MatchVenue.AWAY
 
 @Serializable
 enum class MatchStatus {
@@ -314,7 +326,7 @@ data class ClubDetailsResponse(
 
 /** One age group the viewer is staff on, in the active season. */
 @Serializable
-data class ViewerAgeGroup(val ageGroupId: String, val name: String, val role: TeamRole)
+data class ViewerAgeGroup(val ageGroupId: String, val name: String, val role: AgeGroupRole)
 
 @Serializable
 data class Season(
@@ -437,7 +449,7 @@ data class AgeGroupStaff(
     val id: String,
     val ageGroupId: String,
     val userId: String,
-    val role: TeamRole
+    val role: AgeGroupRole
 )
 
 @Serializable
@@ -685,7 +697,7 @@ data class AddPlayersToAgeGroupRequest(
 @Serializable
 data class AddStaffToAgeGroup(
     val userId: String,
-    val role: TeamRole
+    val role: AgeGroupRole
 )
 
 @Serializable
@@ -703,7 +715,7 @@ data class AgeGroupStaffMember(
     val userId: String,
     val firstName: String,
     val lastName: String,
-    val role: TeamRole,
+    val role: AgeGroupRole,
     val avatarUrl: String? = null
 )
 
@@ -864,7 +876,9 @@ data class OpponentDetails(
     val scores: List<MatchScore>,
     val teams: List<Team>,
     val seasons: List<Season>,
-    val canEdit: Boolean = false
+    val canEdit: Boolean = false,
+    // Our club's logo path, for the match rows; null without one.
+    val clubLogoUrl: String? = null
 )
 
 @Serializable
@@ -906,7 +920,9 @@ data class Match(
     val firstHalfEndMinute: Int? = null,
     // Match-clock minute at full time -- set on the -> FINISHED transition. Its presence also marks a
     // match whose MatchPlayerStats were computed (matches finished before this existed have neither).
-    val fullTimeMinute: Int? = null
+    val fullTimeMinute: Int? = null,
+    // Home, away or neutral (see MatchVenue); every match has one.
+    val venue: MatchVenue = MatchVenue.HOME
 )
 
 /**
@@ -1089,7 +1105,9 @@ data class MatchDetails(
     // live console measures the difference with [estimateServerClockOffset] and counts with it.
     val serverNow: Instant? = null,
     // The club's own logo path, for the match header next to the opponent's; null without one.
-    val clubLogoUrl: String? = null
+    val clubLogoUrl: String? = null,
+    // The club's ground (stadium location, else address), to prefill a home match's location on edit.
+    val clubLocation: String? = null
 )
 
 @Serializable
@@ -1116,7 +1134,9 @@ data class UpdateMatchRequest(
     val notes: String? = null,
     val type: MatchType? = null,
     // 1 or 2 (see Match.halves). Only changeable before kickoff.
-    val halves: Int? = null
+    val halves: Int? = null,
+    // Null keeps the match's venue.
+    val venue: MatchVenue? = null
 )
 
 @Serializable
@@ -1146,7 +1166,9 @@ data class CreateMatchRequest(
     // Required: every new match is typified when it's scheduled.
     val type: MatchType,
     // 2 halves unless the match is a single period (Match.halves).
-    val halves: Int = 2
+    val halves: Int = 2,
+    // Required in the app; null only from an app that predates it, taken as HOME.
+    val venue: MatchVenue? = null
 )
 
 @Serializable
@@ -1231,7 +1253,9 @@ data class ClubHomeNextUp(
     val dateTime: Instant,
     val callUpsTotal: Int,
     // The opponent's logo path, when they have one.
-    val opponentLogoUrl: String? = null
+    val opponentLogoUrl: String? = null,
+    // Decides which side is named first on the card.
+    val venue: MatchVenue = MatchVenue.HOME
 )
 
 @Serializable
@@ -1314,7 +1338,7 @@ data class MemberAgeGroupRole(
     val ageGroupId: String,
     val ageGroupName: String,
     val seasonName: String,
-    val role: TeamRole,
+    val role: AgeGroupRole,
     // The club's active season comes first in lists.
     val currentSeason: Boolean = false
 )

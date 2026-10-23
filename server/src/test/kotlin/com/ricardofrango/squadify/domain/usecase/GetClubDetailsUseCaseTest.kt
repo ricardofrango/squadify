@@ -4,7 +4,7 @@ import kotlinx.datetime.LocalDate
 import com.ricardofrango.squadify.model.ClubPermissionSetting
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.ViewerAgeGroup
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.model.Season
@@ -171,7 +171,7 @@ class GetClubDetailsUseCaseTest {
         coEvery { clubRepository.getClubById(clubIdA) } returns club
         coEvery { seasonRepository.getSeasonsByClub(clubIdA) } returns listOf(season)
         coEvery { ageGroupRepository.findByClubAndSeason(clubIdA, "s1") } returns listOf(sub17, sub15)
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag15") } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag15") } returns AgeGroupRole.COACH
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag17") } returns null
         return coach.id
     }
@@ -181,7 +181,7 @@ class GetClubDetailsUseCaseTest {
         val coach = coachOfSub15()
         val result = useCase(coach, clubIdA)
         assertEquals(ClubRole.MEMBER, result.viewerRole)
-        assertEquals(listOf(ViewerAgeGroup("ag15", "Sub-15", TeamRole.COACH)), result.viewerAgeGroups)
+        assertEquals(listOf(ViewerAgeGroup("ag15", "Sub-15", AgeGroupRole.COACH)), result.viewerAgeGroups)
         assertEquals(listOf("ag15"), result.createTeamAgeGroupIds)
         assertEquals(listOf("ag15"), result.createPlayersAgeGroupIds)
     }
@@ -190,7 +190,7 @@ class GetClubDetailsUseCaseTest {
     fun aClubThatMakesCreateTeamCoordinatorOnlyHidesItFromCoaches() = runBlocking {
         val coach = coachOfSub15()
         coEvery { clubPermissionRepository.getOverride(clubIdA, ConfigurablePermission.CREATE_TEAM) } returns
-            ClubPermissionSetting(ConfigurablePermission.CREATE_TEAM, minTeamRole = null)
+            ClubPermissionSetting(ConfigurablePermission.CREATE_TEAM, minAgeGroupRole = null)
         val result = useCase(coach, clubIdA)
         assertEquals(emptyList(), result.createTeamAgeGroupIds)
         assertEquals(listOf("ag15"), result.createPlayersAgeGroupIds)

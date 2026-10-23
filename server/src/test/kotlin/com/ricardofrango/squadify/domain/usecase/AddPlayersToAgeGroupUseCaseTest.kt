@@ -14,7 +14,7 @@ import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.AgeGroupPlayer
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Player
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -90,7 +90,7 @@ class AddPlayersToAgeGroupUseCaseTest {
         val coach = user("p5-coach")
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ageGroupId) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ageGroupId) } returns AgeGroupRole.COACH
         coEvery { ageGroupRepository.getAgeGroupById(ageGroupId) } returns ageGroup
         coEvery { playerRepository.getPlayersData(any()) } returns listOf(player("a", 2016))
         coEvery { playerRepository.getPlayersByAgeGroup(ageGroupId) } returns emptyList()

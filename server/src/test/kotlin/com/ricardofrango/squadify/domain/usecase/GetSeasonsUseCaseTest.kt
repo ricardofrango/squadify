@@ -13,7 +13,7 @@ import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -106,8 +106,8 @@ class GetSeasonsUseCaseTest {
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
         coEvery { playerRepository.getPlayersByUser(coach.id) } returns emptyList()
         coEvery { ageGroupRepository.getAgeGroupsByClub(clubIdA) } returns listOf(ag1, ag2, ag3)
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1.id) } returns TeamRole.COACH
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag2.id) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1.id) } returns AgeGroupRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag2.id) } returns AgeGroupRole.COACH
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag3.id) } returns null
         coEvery { seasonRepository.getSeasonById(season2627) } returns season(season2627)
 
@@ -122,8 +122,8 @@ class GetSeasonsUseCaseTest {
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
         coEvery { playerRepository.getPlayersByUser(coach.id) } returns emptyList()
         coEvery { ageGroupRepository.getAgeGroupsByClub(clubIdA) } returns listOf(ag1, ag3)
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1.id) } returns TeamRole.COACH
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag3.id) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1.id) } returns AgeGroupRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag3.id) } returns AgeGroupRole.COACH
         coEvery { seasonRepository.getSeasonById(season2627) } returns season(season2627)
         coEvery { seasonRepository.getSeasonById(season2728) } returns season(season2728)
 

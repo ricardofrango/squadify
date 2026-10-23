@@ -23,7 +23,7 @@ import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -88,7 +88,7 @@ class GetAgeGroupSeasonRecordUseCaseTest {
         coEvery { playerRepository.getPlayersByAgeGroup("ag-1") } returns listOf(tomas)
     }
 
-    private fun stubUser(role: TeamRole?, linked: Boolean = false): User {
+    private fun stubUser(role: AgeGroupRole?, linked: Boolean = false): User {
         val user = User("u", "u@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
         coEvery { userRepository.findById(user.id) } returns user
         coEvery { userRepository.getUserRoleInClub(user.id, clubId) } returns ClubRole.MEMBER
@@ -100,7 +100,7 @@ class GetAgeGroupSeasonRecordUseCaseTest {
     @Test
     fun coachGetsEveryTeamOfTheAgeGroupSortedWithRatingsAndThePool() = runBlocking {
         stubData()
-        val record = useCase(stubUser(TeamRole.COACH).id, "ag-1")
+        val record = useCase(stubUser(AgeGroupRole.COACH).id, "ag-1")
 
         assertTrue(record.canSeeRatings)
         assertEquals(listOf("Sub-15 A", "Sub-15 B"), record.teams.map { it.teamName })

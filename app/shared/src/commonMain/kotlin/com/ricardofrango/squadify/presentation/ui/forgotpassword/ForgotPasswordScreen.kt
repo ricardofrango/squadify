@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.forgotpassword
 
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +25,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -40,7 +41,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
 import com.ricardofrango.squadify.presentation.ui.components.FormIntro
 import com.ricardofrango.squadify.presentation.ui.components.FormTextField
@@ -49,6 +51,7 @@ import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButto
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.shared.generated.resources.Res
@@ -81,9 +84,33 @@ fun ForgotPasswordScreen(
     onPasswordReset: (email: String) -> Unit,
     viewModel: ForgotPasswordViewModel = koinViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(viewModel) { viewModel.done.collect { onPasswordReset(it) } }
 
+    ForgotPasswordContent(
+        state = state,
+        initialEmail = initialEmail,
+        onNavigateBack = onNavigateBack,
+        onClearError = viewModel::clearError,
+        onSendCode = viewModel::sendCode,
+        onSetNewPassword = viewModel::setNewPassword,
+        onResendCode = viewModel::resendCode,
+        onUseDifferentEmail = viewModel::useDifferentEmail
+    )
+}
+
+/** Forgot password's layout, without the ViewModel, so it can be previewed. */
+@Composable
+private fun ForgotPasswordContent(
+    state: ForgotPasswordUiState,
+    initialEmail: String,
+    onNavigateBack: () -> Unit,
+    onClearError: () -> Unit,
+    onSendCode: (String) -> Unit,
+    onSetNewPassword: (code: String, password: String, confirm: String) -> Unit,
+    onResendCode: () -> Unit,
+    onUseDifferentEmail: () -> Unit
+) {
     var email by rememberSaveable { mutableStateOf(initialEmail) }
     var code by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -92,7 +119,7 @@ fun ForgotPasswordScreen(
     val enabled = !state.submitting
 
     Scaffold(
-        topBar = { FMTopBar(title = stringResource(Res.string.title_forgot_password), onNavigateBack = onNavigateBack) }
+        topBar = { SquadifyTopBar(title = stringResource(Res.string.title_forgot_password), onNavigateBack = onNavigateBack) }
     ) { padding ->
         Column(
             Modifier
@@ -105,7 +132,7 @@ fun ForgotPasswordScreen(
                 .imePadding()
                 .background(Color.White)
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp),
+                .screenContentPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             when (state.step) {
@@ -114,20 +141,20 @@ fun ForgotPasswordScreen(
                     FormErrorLine(state.error)
                     FormTextField(
                         value = email,
-                        onValueChange = { email = it; viewModel.clearError() },
+                        onValueChange = { email = it; onClearError() },
                         label = stringResource(Res.string.label_email),
                         enabled = enabled,
                         isError = state.error != null,
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Send,
-                        onImeAction = { viewModel.sendCode(email) },
+                        onImeAction = { onSendCode(email) },
                         modifier = Modifier.semantics { contentType = ContentType.Username + ContentType.EmailAddress }
                     )
                     PrimaryLoadingButton(
                         text = Res.string.btn_send_code,
                         submittingText = Res.string.btn_sending_code,
                         isLoading = state.submitting,
-                        onClick = { viewModel.sendCode(email) }
+                        onClick = { onSendCode(email) }
                     )
                 }
                 ForgotPasswordStep.CODE -> {
@@ -135,7 +162,7 @@ fun ForgotPasswordScreen(
                     FormErrorLine(state.error)
                     FormTextField(
                         value = code,
-                        onValueChange = { new -> code = new.filter { it.isDigit() }.take(6); viewModel.clearError() },
+                        onValueChange = { new -> code = new.filter { it.isDigit() }.take(6); onClearError() },
                         label = stringResource(Res.string.label_reset_code),
                         enabled = enabled,
                         isError = state.error != null,
@@ -145,7 +172,7 @@ fun ForgotPasswordScreen(
                     )
                     FormTextField(
                         value = password,
-                        onValueChange = { password = it; viewModel.clearError() },
+                        onValueChange = { password = it; onClearError() },
                         label = stringResource(Res.string.label_new_password_field),
                         supporting = stringResource(Res.string.msg_password_min_length),
                         enabled = enabled,
@@ -157,30 +184,30 @@ fun ForgotPasswordScreen(
                     )
                     FormTextField(
                         value = confirm,
-                        onValueChange = { confirm = it; viewModel.clearError() },
+                        onValueChange = { confirm = it; onClearError() },
                         label = stringResource(Res.string.label_confirm_new_password_field),
                         enabled = enabled,
                         keyboardType = KeyboardType.Password,
                         hidden = !passwordVisible,
                         imeAction = ImeAction.Done,
-                        onImeAction = { viewModel.setNewPassword(code, password, confirm) },
+                        onImeAction = { onSetNewPassword(code, password, confirm) },
                         modifier = Modifier.semantics { contentType = ContentType.NewPassword }
                     )
                     PrimaryLoadingButton(
                         text = Res.string.btn_set_new_password,
                         submittingText = Res.string.btn_setting_new_password,
                         isLoading = state.submitting,
-                        onClick = { viewModel.setNewPassword(code, password, confirm) }
+                        onClick = { onSetNewPassword(code, password, confirm) }
                     )
                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                        TextButton(onClick = viewModel::resendCode, enabled = enabled && state.resendInSeconds == 0) {
+                        TextButton(onClick = onResendCode, enabled = enabled && state.resendInSeconds == 0) {
                             Text(
                                 if (state.resendInSeconds > 0) stringResource(Res.string.btn_resend_code_in, state.resendInSeconds)
                                 else stringResource(Res.string.btn_resend_code),
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
-                        TextButton(onClick = { code = ""; viewModel.useDifferentEmail() }, enabled = enabled) {
+                        TextButton(onClick = { code = ""; onUseDifferentEmail() }, enabled = enabled) {
                             Text(stringResource(Res.string.btn_use_different_email), color = CarbonGray)
                         }
                     }
@@ -188,4 +215,16 @@ fun ForgotPasswordScreen(
             }
         }
     }
+}
+
+@Preview
+@Composable
+private fun ForgotPasswordEmailPreview() {
+    SquadifyTheme { ForgotPasswordContent(ForgotPasswordUiState(), "ana@clube.pt", {}, {}, {}, { _, _, _ -> }, {}, {}) }
+}
+
+@Preview
+@Composable
+private fun ForgotPasswordCodePreview() {
+    SquadifyTheme { ForgotPasswordContent(ForgotPasswordUiState(step = ForgotPasswordStep.CODE, email = "ana@clube.pt", resendInSeconds = 42), "ana@clube.pt", {}, {}, {}, { _, _, _ -> }, {}, {}) }
 }

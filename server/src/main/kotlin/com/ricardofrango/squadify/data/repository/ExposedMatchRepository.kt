@@ -64,6 +64,7 @@ class ExposedMatchRepository : MatchRepository {
             it[notes] = match.notes
             it[matchType] = match.type
             it[halves] = match.halves
+            it[venue] = match.venue
             it[halfLengthMinutes] = match.halfLengthMinutes
             it[kickoffAt] = match.kickoffAt
             it[secondHalfStartedAt] = match.secondHalfStartedAt
@@ -80,6 +81,7 @@ class ExposedMatchRepository : MatchRepository {
             it[notes] = match.notes
             it[matchType] = match.type
             it[halves] = match.halves
+            it[venue] = match.venue
         } > 0
 
     override suspend fun updateMatchStatus(matchId: String, status: MatchStatus): Boolean =
@@ -234,6 +236,7 @@ class ExposedMatchRepository : MatchRepository {
         notes = row[MatchesTable.notes],
         type = row[MatchesTable.matchType],
         halves = row[MatchesTable.halves],
+        venue = row[MatchesTable.venue],
         halfLengthMinutes = row[MatchesTable.halfLengthMinutes],
         kickoffAt = row[MatchesTable.kickoffAt],
         secondHalfStartedAt = row[MatchesTable.secondHalfStartedAt],

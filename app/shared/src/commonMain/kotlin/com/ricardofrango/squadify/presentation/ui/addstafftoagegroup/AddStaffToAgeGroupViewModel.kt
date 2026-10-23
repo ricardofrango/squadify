@@ -9,7 +9,7 @@ import com.ricardofrango.squadify.domain.usecase.GetClubMembersUseCase
 import com.ricardofrango.squadify.domain.usecase.GetSeasonsUseCase
 import com.ricardofrango.squadify.model.AddStaffToAgeGroup
 import com.ricardofrango.squadify.model.AddStaffToAgeGroupRequest
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_add_staff_failed
@@ -126,7 +126,7 @@ class AddStaffToAgeGroupViewModel(
 
     /** Tapping a role pill selects the member with that role; tapping the already-selected role
      * deselects them. */
-    fun onRoleTapped(userId: String, role: TeamRole) {
+    fun onRoleTapped(userId: String, role: AgeGroupRole) {
         _state.update { state ->
             if (state is AddStaffToAgeGroupUiState.Idle) {
                 val next = state.selectedRoles.toMutableMap()

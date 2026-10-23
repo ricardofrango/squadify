@@ -26,7 +26,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +37,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.TrainingIntensity
 import com.ricardofrango.squadify.model.TrainingPlan
@@ -46,7 +46,7 @@ import com.ricardofrango.squadify.model.TrainingSession
 import com.ricardofrango.squadify.model.TrainingSessionDetails
 import com.ricardofrango.squadify.model.mondayOf
 import com.ricardofrango.squadify.model.periodEnd
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
@@ -62,6 +62,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -134,7 +135,7 @@ fun SessionDetailsScreen(
     viewModel: SessionDetailsViewModel = koinViewModel()
 ) {
     SquadifyClubTheme {
-        val state by viewModel.state.collectAsState()
+        val state by viewModel.state.collectAsStateWithLifecycle()
         LaunchedEffect(sessionId) { viewModel.load(sessionId) }
         LaunchedEffect(refresh) { if (refresh) viewModel.load(sessionId, force = true) }
         LaunchedEffect(viewModel) { viewModel.changed.collect { onChanged(it) } }
@@ -190,7 +191,7 @@ private fun SessionDetailsContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = details?.let { sessionTitle(it.session.date) } ?: "",
                 subtitle = details?.let { stringResource(Res.string.label_training_subtitle, it.ageGroup.name, it.clubName) },
                 onNavigateBack = onNavigateBack,
@@ -222,7 +223,7 @@ private fun SessionDetailsContent(
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         BoxWithConstraints(modifier) {
             val wide = maxWidth >= 600.dp
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (details.session.cancelled) CancelledBanner(details, details.canEdit, onRestore)
                 // Once the session has ended, its ratings come first (design 39f).
                 val ended = details.session.ended(now)

@@ -11,7 +11,7 @@ import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.ClubPermissionSetting
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.UpdateClubPermissionsRequest
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
@@ -48,7 +48,7 @@ class UpdateClubPermissionsUseCaseTest {
     private fun user(id: String) = User(id, "$id@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
 
     private fun request() = UpdateClubPermissionsRequest(
-        settings = listOf(ClubPermissionSetting(ConfigurablePermission.CREATE_PLAYERS, TeamRole.STAFF))
+        settings = listOf(ClubPermissionSetting(ConfigurablePermission.CREATE_PLAYERS, AgeGroupRole.STAFF))
     )
 
     @Test
@@ -103,8 +103,8 @@ class UpdateClubPermissionsUseCaseTest {
 
         val duplicateRequest = UpdateClubPermissionsRequest(
             settings = listOf(
-                ClubPermissionSetting(ConfigurablePermission.CREATE_PLAYERS, TeamRole.STAFF),
-                ClubPermissionSetting(ConfigurablePermission.CREATE_PLAYERS, TeamRole.COACH)
+                ClubPermissionSetting(ConfigurablePermission.CREATE_PLAYERS, AgeGroupRole.STAFF),
+                ClubPermissionSetting(ConfigurablePermission.CREATE_PLAYERS, AgeGroupRole.COACH)
             )
         )
 
@@ -165,8 +165,8 @@ class UpdateClubPermissionsUseCaseTest {
         listOf(
             playerStatus(ClubRole.MEMBER),
             playerStatus(null),
-            ClubPermissionSetting(ConfigurablePermission.MANAGE_PLAYER_STATUS, TeamRole.COACH, ClubRole.COORDINATOR),
-            ClubPermissionSetting(ConfigurablePermission.CREATE_PLAYERS, TeamRole.COACH, ClubRole.CLUB_ADMIN)
+            ClubPermissionSetting(ConfigurablePermission.MANAGE_PLAYER_STATUS, AgeGroupRole.COACH, ClubRole.COORDINATOR),
+            ClubPermissionSetting(ConfigurablePermission.CREATE_PLAYERS, AgeGroupRole.COACH, ClubRole.CLUB_ADMIN)
         ).forEach { setting ->
             assertFailsWith<ValidationException> { useCase(admin, clubId, UpdateClubPermissionsRequest(listOf(setting))) }
         }

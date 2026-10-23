@@ -57,7 +57,7 @@ import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.MatchRow
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeaderRow
@@ -72,6 +72,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
@@ -150,7 +151,7 @@ private fun OpponentDetailsContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = details?.opponent?.name ?: stringResource(Res.string.title_opponent),
                 subtitle = details?.clubName,
                 onNavigateBack = onNavigateBack,
@@ -169,7 +170,7 @@ private fun OpponentDetailsContent(
         when (state) {
             OpponentDetailsUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
             OpponentDetailsUiState.Error -> Column(
-                modifier.padding(32.dp),
+                modifier.screenContentPadding(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -196,7 +197,7 @@ private fun OpponentDetailsContent(
                     }
                 } else {
                     Column(
-                        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         HeaderCard(d)
@@ -351,6 +352,8 @@ private fun MatchesSection(details: OpponentDetails, onOpenMatch: (String) -> Un
                 opponentName = opponentName,
                 teamName = teams[match.teamId]?.name,
                 score = scores[match.id],
+                opponentLogoUrl = details.opponent.logoUrl,
+                clubLogoUrl = details.clubLogoUrl,
                 onClick = { onOpenMatch(match.id) }
             )
         }

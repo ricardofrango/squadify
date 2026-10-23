@@ -7,7 +7,7 @@ import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Opponent
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 
 class GetOpponentsUseCase(
     private val opponentRepository: OpponentRepository,
@@ -33,7 +33,7 @@ class GetOpponentsUseCase(
         checkUserPermissionUseCase(
             userId, clubId,
             minClubRole = ClubRole.MEMBER,
-            minTeamRole = TeamRole.COACH,
+            minAgeGroupRole = AgeGroupRole.COACH,
             ageGroupId = ageGroupId
         )
 

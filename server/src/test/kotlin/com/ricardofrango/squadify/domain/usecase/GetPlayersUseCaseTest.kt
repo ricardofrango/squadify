@@ -13,7 +13,7 @@ import com.ricardofrango.squadify.model.AgeGroupPlayer
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -101,7 +101,7 @@ class GetPlayersUseCaseTest {
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
         coEvery { playerRepository.getPlayersByUser(coach.id) } returns emptyList()
         coEvery { ageGroupRepository.getAgeGroupsByClub(clubIdA) } returns listOf(ageGroup(ag1), ageGroup(ag2))
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag2) } returns null
         val ag1Players = listOf(player("p1"), player("p2"))
         coEvery { playerRepository.getPlayersByAgeGroup(ag1) } returns ag1Players
@@ -135,7 +135,7 @@ class GetPlayersUseCaseTest {
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
         coEvery { teamRepository.getTeamById(team1.id) } returns team1
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
         val pool = listOf(player("p1"))
         coEvery { playerRepository.getPlayersByAgeGroup(ag1) } returns pool
 

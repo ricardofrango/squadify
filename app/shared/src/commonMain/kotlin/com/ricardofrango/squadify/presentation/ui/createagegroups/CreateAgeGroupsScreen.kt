@@ -27,13 +27,14 @@ import com.ricardofrango.squadify.model.AgeGroupItemRequest
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.model.SportType
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -239,7 +240,7 @@ private fun CreateAgeGroupsContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = stringResource(Res.string.title_create_age_groups),
                 subtitle = if (selectedSeasonName != null) {
                     stringResource(Res.string.label_age_groups_header_subtitle, clubName, selectedSeasonName)
@@ -262,7 +263,7 @@ private fun CreateAgeGroupsContent(
 
             is CreateAgeGroupsUiState.Idle -> if (uiState.seasons.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White).padding(24.dp),
+                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White).screenContentPadding(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -282,7 +283,7 @@ private fun CreateAgeGroupsContent(
                         .padding(paddingValues)
                         .background(Color.White)
                         .verticalScroll(rememberScrollState())
-                        .padding(24.dp),
+                        .screenContentPadding(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     SeasonField(
@@ -310,6 +311,7 @@ private fun CreateAgeGroupsContent(
                         AgeGroupRowCard(
                             index = index + 1,
                             row = row,
+                            conflict = index in uiState.conflictRows,
                             availableYears = availableYears,
                             allYearOptions = allYearOptions,
                             teamSizeOptions = teamSizeOptions,
@@ -428,6 +430,8 @@ private fun SeasonField(
 private fun AgeGroupRowCard(
     index: Int,
     row: AgeGroupRow,
+    // The server said this row's birth years clash with another age group: red border and number.
+    conflict: Boolean = false,
     availableYears: List<Int>,
     allYearOptions: List<Int>,
     teamSizeOptions: List<Int>,
@@ -447,18 +451,18 @@ private fun AgeGroupRowCard(
         modifier = Modifier.fillMaxWidth(),
         shape = FormRoundedShape,
         color = Color.White,
-        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
+        border = if (conflict) BorderStroke(2.dp, MaterialTheme.colorScheme.error) else BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
-                    modifier = Modifier.size(24.dp).background(CarbonGray.copy(alpha = 0.1f), CircleShape),
+                    modifier = Modifier.size(24.dp).background(if (conflict) MaterialTheme.colorScheme.error else CarbonGray.copy(alpha = 0.1f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = index.toString(),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = DeepCarbon
+                        color = if (conflict) Color.White else DeepCarbon
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))

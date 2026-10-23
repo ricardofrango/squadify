@@ -17,6 +17,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.ui.draw.clip
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
@@ -101,7 +102,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -123,13 +123,14 @@ import squadify.app.shared.generated.resources.msg_permission_manage_player_stat
 import squadify.app.shared.generated.resources.label_permission_level_admins_coordinators
 import squadify.app.shared.generated.resources.label_permission_level_admins_only
 import squadify.app.shared.generated.resources.msg_permission_admin_only_setting
-import com.ricardofrango.squadify.model.TeamRole
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.model.AgeGroupRole
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -210,8 +211,8 @@ fun EditClubScreen(
 ) {
     SquadifyClubTheme {
         val uiState = viewModel.state.collectSettledState()
-        val members by viewModel.members.collectAsState()
-        val inviting by viewModel.inviting.collectAsState()
+        val members by viewModel.members.collectAsStateWithLifecycle()
+        val inviting by viewModel.inviting.collectAsStateWithLifecycle()
         val snackbarHostState = remember { SnackbarHostState() }
 
         // Loads once per club: coming back from Member details must not reset unsaved Details/Permissions edits.
@@ -306,7 +307,7 @@ private fun EditClubContent(
                 containerColor = if (selectedTab == EDIT_CLUB_TAB_MEMBERS) WhiteSmoke else Color.White,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 topBar = {
-                    FMTopBar(
+                    SquadifyTopBar(
                         title = idle?.form?.name?.takeIf { it.isNotBlank() } ?: stringResource(Res.string.title_club_details),
                         subtitle = stringResource(Res.string.club_settings),
                         onNavigateBack = requestBack,
@@ -335,7 +336,7 @@ private fun EditClubContent(
 
                     is EditClubUiState.Error -> {
                         Column(
-                            modifier = boxModifier.padding(24.dp),
+                            modifier = boxModifier.screenContentPadding(),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
@@ -508,7 +509,7 @@ private fun PermissionsForm(
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .screenContentPadding(),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         Text(
@@ -527,7 +528,7 @@ private fun PermissionsForm(
             } else {
                 PermissionRow(
                     setting = setting,
-                    onChange = { newValue -> onPermissionChanged(setting.copy(minTeamRole = newValue)) }
+                    onChange = { newValue -> onPermissionChanged(setting.copy(minAgeGroupRole = newValue)) }
                 )
             }
         }
@@ -579,23 +580,23 @@ private fun permissionDescription(action: ConfigurablePermission) = when (action
 }
 
 // null means "coordinator-only" -- the age-group-staff path is disabled entirely for this action.
-private fun levelLabel(minTeamRole: TeamRole?) = when (minTeamRole) {
-    TeamRole.STAFF -> Res.string.label_permission_level_staff
-    TeamRole.COACH -> Res.string.label_permission_level_coach
+private fun levelLabel(minAgeGroupRole: AgeGroupRole?) = when (minAgeGroupRole) {
+    AgeGroupRole.STAFF -> Res.string.label_permission_level_staff
+    AgeGroupRole.COACH -> Res.string.label_permission_level_coach
     null -> Res.string.label_permission_level_coordinator_only
 }
 
 @Composable
 private fun PermissionRow(
     setting: ClubPermissionSetting,
-    onChange: (TeamRole?) -> Unit
+    onChange: (AgeGroupRole?) -> Unit
 ) {
     PermissionCard(
         action = setting.action,
-        selected = stringResource(levelLabel(setting.minTeamRole)),
+        selected = stringResource(levelLabel(setting.minAgeGroupRole)),
         options = listOf(
-            Res.string.label_permission_level_staff to { onChange(TeamRole.STAFF) },
-            Res.string.label_permission_level_coach to { onChange(TeamRole.COACH) },
+            Res.string.label_permission_level_staff to { onChange(AgeGroupRole.STAFF) },
+            Res.string.label_permission_level_coach to { onChange(AgeGroupRole.COACH) },
             Res.string.label_permission_level_coordinator_only to { onChange(null) }
         )
     )
@@ -704,7 +705,7 @@ private fun ClubDetailsForm(
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .screenContentPadding(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         ClubIdentityHeader(state = state, onLogoPicked = onLogoPicked, onRemoveLogo = onRemoveLogo)
@@ -1055,7 +1056,7 @@ private fun EditClubPermissionsTabDirtyPreview() {
                 form = fields,
                 originalPermissions = permissions,
                 permissions = permissions.map {
-                    if (it.action == ConfigurablePermission.MANAGE_MATCH) it.copy(minTeamRole = null) else it
+                    if (it.action == ConfigurablePermission.MANAGE_MATCH) it.copy(minAgeGroupRole = null) else it
                 }
             ),
             onNavigateBack = {},
@@ -1107,7 +1108,7 @@ internal fun sampleMembersOverview(): ClubMembersOverview {
     val joined = Instant.parse("2025-08-01T10:00:00Z")
     fun member(id: String, first: String, last: String, role: ClubRole, roles: List<MemberAgeGroupRole> = emptyList(), linked: List<MemberLinkedPlayer> = emptyList()) =
         ClubMemberEntry(id, first, last, "${first.lowercase()}.${last.lowercase()}@gmail.com", null, role, roles, linked, joined)
-    fun coach(name: String) = MemberAgeGroupRole("ag-$name", name, "2025/26", TeamRole.COACH, currentSeason = true)
+    fun coach(name: String) = MemberAgeGroupRole("ag-$name", name, "2025/26", AgeGroupRole.COACH, currentSeason = true)
     return ClubMembersOverview(
         members = listOf(
             member("u1", "Ricardo", "Frango", ClubRole.CLUB_ADMIN, listOf(coach("Sub-15"))),

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -27,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import org.jetbrains.compose.resources.stringResource
@@ -61,7 +62,7 @@ fun PlanEditorFrame(
     )
     Scaffold(
         containerColor = Color.White,
-        topBar = { FMTopBar(title = title, subtitle = subtitle, onNavigateBack = leave) }
+        topBar = { SquadifyTopBar(title = title, subtitle = subtitle, onNavigateBack = leave) }
     ) { padding ->
         val modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding().background(Color.White)
         if (state.loading || state.loadFailed) {
@@ -74,7 +75,7 @@ fun PlanEditorFrame(
                 val wide = maxWidth >= 600.dp
                 // The error line sits inside the scroll, so its space scrolls with the form instead of
                 // staying fixed above Save.
-                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 12.dp)) {
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = 8.dp, bottom = 12.dp)) {
                     content(wide)
                     FormErrorLine(state.error)
                 }

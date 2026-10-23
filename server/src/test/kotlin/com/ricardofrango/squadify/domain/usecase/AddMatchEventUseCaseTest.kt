@@ -23,7 +23,7 @@ import com.ricardofrango.squadify.model.MatchCallUp
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -81,7 +81,7 @@ class AddMatchEventUseCaseTest {
         coEvery { matchRepository.getMatchById("m-1") } returns match
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, "club-1") } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns AgeGroupRole.COACH
         coEvery { teamRepository.getTeamById("t-1") } returns Team("t-1", "club-1", "ag-1", "s-1", "Sub-15 A", "A", active = true)
         coEvery { matchEventRepository.addEvent(any()) } answers { firstArg() }
         coEvery { matchEventRepository.getScoreByMatch("m-1") } returns MatchScore("m-1", 1, 0)
@@ -99,7 +99,7 @@ class AddMatchEventUseCaseTest {
         coEvery { matchRepository.getMatchById("m-1") } returns match
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, "club-1") } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns AgeGroupRole.COACH
         coEvery { teamRepository.getTeamById("t-1") } returns Team("t-1", "club-1", "ag-1", "s-1", "Sub-15 A", "A", active = true)
         coEvery { matchEventRepository.addEvent(any()) } answers { firstArg() }
         coEvery { matchEventRepository.getScoreByMatch("m-1") } returns MatchScore("m-1", 0, 1)
@@ -116,7 +116,7 @@ class AddMatchEventUseCaseTest {
         coEvery { matchRepository.getMatchById("m-1") } returns match
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, "club-1") } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns AgeGroupRole.COACH
         coEvery { teamRepository.getTeamById("t-1") } returns Team("t-1", "club-1", "ag-1", "s-1", "Sub-15 A", "A", active = true)
         coEvery { matchEventRepository.addEvent(any()) } answers { firstArg() }
         coEvery { matchEventRepository.getScoreByMatch("m-1") } returns MatchScore("m-1", 0, 0)
@@ -131,7 +131,7 @@ class AddMatchEventUseCaseTest {
         val coach = User("coach", "coach@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, "club-1") } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns AgeGroupRole.COACH
         coEvery { teamRepository.getTeamById("t-1") } returns Team("t-1", "club-1", "ag-1", "s-1", "Sub-15 A", "A", active = true)
 
         listOf(MatchStatus.SCHEDULED, MatchStatus.FINISHED, MatchStatus.CANCELLED).forEach { status ->
@@ -149,7 +149,7 @@ class AddMatchEventUseCaseTest {
         val coach = User("coach", "coach@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, "club-1") } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns AgeGroupRole.COACH
         coEvery { teamRepository.getTeamById("t-1") } returns Team("t-1", "club-1", "ag-1", "s-1", "Sub-15 A", "A", active = true)
         coEvery { matchEventRepository.addEvent(any()) } answers { firstArg() }
         coEvery { matchEventRepository.getScoreByMatch("m-1") } returns MatchScore("m-1", 0, 0)
@@ -171,7 +171,7 @@ class AddMatchEventUseCaseTest {
         coEvery { matchRepository.getMatchById("m-1") } returns Match("m-1", "club-1", "t-1", "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.LIVE)
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, "club-1") } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns AgeGroupRole.COACH
         coEvery { teamRepository.getTeamById("t-1") } returns Team("t-1", "club-1", "ag-1", "s-1", "Sub-15 A", "A", active = true)
         coEvery { matchEventRepository.addEvent(any()) } answers { firstArg() }
         coEvery { matchEventRepository.getScoreByMatch("m-1") } returns MatchScore("m-1", 1, 0)

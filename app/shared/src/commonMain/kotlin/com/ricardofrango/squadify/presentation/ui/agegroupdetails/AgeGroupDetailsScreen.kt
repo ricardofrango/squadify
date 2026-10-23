@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeHighlight
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import squadify.app.shared.generated.resources.msg_player_removed_age_group
 import org.jetbrains.compose.resources.getString
@@ -20,16 +21,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ricardofrango.squadify.model.*
 import com.ricardofrango.squadify.presentation.ui.components.DetailBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.DetailRail
 import com.ricardofrango.squadify.presentation.ui.components.DetailTab
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -94,12 +97,12 @@ fun AgeGroupDetailsScreen(
             }
         }
         val uiState = viewModel.state.collectSettledState()
-        val recordState by viewModel.record.collectAsState()
-        val plansState by viewModel.plans.collectAsState()
-        val sessionsState by viewModel.sessions.collectAsState()
-        val trainingStats by viewModel.trainingStats.collectAsState()
-        val tab by viewModel.tab.collectAsState()
-        val matchesTeamId by viewModel.matchesTeamId.collectAsState()
+        val recordState by viewModel.record.collectAsStateWithLifecycle()
+        val plansState by viewModel.plans.collectAsStateWithLifecycle()
+        val sessionsState by viewModel.sessions.collectAsStateWithLifecycle()
+        val trainingStats by viewModel.trainingStats.collectAsStateWithLifecycle()
+        val tab by viewModel.tab.collectAsStateWithLifecycle()
+        val matchesTeamId by viewModel.matchesTeamId.collectAsStateWithLifecycle()
         var searchQuery by remember { mutableStateOf("") }
 
         LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
@@ -232,7 +235,7 @@ private fun AgeGroupDetailsContent(
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 topBar = {
                     Column(Modifier.background(ClubChrome)) {
-                        FMTopBar(
+                        SquadifyTopBar(
                             title = details?.ageGroup?.name ?: stringResource(Res.string.tab_age_groups),
                             subtitle = details?.let { stringResource(Res.string.ag_born, bornLabel(it.ageGroup), it.season.name) },
                             onNavigateBack = onNavigateBack,
@@ -249,7 +252,7 @@ private fun AgeGroupDetailsContent(
                         Box(boxModifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
 
                     is AgeGroupDetailsUiState.Error ->
-                        Column(boxModifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        Column(boxModifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                             Text(uiState.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                             Spacer(Modifier.height(16.dp))
                             Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
@@ -268,7 +271,7 @@ private fun AgeGroupDetailsContent(
                                 opponentsById[it.opponentId]?.let { o -> o.shortName ?: o.name } ?: "—"
                             )
                         }
-                        val padding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 20.dp)
+                        val padding = ScreenPadding.Values
                         when (tab) {
                             AgeGroupTab.STATS -> AgeGroupStatsTab(
                                 details = d, recordState = recordState, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,
@@ -351,7 +354,8 @@ private fun OverflowMenu(
 /** Teams · Players · Staff · Upcoming -- each switches to its tab (Players and Staff both open Members). */
 @Composable
 private fun AgeGroupStrip(details: AgeGroupDetails, onSelect: (AgeGroupTab) -> Unit) {
-    Column(Modifier.fillMaxWidth().background(ClubChrome).padding(start = 14.dp, end = 14.dp, bottom = 12.dp)) {
+    // No padding around the cells or the lines: they all reach the strip's edges.
+    Column(Modifier.fillMaxWidth().background(ClubChrome)) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.12f)))
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
             StripStat(details.teams.size.toString(), stringResource(Res.string.tab_teams), Modifier.weight(1f)) { onSelect(AgeGroupTab.TEAMS) }
@@ -367,7 +371,8 @@ private fun AgeGroupStrip(details: AgeGroupDetails, onSelect: (AgeGroupTab) -> U
 
 @Composable
 private fun StripStat(value: String, label: String, modifier: Modifier, highlight: Boolean = false, onClick: () -> Unit) {
-    Column(modifier.clickable(onClick = onClick).padding(top = 9.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    // The whole cell is the tap target, down to the strip's bottom edge, so its ripple fills it.
+    Column(modifier.clickable(onClick = onClick).padding(top = 9.dp, bottom = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 17.sp), color = if (highlight) ChromeHighlight else Color.White)
         Text(label, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp), color = Color.White.copy(alpha = 0.62f), textAlign = TextAlign.Center)
     }
@@ -375,6 +380,7 @@ private fun StripStat(value: String, label: String, modifier: Modifier, highligh
 
 @Composable
 private fun StripDivider() {
+    // Runs the strip's full height, down to its bottom edge.
     Box(Modifier.width(1.dp).fillMaxHeight().background(Color.White.copy(alpha = 0.12f)))
 }
 
@@ -404,8 +410,8 @@ private fun sampleDetails(populated: Boolean, canManage: Boolean): AgeGroupDetai
             p("p4", "Duarte", "Meireles", 2015, 9, PlayerPosition.DEFENDER).copy(active = false)
         ) else emptyList(),
         staff = if (populated) listOf(
-            AgeGroupStaffMember("u1", "Nuno", "Faria", TeamRole.COACH),
-            AgeGroupStaffMember("u2", "Rita", "Sousa", TeamRole.STAFF)
+            AgeGroupStaffMember("u1", "Nuno", "Faria", AgeGroupRole.COACH),
+            AgeGroupStaffMember("u2", "Rita", "Sousa", AgeGroupRole.STAFF)
         ) else emptyList(),
         teams = if (populated) listOf(
             Team("t1", "c1", "ag1", "s1", "Sub 2015 A", "A", true),

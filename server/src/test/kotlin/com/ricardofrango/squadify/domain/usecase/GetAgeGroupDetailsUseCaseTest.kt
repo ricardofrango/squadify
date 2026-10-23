@@ -19,7 +19,7 @@ import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -103,13 +103,13 @@ class GetAgeGroupDetailsUseCaseTest {
 
     @Test
     fun ageGroupStaffCanReadButNoneOfTheManageFlagsAreTrue() = runBlocking {
-        // STAFF passes the read gate (minTeamRole = STAFF) but clears none of the four manage
+        // STAFF passes the read gate (minAgeGroupRole = STAFF) but clears none of the four manage
         // thresholds: canAddStaff is permanently coordinator-only, and the three configurable ones
         // (CREATE_TEAM/MANAGE_MATCH/ASSIGN_PLAYERS_TO_AGE_GROUP) default to Coach.
         val staff = user("p6-staff")
         coEvery { userRepository.findById(staff.id) } returns staff
         coEvery { userRepository.getUserRoleInClub(staff.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, ageGroupId) } returns TeamRole.STAFF
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(staff.id, ageGroupId) } returns AgeGroupRole.STAFF
         stubReads()
 
         val result = useCase(staff.id, ageGroupId)
@@ -131,7 +131,7 @@ class GetAgeGroupDetailsUseCaseTest {
         val coach = user("p7-coach")
         coEvery { userRepository.findById(coach.id) } returns coach
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ageGroupId) } returns TeamRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ageGroupId) } returns AgeGroupRole.COACH
         stubReads()
 
         val result = useCase(coach.id, ageGroupId)

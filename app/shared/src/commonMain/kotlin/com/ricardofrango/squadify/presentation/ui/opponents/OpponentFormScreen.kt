@@ -25,7 +25,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,13 +40,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.Opponent
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.FormErrorLine
 import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import org.jetbrains.compose.resources.StringResource
@@ -85,6 +85,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.msg_opponent_name_taken
 import squadify.app.shared.generated.resources.msg_opponent_short_name_helper
 import squadify.app.shared.generated.resources.msg_stadium_address_helper
@@ -94,6 +95,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import squadify.app.shared.generated.resources.btn_retry
 import squadify.app.shared.generated.resources.btn_save_changes
 import squadify.app.shared.generated.resources.btn_saving_changes
@@ -118,7 +120,7 @@ fun OpponentFormScreen(
     viewModel: OpponentFormViewModel = koinViewModel()
 ) {
     SquadifyClubTheme {
-        val state by viewModel.state.collectAsState()
+        val state by viewModel.state.collectAsStateWithLifecycle()
         LaunchedEffect(clubId) { viewModel.start(clubId, ageGroupId, initialName) }
         LaunchedEffect(viewModel) { viewModel.done.collect { onCreated(it) } }
 
@@ -150,7 +152,7 @@ fun OpponentEditScreen(
     viewModel: OpponentFormViewModel = koinViewModel()
 ) {
     SquadifyClubTheme {
-        val state by viewModel.state.collectAsState()
+        val state by viewModel.state.collectAsStateWithLifecycle()
         LaunchedEffect(opponentId) { viewModel.startEdit(opponentId) }
         LaunchedEffect(viewModel) { viewModel.done.collect { onSaved() } }
 
@@ -186,11 +188,11 @@ private fun OpponentFormContent(
 ) {
     Scaffold(
         containerColor = Color.White,
-        topBar = { FMTopBar(title = stringResource(title), subtitle = state.clubName, onNavigateBack = onNavigateBack) }
+        topBar = { SquadifyTopBar(title = stringResource(title), subtitle = state.clubName, onNavigateBack = onNavigateBack) }
     ) { padding ->
         if (state.loading || state.loadFailed) {
             Column(
-                Modifier.fillMaxSize().padding(padding).padding(32.dp),
+                Modifier.fillMaxSize().padding(padding).screenContentPadding(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -214,7 +216,7 @@ private fun OpponentFormContent(
             Column(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
                     if (wide) {
-                        Row(Modifier.padding(24.dp), horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+                        Row(Modifier.screenContentPadding(), horizontalArrangement = Arrangement.spacedBy(32.dp)) {
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                 LogoHeader(state, onLogoPicked, onRemoveLogo)
                                 IdentitySection(state, onFormChange, onNameFocusLost)
@@ -227,7 +229,7 @@ private fun OpponentFormContent(
                             }
                         }
                     } else {
-                        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Column(Modifier.screenContentPadding(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             LogoHeader(state, onLogoPicked, onRemoveLogo)
                             IdentitySection(state, onFormChange, onNameFocusLost)
                             StadiumSection(state, onFormChange)
@@ -238,7 +240,7 @@ private fun OpponentFormContent(
                     }
                 }
                 Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
-                    Box(Modifier.padding(horizontal = 24.dp, vertical = 16.dp), contentAlignment = Alignment.CenterEnd) {
+                    Box(Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp), contentAlignment = Alignment.CenterEnd) {
                         PrimaryLoadingButton(
                             text = submitText,
                             submittingText = submittingText,

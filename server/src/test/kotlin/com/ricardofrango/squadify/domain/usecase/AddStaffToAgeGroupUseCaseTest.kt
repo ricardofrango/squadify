@@ -16,7 +16,7 @@ import com.ricardofrango.squadify.model.AddStaffToAgeGroupRequest
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.PushLink
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coVerify
@@ -86,7 +86,7 @@ class AddStaffToAgeGroupUseCaseTest {
         coEvery { ageGroupRepository.addStaffToAgeGroup(any()) } returns true
         coEvery { fcmTokenRepository.getTokensForUsers(listOf("coach")) } returns mapOf("coach" to listOf("token-1"))
 
-        useCase("coord", "ag-1", AddStaffToAgeGroupRequest(listOf(AddStaffToAgeGroup("coach", TeamRole.COACH))))
+        useCase("coord", "ag-1", AddStaffToAgeGroupRequest(listOf(AddStaffToAgeGroup("coach", AgeGroupRole.COACH))))
 
         coVerify { pushNotificationService.sendAgeGroupStaffAdded(listOf("token-1"), PushLink.ageGroup("club-1", "ag-1"), "Sub-12", any()) }
     }

@@ -6,7 +6,7 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.UpdateTeamRequest
 
 class UpdateTeamUseCase(
@@ -27,7 +27,7 @@ class UpdateTeamUseCase(
             userId = userId,
             clubId = existingTeam.clubId,
             minClubRole = ClubRole.COORDINATOR,
-            minTeamRole = TeamRole.COACH,
+            minAgeGroupRole = AgeGroupRole.COACH,
             teamId = teamId,
             errorMessage = "Only admins, coordinators, or this team's coach can update it"
         )

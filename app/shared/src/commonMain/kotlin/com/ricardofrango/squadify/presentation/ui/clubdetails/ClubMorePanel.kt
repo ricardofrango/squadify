@@ -88,7 +88,7 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.ViewerAgeGroup
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -132,12 +132,12 @@ internal data class MoreViewer(
 @Composable
 private fun roleChip(viewer: MoreViewer): String {
     // Club role first (admin/coordinator), then what they do in an age group, else Member.
-    fun names(role: TeamRole) = viewer.ageGroups.filter { it.role == role }.joinToString(", ") { it.name }
+    fun names(role: AgeGroupRole) = viewer.ageGroups.filter { it.role == role }.joinToString(", ") { it.name }
     return when {
         viewer.role == ClubRole.CLUB_ADMIN -> stringResource(Res.string.more_role_admin)
         viewer.role == ClubRole.COORDINATOR -> stringResource(Res.string.more_role_coordinator)
-        viewer.ageGroups.any { it.role == TeamRole.COACH } -> "${stringResource(Res.string.more_role_coach)} · ${names(TeamRole.COACH)}"
-        viewer.ageGroups.any { it.role == TeamRole.STAFF } -> "${stringResource(Res.string.more_role_staff)} · ${names(TeamRole.STAFF)}"
+        viewer.ageGroups.any { it.role == AgeGroupRole.COACH } -> "${stringResource(Res.string.more_role_coach)} · ${names(AgeGroupRole.COACH)}"
+        viewer.ageGroups.any { it.role == AgeGroupRole.STAFF } -> "${stringResource(Res.string.more_role_staff)} · ${names(AgeGroupRole.STAFF)}"
         else -> stringResource(Res.string.more_role_member)
     }
 }

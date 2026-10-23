@@ -9,7 +9,7 @@ import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.TrainingPlans
 
 /**
@@ -31,7 +31,7 @@ class GetTrainingPlansUseCase(
         checkUserPermissionUseCase(
             userId, ageGroup.clubId,
             minClubRole = ClubRole.MEMBER,
-            minTeamRole = TeamRole.STAFF,
+            minAgeGroupRole = AgeGroupRole.STAFF,
             ageGroupId = ageGroupId
         )
 

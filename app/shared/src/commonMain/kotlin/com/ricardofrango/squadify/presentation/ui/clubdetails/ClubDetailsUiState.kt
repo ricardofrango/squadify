@@ -67,3 +67,13 @@ sealed class ClubDetailsUiState {
 /** The More panel's account header: who's signed in, how many clubs they belong to, the app version. */
 data class MoreAccount(val name: String, val email: String, val clubCount: Int, val appVersion: String?, val avatarUrl: String? = null)
 
+/** The Teams tab's age-group options: those of the selected season (all, with no season). */
+fun ClubDetailsUiState.Idle.availableAgeGroupsForTeams(): List<AgeGroup> =
+    details?.ageGroups?.filter { selectedSeasonId == null || it.seasonId == selectedSeasonId } ?: emptyList()
+
+/** Age groups for the season selected on the Age Groups tab, youngest (highest birth year) first. */
+fun ClubDetailsUiState.Idle.ageGroupsForAgeGroupsTab(): List<AgeGroup> {
+    val seasonId = selectedAgeGroupsSeasonId ?: details?.seasons?.firstOrNull()?.id
+    return details?.ageGroups?.filter { it.seasonId == seasonId }?.sortedByDescending { it.endYear } ?: emptyList()
+}
+

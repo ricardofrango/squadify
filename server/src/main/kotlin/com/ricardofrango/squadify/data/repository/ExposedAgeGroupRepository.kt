@@ -7,7 +7,7 @@ import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.exception.DatabaseException
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.AgeGroupStaffMember
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.AgeGroupStaff as AgeGroupStaffModel
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
@@ -93,7 +93,7 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
             .map(::toAgeGroup)
     }
 
-    override suspend fun getUserRoleInAgeGroup(userId: String, ageGroupId: String): TeamRole? =
+    override suspend fun getUserRoleInAgeGroup(userId: String, ageGroupId: String): AgeGroupRole? =
         AgeGroupStaff.selectAll()
             .where {
                 (AgeGroupStaff.userId eq userId.toUuid()) and
@@ -131,7 +131,7 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
 
     override suspend fun countCoachesByClub(clubId: String): Long =
         (AgeGroupStaff innerJoin AgeGroups).selectAll()
-            .where { (AgeGroups.clubId eq clubId.toUuid()) and (AgeGroupStaff.role eq TeamRole.COACH) }
+            .where { (AgeGroups.clubId eq clubId.toUuid()) and (AgeGroupStaff.role eq AgeGroupRole.COACH) }
             .map { it[AgeGroupStaff.userId] }
             .distinct()
             .size.toLong()

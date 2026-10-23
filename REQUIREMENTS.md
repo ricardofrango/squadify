@@ -125,8 +125,8 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Edit age group: name, birth-year span and default team size, from Age Group Details, for coordinators. A span that would leave players already in the pool ineligible is refused.
 - [x] **Phase 4: Match & Call-ups**: Calendar and attendance management.
     - [x] Opponent management (dedicated entity and table).
-    - [x] Match creation and listing.
-    - [x] Call-up management (batch player assignment).
+    - [x] Match creation and listing. A new match must say where it's played: Home, Away or Neutral, with no default. That prefills the location (our ground, the opponent's, or none), which stays editable, and can be changed in Edit match. The home side is shown first everywhere, and our club on neutral ground. See `TECHNICAL_DECISIONS.md` §63.
+    - [x] Call-up management (batch player assignment). On Match details the call-up is a draft saved with "Save call-up", available once it has the team's minimum (its size). Saved and unchanged, the button becomes "Start match". Who sees what depends on their rights: the editor, the ready call-up and "Start match", a "not ready yet" message, or the details only. See `TECHNICAL_DECISIONS.md` §62.
 - [x] **Phase 5: Live Match & Stats**: Real-time events and automated statistics calculation.
     - [x] Real-time broadcasting via **WebSockets**.
     - [x] Live Event logging (Goals, Assists, Cards, Subs).
@@ -163,11 +163,11 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Authentication flows (Login/Register): login, register, session check on launch, automatic token refresh on 401, logout, and **Forgot password**. Forgot password emails a 6-digit code (15 minutes, 5 tries, one per minute) that sets a new password and signs the account out everywhere. An email with no account is reported straight away. See `TECHNICAL_DECISIONS.md` §48.
     - [x] Account Management: User profile viewing and editing. The Account screen edits name and phone and changes the password (`TECHNICAL_DECISIONS.md` §33), and changes the email (next item).
     - [x] **Change email**: from Account, enter the new address and the current password. A 6-digit code goes to the new address, and entering it switches the account. It reuses the Forgot-password code rules: 15 minutes, 5 tries, one per minute. The address can't belong to another account. Every other session is signed out, and the old address is told about the change. See `TECHNICAL_DECISIONS.md` §49.
-    - [/] **Logo and photo upload** (clubs, opponents, players, users):
+    - [x] **Logo and photo upload** (clubs, opponents, players, users):
       - **Done (clubs):** "Add logo" / "Change logo" / "Remove" in Club settings → Details, for coordinators and admins. The server resizes it to a 512×512 PNG and stores it in a Railway Storage Bucket (the disk in dev). Each change gets a new file name and the old file is deleted first. Shown in Club settings and My clubs. See `TECHNICAL_DECISIONS.md` §57.
       - **Done (opponents):** "Add logo" / "Change logo" / "Remove" on Create and Edit opponent, saved with the form, for whoever can edit opponents. The same storage and rules as the club's. Shown on the Opponents list, Opponent details and Schedule match.
       - **Done (players and users):** a player's photo on Edit player, for whoever can edit the player, and the user's own photo on Account. Both are saved straight away and cropped to a square. They show on Player details, Account and the More panel.
-      - **Still pending:** showing them in more places. See the next item.
+      - **Shown** wherever they belong. See the next item.
     - [x] **Logos and photos everywhere they belong.** Wherever an image is set it's shown; where it isn't, the screen looks as before, apart from player rows. See `TECHNICAL_DECISIONS.md` §57.
       - **Opponent logo** before "vs" on every match card (Matches tab, Team and Age Group Details) and on Home's next-up card.
       - **Club and opponent logos** side by side at the top of Match details, and before each side's name on the live console's scoreboard.

@@ -36,7 +36,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,10 +47,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.OpponentList
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
-import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
@@ -105,7 +105,7 @@ fun OpponentsScreen(
 ) {
     SquadifyClubTheme {
         val state = viewModel.state.collectSettledState()
-        val query by viewModel.query.collectAsState()
+        val query by viewModel.query.collectAsStateWithLifecycle()
         LaunchedEffect(clubId, ageGroupId) { viewModel.load(clubId, ageGroupId) }
         LaunchedEffect(refresh) { if (refresh) viewModel.load(clubId, ageGroupId, force = true) }
 
@@ -140,7 +140,7 @@ private fun OpponentsContent(
     Scaffold(
         containerColor = Color.White,
         topBar = {
-            FMTopBar(
+            SquadifyTopBar(
                 title = stringResource(if (selectMode) Res.string.title_choose_opponent else Res.string.title_opponents),
                 subtitle = list?.clubName,
                 onNavigateBack = onNavigateBack,

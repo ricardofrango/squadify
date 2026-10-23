@@ -12,7 +12,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.TrainingPhase
 import com.ricardofrango.squadify.model.TrainingPlanLevel
@@ -58,7 +58,7 @@ fun SeasonPlanEditScreen(
     viewModel: PlanEditViewModel = koinViewModel()
 ) {
     SquadifyClubTheme {
-        val state by viewModel.state.collectAsState()
+        val state by viewModel.state.collectAsStateWithLifecycle()
         LaunchedEffect(ageGroupId) { viewModel.start(ageGroupId, TrainingPlanLevel.SEASON, null) }
         LaunchedEffect(viewModel) { viewModel.saved.collect { onSaved() } }
         SeasonPlanEditContent(

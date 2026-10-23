@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
@@ -32,7 +33,7 @@ import org.jetbrains.compose.resources.stringResource
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FMTopBar(
+fun SquadifyTopBar(
     title: String,
     subtitle: String? = null,
     showBackButton: Boolean = true,
@@ -41,9 +42,12 @@ fun FMTopBar(
 ) {
     val titleContent = @Composable {
         Column(horizontalAlignment = if (showBackButton) Alignment.Start else Alignment.CenterHorizontally) {
+            // One line each, cut with "…": a long club or team name never makes the bar taller.
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             subtitle?.let {
                 Text(
@@ -52,7 +56,9 @@ fun FMTopBar(
                         color = Color.White.copy(
                             alpha = 0.7f
                         )
-                    )
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -97,9 +103,9 @@ fun FMTopBar(
 
 @Preview
 @Composable
-fun FMTopBarPreview() {
+fun SquadifyTopBarPreview() {
     SquadifyTheme {
-        FMTopBar(
+        SquadifyTopBar(
             title = "Title",
             subtitle = "Subtitle",
             onNavigateBack = {}
@@ -109,9 +115,9 @@ fun FMTopBarPreview() {
 
 @Preview
 @Composable
-fun FMTopBarNoSubtitlePreview() {
+fun SquadifyTopBarNoSubtitlePreview() {
     SquadifyTheme {
-        FMTopBar(
+        SquadifyTopBar(
             title = "Title",
             onNavigateBack = {}
         )
@@ -120,9 +126,21 @@ fun FMTopBarNoSubtitlePreview() {
 
 @Preview
 @Composable
-fun FMTopBarNoBackButtonPreview() {
+fun SquadifyTopBarLongTitlePreview() {
     SquadifyTheme {
-        FMTopBar(
+        SquadifyTopBar(
+            title = "Grupo Desportivo e Recreativo de Fontelas e Arredores",
+            subtitle = "Sub-15 A · Época 2026/27 · Campeonato Distrital da Primeira Divisão",
+            onNavigateBack = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+fun SquadifyTopBarNoBackButtonPreview() {
+    SquadifyTheme {
+        SquadifyTopBar(
             title = "Title",
             subtitle = "Subtitle",
             showBackButton = false

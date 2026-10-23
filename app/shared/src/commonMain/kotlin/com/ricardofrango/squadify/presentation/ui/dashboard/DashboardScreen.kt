@@ -1,5 +1,10 @@
 package com.ricardofrango.squadify.presentation.ui.dashboard
 
+import kotlin.time.Instant
+import com.ricardofrango.squadify.model.ClubStatus
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
+import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
+import androidx.compose.ui.tooling.preview.Preview
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -10,7 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,11 +23,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.SportType
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.ClubLogo
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.hexColor
+import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -41,7 +47,6 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = koinViewModel()
 ) {
     val uiState = viewModel.state.collectSettledState()
-    val isRefreshing = (uiState as? DashboardUiState.Idle)?.isRefreshing == true
 
     LaunchedEffect(viewModel.navigationEvent) {
         viewModel.navigationEvent.collect { event ->
@@ -51,90 +56,20 @@ fun DashboardScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(Res.string.title_my_clubs),
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold)
-                    )
-                },
-                actions = {
-                    IconButton(onClick = onNavigateToAccount) {
-                        Icon(
-                            painter = painterResource(Res.drawable.ic_account),
-                            contentDescription = "Account",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = CarbonGray,
-                    titleContentColor = Color.White,
-                    actionIconContentColor = Color.White
-                )
-            )
-        }
+    DashboardContent(
+        uiState = uiState,
+        onNavigateToClub = onNavigateToClub,
+        onNavigateToAccount = onNavigateToAccount,
+        onRefresh = viewModel::refresh,
+        onRetry = viewModel::loadClubs
     )
-{ paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color.White)
-        ) {
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = { viewModel.refresh() },
-                modifier = Modifier.fillMaxSize()
-            ) {
-                when (val state = uiState) {
-                    is DashboardUiState.Loading -> {
-                        // Cold start / retry-after-error only -- a real full-screen spinner, not the
-                        // small pull-to-refresh indicator (that's reserved for an explicit pull).
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = PitchGreen)
-                        }
-                    }
-                    is DashboardUiState.Error -> {
-                        // No club list to show underneath a cold-start failure -- a blocking,
-                        // full-screen retry state, not an error squeezed into Idle.
-                        ErrorState(state.message, onRetry = { viewModel.loadClubs() })
-                    }
-                    is DashboardUiState.Idle -> {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            // A failed pull-to-refresh: the existing list is real idle content, so
-                            // the error shows inline alongside it (same idea as Login's inline error)
-                            // instead of replacing the screen.
-                            if (state.error != null) {
-                                Text(
-                                    text = state.error,
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)
-                                )
-                            }
-                            Box(modifier = Modifier.weight(1f)) {
-                                if (state.clubs.isEmpty()) {
-                                    EmptyState()
-                                } else {
-                                    ClubList(state.clubs, onNavigateToClub)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 @Composable
 private fun ClubList(clubs: List<Club>, onNavigateToClub: (String) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(24.dp),
+        contentPadding = ScreenPadding.Values,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(clubs) { club ->
@@ -217,7 +152,7 @@ private fun SportBadge(sport: SportType) {
 @Composable
 private fun ErrorState(error: String, onRetry: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier.fillMaxSize().screenContentPadding(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -232,4 +167,106 @@ private fun EmptyState() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(text = stringResource(Res.string.msg_no_clubs), color = Color.Gray)
     }
+}
+
+/** My clubs' layout, without the ViewModel, so it can be previewed. */
+@Composable
+private fun DashboardContent(
+    uiState: DashboardUiState,
+    onNavigateToClub: (String) -> Unit,
+    onNavigateToAccount: () -> Unit,
+    onRefresh: () -> Unit,
+    onRetry: () -> Unit
+) {
+    val isRefreshing = (uiState as? DashboardUiState.Idle)?.isRefreshing == true
+        Scaffold(
+            topBar = {
+                SquadifyTopBar(
+                    title = stringResource(Res.string.title_my_clubs),
+                    showBackButton = false,
+                    actions = {
+                        IconButton(onClick = onNavigateToAccount) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_account),
+                                contentDescription = "Account",
+                                tint = Color.White
+                            )
+                        }
+                    }
+                )
+            }
+        )
+    { paddingValues ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(Color.White)
+            ) {
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = onRefresh,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    when (val state = uiState) {
+                        is DashboardUiState.Loading -> {
+                            // Cold start / retry-after-error only -- a real full-screen spinner, not the
+                            // small pull-to-refresh indicator (that's reserved for an explicit pull).
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = PitchGreen)
+                            }
+                        }
+                        is DashboardUiState.Error -> {
+                            // No club list to show underneath a cold-start failure -- a blocking,
+                            // full-screen retry state, not an error squeezed into Idle.
+                            ErrorState(state.message, onRetry = onRetry)
+                        }
+                        is DashboardUiState.Idle -> {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                // A failed pull-to-refresh: the existing list is real idle content, so
+                                // the error shows inline alongside it (same idea as Login's inline error)
+                                // instead of replacing the screen.
+                                if (state.error != null) {
+                                    Text(
+                                        text = state.error,
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 8.dp)
+                                    )
+                                }
+                                Box(modifier = Modifier.weight(1f)) {
+                                    if (state.clubs.isEmpty()) {
+                                        EmptyState()
+                                    } else {
+                                        ClubList(state.clubs, onNavigateToClub)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+}
+
+@Preview
+@Composable
+private fun DashboardPreview() {
+    SquadifyTheme {
+        DashboardContent(
+            DashboardUiState.Idle(
+                clubs = listOf(
+                    Club("c1", "CD Ribamar", shortName = "CDR", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL),
+                    Club("c2", "GD Fontelas", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL)
+                )
+            ),
+            {}, {}, {}, {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun DashboardErrorPreview() {
+    SquadifyTheme { DashboardContent(DashboardUiState.Error("Couldn't load your clubs"), {}, {}, {}, {}) }
 }

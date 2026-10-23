@@ -19,7 +19,7 @@ import com.ricardofrango.squadify.model.MatchReport
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.SaveMatchReportRequest
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -65,7 +65,7 @@ class SaveMatchReportUseCaseTest {
     private val ag1 = "ag-1"
     private val finished = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.FINISHED)
 
-    private fun stubRole(role: TeamRole): User {
+    private fun stubRole(role: AgeGroupRole): User {
         val user = User(role.name.lowercase(), "u@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
         coEvery { userRepository.findById(user.id) } returns user
         coEvery { userRepository.getUserRoleInClub(user.id, clubId) } returns ClubRole.MEMBER
@@ -78,7 +78,7 @@ class SaveMatchReportUseCaseTest {
 
     @Test
     fun aCoachSavesTheReportAndRatingsAndCompletesIt() = runBlocking {
-        val coach = stubRole(TeamRole.COACH)
+        val coach = stubRole(AgeGroupRole.COACH)
         coEvery { matchRepository.getMatchById(matchId) } returns finished
         coEvery { matchReportRepository.getByMatch(matchId) } returns null
         coEvery { matchPlayerStatsRepository.getByMatch(matchId) } returns listOf(stats("p1"), stats("p2"))
@@ -105,7 +105,7 @@ class SaveMatchReportUseCaseTest {
 
     @Test
     fun aDraftStaysPendingButACompletedReportStaysCompleted() = runBlocking {
-        val coach = stubRole(TeamRole.COACH)
+        val coach = stubRole(AgeGroupRole.COACH)
         coEvery { matchRepository.getMatchById(matchId) } returns finished
         val saved = slot<MatchReport>()
         coEvery { matchReportRepository.upsert(capture(saved)) } returns Unit
@@ -123,7 +123,7 @@ class SaveMatchReportUseCaseTest {
 
     @Test
     fun onlyAFinishedMatchCanHaveAReport() = runBlocking {
-        val coach = stubRole(TeamRole.COACH)
+        val coach = stubRole(AgeGroupRole.COACH)
         coEvery { matchRepository.getMatchById(matchId) } returns finished.copy(status = MatchStatus.LIVE)
 
         assertFailsWith<ValidationException> { useCase(coach.id, matchId, SaveMatchReportRequest(tactic = "4-4-2")) }
@@ -132,7 +132,7 @@ class SaveMatchReportUseCaseTest {
 
     @Test
     fun ratingsMustBeBetweenZeroAndTen() = runBlocking {
-        val coach = stubRole(TeamRole.COACH)
+        val coach = stubRole(AgeGroupRole.COACH)
         coEvery { matchRepository.getMatchById(matchId) } returns finished
         coEvery { matchPlayerStatsRepository.getByMatch(matchId) } returns listOf(stats("p1"))
 
@@ -146,7 +146,7 @@ class SaveMatchReportUseCaseTest {
 
     @Test
     fun onlyCalledUpPlayersCanBeRatedAndOnlyOnce() = runBlocking {
-        val coach = stubRole(TeamRole.COACH)
+        val coach = stubRole(AgeGroupRole.COACH)
         coEvery { matchRepository.getMatchById(matchId) } returns finished
         coEvery { matchPlayerStatsRepository.getByMatch(matchId) } returns listOf(stats("p1"))
 
@@ -161,7 +161,7 @@ class SaveMatchReportUseCaseTest {
 
     @Test
     fun ageGroupStaffCannotWriteItByDefault() = runBlocking {
-        val staff = stubRole(TeamRole.STAFF)
+        val staff = stubRole(AgeGroupRole.STAFF)
         coEvery { matchRepository.getMatchById(matchId) } returns finished
 
         assertFailsWith<ForbiddenException> { useCase(staff.id, matchId, SaveMatchReportRequest(tactic = "4-4-2")) }

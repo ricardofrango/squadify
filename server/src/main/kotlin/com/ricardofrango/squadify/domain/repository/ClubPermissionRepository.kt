@@ -5,7 +5,7 @@ import com.ricardofrango.squadify.model.ConfigurablePermission
 
 interface ClubPermissionRepository {
     /** Null when no override exists for this (club, action) pair -- caller should fall back to the
-     * action's [com.ricardofrango.squadify.model.defaultMinTeamRole]. */
+     * action's [com.ricardofrango.squadify.model.defaultMinAgeGroupRole]. */
     suspend fun getOverride(clubId: String, action: ConfigurablePermission): ClubPermissionSetting?
 
     /** Only the explicit overrides a club actually has -- never padded out with defaults. */

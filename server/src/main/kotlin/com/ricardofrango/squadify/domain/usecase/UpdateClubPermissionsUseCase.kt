@@ -41,7 +41,7 @@ class UpdateClubPermissionsUseCase(
 
             request.settings.forEach { setting ->
                 if (setting.action.isClubLevel) {
-                    if (setting.minTeamRole != null || setting.minClubRole !in CLUB_LEVEL_THRESHOLDS) {
+                    if (setting.minAgeGroupRole != null || setting.minClubRole !in CLUB_LEVEL_THRESHOLDS) {
                         throw ValidationException("${setting.action} takes admins and coordinators, or admins only")
                     }
                 } else if (setting.minClubRole != null) {

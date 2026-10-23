@@ -10,7 +10,7 @@ import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.AgeGroupPlayer
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Player
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -95,8 +95,8 @@ class GetAgeGroupsUseCaseTest {
         coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
         coEvery { playerRepository.getPlayersByUser(coach.id) } returns emptyList()
         coEvery { ageGroupRepository.getAgeGroupsByClub(clubIdA) } returns listOf(agU10, agU12, agU14)
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, agU10.id) } returns TeamRole.COACH
-        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, agU14.id) } returns TeamRole.STAFF
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, agU10.id) } returns AgeGroupRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, agU14.id) } returns AgeGroupRole.STAFF
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, agU12.id) } returns null
 
         assertEquals(setOf(agU10.id, agU14.id), useCase(coach.id, clubIdA).map { it.id }.toSet())

@@ -1,10 +1,17 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
+import squadify.app.shared.generated.resources.match_type_abbr_tournament
+import squadify.app.shared.generated.resources.match_type_abbr_championship
+import squadify.app.shared.generated.resources.match_type_abbr_friendly
+import squadify.app.shared.generated.resources.match_row_half_time
+import squadify.app.shared.generated.resources.status_cancelled
+import androidx.compose.foundation.layout.Box
+import kotlinx.datetime.isoDayNumber
+import com.ricardofrango.squadify.presentation.ui.training.weekdayShort
+import com.ricardofrango.squadify.model.MatchType
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,12 +22,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,24 +35,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.ricardofrango.squadify.model.ourSideFirst
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.elapsedMatchSeconds
-import com.ricardofrango.squadify.presentation.ui.opponents.OpponentLogo
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
-import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import squadify.app.shared.generated.resources.Res
-import squadify.app.shared.generated.resources.label_paused_badge
-import squadify.app.shared.generated.resources.label_result_draw
-import squadify.app.shared.generated.resources.label_result_loss
-import squadify.app.shared.generated.resources.label_result_win
-import squadify.app.shared.generated.resources.matches_full_time
-import squadify.app.shared.generated.resources.matches_half_time
-import squadify.app.shared.generated.resources.matches_live
 import squadify.app.shared.generated.resources.matches_minute
 import kotlinx.coroutines.delay
 import kotlinx.datetime.TimeZone
@@ -58,31 +57,41 @@ import kotlin.time.Duration.Companion.minutes
 
 /**
  * The one match-row look used everywhere a match can appear in a list: the club Matches tab, Age
- * Group Details' "Next games", and Team Details' upcoming/results lists. Rendering branches entirely
- * on `match.status` -- SCHEDULED shows a date/time block, LIVE/HALF_TIME shows a live badge with the
- * running minute, FINISHED shows a muted date plus either the final score (win/loss/draw colored) or
- * a plain "FULL TIME" chip if [score] wasn't available, and CANCELLED shows a muted chip. Every caller
- * feeds the same three pieces of screen-specific context: who the opponent is, whether to show a team
- * name (omit it -- pass null -- on a screen already scoped to one team), and the match's score, which
- * is never on `Match` itself (it's derived from match events) -- callers fetch/cache it separately
- * (see ClubDetailsViewModel.matchScores, AgeGroupDetails.upcomingMatchScores,
- * TeamDetails.upcomingMatchScores) and pass null when there isn't one yet (e.g. a SCHEDULED match, or
- * a best-effort fetch that failed).
+ * Group and Team Details, Opponent details. Laid out as football lists a fixture (the developer's
+ * design, 2026-10-23):
+ * - on the left, the weekday, "24 Oct" and the type in three letters (Fri / Cha / Tou);
+ * - in the middle, the home side over the away side, each with its logo when it has one -- our club
+ *   first at home and on neutral ground ([MatchVenue.ourSideFirst]);
+ * - on the right, the kickoff time before the game; the score, one per side, once it's played
+ *   (black when finished; red while live, with the minute beside it; yellow at half time, with "HT").
+ * [score] is never on `Match` itself (it's derived from match events) -- callers fetch/cache it
+ * separately and pass null when there isn't one yet.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MatchRow(
     match: Match,
     opponentName: String,
+    // Our side's name -- the team. Every caller passes it now, since both sides are named.
     teamName: String? = null,
     score: MatchScore? = null,
-    // The opponent's logo path, shown before "vs" when they have one; without it the row is unchanged.
+    // The opponent's and our club's logo paths, shown before each name when set.
     opponentLogoUrl: String? = null,
+    clubLogoUrl: String? = null,
     onClick: () -> Unit
 ) {
     val live = match.status == MatchStatus.LIVE || match.status == MatchStatus.HALF_TIME
     val finished = match.status == MatchStatus.FINISHED
     val cancelled = match.status == MatchStatus.CANCELLED
+
+    val us = RowSide(teamName.orEmpty(), clubLogoUrl, score?.ourScore)
+    val them = RowSide(opponentName, opponentLogoUrl, score?.opponentScore)
+    val (home, away) = if (match.venue.ourSideFirst()) us to them else them to us
+    val scoreColor = when {
+        match.status == MatchStatus.HALF_TIME -> HalfTimeYellow
+        live -> LiveRed
+        else -> DeepCarbon
+    }
+    val showScore = score != null && (live || finished)
 
     Surface(
         onClick = onClick,
@@ -92,98 +101,109 @@ fun MatchRow(
         border = BorderStroke(if (live) 2.dp else 1.dp, if (live) PitchGreen else CarbonGray.copy(alpha = 0.15f))
     ) {
         Row(modifier = Modifier.padding(14.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            when {
-                live -> LiveDateBlock(match)
-                else -> ScheduledDateBlock(match.dateTime, muted = finished || cancelled)
+            DateBlock(match, muted = finished || cancelled)
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                // The winner's name in bold once the game is over; neither on a draw or before the end.
+                val homeWon = finished && home.score != null && away.score != null && home.score > away.score
+                val awayWon = finished && home.score != null && away.score != null && away.score > home.score
+                SideLine(home, faded = cancelled, bold = homeWon)
+                SideLine(away, faded = cancelled, bold = awayWon)
             }
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                if (teamName != null && teamName.isNotEmpty()) {
-                    Text(
-                        teamName,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                        color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis
-                    )
-                }
-                // Friendlies and tournaments get a small tag after the opponent; it wraps under the
-                // name on narrow widths instead of squeezing it (design 29f).
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    itemVerticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (opponentLogoUrl != null) OpponentLogo(opponentName, null, opponentLogoUrl, size = 20.dp)
-                    Text(
-                        "vs $opponentName",
-                        style = if (teamName != null && teamName.isNotEmpty()) {
-                            MaterialTheme.typography.bodyMedium
-                        } else {
-                            MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-                        },
-                        color = if (teamName != null && teamName.isNotEmpty()) DeepCarbon.copy(alpha = 0.8f) else DeepCarbon,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis
-                    )
-                    match.type?.takeIf { it.isTaggedInLists }?.let { MatchTypeTag(it) }
-                }
-                Text(
-                    subtitleFor(match, live, finished),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DeepCarbon.copy(alpha = 0.55f), maxLines = 1, overflow = TextOverflow.Ellipsis
+            Spacer(Modifier.width(8.dp))
+            when {
+                cancelled -> Text(
+                    stringResource(Res.string.status_cancelled),
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = DeepCarbon.copy(alpha = 0.45f)
                 )
-            }
-            when {
-                finished -> {
-                    Spacer(Modifier.width(8.dp))
-                    if (score != null) {
-                        val accent = resultColor(score)
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                "${score.ourScore}–${score.opponentScore}",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = accent
-                            )
-                            Text(
-                                stringResource(resultLabel(score)),
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = accent.copy(alpha = 0.8f)
-                            )
-                        }
-                    } else {
-                        Surface(shape = RoundedCornerShape(6.dp), color = CarbonGray.copy(alpha = 0.12f)) {
-                            Text(
-                                stringResource(Res.string.matches_full_time),
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = DeepCarbon.copy(alpha = 0.5f)
-                            )
-                        }
+                showScore -> {
+                    if (live) {
+                        LiveMinute(match, color = scoreColor)
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        ScoreCell(home.score, scoreColor)
+                        ScoreCell(away.score, scoreColor)
                     }
                 }
-                live && score != null -> {
-                    // Not decided yet -- show the running score itself, no WIN/LOSS/DRAW label.
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        "${score.ourScore}–${score.opponentScore}",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = resultColor(score)
-                    )
-                }
+                finished || live -> Text("—", style = MaterialTheme.typography.titleMedium, color = DeepCarbon.copy(alpha = 0.4f))
+                else -> Text(
+                    timeLabel(match.dateTime),
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = DeepCarbon
+                )
             }
         }
     }
 }
 
-private val MatchRowShape = RoundedCornerShape(16.dp)
-private val LiveRed = Color(0xFFC0392B)
-private val CardYellow = Color(0xFFF1C40F)
+private data class RowSide(val name: String, val logoUrl: String?, val score: Int?)
+
+// Each side's line and its score cell share a height, so the scores sit level with the names.
+private val SideLineHeight = 24.dp
 
 @Composable
-private fun LiveDateBlock(match: Match) {
-    // Ticks this row's own minute badge every 15s while the match is LIVE -- without this, the badge
-    // only updated when something else forced a recomposition (a new club-socket event, or reopening
-    // the tab), which read as "the timer doesn't update" (see TECHNICAL_DECISIONS.md's match-clock
-    // section). 15s rather than the live console's 1s: this only ever displays whole minutes, and a
-    // whole club Matches list of these ticking every second would be needlessly expensive.
+private fun SideLine(side: RowSide, faded: Boolean, bold: Boolean) {
+    Row(Modifier.height(SideLineHeight), verticalAlignment = Alignment.CenterVertically) {
+        side.logoUrl?.let {
+            ClubLogo(it, side.name.take(2).uppercase(), size = 20.dp, background = CarbonGray.copy(alpha = 0.08f), initialsColor = DeepCarbon)
+            Spacer(Modifier.width(6.dp))
+        }
+        Text(
+            side.name,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal),
+            color = DeepCarbon.copy(alpha = if (faded) 0.5f else 1f),
+            maxLines = 1, overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun ScoreCell(score: Int?, color: Color) {
+    Box(Modifier.height(SideLineHeight), contentAlignment = Alignment.CenterEnd) {
+        Text(score?.toString() ?: "–", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black), color = color)
+    }
+}
+
+private val MatchRowShape = RoundedCornerShape(16.dp)
+private val LiveRed = Color(0xFFC0392B)
+private val HalfTimeYellow = Color(0xFFE0A800)
+
+/** Weekday, "24 Oct" (the day's big type) and the type in three letters, under each other. */
+@Composable
+private fun DateBlock(match: Match, muted: Boolean) {
+    val date = match.dateTime.toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val alpha = if (muted) 0.5f else 1f
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(48.dp)) {
+        Text(
+            weekdayShort(date.dayOfWeek.isoDayNumber),
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+            color = PitchGreen.copy(alpha = alpha)
+        )
+        Text(
+            shortDateLabel(date),
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+            color = DeepCarbon.copy(alpha = alpha),
+            maxLines = 1
+        )
+        match.type?.let {
+            Text(
+                stringResource(it.abbreviationRes()),
+                style = MaterialTheme.typography.labelSmall,
+                color = DeepCarbon.copy(alpha = 0.55f * alpha)
+            )
+        }
+    }
+}
+
+/**
+ * The running minute beside a live score ("30'"), or "HT" at half time. Ticks every 15s while LIVE --
+ * without that, it only updated when something else recomposed the row. 15s, not the console's 1s:
+ * it only shows whole minutes, and a whole list ticking every second would be needlessly expensive.
+ */
+@Composable
+private fun LiveMinute(match: Match, color: Color) {
     var tick by remember { mutableStateOf(0) }
     LaunchedEffect(match.id, match.status) {
         if (match.status == MatchStatus.LIVE) {
@@ -193,86 +213,28 @@ private fun LiveDateBlock(match: Match) {
             }
         }
     }
-    val isPaused = match.pausedAt != null
-    // Shares elapsedMatchSeconds with the live match console (LiveMatchScreen) -- previously this used
-    // a bare `now - kickoffAt` that ignored secondHalfStartedAt/halfLengthMinutes entirely, so it kept
-    // counting straight through kickoff instead of showing the second-half-adjusted minute the console
-    // showed for the same match.
-    val minute = remember(tick, match) {
-        (elapsedMatchSeconds(match, Clock.System.now()) / 60).coerceIn(0, 130)
-    }
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(40.dp)) {
-        Surface(shape = RoundedCornerShape(4.dp), color = LiveRed) {
-            Text(
-                stringResource(Res.string.matches_live),
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = Color.White
-            )
-        }
-        Spacer(Modifier.height(2.dp))
-        Text(
-            // The trailing apostrophe is appended here, not baked into the string resource -- the
-            // Compose Multiplatform resource generator doesn't reliably unescape a trailing \' in a
-            // formatted string, which rendered as a literal "3\'" instead of "3'".
-            when {
-                match.status == MatchStatus.HALF_TIME -> stringResource(Res.string.matches_half_time)
-                isPaused -> stringResource(Res.string.label_paused_badge)
-                else -> "${stringResource(Res.string.matches_minute, minute)}'"
-            },
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-            color = if (isPaused) CardYellow else PitchGreen
-        )
-    }
+    // Shares elapsedMatchSeconds with the live console, so the two can never disagree.
+    val minute = remember(tick, match) { (elapsedMatchSeconds(match, Clock.System.now()) / 60).coerceIn(0, 130) }
+    Text(
+        // The apostrophe is appended here, not baked into the string resource -- the resource
+        // generator doesn't reliably unescape a trailing \' in a formatted string.
+        if (match.status == MatchStatus.HALF_TIME) stringResource(Res.string.match_row_half_time) else "${stringResource(Res.string.matches_minute, minute)}'",
+        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+        color = color
+    )
 }
 
-@Composable
-private fun ScheduledDateBlock(instant: Instant, muted: Boolean) {
-    val dt = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    val alpha = if (muted) 0.5f else 1f
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(40.dp)) {
-        Text(
-            dt.dayOfWeek.name.take(3),
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-            color = PitchGreen.copy(alpha = alpha)
-        )
-        Text(
-            dt.day.toString(),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            color = DeepCarbon.copy(alpha = alpha)
-        )
-    }
-}
-
-private fun subtitleFor(match: Match, live: Boolean, finished: Boolean): String {
-    val loc = match.location?.takeIf { it.isNotBlank() }
-    return when {
-        live -> loc ?: ""
-        finished -> match.dateTime.toLocalDateTime(TimeZone.currentSystemDefault()).date.let(::dayMonthLabel)
-        else -> listOfNotNull(timeLabel(match.dateTime), loc).joinToString(" · ")
-    }
-}
-
-private fun resultColor(score: MatchScore): Color = when {
-    score.ourScore > score.opponentScore -> SuccessGreen
-    score.ourScore < score.opponentScore -> LiveRed
-    else -> CarbonGray.copy(alpha = 0.6f)
-}
-
-private fun resultLabel(score: MatchScore): StringResource = when {
-    score.ourScore > score.opponentScore -> Res.string.label_result_win
-    score.ourScore < score.opponentScore -> Res.string.label_result_loss
-    else -> Res.string.label_result_draw
+/** A match type in three letters, for the list's date column. */
+private fun MatchType.abbreviationRes(): StringResource = when (this) {
+    MatchType.FRIENDLY -> Res.string.match_type_abbr_friendly
+    MatchType.CHAMPIONSHIP -> Res.string.match_type_abbr_championship
+    MatchType.TOURNAMENT -> Res.string.match_type_abbr_tournament
 }
 
 private fun timeLabel(instant: Instant): String {
     val dt = instant.toLocalDateTime(TimeZone.currentSystemDefault())
     return "${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}"
 }
-
-private val MONTH_ABBR = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-private fun dayMonthLabel(date: kotlinx.datetime.LocalDate): String = "${date.day} ${MONTH_ABBR[date.month.ordinal]}"
 
 private fun previewMatch(
     status: MatchStatus,

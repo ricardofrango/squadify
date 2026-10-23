@@ -19,7 +19,9 @@ import io.ktor.http.*
 class ApiException(
     val statusCode: Int,
     val code: String?,
-    override val message: String
+    override val message: String,
+    // For a batch request: which items the error is about (ErrorResponse.rows).
+    val rows: List<Int>? = null
 ) : Exception(message)
 
 suspend inline fun <reified T> HttpResponse.handleResponse(): T {
@@ -35,7 +37,8 @@ suspend inline fun <reified T> HttpResponse.handleResponse(): T {
         throw ApiException(
             statusCode = status.value,
             code = errorBody?.code,
-            message = errorBody?.message ?: "An unexpected error occurred (Status: ${status.value})"
+            message = errorBody?.message ?: "An unexpected error occurred (Status: ${status.value})",
+            rows = errorBody?.rows
         )
     }
 }

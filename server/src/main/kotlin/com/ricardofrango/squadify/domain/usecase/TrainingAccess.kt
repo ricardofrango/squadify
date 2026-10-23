@@ -4,7 +4,7 @@ import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
-import com.ricardofrango.squadify.model.TeamRole
+import com.ricardofrango.squadify.model.AgeGroupRole
 
 // Who may do what with an age group's training (design 39m).
 
@@ -25,7 +25,7 @@ internal suspend fun CheckUserPermissionUseCase.requireRateTraining(userId: Stri
         userId = userId,
         clubId = ageGroup.clubId,
         minClubRole = ClubRole.COORDINATOR,
-        minTeamRole = TeamRole.STAFF,
+        minAgeGroupRole = AgeGroupRole.STAFF,
         ageGroupId = ageGroup.id,
         errorMessage = "Only this age group's staff can rate its training"
     )
