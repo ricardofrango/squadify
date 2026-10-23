@@ -26,6 +26,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ricardofrango.squadify.presentation.ui.components.PasswordVisibilityToggle
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyMark
@@ -46,7 +47,7 @@ fun LoginScreen(
     passwordResetEmail: String? = null,
     viewModel: LoginViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
 
     // Lets the platform password manager offer to save the entered credentials once login succeeds
     // (null on targets without an autofill service, e.g. desktop/web/iOS).

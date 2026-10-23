@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PasswordVisibilityToggle
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
@@ -43,7 +44,7 @@ fun RegisterScreen(
     onNavigateToDashboard: () -> Unit,
     viewModel: RegisterViewModel = koinViewModel()
 ) {
-    val uiState by viewModel.state.collectAsState()
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
 
     // Observe Navigation Events
     LaunchedEffect(viewModel.navigationEvent) {

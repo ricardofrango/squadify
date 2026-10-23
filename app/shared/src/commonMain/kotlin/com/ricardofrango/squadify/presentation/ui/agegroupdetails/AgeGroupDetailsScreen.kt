@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ricardofrango.squadify.model.*
 import com.ricardofrango.squadify.presentation.ui.components.DetailBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.DetailRail
@@ -94,12 +95,12 @@ fun AgeGroupDetailsScreen(
             }
         }
         val uiState = viewModel.state.collectSettledState()
-        val recordState by viewModel.record.collectAsState()
-        val plansState by viewModel.plans.collectAsState()
-        val sessionsState by viewModel.sessions.collectAsState()
-        val trainingStats by viewModel.trainingStats.collectAsState()
-        val tab by viewModel.tab.collectAsState()
-        val matchesTeamId by viewModel.matchesTeamId.collectAsState()
+        val recordState by viewModel.record.collectAsStateWithLifecycle()
+        val plansState by viewModel.plans.collectAsStateWithLifecycle()
+        val sessionsState by viewModel.sessions.collectAsStateWithLifecycle()
+        val trainingStats by viewModel.trainingStats.collectAsStateWithLifecycle()
+        val tab by viewModel.tab.collectAsStateWithLifecycle()
+        val matchesTeamId by viewModel.matchesTeamId.collectAsStateWithLifecycle()
         var searchQuery by remember { mutableStateOf("") }
 
         LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }

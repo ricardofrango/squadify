@@ -17,6 +17,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.ui.draw.clip
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
@@ -101,7 +102,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -210,8 +210,8 @@ fun EditClubScreen(
 ) {
     SquadifyClubTheme {
         val uiState = viewModel.state.collectSettledState()
-        val members by viewModel.members.collectAsState()
-        val inviting by viewModel.inviting.collectAsState()
+        val members by viewModel.members.collectAsStateWithLifecycle()
+        val inviting by viewModel.inviting.collectAsStateWithLifecycle()
         val snackbarHostState = remember { SnackbarHostState() }
 
         // Loads once per club: coming back from Member details must not reset unsaved Details/Permissions edits.

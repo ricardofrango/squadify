@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ricardofrango.squadify.domain.AgeGroupDefaults
 import com.ricardofrango.squadify.model.MatchType
 import com.ricardofrango.squadify.model.Player
@@ -79,8 +80,8 @@ fun PlayerDetailsScreen(
 ) {
     SquadifyClubTheme {
         val uiState = viewModel.state.collectSettledState()
-        val statsState by viewModel.stats.collectAsState()
-        val training by viewModel.training.collectAsState()
+        val statsState by viewModel.stats.collectAsStateWithLifecycle()
+        val training by viewModel.training.collectAsStateWithLifecycle()
 
         LaunchedEffect(playerId) {
             viewModel.loadPlayerDetails(playerId, initialSeasonId, initialFilter)

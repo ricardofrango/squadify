@@ -57,9 +57,9 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.model.TrainingSessions
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.Row
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
  * Week plan (microcycle, design 40e): the month it belongs to and that month's focus in the dark strip;
@@ -80,7 +80,7 @@ fun WeekPlanScreen(
 ) {
     SquadifyClubTheme {
         val state = viewModel.state.collectSettledState()
-        val sessions by viewModel.sessions.collectAsState()
+        val sessions by viewModel.sessions.collectAsStateWithLifecycle()
         LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
         LaunchedEffect(refresh) { if (refresh) viewModel.load(ageGroupId, force = true) }
         WeekPlanContent(state, monday, onNavigateBack, onRetry = { viewModel.load(ageGroupId, force = true) }, onEdit, sessions, onOpenSession, onAddSession)

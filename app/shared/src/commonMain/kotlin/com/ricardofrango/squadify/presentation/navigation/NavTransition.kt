@@ -5,11 +5,11 @@ import androidx.compose.animation.EnterExitState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
@@ -48,7 +48,7 @@ private class Held<T>(var value: T)
  */
 @Composable
 fun <T> StateFlow<T>.collectSettledState(): T {
-    val latest = collectAsState().value
+    val latest = collectAsStateWithLifecycle().value
     val settled = LocalNavTransitionSettled.current.value
     val held = remember { Held(latest) }
     if (settled) held.value = latest

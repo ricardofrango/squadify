@@ -25,7 +25,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -94,6 +93,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import squadify.app.shared.generated.resources.btn_retry
 import squadify.app.shared.generated.resources.btn_save_changes
 import squadify.app.shared.generated.resources.btn_saving_changes
@@ -118,7 +118,7 @@ fun OpponentFormScreen(
     viewModel: OpponentFormViewModel = koinViewModel()
 ) {
     SquadifyClubTheme {
-        val state by viewModel.state.collectAsState()
+        val state by viewModel.state.collectAsStateWithLifecycle()
         LaunchedEffect(clubId) { viewModel.start(clubId, ageGroupId, initialName) }
         LaunchedEffect(viewModel) { viewModel.done.collect { onCreated(it) } }
 
@@ -150,7 +150,7 @@ fun OpponentEditScreen(
     viewModel: OpponentFormViewModel = koinViewModel()
 ) {
     SquadifyClubTheme {
-        val state by viewModel.state.collectAsState()
+        val state by viewModel.state.collectAsStateWithLifecycle()
         LaunchedEffect(opponentId) { viewModel.startEdit(opponentId) }
         LaunchedEffect(viewModel) { viewModel.done.collect { onSaved() } }
 

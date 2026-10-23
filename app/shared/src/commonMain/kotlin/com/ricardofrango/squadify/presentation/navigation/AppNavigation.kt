@@ -3,7 +3,6 @@ package com.ricardofrango.squadify.presentation.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.Lifecycle
@@ -14,6 +13,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavController
@@ -224,7 +224,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         }
 
         screen<Screen.Login> { entry ->
-            val passwordResetEmail by entry.savedStateHandle.getStateFlow<String?>(KEY_PASSWORD_RESET_EMAIL, null).collectAsState()
+            val passwordResetEmail by entry.savedStateHandle.getStateFlow<String?>(KEY_PASSWORD_RESET_EMAIL, null).collectAsStateWithLifecycle()
             LoginScreen(
                 passwordResetEmail = passwordResetEmail,
                 onNavigateToForgotPassword = { email -> navController.navigate(Screen.ForgotPassword(email)) },
@@ -306,7 +306,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.ClubDetails = backStackEntry.toRoute()
             val structureChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             if (structureChanged) {
                 // Consume the flag so it doesn't keep forcing reloads on every recomposition.
                 backStackEntry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false
@@ -397,7 +397,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             // Set by the create / add-players screens opened from here, so the list reloads on return.
             val structureChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             if (structureChanged) {
                 navController.consumeAndCascadeStructureChanged(backStackEntry)
             }
@@ -418,10 +418,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.EditClub = backStackEntry.toRoute()
             val membersChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_MEMBERS_CHANGED, false)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             val membersMessage by backStackEntry.savedStateHandle
                 .getStateFlow<String?>(KEY_MEMBERS_MESSAGE, null)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             EditClubScreen(
                 clubId = screen.clubId,
                 onNavigateBack = { navController.popBackStack() },
@@ -559,7 +559,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             // AgeGroupDetails) so their player lists refresh too.
             val structureChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             if (structureChanged) {
                 navController.consumeAndCascadeStructureChanged(backStackEntry)
             }
@@ -587,10 +587,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.AgeGroupDetails = backStackEntry.toRoute()
             val structureChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             val sessionsCreated by backStackEntry.savedStateHandle
                 .getStateFlow<Int?>(KEY_TRAINING_MESSAGE, null)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             if (structureChanged) {
                 navController.consumeAndCascadeStructureChanged(backStackEntry)
             }
@@ -674,7 +674,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             // AgeGroupDetails) so their state refreshes too. Mirrors AddPlayersToAgeGroup.
             val structureChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             if (structureChanged) {
                 navController.consumeAndCascadeStructureChanged(backStackEntry)
             }
@@ -702,7 +702,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.TeamDetails = backStackEntry.toRoute()
             val structureChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             if (structureChanged) {
                 navController.consumeAndCascadeStructureChanged(backStackEntry)
             }
@@ -734,10 +734,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.CreateMatch = backStackEntry.toRoute()
             val pickedOpponentId by backStackEntry.savedStateHandle
                 .getStateFlow<String?>(KEY_OPPONENT_PICKED, null)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             val createdOpponentName by backStackEntry.savedStateHandle
                 .getStateFlow<String?>(KEY_OPPONENT_CREATED, null)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             CreateMatchScreen(
                 ageGroupId = screen.ageGroupId,
                 teamId = screen.teamId,
@@ -763,7 +763,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             // Set by Create opponent (BROWSE), so the list reloads on return.
             val opponentsChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             if (opponentsChanged) {
                 backStackEntry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false
             }
@@ -793,7 +793,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             // Set by Edit opponent; passed on so the list underneath reloads too.
             val edited by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             if (edited) {
                 navController.consumeAndCascadeStructureChanged(backStackEntry)
             }
@@ -846,7 +846,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             // Set by the plan editors, so the plan reloads on return.
             val planChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             if (planChanged) navController.consumeAndCascadeStructureChanged(backStackEntry)
             SeasonPlanScreen(
                 ageGroupId = screen.ageGroupId,
@@ -873,7 +873,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.MonthPlan = backStackEntry.toRoute()
             val planChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             if (planChanged) navController.consumeAndCascadeStructureChanged(backStackEntry)
             MonthPlanScreen(
                 ageGroupId = screen.ageGroupId,
@@ -903,7 +903,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.WeekPlan = backStackEntry.toRoute()
             val planChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             if (planChanged) navController.consumeAndCascadeStructureChanged(backStackEntry)
             WeekPlanScreen(
                 ageGroupId = screen.ageGroupId,
@@ -949,7 +949,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.TrainingSession = backStackEntry.toRoute()
             val sessionChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             if (sessionChanged) navController.consumeAndCascadeStructureChanged(backStackEntry)
             SessionDetailsScreen(
                 sessionId = screen.sessionId,
@@ -1010,7 +1010,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.MatchDetails = backStackEntry.toRoute()
             val structureChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             if (structureChanged) {
                 navController.consumeAndCascadeStructureChanged(backStackEntry)
             }
@@ -1073,7 +1073,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.PlayerDetails = backStackEntry.toRoute()
             val structureChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
-                .collectAsState()
+                .collectAsStateWithLifecycle()
             if (structureChanged) {
                 navController.consumeAndCascadeStructureChanged(backStackEntry)
             }
@@ -1115,7 +1115,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         }
 
         screen<Screen.Account> { entry ->
-            val changedEmail by entry.savedStateHandle.getStateFlow<String?>(KEY_EMAIL_CHANGED, null).collectAsState()
+            val changedEmail by entry.savedStateHandle.getStateFlow<String?>(KEY_EMAIL_CHANGED, null).collectAsStateWithLifecycle()
             AccountScreen(
                 changedEmail = changedEmail,
                 onNavigateToChangeEmail = { email -> navController.navigate(Screen.ChangeEmail(email)) },

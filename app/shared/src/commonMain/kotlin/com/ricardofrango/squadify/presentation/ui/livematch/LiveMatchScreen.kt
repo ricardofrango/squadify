@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
@@ -486,7 +487,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, viewModel: LiveMatc
     // A clock correction is server-persisted (onSetMinute) -- once applied, this recomputes straight
     // from the corrected details.match like any other change.
     // Counted on the server's clock (see LiveMatchViewModel.clockOffset), since every match timestamp is the server's.
-    val clockOffset by viewModel.clockOffset.collectAsState()
+    val clockOffset by viewModel.clockOffset.collectAsStateWithLifecycle()
     val displaySeconds = remember(tick, details.match, clockOffset) {
         elapsedMatchSeconds(details.match, Clock.System.now() + clockOffset)
     }

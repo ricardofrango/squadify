@@ -55,7 +55,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,6 +66,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.Team
@@ -189,7 +189,7 @@ fun ClubDetailsScreen(
         var moreOpen by remember { mutableStateOf(false) }
         // The coach's age-group picker: which action it's for (Create team / Add players), or null.
         var pickerFor by remember { mutableStateOf<StringResource?>(null) }
-        val moreAccount by viewModel.moreAccount.collectAsState()
+        val moreAccount by viewModel.moreAccount.collectAsStateWithLifecycle()
         LaunchedEffect(moreOpen) { if (moreOpen) viewModel.loadMoreAccount() }
 
         LaunchedEffect(refreshClubDetails) {

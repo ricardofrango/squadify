@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ricardofrango.squadify.model.*
 import com.ricardofrango.squadify.presentation.ui.components.DetailBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.DetailRail
@@ -86,9 +87,9 @@ fun TeamDetailsScreen(
 ) {
     SquadifyClubTheme {
         val uiState = viewModel.state.collectSettledState()
-        val recordState by viewModel.record.collectAsState()
-        val tab by viewModel.tab.collectAsState()
-        val squadSort by viewModel.squadSort.collectAsState()
+        val recordState by viewModel.record.collectAsStateWithLifecycle()
+        val tab by viewModel.tab.collectAsStateWithLifecycle()
+        val squadSort by viewModel.squadSort.collectAsStateWithLifecycle()
 
         LaunchedEffect(teamId) { viewModel.load(teamId) }
         LaunchedEffect(refreshOnReturn) { if (refreshOnReturn) viewModel.load(teamId, forceReload = true) }
