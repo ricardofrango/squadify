@@ -114,7 +114,7 @@ fun LiveMatchScreen(
             Scaffold(containerColor = DeepCarbon, contentWindowInsets = WindowInsets(0)) { paddingValues ->
                 Box(Modifier.fillMaxSize().padding(paddingValues).background(DeepCarbon)) {
                     when (val state = uiState) {
-                        is LiveMatchUiState.Loading -> LoadingBody(onNavigateBack)
+                        is LiveMatchUiState.Loading -> LoadingBody()
                         is LiveMatchUiState.Error -> ErrorBody(state.message, onNavigateBack)
                         is LiveMatchUiState.Idle -> IdleBody(state, viewModel, onNavigateBack, onOpenReport)
                     }
@@ -125,12 +125,10 @@ fun LiveMatchScreen(
 }
 
 @Composable
-private fun LoadingBody(onNavigateBack: () -> Unit) {
-    Column(Modifier.fillMaxSize()) {
-        ConsoleHeader(title = stringResource(Res.string.title_live_match), subtitle = null, onNavigateBack = onNavigateBack)
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = PitchGreen)
-        }
+private fun LoadingBody() {
+    // No bar while the game opens either: the console has none (system back leaves).
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(color = PitchGreen)
     }
 }
 
