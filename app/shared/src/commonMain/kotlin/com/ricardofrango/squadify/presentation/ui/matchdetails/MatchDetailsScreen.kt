@@ -371,7 +371,9 @@ private fun MatchBody(
                 item {
                     SectionHeader(
                         title = stringResource(Res.string.label_details_section),
-                        trailing = if (canEditMatch) stringResource(Res.string.label_edit) to { showEdit = true } else null
+                        trailing = if (canEditMatch) stringResource(Res.string.label_edit) to { showEdit = true } else null,
+                        // First in the list unless an error or the report card comes before it.
+                        first = state.transientError == null && (sideCard || details.report == null)
                     )
                 }
                 item { DetailsCard(details, onSetType = if (canEditMatch) { { showEdit = true } } else null) }
@@ -547,8 +549,9 @@ private fun PoolRow(player: Player, onAdd: () -> Unit) {
 }
 
 @Composable
-private fun SectionHeader(title: String, pill: String? = null, trailing: Pair<String, () -> Unit>? = null) {
-    Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun SectionHeader(title: String, pill: String? = null, trailing: Pair<String, () -> Unit>? = null, first: Boolean = false) {
+    // The gap above separates a section from the one before; the list's first header doesn't need it.
+    Row(modifier = Modifier.fillMaxWidth().padding(top = if (first) 0.dp else 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
         if (pill != null) {
             Spacer(Modifier.width(8.dp))
