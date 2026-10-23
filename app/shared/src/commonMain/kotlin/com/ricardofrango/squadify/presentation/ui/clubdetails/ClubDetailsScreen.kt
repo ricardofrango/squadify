@@ -72,12 +72,11 @@ import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.presentation.ui.components.EmptyStateCallToAction
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
-import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
-import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
+import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.more_add_players
 import squadify.app.shared.generated.resources.more_create_team
@@ -787,18 +786,7 @@ private fun PlayerCard(player: Player, onClick: () -> Unit, onDisable: (() -> Un
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            player.photoUrl?.let {
-                PersonPhoto(it, initialsOf(player.firstName, player.lastName), 40.dp, CarbonGray.copy(alpha = 0.1f), DeepCarbon, Modifier.alpha(faded))
-            } ?: Box(
-                modifier = Modifier.size(40.dp)
-                    .background(CarbonGray.copy(alpha = 0.1f), RoundedCornerShape(20.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "${player.firstName.take(1)}${player.lastName.take(1)}",
-                    color = DeepCarbon.copy(alpha = faded)
-                )
-            }
+            PlayerBadge(player.photoUrl, player.shirtNumber, Modifier.alpha(faded), photoSize = 40.dp)
             Spacer(modifier = Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
                 Text(

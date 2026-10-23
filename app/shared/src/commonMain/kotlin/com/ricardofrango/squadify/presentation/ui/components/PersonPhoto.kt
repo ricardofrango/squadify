@@ -3,10 +3,7 @@ package com.ricardofrango.squadify.presentation.ui.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -58,17 +55,6 @@ fun PersonPhoto(
     contentScale = ContentScale.Crop,
     initialsStyle = initialsStyle
 )
-
-/**
- * A person's photo at the start of a list row, then a gap -- or nothing at all when they have no
- * photo, so rows of people without one stay exactly as they were.
- */
-@Composable
-fun RowScope.RowPhoto(photoUrl: String?, initials: String, size: Dp = 32.dp, background: Color = PitchGreen.copy(alpha = 0.15f), initialsColor: Color = PitchGreen) {
-    if (photoUrl == null) return
-    PersonPhoto(photoUrl, initials, size, background, initialsColor)
-    Spacer(Modifier.width(10.dp))
-}
 
 /** The initials for a photo's fallback: the first letter of each name. */
 fun initialsOf(firstName: String, lastName: String): String =

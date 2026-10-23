@@ -34,11 +34,9 @@ import com.ricardofrango.squadify.presentation.ui.components.MatchTypeChip
 import com.ricardofrango.squadify.presentation.ui.components.HalvesSelector
 import com.ricardofrango.squadify.presentation.ui.components.MatchTypeSelector
 import com.ricardofrango.squadify.presentation.ui.components.iconRes
-import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.components.DatePickerSheet
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
-import com.ricardofrango.squadify.presentation.ui.components.RowPhoto
 import com.ricardofrango.squadify.presentation.ui.components.TimePickerSheet
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -49,6 +47,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
+import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -489,13 +488,8 @@ private fun TypeRow(type: MatchType?, onSetType: (() -> Unit)?) {
 private fun CallUpRow(cu: MatchCallUpWithPlayer, onRemove: (() -> Unit)? = null) {
     Surface(modifier = Modifier.fillMaxWidth(), shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f))) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                cu.player.shirtNumber?.toString() ?: "—",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = PitchGreen, modifier = Modifier.width(28.dp)
-            )
-            Spacer(Modifier.width(8.dp))
-            RowPhoto(cu.player.photoUrl, initialsOf(cu.player.firstName, cu.player.lastName))
+            PlayerBadge(cu.player.photoUrl, cu.player.shirtNumber)
+            Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text("${cu.player.firstName} ${cu.player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 cu.player.position?.let {
@@ -520,9 +514,8 @@ private fun CallUpRow(cu: MatchCallUpWithPlayer, onRemove: (() -> Unit)? = null)
 private fun PoolRow(player: Player, onAdd: () -> Unit) {
     Surface(modifier = Modifier.fillMaxWidth(), shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f))) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(player.shirtNumber?.toString() ?: "—", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = PitchGreen, modifier = Modifier.width(28.dp))
-            Spacer(Modifier.width(8.dp))
-            RowPhoto(player.photoUrl, initialsOf(player.firstName, player.lastName))
+            PlayerBadge(player.photoUrl, player.shirtNumber)
+            Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text("${player.firstName} ${player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 player.position?.let {

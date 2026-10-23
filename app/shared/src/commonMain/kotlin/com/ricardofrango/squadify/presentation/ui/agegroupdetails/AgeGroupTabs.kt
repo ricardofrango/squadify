@@ -46,7 +46,6 @@ import com.ricardofrango.squadify.model.*
 import com.ricardofrango.squadify.presentation.ui.components.MatchRow
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.RatingPill
-import com.ricardofrango.squadify.presentation.ui.components.RowPhoto
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.components.StatsFilterSegments
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
@@ -55,6 +54,7 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.oneDecimal
+import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import com.ricardofrango.squadify.presentation.ui.teamdetails.FormSquare
 import com.ricardofrango.squadify.presentation.ui.teamdetails.ViewMatchButton
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
@@ -780,16 +780,8 @@ private fun MemberRow(player: Player, season: MemberSeason?, seasonKnown: Boolea
     // A disabled player (own section, see AgeGroupMembersTab): faded, with a red "Disabled" chip. The ✕ stays fully visible.
     val faded = Modifier.alpha(if (player.active) 1f else 0.45f)
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(start = 10.dp, end = 12.dp, top = 11.dp, bottom = 11.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.width(32.dp).then(faded), contentAlignment = Alignment.Center) {
-            Text(
-                player.shirtNumber?.toString() ?: "—",
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 16.sp),
-                color = if (player.shirtNumber != null) PitchGreen else DeepCarbon.copy(alpha = 0.35f)
-            )
-        }
+        PlayerBadge(player.photoUrl, player.shirtNumber, faded)
         Spacer(Modifier.width(10.dp))
-        RowPhoto(player.photoUrl, initialsOf(player.firstName, player.lastName))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("${player.firstName} ${player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.5.sp), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false).then(faded))

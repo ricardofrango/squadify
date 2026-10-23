@@ -25,15 +25,14 @@ import com.ricardofrango.squadify.model.PlayerPosition
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.presentation.ui.components.FMTopBar
-import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
-import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
+import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.painterResource
@@ -346,19 +345,7 @@ private fun PlayerRow(
             modifier = Modifier.padding(12.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            player.photoUrl?.let {
-                PersonPhoto(it, initialsOf(player.firstName, player.lastName), 40.dp, CarbonGray.copy(alpha = 0.1f), DeepCarbon)
-            } ?: Box(
-                modifier = Modifier.size(40.dp)
-                    .background(CarbonGray.copy(alpha = 0.1f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "${player.firstName.take(1)}${player.lastName.take(1)}",
-                    color = DeepCarbon,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            PlayerBadge(player.photoUrl, player.shirtNumber, photoSize = 40.dp)
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(

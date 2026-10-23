@@ -34,14 +34,13 @@ import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.elapsedMatchSeconds
 import com.ricardofrango.squadify.presentation.ui.components.ClubLogo
 import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
-import com.ricardofrango.squadify.presentation.ui.components.RowPhoto
-import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
+import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import squadify.app.shared.generated.resources.*
 import kotlinx.coroutines.delay
 import kotlinx.datetime.TimeZone
@@ -376,13 +375,13 @@ private fun CallUpToggleRow(player: Player, selected: Boolean, onClick: (() -> U
             Modifier.padding(horizontal = 16.dp, vertical = 14.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                player.shirtNumber?.toString() ?: "-",
-                color = if (selected) PitchGreen else Color.White.copy(alpha = 0.6f),
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                modifier = Modifier.width(28.dp)
+            PlayerBadge(
+                player.photoUrl, player.shirtNumber,
+                numberColor = if (selected) PitchGreen else Color.White.copy(alpha = 0.6f),
+                placeholderColor = Color.White.copy(alpha = 0.4f),
+                numberStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
             )
-            RowPhoto(player.photoUrl, initialsOf(player.firstName, player.lastName))
+            Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(
                     "${player.firstName} ${player.lastName}",
