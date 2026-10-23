@@ -314,12 +314,10 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
                     { player -> slotIds.firstFreeSlot(teamSize)?.let { save(slotIds.placed(it, player.id)) } }
                 } else null,
                 onDrop = onDrop,
-                header = {
-                    FormationBar(formationText, onChange = if (editable) { { sheet = PreKickoffSheet.Formation } } else null, compact = landscape) {
-                        HalfLengthChip(halfLength, HALF_LENGTH_OPTIONS, enabled = canManage) { halfLength = it }
-                        if (landscape) FlipPitchButton { flipped = !flipped }
-                    }
-                },
+                formationLabel = formationText,
+                onFormationClick = if (editable) { { sheet = PreKickoffSheet.Formation } } else null,
+                header = if (landscape) { { FlipPitchButton { flipped = !flipped } } } else null,
+                besideKeeper = { HalfLengthChip(halfLength, HALF_LENGTH_OPTIONS, enabled = canManage) { halfLength = it } },
                 hint = null,
                 modifier = Modifier.weight(1f).fillMaxWidth().then(if (landscape) Modifier.padding(horizontal = 16.dp, vertical = 8.dp) else Modifier),
                 footer = if (landscape) { { kickOffBar(Modifier.fillMaxWidth().navigationBarsPadding()) } } else null
@@ -550,11 +548,9 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
                     // A bench player can only come on, so tapping one goes straight to "who goes off?".
                     onBenchTap = if (canManage) { { player -> actionSheet = ActionSheet.PickGoingOff(player) } } else null,
                     onDrop = onDrop,
-                    header = {
-                        FormationBar(formationText, onChange = if (editable) { { showFormationSheet = true } } else null, compact = sideBySide) {
-                            if (sideBySide) FlipPitchButton { flipped = !flipped }
-                        }
-                    },
+                    formationLabel = formationText,
+                    onFormationClick = if (editable) { { showFormationSheet = true } } else null,
+                    header = if (sideBySide) { { FlipPitchButton { flipped = !flipped } } } else null,
                     // A substitution or clock correction just made is confirmed here, as on the Squad tab.
                     hint = flashText,
                     modifier = Modifier.fillMaxSize().padding(top = 4.dp).then(if (sideBySide) Modifier.padding(horizontal = 16.dp, vertical = 8.dp) else Modifier)

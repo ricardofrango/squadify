@@ -1440,8 +1440,6 @@
     <string name="msg_callup_discard">Your changes to the call-up haven\'t been saved and will be lost.</string>
     <!-- Live pitch view -->
     <string name="tab_pitch">Pitch</string>
-    <string name="lm_formation">Formation</string>
-    <string name="lm_change">Change</string>
     <string name="lm_change_formation">Change formation</string>
     <string name="lm_formation_format">Defenders-midfielders-attackers</string>
     <string name="lm_formation_adds_up">Adds up to %1$d + goalkeeper</string>

@@ -177,13 +177,17 @@ internal fun slotPoint(formation: List<Int>, slot: Int, horizontal: Boolean, our
     return pitchPoint(along, across, horizontal, ourGoalAtStart)
 }
 
-/** The pitch with one [slotContent] per position, each centred on its spot. */
+/** Something drawn on the pitch itself (the formation chip), centred at [along] / [across] like a slot. */
+internal class PitchOverlay(val along: Float, val across: Float, val content: @Composable () -> Unit)
+
+/** The pitch with one [slotContent] per position, each centred on its spot, plus any [overlays]. */
 @Composable
 internal fun PitchField(
     formation: List<Int>,
     horizontal: Boolean,
     ourGoalAtStart: Boolean,
     modifier: Modifier = Modifier,
+    overlays: List<PitchOverlay> = emptyList(),
     slotContent: @Composable (slot: Int) -> Unit
 ) {
     val slots = formation.sum() + 1
@@ -191,6 +195,7 @@ internal fun PitchField(
         content = {
             Canvas(Modifier.fillMaxSize()) { drawPitchLines(horizontal, ourGoalAtStart) }
             repeat(slots) { slot -> Box { slotContent(slot) } }
+            overlays.forEach { Box { it.content() } }
         },
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
@@ -204,8 +209,9 @@ internal fun PitchField(
         val tokens = measurables.drop(1).map { it.measure(loose) }
         layout(w, h) {
             lines.place(0, 0)
-            tokens.forEachIndexed { slot, token ->
-                val p = slotPoint(formation, slot, horizontal, ourGoalAtStart)
+            tokens.forEachIndexed { index, token ->
+                val p = if (index < slots) slotPoint(formation, index, horizontal, ourGoalAtStart)
+                else overlays[index - slots].let { pitchPoint(it.along, it.across, horizontal, ourGoalAtStart) }
                 val x = (p.x * w - token.width / 2f).roundToInt().coerceIn(0, maxOf(0, w - token.width))
                 val y = (p.y * h - token.height / 2f).roundToInt().coerceIn(0, maxOf(0, h - token.height))
                 token.place(x, y)
@@ -440,10 +446,16 @@ internal fun PitchPanel(
     onSlotTap: ((slot: Int, player: Player?) -> Unit)?,
     onBenchTap: ((Player) -> Unit)?,
     onDrop: (from: PitchDropKey, to: PitchDropKey?) -> Unit,
-    header: @Composable () -> Unit,
+    // The formation chip, on the pitch beside the goalkeeper (on our right); tapping it changes the formation.
+    formationLabel: String,
+    onFormationClick: (() -> Unit)?,
+    // Lying down: above the bench (the flip button). Upright: above the pitch, when set.
+    header: (@Composable () -> Unit)?,
     hint: String?,
     modifier: Modifier = Modifier,
-    footer: (@Composable ColumnScope.() -> Unit)? = null
+    footer: (@Composable ColumnScope.() -> Unit)? = null,
+    // Before kickoff: the half-length chip, on the pitch on the goalkeeper's other side.
+    besideKeeper: (@Composable () -> Unit)? = null
 ) {
     val drag = remember { PitchDragState() }
     val names = remember(slots, bench, sentOff) { pitchNames(slots.values + bench + sentOff) }
@@ -457,7 +469,11 @@ internal fun PitchPanel(
         val crowd = maxOf(1, formation.maxOrNull() ?: 1)
         val cell = (if (horizontal) maxHeight else maxWidth) / crowd
         val photo = (cell - if (horizontal) 36.dp else 26.dp).coerceIn(26.dp, 44.dp)
-        PitchField(formation, horizontal, ourGoalAtStart, Modifier.fillMaxSize()) { slot ->
+        val overlays = listOfNotNull(
+            PitchOverlay(KeeperDepth, 0.8f) { FormationChip(formationLabel, onFormationClick) },
+            besideKeeper?.let { PitchOverlay(KeeperDepth, 0.2f, it) }
+        )
+        PitchField(formation, horizontal, ourGoalAtStart, Modifier.fillMaxSize(), overlays) { slot ->
             val key = PitchDropKey.Slot(slot)
             val player = slots[slot]
             val tap = onSlotTap?.let { { it(slot, player) } }
@@ -516,7 +532,7 @@ internal fun PitchPanel(
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 pitch(Modifier.weight(1f).fillMaxHeight())
                 Column(Modifier.width(232.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    header()
+                    header?.invoke()
                     benchLabel()
                     Column(benchArea.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         bench.forEach { player ->
@@ -540,7 +556,7 @@ internal fun PitchPanel(
             }
         } else {
             Column(Modifier.fillMaxSize()) {
-                Box(Modifier.padding(horizontal = ScreenPadding.Horizontal)) { header() }
+                header?.let { Box(Modifier.padding(horizontal = ScreenPadding.Horizontal)) { it() } }
                 pitch(Modifier.weight(1f).fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal))
                 Column(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal).padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     hintLine()
@@ -570,39 +586,19 @@ internal fun PitchPanel(
 // Formation bar and sheets
 // ---------------------------------------------------------------------------------------------
 
-/**
- * "FORMATION [2-3-1] … Change", with room for the half-length chip and the flip button. [compact]
- * (beside a lying-down pitch) drops the label and the "Change" link: the chip itself opens the sheet.
- */
+/** The formation ("2-3-1") as a chip on the pitch; tapping it opens the formation sheet. */
 @Composable
-internal fun FormationBar(formation: String, onChange: (() -> Unit)?, modifier: Modifier = Modifier, compact: Boolean = false, extra: @Composable RowScope.() -> Unit = {}) {
-    Row(modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (!compact) {
-            Text(
-                stringResource(Res.string.lm_formation).uppercase(),
-                color = Color.White.copy(alpha = 0.55f),
-                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.6.sp)
-            )
-        }
-        Surface(
-            onClick = onChange ?: {},
-            enabled = onChange != null,
-            shape = RoundedCornerShape(16.dp),
-            color = PitchGreen.copy(alpha = 0.25f)
-        ) {
-            Text(formation, color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
-        }
-        extra()
-        Spacer(Modifier.weight(1f))
-        if (onChange != null && !compact) {
-            Text(
-                stringResource(Res.string.lm_change),
-                color = PitchGreen,
-                fontWeight = FontWeight.Medium,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onChange).padding(horizontal = 4.dp, vertical = 8.dp)
-            )
-        }
+internal fun FormationChip(formation: String, onClick: (() -> Unit)?) {
+    val description = stringResource(Res.string.lm_change_formation)
+    Surface(
+        onClick = onClick ?: {},
+        enabled = onClick != null,
+        shape = RoundedCornerShape(14.dp),
+        color = DeepCarbon.copy(alpha = 0.75f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
+        modifier = if (onClick != null) Modifier.semantics { contentDescription = "$description: $formation" } else Modifier
+    ) {
+        Text(formation, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
     }
 }
 

@@ -1438,8 +1438,6 @@
     <string name="msg_callup_discard">As alterações à convocatória não foram guardadas e vão perder-se.</string>
     <!-- Live pitch view -->
     <string name="tab_pitch">Campo</string>
-    <string name="lm_formation">Formação</string>
-    <string name="lm_change">Alterar</string>
     <string name="lm_change_formation">Alterar formação</string>
     <string name="lm_formation_format">Defesas-médios-avançados</string>
     <string name="lm_formation_adds_up">Soma %1$d + guarda-redes</string>
