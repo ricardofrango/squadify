@@ -27,6 +27,9 @@ class TeamRepositoryImpl(
     override suspend fun getTeamSeasonRecord(teamId: String): TeamSeasonRecord =
         httpClient.get("${appConfig.baseUrl}/teams/$teamId/season-record").handleResponse()
 
+    override suspend fun getTeamFullStats(teamId: String): com.ricardofrango.squadify.model.FullStatsData =
+        httpClient.get("${appConfig.baseUrl}/teams/$teamId/full-stats").handleResponse()
+
     override suspend fun createTeams(request: CreateTeamsRequest): List<Team> =
         httpClient.post("${appConfig.baseUrl}/teams/batch") {
             contentType(ContentType.Application.Json)

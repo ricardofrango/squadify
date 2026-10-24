@@ -32,6 +32,9 @@ class AgeGroupRepositoryImpl(
     override suspend fun getAgeGroupSeasonRecord(ageGroupId: String): AgeGroupSeasonRecord =
         httpClient.get("${appConfig.baseUrl}/age-groups/$ageGroupId/season-record").handleResponse()
 
+    override suspend fun getAgeGroupFullStats(ageGroupId: String): com.ricardofrango.squadify.model.FullStatsData =
+        httpClient.get("${appConfig.baseUrl}/age-groups/$ageGroupId/full-stats").handleResponse()
+
     override suspend fun getAgeGroupDetails(ageGroupId: String): AgeGroupDetails =
         httpClient.get("${appConfig.baseUrl}/age-groups/$ageGroupId/details").handleResponse()
 

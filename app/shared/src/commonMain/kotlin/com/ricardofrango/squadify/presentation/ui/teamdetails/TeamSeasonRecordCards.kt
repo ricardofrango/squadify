@@ -7,6 +7,8 @@ import com.ricardofrango.squadify.presentation.ui.components.emptyStatsRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.material3.Icon
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ricardofrango.squadify.model.FormResult
 import com.ricardofrango.squadify.model.LeaderEntry
+import com.ricardofrango.squadify.model.TeamLeaders
 import com.ricardofrango.squadify.model.StatsFilter
 import com.ricardofrango.squadify.model.TeamFormEntry
 import com.ricardofrango.squadify.model.leaders
@@ -221,33 +224,70 @@ private data class Quad(val bg: Color, val fg: Color, val letter: StringResource
  * Team leaders: one list under the other -- Ranking (average rating, staff only), Goals, Assists,
  * Time -- each the top five (the developer's call, 2026-10-23; it was a 2x2 grid of top threes).
  * Every row shows the player's photo, or the head-and-shoulders placeholder. Tapping a name opens
- * the player on this season and filter. The full table is a future Team stats screen (REQUIREMENTS).
+ * the player on this season and filter. "See full stats" at the bottom opens the whole table ([onSeeAll]).
  */
 @Composable
-internal fun TeamLeadersCard(state: TeamRecordUiState.Loaded, onOpenPlayer: (String) -> Unit) {
-    val leaders = state.record.leaders(state.filter)
+internal fun TeamLeadersCard(state: TeamRecordUiState.Loaded, onSeeAll: (() -> Unit)? = null, onOpenPlayer: (String) -> Unit) =
+    LeadersCard(stringResource(Res.string.record_team_leaders), state.record.leaders(state.filter), state.record.canSeeRatings, onSeeAll, onOpenPlayer)
+
+/**
+ * The leaders card: Ranking (staff only), Goals, Assists, Time, each the top five. Shared by Team
+ * leaders and the age group's leaders (whose ranking is games and trainings together).
+ */
+@Composable
+internal fun LeadersCard(
+    title: String,
+    leaders: TeamLeaders,
+    canSeeRatings: Boolean,
+    onSeeAll: (() -> Unit)?,
+    onOpenPlayer: (String) -> Unit
+) {
     val categories = buildList {
-        if (state.record.canSeeRatings) add(Triple(Res.string.record_leaders_rating, leaders.averageRating) { e: LeaderEntry -> e.value.oneDecimal() })
+        if (canSeeRatings) add(Triple(Res.string.record_leaders_rating, leaders.averageRating) { e: LeaderEntry -> e.value.oneDecimal() })
         add(Triple(Res.string.record_leaders_goals, leaders.goals) { e: LeaderEntry -> e.value.roundToInt().toString() })
         add(Triple(Res.string.record_leaders_assists, leaders.assists) { e: LeaderEntry -> e.value.roundToInt().toString() })
         add(Triple(Res.string.record_leaders_minutes, leaders.minutes) { e: LeaderEntry -> "${e.value.roundToInt()}'" })
     }
-    StatsCard {
-        StatsHeading(stringResource(Res.string.record_team_leaders), Modifier.padding(bottom = 10.dp))
-        categories.forEachIndexed { i, (title, entries, format) ->
-            if (i > 0) Spacer(Modifier.height(14.dp))
-            Text(stringResource(title), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp), color = StatsSecondaryText)
-            Spacer(Modifier.height(2.dp))
-            if (entries.isEmpty()) {
-                Text(
-                    if (title == Res.string.record_leaders_rating) stringResource(Res.string.record_leaders_not_enough_rated) else "—",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = StatsSecondaryText,
-                    modifier = Modifier.padding(vertical = 6.dp)
-                )
+    // No card padding: "See full stats" is the card's footer, its ripple reaching the edges.
+    StatsCard(contentPadding = 0.dp) {
+        Column(Modifier.padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = if (onSeeAll != null) 0.dp else 14.dp)) {
+            StatsHeading(title, Modifier.padding(bottom = 10.dp))
+            categories.forEachIndexed { i, (title, entries, format) ->
+                if (i > 0) Spacer(Modifier.height(14.dp))
+                Text(stringResource(title), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp), color = StatsSecondaryText)
+                Spacer(Modifier.height(2.dp))
+                if (entries.isEmpty()) {
+                    Text(
+                        if (title == Res.string.record_leaders_rating) stringResource(Res.string.record_leaders_not_enough_rated) else "—",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = StatsSecondaryText,
+                        modifier = Modifier.padding(vertical = 6.dp)
+                    )
+                }
+                entries.forEach { e -> LeaderRow(e, format(e)) { onOpenPlayer(e.playerId) } }
             }
-            entries.forEach { e -> LeaderRow(e, format(e)) { onOpenPlayer(e.playerId) } }
         }
+        if (onSeeAll != null) SeeFullStatsLink(onSeeAll)
+    }
+}
+
+/**
+ * The way into the Full stats table, at the foot of Team leaders and as the age group's Stats tab's last
+ * card. It brings its own 14dp padding, so it goes in an unpadded card and the ripple fills its full width.
+ */
+@Composable
+internal fun SeeFullStatsLink(onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            stringResource(Res.string.fs_see_all),
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+            color = PitchGreen,
+            modifier = Modifier.weight(1f)
+        )
+        Icon(painterResource(Res.drawable.ic_chevron_right), contentDescription = null, tint = PitchGreen, modifier = Modifier.size(18.dp))
     }
 }
 

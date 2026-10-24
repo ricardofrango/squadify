@@ -140,6 +140,11 @@ sealed class Screen {
     @SerialName("team")
     data class TeamDetails(val teamId: String) : Screen()
 
+    // Full stats (every player's stats in one table): exactly one of [teamId] / [ageGroupId].
+    @Serializable
+    @SerialName("full-stats")
+    data class FullStats(val teamId: String? = null, val ageGroupId: String? = null) : Screen()
+
     @Serializable
     @SerialName("edit-age-group")
     data class EditAgeGroup(val ageGroupId: String) : Screen()

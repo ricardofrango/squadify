@@ -92,65 +92,6 @@ internal fun trainingTable(stats: AgeGroupTrainingStats, month: LocalDate?, sort
     }
 }
 
-@Composable
-private fun Pill(text: String, selected: Boolean, onClick: () -> Unit) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-        color = if (selected) Color.White else DeepCarbon,
-        modifier = Modifier
-            .background(if (selected) (if (IsClubThemed) ClubChrome else DeepCarbon) else CarbonGray.copy(alpha = 0.06f), RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 6.dp)
-    )
-}
-
-/** Age Group → Stats: the TRAINING card. */
-@Composable
-fun AgeGroupTrainingStatsCard(stats: AgeGroupTrainingStats, onOpenPlayer: (String) -> Unit) {
-    var month by remember { mutableStateOf<LocalDate?>(null) }
-    var sort by remember { mutableStateOf(TrainingSort.ATTENDANCE) }
-    StatsCard {
-        StatsHeading(stringResource(Res.string.label_training_staff), Modifier.padding(bottom = 10.dp))
-        if (stats.sessions.isEmpty()) {
-            Text(stringResource(Res.string.msg_no_training_stats), style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText)
-            return@StatsCard
-        }
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Pill(stringResource(Res.string.label_all_season), month == null) { month = null }
-            trainingMonths(stats).forEach { m -> Pill(monthName(m), month == m) { month = m } }
-        }
-        Spacer(Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.labelMedium, color = StatsSecondaryText)
-            Pill(stringResource(Res.string.sort_attendance), sort == TrainingSort.ATTENDANCE) { sort = TrainingSort.ATTENDANCE }
-            Pill(stringResource(Res.string.sort_rating), sort == TrainingSort.RATING) { sort = TrainingSort.RATING }
-            Pill(stringResource(Res.string.sort_name), sort == TrainingSort.NAME) { sort = TrainingSort.NAME }
-        }
-        Spacer(Modifier.height(10.dp))
-        Row {
-            Text(stringResource(Res.string.col_player), style = MaterialTheme.typography.labelSmall, color = StatsSecondaryText, modifier = Modifier.weight(1f))
-            Text(stringResource(Res.string.col_attended), style = MaterialTheme.typography.labelSmall, color = StatsSecondaryText, modifier = Modifier.width(110.dp))
-            Text(stringResource(Res.string.col_avg), style = MaterialTheme.typography.labelSmall, color = StatsSecondaryText, modifier = Modifier.width(40.dp))
-        }
-        trainingTable(stats, month, sort).forEach { row ->
-            val low = row.sessions > 0 && row.percent < LOW_ATTENDANCE_PERCENT
-            Row(Modifier.fillMaxWidth().clickable { onOpenPlayer(row.player.id) }.padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
-                // The player badge (photo and number, as in every player row), then the name.
-                PlayerBadge(row.player.photoUrl, row.player.shirtNumber, photoSize = 24.dp, numberStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Black))
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    "${row.player.firstName} ${row.player.lastName}",
-                    style = MaterialTheme.typography.bodyMedium, color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
-                )
-                Text("${row.attended}/${row.sessions} · ${row.percent}%", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = if (low) AmberText else DeepCarbon, modifier = Modifier.width(110.dp))
-                Text(row.average?.oneDecimalString() ?: "—", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = row.average?.let { ratingColor(it) } ?: StatsSecondaryText, modifier = Modifier.width(40.dp))
-            }
-        }
-        Text(stringResource(Res.string.msg_absent_not_averaged), style = MaterialTheme.typography.labelSmall, color = StatsSecondaryText, modifier = Modifier.padding(top = 6.dp))
-    }
-}
-
 /** Player Details: attendance and average rating for one season (two tiles). */
 @Composable
 fun PlayerTrainingCard(season: PlayerTrainingSeason) {

@@ -82,6 +82,8 @@ fun TeamDetailsScreen(
     onNavigateToMatch: (String) -> Unit,
     onScheduleMatch: () -> Unit,
     onEditTeam: () -> Unit,
+    // "See full stats" under Team leaders: the Full stats table for this team.
+    onOpenFullStats: () -> Unit = {},
     // A staff chip opens Member details (design 35) -- only for coordinators ([TeamDetails.canViewMembers]).
     onNavigateToMember: (clubId: String, userId: String) -> Unit = { _, _ -> },
     refreshOnReturn: Boolean = false,
@@ -111,6 +113,7 @@ fun TeamDetailsScreen(
             onNavigateToPlayer = onNavigateToPlayer,
             onScheduleMatch = onScheduleMatch,
             onEditTeam = onEditTeam,
+            onOpenFullStats = onOpenFullStats,
             onMatchClick = onNavigateToMatch,
             onNavigateToMember = onNavigateToMember
         )
@@ -135,6 +138,7 @@ private fun TeamDetailsContent(
     onScheduleMatch: () -> Unit,
     onEditTeam: () -> Unit,
     onMatchClick: (String) -> Unit,
+    onOpenFullStats: () -> Unit = {},
     onNavigateToMember: (String, String) -> Unit = { _, _ -> }
 ) {
     val details = (uiState as? TeamDetailsUiState.Idle)?.details
@@ -240,7 +244,7 @@ private fun TeamDetailsContent(
                                 val loaded = recordState as? TeamRecordUiState.Loaded
                                 if (loaded != null && loaded.hasLeaders()) {
                                     item(key = "leaders") {
-                                        TeamLeadersCard(loaded) { playerId -> onNavigateToPlayer(playerId, loaded.record.seasonId, loaded.filter) }
+                                        TeamLeadersCard(loaded, onSeeAll = onOpenFullStats) { playerId -> onNavigateToPlayer(playerId, loaded.record.seasonId, loaded.filter) }
                                     }
                                 }
                             }

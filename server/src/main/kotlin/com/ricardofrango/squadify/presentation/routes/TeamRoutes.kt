@@ -5,6 +5,7 @@ import com.ricardofrango.squadify.domain.usecase.CreateTeamsUseCase
 import com.ricardofrango.squadify.domain.usecase.DeleteTeamUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTeamDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTeamSeasonRecordUseCase
+import com.ricardofrango.squadify.domain.usecase.GetFullStatsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTeamPlayersUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTeamsUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateTeamUseCase
@@ -32,6 +33,7 @@ fun Route.teamRoutes() {
     val getTeamPlayersUseCase by inject<GetTeamPlayersUseCase>()
     val getTeamDetailsUseCase by inject<GetTeamDetailsUseCase>()
     val getTeamSeasonRecordUseCase by inject<GetTeamSeasonRecordUseCase>()
+    val getFullStatsUseCase by inject<GetFullStatsUseCase>()
     val updateTeamUseCase by inject<UpdateTeamUseCase>()
     val deleteTeamUseCase by inject<DeleteTeamUseCase>()
 
@@ -85,6 +87,15 @@ fun Route.teamRoutes() {
                     val currentUserId =
                         call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
                     call.respond(getTeamSeasonRecordUseCase(currentUserId, teamId))
+                }
+
+                // Every player's stats for the Full stats table: only those who played for this team.
+                get("/full-stats") {
+                    val teamId = call.parameters["teamId"]
+                        ?: return@get call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId =
+                        call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                    call.respond(getFullStatsUseCase.team(currentUserId, teamId))
                 }
 
                 get("/details") {

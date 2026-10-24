@@ -49,6 +49,7 @@ import com.ricardofrango.squadify.presentation.ui.createstaff.CreateStaffScreen
 import com.ricardofrango.squadify.presentation.ui.agegroupdetails.AgeGroupDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.createagegroups.CreateAgeGroupsScreen
 import com.ricardofrango.squadify.presentation.ui.teamdetails.TeamDetailsScreen
+import com.ricardofrango.squadify.presentation.ui.fullstats.FullStatsScreen
 import com.ricardofrango.squadify.presentation.ui.theme.ClubThemeStore
 import com.ricardofrango.squadify.presentation.ui.creatematch.CreateMatchScreen
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentDetailsScreen
@@ -598,6 +599,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 ageGroupId = screen.ageGroupId,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToTeam = { teamId -> navController.navigate(Screen.TeamDetails(teamId)) },
+                onNavigateToFullStats = { ageGroupId -> navController.navigate(Screen.FullStats(ageGroupId = ageGroupId)) },
                 onNavigateToPlayer = { playerId -> navController.navigate(Screen.PlayerDetails(playerId)) },
                 onNavigateToMember = { clubId, userId -> navController.navigate(Screen.ClubMemberDetails(clubId, userId = userId)) },
                 onNavigateToEditAgeGroup = { ageGroupId -> navController.navigate(Screen.EditAgeGroup(ageGroupId)) },
@@ -724,9 +726,20 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 onScheduleMatch = {
                     navController.navigate(Screen.CreateMatch(teamId = screen.teamId))
                 },
+                onOpenFullStats = { navController.navigate(Screen.FullStats(teamId = screen.teamId)) },
                 // The team-editing screen doesn't exist yet -- this affordance stays inert.
                 onEditTeam = { navController.navigate(Screen.EditTeam(screen.teamId)) },
                 refreshOnReturn = structureChanged
+            )
+        }
+
+        screen<Screen.FullStats> { backStackEntry ->
+            val screen: Screen.FullStats = backStackEntry.toRoute()
+            FullStatsScreen(
+                teamId = screen.teamId,
+                ageGroupId = screen.ageGroupId,
+                onNavigateBack = { navController.popBackStack() },
+                onOpenPlayer = { playerId, seasonId -> navController.navigate(Screen.PlayerDetails(playerId, seasonId = seasonId)) }
             )
         }
 
