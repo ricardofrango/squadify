@@ -2208,6 +2208,7 @@ Per the developer: no "player of the match", and no attendance.
 **Landscape layouts:**
 - **Match Details (23c):** the report card gets its own fixed left column while the rest scrolls beside it.
 - **Home (27d):** Next up and Needs you sit side by side. The design's side navigation rail isn't built: that's the app-wide adaptive-navigation item in §11.5, not part of this feature.
+- **Home "Next up" rows** use the shared `MatchRow` (date block, home side over away side with crests), the same row as the Matches tab, instead of their own one-line card. The call-up count pill went with the old card; `ClubHomeNextUp.callUpsTotal` is still sent but no longer shown.
 
 **Aligned against the design's own screenshots.** A first pass built from the canvas markup alone drifted in a few places, fixed after comparing against screenshots of every artboard:
 - **Match report card:** document icon with the badge on the right, and a pencil on "Fill in report".
