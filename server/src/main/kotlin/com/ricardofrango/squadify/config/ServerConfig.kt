@@ -164,13 +164,27 @@ object ServerConfig {
         ?: "http://localhost:8081"
 
     /**
-     * This server's own public address (no trailing slash), for links that leave the app: the club
-     * logo on a push notification, which the phone downloads without signing in. `PUBLIC_BASE_URL`
-     * if set, else Railway's own `RAILWAY_PUBLIC_DOMAIN` (over https). Null locally: a phone can't
-     * reach localhost, so pushes go without the logo.
+     * This server's own public address (no trailing slash), for links that leave the app: a push
+     * notification's picture (club logo, opponent logo, scorer photo), which the phone downloads without
+     * signing in. `PUBLIC_BASE_URL` if set, else Railway's own `RAILWAY_PUBLIC_DOMAIN` (over https).
+     * Running locally (DEV), this machine's LAN address over plain http -- the same one the dev app
+     * reaches the server on (devHost in app/androidApp/build.gradle.kts) -- so pictures can be tested
+     * on a phone; a phone can't reach localhost. Null when there's none either.
      */
     val publicBaseUrl: String? = System.getenv("PUBLIC_BASE_URL")?.trim()?.trimEnd('/')?.takeIf { it.isNotBlank() }
         ?: System.getenv("RAILWAY_PUBLIC_DOMAIN")?.trim()?.takeIf { it.isNotBlank() }?.let { "https://$it" }
+        ?: lanAddress()?.takeIf { environment == AppEnvironment.DEV }
+            ?.let { "http://$it:${System.getenv("SERVER_PORT")?.toIntOrNull() ?: 8080}" }
+
+    // The first site-local IPv4 address of an up, non-loopback interface, as the dev app's devHost.
+    private fun lanAddress(): String? = runCatching {
+        java.net.NetworkInterface.getNetworkInterfaces().asSequence()
+            .filter { it.isUp && !it.isLoopback && !it.isVirtual }
+            .flatMap { it.inetAddresses.asSequence() }
+            .filterIsInstance<java.net.Inet4Address>()
+            .firstOrNull { it.isSiteLocalAddress }
+            ?.hostAddress
+    }.getOrNull()
 
     /**
      * A Firebase service-account key (the raw JSON content, not a file path -- there's no reliable

@@ -21,6 +21,8 @@
     <string name="push_half_time">Half-time: %1$s %2$s - %3$s %4$s</string>
     <string name="push_second_half_started">Second half under way: %1$s vs %2$s</string>
     <string name="push_match_finished">Full-time: %1$s %2$s - %3$s %4$s</string>
+    <!-- A match's chat-style notification: "Sub-13 A vs Fontelas". -->
+    <string name="push_match_thread_title">%1$s vs %2$s</string>
     <string name="push_goal_scored">Goal! %1$s %2$s - %3$s %4$s</string>
     <string name="push_team_created_one">New team: %1$s has been added to %2$s</string>
     <string name="push_team_created_many">New teams added to %2$s: %1$s</string>

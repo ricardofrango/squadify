@@ -1,9 +1,12 @@
 package com.ricardofrango.squadify.data.service
 
+import com.ricardofrango.squadify.domain.service.GoalPush
 import com.ricardofrango.squadify.model.PushLink
+import com.ricardofrango.squadify.model.PushMessage
 import com.ricardofrango.squadify.model.MatchScore
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
+import kotlin.test.assertEquals
 
 /**
  * FIREBASE_SERVICE_ACCOUNT_JSON is unset in this environment (and in CI), so
@@ -114,5 +117,37 @@ class FirebaseAdminPushNotificationServiceTest {
             ageGroupName = "U15",
             clubName = "Test FC"
         )
+    }
+
+    // ---- What a match's notification shows: one thread per match, each line from someone ----
+
+    private val matchLink = PushLink.match("club-1", "m-1")
+    private val goalScore = MatchScore("m-1", 2, 1)
+
+    @Test
+    fun ourCreditedGoalIsALineFromTheScorerWithTheirPhoto() {
+        val message = FirebaseAdminPushNotificationService.goalMessage(matchLink, "Sub-13 A", "Fontelas", goalScore, GoalPush(true, "Rodrigo Costa", "https://x/photo.png"))
+        assertEquals(PushMessage.MatchThread("Sub-13 A", "Fontelas", PushMessage.Sender.SCORER, "Rodrigo Costa"), message.thread)
+        assertEquals("https://x/photo.png", message.imageUrl)
+        assertEquals("push_goal_scored" to listOf("Sub-13 A", "2", "1", "Fontelas"), message.bodyKey to message.bodyArgs)
+    }
+
+    @Test
+    fun aGoalWithoutAScorerIsALineFromOurTeam() {
+        val message = FirebaseAdminPushNotificationService.goalMessage(matchLink, "Sub-13 A", "Fontelas", goalScore, GoalPush())
+        assertEquals(PushMessage.Sender.TEAM, message.thread!!.sender)
+        assertEquals("Sub-13 A", message.thread!!.senderName)
+    }
+
+    @Test
+    fun theirGoalIsALineFromTheOpponent() {
+        val message = FirebaseAdminPushNotificationService.goalMessage(matchLink, "Sub-13 A", "Fontelas", goalScore, GoalPush(forUs = false, imageUrl = null))
+        assertEquals(PushMessage.MatchThread("Sub-13 A", "Fontelas", PushMessage.Sender.OPPONENT, "Fontelas"), message.thread)
+    }
+
+    @Test
+    fun kickoffHalfTimeAndFullTimeAreLinesFromOurTeam() {
+        val message = FirebaseAdminPushNotificationService.matchMessage(matchLink, "live_matches", "push_match_finished", listOf("Sub-13 A", "2", "1", "Fontelas"), "Sub-13 A", "Fontelas")
+        assertEquals(PushMessage.MatchThread("Sub-13 A", "Fontelas", PushMessage.Sender.TEAM, "Sub-13 A"), message.thread)
     }
 }

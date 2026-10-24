@@ -49,7 +49,8 @@ interface PushNotificationService {
     suspend fun sendHalfTime(tokens: List<String>, link: PushLink, teamName: String, opponentName: String, score: MatchScore)
     suspend fun sendSecondHalfStarted(tokens: List<String>, link: PushLink, teamName: String, opponentName: String)
     suspend fun sendMatchFinished(tokens: List<String>, link: PushLink, teamName: String, opponentName: String, score: MatchScore)
-    suspend fun sendGoalScored(tokens: List<String>, link: PushLink, teamName: String, opponentName: String, score: MatchScore)
+    /** [goal]: whose goal it was, our scorer's name, and the picture to show on the right. */
+    suspend fun sendGoalScored(tokens: List<String>, link: PushLink, teamName: String, opponentName: String, score: MatchScore, goal: GoalPush = GoalPush())
 
     /**
      * Sent to every device in [tokens] when one or more teams are created under an age group -- like
@@ -62,3 +63,10 @@ interface PushNotificationService {
      */
     suspend fun sendTeamCreated(tokens: List<String>, link: PushLink, teamNames: List<String>, ageGroupName: String, clubName: String)
 }
+
+/**
+ * A goal push's details. [forUs]: our goal (a goal of ours, or an opponent's own goal) or theirs.
+ * [scorerName]: our scorer, when the goal was ours and credited to a player. [imageUrl]: the scorer's
+ * photo (ours) or the opponent's logo (theirs), shown on the right; null falls back to the club's logo.
+ */
+data class GoalPush(val forUs: Boolean = true, val scorerName: String? = null, val imageUrl: String? = null)

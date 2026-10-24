@@ -5,9 +5,13 @@ import com.ricardofrango.squadify.domain.repository.FcmTokenRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
+import com.ricardofrango.squadify.domain.repository.PlayerRepository
+import com.ricardofrango.squadify.domain.service.GoalPush
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.model.EventType
+import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.PushLink
 import org.slf4j.LoggerFactory
@@ -28,6 +32,9 @@ enum class MatchNotificationEvent {
  * except here the data needed for the push (team/opponent names, the club's member token list) is
  * fetched in a transaction of this use case's own, since by the time it runs the triggering use
  * case's transaction has already closed.
+ *
+ * A goal push (given the goal itself) says whose goal it was: ours names the scorer and shows their
+ * photo, theirs shows the opponent's logo, each only when there is one (see [PublicImageLinks]).
  */
 class NotifyMatchEventUseCase(
     private val matchRepository: MatchRepository,
@@ -37,7 +44,9 @@ class NotifyMatchEventUseCase(
     private val clubRepository: ClubRepository,
     private val fcmTokenRepository: FcmTokenRepository,
     private val pushNotificationService: PushNotificationService,
-    private val transactionManager: TransactionManager
+    private val transactionManager: TransactionManager,
+    private val playerRepository: PlayerRepository,
+    private val publicImageLinks: PublicImageLinks
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -46,10 +55,12 @@ class NotifyMatchEventUseCase(
         val opponentName: String,
         val score: MatchScore,
         val tokens: List<String>,
-        val link: PushLink
+        val link: PushLink,
+        val goal: GoalPush
     )
 
-    suspend operator fun invoke(matchId: String, event: MatchNotificationEvent) {
+    /** [goal]: the goal (or own goal) behind a [MatchNotificationEvent.GOAL]. */
+    suspend operator fun invoke(matchId: String, event: MatchNotificationEvent, goal: MatchEvent? = null) {
         try {
             val context = transactionManager.runInTransaction {
                 val match = matchRepository.getMatchById(matchId) ?: return@runInTransaction null
@@ -64,7 +75,19 @@ class NotifyMatchEventUseCase(
                     opponentName = opponent.name,
                     score = matchEventRepository.getScoreByMatch(matchId),
                     tokens = tokens,
-                    link = PushLink.match(match.clubId, matchId)
+                    link = PushLink.match(match.clubId, matchId),
+                    goal = goal?.let { g ->
+                        // An own goal counts for the other side.
+                        val forUs = (g.type == EventType.GOAL) != g.isOpponent
+                        val scorer = g.playerId?.takeIf { forUs && g.type == EventType.GOAL && !g.isOpponent }
+                            ?.let { playerRepository.getPlayerById(it) }
+                        GoalPush(
+                            forUs = forUs,
+                            scorerName = scorer?.let { "${it.firstName} ${it.lastName}" },
+                            imageUrl = if (forUs) scorer?.let { publicImageLinks.playerPhoto(it.id, it.photoUrl) }
+                            else publicImageLinks.opponentLogo(opponent.id, opponent.logoUrl)
+                        )
+                    } ?: GoalPush()
                 )
             } ?: return
 
@@ -84,7 +107,7 @@ class NotifyMatchEventUseCase(
                 MatchNotificationEvent.FULL_TIME ->
                     pushNotificationService.sendMatchFinished(context.tokens, context.link, context.teamName, context.opponentName, context.score)
                 MatchNotificationEvent.GOAL ->
-                    pushNotificationService.sendGoalScored(context.tokens, context.link, context.teamName, context.opponentName, context.score)
+                    pushNotificationService.sendGoalScored(context.tokens, context.link, context.teamName, context.opponentName, context.score, context.goal)
             }
         } catch (e: Exception) {
             logger.error("Match notification failed for match {} / {}", matchId, event, e)
