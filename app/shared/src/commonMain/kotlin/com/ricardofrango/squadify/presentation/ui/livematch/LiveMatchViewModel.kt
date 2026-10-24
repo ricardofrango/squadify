@@ -27,11 +27,15 @@ import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_failed_to_load_match
 import squadify.app.shared.generated.resources.msg_live_match_action_failed
+import com.ricardofrango.squadify.model.MatchEvent
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.jetbrains.compose.resources.getString
 import kotlin.time.Clock
 import kotlin.time.Duration
@@ -46,6 +50,17 @@ import kotlin.time.Duration
  * best-effort listener that folds in changes made elsewhere (another coach's phone, the club office).
  * A dropped socket is not retried -- see PROCESS_FLOWS.md's live match console notes -- REST calls
  * keep working regardless, just without cross-device echo until the screen is reopened.
+ *
+ * Quick actions in a row stay in step (a de-sync seen in a real game, 2026-10-24: a swap made before
+ * the previous one's reply came back started moving the wrong players):
+ * - **Lineup saves go one at a time, in order.** Taps made while one is saving collapse into the
+ *   latest arrangement, sent when it returns ([drainLineups]).
+ * - **Our own echo can't roll the pitch back.** While a save is pending, a socket lineup that isn't
+ *   the one we last sent is ignored ([desiredLineup], [awaitingEcho]).
+ * - **Actions run one at a time and apply onto the latest state** ([runSubmitting]): each returns a
+ *   change, not a snapshot, so a swap or socket update that landed meanwhile isn't wiped out. They
+ *   also wait for pending lineup saves, so the server sees everything in the order it was done.
+ * - **A refused save reloads the server's pitch**, rather than restoring an older copy over later taps.
  */
 /**
  * What the live console can ask of its ViewModel -- an interface so the console's layout can be
@@ -95,6 +110,17 @@ class LiveMatchViewModel(
     private var matchId: String = ""
     private var subscribed = false
 
+    // The arrangement still to send, the running save loop, and the slots of the last one sent until
+    // the socket echoes them back. All touched on the main thread only (viewModelScope).
+    private var desiredLineup: MatchLineup? = null
+    private var lineupJob: Job? = null
+    private var awaitingEcho: Map<Int, String>? = null
+
+    // One action at a time: two substitutions sent together could interleave their OUT and IN events
+    // and be paired the wrong way round (see currentPitchSlots).
+    private val submitMutex = Mutex()
+    private var submitsInFlight = 0
+
     // How far the server's clock is ahead of this device's. Every match timestamp is the server's, so
     // the running clock counts with `now + clockOffset` -- otherwise a device a few seconds behind the
     // server shows the second half starting at 29:4x instead of 30:00. Re-measured on every fetch.
@@ -134,6 +160,12 @@ class LiveMatchViewModel(
         viewModelScope.launch {
             try {
                 observeLiveMatchUseCase(matchId).collect { update ->
+                    // A lineup other than the one we last sent, while ours is pending or unechoed, is an
+                    // older echo: applying it would put the pitch back to a previous arrangement. The
+                    // socket delivers in order, so once ours comes back nothing older can follow.
+                    val lineupSlots = update.lineup?.slots
+                    val staleLineup = lineupSlots != null && (desiredLineup != null || (awaitingEcho != null && lineupSlots != awaitingEcho))
+                    if (lineupSlots != null && lineupSlots == awaitingEcho) awaitingEcho = null
                     _state.update { state ->
                         if (state !is LiveMatchUiState.Idle) return@update state
                         var next = state.copy(score = update.score)
@@ -146,9 +178,10 @@ class LiveMatchViewModel(
                             }
                         }
                         update.match?.let { match ->
-                            next = next.copy(details = next.details.copy(match = match))
+                            val formation = if (staleLineup) next.details.match.formation else match.formation
+                            next = next.copy(details = next.details.copy(match = match.copy(formation = formation)))
                         }
-                        update.lineup?.let { lineup ->
+                        update.lineup?.takeIf { !staleLineup }?.let { lineup ->
                             next = next.copy(details = next.details.withLineup(lineup))
                         }
                         next
@@ -175,52 +208,71 @@ class LiveMatchViewModel(
         startMatchUseCase(matchId, StartMatchRequest(lineup.slots.values.toList(), halfLengthMinutes, lineup.formation))
         val details = fetchDetails()
         subscribeToLiveUpdates()
-        current.copy(details = details, events = emptyList(), score = MatchScore(matchId, 0, 0), isSubmitting = false)
+        ({ it.copy(details = details, events = emptyList(), score = MatchScore(matchId, 0, 0)) })
     }
 
     // Refetched rather than patched locally: the server records where the first half ended
     // (firstHalfEndMinute, including stoppage time), which the half-time minutes totals need.
-    override fun onHalfTime() = runSubmitting { current ->
+    override fun onHalfTime() = runSubmitting { _ ->
         updateMatchStatusUseCase(matchId, MatchStatus.HALF_TIME)
-        current.copy(details = fetchDetails(), isSubmitting = false)
+        withFetchedDetails()
     }
 
-    override fun onResumeSecondHalf() = runSubmitting { current ->
+    override fun onResumeSecondHalf() = runSubmitting { _ ->
         updateMatchStatusUseCase(matchId, MatchStatus.LIVE)
         // Mirrors what the server just persisted (UpdateMatchStatusUseCase sets this on the same
         // HALF_TIME -> LIVE transition) so the running clock picks it up immediately rather than
         // waiting on a refetch or the WebSocket echo.
-        current.copy(
-            details = current.details.copy(
-                match = current.details.match.copy(status = MatchStatus.LIVE, secondHalfStartedAt = serverNow(), pausedAt = null)
-            ),
-            isSubmitting = false
-        )
+        val startedAt = serverNow()
+        ({
+            it.copy(details = it.details.copy(match = it.details.match.copy(status = MatchStatus.LIVE, secondHalfStartedAt = startedAt, pausedAt = null)))
+        })
     }
 
     // Refetched for the full-time minute and the match report card the summary links to.
-    override fun onFullTime() = runSubmitting { current ->
+    override fun onFullTime() = runSubmitting { _ ->
         updateMatchStatusUseCase(matchId, MatchStatus.FINISHED)
-        current.copy(details = fetchDetails(), isSubmitting = false)
+        withFetchedDetails()
     }
 
     /**
      * Shown at once and saved in the background: placing players before kickoff is many quick taps,
-     * which shouldn't wait on the network. A refused save puts the pitch back as it was.
+     * which shouldn't wait on the network. Saves go one at a time; taps made meanwhile are sent as one,
+     * the latest, when the save in flight returns. A refused save reloads the server's pitch.
      */
     override fun onSetLineup(formation: String, slots: Map<Int, String>) {
-        val current = _state.value as? LiveMatchUiState.Idle ?: return
-        val before = current.details.storedLineup()
+        if (_state.value !is LiveMatchUiState.Idle) return
         val lineup = MatchLineup(formation, slots)
         _state.update { (it as? LiveMatchUiState.Idle)?.copy(details = it.details.withLineup(lineup), error = null) ?: it }
-        viewModelScope.launch {
+        desiredLineup = lineup
+        if (lineupJob?.isActive != true) lineupJob = viewModelScope.launch { drainLineups() }
+    }
+
+    private suspend fun drainLineups() {
+        while (true) {
+            val next = desiredLineup ?: return
+            desiredLineup = null
+            awaitingEcho = next.slots
             try {
-                setMatchLineupUseCase(matchId, SetMatchLineupRequest(formation, slots))
+                setMatchLineupUseCase(matchId, SetMatchLineupRequest(next.formation, next.slots))
             } catch (e: Exception) {
-                val message = errorMessage(e, Res.string.msg_live_match_action_failed)
-                _state.update { (it as? LiveMatchUiState.Idle)?.copy(details = it.details.withLineup(before), error = message) ?: it }
+                desiredLineup = null
+                awaitingEcho = null
+                // The pitch first, so the coach never keeps working on one the server doesn't have.
+                runCatching { fetchDetails() }.getOrNull()?.let { details ->
+                    _state.update { (it as? LiveMatchUiState.Idle)?.copy(details = details) ?: it }
+                }
+                val message = runCatching { errorMessage(e, Res.string.msg_live_match_action_failed) }.getOrNull()
+                _state.update { (it as? LiveMatchUiState.Idle)?.copy(error = message) ?: it }
+                return
             }
         }
+    }
+
+    /** The match as the server has it now, applied onto the latest state. */
+    private suspend fun withFetchedDetails(flash: LiveFlash? = null): (LiveMatchUiState.Idle) -> LiveMatchUiState.Idle {
+        val details = fetchDetails()
+        return { it.copy(details = details, flash = flash ?: it.flash) }
     }
 
     override fun clearFlash() {
@@ -234,14 +286,14 @@ class LiveMatchViewModel(
      * clock-skew risk from trusting this device's own `now()` for either the pause instant or the
      * resume-time shift math (see PauseMatchUseCase/ResumeMatchUseCase).
      */
-    override fun onPauseClock() = runSubmitting { current ->
+    override fun onPauseClock() = runSubmitting { _ ->
         pauseMatchUseCase(matchId)
-        current.copy(details = fetchDetails(), isSubmitting = false)
+        withFetchedDetails()
     }
 
-    override fun onResumeClock() = runSubmitting { current ->
+    override fun onResumeClock() = runSubmitting { _ ->
         resumeMatchUseCase(matchId)
-        current.copy(details = fetchDetails(), isSubmitting = false)
+        withFetchedDetails()
     }
 
     /**
@@ -250,9 +302,9 @@ class LiveMatchViewModel(
      * or any other device watching the same match). Refetches for the same reason as [onPauseClock]/
      * [onResumeClock]: the server computes the actual shift, this device's own clock is never trusted.
      */
-    override fun onSetMinute(minute: Int) = runSubmitting { current ->
+    override fun onSetMinute(minute: Int) = runSubmitting { _ ->
         setMatchMinuteUseCase(matchId, minute)
-        current.copy(details = fetchDetails(), isSubmitting = false, flash = LiveFlash.ClockSet(minute))
+        withFetchedDetails(flash = LiveFlash.ClockSet(minute))
     }
 
     /** Our score box (unattributed) or the opponent's -- see LiveMatchScreen's score row. */
@@ -262,59 +314,75 @@ class LiveMatchViewModel(
 
     /** One of our players scored; [assistPlayerId] is optional. The server saves the goal and its assist
      * together, so the event list is refetched to pick up the assist alongside the goal. */
-    override fun onLogPlayerGoal(scorerId: String, assistPlayerId: String?, minute: Int) = runSubmitting { current ->
+    override fun onLogPlayerGoal(scorerId: String, assistPlayerId: String?, minute: Int) = runSubmitting { _ ->
         addMatchEventUseCase(matchId, CreateMatchEventRequest(EventType.GOAL, minute, playerId = scorerId, assistPlayerId = assistPlayerId))
         val events = getMatchEventsUseCase(matchId)
         val score = getMatchScoreUseCase(matchId)
-        current.copy(events = events.sortedBy { it.minute }, score = score, isSubmitting = false)
+        ({ it.copy(events = events.sortedBy { e -> e.minute }, score = score) })
     }
 
-    override fun onSubstitute(outPlayerId: String, inPlayerId: String, minute: Int) = runSubmitting { current ->
+    override fun onSubstitute(outPlayerId: String, inPlayerId: String, minute: Int) = runSubmitting { _ ->
         val outEvent = addMatchEventUseCase(matchId, CreateMatchEventRequest(EventType.SUBSTITUTION_OUT, minute, playerId = outPlayerId))
         val inEvent = addMatchEventUseCase(matchId, CreateMatchEventRequest(EventType.SUBSTITUTION_IN, minute, playerId = inPlayerId))
-        current.copy(
-            events = (current.events + outEvent + inEvent).sortedBy { it.minute },
-            isSubmitting = false,
-            flash = LiveFlash.Substitution(minute, inPlayerId, outPlayerId)
-        )
+        ({ it.copy(events = it.events.with(outEvent, inEvent), flash = LiveFlash.Substitution(minute, inPlayerId, outPlayerId)) })
     }
 
-    override fun onDeleteEvent(eventId: String) = runSubmitting { current ->
+    override fun onDeleteEvent(eventId: String) = runSubmitting { _ ->
         deleteMatchEventUseCase(matchId, eventId)
         val score = getMatchScoreUseCase(matchId)
         // Deleting a goal also removes its linked assist on the server -- drop both here.
-        current.copy(events = current.events.filterNot { it.id == eventId || it.relatedEventId == eventId }, score = score, isSubmitting = false)
+        ({ it.copy(events = it.events.filterNot { e -> e.id == eventId || e.relatedEventId == eventId }, score = score) })
     }
 
     /** Deletes both halves of a logged substitution together -- see LiveMatchScreen's paired row. */
-    override fun onDeleteSubstitution(outEventId: String, inEventId: String) = runSubmitting { current ->
+    override fun onDeleteSubstitution(outEventId: String, inEventId: String) = runSubmitting { _ ->
         deleteMatchEventUseCase(matchId, outEventId)
         deleteMatchEventUseCase(matchId, inEventId)
-        current.copy(events = current.events.filterNot { it.id == outEventId || it.id == inEventId }, isSubmitting = false)
+        ({ it.copy(events = it.events.filterNot { e -> e.id == outEventId || e.id == inEventId }) })
     }
 
-    private fun addEvent(request: CreateMatchEventRequest) = runSubmitting { current ->
+    private fun addEvent(request: CreateMatchEventRequest) = runSubmitting { _ ->
         val event = addMatchEventUseCase(matchId, request)
         val score = getMatchScoreUseCase(matchId)
-        current.copy(events = (current.events + event).sortedBy { it.minute }, score = score, isSubmitting = false)
+        ({ it.copy(events = it.events.with(event), score = score) })
     }
 
-    private fun runSubmitting(block: suspend (LiveMatchUiState.Idle) -> LiveMatchUiState.Idle) {
-        val current = _state.value as? LiveMatchUiState.Idle ?: return
-        _state.update { current.copy(isSubmitting = true, error = null) }
+    /** [added] in the event list once each (the socket may have brought them in already), by minute. */
+    private fun List<MatchEvent>.with(vararg added: MatchEvent): List<MatchEvent> {
+        val ids = added.map { it.id }.toSet()
+        return (filterNot { it.id in ids } + added).sortedBy { it.minute }
+    }
+
+    /**
+     * Runs one action. [block] gets the state as it is when the action's turn comes and does the network
+     * calls; it returns a change to apply onto the state as it is when they finish -- not a snapshot,
+     * which would wipe out a swap or socket update that landed in between. Actions run one at a time,
+     * after any pending lineup save.
+     */
+    private fun runSubmitting(block: suspend (LiveMatchUiState.Idle) -> (LiveMatchUiState.Idle) -> LiveMatchUiState.Idle) {
+        if (_state.value !is LiveMatchUiState.Idle) return
+        submitsInFlight++
+        _state.update { (it as? LiveMatchUiState.Idle)?.copy(isSubmitting = true, error = null) ?: it }
         viewModelScope.launch {
-            try {
-                // block() makes real network calls (POST/DELETE) -- it must run exactly once. Calling
-                // it directly inside _state.update {} is wrong: update() is a compare-and-swap retry
-                // loop, and any concurrent write to _state (e.g. subscribeToLiveUpdates' WebSocket
-                // handler firing for this same call's own broadcast) makes it retry the lambda, which
-                // would re-run block() and re-send the request -- this is what caused one tap to fire a
-                // burst of duplicate POSTs. Compute the result once, then apply it as a plain value.
-                val result = block(current)
-                _state.update { result }
-            } catch (e: Exception) {
-                val message = errorMessage(e, Res.string.msg_live_match_action_failed)
-                _state.update { current.copy(isSubmitting = false, error = message) }
+            submitMutex.withLock {
+                try {
+                    lineupJob?.join()
+                    val current = _state.value as? LiveMatchUiState.Idle ?: return@withLock
+                    // block() makes real network calls (POST/DELETE) -- it must run exactly once. Calling
+                    // it directly inside _state.update {} is wrong: update() is a compare-and-swap retry
+                    // loop, and any concurrent write to _state (e.g. subscribeToLiveUpdates' WebSocket
+                    // handler firing for this same call's own broadcast) makes it retry the lambda, which
+                    // would re-run block() and re-send the request -- this is what caused one tap to fire a
+                    // burst of duplicate POSTs. Run it once, then apply its change (pure, safe to retry).
+                    val change = block(current)
+                    _state.update { (it as? LiveMatchUiState.Idle)?.let(change) ?: it }
+                } catch (e: Exception) {
+                    val message = errorMessage(e, Res.string.msg_live_match_action_failed)
+                    _state.update { (it as? LiveMatchUiState.Idle)?.copy(error = message) ?: it }
+                } finally {
+                    submitsInFlight--
+                    _state.update { (it as? LiveMatchUiState.Idle)?.copy(isSubmitting = submitsInFlight > 0) ?: it }
+                }
             }
         }
     }

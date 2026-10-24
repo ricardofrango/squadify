@@ -1140,7 +1140,7 @@ private object PreviewLiveMatchActions : LiveMatchActions {
     override fun onTabSelected(tab: LiveMatchTab) {}
 }
 
-private fun previewLiveDetails(match: Match, placed: Int = 7): MatchDetails {
+internal fun previewLiveDetails(match: Match, placed: Int = 7): MatchDetails {
     fun player(id: String, first: String, last: String, number: Int?, position: PlayerPosition) =
         Player(id, "c1", first, last, LocalDate(2013, 3, 12), shirtNumber = number, active = true, position = position)
     val squad = listOf(
