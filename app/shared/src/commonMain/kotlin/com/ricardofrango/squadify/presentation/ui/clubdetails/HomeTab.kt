@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.*
 import com.ricardofrango.squadify.presentation.ui.components.daysAgoLabel
 import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
-import com.ricardofrango.squadify.presentation.ui.opponents.OpponentLogo
+import com.ricardofrango.squadify.presentation.ui.components.MatchRow
 import com.ricardofrango.squadify.presentation.ui.theme.Amber
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -69,6 +69,8 @@ fun HomeTab(
     onRetry: () -> Unit,
     onNavigateToAgeGroup: (ageGroupId: String) -> Unit,
     onNavigateToMatch: (matchId: String) -> Unit,
+    // Our side's crest on the Next up rows, as on the Matches tab.
+    clubLogoUrl: String? = null,
     // A missing-plan alert opens that plan's editor (design 40g).
     onEditPlan: (ageGroupId: String, level: TrainingPlanLevel, periodStart: LocalDate) -> Unit = { _, _, _ -> },
     // A training ratings to-do opens Rate players (design 39i).
@@ -115,12 +117,12 @@ fun HomeTab(
             val wide = maxWidth > 600.dp
             if (wide) {
                 Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                    NextUpSection(home, onNavigateToMatch, Modifier.weight(1f))
+                    NextUpSection(home, clubLogoUrl, onNavigateToMatch, Modifier.weight(1f))
                     NeedsYouSection(home, onNavigateToAgeGroup, onNavigateToMatch, onEditPlan, onRateSession, Modifier.weight(1f))
                 }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                    NextUpSection(home, onNavigateToMatch)
+                    NextUpSection(home, clubLogoUrl, onNavigateToMatch)
                     NeedsYouSection(home, onNavigateToAgeGroup, onNavigateToMatch, onEditPlan, onRateSession)
                 }
             }
@@ -129,7 +131,7 @@ fun HomeTab(
 }
 
 @Composable
-private fun NextUpSection(home: ClubHome, onNavigateToMatch: (String) -> Unit, modifier: Modifier = Modifier) {
+private fun NextUpSection(home: ClubHome, clubLogoUrl: String?, onNavigateToMatch: (String) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         SectionTitle(stringResource(Res.string.label_home_next_up))
         if (home.nextUp.isEmpty()) {
@@ -139,10 +141,26 @@ private fun NextUpSection(home: ClubHome, onNavigateToMatch: (String) -> Unit, m
                 color = DeepCarbon.copy(alpha = 0.5f)
             )
         } else {
-            home.nextUp.forEach { row -> NextUpRow(row, onClick = { onNavigateToMatch(row.matchId) }) }
+            // The same row as the Matches tab, so a fixture looks alike wherever it's listed.
+            home.nextUp.forEach { row ->
+                MatchRow(
+                    match = row.asMatch(),
+                    teamName = row.teamName,
+                    opponentName = row.opponentName,
+                    opponentLogoUrl = row.opponentLogoUrl,
+                    clubLogoUrl = clubLogoUrl,
+                    onClick = { onNavigateToMatch(row.matchId) }
+                )
+            }
         }
     }
 }
+
+/** Next up only lists scheduled games, so the fields [MatchRow] reads are all there. */
+private fun ClubHomeNextUp.asMatch() = Match(
+    id = matchId, clubId = "", teamId = teamId, opponentId = "",
+    location = location, dateTime = dateTime, venue = venue
+)
 
 /**
  * "Needs you" (design 27): one card, rows split by hairlines. Time-bound items first (call-ups), then
@@ -359,57 +377,6 @@ private fun SectionTitle(text: String) {
     )
 }
 
-@Composable
-private fun NextUpRow(item: ClubHomeNextUp, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = CardShape,
-        color = Color.White,
-        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))
-    ) {
-        Row(modifier = Modifier.padding(14.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            DateBlock(item.dateTime)
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    item.opponentLogoUrl?.let {
-                        OpponentLogo(item.opponentName, null, it, size = 20.dp)
-                        Spacer(Modifier.width(6.dp))
-                    }
-                    // Home first, as a fixture reads.
-                    Text(
-                        if (item.venue.ourSideFirst()) "${item.teamName} · ${item.opponentName}" else "${item.opponentName} · ${item.teamName}",
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                        color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis
-                    )
-                }
-                Text(
-                    listOfNotNull(timeLabel(item.dateTime), item.location?.takeIf { it.isNotBlank() })
-                        .joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DeepCarbon.copy(alpha = 0.55f),
-                    maxLines = 1, overflow = TextOverflow.Ellipsis
-                )
-            }
-            Spacer(Modifier.width(8.dp))
-            CallUpPill(calledUp = item.callUpsTotal)
-        }
-    }
-}
-
-@Composable
-private fun CallUpPill(calledUp: Int) {
-    Surface(shape = RoundedCornerShape(8.dp), color = CarbonGray.copy(alpha = 0.12f)) {
-        Text(
-            calledUp.toString(),
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-            color = DeepCarbon.copy(alpha = 0.55f)
-        )
-    }
-}
-
 private const val REPORT_GROUP_THRESHOLD = 3
 // A pending report older than this gets an amber dot (27e).
 private const val REPORT_OVERDUE_DAYS = 7
@@ -508,28 +475,6 @@ private fun AlertRowContent(
             Icon(painterResource(trailingIcon), contentDescription = null, tint = DeepCarbon.copy(alpha = 0.4f), modifier = Modifier.size(22.dp))
         }
     }
-}
-
-@Composable
-private fun DateBlock(instant: Instant) {
-    val dt = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(36.dp)) {
-        Text(
-            dt.dayOfWeek.name.take(3),
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-            color = PitchGreen
-        )
-        Text(
-            dt.day.toString(),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            color = DeepCarbon
-        )
-    }
-}
-
-private fun timeLabel(instant: Instant): String {
-    val dt = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    return "${dt.hour.toString().padStart(2, '0')}:${dt.minute.toString().padStart(2, '0')}"
 }
 
 private fun roleLabel(role: ClubRole): StringResource = when (role) {

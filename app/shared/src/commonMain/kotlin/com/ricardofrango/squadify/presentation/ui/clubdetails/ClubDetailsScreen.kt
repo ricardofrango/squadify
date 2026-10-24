@@ -244,6 +244,7 @@ private fun ClubDetailsTabContent(
                 onRetry = { actions.loadClubDetails(clubId, forceReload = true) },
                 onNavigateToAgeGroup = onNavigateToAgeGroup,
                 onNavigateToMatch = onNavigateToMatch,
+                clubLogoUrl = state.details?.club?.logoUrl,
                 onEditPlan = onNavigateToEditPlan,
                 onRateSession = onNavigateToRateSession
             )

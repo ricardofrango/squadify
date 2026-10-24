@@ -440,7 +440,7 @@ graph TD
     B -- denied --> F(["Throw ForbiddenException"])
     B -- allowed --> C[Fetch club; resolve role + season (active, else latest-ending)]
     C --> D["Counts: teams, players, coaches; matchesThisWeek = club matches whose date is in the Mon–Sun week containing today"]
-    D --> E["Next up: per team, soonest SCHEDULED future match → opponent name and logo + call-up count"]
+    D --> E["Next up: per team, soonest SCHEDULED future match → opponent name and logo + call-up count (count not shown since rows use MatchRow)"]
     E --> G{role >= COORDINATOR or platform admin?}
     G -- Yes --> H["alert per season age group with no COACH in age_group_staff (AGE_GROUP_NEEDS_COACH)"]
     G -- No --> I
