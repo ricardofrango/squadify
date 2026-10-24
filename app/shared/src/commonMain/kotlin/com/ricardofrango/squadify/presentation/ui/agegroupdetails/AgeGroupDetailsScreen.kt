@@ -65,6 +65,8 @@ fun AgeGroupDetailsScreen(
     ageGroupId: String,
     onNavigateBack: () -> Unit,
     onNavigateToTeam: (teamId: String) -> Unit,
+    // "See full stats" on the Stats tab: the Full stats table for the whole age group.
+    onNavigateToFullStats: (ageGroupId: String) -> Unit = {},
     onNavigateToPlayer: (playerId: String) -> Unit,
     onNavigateToMatch: (matchId: String) -> Unit,
     onNavigateToAddPlayers: (clubId: String, clubName: String, ageGroupId: String) -> Unit,
@@ -100,7 +102,7 @@ fun AgeGroupDetailsScreen(
         val recordState by viewModel.record.collectAsStateWithLifecycle()
         val plansState by viewModel.plans.collectAsStateWithLifecycle()
         val sessionsState by viewModel.sessions.collectAsStateWithLifecycle()
-        val trainingStats by viewModel.trainingStats.collectAsStateWithLifecycle()
+        val fullStats by viewModel.fullStats.collectAsStateWithLifecycle()
         val tab by viewModel.tab.collectAsStateWithLifecycle()
         val matchesTeamId by viewModel.matchesTeamId.collectAsStateWithLifecycle()
         var searchQuery by remember { mutableStateOf("") }
@@ -124,7 +126,7 @@ fun AgeGroupDetailsScreen(
             recordState = recordState,
             plansState = plansState,
             sessionsState = sessionsState,
-            trainingStats = trainingStats,
+            fullStats = fullStats,
             snackbarHostState = snackbarHostState,
             tab = tab,
             matchesTeamId = matchesTeamId,
@@ -146,6 +148,7 @@ fun AgeGroupDetailsScreen(
             onWeekPlan = { monday, edit -> onNavigateToWeekPlan(ageGroupId, monday, edit) },
             onPlayerClick = onNavigateToPlayer,
             onTeamClick = onNavigateToTeam,
+            onOpenFullStats = { onNavigateToFullStats(ageGroupId) },
             onMatchClick = onNavigateToMatch,
             onAddPlayers = { d -> onNavigateToAddPlayers(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
             onAddStaff = { d -> onNavigateToAddStaff(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
@@ -185,7 +188,7 @@ private fun AgeGroupDetailsContent(
     recordState: AgeGroupRecordUiState,
     plansState: AgeGroupPlansUiState = AgeGroupPlansUiState.Loading,
     sessionsState: AgeGroupSessionsUiState = AgeGroupSessionsUiState.Loading,
-    trainingStats: com.ricardofrango.squadify.model.AgeGroupTrainingStats? = null,
+    fullStats: com.ricardofrango.squadify.model.FullStatsData? = null,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     tab: AgeGroupTab,
     matchesTeamId: String?,
@@ -207,6 +210,7 @@ private fun AgeGroupDetailsContent(
     onWeekPlan: (LocalDate, edit: Boolean) -> Unit = { _, _ -> },
     onPlayerClick: (String) -> Unit,
     onTeamClick: (String) -> Unit,
+    onOpenFullStats: () -> Unit = {},
     onMatchClick: (String) -> Unit,
     onAddPlayers: (AgeGroupDetails) -> Unit,
     onAddStaff: (AgeGroupDetails) -> Unit,
@@ -278,7 +282,8 @@ private fun AgeGroupDetailsContent(
                                 nextHint = nextHint, onViewNext = next?.let { { onMatchClick(it.id) } }, sideBySide = landscape,
                                 onGoToTeams = { onTabSelected(AgeGroupTab.TEAMS) }, onRetry = onRetryRecord,
                                 onFilterSelected = onFilterSelected, onOpenPlayer = onPlayerClick,
-                                trainingStats = trainingStats
+                                fullStats = fullStats,
+                                onOpenFullStats = onOpenFullStats
                             )
                             AgeGroupTab.TEAMS -> AgeGroupTeamsTab(
                                 details = d, recordState = recordState, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,

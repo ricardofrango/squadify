@@ -47,6 +47,12 @@ import com.ricardofrango.squadify.presentation.ui.components.MatchRow
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.RatingPill
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
+import com.ricardofrango.squadify.presentation.ui.teamdetails.LeadersCard
+import com.ricardofrango.squadify.model.FullStatsData
+import com.ricardofrango.squadify.model.FullStatsQuery
+import com.ricardofrango.squadify.model.leaders
+import com.ricardofrango.squadify.model.table
+import squadify.app.shared.generated.resources.ag_leaders
 import com.ricardofrango.squadify.presentation.ui.components.StatsFilterSegments
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
@@ -95,8 +101,6 @@ import squadify.app.shared.generated.resources.msg_no_sessions_day
 import squadify.app.shared.generated.resources.btn_add_one_session
 import squadify.app.shared.generated.resources.btn_calendar
 import squadify.app.shared.generated.resources.btn_list
-import com.ricardofrango.squadify.presentation.ui.training.AgeGroupTrainingStatsCard
-import com.ricardofrango.squadify.model.AgeGroupTrainingStats
 
 // The four tabs of Age Group Details (design 33). Every number is derived from AgeGroupDetails (teams,
 // fixtures, staff, pool) and AgeGroupSeasonRecord (each team's season) by the shared code in
@@ -163,12 +167,21 @@ internal fun AgeGroupStatsTab(
     onRetry: () -> Unit,
     onFilterSelected: (StatsFilter) -> Unit,
     onOpenPlayer: (String) -> Unit,
-    // Staff only (design 39j); null hides the card.
-    trainingStats: AgeGroupTrainingStats? = null
+    // The leaders card's data (the Full stats data); null hides it until loaded.
+    fullStats: FullStatsData? = null,
+    // The Full stats table for the whole age group, from the leaders card's footer.
+    onOpenFullStats: () -> Unit = {}
 ) {
     LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         statsItems(details, recordState, nextHint, onViewNext, sideBySide, onGoToTeams, onRetry, onFilterSelected, onOpenPlayer)
-        trainingStats?.let { stats -> item(key = "training-stats") { AgeGroupTrainingStatsCard(stats, onOpenPlayer) } }
+        // As a team's Team leaders, for the whole age group: the ranking is games and trainings together
+        // (the developer, 2026-10-24; it replaced the training card with its month filter and sort).
+        if (fullStats != null && details.teams.isNotEmpty() && recordState is AgeGroupRecordUiState.Loaded) {
+            item(key = "leaders") {
+                val leaders = remember(fullStats, recordState.filter) { fullStats.table(FullStatsQuery(type = recordState.filter)).leaders() }
+                LeadersCard(stringResource(Res.string.ag_leaders), leaders, fullStats.canSeeRatings, onSeeAll = onOpenFullStats, onOpenPlayer = onOpenPlayer)
+            }
+        }
     }
 }
 

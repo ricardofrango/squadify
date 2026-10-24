@@ -7,8 +7,8 @@ import com.ricardofrango.squadify.domain.usecase.GetAgeGroupSeasonRecordUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTrainingPlansUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTrainingSessionsUseCase
 import com.ricardofrango.squadify.domain.usecase.RemovePlayerFromAgeGroupUseCase
-import com.ricardofrango.squadify.domain.usecase.TrainingStatsUseCase
-import com.ricardofrango.squadify.model.AgeGroupTrainingStats
+import com.ricardofrango.squadify.domain.usecase.GetFullStatsUseCase
+import com.ricardofrango.squadify.model.FullStatsData
 import com.ricardofrango.squadify.data.remote.ApiException
 import io.ktor.http.HttpStatusCode
 import com.ricardofrango.squadify.model.StatsFilter
@@ -30,7 +30,7 @@ class AgeGroupDetailsViewModel(
     private val getAgeGroupSeasonRecordUseCase: GetAgeGroupSeasonRecordUseCase,
     private val getTrainingPlansUseCase: GetTrainingPlansUseCase,
     private val getTrainingSessionsUseCase: GetTrainingSessionsUseCase,
-    private val trainingStatsUseCase: TrainingStatsUseCase,
+    private val getFullStatsUseCase: GetFullStatsUseCase,
     private val removePlayerFromAgeGroupUseCase: RemovePlayerFromAgeGroupUseCase
 ) : ViewModel() {
 
@@ -38,9 +38,9 @@ class AgeGroupDetailsViewModel(
     private val _playerRemoval = MutableSharedFlow<PlayerRemovalResult>()
     val playerRemoval: SharedFlow<PlayerRemovalResult> = _playerRemoval.asSharedFlow()
 
-    // The Stats tab's TRAINING card (design 39j); null for anyone who can't see it (staff only).
-    private val _trainingStats = MutableStateFlow<AgeGroupTrainingStats?>(null)
-    val trainingStats: StateFlow<AgeGroupTrainingStats?> = _trainingStats.asStateFlow()
+    // The Stats tab's leaders card, from the Full stats data (games and trainings); null until loaded or on failure.
+    private val _fullStats = MutableStateFlow<FullStatsData?>(null)
+    val fullStats: StateFlow<FullStatsData?> = _fullStats.asStateFlow()
 
     private val _state = MutableStateFlow<AgeGroupDetailsUiState>(AgeGroupDetailsUiState.Loading)
     val state: StateFlow<AgeGroupDetailsUiState> = _state.asStateFlow()
@@ -67,7 +67,7 @@ class AgeGroupDetailsViewModel(
         loadRecord(ageGroupId)
         loadPlans(ageGroupId)
         loadSessions(ageGroupId)
-        viewModelScope.launch { _trainingStats.value = runCatching { trainingStatsUseCase.ageGroup(ageGroupId) }.getOrNull() }
+        viewModelScope.launch { _fullStats.value = runCatching { getFullStatsUseCase.ageGroup(ageGroupId) }.getOrNull() }
 
         viewModelScope.launch {
             _state.update { AgeGroupDetailsUiState.Loading }
@@ -123,7 +123,7 @@ class AgeGroupDetailsViewModel(
 
     /**
      * Takes [playerId] out of this age group's pool (they stay in the club). The list drops them at
-     * once; the season record and training stats reload, since they're built from the pool.
+     * once; the season record and the leaders reload, since they're built from the pool.
      */
     fun removePlayer(ageGroupId: String, playerId: String) {
         val details = (_state.value as? AgeGroupDetailsUiState.Idle)?.details ?: return
@@ -133,7 +133,7 @@ class AgeGroupDetailsViewModel(
                 removePlayerFromAgeGroupUseCase(ageGroupId, playerId)
                 _state.update { s -> (s as? AgeGroupDetailsUiState.Idle)?.let { it.copy(details = it.details.copy(players = it.details.players.filter { p -> p.id != playerId })) } ?: s }
                 loadRecord(ageGroupId)
-                _trainingStats.value = runCatching { trainingStatsUseCase.ageGroup(ageGroupId) }.getOrNull()
+                _fullStats.value = runCatching { getFullStatsUseCase.ageGroup(ageGroupId) }.getOrNull()
                 _playerRemoval.emit(PlayerRemovalResult.Removed("${player.firstName} ${player.lastName}", details.ageGroup.name))
             } catch (e: Exception) {
                 _playerRemoval.emit(PlayerRemovalResult.Failed(errorMessage(e, Res.string.msg_remove_player_failed)))

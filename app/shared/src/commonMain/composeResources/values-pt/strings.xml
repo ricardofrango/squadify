@@ -748,6 +748,7 @@
     <string name="ag_combined">Escalão · %1$d jogos</string>
     <string name="ag_goals">Golos %1$d–%2$d</string>
     <string name="ag_minutes_title">Minutos do plantel</string>
+    <string name="ag_leaders">Destaques do escalão</string>
     <string name="ag_pool_players">%1$d jogadores</string>
     <string name="ag_band_lots">Muito tempo</string>
     <string name="ag_band_some">Algum tempo</string>
@@ -1470,4 +1471,49 @@
     <string name="lm_action_red">Vermelho</string>
     <string name="lm_action_substitution">Substituição</string>
     <string name="lm_team_size_side">%1$d a jogar</string>
+    <!-- Full stats -->
+    <string name="fs_title">Estatísticas completas</string>
+    <string name="fs_title_of">Estatísticas de %1$s</string>
+    <string name="fs_see_all">Ver estatísticas completas</string>
+    <string name="fs_columns">Colunas</string>
+    <string name="fs_player">Jogador</string>
+    <string name="fs_col_goals">Golos</string>
+    <string name="fs_col_assists">Assist.</string>
+    <string name="fs_col_minutes">Min.</string>
+    <string name="fs_col_games_rating">Jogos</string>
+    <string name="fs_col_training_rating">Treinos</string>
+    <string name="fs_col_final_rating">Final</string>
+    <string name="fs_col_won">V</string>
+    <string name="fs_col_drawn">E</string>
+    <string name="fs_col_lost">D</string>
+    <string name="fs_name_minutes">Minutos</string>
+    <string name="fs_name_games_rating">Classificação nos jogos</string>
+    <string name="fs_name_training_rating">Classificação nos treinos</string>
+    <string name="fs_name_final_rating">Classificação final</string>
+    <string name="fs_name_won">Vitórias</string>
+    <string name="fs_name_drawn">Empates</string>
+    <string name="fs_name_lost">Derrotas</string>
+    <string name="fs_name_yellow">Cartões amarelos</string>
+    <string name="fs_name_red">Cartões vermelhos</string>
+    <string name="fs_columns_title">Colunas visíveis</string>
+    <string name="fs_columns_note">O jogador está sempre visível.</string>
+    <string name="fs_done">Concluído</string>
+    <string name="fs_period">Período</string>
+    <string name="fs_period_week">Esta semana</string>
+    <string name="fs_period_7_days">Últimos 7 dias</string>
+    <string name="fs_period_month">Este mês</string>
+    <string name="fs_period_season">Toda a época</string>
+    <string name="fs_period_custom">Período personalizado</string>
+    <string name="fs_range">%1$s – %2$s</string>
+    <string name="fs_today">Hoje</string>
+    <string name="fs_from">De</string>
+    <string name="fs_to">Até</string>
+    <string name="fs_final_title">Classificação final</string>
+    <string name="fs_final_info">Como funciona a classificação final</string>
+    <string name="fs_final_body">A classificação final é a média de todas as avaliações do período, jogos e treinos juntos. Cada jogo conta como uma avaliação e cada treino como uma avaliação. Um treino a que o jogador faltou não conta.</string>
+    <string name="fs_final_example">Exemplo: 1 jogo com 7.0 e 3 treinos com 6.0, 7.0 e 8.0 → (7.0 + 6.0 + 7.0 + 8.0) ÷ 4 = 7.0</string>
+    <string name="fs_empty_title">Sem jogos nem treinos neste período</string>
+    <string name="fs_empty_hint">Alarga o intervalo de datas para ver as estatísticas.</string>
+    <string name="fs_widen">Alargar período</string>
+    <string name="fs_error_title">Não foi possível carregar as estatísticas</string>
 </resources>

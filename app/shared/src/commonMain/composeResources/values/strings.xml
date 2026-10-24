@@ -750,6 +750,7 @@
     <string name="ag_combined">Age group · %1$d played</string>
     <string name="ag_goals">Goals %1$d–%2$d</string>
     <string name="ag_minutes_title">Minutes across the pool</string>
+    <string name="ag_leaders">Age group leaders</string>
     <string name="ag_pool_players">%1$d players</string>
     <string name="ag_band_lots">Lots of time</string>
     <string name="ag_band_some">Some time</string>
@@ -1472,4 +1473,49 @@
     <string name="lm_action_red">Red</string>
     <string name="lm_action_substitution">Substitution</string>
     <string name="lm_team_size_side">%1$d-a-side</string>
+    <!-- Full stats -->
+    <string name="fs_title">Full stats</string>
+    <string name="fs_title_of">%1$s stats</string>
+    <string name="fs_see_all">See full stats</string>
+    <string name="fs_columns">Columns</string>
+    <string name="fs_player">Player</string>
+    <string name="fs_col_goals">Goals</string>
+    <string name="fs_col_assists">Assists</string>
+    <string name="fs_col_minutes">Min</string>
+    <string name="fs_col_games_rating">Games</string>
+    <string name="fs_col_training_rating">Training</string>
+    <string name="fs_col_final_rating">Final</string>
+    <string name="fs_col_won">W</string>
+    <string name="fs_col_drawn">D</string>
+    <string name="fs_col_lost">L</string>
+    <string name="fs_name_minutes">Minutes</string>
+    <string name="fs_name_games_rating">Games ranking</string>
+    <string name="fs_name_training_rating">Training ranking</string>
+    <string name="fs_name_final_rating">Final ranking</string>
+    <string name="fs_name_won">Games won</string>
+    <string name="fs_name_drawn">Games drawn</string>
+    <string name="fs_name_lost">Games lost</string>
+    <string name="fs_name_yellow">Yellow cards</string>
+    <string name="fs_name_red">Red cards</string>
+    <string name="fs_columns_title">Visible columns</string>
+    <string name="fs_columns_note">Player is always shown.</string>
+    <string name="fs_done">Done</string>
+    <string name="fs_period">Period</string>
+    <string name="fs_period_week">This week</string>
+    <string name="fs_period_7_days">Last 7 days</string>
+    <string name="fs_period_month">This month</string>
+    <string name="fs_period_season">Whole season</string>
+    <string name="fs_period_custom">Custom range</string>
+    <string name="fs_range">%1$s – %2$s</string>
+    <string name="fs_today">Today</string>
+    <string name="fs_from">From</string>
+    <string name="fs_to">To</string>
+    <string name="fs_final_title">Final ranking</string>
+    <string name="fs_final_info">How the final ranking works</string>
+    <string name="fs_final_body">The final ranking is the average of every game and training rating in the period, together. Each game counts as one rating and each training as one rating. A training the player missed doesn\'t count.</string>
+    <string name="fs_final_example">Example: 1 game rated 7.0 and 3 trainings rated 6.0, 7.0 and 8.0 → (7.0 + 6.0 + 7.0 + 8.0) ÷ 4 = 7.0</string>
+    <string name="fs_empty_title">No games or trainings in this period</string>
+    <string name="fs_empty_hint">Widen the date range to see player stats.</string>
+    <string name="fs_widen">Widen range</string>
+    <string name="fs_error_title">Couldn\'t load the stats</string>
 </resources>

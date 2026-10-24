@@ -12,6 +12,7 @@ interface AgeGroupRepository {
     suspend fun updateAgeGroup(ageGroupId: String, request: com.ricardofrango.squadify.model.UpdateAgeGroupRequest)
     suspend fun getAgeGroupDetails(ageGroupId: String): AgeGroupDetails
     suspend fun getAgeGroupSeasonRecord(ageGroupId: String): com.ricardofrango.squadify.model.AgeGroupSeasonRecord
+    suspend fun getAgeGroupFullStats(ageGroupId: String): com.ricardofrango.squadify.model.FullStatsData
     suspend fun getAgeGroupStaff(ageGroupId: String): List<AgeGroupStaffMember>
     suspend fun addStaffToAgeGroup(ageGroupId: String, request: AddStaffToAgeGroupRequest)
 }

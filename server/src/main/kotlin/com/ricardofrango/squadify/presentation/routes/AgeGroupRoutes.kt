@@ -5,6 +5,7 @@ import com.ricardofrango.squadify.domain.usecase.RemovePlayerFromAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.AddStaffToAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.CreateAgeGroupsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupDetailsUseCase
+import com.ricardofrango.squadify.domain.usecase.GetFullStatsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupSeasonRecordUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupStaffUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupsUseCase
@@ -42,6 +43,7 @@ fun Route.ageGroupRoutes() {
     val addStaffToAgeGroupUseCase by inject<AddStaffToAgeGroupUseCase>()
     val getAgeGroupStaffUseCase by inject<GetAgeGroupStaffUseCase>()
     val getAgeGroupDetailsUseCase by inject<GetAgeGroupDetailsUseCase>()
+    val getFullStatsUseCase by inject<GetFullStatsUseCase>()
     val getAgeGroupSeasonRecordUseCase by inject<GetAgeGroupSeasonRecordUseCase>()
     val getTrainingPlansUseCase by inject<GetTrainingPlansUseCase>()
     val saveTrainingPlanUseCase by inject<SaveTrainingPlanUseCase>()
@@ -93,6 +95,15 @@ fun Route.ageGroupRoutes() {
                 val currentUserId =
                     call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
                 call.respond(getAgeGroupSeasonRecordUseCase(currentUserId, ageGroupId))
+            }
+
+            // Every pool player's stats for the Full stats table.
+            get("/{ageGroupId}/full-stats") {
+                val ageGroupId = call.parameters["ageGroupId"]
+                    ?: return@get call.respond(HttpStatusCode.BadRequest)
+                val currentUserId =
+                    call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                call.respond(getFullStatsUseCase.ageGroup(currentUserId, ageGroupId))
             }
 
             get("/{ageGroupId}/details") {

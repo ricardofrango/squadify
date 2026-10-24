@@ -954,6 +954,36 @@ The W/D/L record, form, goals and team leaders are all derived on the client fro
   - Ties share a rank (1, 1, 1, 4), ordered by name.
   - The rating board needs at least two rated matches per player.
 
+### 4.6d Get Full Stats (`GetFullStatsUseCase`)
+
+`GET /teams/{teamId}/full-stats` and `GET /age-groups/{ageGroupId}/full-stats`, behind the Full stats table (opened from Team leaders and the age group's Stats tab). It sends the season's raw rows; the table is derived on the client by shared code (`FullStats.kt`).
+
+```mermaid
+graph TD
+    A[Start: userId, teamId or ageGroupId] --> B[Fetch the team / age group]
+    B -- not found --> N(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — same gate as Team / Age Group Details: MEMBER, minAgeGroupRole=STAFF, allowPlayerOrParentAccess]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> R["canSeeRatings = non-throwing probe: coordinators/admins or the age group's staff (requireRateTraining)"]
+    R --> T["Either way, the age group's data: teams = every team of the age group, by name"]
+    T --> M["matches = those teams' FINISHED matches, each with its score and type"]
+    M --> L["lines = match_player_stats of those matches, only players in the age group's current pool: minutes, goals, assists, cards; rating only if canSeeRatings AND the report is completed"]
+    L --> P["players = the whole pool"]
+    P --> G{"canSeeRatings?"}
+    G -- Yes --> G1["trainings = the age group's ended, not cancelled sessions with their ratings"]
+    G -- No --> G2["trainings = empty"]
+    G1 --> Z(["Return FullStatsData: title (the age group's name), season (id, name, dates), teams, matches, lines, trainings, players, canSeeRatings"])
+    G2 --> Z
+```
+
+The client's `table(query)` rules:
+- **Query:** a date range (inclusive; open for the whole season), the match type (as §4.6c's filter; trainings count whatever the type) and one team or none (the whole age group). Entering from a team preselects that team; from the age group, none.
+- **Rows:** with no team, the whole pool; with a team, the players who played for it this season (a start or 1+ minute), whatever the other filters.
+- **Totals** (games, goals, assists, minutes, cards, won/drawn/lost) count only the games the player played in the query.
+- **Games ranking:** the average of the player's rated games. **Training ranking:** the average of their training ratings, leaving Absent (0) out.
+- **Final ranking:** every game and training rating together, each counting once, divided by how many there are (not the average of the two averages).
+- **Sorting** by any column; players with no value (unrated) always go last, ties by name. The Player column sorts by name, A to Z first.
+
 ---
 
 ## 5. Player & Roster Management
