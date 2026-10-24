@@ -112,6 +112,9 @@ val appModule = module {
     factory { DeleteClubLogoUseCase(get(), get(), get(), get()) }
     factory { GetClubLogoUseCase(get(), get(), get(), get()) }
     factory { GetPublicClubLogoUseCase(get(), get(), get()) }
+    single { PublicImageLinks(ServerConfig.publicBaseUrl, ServerConfig.jwtSecret) }
+    factory { GetPublicOpponentLogoUseCase(get(), get(), get()) }
+    factory { GetPublicPlayerPhotoUseCase(get(), get(), get(), get()) }
     factory { UploadOpponentLogoUseCase(get(), get(), get(), get(), get()) }
     factory { DeleteOpponentLogoUseCase(get(), get(), get(), get(), get()) }
     factory { GetOpponentLogoUseCase(get(), get(), get(), get()) }
@@ -187,7 +190,7 @@ val appModule = module {
     factory { UpdateOpponentUseCase(get(), get(), get(), get()) }
     factory { RegisterFcmTokenUseCase(get(), get()) }
     factory { RemoveFcmTokenUseCase(get(), get()) }
-    factory { NotifyMatchEventUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { NotifyMatchEventUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     factory { AddMatchEventUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { DeleteMatchEventUseCase(get(), get(), get(), get(), get(), get()) }

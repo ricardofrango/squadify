@@ -21,6 +21,8 @@
     <string name="push_half_time">Intervalo: %1$s %2$s - %3$s %4$s</string>
     <string name="push_second_half_started">A segunda parte de %1$s contra %2$s já começou</string>
     <string name="push_match_finished">Fim do jogo: %1$s %2$s - %3$s %4$s</string>
+    <!-- A match's chat-style notification: "Sub-13 A vs Fontelas". -->
+    <string name="push_match_thread_title">%1$s vs %2$s</string>
     <string name="push_goal_scored">Golo! %1$s %2$s - %3$s %4$s</string>
     <string name="push_team_created_one">Nova equipa: %1$s foi adicionada a %2$s</string>
     <string name="push_team_created_many">Novas equipas adicionadas a %2$s: %1$s</string>

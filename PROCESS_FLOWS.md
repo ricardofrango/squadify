@@ -505,7 +505,7 @@ graph TD
 
 The old file is deleted **before** the new one is stored, so files never pile up, and every upload gets a new id, so a cached logo can never be stale. If storing the new one fails, the club is left with no logo rather than a link to a deleted file. Delete: same gate; removes the file and clears `logo_url`. Get: anyone who can see the club (`minClubRole=MEMBER`, `allowPlayerOrParentAccess`, like §3.3), and only the club's **current** image id; an old id is a 404.
 
-**Public logo, for push notifications** (`GetPublicClubLogoUseCase`): `GET /v1/public/clubs/{clubId}/logo/{imageId}.png`, the one image route with no sign-in. Android downloads a notification's image itself. Club not found, or `imageId` isn't its current one → 404; otherwise the bytes (`Cache-Control: public, immutable`). Every push of a club with a logo carries this address as its image, when the server knows its public URL (`PUBLIC_BASE_URL` / `RAILWAY_PUBLIC_DOMAIN`). See `TECHNICAL_DECISIONS.md` §57.
+**Public logo, for push notifications** (`GetPublicClubLogoUseCase`): `GET /v1/public/clubs/{clubId}/logo/{imageId}.png`, the one image route with no sign-in. Android downloads a notification's image itself. Club not found, or `imageId` isn't its current one → 404; otherwise the bytes (`Cache-Control: public, immutable`). Every push of a club with a logo carries this address as its image, when the server knows its public URL (`PUBLIC_BASE_URL` / `RAILWAY_PUBLIC_DOMAIN`, or locally the machine's LAN address). See `TECHNICAL_DECISIONS.md` §57.
 
 ### 3.4b Get / Update Club Permissions (`GetClubPermissionsUseCase` / `UpdateClubPermissionsUseCase`)
 
@@ -1749,7 +1749,7 @@ graph TD
     J -- HALF_TIME --> K2["PushNotificationService.sendHalfTime"]
     J -- SECOND_HALF_STARTED --> K3["PushNotificationService.sendSecondHalfStarted"]
     J -- FULL_TIME --> K4["PushNotificationService.sendMatchFinished"]
-    J -- GOAL --> K5["PushNotificationService.sendGoalScored"]
+    J -- GOAL --> K5["PushNotificationService.sendGoalScored, with GoalPush: whose goal (an own goal counts for the other side), our scorer's name if credited, and the picture: the scorer's photo (signed, 24 h) or the opponent's logo"]
     K0a --> Z(["Return"])
     K0b --> Z
     K0c --> Z
@@ -1763,6 +1763,10 @@ graph TD
 Not a route — a shared orchestrator called by §7.1 (a match created), §7.1c (a match's schedule edited), §8.0, §8.1, and §8.2 after their own transaction has already committed, so it opens a transaction of its own purely to read the data the push needs (see `TECHNICAL_DECISIONS.md` §24). Wrapped in a top-level try/catch that logs and swallows any exception (a not-found match, a repository throwing, a push send failing) — this must never propagate back to the use case that triggered it, the same "best-effort" contract as `EmailService`/`PushNotificationService` elsewhere. Recipients are **every active club member**, not scoped to the match's own age group — deliberately broader than the view/edit permissions the rest of the match domain enforces (§7–§8.2); see the developer's note on this in `TECHNICAL_DECISIONS.md` §24. Originally scoped to just the five live-match moments (hence the class's earlier name, `NotifyMatchEventUseCase`) — renamed once the three schedule-change events made "live match" no longer an accurate description of everything it sends.
 
 **The club's logo on a push** (`TECHNICAL_DECISIONS.md` §57). When the push's club has a logo and the server knows its public URL, the notification carries the public logo address (§3.4c) as its image. Android shows it in the background, and the app sets it as the large icon in the foreground. Without one, the push is unchanged.
+
+**A match's notification** (`TECHNICAL_DECISIONS.md` §57). Every push goes as FCM data only (`PushMessage`), and the app draws it. A match's pushes become one chat-style notification per match, "<team> vs <opponent>", one line per event. Lines from our team (kickoff, half-time, second half, full-time, schedule changes, a goal with no scorer) carry the club's logo. Our goal credited to a player is a line from the scorer, with their photo through a signed link that runs out after 24 hours. Their goal (or our own goal) is a line from the opponent, with their logo. Every goal line reads "Goal! A 2 - 1 B".
+
+**Public opponent logo and scorer photo** (`GetPublicOpponentLogoUseCase`, `GetPublicPlayerPhotoUseCase`): `GET /v1/public/opponents/{id}/logo/{imageId}.png` serves the current logo to anyone. `GET /v1/public/players/{id}/photo/{imageId}.png?exp=…&sig=…` serves the current photo only with a valid, unexpired `PublicImageLinks` signature; a missing, forged or expired one, or an old image id → 404.
 
 **Where tapping a push goes** (`TECHNICAL_DECISIONS.md` §56). Every push carries a `PushLink` as its FCM data: the club, plus the most specific of an age group, a team or a match. Every match push opens the match (Match details), including a cancelled or finished one. Being added as staff, or several teams being created at once, opens the age group. One team being created opens that team. Being added to a club opens the club. The app opens the club's screen under the target: My clubs → club → target, or club → target for a single-club user.
 
