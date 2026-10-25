@@ -883,7 +883,7 @@ private fun SheetAction(label: String, enabled: Boolean = true, onClick: () -> U
 // Events tab + shared event row (also used by the full-time summary)
 // ---------------------------------------------------------------------------------------------
 
-private sealed class DisplayEvent {
+internal sealed class DisplayEvent {
     abstract val minute: Int
     abstract val key: String
     abstract val createdAt: Instant
@@ -904,7 +904,7 @@ private sealed class DisplayEvent {
 
 /** Pairs SUBSTITUTION_OUT/IN rows logged together (see LiveMatchViewModel.onSubstitute) into one
  * display row, newest first -- matching the full-time summary's timeline order. */
-private fun buildDisplayEvents(events: List<MatchEvent>): List<DisplayEvent> {
+internal fun buildDisplayEvents(events: List<MatchEvent>): List<DisplayEvent> {
     val outs = events.filter { it.type == EventType.SUBSTITUTION_OUT }
     val remainingIns = events.filter { it.type == EventType.SUBSTITUTION_IN }.toMutableList()
     val paired = mutableListOf<DisplayEvent.Substitution>()

@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchCallUp
 import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
 import com.ricardofrango.squadify.model.MatchDetails
+import com.ricardofrango.squadify.model.MatchLineupChange
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.Player
@@ -22,9 +23,11 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
+import kotlinx.serialization.json.Json
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
 import com.ricardofrango.squadify.data.database.MatchCallUps as CallUpsTable
+import com.ricardofrango.squadify.data.database.MatchLineupChanges as LineupChangesTable
 import com.ricardofrango.squadify.data.database.Matches as MatchesTable
 import com.ricardofrango.squadify.data.database.Opponents as OpponentsTable
 import com.ricardofrango.squadify.data.database.Players as PlayersTable
@@ -178,6 +181,31 @@ class ExposedMatchRepository : MatchRepository {
         }
         return MatchesTable.update({ MatchesTable.id eq matchUuid }) { it[MatchesTable.formation] = formation } > 0
     }
+
+    override suspend fun addLineupChange(matchId: String, change: MatchLineupChange) {
+        LineupChangesTable.insert {
+            it[id] = Uuid.random()
+            it[LineupChangesTable.matchId] = matchId.toUuid()
+            it[minute] = change.minute
+            it[period] = change.period
+            it[formation] = change.formation
+            it[slots] = Json.encodeToString(change.slots)
+            it[createdAt] = change.createdAt
+        }
+    }
+
+    override suspend fun getLineupChanges(matchId: String): List<MatchLineupChange> =
+        LineupChangesTable.selectAll().where { LineupChangesTable.matchId eq matchId.toUuid() }
+            .orderBy(LineupChangesTable.createdAt)
+            .map {
+                MatchLineupChange(
+                    minute = it[LineupChangesTable.minute],
+                    period = it[LineupChangesTable.period],
+                    formation = it[LineupChangesTable.formation],
+                    slots = Json.decodeFromString<Map<Int, String>>(it[LineupChangesTable.slots]),
+                    createdAt = it[LineupChangesTable.createdAt]
+                )
+            }
 
     override suspend fun getCallUpMatchIdsByPlayer(playerId: String): List<String> =
         CallUpsTable.selectAll().where { CallUpsTable.playerId eq playerId.toUuid() }

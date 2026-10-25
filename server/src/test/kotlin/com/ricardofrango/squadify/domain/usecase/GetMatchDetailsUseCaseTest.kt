@@ -24,6 +24,9 @@ import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.MatchReportStatus
 import com.ricardofrango.squadify.model.MatchPlayerStats
 import com.ricardofrango.squadify.model.MatchReport
+import com.ricardofrango.squadify.model.MatchLineupChange
+import com.ricardofrango.squadify.model.MatchEvent
+import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.MatchCallUp
 import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
 import com.ricardofrango.squadify.model.MatchScore
@@ -103,6 +106,97 @@ class GetMatchDetailsUseCaseTest {
         )
         coEvery { playerRepository.getPlayersByAgeGroup(ag1) } returns listOf(player("p-called"), player("p-free"))
         coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 2, 1)
+        coEvery { matchEventRepository.getEventsByMatch(matchId) } returns events
+        coEvery { matchRepository.getLineupChanges(matchId) } returns lineupChanges
+    }
+
+    // A finished match's events: our goal (assisted), theirs, a substitution and a booking.
+    private val events = listOf(
+        MatchEvent("g1", matchId, EventType.GOAL, 10, playerId = "p-called", createdAt = Instant.fromEpochMilliseconds(10), period = 1),
+        MatchEvent("a1", matchId, EventType.ASSIST, 10, playerId = "p-free", createdAt = Instant.fromEpochMilliseconds(10), period = 1, relatedEventId = "g1"),
+        MatchEvent("g2", matchId, EventType.GOAL, 20, isOpponent = true, createdAt = Instant.fromEpochMilliseconds(20), period = 1),
+        MatchEvent("so", matchId, EventType.SUBSTITUTION_OUT, 30, playerId = "p-called", createdAt = Instant.fromEpochMilliseconds(30), period = 2),
+        MatchEvent("y1", matchId, EventType.YELLOW_CARD, 40, playerId = "p-called", createdAt = Instant.fromEpochMilliseconds(40), period = 2)
+    )
+    private val lineupChanges = listOf(MatchLineupChange(0, 1, "4-4-2", mapOf(0 to "p-called"), Instant.fromEpochMilliseconds(1)))
+
+    private fun stubCoachOf(id: String): User {
+        val coach = user(id)
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
+        return coach
+    }
+
+    @Test
+    fun staffSeeAFinishedMatchsWholeRecord() = runBlocking {
+        val coach = stubCoachOf("coach")
+        baseStubs()
+        coEvery { matchRepository.getMatchById(matchId) } returns match.copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
+        coEvery { matchReportRepository.getByMatch(matchId) } returns
+            MatchReport(matchId, updatedAt = Instant.fromEpochMilliseconds(5), updatedByUserId = "coach", completedAt = Instant.fromEpochMilliseconds(6))
+        coEvery { matchPlayerStatsRepository.getByMatch(matchId) } returns listOf(MatchPlayerStats(matchId, "p-called", true, 30, 1, 0, 0, 1, 0, rating = 8))
+
+        val d = useCase(coach.id, matchId)
+
+        assertTrue(d.canSeeMatchRecord)
+        assertEquals(events, d.events)
+        assertEquals(8, d.playerStats.single().rating, "the report is completed, so its ratings count")
+        assertEquals(lineupChanges, d.lineupChanges)
+    }
+
+    @Test
+    fun aDraftReportsRatingsAreNotShownYet() = runBlocking {
+        val coach = stubCoachOf("coach")
+        baseStubs()
+        coEvery { matchRepository.getMatchById(matchId) } returns match.copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
+        coEvery { matchReportRepository.getByMatch(matchId) } returns MatchReport(matchId, updatedAt = Instant.fromEpochMilliseconds(5), updatedByUserId = "coach")
+        coEvery { matchPlayerStatsRepository.getByMatch(matchId) } returns listOf(MatchPlayerStats(matchId, "p-called", true, 30, 1, 0, 0, 1, 0, rating = 8))
+
+        assertEquals(null, useCase(coach.id, matchId).playerStats.single().rating)
+    }
+
+    @Test
+    fun aMatchFinishedBeforeStoredStatsHasItsLinesWorkedOut() = runBlocking {
+        val coach = stubCoachOf("coach")
+        baseStubs()
+        coEvery { matchRepository.getMatchById(matchId) } returns match.copy(status = MatchStatus.FINISHED, fullTimeMinute = 90)
+        coEvery { matchReportRepository.getByMatch(matchId) } returns null
+        coEvery { matchPlayerStatsRepository.getByMatch(matchId) } returns emptyList()
+
+        val line = useCase(coach.id, matchId).playerStats.single()
+        assertEquals("p-called", line.playerId)
+        assertEquals(1, line.goals)
+        assertEquals(1, line.yellowCards)
+    }
+
+    @Test
+    fun aParentSeesOnlyTheGoalsAndTheirAssists() = runBlocking {
+        val parent = user("parent")
+        baseStubs()
+        coEvery { matchRepository.getMatchById(matchId) } returns match.copy(status = MatchStatus.FINISHED)
+        coEvery { userRepository.findById(parent.id) } returns parent
+        coEvery { userRepository.getUserRoleInClub(parent.id, clubId) } returns null
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(parent.id, ag1) } returns null
+        coEvery { playerRepository.getPlayersByUser(parent.id) } returns listOf(player("p-called"))
+
+        val d = useCase(parent.id, matchId)
+
+        assertEquals(false, d.canSeeMatchRecord)
+        assertEquals(listOf("g1", "a1", "g2"), d.events.map { it.id })
+        assertTrue(d.playerStats.isEmpty())
+        assertTrue(d.lineupChanges.isEmpty())
+    }
+
+    @Test
+    fun noRecordBeforeFullTime() = runBlocking {
+        val coach = stubCoachOf("coach")
+        baseStubs()
+
+        val d = useCase(coach.id, matchId)
+        assertTrue(d.events.isEmpty())
+        assertTrue(d.playerStats.isEmpty())
+        assertTrue(d.lineupChanges.isEmpty())
     }
 
     @Test

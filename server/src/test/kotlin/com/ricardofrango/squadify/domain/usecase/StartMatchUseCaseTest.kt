@@ -93,6 +93,7 @@ class StartMatchUseCaseTest {
         stubCoachPermission(coach)
         val calledUpIds = (1..8).map { "p$it" }
         coEvery { matchRepository.getCallUpsForMatch(matchId) } returns calledUpIds.map { callUp(it) }
+        coEvery { matchRepository.addLineupChange(matchId, any()) } returns Unit
         coEvery { matchRepository.startMatch(matchId, any(), 30, any()) } returns true
         coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 0, 0)
 
@@ -101,6 +102,8 @@ class StartMatchUseCaseTest {
 
         assertEquals(true, result)
         coVerify { matchRepository.startMatch(matchId, starting, 30, "2-3-1") }
+        // Nobody placed on the pitch (an app from before the pitch view): the starters still fill it.
+        coVerify { matchRepository.addLineupChange(matchId, match { it.slots.values.toSet() == starting.toSet() && it.slots.keys == (0 until 7).toSet() }) }
         coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.KICKOFF) }
         coVerify { clubMatchesBus.publish(clubId, com.ricardofrango.squadify.model.ClubMatchesUpdate(match = match)) }
     }
@@ -156,6 +159,7 @@ class StartMatchUseCaseTest {
         coEvery { teamRepository.getTeamById(teamId) } returns team7aside
         val calledUpIds = (1..7).map { "p$it" }
         coEvery { matchRepository.getCallUpsForMatch(matchId) } returns calledUpIds.map { callUp(it) }
+        coEvery { matchRepository.addLineupChange(matchId, any()) } returns Unit
         coEvery { matchRepository.startMatch(matchId, calledUpIds, 30, any()) } returns true
         coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 0, 0)
 
@@ -187,12 +191,17 @@ class StartMatchUseCaseTest {
         stubCoachPermission(coach)
         val ids = (1..7).map { "p$it" }
         coEvery { matchRepository.getCallUpsForMatch(matchId) } returns ids.mapIndexed { i, id -> callUp(id, pitchSlot = i) }
+        coEvery { matchRepository.addLineupChange(matchId, any()) } returns Unit
         coEvery { matchRepository.startMatch(matchId, any(), 30, any()) } returns true
         coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 0, 0)
 
         useCase(coach.id, matchId, StartMatchRequest(ids, 30, formation = "3-2-1"))
 
         coVerify { matchRepository.startMatch(matchId, ids, 30, "3-2-1") }
+        // The side as placed is the timeline's first entry.
+        coVerify {
+            matchRepository.addLineupChange(matchId, match { it.minute == 0 && it.period == 1 && it.formation == "3-2-1" && it.slots == ids.mapIndexed { i, id -> i to id }.toMap() })
+        }
     }
 
     @Test

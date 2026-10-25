@@ -13,7 +13,8 @@ import com.ricardofrango.squadify.model.*
  * Saves the live pitch view's arrangement -- the formation and who stands in each position -- and
  * sends it to every device watching the match. Before kickoff it's the coach placing the starters
  * (the game can only kick off once every position is filled, see StartMatchUseCase); during the game
- * it's a formation change or players swapping positions. Substitutions and red cards don't come
+ * it's a formation change or players swapping positions, each also kept with its minute for the
+ * finished match's timeline (MatchLineupChange). Substitutions and red cards don't come
  * through here: each device works those out from the events (see currentPitchSlots). Same match-day
  * permission as kicking off.
  */
@@ -23,7 +24,8 @@ class SetMatchLineupUseCase(
     private val teamRepository: TeamRepository,
     private val liveMatchBus: LiveMatchBus,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
-    private val transactionManager: TransactionManager
+    private val transactionManager: TransactionManager,
+    private val clock: kotlin.time.Clock = kotlin.time.Clock.System
 ) {
     suspend operator fun invoke(userId: String, matchId: String, request: SetMatchLineupRequest): MatchLineup = transactionManager.runInTransaction {
         val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
@@ -69,6 +71,17 @@ class SetMatchLineupUseCase(
 
         val lineup = MatchLineup(formation.formationText(), slots)
         matchRepository.setLineup(matchId, lineup.formation, slots)
+        // During the game each arrangement is kept, at the match clock's minute, for the finished
+        // match's timeline. Its half is worked out like an event's (AddMatchEventUseCase).
+        if (match.status == MatchStatus.LIVE || match.status == MatchStatus.HALF_TIME) {
+            val secondHalf = match.status == MatchStatus.LIVE && match.secondHalfStartedAt != null
+            val minute = if (match.status == MatchStatus.HALF_TIME) {
+                match.firstHalfEndMinute ?: match.halfLengthMinutes ?: 0
+            } else {
+                elapsedMatchSeconds(match, clock.now()) / 60
+            }
+            matchRepository.addLineupChange(matchId, MatchLineupChange(maxOf(0, minute), if (secondHalf) 2 else 1, lineup.formation, slots, clock.now()))
+        }
         val score = matchEventRepository.getScoreByMatch(matchId)
         liveMatchBus.publish(matchId, LiveMatchUpdate(score = score, match = match.copy(formation = lineup.formation), lineup = lineup))
         lineup

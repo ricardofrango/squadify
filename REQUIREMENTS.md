@@ -145,6 +145,12 @@ The domain follows a multi-tenant structure isolated by `clubId`:
         - **Show and hide columns:** the coach picks which stats are shown, e.g. hiding goals. The choice is remembered on the device.
         - **Filters:** a date range (from / to, e.g. last Friday to today, for "this week's ranking"), as well as the season and the match type (All / Official / Tournament / Friendly).
         - **Sorting** by any column, the player's name included, and tapping a row opens the player.
+      - [x] **A finished match's record on Match details** (the developer, 2026-10-25; see TECHNICAL_DECISIONS §66): once the game is played, the call-up is no longer shown. Its tabs are in the bottom bar, as elsewhere in the app. The staff (coordinators, admins and the age group's staff) get four:
+        - **General:** the match report card and the match's details.
+        - **Stats:** each player who played, with their ranking (the report's rating, once completed), minutes, goals, assists, yellow and red cards. Tapping a header sorts by it, a long press names it. Players called up who never came on are listed under the table.
+        - **Events:** every event of the game, by half, filtered by All / Goals / Substitutions / Cards.
+        - **Timeline:** the pitch at every change of the team on it: the side that kicked off, then each substitution, red card, new formation or swap of positions. A slider at the bottom goes from the start of the game to the end.
+        - Other club members (players, parents) get two tabs: General with the match's details (no report) and Events with only the goals and their scorers.
       - Team Details is split into Stats · Matches · Members tabs. The Members tab lists only the players who played for that team.
       - Age Group Details is split into Stats · Teams · Matches · Members tabs. Stats shows results by team and how minutes are spread across the pool.
       - Both can be filtered by match type (All / Official / Tournament / Friendly; unselected segments show 5 letters and a ".", the selected one its full name, animated), and ratings are shown to staff only (see `TECHNICAL_DECISIONS.md` §43).
@@ -227,7 +233,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - **Players:** the club's player list opens as its own screen, with season, age-group and search filters.
     - [x] Match center (Live updates & History):
       - **Matches tab:** the club's Matches tab updates live.
-      - **Match Details:** line-ups, call-ups, events and score, plus the details card (opponent, type, format such as 7x7 from the team's size, date, kickoff, location, notes).
+      - **Match Details:** line-ups, call-ups, events and score (once played: General, Stats, Events and Timeline tabs for the staff; General and the goals for everyone else), plus the details card (opponent, type, format such as 7x7 from the team's size, date, kickoff, location, notes).
       - **Live match console:** for coaches and staff.
       - **After the match:** finished results stay as history, with the post-match report and per-player stats. Season stats live on Player, Team and Age Group Details (see Phase 5).
 - [x] **Phase 8: Training & Periodization** (see §5b). Not yet: drag-to-reorder (up/down buttons on a session's exercises; objectives and phases keep the order they were added) and remembering List / Calendar.

@@ -1518,4 +1518,33 @@
     <string name="fs_empty_hint">Widen the date range to see player stats.</string>
     <string name="fs_widen">Widen range</string>
     <string name="fs_error_title">Couldn\'t load the stats</string>
+
+    <!-- A finished match's record (Match Details: Stats, Events, Timeline) -->
+    <string name="md_tab_general">General</string>
+    <string name="md_tab_stats">Stats</string>
+    <string name="md_tab_events">Events</string>
+    <string name="md_tab_timeline">Timeline</string>
+    <string name="md_players">Players</string>
+    <string name="md_col_rating">Rank</string>
+    <string name="md_name_rating">Match ranking</string>
+    <string name="md_col_goals">G</string>
+    <string name="md_name_goals">Goals</string>
+    <string name="md_col_assists">A</string>
+    <string name="md_name_assists">Assists</string>
+    <string name="md_unused">Unused: %1$s</string>
+    <string name="md_no_stats">No player stats for this match.</string>
+    <string name="md_filter_all">All</string>
+    <string name="md_filter_goals">Goals</string>
+    <string name="md_filter_subs">Substitutions</string>
+    <string name="md_filter_cards">Cards</string>
+    <string name="md_no_events">No events of this kind.</string>
+    <string name="md_goals">Goals</string>
+    <string name="md_no_goals">No goals in this match.</string>
+    <string name="md_tl_kickoff">Kick-off · %1$s</string>
+    <string name="md_tl_sub">%1$s on for %2$s</string>
+    <string name="md_tl_sent_off">%1$s sent off</string>
+    <string name="md_tl_formation">New formation · %1$s</string>
+    <string name="md_tl_positions">Positions swapped</string>
+    <string name="md_tl_step">%1$d of %2$d</string>
+    <string name="md_tl_slider">Moment in the match</string>
 </resources>

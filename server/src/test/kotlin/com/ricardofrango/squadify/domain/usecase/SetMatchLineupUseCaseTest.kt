@@ -20,6 +20,7 @@ import com.ricardofrango.squadify.model.MatchCallUp
 import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
 import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchLineup
+import com.ricardofrango.squadify.model.MatchLineupChange
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Player
@@ -53,7 +54,10 @@ class SetMatchLineupUseCaseTest {
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
-    private val useCase = SetMatchLineupUseCase(matchRepository, matchEventRepository, teamRepository, liveMatchBus, checkUserPermissionUseCase, transactionManager)
+    // The match clock: 12 minutes and 30 seconds after a kickoff at 1 ms.
+    private val now = Instant.fromEpochMilliseconds(1 + 750_000)
+    private val clock = object : kotlin.time.Clock { override fun now() = this@SetMatchLineupUseCaseTest.now }
+    private val useCase = SetMatchLineupUseCase(matchRepository, matchEventRepository, teamRepository, liveMatchBus, checkUserPermissionUseCase, transactionManager, clock)
 
     private val clubId = "club-1"
     private val matchId = "m-1"
@@ -76,6 +80,7 @@ class SetMatchLineupUseCaseTest {
         coEvery { teamRepository.getTeamById(teamId) } returns Team(teamId, clubId, ag1, "s-1", "Sub-13 A", active = true, teamSize = 7)
         coEvery { matchRepository.getCallUpsForMatch(matchId) } returns ids.map { callUp(it, it in starting) }
         coEvery { matchRepository.setLineup(any(), any(), any()) } returns true
+        coEvery { matchRepository.addLineupChange(any(), any()) } returns Unit
         coEvery { matchEventRepository.getScoreByMatch(matchId) } returns MatchScore(matchId, 0, 0)
     }
 
@@ -88,6 +93,30 @@ class SetMatchLineupUseCaseTest {
         assertEquals(MatchLineup("2-3-1", mapOf(0 to "p1", 3 to "p2")), result)
         coVerify { matchRepository.setLineup(matchId, "2-3-1", mapOf(0 to "p1", 3 to "p2")) }
         coVerify { liveMatchBus.publish(matchId, LiveMatchUpdate(score = MatchScore(matchId, 0, 0), match = scheduled.copy(formation = "2-3-1"), lineup = result)) }
+        // Placing the starters isn't part of the game's timeline (kickoff keeps the side that starts).
+        coVerify(exactly = 0) { matchRepository.addLineupChange(any(), any()) }
+    }
+
+    @Test
+    fun duringTheGameEachArrangementIsKeptAtTheMatchClocksMinute() = runBlocking {
+        val starters = ids.take(7).toSet()
+        val slots = ids.take(7).mapIndexed { i, id -> i to id }.toMap()
+        coEvery { matchEventRepository.getEventsByMatch(matchId) } returns emptyList()
+
+        val live = scheduled.copy(status = MatchStatus.LIVE, kickoffAt = Instant.fromEpochMilliseconds(1), halfLengthMinutes = 30)
+        stub(live, starters)
+        useCase(coach.id, matchId, SetMatchLineupRequest("3-2-1", slots))
+        coVerify { matchRepository.addLineupChange(matchId, MatchLineupChange(12, 1, "3-2-1", slots, now)) }
+
+        // At half time: the minute the first half ended.
+        stub(live.copy(status = MatchStatus.HALF_TIME, firstHalfEndMinute = 32), starters)
+        useCase(coach.id, matchId, SetMatchLineupRequest("2-3-1", slots))
+        coVerify { matchRepository.addLineupChange(matchId, MatchLineupChange(32, 1, "2-3-1", slots, now)) }
+
+        // In the second half (restarted 1 minute ago, the clock back at 30'): period 2.
+        stub(live.copy(secondHalfStartedAt = Instant.fromEpochMilliseconds(1 + 690_000), firstHalfEndMinute = 32), starters)
+        useCase(coach.id, matchId, SetMatchLineupRequest("2-3-1", slots))
+        coVerify { matchRepository.addLineupChange(matchId, MatchLineupChange(31, 2, "2-3-1", slots, now)) }
     }
 
     @Test

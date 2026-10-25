@@ -308,6 +308,20 @@ object MatchEvents : Table("match_events") {
     override val primaryKey = PrimaryKey(id)
 }
 
+// Each arrangement of the pitch during a game: at kickoff, then every formation change or position
+// swap (V26, see MatchLineupChange). [slots] is JSON, slot -> player id.
+object MatchLineupChanges : Table("match_lineup_changes") {
+    val id = uuid("id")
+    val matchId = uuid("match_id").references(Matches.id, onDelete = ReferenceOption.CASCADE)
+    val minute = integer("minute")
+    val period = integer("period")
+    val formation = varchar("formation", 20)
+    val slots = text("slots")
+    val createdAt = timestamp("created_at")
+
+    override val primaryKey = PrimaryKey(id)
+}
+
 // Per-player stats for a FINISHED match, computed once at full time (see MatchPlayerStats in
 // Models.kt). One row per called-up player; `rating` is set later by the coach's match report.
 object MatchPlayerStatsTable : Table("match_player_stats") {

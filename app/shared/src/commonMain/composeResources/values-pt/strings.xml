@@ -1516,4 +1516,33 @@
     <string name="fs_empty_hint">Alarga o intervalo de datas para ver as estatísticas.</string>
     <string name="fs_widen">Alargar período</string>
     <string name="fs_error_title">Não foi possível carregar as estatísticas</string>
+
+    <!-- A finished match's record (Match Details: Stats, Events, Timeline) -->
+    <string name="md_tab_general">Geral</string>
+    <string name="md_tab_stats">Estatísticas</string>
+    <string name="md_tab_events">Eventos</string>
+    <string name="md_tab_timeline">Cronologia</string>
+    <string name="md_players">Jogadores</string>
+    <string name="md_col_rating">Class.</string>
+    <string name="md_name_rating">Classificação no jogo</string>
+    <string name="md_col_goals">G</string>
+    <string name="md_name_goals">Golos</string>
+    <string name="md_col_assists">A</string>
+    <string name="md_name_assists">Assistências</string>
+    <string name="md_unused">Não utilizados: %1$s</string>
+    <string name="md_no_stats">Não há estatísticas de jogadores neste jogo.</string>
+    <string name="md_filter_all">Todos</string>
+    <string name="md_filter_goals">Golos</string>
+    <string name="md_filter_subs">Substituições</string>
+    <string name="md_filter_cards">Cartões</string>
+    <string name="md_no_events">Não há eventos deste tipo.</string>
+    <string name="md_goals">Golos</string>
+    <string name="md_no_goals">Não houve golos neste jogo.</string>
+    <string name="md_tl_kickoff">Início · %1$s</string>
+    <string name="md_tl_sub">Entra %1$s, sai %2$s</string>
+    <string name="md_tl_sent_off">%1$s expulso</string>
+    <string name="md_tl_formation">Novo sistema · %1$s</string>
+    <string name="md_tl_positions">Troca de posições</string>
+    <string name="md_tl_step">%1$d de %2$d</string>
+    <string name="md_tl_slider">Momento do jogo</string>
 </resources>
