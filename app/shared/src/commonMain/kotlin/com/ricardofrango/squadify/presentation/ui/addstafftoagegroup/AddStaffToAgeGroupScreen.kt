@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.addstafftoagegroup
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
@@ -118,7 +119,7 @@ private fun AddStaffToAgeGroupContent(
     }
 
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
                 title = stringResource(Res.string.title_add_staff_to_age_group),
@@ -130,7 +131,7 @@ private fun AddStaffToAgeGroupContent(
         when (uiState) {
             is AddStaffToAgeGroupUiState.Loading -> {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White),
+                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(ScreenBackground),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = PitchGreen)
@@ -139,7 +140,7 @@ private fun AddStaffToAgeGroupContent(
 
             is AddStaffToAgeGroupUiState.Idle -> if (uiState.ageGroups.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White).screenContentPadding(),
+                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(ScreenBackground).screenContentPadding(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -163,7 +164,7 @@ private fun AddStaffToAgeGroupContent(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
-                        .background(Color.White)
+                        .background(ScreenBackground)
                         .padding(horizontal = ScreenPadding.Horizontal)
                         .padding(top = 16.dp, bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -186,7 +187,7 @@ private fun AddStaffToAgeGroupContent(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = FormRoundedShape,
-                        colors = OutlinedTextFieldDefaults.colors(
+                        colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
                             focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
                             focusedBorderColor = PitchGreen,

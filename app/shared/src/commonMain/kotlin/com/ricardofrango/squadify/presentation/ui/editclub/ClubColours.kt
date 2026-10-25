@@ -345,7 +345,7 @@ private fun ColourPickerSheet(slot: ColourSlot, theme: ClubTheme, onDismiss: () 
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
+                colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
                     focusedTextColor = DeepCarbon, unfocusedTextColor = DeepCarbon,
                     focusedBorderColor = PitchGreen, unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
                     focusedLabelColor = PitchGreen, unfocusedLabelColor = CarbonGray

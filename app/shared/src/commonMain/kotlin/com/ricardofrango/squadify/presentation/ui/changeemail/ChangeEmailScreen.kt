@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.changeemail
 
+import com.ricardofrango.squadify.presentation.ui.components.SectionCard
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
 import com.ricardofrango.squadify.presentation.ui.components.SignedOutAlert
@@ -117,73 +119,75 @@ private fun ChangeEmailContent(
                 // See ForgotPasswordScreen: without this, the navigation bar is counted twice above the keyboard.
                 .consumeWindowInsets(padding)
                 .imePadding()
-                .background(Color.White)
+                .background(ScreenBackground)
                 .verticalScroll(rememberScrollState())
                 .screenContentPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            when (state.step) {
-                ChangeEmailStep.EMAIL -> {
-                    FormIntro(stringResource(Res.string.msg_change_email_intro))
-                    FormErrorLine(state.error)
-                    FormTextField(
-                        value = newEmail,
-                        onValueChange = { newEmail = it; onClearError() },
-                        label = stringResource(Res.string.label_new_email),
-                        enabled = enabled,
-                        isError = state.error != null,
-                        keyboardType = KeyboardType.Email,
-                        modifier = Modifier.semantics { contentType = ContentType.EmailAddress }
-                    )
-                    FormTextField(
-                        value = password,
-                        onValueChange = { password = it; onClearError() },
-                        label = stringResource(Res.string.label_current_password_field),
-                        enabled = enabled,
-                        keyboardType = KeyboardType.Password,
-                        hidden = !passwordVisible,
-                        onToggleHidden = { passwordVisible = !passwordVisible },
-                        imeAction = ImeAction.Send,
-                        onImeAction = sendCode,
-                        modifier = Modifier.semantics { contentType = ContentType.Password }
-                    )
-                    PrimaryLoadingButton(
-                        text = Res.string.btn_send_code,
-                        submittingText = Res.string.btn_sending_code,
-                        isLoading = state.submitting,
-                        onClick = sendCode
-                    )
-                }
-                ChangeEmailStep.CODE -> {
-                    FormIntro(stringResource(Res.string.msg_change_email_code_intro, state.newEmail))
-                    FormErrorLine(state.error)
-                    FormTextField(
-                        value = code,
-                        onValueChange = { new -> code = new.filter { it.isDigit() }.take(6); onClearError() },
-                        label = stringResource(Res.string.label_reset_code),
-                        enabled = enabled,
-                        isError = state.error != null,
-                        keyboardType = KeyboardType.NumberPassword,
-                        imeAction = ImeAction.Done,
-                        onImeAction = { onConfirm(code) },
-                        modifier = Modifier.semantics { contentType = ContentType.SmsOtpCode }
-                    )
-                    PrimaryLoadingButton(
-                        text = Res.string.btn_confirm_email_change,
-                        submittingText = Res.string.btn_confirming,
-                        isLoading = state.submitting,
-                        onClick = { onConfirm(code) }
-                    )
-                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                        TextButton(onClick = onResendCode, enabled = enabled && state.resendInSeconds == 0) {
-                            Text(
-                                if (state.resendInSeconds > 0) stringResource(Res.string.btn_resend_code_in, state.resendInSeconds)
-                                else stringResource(Res.string.btn_resend_code),
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                        TextButton(onClick = { code = ""; onUseDifferentEmail() }, enabled = enabled) {
-                            Text(stringResource(Res.string.btn_use_different_email), color = CarbonGray)
+            SectionCard(spacing = 16.dp) {
+                when (state.step) {
+                    ChangeEmailStep.EMAIL -> {
+                        FormIntro(stringResource(Res.string.msg_change_email_intro))
+                        FormErrorLine(state.error)
+                        FormTextField(
+                            value = newEmail,
+                            onValueChange = { newEmail = it; onClearError() },
+                            label = stringResource(Res.string.label_new_email),
+                            enabled = enabled,
+                            isError = state.error != null,
+                            keyboardType = KeyboardType.Email,
+                            modifier = Modifier.semantics { contentType = ContentType.EmailAddress }
+                        )
+                        FormTextField(
+                            value = password,
+                            onValueChange = { password = it; onClearError() },
+                            label = stringResource(Res.string.label_current_password_field),
+                            enabled = enabled,
+                            keyboardType = KeyboardType.Password,
+                            hidden = !passwordVisible,
+                            onToggleHidden = { passwordVisible = !passwordVisible },
+                            imeAction = ImeAction.Send,
+                            onImeAction = sendCode,
+                            modifier = Modifier.semantics { contentType = ContentType.Password }
+                        )
+                        PrimaryLoadingButton(
+                            text = Res.string.btn_send_code,
+                            submittingText = Res.string.btn_sending_code,
+                            isLoading = state.submitting,
+                            onClick = sendCode
+                        )
+                    }
+                    ChangeEmailStep.CODE -> {
+                        FormIntro(stringResource(Res.string.msg_change_email_code_intro, state.newEmail))
+                        FormErrorLine(state.error)
+                        FormTextField(
+                            value = code,
+                            onValueChange = { new -> code = new.filter { it.isDigit() }.take(6); onClearError() },
+                            label = stringResource(Res.string.label_reset_code),
+                            enabled = enabled,
+                            isError = state.error != null,
+                            keyboardType = KeyboardType.NumberPassword,
+                            imeAction = ImeAction.Done,
+                            onImeAction = { onConfirm(code) },
+                            modifier = Modifier.semantics { contentType = ContentType.SmsOtpCode }
+                        )
+                        PrimaryLoadingButton(
+                            text = Res.string.btn_confirm_email_change,
+                            submittingText = Res.string.btn_confirming,
+                            isLoading = state.submitting,
+                            onClick = { onConfirm(code) }
+                        )
+                        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                            TextButton(onClick = onResendCode, enabled = enabled && state.resendInSeconds == 0) {
+                                Text(
+                                    if (state.resendInSeconds > 0) stringResource(Res.string.btn_resend_code_in, state.resendInSeconds)
+                                    else stringResource(Res.string.btn_resend_code),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            TextButton(onClick = { code = ""; onUseDifferentEmail() }, enabled = enabled) {
+                                Text(stringResource(Res.string.btn_use_different_email), color = CarbonGray)
+                            }
                         }
                     }
                 }

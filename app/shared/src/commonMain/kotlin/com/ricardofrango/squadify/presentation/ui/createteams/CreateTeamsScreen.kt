@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createteams
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.text.KeyboardActions
 import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
@@ -184,7 +185,7 @@ private fun CreateTeamsContent(
     onCreateClick: () -> Unit
 ) {
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
                 title = stringResource(Res.string.title_create_teams),
@@ -196,7 +197,7 @@ private fun CreateTeamsContent(
         when (uiState) {
             is CreateTeamsUiState.Loading -> {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White),
+                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(ScreenBackground),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = PitchGreen)
@@ -205,7 +206,7 @@ private fun CreateTeamsContent(
 
             is CreateTeamsUiState.Idle -> if (uiState.seasons.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White).screenContentPadding(),
+                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(ScreenBackground).screenContentPadding(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -224,7 +225,7 @@ private fun CreateTeamsContent(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
-                        .background(Color.White)
+                        .background(ScreenBackground)
                         .verticalScroll(rememberScrollState())
                         .screenContentPadding(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -453,7 +454,7 @@ private fun TeamRowCard(
                 shape = FormRoundedShape,
                 keyboardOptions = KeyboardOptions(imeAction = if (onSubmit != null) ImeAction.Done else ImeAction.Next),
                 keyboardActions = onSubmit?.let { submitKeyboardActions(it) } ?: KeyboardActions.Default,
-                colors = OutlinedTextFieldDefaults.colors(
+                colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
                     focusedTextColor = DeepCarbon,
                     unfocusedTextColor = DeepCarbon,
                     focusedBorderColor = PitchGreen,

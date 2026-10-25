@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -327,32 +328,13 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
 /** All · Admins · Coordinators · Members · Pending · n -- scrolls sideways (34c). */
 @Composable
 private fun FilterChips(overview: ClubMembersOverview, selected: MembersFilter, onSelect: (MembersFilter) -> Unit) {
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        MembersFilter.entries.forEach { f ->
-            if (f == MembersFilter.PENDING && overview.pendingInvites.isEmpty()) return@forEach
-            val label = stringResource(f.labelRes())
-            Chip(if (f == MembersFilter.PENDING) "$label · ${overview.pendingInvites.size}" else label, f == selected) { onSelect(f) }
-        }
-    }
-}
-
-@Composable
-private fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .clip(RoundedCornerShape(18.dp))
-            .background(if (selected) ClubChrome else Color.White)
-            .border(1.5.dp, if (selected) ClubChrome else CarbonGray.copy(alpha = 0.16f), RoundedCornerShape(18.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp)
-    ) {
-        Text(
-            text,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
-            color = if (selected) Color.White else DeepCarbon,
-            maxLines = 1
-        )
-    }
+    FilterChipRow(
+        options = MembersFilter.entries.filter { it != MembersFilter.PENDING || overview.pendingInvites.isNotEmpty() },
+        selected = selected,
+        label = { f -> stringResource(f.labelRes()).let { if (f == MembersFilter.PENDING) "$it · ${overview.pendingInvites.size}" else it } },
+        onSelect = onSelect,
+        insidePaddedContent = true
+    )
 }
 
 /** Landscape: the filter as a vertical list with counts (34d). */

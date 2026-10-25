@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createplayers
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.text.KeyboardActions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
@@ -189,7 +190,7 @@ private fun CreatePlayersContent(
     val selectedCount = rows.size
 
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
                 title = stringResource(Res.string.title_create_players),
@@ -202,7 +203,7 @@ private fun CreatePlayersContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color.White)
+                .background(ScreenBackground)
         ) {
             // Fixed header: intro + "add row" -- stays put as the list below grows, instead of
             // scrolling out of reach.
@@ -432,6 +433,7 @@ private fun NameField(
 
 @Composable
 private fun fieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White,
     focusedTextColor = DeepCarbon,
     unfocusedTextColor = DeepCarbon,
     focusedBorderColor = PitchGreen,

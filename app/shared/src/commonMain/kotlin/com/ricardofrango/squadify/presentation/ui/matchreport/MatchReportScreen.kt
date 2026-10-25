@@ -81,7 +81,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreenLight
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
-import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -190,7 +190,7 @@ private fun MatchReportContent(
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth > maxHeight && maxWidth >= 600.dp
         Scaffold(
-            containerColor = WhiteSmoke,
+            containerColor = ScreenBackground,
             snackbarHost = {
                 SnackbarHost(snackbarHostState) { data ->
                     ReportSnackbar(
@@ -460,7 +460,7 @@ private fun LoadingSkeleton(modifier: Modifier) {
     fun Bar(width: Float, height: Int = 10) =
         Box(Modifier.fillMaxWidth(width).height(height.dp).background(shade, RoundedCornerShape(5.dp)))
     Column(
-        modifier.background(WhiteSmoke).padding(16.dp).semantics { contentDescription = description },
+        modifier.background(ScreenBackground).padding(16.dp).semantics { contentDescription = description },
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         ReportCard {
@@ -502,7 +502,7 @@ private fun FullScreenMessage(
     modifier: Modifier
 ) {
     Column(
-        modifier.background(WhiteSmoke).padding(32.dp),
+        modifier.background(ScreenBackground).padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -149,7 +150,7 @@ private fun OpponentDetailsContent(
 ) {
     val details = (state as? OpponentDetailsUiState.Idle)?.details
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
                 title = details?.opponent?.name ?: stringResource(Res.string.title_opponent),
@@ -166,7 +167,7 @@ private fun OpponentDetailsContent(
             )
         }
     ) { padding ->
-        val modifier = Modifier.fillMaxSize().padding(padding).background(Color(0xFFF6F6F7))
+        val modifier = Modifier.fillMaxSize().padding(padding).background(ScreenBackground)
         when (state) {
             OpponentDetailsUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
             OpponentDetailsUiState.Error -> Column(

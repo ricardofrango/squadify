@@ -57,7 +57,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
-import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.material3.Icon
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -189,7 +189,7 @@ private fun FieldsTab(
     onFieldsChanged: ((ReportFields) -> ReportFields) -> Unit,
     modifier: Modifier
 ) {
-    LazyColumn(modifier.fillMaxSize().background(WhiteSmoke), contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(modifier.fillMaxSize().background(ScreenBackground), contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (showNoStatsNotice) item { NoStatsNotice() }
         item {
             // Portrait: the fields sit in a card. Landscape: straight on the background, in two columns (26h).
@@ -289,7 +289,7 @@ private fun PlayersTab(
     modifier: Modifier
 ) {
     val total = state.players.size
-    LazyColumn(modifier.fillMaxSize().background(WhiteSmoke), contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(modifier.fillMaxSize().background(ScreenBackground), contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (!wide) {
             item { UnratedProgress(state.unratedCount, total, onRateNext) }
         }

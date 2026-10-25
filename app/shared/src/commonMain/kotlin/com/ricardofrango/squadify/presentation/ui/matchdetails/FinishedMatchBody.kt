@@ -42,6 +42,8 @@ import com.ricardofrango.squadify.model.matchTimeline
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.PersonPlaceholder
 import com.ricardofrango.squadify.presentation.ui.components.RatingPill
+import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
+import com.ricardofrango.squadify.presentation.ui.components.FilterChipTouchMargin
 import com.ricardofrango.squadify.presentation.ui.components.DetailBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.DetailRail
 import com.ricardofrango.squadify.presentation.ui.components.DetailTab
@@ -74,8 +76,6 @@ private val RowHeight = 48.dp
 private val StatColumnWidth = 36.dp
 private val RatingColumnWidth = 48.dp
 private val HeaderHeight = 40.dp
-// How far a FilterChip's 48dp touch area reaches past its 32dp chip, above and below.
-private val ChipTouchMargin = 8.dp
 // Past this, a long first name or surname is cut with "…", so the stats always have room beside it.
 private val PlayerColumnMaxWidth = 210.dp
 
@@ -328,26 +328,15 @@ private fun EventsTab(details: MatchDetails, modifier: Modifier) {
     val twoHalves = details.match.halves == 2
     Column(modifier) {
         // The chips scroll edge to edge (the screen's side padding is inside the row, not around it) and stay on top.
-        // A chip's touch area is 8dp taller than the chip on each side, so the row's top padding is that
-        // much less than the screen's: the chips themselves start at ScreenPadding.Top.
-        if (filtering) LazyRow(
-            contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top - ChipTouchMargin),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(EventFilter.entries) { option ->
-                FilterChip(
-                    selected = filter == option,
-                    onClick = { filter = option },
-                    label = { Text(stringResource(option.labelRes())) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        containerColor = Color.White,
-                        selectedContainerColor = if (IsClubThemed) ClubChrome else DeepCarbon,
-                        selectedLabelColor = Color.White,
-                        labelColor = DeepCarbon
-                    )
-                )
-            }
-        }
+        // A chip's touch area reaches 8dp past it, so the row starts that much higher: the chips
+        // themselves start at ScreenPadding.Top.
+        if (filtering) FilterChipRow(
+            options = EventFilter.entries,
+            selected = filter,
+            label = { stringResource(it.labelRes()) },
+            onSelect = { filter = it },
+            modifier = Modifier.padding(top = ScreenPadding.Top - FilterChipTouchMargin)
+        )
         LazyColumn(
             Modifier.weight(1f),
             contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = if (filtering) 4.dp else ScreenPadding.Top, bottom = ScreenPadding.Bottom),

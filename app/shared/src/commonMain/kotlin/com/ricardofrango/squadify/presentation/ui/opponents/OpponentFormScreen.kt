@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
+import com.ricardofrango.squadify.presentation.ui.components.SectionCard
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -187,7 +189,7 @@ private fun OpponentFormContent(
     onRemoveLogo: () -> Unit = {}
 ) {
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = { SquadifyTopBar(title = stringResource(title), subtitle = state.clubName, onNavigateBack = onNavigateBack) }
     ) { padding ->
         if (state.loading || state.loadFailed) {
@@ -209,7 +211,7 @@ private fun OpponentFormContent(
             return@Scaffold
         }
         BoxWithConstraints(
-            Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding().background(Color.White)
+            Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding().background(ScreenBackground)
         ) {
             // Landscape or tablet: the sections flow into two columns, the button pinned bottom-right.
             val wide = maxWidth >= 600.dp
@@ -307,17 +309,19 @@ private fun SectionLabel(text: StringResource) {
 }
 
 @Composable
-private fun ColumnScope.Section(label: StringResource, divider: Boolean = true, content: @Composable ColumnScope.() -> Unit) {
-    if (divider) HorizontalDivider(color = CarbonGray.copy(alpha = 0.15f))
-    SectionLabel(label)
-    content()
+private fun Section(label: StringResource, content: @Composable ColumnScope.() -> Unit) {
+    // Each section is a white card on the grey; the gap between cards separates them.
+    SectionCard(spacing = 16.dp) {
+        SectionLabel(label)
+        content()
+    }
 }
 
 @Composable
 private fun ColumnScope.IdentitySection(state: OpponentFormUiState, onFormChange: (OpponentForm) -> Unit, onNameFocusLost: () -> Unit) {
     val form = state.form
     var nameFocused by remember { mutableStateOf(false) }
-    Section(Res.string.label_identity_section, divider = false) {
+    Section(Res.string.label_identity_section) {
         FormTextField(
             value = form.name,
             onValueChange = { onFormChange(form.copy(name = it)) },

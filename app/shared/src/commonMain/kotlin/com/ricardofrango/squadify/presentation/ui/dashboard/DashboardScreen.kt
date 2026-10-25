@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.dashboard
 
+import com.ricardofrango.squadify.presentation.ui.components.SectionBorder
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import kotlin.time.Instant
 import com.ricardofrango.squadify.model.ClubStatus
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
@@ -85,7 +87,9 @@ private fun ClubCard(club: Club, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        // Flat, outlined in grey, like every section (SectionCard).
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = SectionBorder
     ) {
         Row(
             modifier = Modifier
@@ -201,7 +205,7 @@ private fun DashboardContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .background(Color.White)
+                    .background(ScreenBackground)
             ) {
                 PullToRefreshBox(
                     isRefreshing = isRefreshing,

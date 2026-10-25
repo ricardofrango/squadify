@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
 import com.ricardofrango.squadify.domain.usecase.ClubDetails
@@ -154,7 +155,7 @@ private fun Filters(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
-            colors = OutlinedTextFieldDefaults.colors(
+            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
                 focusedTextColor = DeepCarbon, unfocusedTextColor = DeepCarbon,
                 focusedBorderColor = PitchGreen, unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
                 focusedLabelColor = PitchGreen, unfocusedLabelColor = CarbonGray
@@ -182,7 +183,7 @@ private fun ClubPlayersContent(
 ) {
     var confirmDisable by remember { mutableStateOf<Player?>(null) }
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             SquadifyTopBar(
@@ -192,7 +193,7 @@ private fun ClubPlayersContent(
             )
         }
     ) { padding ->
-        val modifier = Modifier.fillMaxSize().padding(padding).background(Color.White)
+        val modifier = Modifier.fillMaxSize().padding(padding).background(ScreenBackground)
         when (val s = state) {
             ClubPlayersUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
             is ClubPlayersUiState.Error -> Column(modifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {

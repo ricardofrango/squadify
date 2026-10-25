@@ -31,7 +31,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
-import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
@@ -235,7 +235,7 @@ private fun AgeGroupDetailsContent(
             if (landscape && details != null) DetailRail(Tabs, tab.ordinal, selectIndex)
             Scaffold(
                 modifier = Modifier.weight(1f),
-                containerColor = WhiteSmoke,
+                containerColor = ScreenBackground,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 topBar = {
                     Column(Modifier.background(ClubChrome)) {

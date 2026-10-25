@@ -89,7 +89,7 @@ fun StatsCard(modifier: Modifier = Modifier, contentPadding: Dp = 14.dp, content
         modifier = modifier.fillMaxWidth(),
         shape = StatsCardShape,
         color = Color.White,
-        border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f))
+        border = SectionBorder
     ) {
         Column(Modifier.padding(contentPadding), content = content)
     }

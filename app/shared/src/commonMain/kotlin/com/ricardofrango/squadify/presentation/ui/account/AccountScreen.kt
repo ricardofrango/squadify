@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.account
 
+import com.ricardofrango.squadify.presentation.ui.components.SectionCard
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -154,7 +156,7 @@ private fun AccountContent(
     val idle = uiState as? AccountUiState.Idle
 
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             Column(Modifier.background(ClubChrome)) {
                 SquadifyTopBar(
@@ -180,7 +182,7 @@ private fun AccountContent(
             }
         }
     ) { paddingValues ->
-        val boxModifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White)
+        val boxModifier = Modifier.fillMaxSize().padding(paddingValues).background(ScreenBackground)
         when (uiState) {
             is AccountUiState.Loading -> {
                 Box(boxModifier, contentAlignment = Alignment.Center) {
@@ -248,30 +250,31 @@ private fun AccountForm(
             .screenContentPadding(),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        ProfileHeader(state, onPhotoPicked, onRemovePhoto)
+        SectionCard(spacing = 20.dp) {
+            ProfileHeader(state, onPhotoPicked, onRemovePhoto)
 
-        FormField(
-            value = form.firstName,
-            onValueChange = onFirstNameChange,
-            label = stringResource(Res.string.label_first_name_field)
-        )
-        FormField(
-            value = form.lastName,
-            onValueChange = onLastNameChange,
-            label = stringResource(Res.string.label_last_name_field)
-        )
-        FormField(
-            value = form.phone,
-            onValueChange = onPhoneChange,
-            label = stringResource(Res.string.label_phone_field),
-            keyboardType = KeyboardType.Phone,
-            // Last profile field: the keyboard key saves, like the top bar's check (when it's enabled).
-            imeAction = ImeAction.Done,
-            onSubmit = { if (state.canSaveProfile) onSaveProfileClick() }
-        )
+            FormField(
+                value = form.firstName,
+                onValueChange = onFirstNameChange,
+                label = stringResource(Res.string.label_first_name_field)
+            )
+            FormField(
+                value = form.lastName,
+                onValueChange = onLastNameChange,
+                label = stringResource(Res.string.label_last_name_field)
+            )
+            FormField(
+                value = form.phone,
+                onValueChange = onPhoneChange,
+                label = stringResource(Res.string.label_phone_field),
+                keyboardType = KeyboardType.Phone,
+                // Last profile field: the keyboard key saves, like the top bar's check (when it's enabled).
+                imeAction = ImeAction.Done,
+                onSubmit = { if (state.canSaveProfile) onSaveProfileClick() }
+            )
 
-        ReadOnlyEmailField(email = state.email, changed = state.emailChanged, onChangeClick = { onChangeEmailClick(state.email) })
-
+            ReadOnlyEmailField(email = state.email, changed = state.emailChanged, onChangeClick = { onChangeEmailClick(state.email) })
+        }
         if (state.profileSubmitError != null) {
             Text(
                 text = state.profileSubmitError,
@@ -279,8 +282,6 @@ private fun AccountForm(
                 color = MaterialTheme.colorScheme.error
             )
         }
-
-        HorizontalDivider(color = CarbonGray.copy(alpha = 0.15f))
 
         ChangePasswordCard(
             form = passwordForm,
@@ -510,7 +511,7 @@ private fun FormField(
         shape = FormRoundedShape,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
         keyboardActions = onSubmit?.let { submitKeyboardActions(it) } ?: KeyboardActions.Default,
-        colors = OutlinedTextFieldDefaults.colors(
+        colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
             focusedTextColor = DeepCarbon,
             unfocusedTextColor = DeepCarbon,
             focusedBorderColor = PitchGreen,
@@ -544,7 +545,7 @@ private fun PasswordField(
         shape = FormRoundedShape,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = if (onSubmit != null) ImeAction.Done else ImeAction.Next),
         keyboardActions = onSubmit?.let { submitKeyboardActions(it) } ?: KeyboardActions.Default,
-        colors = OutlinedTextFieldDefaults.colors(
+        colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
             focusedTextColor = DeepCarbon,
             unfocusedTextColor = DeepCarbon,
             focusedBorderColor = PitchGreen,

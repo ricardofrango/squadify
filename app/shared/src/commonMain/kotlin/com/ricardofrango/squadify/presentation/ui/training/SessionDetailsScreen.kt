@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -189,7 +190,7 @@ private fun SessionDetailsContent(
     var askCancel by remember { mutableStateOf(false) }
     var askDelete by remember { mutableStateOf(false) }
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
                 title = details?.let { sessionTitle(it.session.date) } ?: "",
@@ -215,7 +216,7 @@ private fun SessionDetailsContent(
             )
         }
     ) { padding ->
-        val modifier = Modifier.fillMaxSize().padding(padding).background(Color(0xFFF6F6F7))
+        val modifier = Modifier.fillMaxSize().padding(padding).background(ScreenBackground)
         if (details == null) {
             PlanLoadingOrError(state.loading, modifier, onRetry)
             return@Scaffold

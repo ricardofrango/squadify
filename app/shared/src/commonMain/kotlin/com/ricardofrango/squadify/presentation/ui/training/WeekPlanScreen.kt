@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -114,7 +115,7 @@ private fun WeekPlanContent(
     val plans = (state as? TrainingPlansUiState.Idle)?.plans
     val plan: TrainingPlan? = plans?.plans?.planFor(TrainingPlanLevel.WEEK, monday)
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
                 title = stringResource(Res.string.label_week_of, shortDateLabel(monday)),
@@ -128,7 +129,7 @@ private fun WeekPlanContent(
             )
         }
     ) { padding ->
-        val modifier = Modifier.fillMaxSize().padding(padding).background(Color(0xFFF6F6F7))
+        val modifier = Modifier.fillMaxSize().padding(padding).background(ScreenBackground)
         if (plans == null) {
             PlanLoadingOrError(state is TrainingPlansUiState.Loading, modifier, onRetry)
             return@Scaffold

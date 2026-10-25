@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createagegroups
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -238,7 +239,7 @@ private fun CreateAgeGroupsContent(
     val selectedSeasonName = (uiState as? CreateAgeGroupsUiState.Idle)?.selectedSeason?.name
 
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
                 title = stringResource(Res.string.title_create_age_groups),
@@ -254,7 +255,7 @@ private fun CreateAgeGroupsContent(
         when (uiState) {
             is CreateAgeGroupsUiState.Loading -> {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White),
+                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(ScreenBackground),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = PitchGreen)
@@ -263,7 +264,7 @@ private fun CreateAgeGroupsContent(
 
             is CreateAgeGroupsUiState.Idle -> if (uiState.seasons.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White).screenContentPadding(),
+                    modifier = Modifier.fillMaxSize().padding(paddingValues).background(ScreenBackground).screenContentPadding(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -281,7 +282,7 @@ private fun CreateAgeGroupsContent(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
-                        .background(Color.White)
+                        .background(ScreenBackground)
                         .verticalScroll(rememberScrollState())
                         .screenContentPadding(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -541,7 +542,7 @@ private fun AgeGroupRowCard(
                 keyboardOptions = KeyboardOptions(imeAction = if (onSubmit != null) ImeAction.Done else ImeAction.Next),
                 keyboardActions = onSubmit?.let { submitKeyboardActions(it) } ?: KeyboardActions.Default,
                 shape = FormRoundedShape,
-                colors = OutlinedTextFieldDefaults.colors(
+                colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
                     focusedTextColor = DeepCarbon,
                     unfocusedTextColor = DeepCarbon,
                     focusedBorderColor = PitchGreen,
