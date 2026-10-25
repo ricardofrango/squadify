@@ -312,3 +312,51 @@ internal fun ActionTile(label: String, tone: ActionTone, enabled: Boolean, modif
 internal fun ActionTileRow(content: @Composable RowScope.() -> Unit) {
     Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), content = content)
 }
+
+/**
+ * Before kickoff, on top of the pitch: the two sides as the scoreboard will show them (home first),
+ * with "vs" and the kickoff time between them. [stacked] (lying down, beside the pitch) puts home
+ * over away.
+ */
+@Composable
+internal fun MatchupCard(home: ScoreSide, away: ScoreSide, kickoff: String, stacked: Boolean, modifier: Modifier = Modifier) {
+    val centre: @Composable () -> Unit = {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(stringResource(Res.string.label_vs), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Black)
+            Text(kickoff, color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp, maxLines = 1)
+        }
+    }
+    if (stacked) {
+        Column(
+            modifier.fillMaxWidth().background(CarbonGray, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            listOf(home, away).forEachIndexed { index, side ->
+                if (index == 1) centre()
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    SideCrest(side, 22.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text(side.name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+    } else {
+        Row(
+            modifier.fillMaxWidth().background(CarbonGray, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                SideCrest(home, 22.dp)
+                Spacer(Modifier.width(6.dp))
+                Text(home.name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Box(Modifier.padding(horizontal = 12.dp)) { centre() }
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
+                Text(away.name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End, modifier = Modifier.weight(1f, fill = false))
+                Spacer(Modifier.width(6.dp))
+                SideCrest(away, 22.dp)
+            }
+        }
+    }
+}

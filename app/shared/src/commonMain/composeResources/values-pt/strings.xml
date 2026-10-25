@@ -384,8 +384,6 @@
     <string name="label_bench">Suplentes</string>
     <string name="msg_tap_to_add_to_xi">Toque para adicionar ao onze.</string>
     <string name="btn_kick_off">Iniciar jogo</string>
-    <string name="msg_pick_more_to_kick_off">Escolha mais %1$d para iniciar. Partes de %2$d minutos.</string>
-    <string name="msg_ready_to_kick_off">Partes de %1$d minutos.</string>
     <string name="label_half_time_badge">INTERVALO</string>
     <string name="label_first_half">1ª parte</string>
     <string name="label_second_half">2ª parte</string>
@@ -1459,7 +1457,6 @@
     <string name="lm_zone_defence">Defesa</string>
     <string name="lm_zone_midfield">Meio-campo</string>
     <string name="lm_zone_attack">Ataque</string>
-    <string name="lm_fill_more_to_kick_off">Preencha mais %1$d posições para iniciar. Partes de %2$d minutos.</string>
     <string name="lm_flip_pitch">Inverter o campo</string>
     <string name="lm_sent_off_list">Expulsos: %1$s</string>
     <string name="lm_on_the_pitch_for">%1$s em campo</string>
@@ -1543,4 +1540,6 @@
     <string name="md_tl_positions">Troca de posições</string>
     <string name="md_tl_step">%1$d de %2$d</string>
     <string name="md_tl_slider">Momento do jogo</string>
+    <string name="label_vs">vs</string>
+    <string name="btn_save_lineup">Guardar</string>
 </resources>

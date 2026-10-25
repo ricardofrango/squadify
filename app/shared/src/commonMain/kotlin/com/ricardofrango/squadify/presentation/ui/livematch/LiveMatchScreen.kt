@@ -65,6 +65,8 @@ import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import squadify.app.shared.generated.resources.*
+import androidx.compose.material3.OutlinedButton
+import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
 import kotlinx.coroutines.delay
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -202,7 +204,9 @@ private sealed class PreKickoffSheet {
 /**
  * Before kickoff the console opens straight on the pitch, every position empty. Tapping one picks a
  * called-up player for it; holding a player drags them to another position or back to the bench. Each
- * change is saved and shown on every device at once. Kick-off unlocks once every position is filled.
+ * change is saved and shown on every device at once. Kick-off unlocks once every position is filled;
+ * Save, beside it, leaves with the starting team kept, to kick off later. A player taken out of the
+ * call-up meanwhile leaves their position empty (their call-up, and its position, is gone).
  */
 @Composable
 private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchActions, onNavigateBack: () -> Unit) {
@@ -233,43 +237,68 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
         }
     }
 
-    val kickOffBar: @Composable (Modifier) -> Unit = { modifier ->
+    // The two sides, home first as on the scoreboard (ours first on neutral ground), and the kickoff time.
+    val ourFirst = details.match.venue.ourSideFirst()
+    val ours = ScoreSide(details.team.name, details.clubLogoUrl, 0, null)
+    val theirs = ScoreSide(details.opponent.shortName ?: details.opponent.name, details.opponent.logoUrl, 0, null)
+    val kickoff = details.match.dateTime.toLocalDateTime(TimeZone.currentSystemDefault())
+    val kickoffLabel = "${shortDateLabel(kickoff.date)} · ${kickoff.hour.toString().padStart(2, '0')}:${kickoff.minute.toString().padStart(2, '0')}"
+    val matchup: @Composable (Modifier, Boolean) -> Unit = { modifier, stacked ->
+        MatchupCard(if (ourFirst) ours else theirs, if (ourFirst) theirs else ours, kickoffLabel, stacked, modifier)
+    }
+
+    // Save (keeps the starting team and leaves; every change is already sent as it's made) beside Kick
+    // off, which needs every position filled. Lying down they're one over the other.
+    val kickOffBar: @Composable (Modifier, Boolean) -> Unit = { modifier, stacked ->
         Column(modifier) {
             state.error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(8.dp))
             }
             if (canManage) {
-                Button(
-                    onClick = { actions.onKickOff(halfLength) },
-                    enabled = remaining == 0 && !state.isSubmitting,
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PitchGreen,
-                        contentColor = Color.White,
-                        disabledContainerColor = CarbonGray,
-                        disabledContentColor = Color.White.copy(alpha = 0.4f)
-                    )
-                ) {
-                    if (state.isSubmitting) {
-                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-                    } else {
-                        Text(stringResource(Res.string.btn_kick_off).uppercase(), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold))
+                val save: @Composable (Modifier) -> Unit = { m ->
+                    OutlinedButton(
+                        onClick = { actions.onSaveLineup(onNavigateBack) },
+                        enabled = !state.isSubmitting,
+                        modifier = m.height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.5.dp, Color.White.copy(alpha = if (state.isSubmitting) 0.2f else 0.5f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White, disabledContentColor = Color.White.copy(alpha = 0.4f))
+                    ) {
+                        Text(stringResource(Res.string.btn_save_lineup).uppercase(), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold), maxLines = 1)
                     }
                 }
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = if (remaining > 0) {
-                        stringResource(Res.string.lm_fill_more_to_kick_off, remaining, halfLength)
-                    } else {
-                        stringResource(Res.string.msg_ready_to_kick_off, halfLength)
-                    },
-                    color = Color.White.copy(alpha = 0.5f),
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
-                )
+                val kickOff: @Composable (Modifier) -> Unit = { m ->
+                    Button(
+                        onClick = { actions.onKickOff(halfLength) },
+                        enabled = remaining == 0 && !state.isSubmitting,
+                        modifier = m.height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PitchGreen,
+                            contentColor = Color.White,
+                            disabledContainerColor = CarbonGray,
+                            disabledContentColor = Color.White.copy(alpha = 0.4f)
+                        )
+                    ) {
+                        if (state.isSubmitting) {
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
+                        } else {
+                            Text(stringResource(Res.string.btn_kick_off).uppercase(), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold), maxLines = 1)
+                        }
+                    }
+                }
+                if (stacked) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        kickOff(Modifier.fillMaxWidth())
+                        save(Modifier.fillMaxWidth())
+                    }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        save(Modifier.weight(1f))
+                        kickOff(Modifier.weight(1f))
+                    }
+                }
             } else {
                 Text(
                     stringResource(Res.string.msg_live_match_read_only),
@@ -284,8 +313,9 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
-        // No app bar: the pitch gets the room (system back leaves the screen).
+        // No app bar: the matchup sits at the top (system back leaves the screen).
         Column(Modifier.fillMaxSize().statusBarsPadding().padding(top = 8.dp)) {
+            if (!landscape) matchup(Modifier.padding(horizontal = ScreenPadding.Horizontal).padding(bottom = 8.dp), false)
             if (details.callUps.isEmpty()) {
                 Text(
                     stringResource(Res.string.msg_no_callups),
@@ -302,7 +332,7 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
                 tokenInfo = { PitchTokenInfo() },
                 horizontal = landscape,
                 // The pitch faces the scoreboard: our goal on our side of it (home first, or ours on neutral ground).
-                ourGoalAtStart = details.match.venue.ourSideFirst() != flipped,
+                ourGoalAtStart = ourFirst != flipped,
                 dragEnabled = editable,
                 onSlotTap = if (editable) {
                     { slot, player -> sheet = if (player == null) PreKickoffSheet.WhoPlaysHere(slot) else PreKickoffSheet.SlotOptions(slot, player) }
@@ -317,10 +347,17 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
                 onFlip = if (landscape) { { flipped = !flipped } } else null,
                 besideKeeper = { HalfLengthChip(halfLength, HALF_LENGTH_OPTIONS, enabled = canManage) { halfLength = it } },
                 modifier = Modifier.weight(1f).fillMaxWidth().then(if (landscape) Modifier.padding(horizontal = 16.dp, vertical = 8.dp) else Modifier),
-                footer = if (landscape) { { kickOffBar(Modifier.fillMaxWidth().navigationBarsPadding()) } } else null
+                // Lying down, the column beside the pitch: the matchup on top, the buttons at the bottom.
+                footer = if (landscape) {
+                    {
+                        matchup(Modifier, true)
+                        Spacer(Modifier.weight(1f))
+                        kickOffBar(Modifier.fillMaxWidth().navigationBarsPadding(), true)
+                    }
+                } else null
             )
             if (!landscape) {
-                kickOffBar(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp))
+                kickOffBar(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp), false)
             }
         }
     }
@@ -1129,6 +1166,7 @@ private object PreviewLiveMatchActions : LiveMatchActions {
     override fun onHalfTime() {}
     override fun onKickOff(halfLengthMinutes: Int) {}
     override fun onSetLineup(formation: String, slots: Map<Int, String>) {}
+    override fun onSaveLineup(onSaved: () -> Unit) {}
     override fun onLogEvent(type: EventType, playerId: String, minute: Int) {}
     override fun onLogGoal(minute: Int, isOpponent: Boolean) {}
     override fun onLogPlayerGoal(scorerId: String, assistPlayerId: String?, minute: Int) {}

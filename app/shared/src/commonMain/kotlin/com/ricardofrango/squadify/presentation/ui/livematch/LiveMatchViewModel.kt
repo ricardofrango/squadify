@@ -78,6 +78,7 @@ interface LiveMatchActions {
     fun onKickOff(halfLengthMinutes: Int)
     /** Saves the pitch's formation and who stands in each position (slot -> player id). */
     fun onSetLineup(formation: String, slots: Map<Int, String>)
+    fun onSaveLineup(onSaved: () -> Unit)
     fun onLogEvent(type: EventType, playerId: String, minute: Int)
     fun onLogGoal(minute: Int, isOpponent: Boolean)
     fun onLogPlayerGoal(scorerId: String, assistPlayerId: String?, minute: Int)
@@ -114,6 +115,8 @@ class LiveMatchViewModel(
     // the socket echoes them back. All touched on the main thread only (viewModelScope).
     private var desiredLineup: MatchLineup? = null
     private var lineupJob: Job? = null
+    // The last lineup save was refused (Save then stays on the screen).
+    private var lineupRefused = false
     private var awaitingEcho: Map<Int, String>? = null
 
     // One action at a time: two substitutions sent together could interleave their OUT and IN events
@@ -248,6 +251,20 @@ class LiveMatchViewModel(
         if (lineupJob?.isActive != true) lineupJob = viewModelScope.launch { drainLineups() }
     }
 
+    /**
+     * "Save" before kickoff: every change is already sent as it's made, so this waits for the last one
+     * to reach the server (runSubmitting runs after any pending lineup save) and then [onSaved] -- the
+     * screen leaves. A refused save keeps the coach here with its error, on the server's pitch.
+     * (`current` isn't used: the refusal is [lineupRefused], since its message may not load.)
+     */
+    override fun onSaveLineup(onSaved: () -> Unit) = runSubmitting { _ ->
+        // A second tap, with nothing more pending, leaves on the server's pitch.
+        val refused = lineupRefused
+        lineupRefused = false
+        if (!refused) onSaved()
+        return@runSubmitting { it }
+    }
+
     private suspend fun drainLineups() {
         while (true) {
             val next = desiredLineup ?: return
@@ -255,7 +272,9 @@ class LiveMatchViewModel(
             awaitingEcho = next.slots
             try {
                 setMatchLineupUseCase(matchId, SetMatchLineupRequest(next.formation, next.slots))
+                lineupRefused = false
             } catch (e: Exception) {
+                lineupRefused = true
                 desiredLineup = null
                 awaitingEcho = null
                 // The pitch first, so the coach never keeps working on one the server doesn't have.

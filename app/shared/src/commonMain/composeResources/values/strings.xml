@@ -386,8 +386,6 @@
     <string name="label_bench">Bench</string>
     <string name="msg_tap_to_add_to_xi">Tap to add to the XI.</string>
     <string name="btn_kick_off">Kick off</string>
-    <string name="msg_pick_more_to_kick_off">Pick %1$d more to kick off. %2$d-minute halves.</string>
-    <string name="msg_ready_to_kick_off">%1$d-minute halves.</string>
     <string name="label_half_time_badge">HALF TIME</string>
     <string name="label_first_half">1st half</string>
     <string name="label_second_half">2nd half</string>
@@ -1461,7 +1459,6 @@
     <string name="lm_zone_defence">Defence</string>
     <string name="lm_zone_midfield">Midfield</string>
     <string name="lm_zone_attack">Attack</string>
-    <string name="lm_fill_more_to_kick_off">Fill %1$d more positions to kick off. %2$d-minute halves.</string>
     <string name="lm_flip_pitch">Flip the pitch</string>
     <string name="lm_sent_off_list">Sent off: %1$s</string>
     <string name="lm_on_the_pitch_for">%1$s on the pitch</string>
@@ -1545,4 +1542,6 @@
     <string name="md_tl_positions">Positions swapped</string>
     <string name="md_tl_step">%1$d of %2$d</string>
     <string name="md_tl_slider">Moment in the match</string>
+    <string name="label_vs">vs</string>
+    <string name="btn_save_lineup">Save</string>
 </resources>

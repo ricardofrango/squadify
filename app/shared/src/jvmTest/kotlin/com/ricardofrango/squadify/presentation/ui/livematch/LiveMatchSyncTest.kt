@@ -135,6 +135,32 @@ class LiveMatchSyncTest {
     }
 
     @Test
+    fun saveLeavesOnlyOnceThePendingLineupIsOnTheServer() = runTest {
+        viewModel.load("m1")
+        server.lineupGate = CompletableDeferred()
+        val moved = swap(1, 2)
+        var left = false
+        viewModel.onSaveLineup { left = true }
+        assertEquals(false, left)
+
+        server.lineupGate!!.complete(Unit)
+        assertEquals(true, left)
+        assertEquals(moved, server.details.storedSlots())
+    }
+
+    @Test
+    fun aRefusedSaveStaysWithTheError() = runTest {
+        viewModel.load("m1")
+        server.lineupGate = CompletableDeferred()
+        swap(1, 2)
+        var left = false
+        viewModel.onSaveLineup { left = true }
+
+        server.lineupGate!!.completeExceptionally(IllegalStateException("refused"))
+        assertEquals(false, left)
+    }
+
+    @Test
     fun anOlderEchoDoesNotPutThePitchBack() = runTest {
         viewModel.load("m1")
         val first = swap(1, 2)
