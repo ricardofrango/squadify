@@ -1438,11 +1438,9 @@
     <!-- Live pitch view -->
     <string name="tab_pitch">Pitch</string>
     <string name="lm_change_formation">Change formation</string>
-    <string name="lm_formation_format">Defenders-midfielders-attackers</string>
-    <string name="lm_formation_adds_up">Adds up to %1$d + goalkeeper</string>
     <string name="lm_formation_wrong_sum">%1$s adds up to %2$d. It needs %3$d (not counting the goalkeeper).</string>
     <string name="lm_formation_wrong_format">Write three numbers, like %1$s.</string>
-    <string name="lm_quick_picks">Quick picks</string>
+    <string name="lm_quick_picks">Formations</string>
     <string name="btn_apply">Apply</string>
     <string name="lm_minutes_chip">%1$d min</string>
     <string name="lm_half_length_cd">Half length: %1$d minutes</string>

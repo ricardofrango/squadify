@@ -1436,11 +1436,9 @@
     <!-- Live pitch view -->
     <string name="tab_pitch">Campo</string>
     <string name="lm_change_formation">Alterar formação</string>
-    <string name="lm_formation_format">Defesas-médios-avançados</string>
-    <string name="lm_formation_adds_up">Soma %1$d + guarda-redes</string>
     <string name="lm_formation_wrong_sum">%1$s soma %2$d. Precisa de %3$d (sem contar o guarda-redes).</string>
     <string name="lm_formation_wrong_format">Escreva três números, como %1$s.</string>
-    <string name="lm_quick_picks">Atalhos</string>
+    <string name="lm_quick_picks">Formações</string>
     <string name="btn_apply">Aplicar</string>
     <string name="lm_minutes_chip">%1$d min</string>
     <string name="lm_half_length_cd">Duração da parte: %1$d minutos</string>
@@ -1465,7 +1463,7 @@
     <string name="lm_action_yellow">Amarelo</string>
     <string name="lm_action_red">Vermelho</string>
     <string name="lm_action_substitution">Substituição</string>
-    <string name="lm_team_size_side">%1$d a jogar</string>
+    <string name="lm_team_size_side">Futebol %1$d</string>
     <!-- Full stats -->
     <string name="fs_title">Estatísticas completas</string>
     <string name="fs_title_of">Estatísticas de %1$s</string>

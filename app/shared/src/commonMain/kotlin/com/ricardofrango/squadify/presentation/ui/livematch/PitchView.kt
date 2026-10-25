@@ -72,6 +72,10 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -633,7 +637,7 @@ internal fun FlipPitchButton(onClick: () -> Unit) {
     }
 }
 
-/** The common shapes for a team size, its default first, then the closest to it. */
+/** The common shapes for a team size: its default and the closest to it, in order (2-3-1 before 3-2-1). */
 internal fun quickFormations(teamSize: Int, count: Int = 5): List<List<Int>> {
     val outfield = teamSize - 1
     val default = defaultFormation(teamSize)
@@ -645,12 +649,25 @@ internal fun quickFormations(teamSize: Int, count: Int = 5): List<List<Int>> {
         }
     }
     return all.sortedWith(compareBy<List<Int>> { f -> f.indices.sumOf { abs(f[it] - default[it]) } }.thenByDescending { it[0] }).take(count)
+        .sortedWith(compareBy<List<Int>>({ it[0] }, { it[1] }, { it[2] }))
+}
+
+/**
+ * Typing a formation puts the dash in for you: a digit typed while there are fewer than three numbers
+ * gets a "-" after it ("2" -> "2-", "2-3" -> "2-3-"). A deletion is left alone, so the dash can be
+ * removed, and a "-" typed straight after one isn't doubled.
+ */
+internal fun withAutoDash(previous: String, typed: String): String {
+    if (typed.length <= previous.length) return typed
+    val text = typed.replace("--", "-")
+    return if (text.isNotEmpty() && text.last().isDigit() && text.count { it == '-' } < 2) "$text-" else text
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun FormationSheet(current: String, teamSize: Int, onApply: (String) -> Unit, onDismiss: () -> Unit) {
-    var text by remember { mutableStateOf(current) }
+    var field by remember { mutableStateOf(TextFieldValue(current, TextRange(current.length))) }
+    val text = field.text
     val parsed = parseFormation(text, teamSize)
     val outfield = teamSize - 1
     val numbers = text.trim().split("-").map { it.trim().toIntOrNull() }
@@ -663,17 +680,22 @@ internal fun FormationSheet(current: String, teamSize: Int, onApply: (String) ->
     val apply = { parsed?.let { onApply(it.formationText()) } }
     val muted = Color.White.copy(alpha = 0.55f)
     // Design "Squadify Pitch View": title with the team size, a filled field (red edge when wrong),
-    // the sum, the error, quick picks, and flat Cancel / Apply.
+    // the error, the formations to pick, and flat Cancel / Apply.
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = CarbonGray) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 20.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(Res.string.lm_change_formation), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 Text(stringResource(Res.string.lm_team_size_side, teamSize), color = muted, fontSize = 12.sp)
             }
-            Text(stringResource(Res.string.lm_formation_format).uppercase(), color = muted, fontSize = 12.sp, letterSpacing = 0.5.sp)
             OutlinedTextField(
-                value = text,
-                onValueChange = { new -> if (new.length <= 8 && new.all { it.isDigit() || it == '-' || it == ' ' }) text = new },
+                value = field,
+                onValueChange = { new ->
+                    if (new.text.length <= 8 && new.text.all { it.isDigit() || it == '-' || it == ' ' }) {
+                        val dashed = withAutoDash(text, new.text)
+                        // When a dash was added, the cursor goes after it.
+                        field = if (dashed == new.text) new else TextFieldValue(dashed, TextRange(dashed.length))
+                    }
+                },
                 singleLine = true,
                 isError = error != null,
                 shape = RoundedCornerShape(10.dp),
@@ -692,19 +714,19 @@ internal fun FormationSheet(current: String, teamSize: Int, onApply: (String) ->
                     errorCursorColor = PitchGreen
                 )
             )
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(stringResource(Res.string.lm_formation_adds_up, outfield), color = muted, fontSize = 12.sp)
-                error?.let { Text(it, color = Color(0xFFFF8A80), fontSize = 12.sp) }
-            }
+            error?.let { Text(it, color = Color(0xFFFF8A80), fontSize = 12.sp) }
             Text(stringResource(Res.string.lm_quick_picks).uppercase(), color = muted, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+            // Each chip takes its own height, not Material's 48dp touch area, so the rows sit close.
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 quickFormations(teamSize).forEach { f ->
                     val label = f.formationText()
                     val selected = parsed?.formationText() == label
-                    Surface(onClick = { text = label }, shape = RoundedCornerShape(16.dp), color = if (selected) PitchGreen else Color.White.copy(alpha = 0.06f)) {
+                    Surface(onClick = { field = TextFieldValue(label, TextRange(label.length)) }, shape = RoundedCornerShape(16.dp), color = if (selected) PitchGreen else Color.White.copy(alpha = 0.06f)) {
                         Text(label, color = Color.White, fontSize = 14.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                     }
                 }
+            }
             }
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Surface(onClick = onDismiss, shape = RoundedCornerShape(10.dp), color = Color.White.copy(alpha = 0.06f), modifier = Modifier.weight(1f).height(46.dp)) {
