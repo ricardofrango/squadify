@@ -512,15 +512,10 @@ internal fun SubstitutionPicker(
     val name = "${chosen.firstName} ${chosen.lastName}"
     val pm = minutes.of(chosen.id)
     val (line, _) = stintLine(chosen.id, if (takingOff) RowKind.ON_PITCH else RowKind.BENCH, minutes)
-    Text(
+    SheetPlayerHeader(
+        chosen,
         stringResource(if (takingOff) Res.string.lm_take_off else Res.string.lm_bring_on, name),
-        color = Color.White,
-        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-    )
-    Text(
-        listOf(stringResource(Res.string.lm_played, mins(pm?.minutes ?: 0)), line).filter { it.isNotEmpty() }.joinToString(" · "),
-        color = Color.White.copy(alpha = 0.6f),
-        style = MaterialTheme.typography.bodySmall
+        listOf(stringResource(Res.string.lm_played, mins(pm?.minutes ?: 0)), line).filter { it.isNotEmpty() }.joinToString(" · ")
     )
     Spacer(Modifier.height(14.dp))
     Text(

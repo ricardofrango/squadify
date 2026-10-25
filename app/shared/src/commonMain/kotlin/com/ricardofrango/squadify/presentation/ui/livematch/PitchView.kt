@@ -6,8 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+import com.ricardofrango.squadify.presentation.haptics.rememberPickUpHaptic
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -294,7 +293,7 @@ private fun Modifier.pitchDrag(
 ): Modifier {
     var coordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     val latestDrop by rememberUpdatedState(onDrop)
-    val haptics = LocalHapticFeedback.current
+    val pickUpHaptic = rememberPickUpHaptic()
     DisposableEffect(key) { onDispose { drag.targets.remove(key) } }
     val positioned = onGloballyPositioned {
         coordinates = it
@@ -305,7 +304,7 @@ private fun Modifier.pitchDrag(
         detectDragGesturesAfterLongPress(
             onDragStart = { offset ->
                 coordinates?.let {
-                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    pickUpHaptic()
                     drag.start(key, player, it.localToWindow(offset))
                 }
             },
@@ -742,6 +741,24 @@ internal fun FormationSheet(current: String, teamSize: Int, onApply: (String) ->
     }
 }
 
+/**
+ * A sheet's head: the photo of the [player] it acts on (ringed, so it's clear who), beside the [title]
+ * and [subtitle]; without a player, just the text.
+ */
+@Composable
+internal fun SheetPlayerHeader(player: Player?, title: String, subtitle: String?, modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        player?.let {
+            TokenPhoto(it, 44.dp, BorderStroke(2.dp, Color.White))
+            Spacer(Modifier.width(12.dp))
+        }
+        Column {
+            Text(title, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), maxLines = 2, overflow = TextOverflow.Ellipsis)
+            subtitle?.let { Text(it, color = Color.White.copy(alpha = 0.55f), style = MaterialTheme.typography.bodySmall) }
+        }
+    }
+}
+
 /** One row of a pick sheet: a player (with their photo), or a plain line such as an empty position. */
 internal data class PitchPickRow(val label: String, val player: Player? = null, val onClick: () -> Unit)
 internal data class PitchPickSection(val title: String?, val rows: List<PitchPickRow>)
@@ -756,16 +773,7 @@ internal data class PitchPickSection(val title: String?, val rows: List<PitchPic
 internal fun PitchPickSheet(title: String, subtitle: String?, sections: List<PitchPickSection>, emptyText: String?, onDismiss: () -> Unit, player: Player? = null) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = CarbonGray) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding.Horizontal).padding(bottom = 16.dp).navigationBarsPadding()) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                player?.let {
-                    TokenPhoto(it, 44.dp, BorderStroke(2.dp, Color.White))
-                    Spacer(Modifier.width(12.dp))
-                }
-                Column {
-                    Text(title, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    subtitle?.let { Text(it, color = Color.White.copy(alpha = 0.55f), style = MaterialTheme.typography.bodySmall) }
-                }
-            }
+            SheetPlayerHeader(player, title, subtitle)
             Spacer(Modifier.height(if (player != null) 12.dp else 8.dp))
             if (sections.all { it.rows.isEmpty() } && emptyText != null) {
                 Text(emptyText, color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 16.dp))

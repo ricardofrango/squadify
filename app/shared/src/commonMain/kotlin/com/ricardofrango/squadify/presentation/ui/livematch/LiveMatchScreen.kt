@@ -862,18 +862,13 @@ private fun PlayerActionSheet(
                 }
 
                 is ActionSheet.PickAssist -> {
-                    Text(
-                        stringResource(Res.string.title_pick_assist, sheet.scorerName),
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
+                    SheetPlayerHeader(pitch.players[sheet.scorerId], stringResource(Res.string.title_pick_assist, sheet.scorerName), null, Modifier.padding(bottom = 8.dp))
                     // The assist is optional: "No assist" first, then the scorer's teammates on the pitch.
                     SheetAction(stringResource(Res.string.action_no_assist), enabled = enabled) {
                         actions.onLogPlayerGoal(sheet.scorerId, assistPlayerId = null, minute = sheet.minute); onDismiss()
                     }
                     squad.onPitch.filter { it.player.id != sheet.scorerId }.forEach { row ->
-                        SheetAction(pickerLabel(row.player), enabled = enabled) {
+                        SheetAction(pickLabel(row.player), enabled = enabled, player = row.player) {
                             actions.onLogPlayerGoal(sheet.scorerId, assistPlayerId = row.player.id, minute = sheet.minute); onDismiss()
                         }
                     }
@@ -886,11 +881,17 @@ private fun PlayerActionSheet(
                 // Swap places with someone else on the pitch, or move into an empty position.
                 is ActionSheet.ChangePosition -> {
                     val mine = pitch.slots.entries.firstOrNull { it.value == sheet.player.id }?.key
+                    SheetPlayerHeader(
+                        sheet.player,
+                        "${sheet.player.firstName} ${sheet.player.lastName}",
+                        listOfNotNull(sheet.player.shirtNumber?.let { "#$it" }, mine?.let { zoneLabel(pitchSpot(pitch.formation, it).zone) }).joinToString(" · ").ifEmpty { null },
+                        Modifier.padding(bottom = 12.dp)
+                    )
                     Text(
-                        stringResource(Res.string.lm_swap_with),
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        stringResource(Res.string.lm_swap_with).uppercase(),
+                        color = Color.White.copy(alpha = 0.5f),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.padding(bottom = 4.dp)
                     )
                     if (mine != null) {
                         (0..pitch.formation.sum()).forEach { slot ->
@@ -898,7 +899,7 @@ private fun PlayerActionSheet(
                             val other = pitch.slots[slot]?.let { pitch.players[it] }
                             val label = other?.let(::pickLabel)
                                 ?: stringResource(Res.string.lm_empty_in_zone, zoneLabel(pitchSpot(pitch.formation, slot).zone))
-                            SheetAction(label, enabled = enabled) { pitch.save(pitch.slots.swapped(mine, slot)); onDismiss() }
+                            SheetAction(label, enabled = enabled, player = other) { pitch.save(pitch.slots.swapped(mine, slot)); onDismiss() }
                         }
                     }
                 }
@@ -912,7 +913,7 @@ private fun PlayerActionSheet(
                     Text(zoneLabel(pitchSpot(pitch.formation, sheet.slot).zone), color = Color.White.copy(alpha = 0.55f), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 8.dp))
                     pitch.slots.entries.sortedBy { it.key }.forEach { (slot, id) ->
                         val player = pitch.players[id] ?: return@forEach
-                        SheetAction(pickLabel(player), enabled = enabled) { pitch.save(pitch.slots.swapped(slot, sheet.slot)); onDismiss() }
+                        SheetAction(pickLabel(player), enabled = enabled, player = player) { pitch.save(pitch.slots.swapped(slot, sheet.slot)); onDismiss() }
                     }
                 }
             }
@@ -920,21 +921,23 @@ private fun PlayerActionSheet(
     }
 }
 
-/** "- 10 · Tomás Bragança", or "- Tomás Bragança" when the player has no shirt number. */
-private fun pickerLabel(player: Player): String {
-    val name = "${player.firstName} ${player.lastName}"
-    return player.shirtNumber?.let { "- $it · $name" } ?: "- $name"
-}
-
+/** One choice in a sheet; with [player], their photo before the label. */
 @Composable
-private fun SheetAction(label: String, enabled: Boolean = true, onClick: () -> Unit) {
+private fun SheetAction(label: String, enabled: Boolean = true, player: Player? = null, onClick: () -> Unit) {
     Surface(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth(), color = Color.Transparent) {
-        Text(
-            label,
-            modifier = Modifier.padding(vertical = 14.dp),
-            color = Color.White.copy(alpha = if (enabled) 1f else 0.4f),
-            style = MaterialTheme.typography.bodyLarge
-        )
+        Row(Modifier.padding(vertical = if (player != null) 8.dp else 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            player?.let {
+                TokenPhoto(it, 36.dp, null)
+                Spacer(Modifier.width(12.dp))
+            }
+            Text(
+                label,
+                color = Color.White.copy(alpha = if (enabled) 1f else 0.4f),
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 
