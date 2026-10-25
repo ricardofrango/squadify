@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.ui.livematch
 
 import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchEvent
+import com.ricardofrango.squadify.model.MatchLineup
 import com.ricardofrango.squadify.model.MatchScore
 
 enum class LiveMatchTab { PITCH, SQUAD, EVENTS }
@@ -32,6 +33,10 @@ sealed class LiveMatchUiState {
         // control so a slow connection can't be double-tapped.
         val isSubmitting: Boolean = false,
         val error: String? = null,
-        val flash: LiveFlash? = null
-    ) : LiveMatchUiState()
+        val flash: LiveFlash? = null,
+        // The pitch as it was when the screen opened: before kickoff, Save is off until it differs.
+        val openedLineup: MatchLineup? = null
+    ) : LiveMatchUiState() {
+        val lineupChanged: Boolean get() = openedLineup != null && details.storedLineup() != openedLineup
+    }
 }

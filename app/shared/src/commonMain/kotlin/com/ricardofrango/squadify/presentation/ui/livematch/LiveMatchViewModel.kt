@@ -149,7 +149,7 @@ class LiveMatchViewModel(
                 val started = details.match.status != MatchStatus.SCHEDULED
                 val events = if (started) getMatchEventsUseCase(matchId) else emptyList()
                 val score = if (started) getMatchScoreUseCase(matchId) else MatchScore(matchId, 0, 0)
-                _state.update { LiveMatchUiState.Idle(details = details, events = events, score = score) }
+                _state.update { LiveMatchUiState.Idle(details = details, events = events, score = score, openedLineup = details.storedLineup()) }
                 subscribeToLiveUpdates()
             } catch (e: Exception) {
                 _state.update { LiveMatchUiState.Error(getString(Res.string.msg_failed_to_load_match)) }

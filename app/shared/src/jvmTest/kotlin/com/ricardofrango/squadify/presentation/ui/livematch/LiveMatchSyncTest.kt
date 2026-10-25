@@ -135,6 +135,17 @@ class LiveMatchSyncTest {
     }
 
     @Test
+    fun saveIsOffUntilThePitchDiffersFromHowItOpened() = runTest {
+        viewModel.load("m1")
+        assertEquals(false, idle.lineupChanged)
+        swap(1, 2)
+        assertEquals(true, idle.lineupChanged)
+        // Swapped back: the same pitch it opened with, nothing to save.
+        swap(1, 2)
+        assertEquals(false, idle.lineupChanged)
+    }
+
+    @Test
     fun saveLeavesOnlyOnceThePendingLineupIsOnTheServer() = runTest {
         viewModel.load("m1")
         server.lineupGate = CompletableDeferred()

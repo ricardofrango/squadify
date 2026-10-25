@@ -205,7 +205,8 @@ private sealed class PreKickoffSheet {
  * Before kickoff the console opens straight on the pitch, every position empty. Tapping one picks a
  * called-up player for it; holding a player drags them to another position or back to the bench. Each
  * change is saved and shown on every device at once. Kick-off unlocks once every position is filled;
- * Save, beside it, leaves with the starting team kept, to kick off later. A player taken out of the
+ * Save, beside it, leaves with the starting team kept, to kick off later (on once the pitch differs
+ * from how it opened). A player taken out of the
  * call-up meanwhile leaves their position empty (their call-up, and its position, is gone).
  */
 @Composable
@@ -259,10 +260,11 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
                 val save: @Composable (Modifier) -> Unit = { m ->
                     OutlinedButton(
                         onClick = { actions.onSaveLineup(onNavigateBack) },
-                        enabled = !state.isSubmitting,
+                        // Nothing to keep until the pitch differs from how it opened.
+                        enabled = state.lineupChanged && !state.isSubmitting,
                         modifier = m.height(52.dp),
                         shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(1.5.dp, Color.White.copy(alpha = if (state.isSubmitting) 0.2f else 0.5f)),
+                        border = BorderStroke(1.5.dp, Color.White.copy(alpha = if (state.lineupChanged && !state.isSubmitting) 0.5f else 0.2f)),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White, disabledContentColor = Color.White.copy(alpha = 0.4f))
                     ) {
                         Text(stringResource(Res.string.btn_save_lineup).uppercase(), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold), maxLines = 1)

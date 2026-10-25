@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -275,7 +277,8 @@ internal fun pitchNames(players: List<Player>): Map<String, String> {
 
 /**
  * Registers a token as a drop place and, when [player] is set and dragging is on, lets it be held and
- * dragged. [onDrop] gets where it came from and where it landed (null: nowhere).
+ * dragged. [onDrop] gets where it came from and where it landed (null: nowhere). Picking a player up
+ * gives a short vibration, so the coach feels the hold took (none where the platform has no haptics).
  */
 @Composable
 private fun Modifier.pitchDrag(
@@ -287,6 +290,7 @@ private fun Modifier.pitchDrag(
 ): Modifier {
     var coordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     val latestDrop by rememberUpdatedState(onDrop)
+    val haptics = LocalHapticFeedback.current
     DisposableEffect(key) { onDispose { drag.targets.remove(key) } }
     val positioned = onGloballyPositioned {
         coordinates = it
@@ -295,7 +299,12 @@ private fun Modifier.pitchDrag(
     if (!enabled || player == null) return positioned
     return positioned.pointerInput(key, player.id) {
         detectDragGesturesAfterLongPress(
-            onDragStart = { offset -> coordinates?.let { drag.start(key, player, it.localToWindow(offset)) } },
+            onDragStart = { offset ->
+                coordinates?.let {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    drag.start(key, player, it.localToWindow(offset))
+                }
+            },
             onDrag = { change, amount ->
                 change.consume()
                 drag.pointer += amount
