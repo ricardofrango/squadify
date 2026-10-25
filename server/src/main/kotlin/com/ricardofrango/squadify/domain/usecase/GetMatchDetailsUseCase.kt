@@ -21,6 +21,8 @@ import com.ricardofrango.squadify.model.MatchReportStatus
 import com.ricardofrango.squadify.model.MatchReportSummary
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.AgeGroupRole
+import com.ricardofrango.squadify.model.EventType
+import com.ricardofrango.squadify.domain.stats.MatchPlayerStatsCalculator
 
 class GetMatchDetailsUseCase(
     private val matchRepository: MatchRepository,
@@ -101,9 +103,9 @@ class GetMatchDetailsUseCase(
         } catch (e: ForbiddenException) {
             false
         }
+        val saved = if (canReadReport) matchReportRepository.getByMatch(matchId) else null
+        val stats = if (canReadReport) matchPlayerStatsRepository.getByMatch(matchId) else emptyList()
         val report = if (canReadReport) {
-            val saved = matchReportRepository.getByMatch(matchId)
-            val stats = matchPlayerStatsRepository.getByMatch(matchId)
             MatchReportSummary(
                 status = when {
                     saved == null -> MatchReportStatus.NOT_STARTED
@@ -117,6 +119,19 @@ class GetMatchDetailsUseCase(
                 canEdit = canManageMatch
             )
         } else null
+
+        // A finished match's record (§66): all of it for the report's readers, the goals for anyone else.
+        val finished = match.status == MatchStatus.FINISHED
+        val allEvents = if (finished) matchEventRepository.getEventsByMatch(matchId) else emptyList()
+        val goalIds = allEvents.filter { it.type == EventType.GOAL || it.type == EventType.OWN_GOAL }.map { it.id }.toSet()
+        val events = if (canReadReport) allEvents else allEvents.filter { it.id in goalIds || (it.type == EventType.ASSIST && it.relatedEventId in goalIds) }
+        val playerStats = if (!canReadReport) emptyList() else {
+            // A match finished before post-match stats existed has none stored: worked out the same way now.
+            val lines = stats.ifEmpty { MatchPlayerStatsCalculator.calculate(match, callUps.map { it.callUp }, allEvents) }
+            // Ratings count once the report is completed, as everywhere else.
+            if (saved?.completedAt != null) lines else lines.map { it.copy(rating = null) }
+        }
+        val lineupChanges = if (canReadReport) matchRepository.getLineupChanges(matchId) else emptyList()
 
         val club = clubRepository.getClubById(match.clubId)
         MatchDetails(
@@ -134,7 +149,11 @@ class GetMatchDetailsUseCase(
             report = report,
             serverNow = kotlin.time.Clock.System.now(),
             clubLogoUrl = club?.logoUrl,
-            clubLocation = club?.let { it.stadiumLocation ?: it.address }
+            clubLocation = club?.let { it.stadiumLocation ?: it.address },
+            canSeeMatchRecord = canReadReport,
+            events = events,
+            playerStats = playerStats,
+            lineupChanges = lineupChanges
         )
     }
 }

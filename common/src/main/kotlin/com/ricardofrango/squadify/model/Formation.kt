@@ -122,3 +122,18 @@ fun currentPitchSlots(teamSize: Int, stored: Map<Int, String>, onPitch: Set<Stri
     onPitch.filter { it !in slots.values }.sorted().forEach { if (free.hasNext()) slots[free.next()] = it }
     return slots
 }
+
+/**
+ * One arrangement of the pitch during a game, kept so a finished match can be replayed (its Timeline
+ * tab): the starting one at kickoff, then each formation change or position swap the coach saved
+ * (SetMatchLineupUseCase). [minute] is the match clock when it was saved and [period] its half, the
+ * same as an event's. Substitutions and red cards aren't stored here; they're the match's events.
+ */
+@Serializable
+data class MatchLineupChange(
+    val minute: Int,
+    val period: Int,
+    val formation: String,
+    val slots: Map<Int, String>,
+    val createdAt: kotlin.time.Instant
+)

@@ -13,7 +13,8 @@ import com.ricardofrango.squadify.model.*
 /**
  * Kicks off a SCHEDULED match: locks in the Starting XI (the rest of the called-up squad becomes the
  * bench), the half length and the formation (also kept as the starting formation, for the match
- * report's tactic), then flips the match to LIVE. This is the "KICK OFF" action on the
+ * report's tactic), keeps the starting arrangement for the finished match's timeline, then flips
+ * the match to LIVE. This is the "KICK OFF" action on the
  * live match console's pre-kickoff screen -- see PROCESS_FLOWS.md.
  */
 class StartMatchUseCase(
@@ -24,7 +25,8 @@ class StartMatchUseCase(
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val clubMatchesBus: ClubMatchesBus,
-    private val transactionManager: TransactionManager
+    private val transactionManager: TransactionManager,
+    private val clock: kotlin.time.Clock = kotlin.time.Clock.System
 ) {
     suspend operator fun invoke(
         userId: String,
@@ -68,7 +70,8 @@ class StartMatchUseCase(
             }
 
             // Every call-up is CALLED_UP -- there's no other status to filter on (see CallUpStatus).
-            val callUps = matchRepository.getCallUpsForMatch(matchId).map { it.callUp }
+            val calledUp = matchRepository.getCallUpsForMatch(matchId)
+            val callUps = calledUp.map { it.callUp }
             val eligiblePlayerIds = callUps.map { it.playerId }.toSet()
             if (!eligiblePlayerIds.containsAll(startingIds)) {
                 throw ValidationException("The starting line-up can only include players called up for this match")
@@ -85,6 +88,13 @@ class StartMatchUseCase(
 
             val started = matchRepository.startMatch(matchId, startingIds, request.halfLengthMinutes, formation.formationText())
             if (started) {
+                // The side that kicks off is the timeline's first entry (MatchLineupChange): as placed on
+                // the pitch, or, from an app before the pitch view, the starters by their positions.
+                val placed = callUps.filter { it.pitchSlot != null && it.playerId in startingIds }.associate { it.pitchSlot!! to it.playerId }
+                val startingSlots = placed.ifEmpty {
+                    autoArrangeSlots(formation, startingIds.map { id -> id to calledUp.firstOrNull { it.player.id == id }?.player?.position })
+                }
+                matchRepository.addLineupChange(matchId, MatchLineupChange(0, 1, formation.formationText(), startingSlots, clock.now()))
                 // Re-fetch (kickoffAt/halfLengthMinutes were just set by startMatch above, not
                 // available on the pre-kickoff `match` read at the top) -- must happen inside this
                 // transaction, since a MatchRepository call made outside one throws. Shared by both

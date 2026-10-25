@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -75,8 +76,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-private val CardShape = RoundedCornerShape(16.dp)
-private val LossRed = Color(0xFFC0392B)
+internal val CardShape = RoundedCornerShape(16.dp)
+internal val LossRed = Color(0xFFC0392B)
 
 private val DayMonthYear = LocalDate.Format { day(); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); year() }
 private val WeekdayDayMonth = LocalDate.Format {
@@ -87,7 +88,7 @@ private val WeekdayDayMonth = LocalDate.Format {
  * The hub for one match (design 15A). Manager view: manage the call-up (＋ a pool player -- being
  * called up is binary, no per-player status; see CallUpStatus), edit the match's own data, and start
  * it. Non-managers see the same content read-only. The live match screen is separate -- this screen
- * only hands off to it.
+ * only hands off to it. Once the match is played, the call-up gives way to its record (FinishedMatchBody).
  */
 @Composable
 fun MatchDetailsScreen(
@@ -143,9 +144,15 @@ private fun MatchDetailsContent(
     onDeleteMatch: () -> Unit,
     onEnterLiveMatch: () -> Unit,
     onSaveCallUp: () -> Unit = {},
-    onOpenReport: (edit: Boolean) -> Unit
+    onOpenReport: (edit: Boolean) -> Unit,
+    initialTab: FinishedTab = FinishedTab.GENERAL
 ) {
     val details = (uiState as? MatchDetailsUiState.Idle)?.details
+    // A finished match's tabs, in the bottom bar (a rail in landscape), as on Team and Age Group details.
+    var finishedTab by rememberSaveable { mutableStateOf(initialTab) }
+    val finished = details?.match?.status == MatchStatus.FINISHED
+    val tabs = if (finished) finishedTabs(details!!.canSeeMatchRecord) else emptyList()
+    val selectedTab = finishedTab.takeIf { it in tabs } ?: FinishedTab.GENERAL
     var showDeleteConfirm by remember { mutableStateOf(false) }
     // Leaving with a call-up that hasn't been saved asks first (the top bar's back and the system's).
     val callUpUnsaved = (uiState as? MatchDetailsUiState.Idle)?.hasUnsavedCallUp == true
@@ -156,14 +163,21 @@ private fun MatchDetailsContent(
         isBackEnabled = callUpUnsaved,
         onBackCompleted = { showDiscard = true }
     )
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+    val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
+    Row(Modifier.fillMaxSize()) {
+    if (landscape && tabs.isNotEmpty()) FinishedRail(tabs, selectedTab) { finishedTab = it }
     Scaffold(
+        modifier = Modifier.weight(1f),
         containerColor = Color.White,
         topBar = {
             Column(Modifier.background(ClubChrome)) {
                 // The teams and the score are the band below; the bar says when and what kind of game.
                 SquadifyTopBar(
-                    title = details?.let { whenLabel(it.match.dateTime) } ?: stringResource(Res.string.title_match),
-                    subtitle = details?.let { matchSubtitle(it) },
+                    // Played: the result is the title ("Sub-13 A 2 – 1 Fontelas") and the band goes, leaving
+                    // the tabs more room; when it was played moves to the subtitle.
+                    title = details?.let { if (finished) resultTitle(it) else whenLabel(it.match.dateTime) } ?: stringResource(Res.string.title_match),
+                    subtitle = details?.let { if (finished) listOf(whenLabel(it.match.dateTime), matchSubtitle(it)).joinToString(" · ") else matchSubtitle(it) },
                     onNavigateBack = requestBack,
                     actions = {
                         // Delete is the menu's only item, and a played (FINISHED) match can't be deleted.
@@ -187,10 +201,11 @@ private fun MatchDetailsContent(
                         }
                     }
                 )
-                if (details != null) StatusBand(details)
+                if (details != null && !finished) StatusBand(details)
             }
         },
         bottomBar = {
+            if (tabs.isNotEmpty() && !landscape) FinishedBottomBar(tabs, selectedTab) { finishedTab = it }
             // Save call-up / Start match / Enter live match, by permission and call-up state (callUpView).
             val idle = uiState as? MatchDetailsUiState.Idle
             val button = idle?.callUpView()?.button ?: MatchDetailsButton.NONE
@@ -213,16 +228,18 @@ private fun MatchDetailsContent(
                     Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
                 }
 
-            is MatchDetailsUiState.Idle -> MatchBody(
+            // Played: the record of the game instead of the call-up.
+            is MatchDetailsUiState.Idle -> if (finished) FinishedMatchBody(uiState, selectedTab, boxModifier, onOpenReport) else MatchBody(
                 state = uiState,
                 modifier = boxModifier,
                 onSortSelected = onSortSelected,
                 onAddToCallUp = onAddToCallUp,
                 onRemoveFromCallUp = onRemoveFromCallUp,
-                onEditMatch = onEditMatch,
-                onOpenReport = onOpenReport
+                onEditMatch = onEditMatch
             )
         }
+    }
+    }
     }
 
     if (showDiscard) {
@@ -292,6 +309,14 @@ private fun StatusBand(details: MatchDetails) {
 
 private data class BandSide(val name: String, val logoUrl: String?, val score: Int)
 
+/** "Sub-13 A 2 – 1 Fontelas": a played match's top bar title, home side first as on the band. */
+private fun resultTitle(details: MatchDetails): String {
+    val us = details.team.name to details.score.ourScore
+    val them = (details.opponent.shortName ?: details.opponent.name) to details.score.opponentScore
+    val (left, right) = if (details.match.venue.ourSideFirst()) us to them else them to us
+    return "${left.first} ${left.second} – ${right.second} ${right.first}"
+}
+
 /** A side's logo on the band, on a white disc so any crest reads on the bar's colour. */
 @Composable
 private fun BandCrest(logoUrl: String, name: String) =
@@ -328,8 +353,7 @@ private fun MatchBody(
     onSortSelected: (CallUpSort) -> Unit,
     onAddToCallUp: (Player) -> Unit,
     onRemoveFromCallUp: (Player) -> Unit,
-    onEditMatch: (UpdateMatchRequest) -> Unit,
-    onOpenReport: (edit: Boolean) -> Unit
+    onEditMatch: (UpdateMatchRequest) -> Unit
 ) {
     val details = state.details
     val view = state.callUpView()
@@ -348,96 +372,80 @@ private fun MatchBody(
     val sortedPool = state.availablePlayers.sortedWith(playerOrder)
     val notesByPlayer = details.callUps.associate { it.player.id to it.callUp.notes }
 
-    // Landscape with a report card: the card gets its own fixed 320dp left column and stays in view
-    // while the rest scrolls beside it -- it's the pending task on a finished match (23c).
-    BoxWithConstraints(modifier) {
-        val sideCard = details.report != null && maxWidth > maxHeight && maxWidth >= 600.dp
-        Row(Modifier.fillMaxSize()) {
-            if (sideCard) {
-                Box(Modifier.width(344.dp).padding(start = ScreenPadding.Horizontal, top = ScreenPadding.Top)) {
-                    MatchReportCard(details.report!!, onOpenReport)
-                }
+    // A finished match isn't shown here but by FinishedMatchBody (its report card included).
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = ScreenPadding.Values,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        state.transientError?.let {
+            item { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+        }
+
+        // ---- Details ----
+        item {
+            SectionHeader(
+                title = stringResource(Res.string.label_details_section),
+                trailing = if (canEditMatch) stringResource(Res.string.label_edit) to { showEdit = true } else null,
+                // First in the list unless an error comes before it.
+                first = state.transientError == null
+            )
+        }
+        item { DetailsCard(details, onSetType = if (canEditMatch) { { showEdit = true } } else null) }
+
+        // ---- Call-up: by who's looking (callUpView) ----
+        when (view.section) {
+            CallUpSection.HIDDEN -> Unit
+            CallUpSection.NOT_READY -> item {
+                Text(stringResource(Res.string.msg_callup_not_ready), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.6f), modifier = Modifier.padding(top = 4.dp))
             }
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = ScreenPadding.Values,
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                state.transientError?.let {
-                    item { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
-                }
-
-                // ---- Match report: the first card on a finished match, for staff only (design 23) ----
-                if (!sideCard) details.report?.let { report ->
-                    item { MatchReportCard(report, onOpenReport) }
-                }
-
-                // ---- Details ----
+            CallUpSection.EDITOR, CallUpSection.READ_ONLY -> {
                 item {
                     SectionHeader(
-                        title = stringResource(Res.string.label_details_section),
-                        trailing = if (canEditMatch) stringResource(Res.string.label_edit) to { showEdit = true } else null,
-                        // First in the list unless an error or the report card comes before it.
-                        first = state.transientError == null && (sideCard || details.report == null)
+                        title = stringResource(Res.string.label_call_up),
+                        // Once the game is played the count says nothing more; it's dropped.
+                        pill = when {
+                            details.match.status == MatchStatus.FINISHED -> null
+                            editing -> "${calledUp.size}/${calledUp.size + sortedPool.size}"
+                            else -> calledUp.size.toString()
+                        }
                     )
                 }
-                item { DetailsCard(details, onSetType = if (canEditMatch) { { showEdit = true } } else null) }
-
-                // ---- Call-up: by who's looking (callUpView) ----
-                when (view.section) {
-                    CallUpSection.HIDDEN -> Unit
-                    CallUpSection.NOT_READY -> item {
-                        Text(stringResource(Res.string.msg_callup_not_ready), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.6f), modifier = Modifier.padding(top = 4.dp))
+                item {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
+                        SortChip(stringResource(Res.string.label_position_field), state.sort == CallUpSort.POSITION) { onSortSelected(CallUpSort.POSITION) }
+                        SortChip(stringResource(Res.string.label_sort_name), state.sort == CallUpSort.NAME) { onSortSelected(CallUpSort.NAME) }
                     }
-                    CallUpSection.EDITOR, CallUpSection.READ_ONLY -> {
-                        item {
-                            SectionHeader(
-                                title = stringResource(Res.string.label_call_up),
-                                // Once the game is played the count says nothing more; it's dropped.
-                                pill = when {
-                                    details.match.status == MatchStatus.FINISHED -> null
-                                    editing -> "${calledUp.size}/${calledUp.size + sortedPool.size}"
-                                    else -> calledUp.size.toString()
-                                }
-                            )
-                        }
-                        item {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
-                                SortChip(stringResource(Res.string.label_position_field), state.sort == CallUpSort.POSITION) { onSortSelected(CallUpSort.POSITION) }
-                                SortChip(stringResource(Res.string.label_sort_name), state.sort == CallUpSort.NAME) { onSortSelected(CallUpSort.NAME) }
-                            }
-                        }
-                        if (editing && calledUp.size < RECOMMENDED_SQUAD) {
-                            item {
-                                Text(
-                                    stringResource(Res.string.msg_squad_hint, calledUp.size, RECOMMENDED_SQUAD),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        }
-                        if (calledUp.isEmpty()) {
-                            item { Text(stringResource(Res.string.msg_no_callups), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
-                        } else {
-                            items(calledUp, key = { "called-${it.id}" }) { player ->
-                                CallUpRow(player, notesByPlayer[player.id], onRemove = if (editing && !state.isSubmitting) { { onRemoveFromCallUp(player) } } else null)
-                            }
-                        }
+                }
+                if (editing && calledUp.size < RECOMMENDED_SQUAD) {
+                    item {
+                        Text(
+                            stringResource(Res.string.msg_squad_hint, calledUp.size, RECOMMENDED_SQUAD),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+                if (calledUp.isEmpty()) {
+                    item { Text(stringResource(Res.string.msg_no_callups), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
+                } else {
+                    items(calledUp, key = { "called-${it.id}" }) { player ->
+                        CallUpRow(player, notesByPlayer[player.id], onRemove = if (editing && !state.isSubmitting) { { onRemoveFromCallUp(player) } } else null)
+                    }
+                }
 
-                        // ---- Available ----
-                        if (editing && sortedPool.isNotEmpty()) {
-                            item {
-                                Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 12.dp)) {
-                                    Text(stringResource(Res.string.label_available), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
-                                    Spacer(Modifier.width(6.dp))
-                                    Text(stringResource(Res.string.label_available_from_pool, details.ageGroup.name), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
-                                }
-                            }
-                            items(sortedPool, key = { "pool-${it.id}" }) { p ->
-                                PoolRow(p, onAdd = { if (!state.isSubmitting) onAddToCallUp(p) })
-                            }
+                // ---- Available ----
+                if (editing && sortedPool.isNotEmpty()) {
+                    item {
+                        Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 12.dp)) {
+                            Text(stringResource(Res.string.label_available), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(Res.string.label_available_from_pool, details.ageGroup.name), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
                         }
+                    }
+                    items(sortedPool, key = { "pool-${it.id}" }) { p ->
+                        PoolRow(p, onAdd = { if (!state.isSubmitting) onAddToCallUp(p) })
                     }
                 }
             }
@@ -455,7 +463,7 @@ private fun MatchBody(
 }
 
 @Composable
-private fun DetailsCard(details: MatchDetails, onSetType: (() -> Unit)?) {
+internal fun DetailsCard(details: MatchDetails, onSetType: (() -> Unit)?) {
     val m = details.match
     val uriHandler = LocalUriHandler.current
     Surface(modifier = Modifier.fillMaxWidth(), shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))) {
@@ -559,7 +567,7 @@ private fun PoolRow(player: Player, onAdd: () -> Unit) {
 }
 
 @Composable
-private fun SectionHeader(title: String, pill: String? = null, trailing: Pair<String, () -> Unit>? = null, first: Boolean = false) {
+internal fun SectionHeader(title: String, pill: String? = null, trailing: Pair<String, () -> Unit>? = null, first: Boolean = false) {
     // The gap above separates a section from the one before; the list's first header doesn't need it.
     Row(modifier = Modifier.fillMaxWidth().padding(top = if (first) 0.dp else 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
@@ -838,16 +846,51 @@ private fun sampleDetails(status: MatchStatus, canManage: Boolean, score: MatchS
     score = score
 )
 
-@Preview
 @Composable
-private fun MatchDetailsFinishedWinPreview() {
+private fun FinishedPreview(canSeeRecord: Boolean, tab: FinishedTab = FinishedTab.GENERAL) {
     SquadifyTheme {
         MatchDetailsContent(
-            uiState = MatchDetailsUiState.Idle(sampleDetails(MatchStatus.FINISHED, canManage = true, score = MatchScore("m1", 3, 1))),
-            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onRemoveFromCallUp = {}, onEditMatch = {}, onDeleteMatch = {}, onEnterLiveMatch = {}, onOpenReport = {}
+            uiState = MatchDetailsUiState.Idle(previewFinishedDetails(canSeeRecord)),
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onRemoveFromCallUp = {}, onEditMatch = {}, onDeleteMatch = {}, onEnterLiveMatch = {}, onOpenReport = {},
+            initialTab = tab
         )
     }
 }
+
+/** Played, for the staff: the report card and the details. */
+@Preview
+@Composable
+private fun MatchDetailsFinishedGeneralPreview() = FinishedPreview(canSeeRecord = true)
+
+/** Played, for the staff: each player's line. */
+@Preview
+@Composable
+private fun MatchDetailsFinishedStatsPreview() = FinishedPreview(canSeeRecord = true, tab = FinishedTab.STATS)
+
+/** Played, for the staff: the events, by half. */
+@Preview
+@Composable
+private fun MatchDetailsFinishedEventsPreview() = FinishedPreview(canSeeRecord = true, tab = FinishedTab.EVENTS)
+
+/** Played, for the staff: the pitch at kickoff, with the slider through the game. */
+@Preview
+@Composable
+private fun MatchDetailsFinishedTimelinePreview() = FinishedPreview(canSeeRecord = true, tab = FinishedTab.TIMELINE)
+
+/** Played, lying down: the timeline's pitch across, the caption and slider beside it. */
+@Preview(widthDp = 800, heightDp = 400)
+@Composable
+private fun MatchDetailsFinishedTimelineLandscapePreview() = FinishedPreview(canSeeRecord = true, tab = FinishedTab.TIMELINE)
+
+/** Played, for a parent or a member: General has the details only. */
+@Preview
+@Composable
+private fun MatchDetailsFinishedMemberPreview() = FinishedPreview(canSeeRecord = false)
+
+/** Played, for a parent or a member: Events has the goals only, without filters. */
+@Preview
+@Composable
+private fun MatchDetailsFinishedMemberEventsPreview() = FinishedPreview(canSeeRecord = false, tab = FinishedTab.EVENTS)
 
 @Preview
 @Composable

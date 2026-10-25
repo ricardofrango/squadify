@@ -1121,7 +1121,16 @@ data class MatchDetails(
     // The club's own logo path, for the match header next to the opponent's; null without one.
     val clubLogoUrl: String? = null,
     // The club's ground (stadium location, else address), to prefill a home match's location on edit.
-    val clubLocation: String? = null
+    val clubLocation: String? = null,
+    // A FINISHED match's record, for its details screen (TECHNICAL_DECISIONS.md §66); empty before.
+    // [canSeeMatchRecord]: the viewer may see all of it (the report's readers: coordinators/admins and
+    // the age group's staff). They get every event, each player's line ([playerStats]; a rating only
+    // once the report is completed) and the pitch's arrangements ([lineupChanges], the Timeline tab).
+    // Anyone else gets only the goals and their assists in [events], and nothing in the other two.
+    val canSeeMatchRecord: Boolean = false,
+    val events: List<MatchEvent> = emptyList(),
+    val playerStats: List<MatchPlayerStats> = emptyList(),
+    val lineupChanges: List<MatchLineupChange> = emptyList()
 )
 
 @Serializable

@@ -1451,9 +1451,13 @@ graph TD
     H --> R{"status == FINISHED and caller clears the report read gate (COORDINATOR, or age-group STAFF)?"}
     R -- Yes --> R2["report = MatchReportSummary: status NOT_STARTED/DRAFT/COMPLETED, updatedAt, updatedByName, ratedPlayers / ratablePlayers, canEdit = canManageMatch"]
     R -- No --> R3["report = null"]
-    R2 --> Z(["Return MatchDetails: match, opponent, team, ageGroup, season, callUps, poolPlayers, canManageMatch, canManageCallUps, canManageLiveMatch, score, report, clubLogoUrl (the club's logo, for the header)"])
-    R3 --> Z
+    R2 --> RC["The record (FINISHED only): events = every event; playerStats = match_player_stats rows (none stored: MatchPlayerStatsCalculator over call-ups + events), ratings blanked unless the report is completed; lineupChanges = match_lineup_changes; canSeeMatchRecord = true"]
+    R3 --> RM["The record (FINISHED only): events = the goals (GOAL, OWN_GOAL) and the ASSISTs linked to them; playerStats and lineupChanges empty; canSeeMatchRecord = false"]
+    RC --> Z(["Return MatchDetails: match, opponent, team, ageGroup, season, callUps, poolPlayers, canManageMatch, canManageCallUps, canManageLiveMatch, score, report, clubLogoUrl (the club's logo, for the header), canSeeMatchRecord, events, playerStats, lineupChanges"])
+    RM --> Z
 ```
+
+**A finished match's record** (`TECHNICAL_DECISIONS.md` §66): before full time `events`, `playerStats` and `lineupChanges` are empty. Once it's FINISHED, the report's readers (coordinators/admins and the age group's staff, the same gate as the report card) get all of it, and the app shows tabs in the bottom bar instead of the call-up: General (the report card and the details), Stats (each player who played: ranking, minutes, goals, assists, cards; who never came on listed under it), Events (filter: all, goals, substitutions, cards; by half) and Timeline (the pitch at each change, `matchTimeline` in `common/model/MatchTimeline.kt`, with a slider). Anyone else (members, players, parents) gets only the goals and their assists, and two tabs: General (the details) and Events (the goals).
 
 The use case composes `MatchDetails` itself now — the old `MatchRepository.getMatchDetails` (opponent + call-ups only) was removed. `poolPlayers` is the "Available" list on the call-up screen. `canManageMatch` gates just the edit sheet -- changing the match's own date/time/location/notes -- and the delete-match menu item. `canManageCallUps` gates managing the pre-match squad list. `canManageLiveMatch` gates entering the live match console and every action inside it (kickoff, clock, logging/deleting events, status changes) -- see §19 in `TECHNICAL_DECISIONS.md` for the original coach-vs-staff rationale and §35 for how all three are now independently club-configurable. All three are further gated client-side: the client forces the screen read-only once `match.status == FINISHED` regardless of any flag, so a finished match becomes a plain record (no editing call-ups, kickoff, location, etc.), and the live match console itself hides (not just disables) every action a viewer's `canManageLiveMatch` doesn't clear, showing a read-only notice instead. `report` drives the Match report card (§8.6), so the match screen needs no second request for it. It's null for players and parents, and for any match that hasn't finished. `score` feeds the FINISHED-state result banner (colored WIN/LOSS/DRAW + scoreline) on the details screen, the same rebuilt-from-events value `MatchRow` already showed in match lists.
 
@@ -1569,7 +1573,8 @@ graph TD
     PL -- "No (an app from before the pitch view), or they match" --> FO{"formation given?"}
     FO -- "Yes, but it doesn't add up to teamSize with the goalkeeper" --> V5(["Throw ValidationException"])
     FO -- "Yes and valid / No: the saved one, else the team size's default" --> H["Set isStarting=true on the starters' call-ups (false on the rest), set Match.status=LIVE + halfLengthMinutes + kickoffAt=now + formation and startingFormation"]
-    H --> I["Publish LiveMatchUpdate(score, status=LIVE) via LiveMatchBus"]
+    H --> H2["Keep the starting arrangement in match_lineup_changes (minute 0, period 1): the starters' pitch slots, or autoArrangeSlots by position if nobody was placed"]
+    H2 --> I["Publish LiveMatchUpdate(score, status=LIVE) via LiveMatchBus"]
     I --> J["Transaction commits"]
     J --> K["NotifyMatchEventUseCase(matchId, KICKOFF) — best-effort push to every club member (§8.2b)"]
     K --> Z(["Return success"])
@@ -1596,11 +1601,16 @@ graph TD
     G -- Yes --> H{"Kicked off (not SCHEDULED)?"}
     H -- "Yes, and someone placed isn't on the pitch now (playerMinutes over the events)" --> V4(["Throw ValidationException"])
     H -- "No / all on the pitch" --> I["matches.formation = formation; clear every call-up's pitch_slot, then set the given ones"]
-    I --> J["Publish LiveMatchUpdate(score, match, lineup) via LiveMatchBus"]
+    I --> K{"LIVE or HALF_TIME?"}
+    K -- "Yes" --> K2["Add a match_lineup_changes row: the formation and slots, minute = the match clock (elapsedMatchSeconds / 60; at half time the first half's end minute), period = 2 once the second half is on, else 1"]
+    K -- "No (placing the starters)" --> J
+    K2 --> J["Publish LiveMatchUpdate(score, match, lineup) via LiveMatchBus"]
     J --> Z(["Return the MatchLineup"])
 ```
 
 Before kickoff, positions can be left empty (the coach is still placing players); kickoff itself needs them all (§8.0). Substitutions and red cards don't come through here. Each device works out who stands where from the saved arrangement and the events (`currentPitchSlots`): the player coming on takes the position of the one going off, a sent-off player leaves an empty position, and anyone on the pitch without a position takes the first free one. A match kicked off before the pitch view has no arrangement; its starters are placed by their positions (`autoArrangeSlots`). Changing formation keeps every player's position number (2-3-1 → 1-3-2 moves position 2 into midfield and position 5 up front).
+
+Every arrangement saved during the game is also kept (`match_lineup_changes`, V26), with the one at kickoff (§8.0), so a finished match can be replayed on its Timeline tab (§7.1b). `matchTimeline` replays them with the substitutions and red cards in the order they were logged; arrangements saved at the same minute with nothing in between are one entry.
 
 ### 8.1 Add Match Event (`AddMatchEventUseCase`)
 
@@ -2219,6 +2229,7 @@ erDiagram
     PLAYERS ||--o{ MATCH_CALL_UPS : called_up_in
     MATCHES ||--o{ MATCH_EVENTS : "logs (cascade)"
     MATCHES ||--o{ MATCH_PLAYER_STATS : "summarizes (cascade)"
+    MATCHES ||--o{ MATCH_LINEUP_CHANGES : "replays (cascade)"
     PLAYERS ||--o{ MATCH_PLAYER_STATS : played_in
     MATCHES ||--o| MATCH_REPORTS : "reported_in (cascade)"
     USERS ||--o{ MATCH_REPORTS : last_edited
@@ -2429,6 +2440,15 @@ erDiagram
         integer red_cards "default 0"
         integer rating "nullable -- 0-10, set by the coach's match report"
     }
+    MATCH_LINEUP_CHANGES {
+        uuid id PK
+        uuid match_id FK "indexed"
+        integer minute "match clock when saved"
+        integer period "1 or 2"
+        varchar formation "20 chars, e.g. 2-3-1"
+        text slots "JSON, slot -> player id"
+        timestamp created_at "replay order"
+    }
     MATCH_REPORTS {
         uuid id PK
         uuid match_id FK "unique -- one report per match"
@@ -2499,7 +2519,7 @@ erDiagram
 - **Unique indexes**: `users.email`; `refresh_tokens.token`; `password_reset_codes.user_id` (the primary key, so a new Forgot-password request replaces the pending code, `V11__password_reset_codes.sql`); `email_change_codes.user_id` (likewise for Change email, `V12__email_change_codes.sql`); `club_members(club_id, user_id)` — one membership per user per club (`V3__unique_club_members.sql`); both add-member repository methods insert with `ON CONFLICT DO NOTHING`, so re-adding an existing member keeps their current row and role rather than duplicating or downgrading it; `fcm_tokens.token` — deliberately on the token alone rather than `(user_id, token)`, since a token identifies one app install, not one user; a registration endpoint that gets the same token again (shared device, or a re-login without reinstalling) should reassign the existing row's `user_id` rather than insert a duplicate; `seasons(club_id, type, start_date, end_date)` — a club can't have two identical seasons; `age_groups(club_id, season_id, start_year, end_year)` — one age group per birth-year span per club per season (an overlapping-but-not-identical span isn't blocked, e.g. two ranges sharing a birth year); `age_group_players(age_group_id, player_id)` — a player is in an age group at most once (makes "same player on two teams in one age group" impossible); `match_call_ups(match_id, player_id)` — a player can only appear once in a given match's call-up list; `match_call_ups(match_id, pitch_slot) WHERE pitch_slot IS NOT NULL` — one player per position on the pitch (`unique_match_pitch_slot`, `V25__match_lineup.sql`; `setLineup` clears every position before setting them, so a swap never collides); `match_player_stats(match_id, player_id)` — one stats line per player per match; `match_reports.match_id` — one report per match; `training_plans(age_group_id, level, period_start)` — one plan per period (`V15__training_plans.sql`); `training_sessions(age_group_id, date, start_time)` — one session per age group, date and start time, so creating another replaces it (`V17__training_sessions.sql`). A `CHECK` keeps `match_player_stats.rating` NULL or between 0 and 10.
 - **Club colours** (`V23__club_theme.sql`): `chk_clubs_theme_pair` keeps `clubs.theme_primary_color` and `theme_secondary_color` both set or both NULL, and `chk_clubs_theme_format` keeps each one an upper-case `#RRGGBB`. The contrast rules are checked in `UpdateClubUseCase`, not the database.
 - **Nullable foreign keys**: `invites.player_id` (only set for `PARENT_PLAYER` invites) and `match_events.player_id` (null when `is_opponent = true`, since the event belongs to a player on the opposing team who isn't in the `players` table).
-- **`ON DELETE CASCADE` on the team → match chain** (`V21__cascade_team_and_match_deletes.sql`): `matches.team_id` → `teams`, and `match_id` on `match_call_ups`, `match_events`, `match_player_stats` and `match_reports` → `matches`. Deleting a team takes its matches and everything under them (§4.6a); deleting a match takes its children (§7.2b). `matches` is the only table with a `team_id`: players and staff hang off the age group, not the team. `match_events.related_event_id` (an assist pointing at its goal) stays `NO ACTION`; a match's events are deleted in one cascaded statement, where that check passes.
+- **`ON DELETE CASCADE` on the team → match chain** (`V21__cascade_team_and_match_deletes.sql`): `matches.team_id` → `teams`, and `match_id` on `match_call_ups`, `match_events`, `match_player_stats`, `match_lineup_changes` (`V26__match_lineup_changes.sql`) and `match_reports` → `matches`. Deleting a team takes its matches and everything under them (§4.6a); deleting a match takes its children (§7.2b). `matches` is the only table with a `team_id`: players and staff hang off the age group, not the team. `match_events.related_event_id` (an assist pointing at its goal) stays `NO ACTION`; a match's events are deleted in one cascaded statement, where that check passes.
 - **Every other foreign key has no `onDelete` behavior** — the Exposed default (`NO ACTION`). Deleting a row that still has children (e.g. a `Club` with existing `Teams`) fails at the database level rather than cascading, nulling out, or being blocked at the application layer with a friendlier error.
 - Several `enum` columns are nullable independently of their parent row's lifecycle: `club_members.role`/`age_group_staff.role`/`user_players.relationship` are all non-null (required at creation), while `invites.role` and `invites.relationship` are nullable because a single `Invite` row is reused for both invite shapes (see §10) and only one of the two is populated depending on `type`.
 
@@ -2527,7 +2547,7 @@ erDiagram
 ### 12.4 Current persistence setup
 
 - **Engine**: PostgreSQL, both dev and production. H2 has been removed entirely. The connection is built from `ServerConfig.kt`'s `DATABASE_HOST`/`DATABASE_PORT`/`DATABASE_USER`/`DATABASE_PASSWORD`/`DATABASE_NAME` env vars — host and password are required explicitly when `APP_ENV=production` (no silent fallback), while the database name defaults per environment (`squadify_dev` / `squadify_production`), so dev and production stay isolated even against the same Postgres server. `docker-compose.yml` at the repo root provides a local Postgres matching the dev defaults.
-- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, `V5__match_reports.sql`, `V6__match_event_period.sql`, `V7__match_report_opponent_tactic.sql`, `V8__match_event_assist_link.sql`, and so on up to `V25__match_lineup.sql` (see the folder for the full list). An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
+- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, `V5__match_reports.sql`, `V6__match_event_period.sql`, `V7__match_report_opponent_tactic.sql`, `V8__match_event_assist_link.sql`, and so on up to `V26__match_lineup_changes.sql` (see the folder for the full list). An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
 - **Legacy backfill**: right after Flyway, `DatabaseFactory.init()` still runs a raw, idempotent SQL block that backfills `age_groups.start_year`/`end_year` from the old single `birth_year` column (if it still exists) and then drops that column (§4.3/§5.3). It's a no-op once `birth_year` is gone. It was deliberately left outside the migration chain because there's no way to confirm every environment has already run it.
 - **Connection pool**: HikariCP, `maximumPoolSize = 3` in dev / `10` in production, `autoCommit = false`, isolation level `TRANSACTION_REPEATABLE_READ`.
 

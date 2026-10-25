@@ -39,6 +39,10 @@ interface MatchRepository {
     // Saves the formation and who stands in each slot, clearing every other call-up's slot (the bench).
     suspend fun setLineup(matchId: String, formation: String, slots: Map<Int, String>): Boolean
 
+    // The pitch's arrangements during the game, kept for the finished match's timeline (MatchLineupChange).
+    suspend fun addLineupChange(matchId: String, change: MatchLineupChange)
+    suspend fun getLineupChanges(matchId: String): List<MatchLineupChange>
+
     suspend fun getCallUpsForMatch(matchId: String): List<MatchCallUpWithPlayer>
     suspend fun countCallUpsByPlayer(playerId: String): Long
     // Ids of every match the player was called up for.
