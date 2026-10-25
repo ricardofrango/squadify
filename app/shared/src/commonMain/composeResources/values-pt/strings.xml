@@ -1534,4 +1534,5 @@
     <string name="btn_leave">Sair</string>
     <string name="lm_own_goal_mark">(p.b.)</string>
     <string name="lm_final_result">Resultado Final</string>
+    <string name="md_no_cards">Sem cartões neste jogo.</string>
 </resources>

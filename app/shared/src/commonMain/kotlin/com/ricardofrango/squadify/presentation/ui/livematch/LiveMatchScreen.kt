@@ -1103,8 +1103,11 @@ private fun eventLineFor(event: MatchEvent, details: MatchDetails, nameFor: (Mat
 /** One side of the full-time header: its crest and name. */
 private data class SummarySide(val name: String, val logoUrl: String?)
 
-/** One goal in the full-time list: "12'" and who scored it ("Goal" when nobody is recorded). */
-private data class SummaryGoal(val minute: String, val scorer: String)
+/**
+ * One line of the full-time goals or cards: "12'" and who ("Goal" when nobody is recorded); for a
+ * card, its colour, drawn as a small card beside the line.
+ */
+private data class SummaryLine(val minute: String, val who: String, val card: Color? = null)
 
 /**
  * Full time, in the app's own look rather than the dark console (the developer, 2026-10-25): the top
@@ -1123,6 +1126,8 @@ private fun SummaryContent(state: LiveMatchUiState.Idle, onNavigateBack: () -> U
     val them = SummarySide(details.opponent.shortName ?: details.opponent.name, details.opponent.logoUrl)
     val (home, away) = if (ourFirst) us to them else them to us
     val (homeGoals, awayGoals) = if (ourFirst) ourGoals to theirGoals else theirGoals to ourGoals
+    val (ourCards, theirCards) = summaryCards(details, state.events)
+    val (homeCards, awayCards) = if (ourFirst) ourCards to theirCards else theirCards to ourCards
     val (homeScore, awayScore) = if (ourFirst) state.score.ourScore to state.score.opponentScore else state.score.opponentScore to state.score.ourScore
 
     Scaffold(
@@ -1133,22 +1138,9 @@ private fun SummaryContent(state: LiveMatchUiState.Idle, onNavigateBack: () -> U
                 subtitle = listOf(whenLabel(details.match.dateTime), matchSubtitle(details)).joinToString(" · "),
                 onNavigateBack = onNavigateBack
             )
-        },
-        bottomBar = {
-            Box(Modifier.fillMaxWidth().background(ScreenBackground).navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 12.dp)) {
-                OutlinedButton(
-                    onClick = onNavigateBack,
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.5.dp, CarbonGray.copy(alpha = 0.2f)),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = DeepCarbon)
-                ) {
-                    Text(stringResource(Res.string.btn_leave), fontWeight = FontWeight.Bold)
-                }
-            }
         }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
+        val band: @Composable () -> Unit = {
             Row(
                 Modifier.fillMaxWidth().background(ClubChrome).padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 20.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -1163,12 +1155,56 @@ private fun SummaryContent(state: LiveMatchUiState.Idle, onNavigateBack: () -> U
                 }
                 SummarySideColumn(away, Modifier.weight(1f))
             }
-            Column(Modifier.fillMaxWidth().screenContentPadding(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (!cancelled) {
-                    SectionHeader(stringResource(Res.string.md_goals), first = true)
-                    SummaryGoalsCard(homeGoals, awayGoals)
+        }
+        val record: @Composable ColumnScope.() -> Unit = {
+            if (!cancelled) {
+                SectionHeader(stringResource(Res.string.md_goals), first = true)
+                SummaryLinesCard(homeGoals, awayGoals, stringResource(Res.string.md_no_goals))
+                SectionHeader(stringResource(Res.string.md_filter_cards))
+                SummaryLinesCard(homeCards, awayCards, stringResource(Res.string.md_no_cards))
+            }
+        }
+        val actions: @Composable ColumnScope.() -> Unit = {
+            details.report?.let { report -> MatchReportCard(report) { edit -> onOpenReport(details.match.id, edit) } }
+            OutlinedButton(
+                onClick = onNavigateBack,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.5.dp, CarbonGray.copy(alpha = 0.2f)),
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = DeepCarbon)
+            ) {
+                Text(stringResource(Res.string.btn_leave), fontWeight = FontWeight.Bold)
+            }
+        }
+        BoxWithConstraints(Modifier.fillMaxSize().padding(padding)) {
+            if (maxWidth > maxHeight) {
+                // Lying down: the band and the record scroll on the left, the report and Leave stay on the right.
+                Row(Modifier.fillMaxSize()) {
+                    Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())) {
+                        band()
+                        Column(Modifier.fillMaxWidth().screenContentPadding(), verticalArrangement = Arrangement.spacedBy(10.dp), content = record)
+                    }
+                    Column(
+                        Modifier.width(320.dp).fillMaxHeight().navigationBarsPadding().padding(ScreenPadding.Horizontal),
+                        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Bottom),
+                        content = actions
+                    )
                 }
-                details.report?.let { report -> MatchReportCard(report) { edit -> onOpenReport(details.match.id, edit) } }
+            } else {
+                Column(Modifier.fillMaxSize()) {
+                    band()
+                    // The goals and cards scroll; the report card and Leave stay put under them.
+                    Column(
+                        Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).screenContentPadding(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        content = record
+                    )
+                    Column(
+                        Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal).padding(top = 4.dp, bottom = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        content = actions
+                    )
+                }
             }
         }
     }
@@ -1191,33 +1227,60 @@ private fun SummarySideColumn(side: SummarySide, modifier: Modifier) {
     }
 }
 
-/** The goals, home on the left and away on the right, split by a grey line; "No goals" when 0–0. */
+/** Goals or cards, home on the left and away on the right, split by a grey line; [empty] with none. */
 @Composable
-private fun SummaryGoalsCard(home: List<SummaryGoal>, away: List<SummaryGoal>) {
+private fun SummaryLinesCard(home: List<SummaryLine>, away: List<SummaryLine>, empty: String) {
     SectionCard(contentPadding = PaddingValues(vertical = 12.dp)) {
         if (home.isEmpty() && away.isEmpty()) {
-            Text(stringResource(Res.string.md_no_goals), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.6f), modifier = Modifier.padding(horizontal = 16.dp))
+            Text(empty, style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.6f), modifier = Modifier.padding(horizontal = 16.dp))
         } else {
             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                SummaryGoalColumn(home, Alignment.Start, Modifier.weight(1f))
+                SummaryLineColumn(home, away = false, Modifier.weight(1f))
                 Box(Modifier.width(1.dp).fillMaxHeight().background(SectionBorderColor))
-                SummaryGoalColumn(away, Alignment.End, Modifier.weight(1f))
+                SummaryLineColumn(away, away = true, Modifier.weight(1f))
             }
         }
     }
 }
 
+/** Home reads "12' Tomás Silva" from the left; away mirrors it, "Tomás Silva 12'" against the right. */
 @Composable
-private fun SummaryGoalColumn(goals: List<SummaryGoal>, alignment: Alignment.Horizontal, modifier: Modifier) {
-    Column(modifier.padding(horizontal = 16.dp), horizontalAlignment = alignment, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        goals.forEach { goal ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(goal.minute, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Black), color = DeepCarbon)
-                Spacer(Modifier.width(8.dp))
-                Text(goal.scorer, style = MaterialTheme.typography.bodyMedium, color = DeepCarbon, maxLines = 2, overflow = TextOverflow.Ellipsis)
+private fun SummaryLineColumn(lines: List<SummaryLine>, away: Boolean, modifier: Modifier) {
+    Column(modifier.padding(horizontal = 16.dp), horizontalAlignment = if (away) Alignment.End else Alignment.Start, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        lines.forEach { line ->
+            val minute: @Composable () -> Unit = { Text(line.minute, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Black), color = DeepCarbon) }
+            val card: @Composable () -> Unit = { line.card?.let { Box(Modifier.size(width = 9.dp, height = 13.dp).background(it, RoundedCornerShape(2.dp))) } }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (!away) { card(); minute() }
+                Text(
+                    line.who,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = DeepCarbon,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = if (away) TextAlign.End else TextAlign.Start,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                if (away) { minute(); card() }
             }
         }
     }
+}
+
+/** Each side's yellow and red cards, in order: ours with the player, theirs with the card's name. */
+@Composable
+private fun summaryCards(details: MatchDetails, events: List<MatchEvent>): Pair<List<SummaryLine>, List<SummaryLine>> {
+    val playersById = details.callUps.associate { it.callUp.playerId to it.player }
+    val yellow = stringResource(Res.string.label_event_type_yellow_card)
+    val red = stringResource(Res.string.label_event_type_red_card)
+    val cards = events.filter { it.type == EventType.YELLOW_CARD || it.type == EventType.RED_CARD }
+        .sortedWith(compareBy({ it.period ?: 1 }, { it.minute }, { it.createdAt }))
+    fun line(e: MatchEvent): SummaryLine {
+        val isRed = e.type == EventType.RED_CARD
+        val who = e.playerId?.let { playersById[it] }?.let { "${it.firstName} ${it.lastName}" } ?: if (isRed) red else yellow
+        return SummaryLine(mins(e.minute), who, if (isRed) LiveRed else CardYellow)
+    }
+    return cards.filter { !it.isOpponent }.map(::line) to cards.filter { it.isOpponent }.map(::line)
 }
 
 /**
@@ -1225,7 +1288,7 @@ private fun SummaryGoalColumn(goals: List<SummaryGoal>, alignment: Alignment.Hor
  * scorer isn't recorded), or "Tomás Silva (OG)" for one of ours into our own net.
  */
 @Composable
-private fun summaryGoals(details: MatchDetails, events: List<MatchEvent>): Pair<List<SummaryGoal>, List<SummaryGoal>> {
+private fun summaryGoals(details: MatchDetails, events: List<MatchEvent>): Pair<List<SummaryLine>, List<SummaryLine>> {
     val playersById = details.callUps.associate { it.callUp.playerId to it.player }
     fun name(id: String?) = id?.let { playersById[it] }?.let { "${it.firstName} ${it.lastName}" }
     val goal = stringResource(Res.string.label_event_goal_unattributed)
@@ -1233,9 +1296,9 @@ private fun summaryGoals(details: MatchDetails, events: List<MatchEvent>): Pair<
     val goals = events.filter { it.type == EventType.GOAL || it.type == EventType.OWN_GOAL }
         .sortedWith(compareBy({ it.period ?: 1 }, { it.minute }, { it.createdAt }))
     val ours = goals.filter { it.type == EventType.GOAL && !it.isOpponent }
-        .map { SummaryGoal(mins(it.minute), name(it.playerId) ?: goal) }
+        .map { SummaryLine(mins(it.minute), name(it.playerId) ?: goal) }
     val theirs = goals.filter { it.isOpponent || it.type == EventType.OWN_GOAL }
-        .map { g -> SummaryGoal(mins(g.minute), if (g.type == EventType.OWN_GOAL) name(g.playerId)?.let { "$it $ownGoal" } ?: goal else goal) }
+        .map { g -> SummaryLine(mins(g.minute), if (g.type == EventType.OWN_GOAL) name(g.playerId)?.let { "$it $ownGoal" } ?: goal else goal) }
     return ours to theirs
 }
 
@@ -1341,7 +1404,9 @@ private fun previewFullTime(): LiveMatchUiState.Idle {
         MatchEvent("e1", "m1", EventType.GOAL, 12, playerId = "p3", createdAt = Instant.fromEpochMilliseconds(1), period = 1),
         MatchEvent("e2", "m1", EventType.GOAL, 21, isOpponent = true, createdAt = Instant.fromEpochMilliseconds(2), period = 1),
         MatchEvent("e3", "m1", EventType.GOAL, 44, playerId = "p6", createdAt = Instant.fromEpochMilliseconds(3), period = 2),
-        MatchEvent("e4", "m1", EventType.OWN_GOAL, 52, playerId = "p2", createdAt = Instant.fromEpochMilliseconds(4), period = 2)
+        MatchEvent("e4", "m1", EventType.OWN_GOAL, 52, playerId = "p2", createdAt = Instant.fromEpochMilliseconds(4), period = 2),
+        MatchEvent("e5", "m1", EventType.YELLOW_CARD, 30, playerId = "p4", createdAt = Instant.fromEpochMilliseconds(5), period = 1),
+        MatchEvent("e6", "m1", EventType.RED_CARD, 58, isOpponent = true, createdAt = Instant.fromEpochMilliseconds(6), period = 2)
     )
     val details = previewLiveDetails(match).copy(report = MatchReportSummary(MatchReportStatus.NOT_STARTED, ratedPlayers = 0, ratablePlayers = 9, canEdit = true))
     return LiveMatchUiState.Idle(details = details, events = events, score = MatchScore("m1", 2, 2))

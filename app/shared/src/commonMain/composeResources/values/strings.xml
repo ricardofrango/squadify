@@ -1536,4 +1536,5 @@
     <string name="btn_leave">Leave</string>
     <string name="lm_own_goal_mark">(OG)</string>
     <string name="lm_final_result">Final result</string>
+    <string name="md_no_cards">No cards in this match.</string>
 </resources>
