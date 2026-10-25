@@ -323,12 +323,12 @@ private fun BandCrest(logoUrl: String, name: String) =
 
 /** "Sat 24 Oct · 10:30": the top bar's title. */
 @Composable
-private fun whenLabel(instant: Instant): String =
+internal fun whenLabel(instant: Instant): String =
     "${instant.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(WeekdayDayMonth)} · ${timeLabel(instant)}"
 
 /** The type, then what's notable: "Championship · in 3 days", "Friendly · Cancelled", "… · 1 half". */
 @Composable
-private fun matchSubtitle(details: MatchDetails): String {
+internal fun matchSubtitle(details: MatchDetails): String {
     val match = details.match
     return listOfNotNull(
         match.type?.let { stringResource(it.labelRes()) },

@@ -450,7 +450,16 @@ private fun BenchToken(player: Player, name: String, info: PitchTokenInfo, highl
             }
         }
         Spacer(Modifier.height(3.dp))
-        Text(name, color = SurroundText.copy(alpha = 0.7f), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        // On a light screen the bench reads black and bold; on the console, soft white.
+        val onLight = LocalPitchOnLight.current
+        Text(
+            name,
+            color = if (onLight) DeepCarbon else Color.White.copy(alpha = 0.7f),
+            fontSize = 10.sp,
+            fontWeight = if (onLight) FontWeight.Bold else FontWeight.Normal,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

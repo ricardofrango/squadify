@@ -1534,7 +1534,6 @@
     <string name="btn_save_lineup">Save</string>
     <string name="lm_comes_in_for">Comes in for</string>
     <string name="btn_leave">Leave</string>
-    <string name="btn_fill_report">Fill in report</string>
-    <string name="btn_view_report">View report</string>
     <string name="lm_own_goal_mark">(OG)</string>
+    <string name="lm_final_result">Final result</string>
 </resources>

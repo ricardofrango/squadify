@@ -494,7 +494,7 @@ private fun TimelineCaption(entry: TimelineEntry, index: Int, count: Int, player
             Text(text, style = style, color = DeepCarbon, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         Spacer(Modifier.width(8.dp))
-        Text(stringResource(Res.string.md_tl_step, index + 1, count), style = MaterialTheme.typography.labelMedium, color = DeepCarbon.copy(alpha = 0.5f))
+        Text(stringResource(Res.string.md_tl_step, index + 1, count), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
     }
 }
 
@@ -521,9 +521,9 @@ private fun TimelineSlider(entries: List<TimelineEntry>, index: Int, onIndex: (I
             modifier = Modifier.semantics { contentDescription = description }
         )
         Row(Modifier.fillMaxWidth()) {
-            Text("${entries.first().minute}'", style = MaterialTheme.typography.labelSmall, color = DeepCarbon.copy(alpha = 0.5f))
+            Text("${entries.first().minute}'", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
             Spacer(Modifier.weight(1f))
-            Text("${entries.last().minute}'", style = MaterialTheme.typography.labelSmall, color = DeepCarbon.copy(alpha = 0.5f), textAlign = TextAlign.End)
+            Text("${entries.last().minute}'", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, textAlign = TextAlign.End)
         }
     }
 }

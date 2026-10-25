@@ -1532,7 +1532,6 @@
     <string name="btn_save_lineup">Guardar</string>
     <string name="lm_comes_in_for">Entra para o lugar de</string>
     <string name="btn_leave">Sair</string>
-    <string name="btn_fill_report">Preencher relatório</string>
-    <string name="btn_view_report">Ver relatório</string>
     <string name="lm_own_goal_mark">(p.b.)</string>
+    <string name="lm_final_result">Resultado Final</string>
 </resources>
