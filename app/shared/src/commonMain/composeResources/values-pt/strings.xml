@@ -374,7 +374,6 @@
     <string name="msg_no_callups">Ainda ninguém foi convocado.</string>
     <string name="btn_start_match">Iniciar jogo</string>
     <string name="btn_enter_live_match">Entrar no jogo ao vivo</string>
-    <string name="msg_kickoff_countdown">O pontapé de saída é %1$s.</string>
     <string name="title_live_match">Jogo ao vivo</string>
 
     <!-- Live Match Console -->
@@ -1425,7 +1424,6 @@
     <string name="msg_age_group_conflict_rows">As linhas %1$s usam anos de nascimento que já têm escalão nesta época.</string>
     <string name="btn_save_callup">Guardar convocatória</string>
     <string name="btn_saving_callup">A guardar…</string>
-    <string name="msg_callup_min_players">Convoque pelo menos %1$d jogadores para guardar.</string>
     <string name="msg_callup_not_ready">A convocatória ainda não está pronta.</string>
     <string name="msg_callup_save_failed">Não foi possível guardar a convocatória. Tente novamente.</string>
     <string name="label_venue">Onde</string>

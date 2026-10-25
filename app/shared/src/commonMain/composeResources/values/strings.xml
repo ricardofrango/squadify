@@ -376,7 +376,6 @@
     <string name="msg_no_callups">No one called up yet.</string>
     <string name="btn_start_match">Start match</string>
     <string name="btn_enter_live_match">Enter live match</string>
-    <string name="msg_kickoff_countdown">Kick-off is %1$s.</string>
     <string name="title_live_match">Live match</string>
 
     <!-- Live Match Console -->
@@ -1427,7 +1426,6 @@
     <string name="msg_age_group_conflict_rows">Rows %1$s use birth years that already have an age group in this season.</string>
     <string name="btn_save_callup">Save call-up</string>
     <string name="btn_saving_callup">Saving…</string>
-    <string name="msg_callup_min_players">Call up at least %1$d players to save.</string>
     <string name="msg_callup_not_ready">The call-up isn\'t ready yet.</string>
     <string name="msg_callup_save_failed">Couldn\'t save the call-up. Try again.</string>
     <string name="label_venue">Where</string>

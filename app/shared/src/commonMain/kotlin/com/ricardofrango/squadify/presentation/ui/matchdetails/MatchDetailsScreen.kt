@@ -596,8 +596,7 @@ private fun LinkText(text: String, onClick: () -> Unit) {
 
 @Composable
 private fun BottomActionBar(state: MatchDetailsUiState.Idle, button: MatchDetailsButton, onSaveCallUp: () -> Unit, onEnterLiveMatch: () -> Unit) {
-    val scheduled = state.details.match.status == MatchStatus.SCHEDULED
-    Surface(color = Color.White, shadowElevation = 8.dp) {
+    Surface(color = ScreenBackground, shadowElevation = 8.dp) {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -619,15 +618,6 @@ private fun BottomActionBar(state: MatchDetailsUiState.Idle, button: MatchDetail
                     PrimaryLoadingButton(text = label, submittingText = label, isLoading = false, onClick = onEnterLiveMatch)
                 }
                 MatchDetailsButton.NONE -> Unit
-            }
-            val hint = when {
-                button == MatchDetailsButton.SAVE_CALL_UP_DISABLED -> stringResource(Res.string.msg_callup_min_players, state.details.minimumCallUp())
-                scheduled -> stringResource(Res.string.msg_kickoff_countdown, relativeLabel(state.details.match.dateTime))
-                else -> null
-            }
-            hint?.let {
-                Spacer(Modifier.height(6.dp))
-                Text(it, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
             }
         }
     }
