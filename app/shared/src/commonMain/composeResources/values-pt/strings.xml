@@ -432,14 +432,8 @@
     <string name="msg_confirm_delete_match_title">Eliminar este jogo?</string>
     <string name="msg_confirm_delete_match_body">Isto remove o jogo, as suas convocatórias e quaisquer eventos registados. Esta ação não pode ser desfeita.</string>
     <string name="msg_no_events_yet">Ainda não há eventos registados.</string>
-    <string name="label_result_win">VITÓRIA</string>
-    <string name="label_result_loss">DERROTA</string>
-    <string name="label_result_draw">EMPATE</string>
     <string name="label_result_cancelled">CANCELADO</string>
-    <string name="label_full_time">FIM DO JOGO</string>
-    <string name="label_minutes_played">Minutos jogados</string>
     <string name="msg_minutes_played_subtitle">Por jogador, a partir do registo de substituições</string>
-    <string name="btn_back_to_match">Voltar ao jogo</string>
 
     <!-- Edit Club Details -->
     <string name="msg_edit_club_details">Editar detalhes do clube</string>
@@ -925,12 +919,8 @@
     <string name="lm_first_half_totals">Minutos da 1.ª parte (%1$s).</string>
     <string name="lm_share_short">média ≈ %1$s</string>
     <string name="lm_match_minutes">%1$s de jogo</string>
-    <string name="lm_fill_report">Preencher o relatório do jogo</string>
-    <string name="lm_view_report">Ver o relatório do jogo</string>
-    <string name="lm_events_heading">Eventos · %1$d</string>
     <string name="lm_half_time_sub">1.ª parte · %1$s</string>
     <string name="lm_tap_to_correct">toque para acertar</string>
-    <string name="lm_no_events">Sem eventos</string>
     <plurals name="lm_summary_not_played">
         <item quantity="one">%1$d ainda não jogou</item>
         <item quantity="other">%1$d ainda não jogaram</item>
@@ -1541,4 +1531,8 @@
     <string name="label_vs">vs</string>
     <string name="btn_save_lineup">Guardar</string>
     <string name="lm_comes_in_for">Entra para o lugar de</string>
+    <string name="btn_leave">Sair</string>
+    <string name="btn_fill_report">Preencher relatório</string>
+    <string name="btn_view_report">Ver relatório</string>
+    <string name="lm_own_goal_mark">(p.b.)</string>
 </resources>

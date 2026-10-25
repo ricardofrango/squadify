@@ -71,6 +71,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.text.TextRange
@@ -107,6 +108,16 @@ import kotlin.math.roundToInt
 
 private val FieldColor = Color(0xFF173321)
 private val TokenFill = Color(0xFF2C2C2E)
+
+/**
+ * The pitch sits on a light screen (a finished match's Timeline) rather than the dark console: what's
+ * drawn around it -- the bench's names, the sent-off line -- is then dark. The pitch itself is the same.
+ */
+internal val LocalPitchOnLight = staticCompositionLocalOf { false }
+
+/** Text around the pitch (not on it): white on the console, dark on a light screen. */
+private val SurroundText: Color
+    @Composable get() = if (LocalPitchOnLight.current) DeepCarbon else Color.White
 private val PlaceholderGray = Color(0xFF8E8E93)
 private val BookedYellow = Color(0xFFFFB300)
 private val SentOffRed = Color(0xFFC62828)
@@ -423,7 +434,7 @@ private fun BenchToken(player: Player, name: String, info: PitchTokenInfo, highl
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         info.minutesFraction?.let { fraction ->
-            Box(Modifier.width(34.dp).height(3.dp).clip(RoundedCornerShape(2.dp)).background(Color.White.copy(alpha = 0.18f))) {
+            Box(Modifier.width(34.dp).height(3.dp).clip(RoundedCornerShape(2.dp)).background(SurroundText.copy(alpha = 0.18f))) {
                 Box(Modifier.fillMaxHeight().fillMaxWidth(fraction.coerceIn(0f, 1f)).background(PitchGreen))
             }
             Spacer(Modifier.height(4.dp))
@@ -439,7 +450,7 @@ private fun BenchToken(player: Player, name: String, info: PitchTokenInfo, highl
             }
         }
         Spacer(Modifier.height(3.dp))
-        Text(name, color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(name, color = SurroundText.copy(alpha = 0.7f), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -529,7 +540,7 @@ internal fun PitchPanel(
                 Spacer(Modifier.width(8.dp))
                 Text(
                     stringResource(Res.string.lm_sent_off_list, sentOff.joinToString(", ") { p -> listOfNotNull(p.shirtNumber?.let { "#$it" }, names[p.id]).joinToString(" ") }),
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = SurroundText.copy(alpha = 0.8f),
                     style = MaterialTheme.typography.labelMedium
                 )
             }

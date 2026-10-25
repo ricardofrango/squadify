@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
+import androidx.compose.runtime.CompositionLocalProvider
+import com.ricardofrango.squadify.presentation.ui.livematch.LocalPitchOnLight
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -428,10 +431,10 @@ private fun TimelineTab(details: MatchDetails, modifier: Modifier) {
     var ourGoalAtStart by rememberSaveable { mutableStateOf(true) }
     val entry = entries[index.coerceIn(0, entries.lastIndex)]
 
-    BoxWithConstraints(modifier.background(DeepCarbon)) {
+    BoxWithConstraints(modifier.background(ScreenBackground)) {
         val horizontal = maxWidth > maxHeight
         val pitch: @Composable (Modifier) -> Unit = { pitchModifier ->
-            PitchPanel(
+            CompositionLocalProvider(LocalPitchOnLight provides true) { PitchPanel(
                 formation = entry.formation,
                 slots = entry.slots.mapNotNull { (slot, id) -> players[id]?.let { slot to it } }.toMap(),
                 bench = entry.bench.mapNotNull { players[it] },
@@ -447,7 +450,7 @@ private fun TimelineTab(details: MatchDetails, modifier: Modifier) {
                 onFormationClick = null,
                 onFlip = { ourGoalAtStart = !ourGoalAtStart },
                 modifier = pitchModifier
-            )
+            ) }
         }
         val slider: @Composable () -> Unit = { TimelineSlider(entries, index) { index = it } }
         if (horizontal) {
@@ -481,17 +484,17 @@ private fun TimelineCaption(entry: TimelineEntry, index: Int, count: Int, player
         TimelineChange.POSITIONS -> stringResource(Res.string.md_tl_positions)
     }
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text("${entry.minute}'", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black), color = Color.White, modifier = Modifier.widthIn(min = 48.dp))
+        Text("${entry.minute}'", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black), color = DeepCarbon, modifier = Modifier.widthIn(min = 48.dp))
         // Always two lines' room, so the pitch doesn't jump between a short and a long caption: one line
         // sits centred in it, a third is cut with "…".
         val style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
         Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
             // An empty two-line text sets the height, measured like the caption itself (font size and scale included).
             Text("", style = style, minLines = 2, maxLines = 2)
-            Text(text, style = style, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(text, style = style, color = DeepCarbon, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         Spacer(Modifier.width(8.dp))
-        Text(stringResource(Res.string.md_tl_step, index + 1, count), style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.5f))
+        Text(stringResource(Res.string.md_tl_step, index + 1, count), style = MaterialTheme.typography.labelMedium, color = DeepCarbon.copy(alpha = 0.5f))
     }
 }
 
@@ -511,16 +514,16 @@ private fun TimelineSlider(entries: List<TimelineEntry>, index: Int, onIndex: (I
             colors = SliderDefaults.colors(
                 thumbColor = PitchGreen,
                 activeTrackColor = PitchGreen,
-                inactiveTrackColor = Color.White.copy(alpha = 0.18f),
+                inactiveTrackColor = DeepCarbon.copy(alpha = 0.18f),
                 activeTickColor = Color.White.copy(alpha = 0.6f),
-                inactiveTickColor = Color.White.copy(alpha = 0.35f)
+                inactiveTickColor = DeepCarbon.copy(alpha = 0.35f)
             ),
             modifier = Modifier.semantics { contentDescription = description }
         )
         Row(Modifier.fillMaxWidth()) {
-            Text("${entries.first().minute}'", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
+            Text("${entries.first().minute}'", style = MaterialTheme.typography.labelSmall, color = DeepCarbon.copy(alpha = 0.5f))
             Spacer(Modifier.weight(1f))
-            Text("${entries.last().minute}'", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f), textAlign = TextAlign.End)
+            Text("${entries.last().minute}'", style = MaterialTheme.typography.labelSmall, color = DeepCarbon.copy(alpha = 0.5f), textAlign = TextAlign.End)
         }
     }
 }

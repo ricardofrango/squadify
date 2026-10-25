@@ -434,14 +434,8 @@
     <string name="msg_confirm_delete_match_title">Delete this match?</string>
     <string name="msg_confirm_delete_match_body">This removes the match, its call-ups, and any logged events. This can\'t be undone.</string>
     <string name="msg_no_events_yet">No events logged yet.</string>
-    <string name="label_result_win">WIN</string>
-    <string name="label_result_loss">LOSS</string>
-    <string name="label_result_draw">DRAW</string>
     <string name="label_result_cancelled">CANCELLED</string>
-    <string name="label_full_time">FULL TIME</string>
-    <string name="label_minutes_played">Minutes played</string>
     <string name="msg_minutes_played_subtitle">Per player, from the sub log</string>
-    <string name="btn_back_to_match">Back to the match</string>
 
     <!-- Edit Club Details -->
     <string name="msg_edit_club_details">Edit club details</string>
@@ -927,12 +921,8 @@
     <string name="lm_first_half_totals">Minutes are 1st-half totals (%1$s).</string>
     <string name="lm_share_short">share ≈ %1$s</string>
     <string name="lm_match_minutes">%1$s match</string>
-    <string name="lm_fill_report">Fill in the match report</string>
-    <string name="lm_view_report">View the match report</string>
-    <string name="lm_events_heading">Events · %1$d</string>
     <string name="lm_half_time_sub">1st half · %1$s</string>
     <string name="lm_tap_to_correct">tap to correct</string>
-    <string name="lm_no_events">No events</string>
     <plurals name="lm_summary_not_played">
         <item quantity="one">%1$d not played yet</item>
         <item quantity="other">%1$d not played yet</item>
@@ -1543,4 +1533,8 @@
     <string name="label_vs">vs</string>
     <string name="btn_save_lineup">Save</string>
     <string name="lm_comes_in_for">Comes in for</string>
+    <string name="btn_leave">Leave</string>
+    <string name="btn_fill_report">Fill in report</string>
+    <string name="btn_view_report">View report</string>
+    <string name="lm_own_goal_mark">(OG)</string>
 </resources>
