@@ -746,15 +746,27 @@ internal fun FormationSheet(current: String, teamSize: Int, onApply: (String) ->
 internal data class PitchPickRow(val label: String, val player: Player? = null, val onClick: () -> Unit)
 internal data class PitchPickSection(val title: String?, val rows: List<PitchPickRow>)
 
-/** A sheet of choices: who plays in a position, who to put in instead, who to swap with. */
+/**
+ * A sheet of choices: who plays in a position, who to put in instead, who to swap with. With [player]
+ * (the one the choices are about) it's headed like the live player sheet: their photo, ringed, beside
+ * the [title] and [subtitle], so it's clear who's being moved.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun PitchPickSheet(title: String, subtitle: String?, sections: List<PitchPickSection>, emptyText: String?, onDismiss: () -> Unit) {
+internal fun PitchPickSheet(title: String, subtitle: String?, sections: List<PitchPickSection>, emptyText: String?, onDismiss: () -> Unit, player: Player? = null) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = CarbonGray) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding.Horizontal).padding(bottom = 16.dp).navigationBarsPadding()) {
-            Text(title, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-            subtitle?.let { Text(it, color = Color.White.copy(alpha = 0.55f), style = MaterialTheme.typography.bodySmall) }
-            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                player?.let {
+                    TokenPhoto(it, 44.dp, BorderStroke(2.dp, Color.White))
+                    Spacer(Modifier.width(12.dp))
+                }
+                Column {
+                    Text(title, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    subtitle?.let { Text(it, color = Color.White.copy(alpha = 0.55f), style = MaterialTheme.typography.bodySmall) }
+                }
+            }
+            Spacer(Modifier.height(if (player != null) 12.dp else 8.dp))
             if (sections.all { it.rows.isEmpty() } && emptyText != null) {
                 Text(emptyText, color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 16.dp))
             }

@@ -198,6 +198,8 @@ private fun ConsoleHeader(
 private sealed class PreKickoffSheet {
     data class WhoPlaysHere(val slot: Int) : PreKickoffSheet()
     data class SlotOptions(val slot: Int, val player: Player) : PreKickoffSheet()
+    // A bench player tapped with every position taken: who they replace.
+    data class ReplaceOnPitch(val player: Player) : PreKickoffSheet()
     data object Formation : PreKickoffSheet()
 }
 
@@ -339,9 +341,13 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
                 onSlotTap = if (editable) {
                     { slot, player -> sheet = if (player == null) PreKickoffSheet.WhoPlaysHere(slot) else PreKickoffSheet.SlotOptions(slot, player) }
                 } else null,
-                // A bench player tapped goes into the first empty position.
+                // A bench player tapped goes into the first empty position; with none left, the coach
+                // picks who they replace.
                 onBenchTap = if (editable) {
-                    { player -> slotIds.firstFreeSlot(teamSize)?.let { save(slotIds.placed(it, player.id)) } }
+                    { player ->
+                        val free = slotIds.firstFreeSlot(teamSize)
+                        if (free != null) save(slotIds.placed(free, player.id)) else sheet = PreKickoffSheet.ReplaceOnPitch(player)
+                    }
                 } else null,
                 onDrop = onDrop,
                 formationLabel = formationText,
@@ -374,13 +380,27 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
         )
         is PreKickoffSheet.SlotOptions -> PitchPickSheet(
             title = "${s.player.firstName} ${s.player.lastName}",
-            subtitle = zoneLabel(pitchSpot(formation, s.slot).zone),
+            subtitle = listOfNotNull(s.player.shirtNumber?.let { "#$it" }, zoneLabel(pitchSpot(formation, s.slot).zone)).joinToString(" · "),
+            player = s.player,
             sections = listOf(
                 PitchPickSection(null, listOf(PitchPickRow(stringResource(Res.string.lm_take_off_pitch)) { save(slotIds - s.slot); sheet = null })),
                 PitchPickSection(stringResource(Res.string.lm_put_in_instead), bench.map { p -> PitchPickRow(pickLabel(p), p) { save(slotIds.placed(s.slot, p.id)); sheet = null } }),
                 PitchPickSection(
                     stringResource(Res.string.lm_swap_with),
                     slots.filterKeys { it != s.slot }.entries.sortedBy { it.key }.map { (slot, p) -> PitchPickRow(pickLabel(p), p) { save(slotIds.swapped(s.slot, slot)); sheet = null } }
+                )
+            ),
+            emptyText = null,
+            onDismiss = { sheet = null }
+        )
+        is PreKickoffSheet.ReplaceOnPitch -> PitchPickSheet(
+            title = "${s.player.firstName} ${s.player.lastName}",
+            subtitle = listOfNotNull(s.player.shirtNumber?.let { "#$it" }, s.player.position?.let { stringResource(it.labelRes()) }).joinToString(" · ").ifEmpty { null },
+            player = s.player,
+            sections = listOf(
+                PitchPickSection(
+                    stringResource(Res.string.lm_comes_in_for),
+                    slots.entries.sortedBy { it.key }.map { (slot, p) -> PitchPickRow(pickLabel(p), p) { save(slotIds.placed(slot, s.player.id)); sheet = null } }
                 )
             ),
             emptyText = null,

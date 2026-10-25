@@ -1542,4 +1542,5 @@
     <string name="md_tl_slider">Moment in the match</string>
     <string name="label_vs">vs</string>
     <string name="btn_save_lineup">Save</string>
+    <string name="lm_comes_in_for">Comes in for</string>
 </resources>
