@@ -43,7 +43,6 @@ import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.PersonPlaceholder
 import com.ricardofrango.squadify.presentation.ui.components.RatingPill
 import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
-import com.ricardofrango.squadify.presentation.ui.components.FilterChipTouchMargin
 import com.ricardofrango.squadify.presentation.ui.components.DetailBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.DetailRail
 import com.ricardofrango.squadify.presentation.ui.components.DetailTab
@@ -328,18 +327,16 @@ private fun EventsTab(details: MatchDetails, modifier: Modifier) {
     val twoHalves = details.match.halves == 2
     Column(modifier) {
         // The chips scroll edge to edge (the screen's side padding is inside the row, not around it) and stay on top.
-        // A chip's touch area reaches 8dp past it, so the row starts that much higher: the chips
-        // themselves start at ScreenPadding.Top.
         if (filtering) FilterChipRow(
             options = EventFilter.entries,
             selected = filter,
             label = { stringResource(it.labelRes()) },
             onSelect = { filter = it },
-            modifier = Modifier.padding(top = ScreenPadding.Top - FilterChipTouchMargin)
+            modifier = Modifier.padding(top = ScreenPadding.Top)
         )
         LazyColumn(
             Modifier.weight(1f),
-            contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = if (filtering) 4.dp else ScreenPadding.Top, bottom = ScreenPadding.Bottom),
+            contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = if (filtering) 12.dp else ScreenPadding.Top, bottom = ScreenPadding.Bottom),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (shown.isEmpty()) {

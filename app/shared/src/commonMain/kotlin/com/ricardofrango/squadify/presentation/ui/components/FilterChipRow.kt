@@ -1,6 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -21,15 +23,14 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.IsClubThemed
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 
-/** How far a [FilterChip]'s 48dp touch area reaches past its 32dp chip, above and below. */
-val FilterChipTouchMargin: Dp = 8.dp
-
 /**
  * One filter chip: white, outlined, filled with the bar's colour when selected (the match Events tab's
- * chips, the developer's pick for every filter, 2026-10-25).
+ * chips, the developer's pick for every filter, 2026-10-25). It takes exactly its 32dp height: without
+ * that, Material pads its touch area to 48dp with invisible space above and below, which shows up as
+ * extra padding around every row of chips.
  */
 @Composable
-fun SquadifyFilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
+fun SquadifyFilterChip(label: String, selected: Boolean, onClick: () -> Unit) = CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
     FilterChip(
         selected = selected,
         onClick = onClick,
@@ -48,9 +49,6 @@ fun SquadifyFilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
  * screen's side padding is inside the row ([horizontalPadding]), so a chip scrolls to the screen's edge
  * instead of being cut at the padding. Inside content that already has that padding (a `LazyColumn`
  * item, a padded column) set [insidePaddedContent], and the row reaches out over it to the edges.
- *
- * A chip's touch area adds [FilterChipTouchMargin] above and below it, so the visible chips sit that
- * much inside the row: subtract it from a top padding to line the chips up with other content.
  */
 @Composable
 fun <T> FilterChipRow(

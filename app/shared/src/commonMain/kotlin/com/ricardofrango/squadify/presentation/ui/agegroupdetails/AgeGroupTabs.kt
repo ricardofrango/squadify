@@ -54,6 +54,8 @@ import com.ricardofrango.squadify.model.leaders
 import com.ricardofrango.squadify.model.table
 import squadify.app.shared.generated.resources.ag_leaders
 import com.ricardofrango.squadify.presentation.ui.components.StatsFilterSegments
+import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyFilterChip
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
@@ -540,12 +542,14 @@ internal fun AgeGroupMatchesTab(
         }
         if (details.teams.size > 1) {
             item {
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FilterChipPill(stringResource(Res.string.ag_all_teams), teamFilter == null) { onTeamFilter(null) }
-                    details.teams.sortedBy { it.name }.forEach { team ->
-                        FilterChipPill(team.name, teamFilter == team.id) { onTeamFilter(team.id) }
-                    }
-                }
+                val teamNames = details.teams.associate { it.id to it.name }
+                FilterChipRow(
+                    options = listOf<String?>(null) + details.teams.sortedBy { it.name }.map { it.id },
+                    selected = teamFilter,
+                    label = { id -> id?.let { teamNames[it] } ?: stringResource(Res.string.ag_all_teams) },
+                    onSelect = onTeamFilter,
+                    insidePaddedContent = true
+                )
             }
         }
         item {
@@ -597,20 +601,6 @@ internal fun AgeGroupMatchesTab(
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun FilterChipPill(label: String, selected: Boolean, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = if (selected) ClubChrome else Color.White,
-        border = BorderStroke(1.5.dp, if (selected) ClubChrome else CarbonGray.copy(alpha = 0.16f))
-    ) {
-        Box(Modifier.heightIn(min = 32.dp).padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
-            Text(label, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, fontSize = 12.5.sp), color = if (selected) Color.White else DeepCarbon)
         }
     }
 }
@@ -958,9 +948,9 @@ private fun LazyListScope.sessionItems(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         StatsHeading(stringResource(Res.string.label_sessions), Modifier.weight(1f))
                         if (data.sessions.isNotEmpty()) {
-                            FilterChipPill(stringResource(Res.string.btn_list), !view.calendar) { view.onCalendar(false) }
+                            SquadifyFilterChip(stringResource(Res.string.btn_list), !view.calendar) { view.onCalendar(false) }
                             Spacer(Modifier.width(6.dp))
-                            FilterChipPill(stringResource(Res.string.btn_calendar), view.calendar) { view.onCalendar(true) }
+                            SquadifyFilterChip(stringResource(Res.string.btn_calendar), view.calendar) { view.onCalendar(true) }
                         }
                     }
                     if (data.canEdit && data.sessions.isNotEmpty()) {

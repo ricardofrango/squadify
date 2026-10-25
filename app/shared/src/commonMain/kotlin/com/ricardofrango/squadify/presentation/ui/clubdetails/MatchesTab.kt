@@ -136,7 +136,7 @@ fun MatchesTab(
     Column(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            // No gap of its own under the selectors: the status chips' touch area already leaves one.
+            // No gap of its own under the selectors: the status chips' row leaves one.
             contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -174,7 +174,8 @@ fun MatchesTab(
             options = listOf(MatchesStatusFilter.UPCOMING, MatchesStatusFilter.FINISHED, MatchesStatusFilter.ALL),
             selected = state.matchesStatus,
             label = { stringResource(it.labelRes()) },
-            onSelect = actions::onMatchesStatusSelected
+            onSelect = actions::onMatchesStatusSelected,
+            modifier = Modifier.padding(vertical = 8.dp)
         )
 
         if (groups.isEmpty()) {
