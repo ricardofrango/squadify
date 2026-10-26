@@ -209,7 +209,7 @@ class GetPlayersUseCaseTest {
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag2) } returns null
         coEvery { playerRepository.getPlayersPage(clubIdA, PlayerListFilter(visibleAgeGroupIds = setOf(ag1)), 31, 30) } returns emptyList()
-        coEvery { playerRepository.hasPlayers(clubIdA, setOf(ag1)) } returns false
+        coEvery { playerRepository.hasPlayers(clubIdA, PlayerListFilter(visibleAgeGroupIds = setOf(ag1))) } returns false
 
         val page = useCase.page(coach.id, clubIdA, seasonId = null, ageGroupId = null, search = "  ", limit = 30, offset = 30)
 

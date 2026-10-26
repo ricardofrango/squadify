@@ -16,15 +16,20 @@ data class PlayerListFilter(
     val seasonAgeGroupIds: Set<String>? = null,
     val ageGroupId: String? = null,
     // Already folded with SearchText.key; found anywhere in "first last".
-    val search: String? = null
+    val search: String? = null,
+    // Adding to an age group: players not in this pool yet, active, born in [bornFromYear] or later
+    // (old enough for it).
+    val notInAgeGroupId: String? = null,
+    val bornFromYear: Int? = null,
+    val activeOnly: Boolean = false
 )
 
 interface PlayerRepository {
     suspend fun getPlayersByClub(clubId: String): List<Player>
     // One page of the club's players matching [filter]: active ones first, then by name.
     suspend fun getPlayersPage(clubId: String, filter: PlayerListFilter, limit: Int, offset: Int): List<Player>
-    // Whether the club has any player at all, or any in [visibleAgeGroupIds]' pools.
-    suspend fun hasPlayers(clubId: String, visibleAgeGroupIds: Set<String>?): Boolean
+    // Whether the club has any player matching [filter] at all.
+    suspend fun hasPlayers(clubId: String, filter: PlayerListFilter): Boolean
     // How many players each age group's pool holds, by age group id (pools with none are left out).
     suspend fun countPlayersByAgeGroup(clubId: String): Map<String, Int>
     suspend fun createPlayer(player: Player): Player

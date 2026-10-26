@@ -17,6 +17,7 @@ import com.ricardofrango.squadify.model.AddPlayersToAgeGroupRequest
 import com.ricardofrango.squadify.model.AddStaffToAgeGroupRequest
 import com.ricardofrango.squadify.model.CreateAgeGroupsRequest
 import com.ricardofrango.squadify.model.ErrorResponse
+import com.ricardofrango.squadify.model.Paging
 import com.ricardofrango.squadify.model.SaveTrainingPlanRequest
 import com.ricardofrango.squadify.model.UpdateAgeGroupRequest
 import com.ricardofrango.squadify.security.userId
@@ -115,13 +116,22 @@ fun Route.ageGroupRoutes() {
             }
 
             route("/{ageGroupId}/players") {
-                // Players eligible to be added (club players old enough, not already in the group).
+                // Players eligible to be added (club players old enough, not already in the group). With
+                // `limit`, a page of them (`offset`) by name, searched on `q`; without, all of them.
                 get("/eligible") {
                     val ageGroupId = call.parameters["ageGroupId"]
                         ?: return@get call.respond(HttpStatusCode.BadRequest)
                     val currentUserId =
                         call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
-                    call.respond(getEligiblePlayersForAgeGroupUseCase(currentUserId, ageGroupId))
+                    val params = call.request.queryParameters
+                    val limit = Paging.limitOf(params["limit"])
+                    if (limit == null) {
+                        call.respond(getEligiblePlayersForAgeGroupUseCase(currentUserId, ageGroupId))
+                    } else {
+                        call.respond(
+                            getEligiblePlayersForAgeGroupUseCase.page(currentUserId, ageGroupId, params["q"], limit, Paging.offsetOf(params["offset"]))
+                        )
+                    }
                 }
 
                 post {

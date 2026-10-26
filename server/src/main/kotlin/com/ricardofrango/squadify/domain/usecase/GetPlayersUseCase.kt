@@ -105,7 +105,7 @@ class GetPlayersUseCase(
         PlayersPage(
             players = rows.take(limit),
             hasMore = rows.size > limit,
-            anyPlayers = rows.isNotEmpty() || playerRepository.hasPlayers(clubId, visible)
+            anyPlayers = rows.isNotEmpty() || playerRepository.hasPlayers(clubId, PlayerListFilter(visibleAgeGroupIds = visible))
         )
     }
 

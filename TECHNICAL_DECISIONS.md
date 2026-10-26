@@ -2997,8 +2997,9 @@ The developer asked for pagination now, the players and matches lists first (202
   - the club's matches (`GET /matches`, PROCESS_FLOWS §7.1d);
   - the club's players (`GET /players`, §5.1d);
   - the club's members (`GET /clubs/{id}/members/overview`, §3.7), which grows with parents;
+  - the club players eligible for an age group (`GET /age-groups/{id}/players/eligible`), on Add players: every active player old enough who isn't in the pool, so most of the club. The search moved to the server with it; picks are kept across searches;
   - the club's opponents (`GET /opponents/list`, §6.3), on the Opponents screen. Its rows sort by the folded name with `COLLATE "C"` (character by character, as Kotlin compares), so the screen's letter groups fill in order as pages arrive. The opponent form still reads the whole list for its duplicate-name check, and the club screens still read every opponent to name the match rows.
-- **What doesn't, on purpose:** lists held to a season, an age group, a team or a match: teams, seasons, age groups, an age group's or a team's players, the call-up pool, training sessions and plans, the exercise library, staff, a match's events, full stats and season records. Paging them would only complicate screens that need all of it (stats, pickers). Next to page once clubs grow: the eligible players when adding to an age group.
+- **What doesn't, on purpose:** lists held to a season, an age group, a team or a match: teams, seasons, age groups, an age group's or a team's players, the call-up pool, training sessions and plans, the exercise library, staff, a match's events, full stats and season records. Paging them would only complicate screens that need all of it (stats, pickers).
 - **The contract** (`model/Paging.kt`):
   - `limit` (1–100; the app asks for `Paging.PAGE_SIZE`, 30) and `offset`. The answer is a page object with `hasMore`: the server reads `limit + 1` rows, and an extra row means another page.
   - **No `limit`, no paging:** the same endpoint returns the whole list as before, so app builds from before paging keep working.
