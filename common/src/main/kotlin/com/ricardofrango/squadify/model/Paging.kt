@@ -28,6 +28,8 @@ data class MatchesPage(
     // The score of each started match on the page, so the list needs no request per match.
     val scores: List<MatchScore> = emptyList(),
     val hasMore: Boolean = false,
+    // How many matches the whole list holds for these filters, for its heading ("Upcoming · 12").
+    val total: Int = 0,
     // Whether the viewer can see any match of the club at all, whatever the filters: the tab's full
     // empty state ("No matches yet") rather than "nothing for these filters".
     val anyMatches: Boolean = false

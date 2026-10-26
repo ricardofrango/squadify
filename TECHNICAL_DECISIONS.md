@@ -3014,4 +3014,5 @@ The developer asked for pagination now, the players and matches lists first (202
   - A filter change loads the first page again, with a spinner in place of the list. A search waits for typing to pause (300 ms).
   - A refresh (returning to the tab, back from adding players) reloads as many rows as were on screen, so the list doesn't shrink under the user.
   - The Matches tab's live socket still updates, adds and removes matches among those loaded.
+  - **One match list everywhere** (the developer, 2026-10-26): the club Matches tab keeps its filters, but its list is the team's and the age group's Games tab list, one shared component (`components/MatchList.kt`, `matchListSections`): "Upcoming · n" (with "Schedule" where allowed), then "Recent results · n" with the latest three until "See all n", an empty card for an empty section. The date groups (Earlier, Today, This weekend…) are gone. Upcoming shows only the first section, Finished only the second (unfolded), All both. Each page carries its list's `total` for the headings.
   - Disabling a player keeps their row in place; the server puts them last on the next load.

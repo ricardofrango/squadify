@@ -9,7 +9,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import com.ricardofrango.squadify.presentation.ui.components.LoadMoreEffect
@@ -24,6 +23,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.ricardofrango.squadify.presentation.ui.components.MatchListEntry
+import com.ricardofrango.squadify.presentation.ui.components.MatchListSection
+import com.ricardofrango.squadify.presentation.ui.components.RECENT_RESULTS_SHOWN
+import com.ricardofrango.squadify.presentation.ui.components.matchListSections
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,7 +40,6 @@ import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.presentation.ui.components.MatchRow
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
@@ -42,23 +47,16 @@ import com.ricardofrango.squadify.presentation.ui.theme.FilterRowPadding
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.*
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.DayOfWeek
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.isoDayNumber
-import kotlinx.datetime.plus
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
-import kotlin.time.Clock
 
 /**
  * The club Matches tab (design 14A / 14B): the club-wide fixture list, so each row names its team.
  * Season / age-group / team filter pills + an Upcoming / Finished / All status control, then the
- * matches grouped into date-relative buckets. A match in progress renders as a green-bordered card
- * with a LIVE badge and running minute in place of the date.
+ * same list as a team's and an age group's Games tab (matchListSections): "Upcoming · n" and
+ * "Recent results · n", a page at a time. A match in progress renders as a green-bordered card with a
+ * LIVE badge and running minute in place of the date.
  */
 @Composable
 fun MatchesTab(
@@ -133,9 +131,23 @@ fun MatchesTab(
         }
     }
 
-    val groups = remember(state.matches, state.selectedMatchesSeasonId, state.selectedMatchesAgeGroupId, state.selectedMatchesTeamId, state.matchesStatus, teamsById) {
-        buildGroups(state, teamsById)
+    val (upcoming, finished) = remember(state.matches, state.selectedMatchesSeasonId, state.selectedMatchesAgeGroupId, state.selectedMatchesTeamId, teamsById) {
+        splitMatches(state, teamsById)
     }
+    // "See all n" under the results, as on a team's and an age group's Games tab; a new filter folds them again.
+    var showAllResults by remember(state.matchesStatus, state.selectedMatchesSeasonId, state.selectedMatchesAgeGroupId, state.selectedMatchesTeamId) {
+        mutableStateOf(false)
+    }
+    fun entries(matches: List<Match>) = matches.map { MatchListEntry(it, state.matchScores[it.id], teamsById[it.teamId]?.name) }
+    val upcomingSection = if (state.matchesStatus == MatchesStatusFilter.FINISHED) null
+    else MatchListSection(entries(upcoming), total = maxOf(state.upcomingTotal ?: 0, upcoming.size))
+    // Under All the results come once Upcoming has loaded to its end.
+    val resultsSection = when {
+        state.matchesStatus == MatchesStatusFilter.UPCOMING -> null
+        state.matchesStatus == MatchesStatusFilter.ALL && state.finishedTotal == null -> null
+        else -> MatchListSection(entries(finished), total = maxOf(state.finishedTotal ?: 0, finished.size))
+    }
+    val resultsFolded = state.matchesStatus == MatchesStatusFilter.ALL && !showAllResults
 
     Column(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {
         LazyRow(
@@ -186,45 +198,26 @@ fun MatchesTab(
             Box(Modifier.fillMaxWidth().screenContentPadding(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = PitchGreen)
             }
-        } else if (groups.isEmpty() && !state.matchesHasMore) {
-            Box(Modifier.fillMaxWidth().screenContentPadding(), contentAlignment = Alignment.Center) {
-                Text(
-                    stringResource(Res.string.msg_no_matches_for_filters),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = DeepCarbon.copy(alpha = 0.55f)
-                )
-            }
         } else {
             val listState = rememberLazyListState()
-            LoadMoreEffect(listState, enabled = state.matchesHasMore && !state.matchesLoadingMore, onLoadMore = actions::loadMoreMatches)
+            // Folded results need no more pages than the few they show.
+            val wantsMore = !(resultsFolded && resultsSection != null && finished.size > RECENT_RESULTS_SHOWN)
+            LoadMoreEffect(listState, enabled = state.matchesHasMore && !state.matchesLoadingMore && wantsMore, onLoadMore = actions::loadMoreMatches)
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = 0.dp, bottom = ScreenPadding.Bottom),
+                contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = 4.dp, bottom = ScreenPadding.Bottom),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                groups.forEachIndexed { index, group ->
-                    item(key = "h-$index") {
-                        Text(
-                            stringResource(group.label).uppercase(),
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = DeepCarbon.copy(alpha = 0.5f),
-                            // The first group's label sits just under the status chips; later ones keep a gap.
-                            modifier = Modifier.padding(top = if (index == 0) 4.dp else 12.dp, bottom = 2.dp)
-                        )
-                    }
-                    items(group.matches, key = { it.id }) { match ->
-                        MatchRow(
-                            match = match,
-                            teamName = teamsById[match.teamId]?.name ?: "—",
-                            opponentName = opponentsById[match.opponentId]?.let { it.shortName ?: it.name } ?: "—",
-                            opponentLogoUrl = opponentsById[match.opponentId]?.logoUrl,
-                            clubLogoUrl = details.club.logoUrl,
-                            score = state.matchScores[match.id],
-                            onClick = { onNavigateToMatch(match.id) }
-                        )
-                    }
-                }
+                matchListSections(
+                    upcoming = upcomingSection,
+                    results = resultsSection,
+                    opponentsById = opponentsById,
+                    clubLogoUrl = details.club.logoUrl,
+                    showAllResults = !resultsFolded,
+                    onShowAllResults = { showAllResults = true },
+                    onOpenMatch = onNavigateToMatch
+                )
                 loadingMoreItem(state.matchesLoadingMore)
             }
         }
@@ -237,68 +230,20 @@ private fun MatchesStatusFilter.labelRes(): StringResource = when (this) {
     MatchesStatusFilter.ALL -> Res.string.matches_status_all
 }
 
-// ---- Grouping ----
+// ---- Sections ----
 
-private class MatchGroup(val label: StringResource, val matches: List<Match>)
-
-private fun buildGroups(state: ClubDetailsUiState.Idle, teamsById: Map<String, Team>): List<MatchGroup> {
-    val tz = TimeZone.currentSystemDefault()
-    val today = Clock.System.now().toLocalDateTime(tz).date
-    val weekendDays = weekendAhead(today)
-
-    val filtered = state.matches.filter { m ->
-        if (m.status == MatchStatus.CANCELLED) return@filter false
+/**
+ * The loaded matches that fit the filters (a match pushed over the socket may not), as Upcoming
+ * (neither finished nor cancelled, soonest first) and Finished (newest first), like the server's lists.
+ */
+private fun splitMatches(state: ClubDetailsUiState.Idle, teamsById: Map<String, Team>): Pair<List<Match>, List<Match>> {
+    val shown = state.matches.filter { m ->
         val team = teamsById[m.teamId] ?: return@filter false
-        val bySeason = state.selectedMatchesSeasonId == null || team.seasonId == state.selectedMatchesSeasonId
-        val byAge = state.selectedMatchesAgeGroupId == null || team.ageGroupId == state.selectedMatchesAgeGroupId
-        val byTeam = state.selectedMatchesTeamId == null || m.teamId == state.selectedMatchesTeamId
-        val byStatus = when (state.matchesStatus) {
-            MatchesStatusFilter.UPCOMING -> m.status != MatchStatus.FINISHED
-            MatchesStatusFilter.FINISHED -> m.status == MatchStatus.FINISHED
-            MatchesStatusFilter.ALL -> true
-        }
-        bySeason && byAge && byTeam && byStatus
+        m.status != MatchStatus.CANCELLED &&
+            (state.selectedMatchesSeasonId == null || team.seasonId == state.selectedMatchesSeasonId) &&
+            (state.selectedMatchesAgeGroupId == null || team.ageGroupId == state.selectedMatchesAgeGroupId) &&
+            (state.selectedMatchesTeamId == null || m.teamId == state.selectedMatchesTeamId)
     }
-
-    val upcoming = filtered.filter { it.status != MatchStatus.FINISHED }.sortedBy { it.dateTime }
-    val finished = filtered.filter { it.status == MatchStatus.FINISHED }.sortedByDescending { it.dateTime }
-
-    fun bucket(m: Match): StringResource {
-        if (m.status == MatchStatus.LIVE || m.status == MatchStatus.HALF_TIME) return Res.string.matches_group_today
-        val d = m.dateTime.toLocalDateTime(tz).date
-        return when {
-            d < today -> Res.string.matches_group_earlier
-            d == today -> Res.string.matches_group_later_today
-            d in weekendDays -> Res.string.matches_group_this_weekend
-            else -> Res.string.matches_group_later
-        }
-    }
-
-    val order = listOf(
-        Res.string.matches_group_earlier,
-        Res.string.matches_group_today,
-        Res.string.matches_group_later_today,
-        Res.string.matches_group_this_weekend,
-        Res.string.matches_group_later
-    )
-    val upcomingGroups = upcoming.groupBy(::bucket)
-        .toList()
-        .sortedBy { order.indexOf(it.first) }
-        .map { MatchGroup(it.first, it.second) }
-
-    return when (state.matchesStatus) {
-        MatchesStatusFilter.UPCOMING -> upcomingGroups
-        MatchesStatusFilter.FINISHED ->
-            if (finished.isEmpty()) emptyList() else listOf(MatchGroup(Res.string.matches_group_results, finished))
-        MatchesStatusFilter.ALL ->
-            upcomingGroups + if (finished.isEmpty()) emptyList()
-            else listOf(MatchGroup(Res.string.matches_group_results, finished))
-    }
-}
-
-/** The dates of the coming Saturday and Sunday (today counts if today is Sat/Sun). */
-private fun weekendAhead(today: LocalDate): Set<LocalDate> {
-    val toSat = (DayOfWeek.SATURDAY.isoDayNumber - today.dayOfWeek.isoDayNumber + 7) % 7
-    val sat = today.plus(toSat, DateTimeUnit.DAY)
-    return setOf(sat, sat.plus(1, DateTimeUnit.DAY))
+    val (finished, upcoming) = shown.partition { it.status == MatchStatus.FINISHED }
+    return upcoming.sortedBy { it.dateTime } to finished.sortedByDescending { it.dateTime }
 }

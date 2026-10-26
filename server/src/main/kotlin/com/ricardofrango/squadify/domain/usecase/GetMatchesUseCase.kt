@@ -84,6 +84,8 @@ class GetMatchesUseCase(
             matches = matches,
             scores = if (started.isEmpty()) emptyList() else matchEventRepository.getScoresByMatches(started.map { it.id }).values.toList(),
             hasMore = rows.size > limit,
+            // A short first page is the whole list; otherwise count it.
+            total = if (offset == 0 && rows.size <= limit) rows.size else matchRepository.countMatches(teamIds, status),
             anyMatches = rows.isNotEmpty() || matchRepository.hasMatches(visible.map { it.id })
         )
     }

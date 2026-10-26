@@ -58,19 +58,25 @@ class ExposedMatchRepository : MatchRepository {
 
     override suspend fun getMatchesPage(teamIds: Collection<String>, status: MatchListStatus, limit: Int, offset: Int): List<Match> {
         if (teamIds.isEmpty()) return emptyList()
-        val ofTeams = MatchesTable.teamId inList teamIds.map { it.toUuid() }
-        val (where, order) = when (status) {
-            MatchListStatus.UPCOMING -> (ofTeams and (MatchesTable.status notInList listOf(MatchStatus.FINISHED, MatchStatus.CANCELLED))) to SortOrder.ASC
-            MatchListStatus.FINISHED -> (ofTeams and (MatchesTable.status eq MatchStatus.FINISHED)) to SortOrder.DESC
-        }
+        val order = if (status == MatchListStatus.UPCOMING) SortOrder.ASC else SortOrder.DESC
         return MatchesTable.selectAll()
-            .where { where }
+            .where { matchesIn(teamIds, status) }
             // The id keeps matches at the same time in one order from page to page.
             .orderBy(MatchesTable.dateTime to order, MatchesTable.id to order)
             .limit(limit)
             .offset(offset.toLong())
             .map(::toMatch)
     }
+
+    override suspend fun countMatches(teamIds: Collection<String>, status: MatchListStatus): Int =
+        if (teamIds.isEmpty()) 0 else MatchesTable.selectAll().where { matchesIn(teamIds, status) }.count().toInt()
+
+    // UPCOMING: neither finished nor cancelled; FINISHED: finished.
+    private fun matchesIn(teamIds: Collection<String>, status: MatchListStatus) =
+        (MatchesTable.teamId inList teamIds.map { it.toUuid() }) and when (status) {
+            MatchListStatus.UPCOMING -> MatchesTable.status notInList listOf(MatchStatus.FINISHED, MatchStatus.CANCELLED)
+            MatchListStatus.FINISHED -> MatchesTable.status eq MatchStatus.FINISHED
+        }
 
     override suspend fun hasMatches(teamIds: Collection<String>): Boolean =
         teamIds.isNotEmpty() && !MatchesTable.selectAll()
