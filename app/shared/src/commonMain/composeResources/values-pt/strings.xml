@@ -1325,13 +1325,12 @@
     <string name="msg_rating_invalid">De 0 a 10, ex.: 7,5</string>
     <!-- Edit team: delete -->
     <string name="btn_delete_team">Eliminar equipa</string>
-    <string name="msg_delete_team_helper">Remove a equipa e todos os seus jogos. Os jogadores continuam no escalão.</string>
     <string name="title_delete_team">Eliminar %1$s?</string>
     <plurals name="msg_delete_team_matches">
-        <item quantity="one">Esta equipa tem %1$d jogo. Também será eliminado, com a convocatória, os eventos, as estatísticas e o relatório — incluindo jogos já disputados. Não é possível anular.</item>
-        <item quantity="other">Esta equipa tem %1$d jogos. Também serão eliminados, com as convocatórias, os eventos, as estatísticas e os relatórios — incluindo jogos já disputados. Não é possível anular.</item>
+        <item quantity="one">Não é possível anular. O %1$d jogo desta equipa será eliminado, com todas as suas estatísticas: convocatória, eventos, estatísticas dos jogadores e relatório, mesmo que já tenha sido disputado. Os jogadores continuam no escalão.</item>
+        <item quantity="other">Não é possível anular. Os %1$d jogos desta equipa serão eliminados, com todas as suas estatísticas: convocatórias, eventos, estatísticas dos jogadores e relatórios, incluindo jogos já disputados. Os jogadores continuam no escalão.</item>
     </plurals>
-    <string name="msg_delete_team_no_matches">Esta equipa não tem jogos. Não é possível anular.</string>
+    <string name="msg_delete_team_no_matches">Não é possível anular. A equipa ainda não tem jogos. Os jogadores continuam no escalão.</string>
     <string name="edit_team_delete_failed">Não foi possível eliminar a equipa. Tente novamente.</string>
     <!-- Remove a player from an age group / disable in the club -->
     <string name="cd_remove_from_age_group">Remover %1$s do escalão</string>

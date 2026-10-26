@@ -1327,13 +1327,12 @@
     <string name="msg_rating_invalid">Enter 0 to 10, e.g. 7.5</string>
     <!-- Edit team: delete -->
     <string name="btn_delete_team">Delete team</string>
-    <string name="msg_delete_team_helper">Removes the team and all its matches. The players stay in the age group.</string>
     <string name="title_delete_team">Delete %1$s?</string>
     <plurals name="msg_delete_team_matches">
-        <item quantity="one">This team has %1$d match. It will be deleted too, with its call-ups, events, player stats and report — played matches included. This can\'t be undone.</item>
-        <item quantity="other">This team has %1$d matches. They will be deleted too, with their call-ups, events, player stats and reports — played matches included. This can\'t be undone.</item>
+        <item quantity="one">This can\'t be undone. This team\'s %1$d game will be deleted, with all its stats: call-up, events, player stats and report, even if it was played. The players stay in the age group.</item>
+        <item quantity="other">This can\'t be undone. This team\'s %1$d games will be deleted, with all their stats: call-ups, events, player stats and reports, played games included. The players stay in the age group.</item>
     </plurals>
-    <string name="msg_delete_team_no_matches">This team has no matches. This can\'t be undone.</string>
+    <string name="msg_delete_team_no_matches">This can\'t be undone. The team has no games yet. The players stay in the age group.</string>
     <string name="edit_team_delete_failed">Couldn\'t delete the team. Try again.</string>
     <!-- Remove a player from an age group / disable in the club -->
     <string name="cd_remove_from_age_group">Remove %1$s from the age group</string>

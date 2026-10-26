@@ -22,7 +22,6 @@ import org.jetbrains.compose.resources.pluralStringResource
 import squadify.app.shared.generated.resources.btn_cancel
 import squadify.app.shared.generated.resources.btn_delete
 import squadify.app.shared.generated.resources.btn_delete_team
-import squadify.app.shared.generated.resources.msg_delete_team_helper
 import squadify.app.shared.generated.resources.msg_delete_team_matches
 import squadify.app.shared.generated.resources.msg_delete_team_no_matches
 import squadify.app.shared.generated.resources.title_delete_team
@@ -56,6 +55,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.ricardofrango.squadify.presentation.ui.components.PinnedBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.createagegroups.TeamSizeField
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
@@ -140,6 +140,22 @@ private fun EditTeamContent(
                     }
                 }
             )
+        },
+        bottomBar = {
+            // Pinned, as every form's main action; it only asks first (the dialog below).
+            if (idle?.canDelete == true) {
+                PinnedBottomBar {
+                    OutlinedButton(
+                        onClick = { confirmDelete = true },
+                        enabled = !idle.busy,
+                        border = BorderStroke(1.dp, AlertRed.copy(alpha = if (idle.busy) 0.3f else 1f)),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(stringResource(Res.string.btn_delete_team), color = AlertRed, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
         }
     ) { padding ->
         val modifier = Modifier.fillMaxSize().padding(padding).background(ScreenBackground)
@@ -192,23 +208,6 @@ private fun EditTeamContent(
                 if (state.submitError != null) {
                     Text(state.submitError, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
-                if (state.canDelete) {
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick = { confirmDelete = true },
-                        enabled = !state.busy,
-                        border = BorderStroke(1.dp, AlertRed.copy(alpha = if (state.busy) 0.3f else 1f)),
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(Res.string.btn_delete_team), color = AlertRed, fontWeight = FontWeight.Bold)
-                    }
-                    Text(
-                        stringResource(Res.string.msg_delete_team_helper),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = DeepCarbon.copy(alpha = 0.5f)
-                    )
-                }
             }
         }
     }
@@ -236,9 +235,8 @@ private fun EditTeamContent(
     }
 }
 
-@Preview
 @Composable
-private fun EditTeamPreview() {
+private fun EditTeamPreviewFrame() {
     SquadifyTheme {
         val fields = TeamFormFields("Sub-15 B", 7)
         EditTeamContent(
@@ -247,3 +245,11 @@ private fun EditTeamPreview() {
         )
     }
 }
+
+@Preview
+@Composable
+private fun EditTeamPreview() = EditTeamPreviewFrame()
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun EditTeamLandscapePreview() = EditTeamPreviewFrame()
