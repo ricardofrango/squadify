@@ -1185,7 +1185,7 @@ private fun SummaryContent(state: LiveMatchUiState.Idle, onNavigateBack: () -> U
                         Column(Modifier.fillMaxWidth().screenContentPadding(), verticalArrangement = Arrangement.spacedBy(10.dp), content = record)
                     }
                     Column(
-                        Modifier.width(320.dp).fillMaxHeight().navigationBarsPadding().padding(ScreenPadding.Horizontal),
+                        Modifier.width(320.dp).fillMaxHeight().padding(ScreenPadding.Horizontal),
                         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Bottom),
                         content = actions
                     )
@@ -1200,7 +1200,7 @@ private fun SummaryContent(state: LiveMatchUiState.Idle, onNavigateBack: () -> U
                         content = record
                     )
                     Column(
-                        Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal).padding(top = 4.dp, bottom = 12.dp),
+                        Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal).padding(top = 4.dp, bottom = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                         content = actions
                     )
