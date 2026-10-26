@@ -1551,10 +1551,11 @@ graph TD
     Q -- FINISHED --> R["limit + 1 finished matches, newest first"]
     U --> S
     R --> S["Scores of the page's finished, live and half-time matches, in one query"]
-    S --> Z(["Return MatchesPage — the first limit matches, their scores, hasMore, anyMatches (any match of the viewer's teams at all)"])
+    S --> Z(["Return MatchesPage — the first limit matches, their scores, hasMore, total (the whole list's size, counted unless a short first page is the list), anyMatches (any match of the viewer's teams at all)"])
 ```
 
 - **All** on the tab is Upcoming to its last page, then Finished from its first, so the tab keeps its order (`MatchesCursor` in the app).
+- **The tab's list** is the same as a team's and an age group's Games tab: "Upcoming · n" and "Recent results · n" (`total` gives n), the results folded to the latest three until "See all n". Under All, folded results load no more pages.
 - **Scores** come with the page: the tab no longer asks for each match's score on its own.
 - **Live updates** over the club socket (§8.5) still change, add or remove matches among those loaded.
 

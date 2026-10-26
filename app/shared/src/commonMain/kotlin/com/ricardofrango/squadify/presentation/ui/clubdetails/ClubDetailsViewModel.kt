@@ -15,6 +15,7 @@ import com.ricardofrango.squadify.domain.usecase.ObserveClubMatchesUseCase
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchScore
+import com.ricardofrango.squadify.model.MatchListStatus
 import com.ricardofrango.squadify.model.MatchesPage
 import com.ricardofrango.squadify.model.Paging
 import com.ricardofrango.squadify.model.Team
@@ -184,12 +185,15 @@ class ClubDetailsViewModel(
             val matches = mutableListOf<Match>()
             val scores = mutableMapOf<String, MatchScore>()
             var anyMatches = false
+            val totals = mutableMapOf<MatchListStatus, Int>()
             try {
                 do {
+                    val list = cursor.list
                     val page = nextMatchesPage(clubId, start, cursor)
                     matches += page.matches
                     scores += page.scores.associateBy { it.matchId }
                     anyMatches = anyMatches || page.anyMatches
+                    totals[list] = page.total
                 } while (cursor.hasMore && matches.size < atLeast)
             } catch (e: CancellationException) {
                 throw e
@@ -207,7 +211,9 @@ class ClubDetailsViewModel(
                     matchesLoaded = true,
                     matchesHasMore = cursor.hasMore,
                     matchesLoadingMore = false,
-                    anyMatches = anyMatches
+                    anyMatches = anyMatches,
+                    upcomingTotal = totals[MatchListStatus.UPCOMING],
+                    finishedTotal = totals[MatchListStatus.FINISHED]
                 )
             }
         }
@@ -222,6 +228,7 @@ class ClubDetailsViewModel(
         matchesJob = viewModelScope.launch {
             updateMatchesIdle { it.copy(matchesLoadingMore = true) }
             try {
+                val list = cursor.list
                 val page = nextMatchesPage(clubId, start, cursor)
                 updateMatchesIdle {
                     it.copy(
@@ -230,7 +237,9 @@ class ClubDetailsViewModel(
                         matchScores = it.matchScores + page.scores.associateBy { score -> score.matchId },
                         matchesHasMore = cursor.hasMore,
                         matchesLoadingMore = false,
-                        anyMatches = it.anyMatches || page.anyMatches
+                        anyMatches = it.anyMatches || page.anyMatches,
+                        upcomingTotal = if (list == MatchListStatus.UPCOMING) page.total else it.upcomingTotal,
+                        finishedTotal = if (list == MatchListStatus.FINISHED) page.total else it.finishedTotal
                     )
                 }
             } catch (e: CancellationException) {
@@ -356,7 +365,9 @@ class ClubDetailsViewModel(
 
     // The new filters' list replaces the old one; until it arrives the tab shows its spinner.
     private inline fun onMatchesFiltered(block: (ClubDetailsUiState.Idle) -> ClubDetailsUiState.Idle) {
-        updateMatchesIdle { block(it).copy(matches = emptyList(), matchScores = emptyMap(), matchesLoaded = false, matchesHasMore = false) }
+        updateMatchesIdle {
+            block(it).copy(matches = emptyList(), matchScores = emptyMap(), matchesLoaded = false, matchesHasMore = false, upcomingTotal = null, finishedTotal = null)
+        }
         reloadMatches()
     }
 

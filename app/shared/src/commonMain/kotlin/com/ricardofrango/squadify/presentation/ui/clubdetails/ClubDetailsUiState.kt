@@ -49,6 +49,10 @@ sealed class ClubDetailsUiState {
         val matchesLoadingMore: Boolean = false,
         // Whether the viewer can see any match of the club at all: false shows "No matches yet".
         val anyMatches: Boolean = false,
+        // How many upcoming / finished matches there are for the filters, loaded or not, for the
+        // section headings; null until that list's first page has come (All loads Upcoming first).
+        val upcomingTotal: Int? = null,
+        val finishedTotal: Int? = null,
         val opponents: List<Opponent> = emptyList(),
         val selectedMatchesSeasonId: String? = null,
         val selectedMatchesAgeGroupId: String? = null,

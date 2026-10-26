@@ -200,6 +200,7 @@ class GetMatchesUseCaseTest {
         // Season s1 and age group 1: team 1 only, not team 2 (another age group) or team 3 (another season).
         assertEquals(listOf(team1.id), teamIds.captured.toList())
         assertEquals(emptyList(), page.matches)
+        assertEquals(0, page.total, "a short first page is the whole list, no count needed")
         assertTrue(page.anyMatches, "the club still has matches, just none for these filters")
         Unit
     }
@@ -212,6 +213,7 @@ class GetMatchesUseCaseTest {
         val live = match("m2", team1.id).copy(status = MatchStatus.LIVE)
         val scheduled = match("m3", team1.id)
         coEvery { matchRepository.getMatchesPage(listOf(team1.id), MatchListStatus.FINISHED, 3, 4) } returns listOf(finished, live, scheduled)
+        coEvery { matchRepository.countMatches(listOf(team1.id), MatchListStatus.FINISHED) } returns 9
         coEvery { matchEventRepository.getScoresByMatches(listOf("m1", "m2")) } returns mapOf("m1" to MatchScore("m1", 2, 1), "m2" to MatchScore("m2", 0, 0))
 
         val page = useCase.page(admin.id, clubIdA, MatchListStatus.FINISHED, null, null, null, limit = 2, offset = 4)
@@ -219,6 +221,7 @@ class GetMatchesUseCaseTest {
         // Two asked for, three came back: the third only says another page follows.
         assertEquals(listOf("m1", "m2"), page.matches.map { it.id })
         assertTrue(page.hasMore)
+        assertEquals(9, page.total, "the whole list, for the heading")
         // The finished and the live match, not the scheduled one.
         assertEquals(setOf("m1", "m2"), page.scores.map { it.matchId }.toSet())
         Unit

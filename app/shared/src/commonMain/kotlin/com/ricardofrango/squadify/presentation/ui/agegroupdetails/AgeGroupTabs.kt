@@ -55,6 +55,9 @@ import com.ricardofrango.squadify.model.table
 import squadify.app.shared.generated.resources.ag_leaders
 import com.ricardofrango.squadify.presentation.ui.components.StatsFilterSegments
 import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
+import com.ricardofrango.squadify.presentation.ui.components.MatchListEntry
+import com.ricardofrango.squadify.presentation.ui.components.MatchListSection
+import com.ricardofrango.squadify.presentation.ui.components.matchListSections
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyFilterChip
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
@@ -112,7 +115,6 @@ import squadify.app.shared.generated.resources.btn_list
 internal fun Team.shortLabel(ageGroupName: String): String =
     name.removePrefix(ageGroupName).trim().ifEmpty { name }
 
-private const val RECENT_SHOWN = 3
 private const val NAMES_SHOWN = 3
 
 /** Heading with a count and an optional green "+ action" on the right ("TEAMS · 2   + Create team"). */
@@ -533,7 +535,6 @@ internal fun AgeGroupMatchesTab(
     var showAllResults by remember { mutableStateOf(false) }
     val upcoming = details.upcomingMatches.filter { teamFilter == null || it.teamId == teamFilter }
     val results = details.recentResults.filter { teamFilter == null || it.match.teamId == teamFilter }
-    fun opponent(id: String) = opponentsById[id]?.let { it.shortName ?: it.name } ?: "—"
 
     LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (details.teams.isEmpty()) {
@@ -552,56 +553,18 @@ internal fun AgeGroupMatchesTab(
                 )
             }
         }
-        item {
-            TabHeading(
-                stringResource(Res.string.team_heading_count, stringResource(Res.string.label_upcoming), upcoming.size),
-                if (details.canManageMatch) stringResource(Res.string.team_schedule_short) to onSchedule else null
-            )
-        }
-        if (upcoming.isEmpty()) {
-            item { StatsCard(contentPadding = 16.dp) { Text(stringResource(Res.string.msg_no_upcoming_matches), style = MaterialTheme.typography.bodyMedium, color = StatsSecondaryText) } }
-        } else {
-            items(upcoming, key = { it.id }) { match ->
-                MatchRow(
-                    match = match,
-                    opponentName = opponent(match.opponentId),
-                    opponentLogoUrl = opponentsById[match.opponentId]?.logoUrl,
-                    clubLogoUrl = details.club.logoUrl,
-                    teamName = teamsById[match.teamId]?.name,
-                    score = details.upcomingMatchScores[match.id],
-                    onClick = { onOpenMatch(match.id) }
-                )
-            }
-        }
-        item {
-            TabHeading(stringResource(Res.string.team_heading_count, stringResource(Res.string.label_recent_results), results.size), null)
-        }
-        if (results.isEmpty()) {
-            item { StatsCard(contentPadding = 16.dp) { Text(stringResource(Res.string.msg_no_results_yet), style = MaterialTheme.typography.bodyMedium, color = StatsSecondaryText) } }
-        } else {
-            val shown = if (showAllResults) results else results.take(RECENT_SHOWN)
-            items(shown, key = { it.match.id }) { r ->
-                MatchRow(
-                    match = r.match,
-                    opponentName = opponent(r.match.opponentId),
-                    opponentLogoUrl = opponentsById[r.match.opponentId]?.logoUrl,
-                    clubLogoUrl = details.club.logoUrl,
-                    teamName = teamsById[r.match.teamId]?.name,
-                    score = MatchScore(r.match.id, r.ourScore, r.opponentScore),
-                    onClick = { onOpenMatch(r.match.id) }
-                )
-            }
-            if (!showAllResults && results.size > RECENT_SHOWN) {
-                item {
-                    Text(
-                        stringResource(Res.string.team_see_all, results.size),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
-                        color = PitchGreen,
-                        modifier = Modifier.clickable { showAllResults = true }.padding(horizontal = 2.dp, vertical = 6.dp)
-                    )
-                }
-            }
-        }
+        matchListSections(
+            upcoming = MatchListSection(upcoming.map { MatchListEntry(it, details.upcomingMatchScores[it.id], teamsById[it.teamId]?.name) }),
+            results = MatchListSection(results.map {
+                MatchListEntry(it.match, MatchScore(it.match.id, it.ourScore, it.opponentScore), teamsById[it.match.teamId]?.name)
+            }),
+            opponentsById = opponentsById,
+            clubLogoUrl = details.club.logoUrl,
+            showAllResults = showAllResults,
+            onShowAllResults = { showAllResults = true },
+            onOpenMatch = onOpenMatch,
+            onSchedule = if (details.canManageMatch) onSchedule else null
+        )
     }
 }
 

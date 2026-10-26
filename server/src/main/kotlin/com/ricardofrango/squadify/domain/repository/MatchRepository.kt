@@ -9,6 +9,8 @@ interface MatchRepository {
     // One page of [teamIds]' matches: UPCOMING is every match neither finished nor cancelled, soonest
     // first; FINISHED the finished ones, newest first.
     suspend fun getMatchesPage(teamIds: Collection<String>, status: MatchListStatus, limit: Int, offset: Int): List<Match>
+    // How many matches getMatchesPage's [status] list holds for [teamIds], over every page.
+    suspend fun countMatches(teamIds: Collection<String>, status: MatchListStatus): Int
     // Whether any of [teamIds] has a match, in any status.
     suspend fun hasMatches(teamIds: Collection<String>): Boolean
     // Every match against one opponent, newest first.

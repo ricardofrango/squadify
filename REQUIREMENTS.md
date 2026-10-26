@@ -233,7 +233,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - **Account rows:** Account settings, Switch club (2+ clubs) and Log out (with a confirmation).
       - **Players:** the club's player list opens as its own screen, with season, age-group and search filters.
     - [x] Match center (Live updates & History):
-      - **Matches tab:** the club's Matches tab updates live.
+      - **Matches tab:** the club's Matches tab updates live. Below its filters (season, age group, team; Upcoming / Finished / All) it shows the same list as a team's and an age group's Games tab: Upcoming, then Recent results.
       - **Match Details:** line-ups, call-ups, events and score (once played: General, Stats, Events and Timeline tabs for the staff; General and the goals for everyone else), plus the details card (opponent, type, format such as 7x7 from the team's size, date, kickoff, location, notes).
       - **Live match console:** for coaches and staff.
       - **After the match:** finished results stay as history, with the post-match report and per-player stats. Season stats live on Player, Team and Age Group Details (see Phase 5).

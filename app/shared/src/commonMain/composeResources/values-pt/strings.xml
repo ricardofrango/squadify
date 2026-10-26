@@ -323,12 +323,6 @@
     <string name="matches_status_upcoming">Por jogar</string>
     <string name="matches_status_finished">Terminados</string>
     <string name="matches_status_all">Todos</string>
-    <string name="matches_group_earlier">Anteriores</string>
-    <string name="matches_group_today">Hoje</string>
-    <string name="matches_group_later_today">Mais logo</string>
-    <string name="matches_group_this_weekend">Este fim de semana</string>
-    <string name="matches_group_later">Mais tarde</string>
-    <string name="matches_group_results">Resultados</string>
     <string name="matches_live">AO VIVO</string>
     <string name="matches_half_time">INT</string>
     <string name="matches_full_time">FIM</string>
@@ -336,7 +330,6 @@
     <string name="msg_no_matches_title">Ainda não há jogos agendados</string>
     <string name="msg_no_matches_subtitle">Os jogos são agendados a partir de uma equipa, para se saber quem joga.</string>
     <string name="btn_go_to_age_groups">Ir para escalões</string>
-    <string name="msg_no_matches_for_filters">Nenhum jogo para estes filtros.</string>
     <string name="label_role_club_admin">Administrador do Clube</string>
     <string name="label_role_coordinator">Coordenador</string>
     <string name="label_role_member">Membro</string>

@@ -32,6 +32,9 @@ import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.MatchRow
 import com.ricardofrango.squadify.presentation.ui.components.StatsFilterSegments
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
+import com.ricardofrango.squadify.presentation.ui.components.MatchListEntry
+import com.ricardofrango.squadify.presentation.ui.components.MatchListSection
+import com.ricardofrango.squadify.presentation.ui.components.matchListSections
 import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
@@ -59,7 +62,6 @@ import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Instant
 
 private val CardShape = RoundedCornerShape(16.dp)
-private const val RECENT_SHOWN = 3
 
 private val WeekdayDayMonth = LocalDate.Format {
     dayOfWeek(DayOfWeekNames.ENGLISH_ABBREVIATED); char(' '); day(Padding.NONE); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED)
@@ -381,75 +383,18 @@ private fun MatchesTab(
 ) {
     var showAllResults by remember { mutableStateOf(false) }
     LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        item {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                StatsHeading(stringResource(Res.string.team_heading_count, stringResource(Res.string.label_upcoming), details.upcomingMatches.size), Modifier.weight(1f))
-                if (details.canManageMatch) {
-                    Text(
-                        stringResource(Res.string.team_schedule_short),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
-                        color = PitchGreen,
-                        modifier = Modifier.clickable(onClick = onScheduleMatch)
-                    )
-                }
-            }
-        }
-        if (details.upcomingMatches.isEmpty()) {
-            item {
-                StatsCard(contentPadding = 16.dp) {
-                    Text(stringResource(Res.string.msg_no_upcoming_matches), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.62f))
-                }
-            }
-        } else {
-            items(details.upcomingMatches, key = { it.id }) { match ->
-                MatchRow(
-                    match = match,
-                    opponentName = opponentName(opponentsById, match.opponentId),
-                    opponentLogoUrl = opponentsById[match.opponentId]?.logoUrl,
-                    clubLogoUrl = details.club.logoUrl,
-                    teamName = details.team.name,
-                    score = details.upcomingMatchScores[match.id],
-                    onClick = { onMatchClick(match.id) }
-                )
-            }
-        }
-
-        item {
-            StatsHeading(
-                stringResource(Res.string.team_heading_count, stringResource(Res.string.label_recent_results), details.recentResults.size),
-                Modifier.padding(start = 2.dp, top = 6.dp)
-            )
-        }
-        if (details.recentResults.isEmpty()) {
-            item {
-                StatsCard(contentPadding = 16.dp) {
-                    Text(stringResource(Res.string.msg_no_results_yet), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.62f))
-                }
-            }
-        } else {
-            val shown = if (showAllResults) details.recentResults else details.recentResults.take(RECENT_SHOWN)
-            items(shown, key = { it.match.id }) { result ->
-                MatchRow(
-                    match = result.match,
-                    opponentName = opponentName(opponentsById, result.match.opponentId),
-                    opponentLogoUrl = opponentsById[result.match.opponentId]?.logoUrl,
-                    clubLogoUrl = details.club.logoUrl,
-                    teamName = details.team.name,
-                    score = MatchScore(result.match.id, result.ourScore, result.opponentScore),
-                    onClick = { onMatchClick(result.match.id) }
-                )
-            }
-            if (!showAllResults && details.recentResults.size > RECENT_SHOWN) {
-                item {
-                    Text(
-                        stringResource(Res.string.team_see_all, details.recentResults.size),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
-                        color = PitchGreen,
-                        modifier = Modifier.clickable { showAllResults = true }.padding(horizontal = 2.dp, vertical = 6.dp)
-                    )
-                }
-            }
-        }
+        matchListSections(
+            upcoming = MatchListSection(details.upcomingMatches.map { MatchListEntry(it, details.upcomingMatchScores[it.id], details.team.name) }),
+            results = MatchListSection(details.recentResults.map {
+                MatchListEntry(it.match, MatchScore(it.match.id, it.ourScore, it.opponentScore), details.team.name)
+            }),
+            opponentsById = opponentsById,
+            clubLogoUrl = details.club.logoUrl,
+            showAllResults = showAllResults,
+            onShowAllResults = { showAllResults = true },
+            onOpenMatch = onMatchClick,
+            onSchedule = if (details.canManageMatch) onScheduleMatch else null
+        )
     }
 }
 
