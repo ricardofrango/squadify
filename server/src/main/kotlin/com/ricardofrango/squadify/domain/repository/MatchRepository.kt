@@ -30,6 +30,9 @@ interface MatchRepository {
     // fullTimeMinute) -- see UpdateMatchStatusUseCase's HALF_TIME and FINISHED transitions.
     suspend fun markFirstHalfEnded(matchId: String, minute: Int): Boolean
     suspend fun markFullTime(matchId: String, minute: Int): Boolean
+    // A game whose result was entered afterwards (SaveMatchRecordUseCase): FINISHED, with each half
+    // the nominal [halfLengthMinutes] long.
+    suspend fun markEnteredAfterGame(matchId: String, halfLengthMinutes: Int, halves: Int): Boolean
     // markSecondHalfStarted / markFirstHalfEnded / markFullTime also clear pausedAt: ending or starting a
     // half ends any stoppage, so a clock left paused at the whistle doesn't carry into the next half.
     // Freezes the running clock for a mid-half stoppage -- see PauseMatchUseCase/Match.pausedAt.

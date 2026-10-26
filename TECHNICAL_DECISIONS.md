@@ -2140,12 +2140,12 @@ Closes Phase 5's last open item, "Historical match statistics (post-match analys
 
 **A played match is a permanent record.** Two rules make it safe to store per-player stats instead of recomputing them on every read:
 - **No deleting a played match:** a `FINISHED` match can't be deleted (`DeleteMatchUseCase` returns 409). A match that never ended stays deletable, whether it's scheduled (even past its date), cancelled, or live. The developer's rule: *"if the game was ended, it was done. if it was not ended, it can be deleted."*
-- **No editing events after full time:** events can only be added or removed while the match is `LIVE`/`HALF_TIME`. Before this, both use cases accepted events at any status.
+- **No editing events after full time:** events can only be added or removed one at a time while the match is `LIVE`/`HALF_TIME`. Before this, both use cases accepted events at any status. *Since §70, a finished game's goals and cards can be corrected afterwards through its match record, which rebuilds the snapshot below in the same transaction.*
 
 **Stats are a snapshot, taken once at full time.** `match_player_stats` has one row per called-up player: started, minutes played, goals, assists, own goals, yellow and red cards, plus a nullable 0-10 `rating` (see the match report below).
 - **When it's written:** `UpdateMatchStatusUseCase` computes the rows on `→ FINISHED`, in the same transaction as the status change.
 - **How it's computed:** by `MatchPlayerStatsCalculator`, which is pure and unit-tested on its own.
-- **Why a snapshot:** the two rules above mean the inputs can never change afterwards, so the snapshot can't go stale. Queries across many matches (season totals and so on) become plain sums, with no replay of event logs per request.
+- **Why a snapshot:** the inputs only change through the match record (§70), which rebuilds the snapshot as it saves, so it can't go stale. Queries across many matches (season totals and so on) become plain sums, with no replay of event logs per request.
 
 **Minutes played needed two new facts.** Nothing recorded when a half actually ended, so stoppage time was invisible.
 - **The new columns:** `matches.first_half_end_minute` (set on `LIVE → HALF_TIME`) and `full_time_minute` (set on `→ FINISHED`).
@@ -3032,3 +3032,30 @@ The developer, 2026-10-26: every filter looks like the match type's (All · Offi
 - **Sorts** keep `FilterChipRow` with "Sort" as its leading label: the call-up's Position · Name and the team's squad sort.
 - **The club Matches status** is now All · Upcoming · Finished, All by default: since the list shows Upcoming and Recent results together (§68), All is the natural first view.
 - Dropdown pickers (season, age group, team on the club Matches tab) stay `FilterSelector`.
+
+## 70. The Match Record After the Game
+
+The developer, 2026-10-26: a game's record must be editable after it was played. A goal logged without seeing who scored, a card forgotten, or a game not followed live at all (no battery, no signal) left wrong or empty stats.
+
+**Two kinds of game** (the developer's rule):
+- **Followed live** (started and finished on the live console): what happened on the pitch is fixed. Who started, the substitutions and each player's minutes stay as they were. Its **goals, own goals, assists and cards** can be corrected: added, changed (the scorer, the assist, the minute, the half) or deleted.
+- **Not followed live:** once its kickoff time has passed, a scheduled match with a saved call-up gets **Enter result** next to Start match. The coach enters the half length, the goals and cards, and **each called-up player's minutes**, typed in. Saving finishes the match (`matches.entered_after_game`, `V27`). It has **no substitutions and no timeline**: its Timeline tab is hidden, and nobody is marked as having started.
+
+**Always editable**, both kinds, by **any of the age group's staff** (`MANAGE_LIVE_MATCH`, the live console's permission, Staff by default). A game entered afterwards keeps its minutes editable.
+
+**One request, the whole record:** `PUT /matches/{matchId}/record` (`SaveMatchRecordUseCase`, `SaveMatchRecordRequest`) carries every goal, own goal and card, plus, for a game entered afterwards, the half length and the minutes.
+- **By id:** an event sent back with its `id` is updated in place, a missing one deleted, one without an id added. Goal-linked assists are rewritten with their goal (`assistPlayerId`, as on the live console); an assist logged on its own before §41's linking is kept by id or deleted, never created.
+- **Why one request, not the live console's add/delete calls:** the editor is a draft (like the call-up, §62). Saving all at once rebuilds the stats once, in one transaction, so they never reflect half an edit.
+- **Rules, the same as live:** our events are by a called-up player; a goal, own goal or assist only by someone who played (minutes > 0, started, or came on); an assist on our goal, by another player. The opponent's events are goals and own goals only, with no player. A card can go to someone on the bench. Minutes run from 0 to the match length (half length × halves).
+- **Stats:** every save rebuilds `match_player_stats` with `MatchPlayerStatsCalculator` for the counts. A game followed live keeps each line's `started` and `minutesPlayed`; one entered afterwards takes the minutes sent (0 for a player left out). The match report's ratings are kept either way. A match finished before stats existed (§41: no `full_time_minute`) still gets none.
+- **A game entered afterwards** gets each half its nominal length (`first_half_end_minute`, `full_time_minute`), so it reads like any finished match everywhere else: the report to-do, season stats, Full stats.
+
+**Notifications:** a correction sends nothing (no "Goal!" for a goal entered after the game). The first entry of a game not followed live sends one push with the final result (the full-time push), and both update the club's Matches list live (§28).
+
+**Client:**
+- **Where:** an Edit (✎) action in a finished match's top bar, for its staff; Enter result in a past scheduled match's bottom bar, under Start match, once the call-up is saved.
+- **The editor** (`matchrecord/MatchRecordScreen.kt`, logic in `MatchRecordLogic.kt`): the score the events make, then the events (tap one to edit it, "+ Add event" for a new one), the same cards as the finished match's Events tab. A game entered afterwards also has the half length and a minutes field per called-up player, with "Full match" to fill in the whole game. A game followed live says its minutes and substitutions stay as they were.
+- **The event sheet:** Goal · Own goal · Yellow · Red; for a goal or own goal, whose (our team or the opponent's); the player, and for our goal the assist ("No assist" first); the minute and, in a two-half game, the half. Goals and assists list only who played; cards list the whole call-up.
+- **Save** is pinned at the bottom (Save result for a first entry, Save changes after), disabled with the reason above it while the minutes are out of range or a scorer has no minutes. Leaving with changes asks first.
+- No new design canvas: the editor reuses the finished match's event cards, the segmented filter and the pinned bottom bar.
+

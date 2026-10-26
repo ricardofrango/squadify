@@ -7,6 +7,8 @@ interface MatchEventRepository {
     suspend fun addEvent(event: MatchEvent): MatchEvent
     suspend fun getEventById(id: String): MatchEvent?
     suspend fun deleteEvent(id: String): Boolean
+    // Rewrites what an event says (type, minute, half, player); its id, match and createdAt stay.
+    suspend fun updateEvent(event: MatchEvent): Boolean
     // Used by DeleteMatchUseCase to clear a match's events before deleting the match row itself.
     suspend fun deleteEventsByMatch(matchId: String)
     suspend fun getEventsByMatch(matchId: String): List<MatchEvent>

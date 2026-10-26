@@ -267,6 +267,8 @@ object Matches : Table("matches") {
     // before the pitch view existed; see Formation.kt.
     val formation = varchar("formation", 20).nullable()
     val startingFormation = varchar("starting_formation", 20).nullable()
+    // V27: the result was entered after the game, not followed live (see Match.enteredAfterGame).
+    val enteredAfterGame = bool("entered_after_game").default(false)
 
     override val primaryKey = PrimaryKey(id)
 }

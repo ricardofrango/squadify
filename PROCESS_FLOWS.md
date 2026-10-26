@@ -1733,9 +1733,54 @@ graph TD
     H2 --> Z(["Return success"])
 ```
 
-Events can only be added (§8.1) or removed (here) while the match is `LIVE` or `HALF_TIME`. Before kickoff there is nothing to log, and once the match is `FINISHED` its player stats are frozen from these events (§8.2f), so they can't change afterwards.
+Events can only be added (§8.1) or removed (here) one at a time while the match is `LIVE` or `HALF_TIME`. Before kickoff there is nothing to log. After the game, its goals and cards are corrected all at once through the match record (§8.1c), which rebuilds the stored player stats in the same transaction.
 
 Removes a mis-logged goal, card, or substitution row. The client always confirms with the user first (see below — "Confirms only on Full time and event deletion").
+
+### 8.1c Save Match Record (`SaveMatchRecordUseCase`) — after the game
+
+`PUT /matches/{matchId}/record`. Corrects a finished game's goals and cards, or enters a game that wasn't followed live. See `TECHNICAL_DECISIONS.md` §70.
+
+```mermaid
+graph TD
+    A["Start: userId, matchId, events, halfLengthMinutes?, minutesPlayed"] --> B[Fetch Match by id]
+    B -- not found --> N1(["Throw NotFoundException"])
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_LIVE_MATCH, teamId=match.teamId]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> S{match.status}
+    S -- "LIVE / HALF_TIME / CANCELLED" --> VS(["Throw ValidationException"])
+    S -- "SCHEDULED" --> K{"dateTime <= now?"}
+    K -- No --> VK(["Throw ValidationException: not kicked off yet"])
+    K -- Yes --> AG["afterGame = true (first entry)"]
+    S -- "FINISHED" --> FG["afterGame = match.enteredAfterGame"]
+    AG --> CU{"afterGame: a saved call-up?"}
+    FG --> CU
+    CU -- No --> VC(["Throw ValidationException: save the call-up first"])
+    CU -- "Yes, or followed live" --> M{"afterGame?"}
+    M -- Yes --> MH["halfLength = request ?: match's; 1..60. Each minutesPlayed key called up, 0..halfLength × halves"]
+    M -- No --> ML{"halfLength or minutes sent?"}
+    ML -- Yes --> VM(["Throw ValidationException: a game followed live keeps its minutes"])
+    ML -- No --> EV
+    MH --> EV["Validate events: GOAL / OWN_GOAL / cards (an ASSIST only by id, a lone one); period 1..halves; minute 0..150; an id must be an editable event of this match, listed once"]
+    EV --> EP["Ours: player called up; a goal, own goal or assist by someone who played. Opponent: GOAL / OWN_GOAL only, no player. Assist: our GOAL, another called-up player who played"]
+    EP -- invalid --> VE(["Throw ValidationException"])
+    EP -- ok --> AP["Delete every goal-linked ASSIST, then the editable events not sent back; update those sent with an id; insert the new ones; insert each goal's assist linked to it. Substitutions untouched"]
+    AP --> FT{"afterGame?"}
+    FT -- Yes --> FE["markEnteredAfterGame: FINISHED, entered_after_game, half length, first_half_end = halfLength (2 halves), full_time = halfLength × halves"]
+    FT -- No --> ST
+    FE --> ST{"fullTimeMinute set?"}
+    ST -- "No (finished before stats existed)" --> PB
+    ST -- Yes --> RS["MatchPlayerStatsCalculator for the counts. Followed live: started and minutes from the stored lines. Entered: minutes as sent (0 if left out), started = false. Ratings kept"]
+    RS --> PB["Publish LiveMatchUpdate(score, match)"]
+    PB --> TX["Transaction commits"]
+    TX --> FN{"first entry (was SCHEDULED)?"}
+    FN -- Yes --> PU["NotifyMatchEventUseCase(FULL_TIME): one final-result push; ClubMatchesUpdate(match)"]
+    FN -- No --> PS["ClubMatchesUpdate(score); no push"]
+    PU --> Z(["Return the match"])
+    PS --> Z
+```
+
+- **Tests:** `SaveMatchRecordUseCaseTest`.
 
 ### 8.2 Update Match Status (`UpdateMatchStatusUseCase`)
 
@@ -1788,7 +1833,7 @@ The minutes rules below live in `playerMinutes` (`common/.../model/MatchMinutes.
 live match console (§8.4), which runs the same walk with the running clock's minute as the end of
 the current half -- so the live numbers and the stored ones can never disagree.
 
-Not a route. It's a pure calculator run by `UpdateMatchStatusUseCase` on the `→ FINISHED` transition. It writes one `match_player_stats` row per called-up player:
+Not a route. It's a pure calculator run by `UpdateMatchStatusUseCase` on the `→ FINISHED` transition, and again by `SaveMatchRecordUseCase` (§8.1c) on every save of the match record. It writes one `match_player_stats` row per called-up player:
 
 ```mermaid
 graph TD
@@ -1807,7 +1852,8 @@ graph TD
   - **Older events:** events logged before `period` existed still fall back to that timestamp comparison.
 - **Worked example:** 45-minute halves, the first ending at 47' and the second at 93'. A player who plays the whole match gets 47 + 48 = 95 minutes.
 - **Fallbacks:** if either end minute is missing, it falls back to the nominal half length.
-- **Why storing a snapshot is safe:** it is computed once and never goes stale. A finished match's events can't change (§8.1/§8.1b), and a finished match can't be deleted (§7.2b). `rating` is the only column written afterwards, by the match report (§8.6).
+- **Why storing a snapshot is safe:** it never goes stale. A finished match's events only change through the match record (§8.1c), which rebuilds the snapshot in the same transaction, and a finished match can't be deleted (§7.2b). The match record keeps each line's `rating` (the match report's, §8.6), and for a game followed live its `started` and `minutesPlayed` too.
+- **A game entered afterwards** (`matches.entered_after_game`): its minutes are typed in, not walked from substitutions (it has none), and `started` is false for everyone.
 - **Tests:** covered by `MatchPlayerStatsCalculatorTest` and `UpdateMatchStatusUseCaseTest`.
 
 ### 8.2b Notify Match Event (`NotifyMatchEventUseCase`)
@@ -2484,6 +2530,7 @@ erDiagram
         integer full_time_minute "nullable -- match-clock minute at full time, set on -> FINISHED; its presence marks a match with stored player stats"
         varchar formation "nullable -- the live pitch view's formation now, D-M-A (V25); null means the team size's default"
         varchar starting_formation "nullable -- the formation at kickoff, set by StartMatchUseCase; prefills the report's tactic (V25)"
+        boolean entered_after_game "default false -- the result was entered afterwards, not followed live; minutes typed in, no substitutions or timeline (V27)"
     }
     MATCH_CALL_UPS {
         uuid id PK

@@ -266,6 +266,39 @@ data class CreateMatchEventRequest(
     val assistPlayerId: String? = null
 )
 
+/**
+ * One event in `PUT /matches/{matchId}/record` (SaveMatchRecordUseCase): a goal, own goal or card.
+ * [id] is an event already logged (kept, with these fields), null a new one. [assistPlayerId]: as in
+ * [CreateMatchEventRequest], for our own goals only. An ASSIST is only sent back with its [id], for one
+ * logged on its own before assists were attached to goals.
+ */
+@Serializable
+data class MatchRecordEvent(
+    val id: String? = null,
+    val type: EventType,
+    val minute: Int,
+    // 1 or 2; always 1 in a one-half match.
+    val period: Int = 1,
+    val playerId: String? = null,
+    val opponentPlayerName: String? = null,
+    val isOpponent: Boolean = false,
+    val assistPlayerId: String? = null
+)
+
+/**
+ * Body of `PUT /matches/{matchId}/record`: a finished match's goals and cards, corrected after the
+ * game, or the whole record of a game that wasn't followed live (Enter result). [events] replaces
+ * every goal, own goal, assist and card the match has; substitutions are never touched.
+ * [halfLengthMinutes] and [minutesPlayed] (player id -> minutes, a called-up player left out played
+ * 0) are for a game entered after it was played only: a game followed live keeps the minutes it had.
+ */
+@Serializable
+data class SaveMatchRecordRequest(
+    val events: List<MatchRecordEvent>,
+    val halfLengthMinutes: Int? = null,
+    val minutesPlayed: Map<String, Int> = emptyMap()
+)
+
 @Serializable
 data class User(
     val id: String,
@@ -939,7 +972,10 @@ data class Match(
     // [startingFormation] the one at kickoff (it prefills the match report's tactic). Null until the
     // coach sets one -- the team size's default applies -- and for matches played before this.
     val formation: String? = null,
-    val startingFormation: String? = null
+    val startingFormation: String? = null,
+    // True for a game that wasn't followed live, whose result was entered afterwards (Enter result,
+    // SaveMatchRecordUseCase): its minutes were typed in, and it has no substitutions or timeline.
+    val enteredAfterGame: Boolean = false
 )
 
 /**
