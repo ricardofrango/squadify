@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -100,7 +101,7 @@ private fun SessionEditContent(
 ) {
     val editing = state.editingId != null
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
                 title = stringResource(if (editing) Res.string.title_edit_session else Res.string.title_add_session),
@@ -109,7 +110,7 @@ private fun SessionEditContent(
             )
         }
     ) { padding ->
-        val modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding().background(Color.White)
+        val modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding().background(ScreenBackground)
         val sessions = state.sessions
         if (sessions == null) {
             PlanLoadingOrError(state.loading, modifier, onRetry)

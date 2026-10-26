@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.SectionBorder
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import kotlin.time.Instant
 import com.ricardofrango.squadify.domain.usecase.ClubDetails
 import com.ricardofrango.squadify.model.AgeGroup
@@ -406,7 +408,9 @@ private fun AgeGroupCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        // Flat, outlined in grey, like every section (SectionCard).
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = SectionBorder
     ) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
@@ -492,8 +496,9 @@ internal fun <T> FilterSelector(
                 .height(44.dp)
                 .clickable { expanded = true },
             shape = RoundedCornerShape(12.dp),
-            color = CarbonGray.copy(alpha = 0.08f),
-            border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.1f))
+            // White on the screen's grey, outlined like a section.
+            color = Color.White,
+            border = SectionBorder
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -587,7 +592,9 @@ private fun TeamCard(team: Team, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        // Flat, outlined in grey, like every section (SectionCard).
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = SectionBorder
     ) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
@@ -619,7 +626,9 @@ private fun PlayerCard(player: Player, onClick: () -> Unit, onDisable: (() -> Un
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        // Flat, outlined in grey, like every section (SectionCard).
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = SectionBorder
     ) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
@@ -872,7 +881,7 @@ private fun ClubDetailsContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color.White)
+                .background(ScreenBackground)
         ) {
             when (val state = uiState) {
                 is ClubDetailsUiState.Loading -> {

@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
+import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
 import com.ricardofrango.squadify.presentation.ui.theme.IsClubThemed
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.foundation.BorderStroke
@@ -78,7 +80,7 @@ fun MatchesTab(
     // The club has no fixtures at all -- the full empty state, no filter row.
     if (state.matches.isEmpty()) {
         Column(
-            modifier = Modifier.fillMaxSize().background(Color.White).screenContentPadding(),
+            modifier = Modifier.fillMaxSize().background(ScreenBackground).screenContentPadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -131,10 +133,11 @@ fun MatchesTab(
         buildGroups(state, teamsById)
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color.White)) {
+    Column(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = FilterRowPadding,
+            // No gap of its own under the selectors: the status chips' row leaves one.
+            contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -167,20 +170,13 @@ fun MatchesTab(
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, bottom = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            StatusChip(Res.string.matches_status_upcoming, state.matchesStatus == MatchesStatusFilter.UPCOMING) {
-                actions.onMatchesStatusSelected(MatchesStatusFilter.UPCOMING)
-            }
-            StatusChip(Res.string.matches_status_finished, state.matchesStatus == MatchesStatusFilter.FINISHED) {
-                actions.onMatchesStatusSelected(MatchesStatusFilter.FINISHED)
-            }
-            StatusChip(Res.string.matches_status_all, state.matchesStatus == MatchesStatusFilter.ALL) {
-                actions.onMatchesStatusSelected(MatchesStatusFilter.ALL)
-            }
-        }
+        FilterChipRow(
+            options = listOf(MatchesStatusFilter.UPCOMING, MatchesStatusFilter.FINISHED, MatchesStatusFilter.ALL),
+            selected = state.matchesStatus,
+            label = { stringResource(it.labelRes()) },
+            onSelect = actions::onMatchesStatusSelected,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
 
         if (groups.isEmpty()) {
             Box(Modifier.fillMaxWidth().screenContentPadding(), contentAlignment = Alignment.Center) {
@@ -223,21 +219,10 @@ fun MatchesTab(
     }
 }
 
-@Composable
-private fun StatusChip(label: StringResource, selected: Boolean, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
-        color = if (selected) (if (IsClubThemed) ClubChrome else DeepCarbon) else CarbonGray.copy(alpha = 0.08f),
-        border = if (selected) null else BorderStroke(1.dp, CarbonGray.copy(alpha = 0.2f))
-    ) {
-        Text(
-            stringResource(label),
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-            color = if (selected) Color.White else DeepCarbon
-        )
-    }
+private fun MatchesStatusFilter.labelRes(): StringResource = when (this) {
+    MatchesStatusFilter.UPCOMING -> Res.string.matches_status_upcoming
+    MatchesStatusFilter.FINISHED -> Res.string.matches_status_finished
+    MatchesStatusFilter.ALL -> Res.string.matches_status_all
 }
 
 // ---- Grouping ----

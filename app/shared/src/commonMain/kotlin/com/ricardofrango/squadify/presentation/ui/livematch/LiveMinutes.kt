@@ -512,15 +512,10 @@ internal fun SubstitutionPicker(
     val name = "${chosen.firstName} ${chosen.lastName}"
     val pm = minutes.of(chosen.id)
     val (line, _) = stintLine(chosen.id, if (takingOff) RowKind.ON_PITCH else RowKind.BENCH, minutes)
-    Text(
+    SheetPlayerHeader(
+        chosen,
         stringResource(if (takingOff) Res.string.lm_take_off else Res.string.lm_bring_on, name),
-        color = Color.White,
-        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-    )
-    Text(
-        listOf(stringResource(Res.string.lm_played, mins(pm?.minutes ?: 0)), line).filter { it.isNotEmpty() }.joinToString(" · "),
-        color = Color.White.copy(alpha = 0.6f),
-        style = MaterialTheme.typography.bodySmall
+        listOf(stringResource(Res.string.lm_played, mins(pm?.minutes ?: 0)), line).filter { it.isNotEmpty() }.joinToString(" · ")
     )
     Spacer(Modifier.height(14.dp))
     Text(
@@ -537,76 +532,6 @@ internal fun SubstitutionPicker(
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         sorted.forEach { row ->
             MinutesRow(row, if (takingOff) RowKind.BENCH else RowKind.ON_PITCH, minutes, isPaused = false, compact = true, onClick = if (enabled) { { onPick(row.player) } } else null)
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------------------------
-// Full-time minutes table (36e)
-// ---------------------------------------------------------------------------------------------
-
-/** "Events · 6" and one line of the goals: "⚽ 8' Tomás · ⚽ 21' Gil · …". */
-@Composable
-internal fun CompactEvents(details: MatchDetails, events: List<MatchEvent>) {
-    val playersById = remember(details) { details.callUps.associate { it.callUp.playerId to it.player } }
-    val opponent = details.opponent.shortName ?: details.opponent.name
-    val goals = events.filter { it.type == EventType.GOAL || it.type == EventType.OWN_GOAL }.sortedBy { it.minute }
-    Column(Modifier.fillMaxWidth()) {
-        Text(
-            // Counted as the Events tab shows them: a substitution is one line, an assist rides on its goal.
-            stringResource(Res.string.lm_events_heading, events.count { it.type != EventType.SUBSTITUTION_IN && !(it.type == EventType.ASSIST && it.relatedEventId != null) }).uppercase(),
-            color = Color.White.copy(alpha = 0.5f),
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.6.sp)
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            if (goals.isEmpty()) stringResource(Res.string.lm_no_events)
-            else goals.joinToString(" · ") { g ->
-                val who = when {
-                    g.isOpponent || g.type == EventType.OWN_GOAL -> opponent
-                    else -> g.playerId?.let { playersById[it]?.firstName } ?: "—"
-                }
-                "⚽ ${mins(g.minute)} $who"
-            },
-            color = Color.White.copy(alpha = 0.85f),
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
-}
-
-/** Everyone's minutes, longest first, with the same bar -- the spread at a glance before leaving. */
-@Composable
-internal fun MinutesTable(details: MatchDetails, minutes: SquadMinutes) {
-    val players = details.callUps.map { it.player }.sortedWith(compareByDescending<Player> { minutes.minutes(it.id) }.thenBy { it.shirtNumber ?: Int.MAX_VALUE })
-    Surface(shape = RoundedCornerShape(16.dp), color = CarbonGray, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    stringResource(Res.string.label_minutes_played).uppercase(),
-                    color = Color.White.copy(alpha = 0.6f),
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.6.sp),
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    if (minutes.hasBench) "${stringResource(Res.string.lm_share_short, mins(minutes.share.roundToInt()))} · ${stringResource(Res.string.lm_match_minutes, mins(minutes.elapsed))}"
-                    else stringResource(Res.string.lm_match_minutes, mins(minutes.elapsed)),
-                    color = Color.White.copy(alpha = 0.5f),
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-            players.forEach { player ->
-                val warn = minutes.below(player.id)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    PlayerBadge(player.photoUrl, player.shirtNumber, photoSize = 24.dp, placeholderColor = Color.White.copy(alpha = 0.4f), numberStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Black))
-                    Spacer(Modifier.width(6.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text("${player.firstName} ${player.lastName}", color = Color.White, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Spacer(Modifier.height(3.dp))
-                        MinutesBar(minutes.barFraction(player.id))
-                    }
-                    Text(mins(minutes.minutes(player.id)), color = if (warn) MinutesAmber else Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black), textAlign = TextAlign.End, modifier = Modifier.widthIn(min = 48.dp))
-                }
-            }
         }
     }
 }

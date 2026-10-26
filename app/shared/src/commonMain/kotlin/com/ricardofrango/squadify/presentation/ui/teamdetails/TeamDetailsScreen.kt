@@ -40,7 +40,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
-import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.*
 import kotlinx.coroutines.launch
@@ -155,7 +155,7 @@ private fun TeamDetailsContent(
             if (landscape && details != null) TeamRail(tab, selectTab)
             Scaffold(
                 modifier = Modifier.weight(1f),
-                containerColor = WhiteSmoke,
+                containerColor = ScreenBackground,
                 topBar = {
                     Column(Modifier.background(ClubChrome)) {
                         SquadifyTopBar(

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createstaff
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.text.KeyboardActions
 import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
@@ -129,7 +130,7 @@ private fun CreateStaffContent(
     val selectedCount = rows.size
 
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
                 title = stringResource(Res.string.title_create_staff),
@@ -142,7 +143,7 @@ private fun CreateStaffContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color.White)
+                .background(ScreenBackground)
         ) {
             // Fixed header: intro + "add row" -- stays put as the list below grows, instead of
             // scrolling out of reach.
@@ -288,7 +289,7 @@ private fun StaffRowCard(
                 shape = FormRoundedShape,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = if (onSubmit != null) ImeAction.Done else ImeAction.Next),
                 keyboardActions = onSubmit?.let { submitKeyboardActions(it) } ?: KeyboardActions.Default,
-                colors = OutlinedTextFieldDefaults.colors(
+                colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
                     focusedTextColor = DeepCarbon,
                     unfocusedTextColor = DeepCarbon,
                     focusedBorderColor = PitchGreen,

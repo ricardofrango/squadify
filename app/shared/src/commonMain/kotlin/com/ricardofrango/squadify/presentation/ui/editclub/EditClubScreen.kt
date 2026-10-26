@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
@@ -47,7 +48,7 @@ import com.ricardofrango.squadify.presentation.ui.components.DetailBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.DetailRail
 import com.ricardofrango.squadify.presentation.ui.components.DetailTab
 import com.ricardofrango.squadify.presentation.ui.theme.AmberText
-import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import org.jetbrains.compose.resources.StringResource
 import squadify.app.shared.generated.resources.btn_cancel
 import squadify.app.shared.generated.resources.club_discard_body
@@ -304,7 +305,7 @@ private fun EditClubContent(
             if (landscape && idle != null) DetailRail(tabs, selectedTab, onTabSelected)
             Scaffold(
                 modifier = Modifier.weight(1f),
-                containerColor = if (selectedTab == EDIT_CLUB_TAB_MEMBERS) WhiteSmoke else Color.White,
+                containerColor = ScreenBackground,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 topBar = {
                     SquadifyTopBar(
@@ -710,75 +711,77 @@ private fun ClubDetailsForm(
     ) {
         ClubIdentityHeader(state = state, onLogoPicked = onLogoPicked, onRemoveLogo = onRemoveLogo)
 
-        Text(
-            text = stringResource(Res.string.label_identity_section),
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-            color = DeepCarbon.copy(alpha = 0.6f)
-        )
-        FormField(
-            value = form.name,
-            onValueChange = { onFormChange(form.copy(name = it)) },
-            label = stringResource(Res.string.label_club_name_field)
-        )
-        FormField(
-            value = form.shortName,
-            onValueChange = { onFormChange(form.copy(shortName = it)) },
-            label = stringResource(Res.string.label_short_name_field),
-            infoText = stringResource(Res.string.msg_short_name_helper),
-        )
+        SectionCard(spacing = 16.dp) {
+            Text(
+                text = stringResource(Res.string.label_identity_section),
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = DeepCarbon.copy(alpha = 0.6f)
+            )
+            FormField(
+                value = form.name,
+                onValueChange = { onFormChange(form.copy(name = it)) },
+                label = stringResource(Res.string.label_club_name_field)
+            )
+            FormField(
+                value = form.shortName,
+                onValueChange = { onFormChange(form.copy(shortName = it)) },
+                label = stringResource(Res.string.label_short_name_field),
+                infoText = stringResource(Res.string.msg_short_name_helper),
+            )
+        }
 
-        HorizontalDivider(color = CarbonGray.copy(alpha = 0.15f))
+        SectionCard(spacing = 16.dp) {
+            ClubColoursSection(
+                theme = form.theme,
+                problem = form.themeProblem,
+                clubName = form.name.ifBlank { stringResource(Res.string.title_club_details) },
+                initials = state.initials,
+                onChange = { onFormChange(form.copy(theme = it)) }
+            )
+        }
 
-        ClubColoursSection(
-            theme = form.theme,
-            problem = form.themeProblem,
-            clubName = form.name.ifBlank { stringResource(Res.string.title_club_details) },
-            initials = state.initials,
-            onChange = { onFormChange(form.copy(theme = it)) }
-        )
+        SectionCard(spacing = 16.dp) {
+            Text(
+                text = stringResource(Res.string.label_contact_section),
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = DeepCarbon.copy(alpha = 0.6f)
+            )
+            FormField(
+                value = form.email,
+                onValueChange = { onFormChange(form.copy(email = it)) },
+                label = stringResource(Res.string.label_email),
+                keyboardType = KeyboardType.Email
+            )
+            FormField(
+                value = form.phone,
+                onValueChange = { onFormChange(form.copy(phone = it)) },
+                label = stringResource(Res.string.label_phone_field),
+                keyboardType = KeyboardType.Phone
+            )
+        }
 
-        HorizontalDivider(color = CarbonGray.copy(alpha = 0.15f))
-
-        Text(
-            text = stringResource(Res.string.label_contact_section),
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-            color = DeepCarbon.copy(alpha = 0.6f)
-        )
-        FormField(
-            value = form.email,
-            onValueChange = { onFormChange(form.copy(email = it)) },
-            label = stringResource(Res.string.label_email),
-            keyboardType = KeyboardType.Email
-        )
-        FormField(
-            value = form.phone,
-            onValueChange = { onFormChange(form.copy(phone = it)) },
-            label = stringResource(Res.string.label_phone_field),
-            keyboardType = KeyboardType.Phone
-        )
-
-        HorizontalDivider(color = CarbonGray.copy(alpha = 0.15f))
-
-        Text(
-            text = stringResource(Res.string.label_where_section),
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-            color = DeepCarbon.copy(alpha = 0.6f)
-        )
-        FormField(
-            value = form.address,
-            onValueChange = { onFormChange(form.copy(address = it)) },
-            label = stringResource(Res.string.label_club_address_field),
-            infoText = stringResource(Res.string.msg_club_address_helper),
-        )
-        FormField(
-            value = form.stadiumLocation,
-            onValueChange = { onFormChange(form.copy(stadiumLocation = it)) },
-            label = stringResource(Res.string.label_stadium_location_field),
-            placeholder = stringResource(Res.string.label_stadium_location_placeholder),
-            infoText = stringResource(Res.string.msg_stadium_location_helper),
-            onSubmit = onSubmit
-        )
-        CountryField(form.country) { onFormChange(form.copy(country = it)) }
+        SectionCard(spacing = 16.dp) {
+            Text(
+                text = stringResource(Res.string.label_where_section),
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = DeepCarbon.copy(alpha = 0.6f)
+            )
+            FormField(
+                value = form.address,
+                onValueChange = { onFormChange(form.copy(address = it)) },
+                label = stringResource(Res.string.label_club_address_field),
+                infoText = stringResource(Res.string.msg_club_address_helper),
+            )
+            FormField(
+                value = form.stadiumLocation,
+                onValueChange = { onFormChange(form.copy(stadiumLocation = it)) },
+                label = stringResource(Res.string.label_stadium_location_field),
+                placeholder = stringResource(Res.string.label_stadium_location_placeholder),
+                infoText = stringResource(Res.string.msg_stadium_location_helper),
+                onSubmit = onSubmit
+            )
+            CountryField(form.country) { onFormChange(form.copy(country = it)) }
+        }
 
         if (state.submitError != null) {
             Text(
@@ -914,7 +917,7 @@ private fun FormField(
             shape = FormRoundedShape,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = if (onSubmit != null) ImeAction.Done else imeAction),
             keyboardActions = onSubmit?.let { submitKeyboardActions(it) } ?: KeyboardActions.Default,
-            colors = OutlinedTextFieldDefaults.colors(
+            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
                 focusedTextColor = DeepCarbon,
                 unfocusedTextColor = DeepCarbon,
                 focusedBorderColor = PitchGreen,

@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.SectionCard
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -144,7 +146,7 @@ private fun ExerciseLibraryContent(
     val form = state.form
     val ageGroupName = session?.ageGroup?.name.orEmpty()
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
                 title = stringResource(
@@ -168,7 +170,7 @@ private fun ExerciseLibraryContent(
             )
         }
     ) { padding ->
-        val modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding().background(Color.White)
+        val modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding().background(ScreenBackground)
         if (session == null) {
             PlanLoadingOrError(state.loading, modifier, onRetry)
             return@Scaffold
@@ -234,14 +236,17 @@ private fun LibraryList(
             },
             singleLine = true,
             shape = RoundedCornerShape(18.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PitchGreen, unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f), focusedTextColor = DeepCarbon, unfocusedTextColor = DeepCarbon),
+            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, focusedBorderColor = PitchGreen, unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f), focusedTextColor = DeepCarbon, unfocusedTextColor = DeepCarbon),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
         )
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = ScreenPadding.Bottom),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             item {
                 StatsHeading(
                     stringResource(Res.string.label_section_count, stringResource(Res.string.label_library, session.ageGroup.name.uppercase()), state.library.size),
-                    Modifier.padding(bottom = 6.dp)
                 )
             }
             if (shown.isEmpty()) {
@@ -255,22 +260,25 @@ private fun LibraryList(
             }
             items(shown, key = { it.id }) { exercise ->
                 val selected = exercise.id in state.selected
-                Row(
-                    Modifier.fillMaxWidth().clickable { onToggle(exercise.id) }.padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(checked = selected, onCheckedChange = { onToggle(exercise.id) }, colors = CheckboxDefaults.colors(checkedColor = PitchGreen))
-                    Column(Modifier.weight(1f)) {
-                        Text(exercise.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = DeepCarbon)
-                        exercise.description?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText, maxLines = 2) }
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        exercise.durationMinutes?.let { Text("$it'", style = MaterialTheme.typography.labelLarge, color = DeepCarbon) }
-                        Text(stringResource(Res.string.label_used_n, exercise.usedCount), style = MaterialTheme.typography.labelSmall, color = StatsSecondaryText)
-                    }
-                    if (session.canEdit) {
-                        IconButton(onClick = { onEdit(exercise) }) {
-                            Icon(painterResource(Res.drawable.ic_edit), stringResource(Res.string.cd_edit_exercise), tint = DeepCarbon.copy(alpha = 0.45f), modifier = Modifier.size(18.dp))
+                // Each exercise is a white section; tapping it ticks it.
+                SectionCard(onClick = { onToggle(exercise.id) }, contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 4.dp, horizontal = 4.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(checked = selected, onCheckedChange = { onToggle(exercise.id) }, colors = CheckboxDefaults.colors(checkedColor = PitchGreen))
+                        Column(Modifier.weight(1f)) {
+                            Text(exercise.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = DeepCarbon)
+                            exercise.description?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText, maxLines = 2) }
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            exercise.durationMinutes?.let { Text("$it'", style = MaterialTheme.typography.labelLarge, color = DeepCarbon) }
+                            Text(stringResource(Res.string.label_used_n, exercise.usedCount), style = MaterialTheme.typography.labelSmall, color = StatsSecondaryText)
+                        }
+                        if (session.canEdit) {
+                            IconButton(onClick = { onEdit(exercise) }) {
+                                Icon(painterResource(Res.drawable.ic_edit), stringResource(Res.string.cd_edit_exercise), tint = DeepCarbon.copy(alpha = 0.45f), modifier = Modifier.size(18.dp))
+                            }
                         }
                     }
                 }

@@ -79,7 +79,7 @@ fun FormTextField(
         visualTransformation = if (hidden) PasswordVisualTransformation() else VisualTransformation.None,
         trailingIcon = onToggleHidden?.let { toggle -> { PasswordVisibilityToggle(visible = !hidden, onToggle = toggle) } },
         shape = RoundedCornerShape(16.dp),
-        colors = OutlinedTextFieldDefaults.colors(
+        colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
             focusedTextColor = DeepCarbon,
             unfocusedTextColor = DeepCarbon,
             // The error state only changes the border and label: the typed text stays dark.

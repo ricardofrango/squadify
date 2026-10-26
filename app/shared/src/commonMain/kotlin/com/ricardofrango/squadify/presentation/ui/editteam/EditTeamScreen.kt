@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.editteam
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
+import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardOptions
@@ -118,7 +120,7 @@ private fun EditTeamContent(
     val idle = state as? EditTeamUiState.Idle
     var confirmDelete by remember { mutableStateOf(false) }
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
                 title = stringResource(Res.string.label_edit_team),
@@ -140,7 +142,7 @@ private fun EditTeamContent(
             )
         }
     ) { padding ->
-        val modifier = Modifier.fillMaxSize().padding(padding).background(Color.White)
+        val modifier = Modifier.fillMaxSize().padding(padding).background(ScreenBackground)
         when (state) {
             EditTeamUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
             is EditTeamUiState.Error -> Column(modifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -152,37 +154,40 @@ private fun EditTeamContent(
                 modifier.verticalScroll(rememberScrollState()).screenContentPadding(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                OutlinedTextField(
-                    value = state.form.name,
-                    onValueChange = onNameChange,
-                    label = { Text(stringResource(Res.string.label_team_name_field)) },
-                    isError = state.form.name.isBlank(),
-                    singleLine = true,
-                    // The only text field: the keyboard key saves, like the top bar's check.
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = submitKeyboardActions { if (state.canSave) onSave() },
-                    enabled = !state.busy,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = DeepCarbon, unfocusedTextColor = DeepCarbon,
-                        focusedBorderColor = PitchGreen, unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
-                        focusedLabelColor = PitchGreen, unfocusedLabelColor = CarbonGray
+                SectionCard {
+                    OutlinedTextField(
+                        value = state.form.name,
+                        onValueChange = onNameChange,
+                        label = { Text(stringResource(Res.string.label_team_name_field)) },
+                        isError = state.form.name.isBlank(),
+                        singleLine = true,
+                        // The only text field: the keyboard key saves, like the top bar's check.
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = submitKeyboardActions { if (state.canSave) onSave() },
+                        enabled = !state.busy,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
+                            focusedTextColor = DeepCarbon, unfocusedTextColor = DeepCarbon,
+                            focusedBorderColor = PitchGreen, unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
+                            focusedLabelColor = PitchGreen, unfocusedLabelColor = CarbonGray
+                        )
                     )
-                )
-                Column {
-                    TeamSizeField(
-                        label = stringResource(Res.string.label_team_size),
-                        selectedTeamSize = state.form.teamSize,
-                        options = state.teamSizeOptions,
-                        onTeamSizeSelected = onTeamSizeSelected
-                    )
-                    Text(
-                        stringResource(Res.string.edit_team_size_helper),
-                        Modifier.padding(top = 6.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = DeepCarbon.copy(alpha = 0.5f)
-                    )
+                    Spacer(Modifier.height(16.dp))
+                    Column {
+                        TeamSizeField(
+                            label = stringResource(Res.string.label_team_size),
+                            selectedTeamSize = state.form.teamSize,
+                            options = state.teamSizeOptions,
+                            onTeamSizeSelected = onTeamSizeSelected
+                        )
+                        Text(
+                            stringResource(Res.string.edit_team_size_helper),
+                            Modifier.padding(top = 6.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = DeepCarbon.copy(alpha = 0.5f)
+                        )
+                    }
                 }
                 if (state.submitError != null) {
                     Text(state.submitError, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)

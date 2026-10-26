@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -111,7 +112,7 @@ private fun RatePlayersContent(
     NavigationBackHandler(state = rememberNavigationEventState(NavigationEventInfo.None), isBackEnabled = state.dirty, onBackCompleted = { askDiscard = true })
     val ratings = state.ratings
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
                 title = stringResource(Res.string.title_rate_players),
@@ -120,7 +121,7 @@ private fun RatePlayersContent(
             )
         }
     ) { padding ->
-        val modifier = Modifier.fillMaxSize().padding(padding).background(Color.White)
+        val modifier = Modifier.fillMaxSize().padding(padding).background(ScreenBackground)
         if (ratings == null) {
             PlanLoadingOrError(state.loading, modifier, onRetry)
             return@Scaffold

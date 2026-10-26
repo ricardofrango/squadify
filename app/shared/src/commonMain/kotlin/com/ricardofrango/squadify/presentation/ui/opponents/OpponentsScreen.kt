@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
+import androidx.compose.foundation.layout.PaddingValues
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
+import com.ricardofrango.squadify.presentation.ui.components.SectionCard
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -138,7 +142,7 @@ private fun OpponentsContent(
     val list = (state as? OpponentsUiState.Idle)?.list
     val create = onCreateOpponent?.takeIf { list?.canCreate == true }
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
                 title = stringResource(if (selectMode) Res.string.title_choose_opponent else Res.string.title_opponents),
@@ -155,7 +159,7 @@ private fun OpponentsContent(
         }
     ) { padding ->
         Box(
-            Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding().background(Color.White),
+            Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding().background(ScreenBackground),
             contentAlignment = Alignment.TopCenter
         ) {
             // Rows stay readable on a landscape phone or a tablet instead of stretching edge to edge.
@@ -205,7 +209,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
         shape = RoundedCornerShape(18.dp),
-        colors = OutlinedTextFieldDefaults.colors(
+        colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
             focusedTextColor = DeepCarbon, unfocusedTextColor = DeepCarbon,
             focusedBorderColor = PitchGreen, unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
             cursorColor = PitchGreen
@@ -243,7 +247,7 @@ private fun OpponentList(
 
         else -> {
             val groups = groupByLetter(matches)
-            LazyColumn(Modifier.fillMaxSize()) {
+            LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = ScreenPadding.Bottom)) {
                 letterGroups(groups, selectMode, selectedOpponentId, onOpponentClick)
             }
         }
@@ -258,8 +262,13 @@ private fun LazyListScope.letterGroups(
 ) {
     groups.forEach { (letter, opponents) ->
         stickyHeader(key = "letter-$letter") { SectionHeader(letter) }
-        items(opponents, key = { it.id }) {
-            OpponentRow(it, selectMode, selected = it.id == selectedOpponentId, onClick = { onOpponentClick(it) })
+        // Each letter's opponents are one white section.
+        item(key = "group-$letter") {
+            SectionCard(Modifier.padding(horizontal = ScreenPadding.Horizontal), contentPadding = PaddingValues(0.dp)) {
+                opponents.forEachIndexed { i, opponent ->
+                    OpponentRow(opponent, selectMode, selected = opponent.id == selectedOpponentId, last = i == opponents.lastIndex, onClick = { onOpponentClick(opponent) })
+                }
+            }
         }
     }
 }
@@ -270,7 +279,7 @@ private fun SectionHeader(text: String) {
         text,
         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
         color = DeepCarbon.copy(alpha = 0.5f),
-        modifier = Modifier.fillMaxWidth().background(Color(0xFFF6F6F7)).padding(horizontal = 16.dp, vertical = 6.dp)
+        modifier = Modifier.fillMaxWidth().background(ScreenBackground).padding(horizontal = 20.dp, vertical = 6.dp)
     )
 }
 
@@ -282,14 +291,14 @@ internal fun opponentSubline(opponent: Opponent): String? =
         .ifEmpty { null }
 
 @Composable
-private fun OpponentRow(opponent: Opponent, selectMode: Boolean, selected: Boolean, onClick: () -> Unit) {
+private fun OpponentRow(opponent: Opponent, selectMode: Boolean, selected: Boolean, last: Boolean, onClick: () -> Unit) {
     val highlighted = selectMode && selected
     Column {
         Row(
             Modifier
                 .fillMaxWidth()
                 .heightIn(min = 64.dp)
-                .background(if (highlighted) PitchGreen.copy(alpha = 0.08f) else Color.White)
+                .background(if (highlighted) PitchGreen.copy(alpha = 0.08f) else Color.Transparent)
                 .clickable(onClick = onClick)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -311,7 +320,7 @@ private fun OpponentRow(opponent: Opponent, selectMode: Boolean, selected: Boole
                 !selectMode -> Icon(painterResource(Res.drawable.ic_chevron_right), null, tint = DeepCarbon.copy(alpha = 0.3f), modifier = Modifier.size(22.dp))
             }
         }
-        HorizontalDivider(color = CarbonGray.copy(alpha = 0.08f))
+        if (!last) HorizontalDivider(color = CarbonGray.copy(alpha = 0.08f))
     }
 }
 

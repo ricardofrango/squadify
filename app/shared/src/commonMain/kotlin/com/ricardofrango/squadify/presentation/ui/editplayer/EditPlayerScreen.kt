@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.editplayer
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
+import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Spacer
@@ -146,7 +148,7 @@ private fun EditPlayerContent(
     val idle = uiState as? EditPlayerUiState.Idle
 
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             Column(Modifier.background(ClubChrome)) {
                 SquadifyTopBar(
@@ -166,7 +168,7 @@ private fun EditPlayerContent(
             }
         }
     ) { paddingValues ->
-        val boxModifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White)
+        val boxModifier = Modifier.fillMaxSize().padding(paddingValues).background(ScreenBackground)
         when (uiState) {
             is EditPlayerUiState.Loading -> {
                 Box(boxModifier, contentAlignment = Alignment.Center) {
@@ -238,72 +240,74 @@ private fun EditPlayerForm(
                 OptionalFieldsBanner()
             }
 
-            FormField(
-                value = form.firstName,
-                onValueChange = onFirstNameChange,
-                label = stringResource(Res.string.label_first_name_field)
-            )
-            FormField(
-                value = form.lastName,
-                onValueChange = onLastNameChange,
-                label = stringResource(Res.string.label_last_name_field)
-            )
-
-            DateField(
-                label = stringResource(Res.string.label_date_of_birth),
-                value = form.birthDateIso?.let { LocalDate.parse(it).format(DateDisplayFormat) },
-                onClick = onDateClick
-            )
-
-            FormField(
-                value = form.shirtNumber?.toString() ?: "",
-                onValueChange = { onShirtNumberChange(it.filter(Char::isDigit).toIntOrNull()) },
-                label = stringResource(Res.string.label_shirt_number_field),
-                placeholder = stringResource(Res.string.label_optional_field_placeholder),
-                keyboardType = KeyboardType.Number
-            )
-
-            PositionField(
-                selected = form.position,
-                onOptionSelected = onPositionSelected
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            SectionCard(spacing = 16.dp) {
                 FormField(
-                    value = form.heightCm?.toString() ?: "",
-                    onValueChange = { onHeightChange(it.filter(Char::isDigit).toIntOrNull()) },
-                    label = stringResource(Res.string.label_height),
+                    value = form.firstName,
+                    onValueChange = onFirstNameChange,
+                    label = stringResource(Res.string.label_first_name_field)
+                )
+                FormField(
+                    value = form.lastName,
+                    onValueChange = onLastNameChange,
+                    label = stringResource(Res.string.label_last_name_field)
+                )
+
+                DateField(
+                    label = stringResource(Res.string.label_date_of_birth),
+                    value = form.birthDateIso?.let { LocalDate.parse(it).format(DateDisplayFormat) },
+                    onClick = onDateClick
+                )
+
+                FormField(
+                    value = form.shirtNumber?.toString() ?: "",
+                    onValueChange = { onShirtNumberChange(it.filter(Char::isDigit).toIntOrNull()) },
+                    label = stringResource(Res.string.label_shirt_number_field),
                     placeholder = stringResource(Res.string.label_optional_field_placeholder),
-                    keyboardType = KeyboardType.Number,
-                    suffix = "cm",
-                    modifier = Modifier.weight(1f)
+                    keyboardType = KeyboardType.Number
                 )
-                FormField(
-                    value = form.weightKg?.toString() ?: "",
-                    onValueChange = { onWeightChange(it.filter(Char::isDigit).toIntOrNull()) },
-                    label = stringResource(Res.string.label_weight),
-                    placeholder = stringResource(Res.string.label_optional_field_placeholder),
-                    keyboardType = KeyboardType.Number,
-                    suffix = "kg",
-                    modifier = Modifier.weight(1f)
-                )
-            }
 
-            Column {
-                FormField(
-                    value = form.emergencyContact ?: "",
-                    onValueChange = onEmergencyContactChange,
-                    label = stringResource(Res.string.label_emergency_contact_field),
-                    placeholder = stringResource(Res.string.label_emergency_contact_placeholder),
-                    imeAction = ImeAction.Done,
-                    onSubmit = { if (state.canSave) onSaveClick() }
+                PositionField(
+                    selected = form.position,
+                    onOptionSelected = onPositionSelected
                 )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = stringResource(Res.string.msg_emergency_contact_helper),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DeepCarbon.copy(alpha = 0.55f)
-                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    FormField(
+                        value = form.heightCm?.toString() ?: "",
+                        onValueChange = { onHeightChange(it.filter(Char::isDigit).toIntOrNull()) },
+                        label = stringResource(Res.string.label_height),
+                        placeholder = stringResource(Res.string.label_optional_field_placeholder),
+                        keyboardType = KeyboardType.Number,
+                        suffix = "cm",
+                        modifier = Modifier.weight(1f)
+                    )
+                    FormField(
+                        value = form.weightKg?.toString() ?: "",
+                        onValueChange = { onWeightChange(it.filter(Char::isDigit).toIntOrNull()) },
+                        label = stringResource(Res.string.label_weight),
+                        placeholder = stringResource(Res.string.label_optional_field_placeholder),
+                        keyboardType = KeyboardType.Number,
+                        suffix = "kg",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Column {
+                    FormField(
+                        value = form.emergencyContact ?: "",
+                        onValueChange = onEmergencyContactChange,
+                        label = stringResource(Res.string.label_emergency_contact_field),
+                        placeholder = stringResource(Res.string.label_emergency_contact_placeholder),
+                        imeAction = ImeAction.Done,
+                        onSubmit = { if (state.canSave) onSaveClick() }
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(Res.string.msg_emergency_contact_helper),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DeepCarbon.copy(alpha = 0.55f)
+                    )
+                }
             }
         }
 
@@ -473,7 +477,7 @@ private fun FormField(
         shape = FormRoundedShape,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
         keyboardActions = onSubmit?.let { submitKeyboardActions(it) } ?: KeyboardActions.Default,
-        colors = OutlinedTextFieldDefaults.colors(
+        colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
             focusedTextColor = DeepCarbon,
             unfocusedTextColor = DeepCarbon,
             focusedBorderColor = PitchGreen,

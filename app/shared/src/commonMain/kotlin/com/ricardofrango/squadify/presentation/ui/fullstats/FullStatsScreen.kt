@@ -1,5 +1,11 @@
 package com.ricardofrango.squadify.presentation.ui.fullstats
 
+import androidx.compose.ui.draw.clip
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
+import com.ricardofrango.squadify.presentation.ui.components.SectionBorder
+import com.ricardofrango.squadify.presentation.ui.components.SectionShape
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
+import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -160,7 +166,7 @@ private fun FullStatsContent(
         }
     }
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) { data -> ColumnNameToast(data.visuals.message) } },
         topBar = {
             SquadifyTopBar(
@@ -218,7 +224,13 @@ private fun FullStatsContent(
                                 onExplain = { sheet = FullStatsSheet.EXPLAIN },
                                 onLongPress = showColumnName,
                                 onOpenPlayer = onOpenPlayer,
-                                modifier = Modifier.weight(1f)
+                                // A white section on the grey, like every screen's content.
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = if (landscape) ScreenPadding.Top else 0.dp, bottom = ScreenPadding.Bottom)
+                                    .clip(SectionShape)
+                                    .border(SectionBorder, SectionShape)
+                                    .background(Color.White)
                             )
                         }
                     }
@@ -316,27 +328,15 @@ private fun Filters(
         StatsFilterSegments(state.type, onTypeSelected, bottomSpacing = 0.dp)
         // The same chips from a team or from its age group: the age group (by its name), then each team.
         if (state.data.teams.isNotEmpty()) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                TeamChip(state.data.title, state.teamId == null) { onTeamSelected(null) }
-                state.data.teams.forEach { team -> TeamChip(team.name, state.teamId == team.id) { onTeamSelected(team.id) } }
-            }
+            val teamNames = state.data.teams.associate { it.id to it.name }
+            FilterChipRow(
+                options = listOf<String?>(null) + state.data.teams.map { it.id },
+                selected = state.teamId,
+                label = { id -> id?.let { teamNames[it] } ?: state.data.title },
+                onSelect = onTeamSelected,
+                insidePaddedContent = true
+            )
         }
-    }
-}
-
-@Composable
-private fun TeamChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = if (selected) ClubChrome else CarbonGray.copy(alpha = 0.08f)
-    ) {
-        Text(
-            label,
-            modifier = Modifier.height(32.dp).wrapContentHeight(Alignment.CenterVertically).padding(horizontal = 12.dp),
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-            color = if (selected) Color.White else DeepCarbon
-        )
     }
 }
 
@@ -413,7 +413,6 @@ private fun StatsTable(
 ) {
     val horizontal = rememberScrollState()
     Column(modifier.fillMaxWidth()) {
-        HorizontalDivider(color = Hairline)
         Row(Modifier.height(HeaderHeight).fillMaxWidth()) {
             PlayerHeaderCell(sorted = sort == null, descending = descending, onClick = { onSort(null) }, onLongPress = onLongPress)
             Row(Modifier.weight(1f).fillMaxHeight().horizontalScroll(horizontal)) {

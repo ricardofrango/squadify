@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
-import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.*
@@ -43,7 +43,7 @@ import squadify.app.shared.generated.resources.*
 @Composable
 internal fun ReadView(state: MatchReportUiState.Idle, wide: Boolean, onSortSelected: (ReportPlayerSort) -> Unit) {
     if (wide) {
-        Row(Modifier.fillMaxSize().background(WhiteSmoke)) {
+        Row(Modifier.fillMaxSize().background(ScreenBackground)) {
             LazyColumn(Modifier.weight(1f), contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item { TeamReadCard(state) }
                 item { OpponentReadCard(state) }
@@ -53,7 +53,7 @@ internal fun ReadView(state: MatchReportUiState.Idle, wide: Boolean, onSortSelec
             }
         }
     } else {
-        LazyColumn(Modifier.fillMaxSize().background(WhiteSmoke), contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyColumn(Modifier.fillMaxSize().background(ScreenBackground), contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { TeamReadCard(state) }
             item { OpponentReadCard(state) }
             item { PlayersReadCard(state, onSortSelected) }

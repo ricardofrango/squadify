@@ -85,7 +85,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
-import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -226,7 +226,7 @@ private fun ClubMemberDetailsContent(
     var confirmRemove by remember { mutableStateOf(false) }
 
     Scaffold(
-        containerColor = WhiteSmoke,
+        containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column(Modifier.background(ClubChrome)) {

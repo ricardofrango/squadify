@@ -49,6 +49,8 @@ import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
 import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchStatus
+import com.ricardofrango.squadify.model.MatchReportStatus
+import com.ricardofrango.squadify.model.MatchReportSummary
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.elapsedMatchSeconds
 import com.ricardofrango.squadify.model.formationText
@@ -65,6 +67,20 @@ import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import squadify.app.shared.generated.resources.*
+import androidx.compose.material3.OutlinedButton
+import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
+import com.ricardofrango.squadify.presentation.ui.theme.SectionBorderColor
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
+import androidx.compose.foundation.layout.heightIn
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
+import com.ricardofrango.squadify.presentation.ui.components.SectionCard
+import com.ricardofrango.squadify.presentation.ui.matchdetails.whenLabel
+import com.ricardofrango.squadify.presentation.ui.matchdetails.matchSubtitle
+import com.ricardofrango.squadify.presentation.ui.matchdetails.SectionHeader
+import com.ricardofrango.squadify.presentation.ui.matchdetails.MatchReportCard
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import kotlinx.coroutines.delay
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -109,6 +125,12 @@ fun LiveMatchScreen(
         // navigationBarsPadding) since the header/bottom bar are plain content, not Scaffold's topBar/
         // bottomBar slots. Scaffold's own default contentWindowInsets would apply the same system-bar
         // insets a second time on top of those -- pushing the header down and the bottom button up.
+        // Full time is in the app's light look (SummaryContent), out of the dark console.
+        val summary = (uiState as? LiveMatchUiState.Idle)?.takeIf { it.details.match.status.isOver() }
+        if (summary != null) {
+            SummaryContent(summary, onNavigateBack, onOpenReport)
+            return@SquadifyClubTheme
+        }
         // The console is dark whatever the club: a club's colour is lifted to read on it (ClubPalette).
         OnDarkSurface {
             Scaffold(containerColor = DeepCarbon, contentWindowInsets = WindowInsets(0)) { paddingValues ->
@@ -141,6 +163,8 @@ private fun ErrorBody(message: String, onNavigateBack: () -> Unit) {
         }
     }
 }
+
+private fun MatchStatus.isOver() = this == MatchStatus.FINISHED || this == MatchStatus.CANCELLED
 
 @Composable
 private fun IdleBody(state: LiveMatchUiState.Idle, actions: LiveMatchActions, onNavigateBack: () -> Unit, onOpenReport: (String, Boolean) -> Unit) {
@@ -196,13 +220,18 @@ private fun ConsoleHeader(
 private sealed class PreKickoffSheet {
     data class WhoPlaysHere(val slot: Int) : PreKickoffSheet()
     data class SlotOptions(val slot: Int, val player: Player) : PreKickoffSheet()
+    // A bench player tapped with every position taken: who they replace.
+    data class ReplaceOnPitch(val player: Player) : PreKickoffSheet()
     data object Formation : PreKickoffSheet()
 }
 
 /**
  * Before kickoff the console opens straight on the pitch, every position empty. Tapping one picks a
  * called-up player for it; holding a player drags them to another position or back to the bench. Each
- * change is saved and shown on every device at once. Kick-off unlocks once every position is filled.
+ * change is saved and shown on every device at once. Kick-off unlocks once every position is filled;
+ * Save, beside it, leaves with the starting team kept, to kick off later (on once the pitch differs
+ * from how it opened). A player taken out of the
+ * call-up meanwhile leaves their position empty (their call-up, and its position, is gone).
  */
 @Composable
 private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchActions, onNavigateBack: () -> Unit) {
@@ -233,43 +262,69 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
         }
     }
 
-    val kickOffBar: @Composable (Modifier) -> Unit = { modifier ->
+    // The two sides, home first as on the scoreboard (ours first on neutral ground), and the kickoff time.
+    val ourFirst = details.match.venue.ourSideFirst()
+    val ours = ScoreSide(details.team.name, details.clubLogoUrl, 0, null)
+    val theirs = ScoreSide(details.opponent.shortName ?: details.opponent.name, details.opponent.logoUrl, 0, null)
+    val kickoff = details.match.dateTime.toLocalDateTime(TimeZone.currentSystemDefault())
+    val kickoffLabel = "${shortDateLabel(kickoff.date)} · ${kickoff.hour.toString().padStart(2, '0')}:${kickoff.minute.toString().padStart(2, '0')}"
+    val matchup: @Composable (Modifier, Boolean) -> Unit = { modifier, stacked ->
+        MatchupCard(if (ourFirst) ours else theirs, if (ourFirst) theirs else ours, kickoffLabel, stacked, modifier)
+    }
+
+    // Save (keeps the starting team and leaves; every change is already sent as it's made) beside Kick
+    // off, which needs every position filled. Lying down they're one over the other.
+    val kickOffBar: @Composable (Modifier, Boolean) -> Unit = { modifier, stacked ->
         Column(modifier) {
             state.error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(8.dp))
             }
             if (canManage) {
-                Button(
-                    onClick = { actions.onKickOff(halfLength) },
-                    enabled = remaining == 0 && !state.isSubmitting,
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PitchGreen,
-                        contentColor = Color.White,
-                        disabledContainerColor = CarbonGray,
-                        disabledContentColor = Color.White.copy(alpha = 0.4f)
-                    )
-                ) {
-                    if (state.isSubmitting) {
-                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-                    } else {
-                        Text(stringResource(Res.string.btn_kick_off).uppercase(), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold))
+                val save: @Composable (Modifier) -> Unit = { m ->
+                    OutlinedButton(
+                        onClick = { actions.onSaveLineup(onNavigateBack) },
+                        // Nothing to keep until the pitch differs from how it opened.
+                        enabled = state.lineupChanged && !state.isSubmitting,
+                        modifier = m.height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.5.dp, Color.White.copy(alpha = if (state.lineupChanged && !state.isSubmitting) 0.5f else 0.2f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White, disabledContentColor = Color.White.copy(alpha = 0.4f))
+                    ) {
+                        Text(stringResource(Res.string.btn_save_lineup).uppercase(), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold), maxLines = 1)
                     }
                 }
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = if (remaining > 0) {
-                        stringResource(Res.string.lm_fill_more_to_kick_off, remaining, halfLength)
-                    } else {
-                        stringResource(Res.string.msg_ready_to_kick_off, halfLength)
-                    },
-                    color = Color.White.copy(alpha = 0.5f),
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
-                )
+                val kickOff: @Composable (Modifier) -> Unit = { m ->
+                    Button(
+                        onClick = { actions.onKickOff(halfLength) },
+                        enabled = remaining == 0 && !state.isSubmitting,
+                        modifier = m.height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PitchGreen,
+                            contentColor = Color.White,
+                            disabledContainerColor = CarbonGray,
+                            disabledContentColor = Color.White.copy(alpha = 0.4f)
+                        )
+                    ) {
+                        if (state.isSubmitting) {
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
+                        } else {
+                            Text(stringResource(Res.string.btn_kick_off).uppercase(), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold), maxLines = 1)
+                        }
+                    }
+                }
+                if (stacked) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        kickOff(Modifier.fillMaxWidth())
+                        save(Modifier.fillMaxWidth())
+                    }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        save(Modifier.weight(1f))
+                        kickOff(Modifier.weight(1f))
+                    }
+                }
             } else {
                 Text(
                     stringResource(Res.string.msg_live_match_read_only),
@@ -284,8 +339,9 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
-        // No app bar: the pitch gets the room (system back leaves the screen).
+        // No app bar: the matchup sits at the top (system back leaves the screen).
         Column(Modifier.fillMaxSize().statusBarsPadding().padding(top = 8.dp)) {
+            if (!landscape) matchup(Modifier.padding(horizontal = ScreenPadding.Horizontal).padding(bottom = 8.dp), false)
             if (details.callUps.isEmpty()) {
                 Text(
                     stringResource(Res.string.msg_no_callups),
@@ -302,14 +358,18 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
                 tokenInfo = { PitchTokenInfo() },
                 horizontal = landscape,
                 // The pitch faces the scoreboard: our goal on our side of it (home first, or ours on neutral ground).
-                ourGoalAtStart = details.match.venue.ourSideFirst() != flipped,
+                ourGoalAtStart = ourFirst != flipped,
                 dragEnabled = editable,
                 onSlotTap = if (editable) {
                     { slot, player -> sheet = if (player == null) PreKickoffSheet.WhoPlaysHere(slot) else PreKickoffSheet.SlotOptions(slot, player) }
                 } else null,
-                // A bench player tapped goes into the first empty position.
+                // A bench player tapped goes into the first empty position; with none left, the coach
+                // picks who they replace.
                 onBenchTap = if (editable) {
-                    { player -> slotIds.firstFreeSlot(teamSize)?.let { save(slotIds.placed(it, player.id)) } }
+                    { player ->
+                        val free = slotIds.firstFreeSlot(teamSize)
+                        if (free != null) save(slotIds.placed(free, player.id)) else sheet = PreKickoffSheet.ReplaceOnPitch(player)
+                    }
                 } else null,
                 onDrop = onDrop,
                 formationLabel = formationText,
@@ -317,10 +377,17 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
                 onFlip = if (landscape) { { flipped = !flipped } } else null,
                 besideKeeper = { HalfLengthChip(halfLength, HALF_LENGTH_OPTIONS, enabled = canManage) { halfLength = it } },
                 modifier = Modifier.weight(1f).fillMaxWidth().then(if (landscape) Modifier.padding(horizontal = 16.dp, vertical = 8.dp) else Modifier),
-                footer = if (landscape) { { kickOffBar(Modifier.fillMaxWidth().navigationBarsPadding()) } } else null
+                // Lying down, the column beside the pitch: the matchup on top, the buttons at the bottom.
+                footer = if (landscape) {
+                    {
+                        matchup(Modifier, true)
+                        Spacer(Modifier.weight(1f))
+                        kickOffBar(Modifier.fillMaxWidth().navigationBarsPadding(), true)
+                    }
+                } else null
             )
             if (!landscape) {
-                kickOffBar(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp))
+                kickOffBar(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp), false)
             }
         }
     }
@@ -335,13 +402,27 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
         )
         is PreKickoffSheet.SlotOptions -> PitchPickSheet(
             title = "${s.player.firstName} ${s.player.lastName}",
-            subtitle = zoneLabel(pitchSpot(formation, s.slot).zone),
+            subtitle = listOfNotNull(s.player.shirtNumber?.let { "#$it" }, zoneLabel(pitchSpot(formation, s.slot).zone)).joinToString(" · "),
+            player = s.player,
             sections = listOf(
                 PitchPickSection(null, listOf(PitchPickRow(stringResource(Res.string.lm_take_off_pitch)) { save(slotIds - s.slot); sheet = null })),
                 PitchPickSection(stringResource(Res.string.lm_put_in_instead), bench.map { p -> PitchPickRow(pickLabel(p), p) { save(slotIds.placed(s.slot, p.id)); sheet = null } }),
                 PitchPickSection(
                     stringResource(Res.string.lm_swap_with),
                     slots.filterKeys { it != s.slot }.entries.sortedBy { it.key }.map { (slot, p) -> PitchPickRow(pickLabel(p), p) { save(slotIds.swapped(s.slot, slot)); sheet = null } }
+                )
+            ),
+            emptyText = null,
+            onDismiss = { sheet = null }
+        )
+        is PreKickoffSheet.ReplaceOnPitch -> PitchPickSheet(
+            title = "${s.player.firstName} ${s.player.lastName}",
+            subtitle = listOfNotNull(s.player.shirtNumber?.let { "#$it" }, s.player.position?.let { stringResource(it.labelRes()) }).joinToString(" · ").ifEmpty { null },
+            player = s.player,
+            sections = listOf(
+                PitchPickSection(
+                    stringResource(Res.string.lm_comes_in_for),
+                    slots.entries.sortedBy { it.key }.map { (slot, p) -> PitchPickRow(pickLabel(p), p) { save(slotIds.placed(slot, s.player.id)); sheet = null } }
                 )
             ),
             emptyText = null,
@@ -803,18 +884,13 @@ private fun PlayerActionSheet(
                 }
 
                 is ActionSheet.PickAssist -> {
-                    Text(
-                        stringResource(Res.string.title_pick_assist, sheet.scorerName),
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
+                    SheetPlayerHeader(pitch.players[sheet.scorerId], stringResource(Res.string.title_pick_assist, sheet.scorerName), null, Modifier.padding(bottom = 8.dp))
                     // The assist is optional: "No assist" first, then the scorer's teammates on the pitch.
                     SheetAction(stringResource(Res.string.action_no_assist), enabled = enabled) {
                         actions.onLogPlayerGoal(sheet.scorerId, assistPlayerId = null, minute = sheet.minute); onDismiss()
                     }
                     squad.onPitch.filter { it.player.id != sheet.scorerId }.forEach { row ->
-                        SheetAction(pickerLabel(row.player), enabled = enabled) {
+                        SheetAction(pickLabel(row.player), enabled = enabled, player = row.player) {
                             actions.onLogPlayerGoal(sheet.scorerId, assistPlayerId = row.player.id, minute = sheet.minute); onDismiss()
                         }
                     }
@@ -827,11 +903,17 @@ private fun PlayerActionSheet(
                 // Swap places with someone else on the pitch, or move into an empty position.
                 is ActionSheet.ChangePosition -> {
                     val mine = pitch.slots.entries.firstOrNull { it.value == sheet.player.id }?.key
+                    SheetPlayerHeader(
+                        sheet.player,
+                        "${sheet.player.firstName} ${sheet.player.lastName}",
+                        listOfNotNull(sheet.player.shirtNumber?.let { "#$it" }, mine?.let { zoneLabel(pitchSpot(pitch.formation, it).zone) }).joinToString(" · ").ifEmpty { null },
+                        Modifier.padding(bottom = 12.dp)
+                    )
                     Text(
-                        stringResource(Res.string.lm_swap_with),
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        stringResource(Res.string.lm_swap_with).uppercase(),
+                        color = Color.White.copy(alpha = 0.5f),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.padding(bottom = 4.dp)
                     )
                     if (mine != null) {
                         (0..pitch.formation.sum()).forEach { slot ->
@@ -839,7 +921,7 @@ private fun PlayerActionSheet(
                             val other = pitch.slots[slot]?.let { pitch.players[it] }
                             val label = other?.let(::pickLabel)
                                 ?: stringResource(Res.string.lm_empty_in_zone, zoneLabel(pitchSpot(pitch.formation, slot).zone))
-                            SheetAction(label, enabled = enabled) { pitch.save(pitch.slots.swapped(mine, slot)); onDismiss() }
+                            SheetAction(label, enabled = enabled, player = other) { pitch.save(pitch.slots.swapped(mine, slot)); onDismiss() }
                         }
                     }
                 }
@@ -853,7 +935,7 @@ private fun PlayerActionSheet(
                     Text(zoneLabel(pitchSpot(pitch.formation, sheet.slot).zone), color = Color.White.copy(alpha = 0.55f), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 8.dp))
                     pitch.slots.entries.sortedBy { it.key }.forEach { (slot, id) ->
                         val player = pitch.players[id] ?: return@forEach
-                        SheetAction(pickLabel(player), enabled = enabled) { pitch.save(pitch.slots.swapped(slot, sheet.slot)); onDismiss() }
+                        SheetAction(pickLabel(player), enabled = enabled, player = player) { pitch.save(pitch.slots.swapped(slot, sheet.slot)); onDismiss() }
                     }
                 }
             }
@@ -861,21 +943,23 @@ private fun PlayerActionSheet(
     }
 }
 
-/** "- 10 · Tomás Bragança", or "- Tomás Bragança" when the player has no shirt number. */
-private fun pickerLabel(player: Player): String {
-    val name = "${player.firstName} ${player.lastName}"
-    return player.shirtNumber?.let { "- $it · $name" } ?: "- $name"
-}
-
+/** One choice in a sheet; with [player], their photo before the label. */
 @Composable
-private fun SheetAction(label: String, enabled: Boolean = true, onClick: () -> Unit) {
+private fun SheetAction(label: String, enabled: Boolean = true, player: Player? = null, onClick: () -> Unit) {
     Surface(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth(), color = Color.Transparent) {
-        Text(
-            label,
-            modifier = Modifier.padding(vertical = 14.dp),
-            color = Color.White.copy(alpha = if (enabled) 1f else 0.4f),
-            style = MaterialTheme.typography.bodyLarge
-        )
+        Row(Modifier.padding(vertical = if (player != null) 8.dp else 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            player?.let {
+                TokenPhoto(it, 36.dp, null)
+                Spacer(Modifier.width(12.dp))
+            }
+            Text(
+                label,
+                color = Color.White.copy(alpha = if (enabled) 1f else 0.4f),
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 
@@ -1016,107 +1100,206 @@ private fun eventLineFor(event: MatchEvent, details: MatchDetails, nameFor: (Mat
 // Full-time / cancelled summary
 // ---------------------------------------------------------------------------------------------
 
+/** One side of the full-time header: its crest and name. */
+private data class SummarySide(val name: String, val logoUrl: String?)
+
+/**
+ * One line of the full-time goals or cards: "12'" and who ("Goal" when nobody is recorded); for a
+ * card, its colour, drawn as a small card beside the line.
+ */
+private data class SummaryLine(val minute: String, val who: String, val card: Color? = null)
+
+/**
+ * Full time, in the app's own look rather than the dark console (the developer, 2026-10-25): the top
+ * bar ("Final result", when and what kind of game, as on the match details), the result as a band in
+ * the club's colour (or the default) -- each side's crest and name, home on the left -- then the goals
+ * in a white card, a column per side split by a grey line, the report card as on the match's General
+ * tab, and Leave at the bottom.
+ */
 @Composable
 private fun SummaryContent(state: LiveMatchUiState.Idle, onNavigateBack: () -> Unit, onOpenReport: (String, Boolean) -> Unit) {
     val details = state.details
-    val minutes = remember(details, state.events) { squadMinutes(details, state.events, liveMinute = null) }
-    val outcome: Pair<org.jetbrains.compose.resources.StringResource, Color> = when {
-        details.match.status == MatchStatus.CANCELLED -> Res.string.label_result_cancelled to Color.White.copy(alpha = 0.5f)
-        state.score.ourScore > state.score.opponentScore -> Res.string.label_result_win to SuccessGreen
-        state.score.ourScore < state.score.opponentScore -> Res.string.label_result_loss to LiveRed
-        else -> Res.string.label_result_draw to Color.White.copy(alpha = 0.6f)
-    }
+    val cancelled = details.match.status == MatchStatus.CANCELLED
+    val (ourGoals, theirGoals) = summaryGoals(details, state.events)
+    val ourFirst = details.match.venue.ourSideFirst()
+    val us = SummarySide(details.team.name, details.clubLogoUrl)
+    val them = SummarySide(details.opponent.shortName ?: details.opponent.name, details.opponent.logoUrl)
+    val (home, away) = if (ourFirst) us to them else them to us
+    val (homeGoals, awayGoals) = if (ourFirst) ourGoals to theirGoals else theirGoals to ourGoals
+    val (ourCards, theirCards) = summaryCards(details, state.events)
+    val (homeCards, awayCards) = if (ourFirst) ourCards to theirCards else theirCards to ourCards
+    val (homeScore, awayScore) = if (ourFirst) state.score.ourScore to state.score.opponentScore else state.score.opponentScore to state.score.ourScore
 
-    Column(Modifier.fillMaxSize()) {
-        ConsoleHeader(
-            title = "${details.ageGroup.name} · ${details.season.name}",
-            subtitle = null,
-            onNavigateBack = onNavigateBack,
-            trailing = { ResultBadge(outcome.first, outcome.second) }
-        )
-
-        Column(
-            Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Home on top and its score first; our club at home or on neutral ground.
-            val ourFirst = details.match.venue.ourSideFirst()
-            Text(
-                if (ourFirst) details.team.name else details.opponent.name,
-                color = Color.White,
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+    Scaffold(
+        containerColor = ScreenBackground,
+        topBar = {
+            SquadifyTopBar(
+                title = stringResource(Res.string.lm_final_result),
+                subtitle = listOf(whenLabel(details.match.dateTime), matchSubtitle(details)).joinToString(" · "),
+                onNavigateBack = onNavigateBack
             )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                state.score.homeFirst(details.match.venue, separator = "-"),
-                color = Color.White,
-                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Black)
-            )
-            if (details.match.status != MatchStatus.CANCELLED) {
-                Text(
-                    stringResource(Res.string.label_full_time),
-                    color = Color.White.copy(alpha = 0.4f),
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
-                )
-            }
-            Spacer(Modifier.height(4.dp))
-            Text(if (ourFirst) details.opponent.name else details.team.name, color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.bodyMedium)
         }
-
-        // Design 36e: the goals in one line, then everyone's minutes -- the spread at a glance before
-        // leaving the pitch -- and straight into the match report, which carries the same minutes.
-        LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = ScreenPadding.Horizontal, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            item { CompactEvents(details, state.events) }
-            if (details.match.status == MatchStatus.FINISHED && details.callUps.isNotEmpty()) {
-                item { MinutesTable(details, minutes) }
-            }
-            details.report?.let { report ->
-                item {
-                    Button(
-                        onClick = { onOpenReport(details.match.id, report.canEdit) },
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)
-                    ) {
-                        Text(stringResource(if (report.canEdit) Res.string.lm_fill_report else Res.string.lm_view_report), fontWeight = FontWeight.Bold)
+    ) { padding ->
+        val band: @Composable () -> Unit = {
+            Row(
+                Modifier.fillMaxWidth().background(ClubChrome).padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SummarySideColumn(home, Modifier.weight(1f))
+                Box(Modifier.padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
+                    if (cancelled) {
+                        Text(stringResource(Res.string.label_vs), color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                    } else {
+                        Text("$homeScore – $awayScore", color = Color.White, style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Black), maxLines = 1)
                     }
+                }
+                SummarySideColumn(away, Modifier.weight(1f))
+            }
+        }
+        val record: @Composable ColumnScope.() -> Unit = {
+            if (!cancelled) {
+                SectionHeader(stringResource(Res.string.md_goals), first = true)
+                SummaryLinesCard(homeGoals, awayGoals, stringResource(Res.string.md_no_goals))
+                SectionHeader(stringResource(Res.string.md_filter_cards))
+                SummaryLinesCard(homeCards, awayCards, stringResource(Res.string.md_no_cards))
+            }
+        }
+        val actions: @Composable ColumnScope.() -> Unit = {
+            details.report?.let { report -> MatchReportCard(report) { edit -> onOpenReport(details.match.id, edit) } }
+            OutlinedButton(
+                onClick = onNavigateBack,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.5.dp, CarbonGray.copy(alpha = 0.2f)),
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = DeepCarbon)
+            ) {
+                Text(stringResource(Res.string.btn_leave), fontWeight = FontWeight.Bold)
+            }
+        }
+        BoxWithConstraints(Modifier.fillMaxSize().padding(padding)) {
+            if (maxWidth > maxHeight) {
+                // Lying down: the band and the record scroll on the left, the report and Leave stay on the right.
+                Row(Modifier.fillMaxSize()) {
+                    Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())) {
+                        band()
+                        Column(Modifier.fillMaxWidth().screenContentPadding(), verticalArrangement = Arrangement.spacedBy(10.dp), content = record)
+                    }
+                    Column(
+                        Modifier.width(320.dp).fillMaxHeight().padding(ScreenPadding.Horizontal),
+                        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Bottom),
+                        content = actions
+                    )
+                }
+            } else {
+                Column(Modifier.fillMaxSize()) {
+                    band()
+                    // The goals and cards scroll; the report card and Leave stay put under them.
+                    Column(
+                        Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).screenContentPadding(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        content = record
+                    )
+                    Column(
+                        Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal).padding(top = 4.dp, bottom = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        content = actions
+                    )
                 }
             }
         }
-
-        OutlinedButton(
-            onClick = onNavigateBack,
-            modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp).height(52.dp),
-            shape = RoundedCornerShape(14.dp),
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
-        ) {
-            Text(stringResource(Res.string.btn_back_to_match), fontWeight = FontWeight.Bold)
-        }
     }
 }
 
+/** A side's crest over its name, centred in its half of the band. */
 @Composable
-private fun ResultBadge(label: org.jetbrains.compose.resources.StringResource, color: Color) {
-    Surface(shape = RoundedCornerShape(6.dp), color = color.copy(alpha = 0.15f), border = BorderStroke(1.dp, color)) {
+private fun SummarySideColumn(side: SummarySide, modifier: Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        ClubLogo(side.logoUrl, side.name.take(2).uppercase(), size = 56.dp, background = Color.White, initialsColor = DeepCarbon)
+        Spacer(Modifier.height(8.dp))
         Text(
-            stringResource(label),
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            color = color,
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+            side.name,
+            color = Color.White,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center
         )
     }
 }
 
-/** A small logo before a side's name on the scoreboard, on a white disc so any crest reads on the dark console. */
+/** Goals or cards, home on the left and away on the right, split by a grey line; [empty] with none. */
 @Composable
-private fun NameCrest(logoUrl: String, name: String) {
-    ClubLogo(logoUrl, name.take(2).uppercase(), size = 20.dp, background = Color.White, initialsColor = DeepCarbon)
-    Spacer(Modifier.width(6.dp))
+private fun SummaryLinesCard(home: List<SummaryLine>, away: List<SummaryLine>, empty: String) {
+    SectionCard(contentPadding = PaddingValues(vertical = 12.dp)) {
+        if (home.isEmpty() && away.isEmpty()) {
+            Text(empty, style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.6f), modifier = Modifier.padding(horizontal = 16.dp))
+        } else {
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                SummaryLineColumn(home, away = false, Modifier.weight(1f))
+                Box(Modifier.width(1.dp).fillMaxHeight().background(SectionBorderColor))
+                SummaryLineColumn(away, away = true, Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+/** Home reads "12' Tomás Silva" from the left; away mirrors it, "Tomás Silva 12'" against the right. */
+@Composable
+private fun SummaryLineColumn(lines: List<SummaryLine>, away: Boolean, modifier: Modifier) {
+    Column(modifier.padding(horizontal = 16.dp), horizontalAlignment = if (away) Alignment.End else Alignment.Start, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        lines.forEach { line ->
+            val minute: @Composable () -> Unit = { Text(line.minute, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Black), color = DeepCarbon) }
+            val card: @Composable () -> Unit = { line.card?.let { Box(Modifier.size(width = 9.dp, height = 13.dp).background(it, RoundedCornerShape(2.dp))) } }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (!away) { card(); minute() }
+                Text(
+                    line.who,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = DeepCarbon,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = if (away) TextAlign.End else TextAlign.Start,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                if (away) { minute(); card() }
+            }
+        }
+    }
+}
+
+/** Each side's yellow and red cards, in order: ours with the player, theirs with the card's name. */
+@Composable
+private fun summaryCards(details: MatchDetails, events: List<MatchEvent>): Pair<List<SummaryLine>, List<SummaryLine>> {
+    val playersById = details.callUps.associate { it.callUp.playerId to it.player }
+    val yellow = stringResource(Res.string.label_event_type_yellow_card)
+    val red = stringResource(Res.string.label_event_type_red_card)
+    val cards = events.filter { it.type == EventType.YELLOW_CARD || it.type == EventType.RED_CARD }
+        .sortedWith(compareBy({ it.period ?: 1 }, { it.minute }, { it.createdAt }))
+    fun line(e: MatchEvent): SummaryLine {
+        val isRed = e.type == EventType.RED_CARD
+        val who = e.playerId?.let { playersById[it] }?.let { "${it.firstName} ${it.lastName}" } ?: if (isRed) red else yellow
+        return SummaryLine(mins(e.minute), who, if (isRed) LiveRed else CardYellow)
+    }
+    return cards.filter { !it.isOpponent }.map(::line) to cards.filter { it.isOpponent }.map(::line)
+}
+
+/**
+ * Each side's goals, in the order they were scored: ours with our scorer, theirs as "Goal" (their
+ * scorer isn't recorded), or "Tomás Silva (OG)" for one of ours into our own net.
+ */
+@Composable
+private fun summaryGoals(details: MatchDetails, events: List<MatchEvent>): Pair<List<SummaryLine>, List<SummaryLine>> {
+    val playersById = details.callUps.associate { it.callUp.playerId to it.player }
+    fun name(id: String?) = id?.let { playersById[it] }?.let { "${it.firstName} ${it.lastName}" }
+    val goal = stringResource(Res.string.label_event_goal_unattributed)
+    val ownGoal = stringResource(Res.string.lm_own_goal_mark)
+    val goals = events.filter { it.type == EventType.GOAL || it.type == EventType.OWN_GOAL }
+        .sortedWith(compareBy({ it.period ?: 1 }, { it.minute }, { it.createdAt }))
+    val ours = goals.filter { it.type == EventType.GOAL && !it.isOpponent }
+        .map { SummaryLine(mins(it.minute), name(it.playerId) ?: goal) }
+    val theirs = goals.filter { it.isOpponent || it.type == EventType.OWN_GOAL }
+        .map { g -> SummaryLine(mins(g.minute), if (g.type == EventType.OWN_GOAL) name(g.playerId)?.let { "$it $ownGoal" } ?: goal else goal) }
+    return ours to theirs
 }
 
 /** Does nothing: the previews' stand-in for [LiveMatchViewModel]. */
@@ -1129,6 +1312,7 @@ private object PreviewLiveMatchActions : LiveMatchActions {
     override fun onHalfTime() {}
     override fun onKickOff(halfLengthMinutes: Int) {}
     override fun onSetLineup(formation: String, slots: Map<Int, String>) {}
+    override fun onSaveLineup(onSaved: () -> Unit) {}
     override fun onLogEvent(type: EventType, playerId: String, minute: Int) {}
     override fun onLogGoal(minute: Int, isOpponent: Boolean) {}
     override fun onLogPlayerGoal(scorerId: String, assistPlayerId: String?, minute: Int) {}
@@ -1210,3 +1394,33 @@ private fun LiveMatchConsolePreview() {
     }
 }
 
+
+private fun previewFullTime(): LiveMatchUiState.Idle {
+    val match = Match(
+        id = "m1", clubId = "c1", teamId = "t1", opponentId = "o1", dateTime = Instant.fromEpochMilliseconds(0),
+        status = MatchStatus.FINISHED, halfLengthMinutes = 30, kickoffAt = Instant.fromEpochMilliseconds(0)
+    )
+    val events = listOf(
+        MatchEvent("e1", "m1", EventType.GOAL, 12, playerId = "p3", createdAt = Instant.fromEpochMilliseconds(1), period = 1),
+        MatchEvent("e2", "m1", EventType.GOAL, 21, isOpponent = true, createdAt = Instant.fromEpochMilliseconds(2), period = 1),
+        MatchEvent("e3", "m1", EventType.GOAL, 44, playerId = "p6", createdAt = Instant.fromEpochMilliseconds(3), period = 2),
+        MatchEvent("e4", "m1", EventType.OWN_GOAL, 52, playerId = "p2", createdAt = Instant.fromEpochMilliseconds(4), period = 2),
+        MatchEvent("e5", "m1", EventType.YELLOW_CARD, 30, playerId = "p4", createdAt = Instant.fromEpochMilliseconds(5), period = 1),
+        MatchEvent("e6", "m1", EventType.RED_CARD, 58, isOpponent = true, createdAt = Instant.fromEpochMilliseconds(6), period = 2)
+    )
+    val details = previewLiveDetails(match).copy(report = MatchReportSummary(MatchReportStatus.NOT_STARTED, ratedPlayers = 0, ratablePlayers = 9, canEdit = true))
+    return LiveMatchUiState.Idle(details = details, events = events, score = MatchScore("m1", 2, 2))
+}
+
+/** Full time: the result header in the club's colour, the scorers under each side, Leave and the report. */
+@Preview
+@Composable
+private fun LiveMatchFullTimePreview() {
+    SquadifyTheme { SummaryContent(previewFullTime(), {}, { _, _ -> }) }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun LiveMatchFullTimeLandscapePreview() {
+    SquadifyTheme { SummaryContent(previewFullTime(), {}, { _, _ -> }) }
+}

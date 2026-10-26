@@ -36,7 +36,7 @@ import com.ricardofrango.squadify.model.PlayerSeason
 import com.ricardofrango.squadify.model.PlayerSeasonMatch
 import com.ricardofrango.squadify.model.PlayerSeasonStats
 import com.ricardofrango.squadify.model.StatsFilter
-import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
@@ -124,7 +124,7 @@ private fun PlayerDetailsContent(
     val profile = (uiState as? PlayerDetailsUiState.Idle)?.profile
 
     Scaffold(
-        containerColor = WhiteSmoke,
+        containerColor = ScreenBackground,
         topBar = {
             Column(Modifier.background(ClubChrome)) {
                 SquadifyTopBar(
@@ -155,7 +155,7 @@ private fun PlayerDetailsContent(
             }
         }
     ) { paddingValues ->
-        val boxModifier = Modifier.fillMaxSize().padding(paddingValues).background(WhiteSmoke)
+        val boxModifier = Modifier.fillMaxSize().padding(paddingValues).background(ScreenBackground)
         when (uiState) {
             is PlayerDetailsUiState.Loading -> {
                 Box(boxModifier, contentAlignment = Alignment.Center) {

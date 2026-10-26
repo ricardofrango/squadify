@@ -58,6 +58,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepGreen
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import org.jetbrains.compose.resources.painterResource
+import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.*
@@ -72,35 +73,14 @@ import squadify.app.shared.generated.resources.*
  */
 @Composable
 internal fun SquadSortChips(selected: SquadSort, staff: Boolean, onSelected: (SquadSort) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            stringResource(Res.string.squad_sort),
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp),
-            color = StatsSecondaryText,
-            modifier = Modifier.padding(end = 2.dp)
-        )
-        SquadSort.entries.filter { staff || it != SquadSort.RATING }.forEach { sort ->
-            val isSelected = sort == selected
-            Surface(
-                onClick = { onSelected(sort) },
-                shape = RoundedCornerShape(16.dp),
-                color = if (isSelected) ClubChrome else Color.White,
-                border = BorderStroke(1.5.dp, if (isSelected) ClubChrome else CarbonGray.copy(alpha = 0.16f))
-            ) {
-                Box(Modifier.heightIn(min = 32.dp).padding(horizontal = 11.dp), contentAlignment = Alignment.Center) {
-                    Text(
-                        stringResource(sort.labelRes()),
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, fontSize = 12.5.sp),
-                        color = if (isSelected) Color.White else DeepCarbon
-                    )
-                }
-            }
-        }
-    }
+    FilterChipRow(
+        options = SquadSort.entries.filter { staff || it != SquadSort.RATING },
+        selected = selected,
+        label = { stringResource(it.labelRes()) },
+        onSelect = onSelected,
+        insidePaddedContent = true,
+        leadingLabel = stringResource(Res.string.squad_sort)
+    )
 }
 
 private fun SquadSort.labelRes() = when (this) {

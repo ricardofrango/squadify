@@ -35,7 +35,7 @@ import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButto
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
-import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -140,7 +140,7 @@ private fun FormField(
         shape = FieldShape,
         isError = isError,
         enabled = enabled,
-        colors = OutlinedTextFieldDefaults.colors(
+        colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
             focusedTextColor = DeepCarbon,
             unfocusedTextColor = DeepCarbon,
             focusedBorderColor = PitchGreen,
@@ -214,7 +214,7 @@ private fun RegisterContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(WhiteSmoke)
+                .background(ScreenBackground)
         ) {
             Column(
                 modifier = Modifier

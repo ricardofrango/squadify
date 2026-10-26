@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.editagegroup
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
+import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardOptions
@@ -115,7 +117,7 @@ private fun EditAgeGroupContent(
 ) {
     val idle = state as? EditAgeGroupUiState.Idle
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
                 title = stringResource(Res.string.edit_age_group),
@@ -137,7 +139,7 @@ private fun EditAgeGroupContent(
             )
         }
     ) { padding ->
-        val modifier = Modifier.fillMaxSize().padding(padding).background(Color.White)
+        val modifier = Modifier.fillMaxSize().padding(padding).background(ScreenBackground)
         when (state) {
             EditAgeGroupUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
             is EditAgeGroupUiState.Error -> Column(modifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -169,92 +171,93 @@ private fun EditAgeGroupForm(
         modifier.verticalScroll(rememberScrollState()).screenContentPadding(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        AgeGroupSpanTypeField(
-            label = stringResource(Res.string.label_age_group_span_type),
-            selectedType = if (form.twoYears) AgeGroupSpanType.TWO_YEAR else AgeGroupSpanType.SINGLE_YEAR,
-            onTypeSelected = { type ->
-                onChange {
-                    val two = type == AgeGroupSpanType.TWO_YEAR
-                    // Going to one year keeps the oldest year; going to two adds the next (younger) one.
-                    it.copy(twoYears = two, startYear = if (two) it.endYear + 1 else it.endYear)
+        SectionCard(spacing = 16.dp) {
+            AgeGroupSpanTypeField(
+                label = stringResource(Res.string.label_age_group_span_type),
+                selectedType = if (form.twoYears) AgeGroupSpanType.TWO_YEAR else AgeGroupSpanType.SINGLE_YEAR,
+                onTypeSelected = { type ->
+                    onChange {
+                        val two = type == AgeGroupSpanType.TWO_YEAR
+                        // Going to one year keeps the oldest year; going to two adds the next (younger) one.
+                        it.copy(twoYears = two, startYear = if (two) it.endYear + 1 else it.endYear)
+                    }
+                }
+            )
+            if (!form.twoYears) {
+                YearOfBirthField(
+                    label = stringResource(Res.string.label_year_of_birth),
+                    selectedYear = form.endYear,
+                    availableYears = freeYears,
+                    onYearSelected = { year -> onChange { it.copy(startYear = year, endYear = year) } }
+                )
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(Modifier.weight(1f)) {
+                        YearOfBirthField(
+                            label = stringResource(Res.string.label_year_of_birth_start),
+                            selectedYear = form.startYear,
+                            availableYears = freeYears,
+                            onYearSelected = { year -> onChange { it.copy(startYear = year) } }
+                        )
+                    }
+                    Box(Modifier.weight(1f)) {
+                        YearOfBirthField(
+                            label = stringResource(Res.string.label_year_of_birth_end),
+                            selectedYear = form.endYear,
+                            availableYears = freeYears,
+                            onYearSelected = { year -> onChange { it.copy(endYear = year) } }
+                        )
+                    }
+                }
+                if (state.inverted) {
+                    Text(stringResource(Res.string.msg_age_group_range_inverted), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
             }
-        )
-        if (!form.twoYears) {
-            YearOfBirthField(
-                label = stringResource(Res.string.label_year_of_birth),
-                selectedYear = form.endYear,
-                availableYears = freeYears,
-                onYearSelected = { year -> onChange { it.copy(startYear = year, endYear = year) } }
-            )
-        } else {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(Modifier.weight(1f)) {
-                    YearOfBirthField(
-                        label = stringResource(Res.string.label_year_of_birth_start),
-                        selectedYear = form.startYear,
-                        availableYears = freeYears,
-                        onYearSelected = { year -> onChange { it.copy(startYear = year) } }
-                    )
-                }
-                Box(Modifier.weight(1f)) {
-                    YearOfBirthField(
-                        label = stringResource(Res.string.label_year_of_birth_end),
-                        selectedYear = form.endYear,
-                        availableYears = freeYears,
-                        onYearSelected = { year -> onChange { it.copy(endYear = year) } }
-                    )
-                }
+            if (state.collides) {
+                Text(stringResource(Res.string.msg_age_group_conflict), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
-            if (state.inverted) {
-                Text(stringResource(Res.string.msg_age_group_range_inverted), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            if (state.shutOut > 0) {
+                Text(
+                    pluralStringResource(Res.plurals.edit_age_group_shut_out, state.shutOut, state.shutOut, form.endYear),
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                    color = AmberText
+                )
+            }
+
+            OutlinedTextField(
+                value = form.name,
+                onValueChange = { value -> onChange { it.copy(name = value) } },
+                label = { Text(stringResource(Res.string.label_age_group_name_field)) },
+                isError = form.name.isBlank(),
+                singleLine = true,
+                // The only text field: the keyboard key saves, like the top bar's check.
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = submitKeyboardActions { if (state.canSave) onSave() },
+                enabled = !state.isSubmitting,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
+                    focusedTextColor = DeepCarbon, unfocusedTextColor = DeepCarbon,
+                    focusedBorderColor = PitchGreen, unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
+                    focusedLabelColor = PitchGreen, unfocusedLabelColor = CarbonGray
+                )
+            )
+
+            Column {
+                TeamSizeField(
+                    label = stringResource(Res.string.label_team_size),
+                    selectedTeamSize = form.teamSize,
+                    options = state.teamSizeOptions,
+                    onTeamSizeSelected = { size -> onChange { it.copy(teamSize = size) } }
+                )
+                Text(
+                    stringResource(Res.string.edit_age_group_size_helper),
+                    Modifier.padding(top = 6.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DeepCarbon.copy(alpha = 0.5f)
+                )
             }
         }
-        if (state.collides) {
-            Text(stringResource(Res.string.msg_age_group_conflict), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-        }
-        if (state.shutOut > 0) {
-            Text(
-                pluralStringResource(Res.plurals.edit_age_group_shut_out, state.shutOut, state.shutOut, form.endYear),
-                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                color = AmberText
-            )
-        }
-
-        OutlinedTextField(
-            value = form.name,
-            onValueChange = { value -> onChange { it.copy(name = value) } },
-            label = { Text(stringResource(Res.string.label_age_group_name_field)) },
-            isError = form.name.isBlank(),
-            singleLine = true,
-            // The only text field: the keyboard key saves, like the top bar's check.
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = submitKeyboardActions { if (state.canSave) onSave() },
-            enabled = !state.isSubmitting,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = DeepCarbon, unfocusedTextColor = DeepCarbon,
-                focusedBorderColor = PitchGreen, unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
-                focusedLabelColor = PitchGreen, unfocusedLabelColor = CarbonGray
-            )
-        )
-
-        Column {
-            TeamSizeField(
-                label = stringResource(Res.string.label_team_size),
-                selectedTeamSize = form.teamSize,
-                options = state.teamSizeOptions,
-                onTeamSizeSelected = { size -> onChange { it.copy(teamSize = size) } }
-            )
-            Text(
-                stringResource(Res.string.edit_age_group_size_helper),
-                Modifier.padding(top = 6.dp),
-                style = MaterialTheme.typography.bodySmall,
-                color = DeepCarbon.copy(alpha = 0.5f)
-            )
-        }
-
         if (state.submitError != null) {
             Text(state.submitError, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
         }

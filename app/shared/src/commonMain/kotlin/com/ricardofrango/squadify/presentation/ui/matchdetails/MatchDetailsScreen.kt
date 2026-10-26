@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.venueLocation
 import com.ricardofrango.squadify.presentation.ui.components.VenueSelector
 import com.ricardofrango.squadify.presentation.ui.theme.IsClubThemed
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.*
 import com.ricardofrango.squadify.presentation.ui.components.ClubLogo
+import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
 import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.components.MatchTypeChip
 import com.ricardofrango.squadify.presentation.ui.components.HalvesSelector
@@ -52,7 +54,6 @@ import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
-import com.ricardofrango.squadify.presentation.ui.theme.WhiteSmoke
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import androidx.compose.ui.tooling.preview.Preview
@@ -169,7 +170,7 @@ private fun MatchDetailsContent(
     if (landscape && tabs.isNotEmpty()) FinishedRail(tabs, selectedTab) { finishedTab = it }
     Scaffold(
         modifier = Modifier.weight(1f),
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             Column(Modifier.background(ClubChrome)) {
                 // The teams and the score are the band below; the bar says when and what kind of game.
@@ -214,9 +215,7 @@ private fun MatchDetailsContent(
             }
         }
     ) { paddingValues ->
-        // A finished match's body is WhiteSmoke so its white bordered cards (the report card first) read as cards (design 23).
-        val bodyColor = if (details?.match?.status == MatchStatus.FINISHED) WhiteSmoke else Color.White
-        val boxModifier = Modifier.fillMaxSize().padding(paddingValues).background(bodyColor)
+        val boxModifier = Modifier.fillMaxSize().padding(paddingValues).background(ScreenBackground)
         when (uiState) {
             is MatchDetailsUiState.Loading ->
                 Box(boxModifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
@@ -324,12 +323,12 @@ private fun BandCrest(logoUrl: String, name: String) =
 
 /** "Sat 24 Oct · 10:30": the top bar's title. */
 @Composable
-private fun whenLabel(instant: Instant): String =
+internal fun whenLabel(instant: Instant): String =
     "${instant.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(WeekdayDayMonth)} · ${timeLabel(instant)}"
 
 /** The type, then what's notable: "Championship · in 3 days", "Friendly · Cancelled", "… · 1 half". */
 @Composable
-private fun matchSubtitle(details: MatchDetails): String {
+internal fun matchSubtitle(details: MatchDetails): String {
     val match = details.match
     return listOfNotNull(
         match.type?.let { stringResource(it.labelRes()) },
@@ -412,11 +411,14 @@ private fun MatchBody(
                     )
                 }
                 item {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(Res.string.label_sort), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
-                        SortChip(stringResource(Res.string.label_position_field), state.sort == CallUpSort.POSITION) { onSortSelected(CallUpSort.POSITION) }
-                        SortChip(stringResource(Res.string.label_sort_name), state.sort == CallUpSort.NAME) { onSortSelected(CallUpSort.NAME) }
-                    }
+                    FilterChipRow(
+                        options = listOf(CallUpSort.POSITION, CallUpSort.NAME),
+                        selected = state.sort,
+                        label = { stringResource(if (it == CallUpSort.POSITION) Res.string.label_position_field else Res.string.label_sort_name) },
+                        onSelect = onSortSelected,
+                        insidePaddedContent = true,
+                        leadingLabel = stringResource(Res.string.label_sort)
+                    )
                 }
                 if (editing && calledUp.size < RECOMMENDED_SQUAD) {
                     item {
@@ -583,18 +585,6 @@ internal fun SectionHeader(title: String, pill: String? = null, trailing: Pair<S
 }
 
 @Composable
-private fun SortChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
-        color = if (selected) (if (IsClubThemed) ClubChrome else DeepCarbon) else CarbonGray.copy(alpha = 0.08f),
-        border = if (selected) null else BorderStroke(1.dp, CarbonGray.copy(alpha = 0.2f))
-    ) {
-        Text(label, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = if (selected) Color.White else DeepCarbon)
-    }
-}
-
-@Composable
 private fun LinkText(text: String, onClick: () -> Unit) {
     Text(
         text,
@@ -606,8 +596,7 @@ private fun LinkText(text: String, onClick: () -> Unit) {
 
 @Composable
 private fun BottomActionBar(state: MatchDetailsUiState.Idle, button: MatchDetailsButton, onSaveCallUp: () -> Unit, onEnterLiveMatch: () -> Unit) {
-    val scheduled = state.details.match.status == MatchStatus.SCHEDULED
-    Surface(color = Color.White, shadowElevation = 8.dp) {
+    Surface(color = ScreenBackground, shadowElevation = 8.dp) {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -629,15 +618,6 @@ private fun BottomActionBar(state: MatchDetailsUiState.Idle, button: MatchDetail
                     PrimaryLoadingButton(text = label, submittingText = label, isLoading = false, onClick = onEnterLiveMatch)
                 }
                 MatchDetailsButton.NONE -> Unit
-            }
-            val hint = when {
-                button == MatchDetailsButton.SAVE_CALL_UP_DISABLED -> stringResource(Res.string.msg_callup_min_players, state.details.minimumCallUp())
-                scheduled -> stringResource(Res.string.msg_kickoff_countdown, relativeLabel(state.details.match.dateTime))
-                else -> null
-            }
-            hint?.let {
-                Spacer(Modifier.height(6.dp))
-                Text(it, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
             }
         }
     }
@@ -760,6 +740,7 @@ private fun ValueField(label: String, value: String, onClick: () -> Unit) {
 
 @Composable
 private fun editFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White,
     focusedTextColor = DeepCarbon,
     unfocusedTextColor = DeepCarbon,
     focusedBorderColor = PitchGreen,

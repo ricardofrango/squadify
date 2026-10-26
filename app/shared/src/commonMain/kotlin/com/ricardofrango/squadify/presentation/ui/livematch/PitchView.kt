@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import com.ricardofrango.squadify.presentation.haptics.rememberPickUpHaptic
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -70,6 +71,11 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -102,6 +108,16 @@ import kotlin.math.roundToInt
 
 private val FieldColor = Color(0xFF173321)
 private val TokenFill = Color(0xFF2C2C2E)
+
+/**
+ * The pitch sits on a light screen (a finished match's Timeline) rather than the dark console: what's
+ * drawn around it -- the bench's names, the sent-off line -- is then dark. The pitch itself is the same.
+ */
+internal val LocalPitchOnLight = staticCompositionLocalOf { false }
+
+/** Text around the pitch (not on it): white on the console, dark on a light screen. */
+private val SurroundText: Color
+    @Composable get() = if (LocalPitchOnLight.current) DeepCarbon else Color.White
 private val PlaceholderGray = Color(0xFF8E8E93)
 private val BookedYellow = Color(0xFFFFB300)
 private val SentOffRed = Color(0xFFC62828)
@@ -275,7 +291,8 @@ internal fun pitchNames(players: List<Player>): Map<String, String> {
 
 /**
  * Registers a token as a drop place and, when [player] is set and dragging is on, lets it be held and
- * dragged. [onDrop] gets where it came from and where it landed (null: nowhere).
+ * dragged. [onDrop] gets where it came from and where it landed (null: nowhere). Picking a player up
+ * gives a short vibration, so the coach feels the hold took (none where the platform has no haptics).
  */
 @Composable
 private fun Modifier.pitchDrag(
@@ -287,6 +304,7 @@ private fun Modifier.pitchDrag(
 ): Modifier {
     var coordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     val latestDrop by rememberUpdatedState(onDrop)
+    val pickUpHaptic = rememberPickUpHaptic()
     DisposableEffect(key) { onDispose { drag.targets.remove(key) } }
     val positioned = onGloballyPositioned {
         coordinates = it
@@ -295,7 +313,12 @@ private fun Modifier.pitchDrag(
     if (!enabled || player == null) return positioned
     return positioned.pointerInput(key, player.id) {
         detectDragGesturesAfterLongPress(
-            onDragStart = { offset -> coordinates?.let { drag.start(key, player, it.localToWindow(offset)) } },
+            onDragStart = { offset ->
+                coordinates?.let {
+                    pickUpHaptic()
+                    drag.start(key, player, it.localToWindow(offset))
+                }
+            },
             onDrag = { change, amount ->
                 change.consume()
                 drag.pointer += amount
@@ -411,7 +434,7 @@ private fun BenchToken(player: Player, name: String, info: PitchTokenInfo, highl
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         info.minutesFraction?.let { fraction ->
-            Box(Modifier.width(34.dp).height(3.dp).clip(RoundedCornerShape(2.dp)).background(Color.White.copy(alpha = 0.18f))) {
+            Box(Modifier.width(34.dp).height(3.dp).clip(RoundedCornerShape(2.dp)).background(SurroundText.copy(alpha = 0.18f))) {
                 Box(Modifier.fillMaxHeight().fillMaxWidth(fraction.coerceIn(0f, 1f)).background(PitchGreen))
             }
             Spacer(Modifier.height(4.dp))
@@ -427,7 +450,16 @@ private fun BenchToken(player: Player, name: String, info: PitchTokenInfo, highl
             }
         }
         Spacer(Modifier.height(3.dp))
-        Text(name, color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        // On a light screen the bench reads black and bold; on the console, soft white.
+        val onLight = LocalPitchOnLight.current
+        Text(
+            name,
+            color = if (onLight) DeepCarbon else Color.White.copy(alpha = 0.7f),
+            fontSize = 10.sp,
+            fontWeight = if (onLight) FontWeight.Bold else FontWeight.Normal,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -517,7 +549,7 @@ internal fun PitchPanel(
                 Spacer(Modifier.width(8.dp))
                 Text(
                     stringResource(Res.string.lm_sent_off_list, sentOff.joinToString(", ") { p -> listOfNotNull(p.shirtNumber?.let { "#$it" }, names[p.id]).joinToString(" ") }),
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = SurroundText.copy(alpha = 0.8f),
                     style = MaterialTheme.typography.labelMedium
                 )
             }
@@ -624,7 +656,7 @@ internal fun FlipPitchButton(onClick: () -> Unit) {
     }
 }
 
-/** The common shapes for a team size, its default first, then the closest to it. */
+/** The common shapes for a team size: its default and the closest to it, in order (2-3-1 before 3-2-1). */
 internal fun quickFormations(teamSize: Int, count: Int = 5): List<List<Int>> {
     val outfield = teamSize - 1
     val default = defaultFormation(teamSize)
@@ -636,12 +668,25 @@ internal fun quickFormations(teamSize: Int, count: Int = 5): List<List<Int>> {
         }
     }
     return all.sortedWith(compareBy<List<Int>> { f -> f.indices.sumOf { abs(f[it] - default[it]) } }.thenByDescending { it[0] }).take(count)
+        .sortedWith(compareBy<List<Int>>({ it[0] }, { it[1] }, { it[2] }))
+}
+
+/**
+ * Typing a formation puts the dash in for you: a digit typed while there are fewer than three numbers
+ * gets a "-" after it ("2" -> "2-", "2-3" -> "2-3-"). A deletion is left alone, so the dash can be
+ * removed, and a "-" typed straight after one isn't doubled.
+ */
+internal fun withAutoDash(previous: String, typed: String): String {
+    if (typed.length <= previous.length) return typed
+    val text = typed.replace("--", "-")
+    return if (text.isNotEmpty() && text.last().isDigit() && text.count { it == '-' } < 2) "$text-" else text
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun FormationSheet(current: String, teamSize: Int, onApply: (String) -> Unit, onDismiss: () -> Unit) {
-    var text by remember { mutableStateOf(current) }
+    var field by remember { mutableStateOf(TextFieldValue(current, TextRange(current.length))) }
+    val text = field.text
     val parsed = parseFormation(text, teamSize)
     val outfield = teamSize - 1
     val numbers = text.trim().split("-").map { it.trim().toIntOrNull() }
@@ -654,17 +699,22 @@ internal fun FormationSheet(current: String, teamSize: Int, onApply: (String) ->
     val apply = { parsed?.let { onApply(it.formationText()) } }
     val muted = Color.White.copy(alpha = 0.55f)
     // Design "Squadify Pitch View": title with the team size, a filled field (red edge when wrong),
-    // the sum, the error, quick picks, and flat Cancel / Apply.
+    // the error, the formations to pick, and flat Cancel / Apply.
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = CarbonGray) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 20.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(Res.string.lm_change_formation), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 Text(stringResource(Res.string.lm_team_size_side, teamSize), color = muted, fontSize = 12.sp)
             }
-            Text(stringResource(Res.string.lm_formation_format).uppercase(), color = muted, fontSize = 12.sp, letterSpacing = 0.5.sp)
             OutlinedTextField(
-                value = text,
-                onValueChange = { new -> if (new.length <= 8 && new.all { it.isDigit() || it == '-' || it == ' ' }) text = new },
+                value = field,
+                onValueChange = { new ->
+                    if (new.text.length <= 8 && new.text.all { it.isDigit() || it == '-' || it == ' ' }) {
+                        val dashed = withAutoDash(text, new.text)
+                        // When a dash was added, the cursor goes after it.
+                        field = if (dashed == new.text) new else TextFieldValue(dashed, TextRange(dashed.length))
+                    }
+                },
                 singleLine = true,
                 isError = error != null,
                 shape = RoundedCornerShape(10.dp),
@@ -683,19 +733,19 @@ internal fun FormationSheet(current: String, teamSize: Int, onApply: (String) ->
                     errorCursorColor = PitchGreen
                 )
             )
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(stringResource(Res.string.lm_formation_adds_up, outfield), color = muted, fontSize = 12.sp)
-                error?.let { Text(it, color = Color(0xFFFF8A80), fontSize = 12.sp) }
-            }
+            error?.let { Text(it, color = Color(0xFFFF8A80), fontSize = 12.sp) }
             Text(stringResource(Res.string.lm_quick_picks).uppercase(), color = muted, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+            // Each chip takes its own height, not Material's 48dp touch area, so the rows sit close.
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 quickFormations(teamSize).forEach { f ->
                     val label = f.formationText()
                     val selected = parsed?.formationText() == label
-                    Surface(onClick = { text = label }, shape = RoundedCornerShape(16.dp), color = if (selected) PitchGreen else Color.White.copy(alpha = 0.06f)) {
+                    Surface(onClick = { field = TextFieldValue(label, TextRange(label.length)) }, shape = RoundedCornerShape(16.dp), color = if (selected) PitchGreen else Color.White.copy(alpha = 0.06f)) {
                         Text(label, color = Color.White, fontSize = 14.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                     }
                 }
+            }
             }
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Surface(onClick = onDismiss, shape = RoundedCornerShape(10.dp), color = Color.White.copy(alpha = 0.06f), modifier = Modifier.weight(1f).height(46.dp)) {
@@ -711,19 +761,40 @@ internal fun FormationSheet(current: String, teamSize: Int, onApply: (String) ->
     }
 }
 
+/**
+ * A sheet's head: the photo of the [player] it acts on (ringed, so it's clear who), beside the [title]
+ * and [subtitle]; without a player, just the text.
+ */
+@Composable
+internal fun SheetPlayerHeader(player: Player?, title: String, subtitle: String?, modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        player?.let {
+            TokenPhoto(it, 44.dp, BorderStroke(2.dp, Color.White))
+            Spacer(Modifier.width(12.dp))
+        }
+        Column {
+            Text(title, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), maxLines = 2, overflow = TextOverflow.Ellipsis)
+            subtitle?.let { Text(it, color = Color.White.copy(alpha = 0.55f), style = MaterialTheme.typography.bodySmall) }
+        }
+    }
+}
+
 /** One row of a pick sheet: a player (with their photo), or a plain line such as an empty position. */
 internal data class PitchPickRow(val label: String, val player: Player? = null, val onClick: () -> Unit)
 internal data class PitchPickSection(val title: String?, val rows: List<PitchPickRow>)
 
-/** A sheet of choices: who plays in a position, who to put in instead, who to swap with. */
+/**
+ * A sheet of choices: who plays in a position, who to put in instead, who to swap with. With [player]
+ * (the one the choices are about) it's headed like the live player sheet: their photo, ringed, beside
+ * the [title] and [subtitle], so it's clear who's being moved.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun PitchPickSheet(title: String, subtitle: String?, sections: List<PitchPickSection>, emptyText: String?, onDismiss: () -> Unit) {
+internal fun PitchPickSheet(title: String, subtitle: String?, sections: List<PitchPickSection>, emptyText: String?, onDismiss: () -> Unit, player: Player? = null) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = CarbonGray) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding.Horizontal).padding(bottom = 16.dp).navigationBarsPadding()) {
-            Text(title, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-            subtitle?.let { Text(it, color = Color.White.copy(alpha = 0.55f), style = MaterialTheme.typography.bodySmall) }
-            Spacer(Modifier.height(8.dp))
+            SheetPlayerHeader(player, title, subtitle)
+            Spacer(Modifier.height(if (player != null) 12.dp else 8.dp))
             if (sections.all { it.rows.isEmpty() } && emptyText != null) {
                 Text(emptyText, color = Color.White.copy(alpha = 0.6f), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 16.dp))
             }

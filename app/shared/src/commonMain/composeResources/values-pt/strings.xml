@@ -374,7 +374,6 @@
     <string name="msg_no_callups">Ainda ninguém foi convocado.</string>
     <string name="btn_start_match">Iniciar jogo</string>
     <string name="btn_enter_live_match">Entrar no jogo ao vivo</string>
-    <string name="msg_kickoff_countdown">O pontapé de saída é %1$s.</string>
     <string name="title_live_match">Jogo ao vivo</string>
 
     <!-- Live Match Console -->
@@ -385,8 +384,6 @@
     <string name="label_bench">Suplentes</string>
     <string name="msg_tap_to_add_to_xi">Toque para adicionar ao onze.</string>
     <string name="btn_kick_off">Iniciar jogo</string>
-    <string name="msg_pick_more_to_kick_off">Escolha mais %1$d para iniciar. Partes de %2$d minutos.</string>
-    <string name="msg_ready_to_kick_off">Partes de %1$d minutos.</string>
     <string name="label_half_time_badge">INTERVALO</string>
     <string name="label_first_half">1ª parte</string>
     <string name="label_second_half">2ª parte</string>
@@ -435,14 +432,8 @@
     <string name="msg_confirm_delete_match_title">Eliminar este jogo?</string>
     <string name="msg_confirm_delete_match_body">Isto remove o jogo, as suas convocatórias e quaisquer eventos registados. Esta ação não pode ser desfeita.</string>
     <string name="msg_no_events_yet">Ainda não há eventos registados.</string>
-    <string name="label_result_win">VITÓRIA</string>
-    <string name="label_result_loss">DERROTA</string>
-    <string name="label_result_draw">EMPATE</string>
     <string name="label_result_cancelled">CANCELADO</string>
-    <string name="label_full_time">FIM DO JOGO</string>
-    <string name="label_minutes_played">Minutos jogados</string>
     <string name="msg_minutes_played_subtitle">Por jogador, a partir do registo de substituições</string>
-    <string name="btn_back_to_match">Voltar ao jogo</string>
 
     <!-- Edit Club Details -->
     <string name="msg_edit_club_details">Editar detalhes do clube</string>
@@ -928,12 +919,8 @@
     <string name="lm_first_half_totals">Minutos da 1.ª parte (%1$s).</string>
     <string name="lm_share_short">média ≈ %1$s</string>
     <string name="lm_match_minutes">%1$s de jogo</string>
-    <string name="lm_fill_report">Preencher o relatório do jogo</string>
-    <string name="lm_view_report">Ver o relatório do jogo</string>
-    <string name="lm_events_heading">Eventos · %1$d</string>
     <string name="lm_half_time_sub">1.ª parte · %1$s</string>
     <string name="lm_tap_to_correct">toque para acertar</string>
-    <string name="lm_no_events">Sem eventos</string>
     <plurals name="lm_summary_not_played">
         <item quantity="one">%1$d ainda não jogou</item>
         <item quantity="other">%1$d ainda não jogaram</item>
@@ -1424,8 +1411,7 @@
     <string name="match_format_value">%1$dx%1$d</string>
     <string name="msg_age_group_conflict_rows">As linhas %1$s usam anos de nascimento que já têm escalão nesta época.</string>
     <string name="btn_save_callup">Guardar convocatória</string>
-    <string name="btn_saving_callup">A guardar a convocatória…</string>
-    <string name="msg_callup_min_players">Convoque pelo menos %1$d jogadores para guardar.</string>
+    <string name="btn_saving_callup">A guardar…</string>
     <string name="msg_callup_not_ready">A convocatória ainda não está pronta.</string>
     <string name="msg_callup_save_failed">Não foi possível guardar a convocatória. Tente novamente.</string>
     <string name="label_venue">Onde</string>
@@ -1440,11 +1426,9 @@
     <!-- Live pitch view -->
     <string name="tab_pitch">Campo</string>
     <string name="lm_change_formation">Alterar formação</string>
-    <string name="lm_formation_format">Defesas-médios-avançados</string>
-    <string name="lm_formation_adds_up">Soma %1$d + guarda-redes</string>
     <string name="lm_formation_wrong_sum">%1$s soma %2$d. Precisa de %3$d (sem contar o guarda-redes).</string>
     <string name="lm_formation_wrong_format">Escreva três números, como %1$s.</string>
-    <string name="lm_quick_picks">Atalhos</string>
+    <string name="lm_quick_picks">Formações</string>
     <string name="btn_apply">Aplicar</string>
     <string name="lm_minutes_chip">%1$d min</string>
     <string name="lm_half_length_cd">Duração da parte: %1$d minutos</string>
@@ -1461,7 +1445,6 @@
     <string name="lm_zone_defence">Defesa</string>
     <string name="lm_zone_midfield">Meio-campo</string>
     <string name="lm_zone_attack">Ataque</string>
-    <string name="lm_fill_more_to_kick_off">Preencha mais %1$d posições para iniciar. Partes de %2$d minutos.</string>
     <string name="lm_flip_pitch">Inverter o campo</string>
     <string name="lm_sent_off_list">Expulsos: %1$s</string>
     <string name="lm_on_the_pitch_for">%1$s em campo</string>
@@ -1470,7 +1453,7 @@
     <string name="lm_action_yellow">Amarelo</string>
     <string name="lm_action_red">Vermelho</string>
     <string name="lm_action_substitution">Substituição</string>
-    <string name="lm_team_size_side">%1$d a jogar</string>
+    <string name="lm_team_size_side">Futebol %1$d</string>
     <!-- Full stats -->
     <string name="fs_title">Estatísticas completas</string>
     <string name="fs_title_of">Estatísticas de %1$s</string>
@@ -1545,4 +1528,11 @@
     <string name="md_tl_positions">Troca de posições</string>
     <string name="md_tl_step">%1$d de %2$d</string>
     <string name="md_tl_slider">Momento do jogo</string>
+    <string name="label_vs">vs</string>
+    <string name="btn_save_lineup">Guardar</string>
+    <string name="lm_comes_in_for">Entra para o lugar de</string>
+    <string name="btn_leave">Sair</string>
+    <string name="lm_own_goal_mark">(p.b.)</string>
+    <string name="lm_final_result">Resultado Final</string>
+    <string name="md_no_cards">Sem cartões neste jogo.</string>
 </resources>

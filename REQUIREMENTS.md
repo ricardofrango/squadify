@@ -211,6 +211,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] **Logos and photos everywhere they belong.** Wherever an image is set it's shown; where it isn't, the screen looks as before, apart from player rows. See `TECHNICAL_DECISIONS.md` §57.
       - **Opponent logo** before "vs" on every match card (Matches tab, Team and Age Group Details) and on Home's next-up card.
       - **Club and opponent logos** side by side at the top of Match details, and before each side's name on the live console's scoreboard.
+      - **Grey screens, white sections** (the developer, 2026-10-25): every screen has a light grey background with its content in white sections outlined in grey, as on a finished match's General tab. Filters that pick one option are the same chips everywhere (the match Events tab's), scrolling sideways to the screen's edge.
       - **Player rows** start with one badge: the photo with the shirt number under it, only the photo or only the number (centred), or a head-and-shoulders placeholder when there's neither. Used in call-ups and the pool (Match details), Age Group and Team members, Club players, Add players, the line-up picker and the live console's squad and minutes rows, the match report's ratings, and training ratings.
       - **People's photos** in Club settings → Members, Member details and age group staff.
       - **Club logo on push notifications** (Android), when the club has one and the server has a public address.

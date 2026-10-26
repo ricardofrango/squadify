@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.forgotpassword
 
+import com.ricardofrango.squadify.presentation.ui.components.SectionCard
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.background
@@ -130,85 +132,87 @@ private fun ForgotPasswordContent(
                 // bar) on top, leaving an empty strip the height of the navigation bar above the keyboard.
                 .consumeWindowInsets(padding)
                 .imePadding()
-                .background(Color.White)
+                .background(ScreenBackground)
                 .verticalScroll(rememberScrollState())
                 .screenContentPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            when (state.step) {
-                ForgotPasswordStep.EMAIL -> {
-                    FormIntro(stringResource(Res.string.msg_forgot_email_intro))
-                    FormErrorLine(state.error)
-                    FormTextField(
-                        value = email,
-                        onValueChange = { email = it; onClearError() },
-                        label = stringResource(Res.string.label_email),
-                        enabled = enabled,
-                        isError = state.error != null,
-                        keyboardType = KeyboardType.Email,
-                        imeAction = ImeAction.Send,
-                        onImeAction = { onSendCode(email) },
-                        modifier = Modifier.semantics { contentType = ContentType.Username + ContentType.EmailAddress }
-                    )
-                    PrimaryLoadingButton(
-                        text = Res.string.btn_send_code,
-                        submittingText = Res.string.btn_sending_code,
-                        isLoading = state.submitting,
-                        onClick = { onSendCode(email) }
-                    )
-                }
-                ForgotPasswordStep.CODE -> {
-                    FormIntro(stringResource(Res.string.msg_forgot_code_intro, state.email))
-                    FormErrorLine(state.error)
-                    FormTextField(
-                        value = code,
-                        onValueChange = { new -> code = new.filter { it.isDigit() }.take(6); onClearError() },
-                        label = stringResource(Res.string.label_reset_code),
-                        enabled = enabled,
-                        isError = state.error != null,
-                        keyboardType = KeyboardType.NumberPassword,
-                        imeAction = ImeAction.Next,
-                        modifier = Modifier.semantics { contentType = ContentType.SmsOtpCode }
-                    )
-                    FormTextField(
-                        value = password,
-                        onValueChange = { password = it; onClearError() },
-                        label = stringResource(Res.string.label_new_password_field),
-                        supporting = stringResource(Res.string.msg_password_min_length),
-                        enabled = enabled,
-                        keyboardType = KeyboardType.Password,
-                        hidden = !passwordVisible,
-                        onToggleHidden = { passwordVisible = !passwordVisible },
-                        imeAction = ImeAction.Next,
-                        modifier = Modifier.semantics { contentType = ContentType.NewPassword }
-                    )
-                    FormTextField(
-                        value = confirm,
-                        onValueChange = { confirm = it; onClearError() },
-                        label = stringResource(Res.string.label_confirm_new_password_field),
-                        enabled = enabled,
-                        keyboardType = KeyboardType.Password,
-                        hidden = !passwordVisible,
-                        imeAction = ImeAction.Done,
-                        onImeAction = { onSetNewPassword(code, password, confirm) },
-                        modifier = Modifier.semantics { contentType = ContentType.NewPassword }
-                    )
-                    PrimaryLoadingButton(
-                        text = Res.string.btn_set_new_password,
-                        submittingText = Res.string.btn_setting_new_password,
-                        isLoading = state.submitting,
-                        onClick = { onSetNewPassword(code, password, confirm) }
-                    )
-                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                        TextButton(onClick = onResendCode, enabled = enabled && state.resendInSeconds == 0) {
-                            Text(
-                                if (state.resendInSeconds > 0) stringResource(Res.string.btn_resend_code_in, state.resendInSeconds)
-                                else stringResource(Res.string.btn_resend_code),
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                        TextButton(onClick = { code = ""; onUseDifferentEmail() }, enabled = enabled) {
-                            Text(stringResource(Res.string.btn_use_different_email), color = CarbonGray)
+            SectionCard(spacing = 16.dp) {
+                when (state.step) {
+                    ForgotPasswordStep.EMAIL -> {
+                        FormIntro(stringResource(Res.string.msg_forgot_email_intro))
+                        FormErrorLine(state.error)
+                        FormTextField(
+                            value = email,
+                            onValueChange = { email = it; onClearError() },
+                            label = stringResource(Res.string.label_email),
+                            enabled = enabled,
+                            isError = state.error != null,
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Send,
+                            onImeAction = { onSendCode(email) },
+                            modifier = Modifier.semantics { contentType = ContentType.Username + ContentType.EmailAddress }
+                        )
+                        PrimaryLoadingButton(
+                            text = Res.string.btn_send_code,
+                            submittingText = Res.string.btn_sending_code,
+                            isLoading = state.submitting,
+                            onClick = { onSendCode(email) }
+                        )
+                    }
+                    ForgotPasswordStep.CODE -> {
+                        FormIntro(stringResource(Res.string.msg_forgot_code_intro, state.email))
+                        FormErrorLine(state.error)
+                        FormTextField(
+                            value = code,
+                            onValueChange = { new -> code = new.filter { it.isDigit() }.take(6); onClearError() },
+                            label = stringResource(Res.string.label_reset_code),
+                            enabled = enabled,
+                            isError = state.error != null,
+                            keyboardType = KeyboardType.NumberPassword,
+                            imeAction = ImeAction.Next,
+                            modifier = Modifier.semantics { contentType = ContentType.SmsOtpCode }
+                        )
+                        FormTextField(
+                            value = password,
+                            onValueChange = { password = it; onClearError() },
+                            label = stringResource(Res.string.label_new_password_field),
+                            supporting = stringResource(Res.string.msg_password_min_length),
+                            enabled = enabled,
+                            keyboardType = KeyboardType.Password,
+                            hidden = !passwordVisible,
+                            onToggleHidden = { passwordVisible = !passwordVisible },
+                            imeAction = ImeAction.Next,
+                            modifier = Modifier.semantics { contentType = ContentType.NewPassword }
+                        )
+                        FormTextField(
+                            value = confirm,
+                            onValueChange = { confirm = it; onClearError() },
+                            label = stringResource(Res.string.label_confirm_new_password_field),
+                            enabled = enabled,
+                            keyboardType = KeyboardType.Password,
+                            hidden = !passwordVisible,
+                            imeAction = ImeAction.Done,
+                            onImeAction = { onSetNewPassword(code, password, confirm) },
+                            modifier = Modifier.semantics { contentType = ContentType.NewPassword }
+                        )
+                        PrimaryLoadingButton(
+                            text = Res.string.btn_set_new_password,
+                            submittingText = Res.string.btn_setting_new_password,
+                            isLoading = state.submitting,
+                            onClick = { onSetNewPassword(code, password, confirm) }
+                        )
+                        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                            TextButton(onClick = onResendCode, enabled = enabled && state.resendInSeconds == 0) {
+                                Text(
+                                    if (state.resendInSeconds > 0) stringResource(Res.string.btn_resend_code_in, state.resendInSeconds)
+                                    else stringResource(Res.string.btn_resend_code),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            TextButton(onClick = { code = ""; onUseDifferentEmail() }, enabled = enabled) {
+                                Text(stringResource(Res.string.btn_use_different_email), color = CarbonGray)
+                            }
                         }
                     }
                 }

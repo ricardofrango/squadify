@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.SectionCard
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -61,10 +63,10 @@ fun PlanEditorFrame(
         onBackCompleted = { askDiscard = true }
     )
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = { SquadifyTopBar(title = title, subtitle = subtitle, onNavigateBack = leave) }
     ) { padding ->
-        val modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding().background(Color.White)
+        val modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding().background(ScreenBackground)
         if (state.loading || state.loadFailed) {
             PlanLoadingOrError(state.loading, modifier, onRetry)
             return@Scaffold
@@ -102,15 +104,16 @@ fun PlanEditorFrame(
 /** Two columns on a wide screen, one otherwise (the editors' landscape layout, design 40h). */
 @Composable
 fun EditorColumns(wide: Boolean, left: @Composable ColumnScope.() -> Unit, right: @Composable ColumnScope.() -> Unit) {
+    // Each column is a white section on the screen's grey (SectionCard).
     if (wide) {
-        androidx.compose.foundation.layout.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(28.dp)) {
-            Column(Modifier.weight(1f), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(14.dp), content = left)
-            Column(Modifier.weight(1f), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(14.dp), content = right)
+        androidx.compose.foundation.layout.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)) {
+            SectionCard(Modifier.weight(1f), spacing = 14.dp, content = left)
+            SectionCard(Modifier.weight(1f), spacing = 14.dp, content = right)
         }
     } else {
         Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(14.dp)) {
-            left()
-            right()
+            SectionCard(spacing = 14.dp, content = left)
+            SectionCard(spacing = 14.dp, content = right)
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.creatematch
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardOptions
 import com.ricardofrango.squadify.presentation.ui.components.VenueSelector
@@ -146,7 +147,7 @@ private fun CreateMatchContent(
 ) {
     val clubName = (uiState as? CreateMatchUiState.Idle)?.clubName
     Scaffold(
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             SquadifyTopBar(
@@ -156,7 +157,7 @@ private fun CreateMatchContent(
             )
         }
     ) { paddingValues ->
-        val boxModifier = Modifier.fillMaxSize().padding(paddingValues).background(Color.White)
+        val boxModifier = Modifier.fillMaxSize().padding(paddingValues).background(ScreenBackground)
         when (uiState) {
             is CreateMatchUiState.Loading ->
                 Box(boxModifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
@@ -209,7 +210,7 @@ private fun CreateMatchForm(
     var showTimePicker by remember { mutableStateOf(false) }
     val contextCaption = "${state.ageGroupName} · ${state.seasonName}"
 
-    Column(modifier = modifier.background(Color.White)) {
+    Column(modifier = modifier.background(ScreenBackground)) {
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -540,6 +541,7 @@ private fun ValueField(label: String, value: String, onClick: () -> Unit, traili
 
 @Composable
 private fun fieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White,
     focusedTextColor = DeepCarbon,
     unfocusedTextColor = DeepCarbon,
     focusedBorderColor = PitchGreen,

@@ -17,6 +17,11 @@ val SuccessGreen = SquadifyGreen
 val PitchGreenLight = Color(0xFF4CAF50)
 val WhiteSmoke = Color(0xFFF5F5F5)
 
+// Every screen (the developer, 2026-10-25): a light grey background, with its content in white
+// sections outlined in grey (SectionCard, presentation/ui/components/SectionCard.kt).
+val ScreenBackground = WhiteSmoke
+val SectionBorderColor = CarbonGray.copy(alpha = 0.15f)
+
 // Status accents (design 23-27): amber marks something pending, deep green the top rating band,
 // alert red the lowest band and destructive actions. AmberText is amber's readable text colour on an
 // amber tint (plain amber text measures under 4.5:1 on white).

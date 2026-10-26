@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -78,7 +79,7 @@ fun HomeTab(
 ) {
     if (home == null) {
         Column(
-            modifier = Modifier.fillMaxSize().background(Color.White).screenContentPadding(),
+            modifier = Modifier.fillMaxSize().background(ScreenBackground).screenContentPadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -97,7 +98,7 @@ fun HomeTab(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(ScreenBackground)
             .verticalScroll(rememberScrollState())
             .screenContentPadding(),
         verticalArrangement = Arrangement.spacedBy(20.dp)

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createseason
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
@@ -243,11 +244,11 @@ private fun CreateSeasonContent(
     )
 
     Scaffold(
-        // Explicit white, not MaterialTheme.colorScheme.background: every screen in this app renders
+        // Explicit, not MaterialTheme.colorScheme.background: every screen in this app renders
         // light content regardless of system theme (only the header bars are dark) -- same convention
         // ClubDetailsScreen etc. follow. Without this, a device in dark mode gets SquadifyTheme's
         // DeepCarbon background here instead.
-        containerColor = Color.White,
+        containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
                 title = stringResource(Res.string.title_create_season),
@@ -260,7 +261,7 @@ private fun CreateSeasonContent(
             is CreateSeasonUiState.Loading -> {
                 Box(
                     modifier = Modifier.fillMaxSize().padding(paddingValues)
-                        .background(Color.White),
+                        .background(ScreenBackground),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = PitchGreen)
@@ -272,7 +273,7 @@ private fun CreateSeasonContent(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
-                        .background(Color.White)
+                        .background(ScreenBackground)
                         .verticalScroll(rememberScrollState())
                         .screenContentPadding(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -379,7 +380,7 @@ private fun CreateSeasonContent(
                         shape = FormRoundedShape,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = submitKeyboardActions { if (!uiState.isSubmitting) onCreateClick() },
-                        colors = OutlinedTextFieldDefaults.colors(
+                        colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
                             focusedTextColor = DeepCarbon,
                             unfocusedTextColor = DeepCarbon,
                             focusedBorderColor = PitchGreen,
