@@ -22,7 +22,8 @@ enum class MembersFilter { ALL, ADMINS, COORDINATORS, MEMBERS, PENDING }
 sealed class MembersUiState {
     data object Loading : MembersUiState()
     data object Error : MembersUiState()
-    data class Loaded(val overview: ClubMembersOverview) : MembersUiState()
+    // [overview]'s members are the pages loaded so far for the tab's role filter and search.
+    data class Loaded(val overview: ClubMembersOverview, val loadingMore: Boolean = false) : MembersUiState()
 }
 
 /** Everything `UpdateClubRequest` can carry, held as plain editable fields -- same "blank optional field

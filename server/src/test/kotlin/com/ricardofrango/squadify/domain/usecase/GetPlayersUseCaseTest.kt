@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
+import com.ricardofrango.squadify.domain.repository.PlayerListFilter
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
@@ -17,12 +18,15 @@ import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
+import io.mockk.slot
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import org.junit.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /**
@@ -170,6 +174,48 @@ class GetPlayersUseCaseTest {
         assertFailsWith<NotFoundException> {
             useCase(admin.id, clubIdA, "no-such-team")
         }
+        Unit
+    }
+
+    // ---- Paged (the Players screen) ----
+
+    @Test
+    fun anAdminsPageFiltersBySeasonAgeGroupAndAFoldedSearch() = runBlocking {
+        val admin = user("admin")
+        coEvery { userRepository.findById(admin.id) } returns admin
+        coEvery { userRepository.getUserRoleInClub(admin.id, clubIdA) } returns ClubRole.COORDINATOR
+        coEvery { ageGroupRepository.getAgeGroupsByClub(clubIdA) } returns listOf(ageGroup(ag1), ageGroup(ag2).copy(seasonId = "s0"))
+        val filter = slot<PlayerListFilter>()
+        // Two asked for, three came back: the third only says another page follows.
+        coEvery { playerRepository.getPlayersPage(clubIdA, capture(filter), 3, 0) } returns listOf(player("a"), player("b"), player("c"))
+
+        val page = useCase.page(admin.id, clubIdA, seasonId = "s1", ageGroupId = ag1, search = " Tomás ", limit = 2, offset = 0)
+
+        // Everyone in the club (no visibility limit), the season as its age groups, and "Tomás" as "tomas".
+        assertEquals(PlayerListFilter(null, setOf(ag1), ag1, "tomas"), filter.captured)
+        assertEquals(listOf("a", "b"), page.players.map { it.lastName })
+        assertTrue(page.hasMore)
+        assertTrue(page.anyPlayers)
+        Unit
+    }
+
+    @Test
+    fun aCoachsPageOnlyCoversTheirAgeGroupsPools() = runBlocking {
+        val coach = user("coach-ag1")
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { playerRepository.getPlayersByUser(coach.id) } returns emptyList()
+        coEvery { ageGroupRepository.getAgeGroupsByClub(clubIdA) } returns listOf(ageGroup(ag1), ageGroup(ag2))
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag2) } returns null
+        coEvery { playerRepository.getPlayersPage(clubIdA, PlayerListFilter(visibleAgeGroupIds = setOf(ag1)), 31, 30) } returns emptyList()
+        coEvery { playerRepository.hasPlayers(clubIdA, setOf(ag1)) } returns false
+
+        val page = useCase.page(coach.id, clubIdA, seasonId = null, ageGroupId = null, search = "  ", limit = 30, offset = 30)
+
+        assertEquals(emptyList(), page.players)
+        assertFalse(page.hasMore)
+        assertFalse(page.anyPlayers, "nothing in their age groups at all")
         Unit
     }
 }

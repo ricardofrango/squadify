@@ -5,6 +5,7 @@ import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.model.CreatePlayersRequest
 import com.ricardofrango.squadify.model.PhotoResponse
 import com.ricardofrango.squadify.model.Player
+import com.ricardofrango.squadify.model.PlayersPage
 import com.ricardofrango.squadify.model.PlayerProfile
 import com.ricardofrango.squadify.model.PlayerSeasonStats
 import com.ricardofrango.squadify.model.UpdatePlayerRequest
@@ -18,9 +19,21 @@ class PlayerRepositoryImpl(
     private val appConfig: AppConfig
 ) : PlayerRepository {
 
-    override suspend fun getPlayers(clubId: String): List<Player> =
+    override suspend fun getPlayersPage(
+        clubId: String,
+        seasonId: String?,
+        ageGroupId: String?,
+        query: String,
+        offset: Int,
+        limit: Int
+    ): PlayersPage =
         httpClient.get("${appConfig.baseUrl}/players") {
             parameter("clubId", clubId)
+            seasonId?.let { parameter("seasonId", it) }
+            ageGroupId?.let { parameter("ageGroupId", it) }
+            query.trim().takeIf { it.isNotEmpty() }?.let { parameter("q", it) }
+            parameter("limit", limit)
+            parameter("offset", offset)
         }.handleResponse()
 
     override suspend fun getPlayerById(playerId: String): PlayerProfile =

@@ -324,6 +324,9 @@ data class ClubDetailsResponse(
     val createPlayersAgeGroupIds: List<String> = emptyList(),
     // Whether the viewer may disable and reactivate players (ConfigurablePermission.MANAGE_PLAYER_STATUS).
     val canManagePlayerStatus: Boolean = false,
+    // How many players are in each age group's pool, by age group id, for the Age groups tab, so the
+    // app needn't download every player to count them.
+    val ageGroupPlayerCounts: Map<String, Int> = emptyMap(),
 )
 
 /** One age group the viewer is staff on, in the active season. */
@@ -1413,8 +1416,22 @@ data class ClubMembersOverview(
     val members: List<ClubMemberEntry>,
     val pendingInvites: List<PendingClubInvite>,
     val viewerUserId: String,
-    val viewerRole: ClubRole
+    val viewerRole: ClubRole,
+    // Paged requests only (`limit`): how many members hold each role in the whole club, and how many
+    // of those match the search, since [members] is then one page. Empty for the whole list.
+    val roleCounts: Map<ClubRole, Int> = emptyMap(),
+    val matchingRoleCounts: Map<ClubRole, Int> = emptyMap(),
+    val hasMore: Boolean = false
 ) {
-    val adminCount: Int get() = members.count { it.role == ClubRole.CLUB_ADMIN }
+    val adminCount: Int get() = countOf(ClubRole.CLUB_ADMIN)
+
+    /** Everyone in the club, not only the page loaded. */
+    val memberCount: Int get() = if (roleCounts.isEmpty()) members.size else roleCounts.values.sum()
+
+    /** Members with [role] in the whole club. */
+    fun countOf(role: ClubRole): Int = if (roleCounts.isEmpty()) members.count { it.role == role } else roleCounts[role] ?: 0
+
+    /** Members with [role] matching the search, loaded or not. */
+    fun matchingCountOf(role: ClubRole): Int = if (roleCounts.isEmpty()) members.count { it.role == role } else matchingRoleCounts[role] ?: 0
 }
 

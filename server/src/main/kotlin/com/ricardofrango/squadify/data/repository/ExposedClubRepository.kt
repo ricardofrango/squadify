@@ -6,13 +6,21 @@ import com.ricardofrango.squadify.data.database.Clubs
 import com.ricardofrango.squadify.data.database.Players
 import com.ricardofrango.squadify.data.database.UserPlayers
 import com.ricardofrango.squadify.data.database.Users
+import com.ricardofrango.squadify.domain.repository.ClubMemberAccount
 import com.ricardofrango.squadify.domain.repository.ClubRepository
+import com.ricardofrango.squadify.domain.repository.MemberListFilter
 import com.ricardofrango.squadify.exception.DatabaseException
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubTheme
 import com.ricardofrango.squadify.model.ClubMemberSummary
 import com.ricardofrango.squadify.model.ClubRole
+import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.case
+import org.jetbrains.exposed.v1.core.count
+import org.jetbrains.exposed.v1.core.intLiteral
+import org.jetbrains.exposed.v1.core.lowerCase
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
@@ -132,6 +140,50 @@ class ExposedClubRepository : ClubRepository {
                     avatarUrl = it[Users.avatarUrl]
                 )
             }
+
+    override suspend fun getClubMembersPage(clubId: String, filter: MemberListFilter, limit: Int, offset: Int): List<ClubMemberAccount> {
+        // Admins, then coordinators, then members.
+        val roleRank = case()
+            .When(ClubMembers.role eq ClubRole.CLUB_ADMIN, intLiteral(0))
+            .When(ClubMembers.role eq ClubRole.COORDINATOR, intLiteral(1))
+            .Else(intLiteral(2))
+        return (ClubMembers innerJoin Users).selectAll()
+            .where { membersMatching(clubId, filter) }
+            .orderBy(roleRank to SortOrder.ASC, Users.firstName to SortOrder.ASC, Users.lastName to SortOrder.ASC, Users.id to SortOrder.ASC)
+            .limit(limit)
+            .offset(offset.toLong())
+            .map {
+                ClubMemberAccount(
+                    userId = it[Users.id].toString(),
+                    firstName = it[Users.firstName],
+                    lastName = it[Users.lastName],
+                    email = it[Users.email],
+                    phone = it[Users.phone],
+                    role = it[ClubMembers.role],
+                    accountCreatedAt = it[Users.createdAt],
+                    avatarUrl = it[Users.avatarUrl]
+                )
+            }
+    }
+
+    override suspend fun countClubMembersByRole(clubId: String, search: String?): Map<ClubRole, Int> {
+        val count = ClubMembers.id.count()
+        return (ClubMembers innerJoin Users)
+            .select(ClubMembers.role, count)
+            .where { membersMatching(clubId, MemberListFilter(search = search)) }
+            .groupBy(ClubMembers.role)
+            .associate { it[ClubMembers.role] to it[count].toInt() }
+    }
+
+    private fun membersMatching(clubId: String, filter: MemberListFilter): Op<Boolean> {
+        var op: Op<Boolean> = (ClubMembers.clubId eq clubId.toUuid()) and (ClubMembers.active eq true)
+        filter.role?.let { op = op and (ClubMembers.role eq it) }
+        filter.userId?.let { op = op and (ClubMembers.userId eq it.toUuid()) }
+        filter.search?.takeIf { it.isNotEmpty() }?.let {
+            op = op and (searchKeyOf(Users.firstName, Users.lastName).containsSearch(it) or Users.email.lowerCase().containsSearch(it))
+        }
+        return op
+    }
 
     override suspend fun updateMemberRole(clubId: String, userId: String, role: ClubRole): Boolean =
         ClubMembers.update({ (ClubMembers.clubId eq clubId.toUuid()) and (ClubMembers.userId eq userId.toUuid()) }) {

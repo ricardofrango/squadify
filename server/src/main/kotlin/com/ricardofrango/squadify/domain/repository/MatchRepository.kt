@@ -6,6 +6,11 @@ interface MatchRepository {
     suspend fun getMatchById(id: String): Match?
     suspend fun getMatchesByTeam(teamId: String): List<Match>
     suspend fun getMatchesByClub(clubId: String): List<Match>
+    // One page of [teamIds]' matches: UPCOMING is every match neither finished nor cancelled, soonest
+    // first; FINISHED the finished ones, newest first.
+    suspend fun getMatchesPage(teamIds: Collection<String>, status: MatchListStatus, limit: Int, offset: Int): List<Match>
+    // Whether any of [teamIds] has a match, in any status.
+    suspend fun hasMatches(teamIds: Collection<String>): Boolean
     // Every match against one opponent, newest first.
     suspend fun getMatchesByOpponent(opponentId: String): List<Match>
     suspend fun createMatch(match: Match): Match

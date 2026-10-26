@@ -8,6 +8,7 @@ import com.ricardofrango.squadify.model.MatchCallUp
 import com.ricardofrango.squadify.model.MatchCallUpWithPlayer
 import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchLineupChange
+import com.ricardofrango.squadify.model.MatchListStatus
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.Player
@@ -54,6 +55,28 @@ class ExposedMatchRepository : MatchRepository {
         MatchesTable.selectAll().where { MatchesTable.clubId eq clubId.toUuid() }
             .orderBy(MatchesTable.dateTime)
             .map(::toMatch)
+
+    override suspend fun getMatchesPage(teamIds: Collection<String>, status: MatchListStatus, limit: Int, offset: Int): List<Match> {
+        if (teamIds.isEmpty()) return emptyList()
+        val ofTeams = MatchesTable.teamId inList teamIds.map { it.toUuid() }
+        val (where, order) = when (status) {
+            MatchListStatus.UPCOMING -> (ofTeams and (MatchesTable.status notInList listOf(MatchStatus.FINISHED, MatchStatus.CANCELLED))) to SortOrder.ASC
+            MatchListStatus.FINISHED -> (ofTeams and (MatchesTable.status eq MatchStatus.FINISHED)) to SortOrder.DESC
+        }
+        return MatchesTable.selectAll()
+            .where { where }
+            // The id keeps matches at the same time in one order from page to page.
+            .orderBy(MatchesTable.dateTime to order, MatchesTable.id to order)
+            .limit(limit)
+            .offset(offset.toLong())
+            .map(::toMatch)
+    }
+
+    override suspend fun hasMatches(teamIds: Collection<String>): Boolean =
+        teamIds.isNotEmpty() && !MatchesTable.selectAll()
+            .where { MatchesTable.teamId inList teamIds.map { it.toUuid() } }
+            .limit(1)
+            .empty()
 
     override suspend fun createMatch(match: Match): Match =
         MatchesTable.insert {

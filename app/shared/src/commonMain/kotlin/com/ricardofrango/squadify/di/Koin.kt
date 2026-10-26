@@ -159,7 +159,7 @@ val domainModule = module {
     factory { RegisterFcmTokenUseCase(get()) }
     factory { RemoveFcmTokenUseCase(get(), get()) }
     factory { RegisterCurrentFcmTokenUseCase(get(), get()) }
-    factory { GetClubDetailsUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { GetClubDetailsUseCase(get(), get(), get(), get()) }
     factory { GetClubUseCase(get()) }
     factory { UpdateClubUseCase(get()) }
     factory { UploadClubLogoUseCase(get()) }
@@ -212,6 +212,7 @@ val domainModule = module {
     factory { DeletePlayerPhotoUseCase(get()) }
     factory { CreateMatchUseCase(get()) }
     factory { GetMatchesUseCase(get()) }
+    factory { GetClubPlayersUseCase(get()) }
     factory { GetMatchDetailsUseCase(get()) }
     factory { UpdateMatchUseCase(get()) }
     factory { DeleteMatchUseCase(get()) }

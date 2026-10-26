@@ -74,7 +74,7 @@ val appModule = module {
 
     // Use Cases
     factory { GetClubsUseCase(get(), get(), get()) }
-    factory { GetClubDetailsUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { GetClubDetailsUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { GetClubHomeUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { ProvisionClubUseCase(get(), get(), get(), get(), get(), get()) }
     factory { RegisterUseCase(get(), get(), get(), get(), get()) }
@@ -170,7 +170,7 @@ val appModule = module {
 
     factory { GetTeamsUseCase(get(), get(), get(), get(), get(), get()) }
     factory { CreateMatchUseCase(get(), get(), get(), get(), get(), get(), get()) }
-    factory { GetMatchesUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { GetMatchesUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetMatchDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { UpdateMatchUseCase(get(), get(), get(), get(), get(), get()) }
     factory { DeleteMatchUseCase(get(), get(), get(), get()) }

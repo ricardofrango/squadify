@@ -9,22 +9,20 @@ import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetCurrentUserUseCase
 import com.ricardofrango.squadify.domain.usecase.LogoutUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubHomeUseCase
-import com.ricardofrango.squadify.domain.usecase.GetMatchScoreUseCase
 import com.ricardofrango.squadify.domain.usecase.GetMatchesUseCase
 import com.ricardofrango.squadify.domain.usecase.GetOpponentsUseCase
 import com.ricardofrango.squadify.domain.usecase.ObserveClubMatchesUseCase
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchScore
-import com.ricardofrango.squadify.model.MatchStatus
+import com.ricardofrango.squadify.model.MatchesPage
+import com.ricardofrango.squadify.model.Paging
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_failed_to_load_club_details
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -47,13 +45,13 @@ interface ClubDetailsActions {
     fun connectToClubMatchesUpdates(clubId: String)
     fun disconnectFromClubMatchesUpdates()
     fun refreshMatches(clubId: String)
+    fun loadMoreMatches()
 }
 
 class ClubDetailsViewModel(
     private val getClubDetailsUseCase: GetClubDetailsUseCase,
     private val getClubHomeUseCase: GetClubHomeUseCase,
     private val getMatchesUseCase: GetMatchesUseCase,
-    private val getMatchScoreUseCase: GetMatchScoreUseCase,
     private val getOpponentsUseCase: GetOpponentsUseCase,
     private val observeClubMatchesUseCase: ObserveClubMatchesUseCase,
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
@@ -131,8 +129,8 @@ class ClubDetailsViewModel(
                 } catch (e: Exception) {
                     null
                 }
-                // Same best-effort treatment for the Matches tab's data.
-                val (matches, matchScores) = fetchMatchesWithScores(clubId)
+                // The Matches tab's own pages load when it opens (see refreshMatches); its opponent
+                // names get the same best-effort treatment as Home.
                 val opponents = try {
                     getOpponentsUseCase(clubId)
                 } catch (e: Exception) {
@@ -146,8 +144,6 @@ class ClubDetailsViewModel(
                         ClubDetailsUiState.Idle(
                             details = details,
                             home = home,
-                            matches = matches,
-                            matchScores = matchScores,
                             opponents = opponents,
                             selectedTab = currentTab, // Restore the captured tab
                             selectedSeasonId = mostRecentSeasonId,
@@ -171,46 +167,100 @@ class ClubDetailsViewModel(
         }
     }
 
-    // Matches don't carry a score on Match itself (it's derived from events) -- fetch it per match,
-    // for anything with a score worth showing (finished results, and live/half-time matches so the
-    // Matches tab shows the current score, not just the minute). Best-effort and per-match so one bad
-    // fetch doesn't blank every result. Shared by loadClubDetails and refreshMatches.
-    private suspend fun fetchMatchesWithScores(clubId: String): Pair<List<Match>, Map<String, MatchScore>> {
-        val matches = try {
-            getMatchesUseCase(clubId)
-        } catch (e: Exception) {
-            emptyList()
-        }
-        val matchScores = try {
-            coroutineScope {
-                matches.filter {
-                    it.status == MatchStatus.FINISHED || it.status == MatchStatus.LIVE || it.status == MatchStatus.HALF_TIME
-                }
-                    .map { match -> async { match.id to runCatching { getMatchScoreUseCase(match.id) }.getOrNull() } }
-                    .awaitAll()
-                    .mapNotNull { (id, score) -> score?.let { id to it } }
-                    .toMap()
+    // Where the Matches tab is in its lists for the current filters, and the page load under way.
+    private var matchesCursor: MatchesCursor? = null
+    private var matchesJob: Job? = null
+
+    /**
+     * Loads the Matches tab's first pages for its filters, enough for [atLeast] rows, replacing what was
+     * there. Each page carries the scores of its started matches, so no request per match.
+     */
+    private fun reloadMatches(atLeast: Int = Paging.PAGE_SIZE) {
+        val start = _state.value as? ClubDetailsUiState.Idle ?: return
+        val clubId = start.details?.club?.id ?: return
+        matchesJob?.cancel()
+        matchesJob = viewModelScope.launch {
+            val cursor = MatchesCursor(start.matchesStatus)
+            val matches = mutableListOf<Match>()
+            val scores = mutableMapOf<String, MatchScore>()
+            var anyMatches = false
+            try {
+                do {
+                    val page = nextMatchesPage(clubId, start, cursor)
+                    matches += page.matches
+                    scores += page.scores.associateBy { it.matchId }
+                    anyMatches = anyMatches || page.anyMatches
+                } while (cursor.hasMore && matches.size < atLeast)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Best-effort, like before paging: keep what's on screen and stop asking for more.
+                matchesCursor = null
+                updateMatchesIdle { it.copy(matchesLoaded = true, matchesHasMore = false, matchesLoadingMore = false) }
+                return@launch
             }
-        } catch (e: Exception) {
-            emptyMap()
+            matchesCursor = cursor
+            updateMatchesIdle {
+                it.copy(
+                    matches = matches.distinctBy { m -> m.id },
+                    matchScores = scores,
+                    matchesLoaded = true,
+                    matchesHasMore = cursor.hasMore,
+                    matchesLoadingMore = false,
+                    anyMatches = anyMatches
+                )
+            }
         }
-        return matches to matchScores
+    }
+
+    /** The Matches tab's next page, as its list nears the end. */
+    override fun loadMoreMatches() {
+        val start = _state.value as? ClubDetailsUiState.Idle ?: return
+        val clubId = start.details?.club?.id ?: return
+        val cursor = matchesCursor ?: return
+        if (!cursor.hasMore || matchesJob?.isActive == true) return
+        matchesJob = viewModelScope.launch {
+            updateMatchesIdle { it.copy(matchesLoadingMore = true) }
+            try {
+                val page = nextMatchesPage(clubId, start, cursor)
+                updateMatchesIdle {
+                    it.copy(
+                        // A match pushed over the socket may already be in the list.
+                        matches = (it.matches + page.matches).distinctBy { m -> m.id },
+                        matchScores = it.matchScores + page.scores.associateBy { score -> score.matchId },
+                        matchesHasMore = cursor.hasMore,
+                        matchesLoadingMore = false,
+                        anyMatches = it.anyMatches || page.anyMatches
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Scrolling back to the end tries again.
+                updateMatchesIdle { it.copy(matchesLoadingMore = false) }
+            }
+        }
+    }
+
+    private suspend fun nextMatchesPage(clubId: String, filters: ClubDetailsUiState.Idle, cursor: MatchesCursor): MatchesPage {
+        val page = getMatchesUseCase(
+            clubId, cursor.list,
+            filters.selectedMatchesSeasonId, filters.selectedMatchesAgeGroupId, filters.selectedMatchesTeamId,
+            cursor.offset
+        )
+        cursor.advance(page.matches.size, page.hasMore)
+        return page
     }
 
     /**
-     * Re-fetches the Matches tab's own data via REST (not the socket) -- used when returning from a
-     * match's own detail screen, where the club-matches socket was disconnected while away and may
-     * have missed updates in the meantime (see MatchesTab's DisposableEffect).
+     * Re-fetches the Matches tab's own data via REST (not the socket) -- used when the tab opens and
+     * when returning from a match's own detail screen, where the club-matches socket was disconnected
+     * while away and may have missed updates in the meantime (see MatchesTab's DisposableEffect). As
+     * many rows as were loaded come back, so the list doesn't shrink under the user.
      */
     override fun refreshMatches(clubId: String) {
-        viewModelScope.launch {
-            val (matches, matchScores) = fetchMatchesWithScores(clubId)
-            _state.update { state ->
-                if (state is ClubDetailsUiState.Idle) {
-                    state.copy(matches = matches, matchScores = matchScores)
-                } else state
-            }
-        }
+        val loaded = (_state.value as? ClubDetailsUiState.Idle)?.matches?.size ?: 0
+        reloadMatches(atLeast = maxOf(Paging.PAGE_SIZE, loaded))
     }
 
     /**
@@ -285,21 +335,29 @@ class ClubDetailsViewModel(
 
     // ---- Matches tab filters (the list itself is filtered + grouped in the screen) ----
 
-    override fun onMatchesSeasonSelected(seasonId: String?) = updateMatchesIdle {
+    // Each filter runs on the server, so a change loads the tab's first page again.
+
+    override fun onMatchesSeasonSelected(seasonId: String?) = onMatchesFiltered {
         // A different season -> the picked age group / team may not belong to it; reset them.
         it.copy(selectedMatchesSeasonId = seasonId, selectedMatchesAgeGroupId = null, selectedMatchesTeamId = null)
     }
 
-    override fun onMatchesAgeGroupSelected(ageGroupId: String?) = updateMatchesIdle {
+    override fun onMatchesAgeGroupSelected(ageGroupId: String?) = onMatchesFiltered {
         it.copy(selectedMatchesAgeGroupId = ageGroupId, selectedMatchesTeamId = null)
     }
 
-    override fun onMatchesTeamSelected(teamId: String?) = updateMatchesIdle {
+    override fun onMatchesTeamSelected(teamId: String?) = onMatchesFiltered {
         it.copy(selectedMatchesTeamId = teamId)
     }
 
-    override fun onMatchesStatusSelected(status: MatchesStatusFilter) = updateMatchesIdle {
+    override fun onMatchesStatusSelected(status: MatchesStatusFilter) = onMatchesFiltered {
         it.copy(matchesStatus = status)
+    }
+
+    // The new filters' list replaces the old one; until it arrives the tab shows its spinner.
+    private inline fun onMatchesFiltered(block: (ClubDetailsUiState.Idle) -> ClubDetailsUiState.Idle) {
+        updateMatchesIdle { block(it).copy(matches = emptyList(), matchScores = emptyMap(), matchesLoaded = false, matchesHasMore = false) }
+        reloadMatches()
     }
 
     private inline fun updateMatchesIdle(block: (ClubDetailsUiState.Idle) -> ClubDetailsUiState.Idle) {

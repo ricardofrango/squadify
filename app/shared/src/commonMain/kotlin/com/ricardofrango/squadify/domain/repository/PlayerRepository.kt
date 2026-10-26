@@ -1,13 +1,23 @@
 package com.ricardofrango.squadify.domain.repository
 
 import com.ricardofrango.squadify.model.CreatePlayersRequest
+import com.ricardofrango.squadify.model.Paging
 import com.ricardofrango.squadify.model.Player
+import com.ricardofrango.squadify.model.PlayersPage
 import com.ricardofrango.squadify.model.PlayerProfile
 import com.ricardofrango.squadify.model.PlayerSeasonStats
 import com.ricardofrango.squadify.model.UpdatePlayerRequest
 
 interface PlayerRepository {
-    suspend fun getPlayers(clubId: String): List<Player>
+    // One page of the club's players: active first, then by name; the filters run on the server.
+    suspend fun getPlayersPage(
+        clubId: String,
+        seasonId: String?,
+        ageGroupId: String?,
+        query: String,
+        offset: Int,
+        limit: Int = Paging.PAGE_SIZE
+    ): PlayersPage
     suspend fun getPlayerById(playerId: String): PlayerProfile
     suspend fun getPlayerSeasonStats(playerId: String): PlayerSeasonStats
     suspend fun createPlayers(request: CreatePlayersRequest): List<Player>

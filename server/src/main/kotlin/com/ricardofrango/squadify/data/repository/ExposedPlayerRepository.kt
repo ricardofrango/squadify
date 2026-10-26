@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.data.repository
 
 import com.ricardofrango.squadify.data.database.AgeGroupPlayers
+import com.ricardofrango.squadify.domain.repository.PlayerListFilter
 import com.ricardofrango.squadify.data.database.Players
 import com.ricardofrango.squadify.data.database.UserPlayers
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
@@ -8,7 +9,14 @@ import com.ricardofrango.squadify.exception.DatabaseException
 import com.ricardofrango.squadify.model.AgeGroupPlayer
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.UserPlayerRelationship
+import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.count
+import org.jetbrains.exposed.v1.core.inSubQuery
+import org.jetbrains.exposed.v1.core.notInSubQuery
+import org.jetbrains.exposed.v1.core.or
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
@@ -25,6 +33,43 @@ class ExposedPlayerRepository : PlayerRepository {
     override suspend fun getPlayersByClub(clubId: String): List<Player> =
         Players.selectAll().where { Players.clubId eq clubId.toUuid() }
             .map(::toPlayer)
+
+    override suspend fun getPlayersPage(clubId: String, filter: PlayerListFilter, limit: Int, offset: Int): List<Player> =
+        Players.selectAll()
+            .where { playersMatching(clubId, filter) }
+            .orderBy(Players.active to SortOrder.DESC, Players.firstName to SortOrder.ASC, Players.lastName to SortOrder.ASC, Players.id to SortOrder.ASC)
+            .limit(limit)
+            .offset(offset.toLong())
+            .map(::toPlayer)
+
+    override suspend fun hasPlayers(clubId: String, visibleAgeGroupIds: Set<String>?): Boolean =
+        !Players.selectAll()
+            .where { playersMatching(clubId, PlayerListFilter(visibleAgeGroupIds = visibleAgeGroupIds)) }
+            .limit(1)
+            .empty()
+
+    override suspend fun countPlayersByAgeGroup(clubId: String): Map<String, Int> {
+        val count = AgeGroupPlayers.playerId.count()
+        return (AgeGroupPlayers innerJoin Players)
+            .select(AgeGroupPlayers.ageGroupId, count)
+            .where { Players.clubId eq clubId.toUuid() }
+            .groupBy(AgeGroupPlayers.ageGroupId)
+            .associate { it[AgeGroupPlayers.ageGroupId].toString() to it[count].toInt() }
+    }
+
+    private fun playersMatching(clubId: String, filter: PlayerListFilter): Op<Boolean> {
+        fun inPools(ageGroupIds: Set<String>) = Players.id inSubQuery AgeGroupPlayers.select(AgeGroupPlayers.playerId)
+            .where { AgeGroupPlayers.ageGroupId inList ageGroupIds.map { it.toUuid() } }
+
+        var op: Op<Boolean> = Players.clubId eq clubId.toUuid()
+        filter.visibleAgeGroupIds?.let { op = op and inPools(it) }
+        filter.ageGroupId?.let { op = op and inPools(setOf(it)) }
+        filter.seasonAgeGroupIds?.let {
+            op = op and (inPools(it) or (Players.id notInSubQuery AgeGroupPlayers.select(AgeGroupPlayers.playerId)))
+        }
+        filter.search?.takeIf { it.isNotEmpty() }?.let { op = op and searchKeyOf(Players.firstName, Players.lastName).containsSearch(it) }
+        return op
+    }
 
     override suspend fun createPlayer(player: Player): Player =
         Players.insert {

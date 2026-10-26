@@ -53,6 +53,22 @@ fun Route.playerRoutes() {
                 val teamId = call.request.queryParameters["teamId"]
                 val currentUserId =
                     call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                val params = call.request.queryParameters
+                // With `limit`: one page of the Players screen, filtered here. Without it: the whole
+                // list, for app builds from before paging.
+                val limit = Paging.limitOf(params["limit"])
+                if (limit != null) {
+                    return@get call.respond(
+                        getPlayersUseCase.page(
+                            currentUserId, clubId,
+                            seasonId = params["seasonId"],
+                            ageGroupId = params["ageGroupId"],
+                            search = params["q"],
+                            limit = limit,
+                            offset = Paging.offsetOf(params["offset"])
+                        )
+                    )
+                }
                 val players = getPlayersUseCase(currentUserId, clubId, teamId)
                 call.respond(players)
             }

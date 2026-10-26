@@ -83,6 +83,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.Team
+import com.ricardofrango.squadify.model.Match
+import com.ricardofrango.squadify.model.MatchScore
+import com.ricardofrango.squadify.model.MatchStatus
+import com.ricardofrango.squadify.model.Opponent
+import com.ricardofrango.squadify.presentation.ui.components.LoadMoreEffect
+import com.ricardofrango.squadify.presentation.ui.components.loadingMoreItem
+import androidx.compose.foundation.lazy.rememberLazyListState
 import com.ricardofrango.squadify.presentation.ui.components.EmptyStateCallToAction
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
@@ -294,9 +301,7 @@ private fun ClubDetailsTabContent(
                     AgeGroupList(
                         ageGroups = ageGroups,
                         teamCountFor = { ag -> state.details?.teams?.count { it.ageGroupId == ag } ?: 0 },
-                        playerCountFor = { ag ->
-                            state.details?.ageGroupPlayers?.count { it.ageGroupId == ag } ?: 0
-                        },
+                        playerCountFor = { ag -> state.details?.ageGroupPlayerCounts?.get(ag) ?: 0 },
                         onAgeGroupClick = onNavigateToAgeGroup
                     )
                 }
@@ -565,16 +570,23 @@ internal fun PlayerList(
     // Null without the permission: no ✕. Never offered on a player already disabled.
     onDisable: ((Player) -> Unit)? = null,
     // Null without the permission: no "Reactivate". Only offered on a disabled player.
-    onReactivate: ((Player) -> Unit)? = null
+    onReactivate: ((Player) -> Unit)? = null,
+    // The list is a page at a time: the next one loads as it nears its end.
+    hasMore: Boolean = false,
+    loadingMore: Boolean = false,
+    onLoadMore: () -> Unit = {}
 ) {
     // Callers only reach here with a non-empty list -- the empty case is handled one level up by
     // NoPlayersState (which also offers the right "add players" action).
+    val listState = rememberLazyListState()
+    LoadMoreEffect(listState, enabled = hasMore && !loadingMore, onLoadMore = onLoadMore)
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, bottom = ScreenPadding.Bottom, top = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(players) { player ->
+        items(players, key = { it.id }) { player ->
             PlayerCard(
                 player,
                 onClick = { onNavigateToPlayer(player.id) },
@@ -582,6 +594,7 @@ internal fun PlayerList(
                 onReactivate = onReactivate?.takeIf { !player.active }?.let { { it(player) } }
             )
         }
+        loadingMoreItem(loadingMore)
     }
 }
 
@@ -1017,6 +1030,7 @@ private object PreviewClubDetailsActions : ClubDetailsActions {
     override fun connectToClubMatchesUpdates(clubId: String) {}
     override fun disconnectFromClubMatchesUpdates() {}
     override fun refreshMatches(clubId: String) {}
+    override fun loadMoreMatches() {}
 }
 
 @Composable
@@ -1052,7 +1066,7 @@ private fun previewClubDetails(): ClubDetails {
         Team("t1", "c1", "ag1", "s1", "Sub-15 A", "A", true, teamSize = 11),
         Team("t2", "c1", "ag1", "s1", "Sub-15 B", "B", true, teamSize = 7)
     )
-    return ClubDetails(club, teams, emptyList(), listOf(season), listOf(ageGroup), emptyList(), canEditClub = true)
+    return ClubDetails(club, teams, listOf(season), listOf(ageGroup), canEditClub = true, ageGroupPlayerCounts = mapOf("ag1" to 18))
 }
 
 @Preview
@@ -1060,6 +1074,38 @@ private fun previewClubDetails(): ClubDetails {
 private fun ClubDetailsTeamsPreview() {
     val details = previewClubDetails()
     ClubDetailsPreviewOf(ClubDetailsUiState.Idle(details = details, filteredTeams = details.teams, selectedTab = CLUB_TAB_TEAMS, canEditClub = true))
+}
+
+private fun previewMatchesState(): ClubDetailsUiState.Idle {
+    val now = Instant.fromEpochMilliseconds(1_793_000_000_000)
+    val matches = listOf(
+        Match("m1", "c1", "t1", "o1", dateTime = now, status = MatchStatus.SCHEDULED),
+        Match("m2", "c1", "t2", "o2", dateTime = now, status = MatchStatus.FINISHED)
+    )
+    return ClubDetailsUiState.Idle(
+        details = previewClubDetails(),
+        selectedTab = CLUB_TAB_MATCHES,
+        matches = matches,
+        matchScores = mapOf("m2" to MatchScore("m2", 3, 1)),
+        opponents = listOf(Opponent("o1", "c1", "Académica"), Opponent("o2", "c1", "Belenenses")),
+        matchesStatus = MatchesStatusFilter.ALL,
+        matchesLoaded = true,
+        matchesHasMore = true,
+        matchesLoadingMore = true,
+        anyMatches = true
+    )
+}
+
+@Preview
+@Composable
+private fun ClubDetailsMatchesPreview() {
+    ClubDetailsPreviewOf(previewMatchesState())
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun ClubDetailsMatchesLandscapePreview() {
+    ClubDetailsPreviewOf(previewMatchesState())
 }
 
 @Preview

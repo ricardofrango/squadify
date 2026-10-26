@@ -117,7 +117,8 @@ fun ClubPlayersScreen(
             onAgeGroupSelected = viewModel::onAgeGroupSelected,
             onSearchChanged = viewModel::onSearchChanged,
             onDisable = viewModel::disable,
-            onReactivate = viewModel::reactivate
+            onReactivate = viewModel::reactivate,
+            onLoadMore = viewModel::loadMore
         )
     }
 }
@@ -179,7 +180,8 @@ private fun ClubPlayersContent(
     onAgeGroupSelected: (String?) -> Unit,
     onSearchChanged: (String) -> Unit,
     onDisable: (playerId: String) -> Unit,
-    onReactivate: (playerId: String) -> Unit
+    onReactivate: (playerId: String) -> Unit,
+    onLoadMore: () -> Unit = {}
 ) {
     var confirmDisable by remember { mutableStateOf<Player?>(null) }
     Scaffold(
@@ -210,10 +212,13 @@ private fun ClubPlayersContent(
                             canEditClub = s.details.canEditClub,
                             onCreateAgeGroupClick = { onCreateAgeGroups(clubName, s.details.club.sport, s.seasonId) }
                         )
+                    !s.loaded -> Box(Modifier.fillMaxWidth().screenContentPadding(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = PitchGreen)
+                    }
                     s.players.isEmpty() ->
                         NoPlayersState(
                             canEditClub = s.details.canEditClub,
-                            hasClubPlayers = s.details.players.isNotEmpty(),
+                            hasClubPlayers = s.anyPlayers,
                             onAddPlayersToClub = { onCreatePlayers(clubName) },
                             onAddPlayersToAgeGroup = { onAddPlayersToAgeGroup(clubName) }
                         )
@@ -223,7 +228,10 @@ private fun ClubPlayersContent(
                         s.players,
                         onOpenPlayer,
                         onDisable = if (s.details.canManagePlayerStatus) { player -> confirmDisable = player } else null,
-                        onReactivate = if (s.details.canManagePlayerStatus) { player -> onReactivate(player.id) } else null
+                        onReactivate = if (s.details.canManagePlayerStatus) { player -> onReactivate(player.id) } else null,
+                        hasMore = s.hasMore,
+                        loadingMore = s.loadingMore,
+                        onLoadMore = onLoadMore
                     )
                 }
             }
@@ -257,13 +265,20 @@ private fun ClubPlayersPreview() {
         Player("p2", "c1", "Rui", "Perestrelo", LocalDate(2012, 5, 9), active = true),
         Player("p3", "c1", "Duarte", "Nabais", LocalDate(2012, 8, 21), shirtNumber = 7, active = false)
     )
-    val details = ClubDetails(club, emptyList(), players, emptyList(), emptyList(), emptyList(), canEditClub = true, canManagePlayerStatus = true)
+    val details = ClubDetails(club, emptyList(), emptyList(), emptyList(), canEditClub = true, canManagePlayerStatus = true)
     SquadifyTheme {
         ClubPlayersContent(
-            ClubPlayersUiState.Idle(details), remember { SnackbarHostState() },
+            ClubPlayersUiState.Idle(details, players = players, loaded = true, hasMore = true, loadingMore = true, anyPlayers = true),
+            remember { SnackbarHostState() },
             {}, {}, { _, _, _ -> }, {}, {}, {}, {}, {}, {}, {}, {}
         )
     }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun ClubPlayersLandscapePreview() {
+    ClubPlayersPreview()
 }
 
 @Preview
