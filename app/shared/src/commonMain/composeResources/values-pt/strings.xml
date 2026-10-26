@@ -162,7 +162,6 @@
     <string name="msg_select_age_group_error">Selecione um escalão para estas equipas.</string>
     <string name="msg_season_has_no_age_groups">Esta época ainda não tem escalões — crie um antes de adicionar equipas.</string>
     <string name="msg_no_seasons_for_teams">Crie uma época antes de adicionar equipas.</string>
-    <string name="msg_teams_intro">Uma linha por equipa. Cada equipa precisa de um nome — o resto pode ser preenchido mais tarde.</string>
     <string name="label_team_section">Equipa</string>
     <string name="label_team_name_field">Nome *</string>
     <string name="label_team_name_placeholder">ex.: Equipa A</string>
@@ -170,9 +169,7 @@
     <string name="label_add_another_team">Adicionar outra equipa</string>
     <string name="btn_create_teams">Criar equipas</string>
     <string name="btn_creating_teams">A criar...</string>
-    <string name="msg_teams_footer_helper">Todas as equipas são criadas em conjunto — se uma falhar, nenhuma é guardada.</string>
     <string name="msg_create_teams_failed">Ocorreu um erro ao criar as equipas. Por favor, tente novamente.</string>
-    <string name="msg_team_size_age_group_default">Começa no valor por omissão do escalão — altera para uma equipa que jogue outro formato.</string>
 
     <!-- Add Players to Age Group -->
     <string name="title_add_players_to_age_group">Adicionar jogadores</string>

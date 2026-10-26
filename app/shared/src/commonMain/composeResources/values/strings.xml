@@ -164,7 +164,6 @@
     <string name="msg_select_age_group_error">Select an age group for these teams.</string>
     <string name="msg_season_has_no_age_groups">This season has no age groups yet — create one before adding teams.</string>
     <string name="msg_no_seasons_for_teams">Create a season before adding teams.</string>
-    <string name="msg_teams_intro">One row per team. Every team needs a name — the rest can be filled in later.</string>
     <string name="label_team_section">Team</string>
     <string name="label_team_name_field">Name *</string>
     <string name="label_team_name_placeholder">e.g. Team A</string>
@@ -172,9 +171,7 @@
     <string name="label_add_another_team">Add another team</string>
     <string name="btn_create_teams">Create teams</string>
     <string name="btn_creating_teams">Creating...</string>
-    <string name="msg_teams_footer_helper">All teams are created together — if one fails, none are saved.</string>
     <string name="msg_create_teams_failed">Something went wrong creating the teams. Please try again.</string>
-    <string name="msg_team_size_age_group_default">Starts from the age group\'s default — change it for a team that plays a different format.</string>
 
     <!-- Add Players to Age Group -->
     <string name="title_add_players_to_age_group">Add players</string>

@@ -29,6 +29,7 @@ import com.ricardofrango.squadify.model.PlayerPosition
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
+import com.ricardofrango.squadify.presentation.ui.components.PinnedBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -127,6 +128,22 @@ private fun AddPlayersToAgeGroupContent(
                 subtitle = subtitle,
                 onNavigateBack = onNavigateBack
             )
+        },
+        bottomBar = {
+            // Pinned, as on every form: the list scrolls under it.
+            if (idle != null && idle.ageGroups.isNotEmpty()) {
+                val selectedCount = idle.selectedPlayerIds.size
+                PinnedBottomBar {
+                    idle.error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+                    PrimaryLoadingButton(
+                        text = if (selectedCount == 1) stringResource(Res.string.btn_add_player_one) else stringResource(Res.string.btn_add_players_other, selectedCount),
+                        submittingText = stringResource(Res.string.btn_adding_players),
+                        isLoading = idle.isSubmitting,
+                        enabled = selectedCount > 0,
+                        onClick = onAddClick
+                    )
+                }
+            }
         }
     ) { paddingValues ->
         when (uiState) {
@@ -161,9 +178,7 @@ private fun AddPlayersToAgeGroupContent(
                         .padding(paddingValues)
                         .background(ScreenBackground)
                         .padding(horizontal = ScreenPadding.Horizontal)
-                        // 12dp under the button, as Match details' pinned bar; the navigation bar's
-                        // inset is already in paddingValues.
-                        .padding(top = 16.dp, bottom = 12.dp),
+                        .padding(top = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     AgeGroupPicker(
@@ -230,7 +245,7 @@ private fun AddPlayersToAgeGroupContent(
                                     modifier = Modifier.fillMaxSize(),
                                     state = listState,
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    contentPadding = PaddingValues(vertical = 4.dp)
+                                    contentPadding = PaddingValues(top = 4.dp, bottom = 12.dp)
                                 ) {
                                     items(uiState.eligiblePlayers, key = { it.id }) { player ->
                                         PlayerRow(
@@ -246,27 +261,6 @@ private fun AddPlayersToAgeGroupContent(
                             }
                         }
                     }
-
-                    if (uiState.error != null) {
-                        Text(
-                            text = uiState.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-
-                    val addLabel = if (selectedCount == 1) {
-                        stringResource(Res.string.btn_add_player_one)
-                    } else {
-                        stringResource(Res.string.btn_add_players_other, selectedCount)
-                    }
-                    PrimaryLoadingButton(
-                        text = addLabel,
-                        submittingText = stringResource(Res.string.btn_adding_players),
-                        isLoading = uiState.isSubmitting,
-                        enabled = selectedCount > 0,
-                        onClick = onAddClick
-                    )
                 }
             }
         }

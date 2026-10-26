@@ -28,6 +28,7 @@ import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
+import com.ricardofrango.squadify.presentation.ui.components.PinnedBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -126,6 +127,22 @@ private fun AddStaffToAgeGroupContent(
                 subtitle = subtitle,
                 onNavigateBack = onNavigateBack
             )
+        },
+        bottomBar = {
+            // Pinned, as on every form: the list scrolls under it.
+            if (idle != null && idle.ageGroups.isNotEmpty()) {
+                val selectedCount = idle.selectedRoles.size
+                PinnedBottomBar {
+                    idle.error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+                    PrimaryLoadingButton(
+                        text = if (selectedCount == 1) stringResource(Res.string.btn_add_staff_one) else stringResource(Res.string.btn_add_staff_other, selectedCount),
+                        submittingText = stringResource(Res.string.btn_adding_staff),
+                        isLoading = idle.isSubmitting,
+                        enabled = selectedCount > 0,
+                        onClick = onAddClick
+                    )
+                }
+            }
         }
     ) { paddingValues ->
         when (uiState) {
@@ -166,7 +183,7 @@ private fun AddStaffToAgeGroupContent(
                         .padding(paddingValues)
                         .background(ScreenBackground)
                         .padding(horizontal = ScreenPadding.Horizontal)
-                        .padding(top = 16.dp, bottom = 24.dp),
+                        .padding(top = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     AgeGroupPicker(
@@ -229,7 +246,7 @@ private fun AddStaffToAgeGroupContent(
                             else -> LazyColumn(
                                 modifier = Modifier.fillMaxSize(),
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                                contentPadding = PaddingValues(vertical = 4.dp)
+                                contentPadding = PaddingValues(top = 4.dp, bottom = 12.dp)
                             ) {
                                 items(filtered, key = { it.userId }) { member ->
                                     MemberRow(
@@ -241,27 +258,6 @@ private fun AddStaffToAgeGroupContent(
                             }
                         }
                     }
-
-                    if (uiState.error != null) {
-                        Text(
-                            text = uiState.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-
-                    val addLabel = if (selectedCount == 1) {
-                        stringResource(Res.string.btn_add_staff_one)
-                    } else {
-                        stringResource(Res.string.btn_add_staff_other, selectedCount)
-                    }
-                    PrimaryLoadingButton(
-                        text = addLabel,
-                        submittingText = stringResource(Res.string.btn_adding_staff),
-                        isLoading = uiState.isSubmitting,
-                        enabled = selectedCount > 0,
-                        onClick = onAddClick
-                    )
                 }
             }
         }
