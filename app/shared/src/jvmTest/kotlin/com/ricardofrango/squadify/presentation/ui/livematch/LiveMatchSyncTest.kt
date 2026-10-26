@@ -100,6 +100,7 @@ class LiveMatchSyncTest {
         override suspend fun manageCallUps(matchId: String, playerIds: List<String>) = error("unused")
         override suspend fun getMatchReport(matchId: String): MatchReportDetails = error("unused")
         override suspend fun saveMatchReport(matchId: String, request: SaveMatchReportRequest): MatchReport = error("unused")
+        override suspend fun saveMatchRecord(matchId: String, request: com.ricardofrango.squadify.model.SaveMatchRecordRequest): Match = error("unused")
         override suspend fun deleteMatchEvent(matchId: String, eventId: String) = error("unused")
         override fun observeClubMatches(clubId: String): Flow<ClubMatchesUpdate> = error("unused")
     }

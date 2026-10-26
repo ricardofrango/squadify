@@ -10,6 +10,7 @@ import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchReport
 import com.ricardofrango.squadify.model.MatchReportDetails
 import com.ricardofrango.squadify.model.SaveMatchReportRequest
+import com.ricardofrango.squadify.model.SaveMatchRecordRequest
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.StartMatchRequest
@@ -46,6 +47,8 @@ interface MatchRepository {
     // The post-match report for a FINISHED match: text, each called-up player's stats and rating.
     suspend fun getMatchReport(matchId: String): MatchReportDetails
     suspend fun saveMatchReport(matchId: String, request: SaveMatchReportRequest): MatchReport
+    // After the game: its goals and cards corrected, or a game not followed live entered.
+    suspend fun saveMatchRecord(matchId: String, request: SaveMatchRecordRequest): Match
 
     suspend fun getMatchEvents(matchId: String): List<MatchEvent>
     suspend fun getMatchScore(matchId: String): MatchScore

@@ -80,4 +80,9 @@ class FinishedMatchRecordTest {
         assertEquals(listOf(FinishedTab.GENERAL, FinishedTab.STATS, FinishedTab.EVENTS, FinishedTab.TIMELINE), finishedTabs(canSeeMatchRecord = true))
         assertEquals(listOf(FinishedTab.GENERAL, FinishedTab.EVENTS), finishedTabs(canSeeMatchRecord = false))
     }
+
+    @Test
+    fun aGameEnteredAfterwardsHasNoTimeline() {
+        assertEquals(listOf(FinishedTab.GENERAL, FinishedTab.STATS, FinishedTab.EVENTS), finishedTabs(canSeeMatchRecord = true, hasTimeline = false))
+    }
 }

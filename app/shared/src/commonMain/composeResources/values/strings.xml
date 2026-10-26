@@ -1526,4 +1526,27 @@
     <string name="lm_own_goal_mark">(OG)</string>
     <string name="lm_final_result">Final result</string>
     <string name="md_no_cards">No cards in this match.</string>
+    <!-- Match record (after the game) -->
+    <string name="title_enter_result">Enter result</string>
+    <string name="title_match_record">Edit match record</string>
+    <string name="btn_enter_result">Enter result</string>
+    <string name="cd_edit_match_record">Edit match record</string>
+    <string name="btn_save_result">Save result</string>
+    <string name="msg_record_live_kept">Minutes played, substitutions and the starting team come from the live game and stay as they were.</string>
+    <string name="btn_add_event">+ Add event</string>
+    <string name="msg_record_no_events">No goals or cards yet.</string>
+    <string name="label_minutes_played">Minutes played</string>
+    <string name="label_match_length_value">%1$d\' match</string>
+    <string name="btn_full_match">Full match</string>
+    <string name="title_add_event">Add event</string>
+    <string name="title_edit_event">Edit event</string>
+    <string name="label_assist">Assist</string>
+    <string name="label_minute">Minute</string>
+    <string name="label_choose_player">Choose a player</string>
+    <string name="btn_done">Done</string>
+    <string name="btn_delete_event">Delete event</string>
+    <string name="msg_record_discard">Your changes to the match record haven\'t been saved and will be lost.</string>
+    <string name="msg_record_minutes_invalid">Minutes played must be between 0 and the match length.</string>
+    <string name="msg_record_scorer_didnt_play">A goal or assist is by a player with no minutes played.</string>
+    <string name="msg_record_save_failed">Couldn\'t save the match record. Please try again.</string>
 </resources>

@@ -22,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -107,7 +108,7 @@ internal fun FinishedMatchBody(
     onOpenReport: (edit: Boolean) -> Unit
 ) {
     val details = state.details
-    when (tab.takeIf { it in finishedTabs(details.canSeeMatchRecord) } ?: FinishedTab.GENERAL) {
+    when (tab.takeIf { it in finishedTabs(details.canSeeMatchRecord, !details.match.enteredAfterGame) } ?: FinishedTab.GENERAL) {
         FinishedTab.GENERAL -> GeneralTab(state, modifier, onOpenReport)
         FinishedTab.STATS -> StatsTab(state, modifier)
         FinishedTab.EVENTS -> EventsTab(details, modifier)
@@ -370,9 +371,9 @@ private fun EventFilter.labelRes(): StringResource = when (this) {
     EventFilter.CARDS -> Res.string.md_filter_cards
 }
 
-/** One event as a white card: its minute, a coloured mark and what happened. */
+/** One event as a white card: its minute, a coloured mark and what happened. [onClick] edits it (the match record editor). */
 @Composable
-private fun RecordEventRow(event: DisplayEvent, details: MatchDetails) {
+internal fun RecordEventRow(event: DisplayEvent, details: MatchDetails, onClick: (() -> Unit)? = null) {
     val players = remember(details) { details.callUps.associate { it.player.id to it.player } }
     fun nameOf(e: MatchEvent) = e.playerId?.let { players[it] }?.let { "${it.firstName} ${it.lastName}" }
     val opponent = details.opponent.shortName ?: details.opponent.name
@@ -396,7 +397,10 @@ private fun RecordEventRow(event: DisplayEvent, details: MatchDetails) {
             }
         }
     }
-    Surface(Modifier.fillMaxWidth(), shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f))) {
+    Surface(
+        Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clip(CardShape).clickable(onClick = onClick) else Modifier),
+        shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f))
+    ) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("${event.minute}'", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon.copy(alpha = 0.5f), modifier = Modifier.width(38.dp))
             Box(Modifier.size(26.dp).background(markColor.copy(alpha = 0.14f), CircleShape), contentAlignment = Alignment.Center) {
