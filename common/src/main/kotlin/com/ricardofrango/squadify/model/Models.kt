@@ -943,14 +943,6 @@ data class Match(
 )
 
 /**
- * The single formula for a LIVE (or paused-while-LIVE) match's running clock, in seconds since
- * kickoff -- shared by the live match console (`LiveMatchScreen`) and the club Matches list's live
- * badge (`MatchRow`) so the two can never disagree, which they did before this was extracted (the
- * list used to derive its badge from [Match.kickoffAt] alone, ignoring [Match.secondHalfStartedAt]
- * entirely). Returns 0 before kickoff. While [Match.pausedAt] is set, the clock is frozen at the
- * instant it paused rather than continuing to advance against [now].
- */
-/**
  * How far the server's clock is ahead of this device's (negative if behind), from one request: the
  * server stamped [serverNow] somewhere between [requestSent] and [responseReceived] (device times), so
  * the midpoint of the two is the best guess for the device's time at that moment.
@@ -958,6 +950,21 @@ data class Match(
 fun estimateServerClockOffset(serverNow: Instant, requestSent: Instant, responseReceived: Instant): kotlin.time.Duration =
     serverNow - (requestSent + (responseReceived - requestSent) / 2)
 
+/**
+ * The header on every server response with the server's time when it answered (epoch milliseconds),
+ * so the app counts live minutes on the server's clock wherever it shows them, not only in the live
+ * console (whose [MatchDetails.serverNow] is the same idea).
+ */
+const val SERVER_TIME_HEADER = "X-Server-Time"
+
+/**
+ * The single formula for a LIVE (or paused-while-LIVE) match's running clock, in seconds since
+ * kickoff -- shared by the live match console (`LiveMatchScreen`) and the club Matches list's live
+ * badge (`MatchRow`) so the two can never disagree, which they did before this was extracted (the
+ * list used to derive its badge from [Match.kickoffAt] alone, ignoring [Match.secondHalfStartedAt]
+ * entirely). Returns 0 before kickoff. While [Match.pausedAt] is set, the clock is frozen at the
+ * instant it paused rather than continuing to advance against [now].
+ */
 fun elapsedMatchSeconds(match: Match, now: Instant): Int {
     val secondHalfStart = match.secondHalfStartedAt
     val referenceInstant = secondHalfStart ?: match.kickoffAt ?: return 0

@@ -18,6 +18,9 @@ import com.ricardofrango.squadify.presentation.routes.fcmTokenRoutes
 import com.ricardofrango.squadify.domain.usecase.SeedPlatformAdminUseCase
 import com.ricardofrango.squadify.security.JwtConfig
 import com.ricardofrango.squadify.model.ErrorResponse
+import com.ricardofrango.squadify.model.SERVER_TIME_HEADER
+import io.ktor.server.application.createApplicationPlugin
+import io.ktor.server.response.header
 import com.ricardofrango.squadify.exception.*
 import com.ricardofrango.squadify.config.AppEnvironment
 import com.ricardofrango.squadify.config.ServerConfig
@@ -108,6 +111,7 @@ fun Application.module() {
     // one) as written, unlike Ktor's Url.hostWithPort, which always forces one in -- allowHost needs to
     // match the browser's actual Origin header ("https://host", no ":443") exactly.
     configureCors(ServerConfig.webAppBaseUrl, allowAnyLocalhost = ServerConfig.environment == AppEnvironment.DEV)
+    configureServerTime()
 
     install(Authentication) {
         jwt("auth-jwt") {
@@ -243,7 +247,18 @@ fun Application.configureCors(webAppBaseUrl: String, allowAnyLocalhost: Boolean 
         allowHeader(HttpHeaders.Authorization)
         allowHeader(HttpHeaders.ContentType)
         allowNonSimpleContentTypes = true
+        // The browser hides any other header from the app's code unless it's exposed.
+        exposeHeader(SERVER_TIME_HEADER)
     }
+}
+
+/** Every response carries the server's time ([SERVER_TIME_HEADER]), for the app's estimate of its clock. */
+fun Application.configureServerTime() {
+    install(ServerTimePlugin)
+}
+
+private val ServerTimePlugin = createApplicationPlugin("ServerTime") {
+    onCall { call -> call.response.header(SERVER_TIME_HEADER, kotlin.time.Clock.System.now().toEpochMilliseconds()) }
 }
 
 private val LOCALHOST_ORIGIN = Regex("""http://(localhost|127\.0\.0\.1)(:\d+)?""")
