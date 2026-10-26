@@ -2659,7 +2659,7 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
   - **Clash:** a session already at that date and start time is flagged inline, since saving replaces it.
   - **Edit:** saves only after a change. From the calendar, "Add one session" starts on the selected day.
 - **Calendar:** List / Calendar on the Training tab. The grid is Monday-first, with a dot per session (amber when it needs ratings, grey when cancelled) and holidays' day numbers in amber. Tapping a day lists its sessions.
-  - **Choice not kept:** the List / Calendar choice isn't remembered between visits, unlike the design.
+  - **Choice kept:** the List / Calendar choice is remembered on the device (`UiPreferencesRepository`, `age_group_sessions_view`), as in the design, for every age group alike. The calendar's month and selected day still start from today on each visit.
 
 **Exercises** (design 39f/h, `V18`):
 - **Library:** each age group has its own (`training_exercises`). Sessions link to exercises in order (`training_session_exercises`), so editing an exercise changes it in every session that uses it, and the edit screen says so ("Used in 14 sessions").

@@ -105,6 +105,7 @@ fun AgeGroupDetailsScreen(
         val fullStats by viewModel.fullStats.collectAsStateWithLifecycle()
         val tab by viewModel.tab.collectAsStateWithLifecycle()
         val matchesTeamId by viewModel.matchesTeamId.collectAsStateWithLifecycle()
+        val sessionsCalendar by viewModel.sessionsCalendar.collectAsStateWithLifecycle()
         var searchQuery by remember { mutableStateOf("") }
 
         LaunchedEffect(ageGroupId) { viewModel.load(ageGroupId) }
@@ -130,10 +131,12 @@ fun AgeGroupDetailsScreen(
             snackbarHostState = snackbarHostState,
             tab = tab,
             matchesTeamId = matchesTeamId,
+            sessionsCalendar = sessionsCalendar,
             searchQuery = searchQuery,
             onTabSelected = viewModel::onTabSelected,
             onFilterSelected = viewModel::onFilterSelected,
             onMatchesTeamSelected = viewModel::onMatchesTeamSelected,
+            onSessionsCalendar = viewModel::onSessionsCalendar,
             onSearchChange = { searchQuery = it },
             onNavigateBack = onNavigateBack,
             onRetry = { viewModel.load(ageGroupId, forceReload = true) },
@@ -196,6 +199,9 @@ private fun AgeGroupDetailsContent(
     onTabSelected: (AgeGroupTab) -> Unit,
     onFilterSelected: (StatsFilter) -> Unit,
     onMatchesTeamSelected: (String?) -> Unit,
+    // The Training tab's List / Calendar, remembered on the device.
+    sessionsCalendar: Boolean = false,
+    onSessionsCalendar: (Boolean) -> Unit = {},
     onSearchChange: (String) -> Unit,
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
@@ -297,6 +303,7 @@ private fun AgeGroupDetailsContent(
                             AgeGroupTab.TRAINING -> AgeGroupTrainingTab(
                                 plansState = plansState, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,
                                 sessionsState = sessionsState, poolSize = d.players.size,
+                                calendar = sessionsCalendar, onCalendar = onSessionsCalendar,
                                 onRetrySessions = onRetrySessions, onCreateSessions = onCreateSessions, onAddSession = onAddSession, onOpenSession = onOpenSession,
                                 onRetry = onRetryPlans,
                                 onOpenSeason = { onSeasonPlan(false) }, onEditSeason = { onSeasonPlan(true) },
