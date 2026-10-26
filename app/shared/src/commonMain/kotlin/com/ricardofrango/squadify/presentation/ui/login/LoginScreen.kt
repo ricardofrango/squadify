@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -199,27 +200,19 @@ private fun LoginContent(
                     Spacer(modifier = Modifier.height(8.dp))
     
                     // Error Message, reserved space between the title and the email field so a
-                    // failed login doesn't shift the fields down underneath the user's fingers.
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(20.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        if (errorMessage != null) {
-                            Text(
-                                text = errorMessage,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        } else if (passwordResetEmail != null) {
-                            Text(
-                                text = stringResource(Res.string.msg_password_reset_done),
-                                color = PitchGreen,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
+                    // failed login doesn't shift the fields down underneath the user's fingers. Two
+                    // lines, at the text's own line height (so it follows the font size), since a
+                    // longer message (e.g. no connection) wraps.
+                    val resetDone = stringResource(Res.string.msg_password_reset_done)
+                    Text(
+                        text = errorMessage ?: resetDone.takeIf { passwordResetEmail != null }.orEmpty(),
+                        color = if (errorMessage != null) MaterialTheme.colorScheme.error else PitchGreen,
+                        style = MaterialTheme.typography.bodySmall,
+                        minLines = 2,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth()
+                    )
     
                     OutlinedTextField(
                         value = email,
