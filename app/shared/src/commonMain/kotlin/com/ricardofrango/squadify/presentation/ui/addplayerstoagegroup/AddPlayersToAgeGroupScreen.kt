@@ -161,7 +161,9 @@ private fun AddPlayersToAgeGroupContent(
                         .padding(paddingValues)
                         .background(ScreenBackground)
                         .padding(horizontal = ScreenPadding.Horizontal)
-                        .padding(top = 16.dp, bottom = 24.dp),
+                        // 12dp under the button, as Match details' pinned bar; the navigation bar's
+                        // inset is already in paddingValues.
+                        .padding(top = 16.dp, bottom = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     AgeGroupPicker(
