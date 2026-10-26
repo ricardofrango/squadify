@@ -3,8 +3,12 @@ package com.ricardofrango.squadify.data.repository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.exception.DatabaseException
 import com.ricardofrango.squadify.model.Opponent
+import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -23,6 +27,22 @@ class ExposedOpponentRepository : OpponentRepository {
     override suspend fun getOpponentsByClub(clubId: String): List<Opponent> =
         OpponentsTable.selectAll().where { OpponentsTable.clubId eq clubId.toUuid() }
             .map(::toOpponent)
+
+    override suspend fun getOpponentsPage(clubId: String, search: String?, limit: Int, offset: Int): List<Opponent> {
+        var op: Op<Boolean> = OpponentsTable.clubId eq clubId.toUuid()
+        search?.takeIf { it.isNotEmpty() }?.let {
+            op = op and (searchKeyOf(OpponentsTable.name).containsSearch(it) or searchKeyOf(OpponentsTable.shortName).containsSearch(it))
+        }
+        return OpponentsTable.selectAll()
+            .where { op }
+            .orderBy(searchKeyOf(OpponentsTable.name).byCodePoint() to SortOrder.ASC, OpponentsTable.id to SortOrder.ASC)
+            .limit(limit)
+            .offset(offset.toLong())
+            .map(::toOpponent)
+    }
+
+    override suspend fun hasOpponents(clubId: String): Boolean =
+        !OpponentsTable.selectAll().where { OpponentsTable.clubId eq clubId.toUuid() }.limit(1).empty()
 
     override suspend fun createOpponent(opponent: Opponent): Opponent =
         OpponentsTable.insert {

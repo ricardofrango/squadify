@@ -1368,22 +1368,31 @@ so a field the user emptied is cleared. It's opened from Opponent details, with 
 
 ```mermaid
 graph TD
-    A[Start: userId, clubId, ageGroupId?] --> AG{ageGroupId supplied?}
+    A[Start: userId, clubId, ageGroupId?, search?, limit?, offset] --> AG{ageGroupId supplied?}
     AG -- Yes --> AGF[Fetch AgeGroup by id]
     AGF -- not found --> N(["Throw NotFoundException"])
     AGF -- found, wrong club --> FB(["Throw ForbiddenException"])
     AGF -- found, right club --> B
     AG -- No --> B[CheckUserPermissionUseCase — minClubRole=MEMBER, minAgeGroupRole=COACH, ageGroupId]
     B -- denied --> F(["Throw ForbiddenException"])
-    B -- allowed --> C["Club name; the club's opponents sorted by name"]
-    C --> D["canCreate: non-throwing probe — minClubRole=COORDINATOR, configurablePermission=CREATE_OPPONENT, ageGroupId"]
-    D --> Z(["Return OpponentList: clubName, opponents, canCreate"])
+    B -- allowed --> C["Club name"]
+    C --> L{limit given?}
+    L -- No --> W["Every opponent, by name (lowercase, accents folded); hasMore = false"]
+    L -- Yes --> P["getOpponentsPage: name or short name contains the folded search; by folded name, then id; limit + 1 rows from offset"]
+    P --> PM["The first limit rows; hasMore = an extra row came back"]
+    W --> AO
+    PM --> AO["anyOpponents: an unsearched row came back, else hasOpponents(clubId)"]
+    AO --> D["canCreate: non-throwing probe — minClubRole=COORDINATOR, configurablePermission=CREATE_OPPONENT, ageGroupId"]
+    D --> Z(["Return OpponentList: clubName, opponents, canCreate, hasMore, anyOpponents"])
 ```
 
 `GET /opponents/list` feeds the Opponents screen (design 38) in both its modes: picking an opponent for a
 match, and browsing them from the More panel. Who may read it is the same as `GetOpponentsUseCase`, including
-the age-group coach path. The client searches and groups the list itself, so there's no paging: a club has
-dozens of opponents, not thousands.
+the age-group coach path. The screen asks for a page at a time (`limit`, `offset`, `q`), searched on the
+server on the name or short name, ignoring case and accents (`TECHNICAL_DECISIONS.md` §68). The rows are
+ordered character by character (`COLLATE "C"`), as the app sorts them, so its letter groups don't shuffle
+as pages arrive. Without `limit` it returns the whole list: the opponent form's duplicate-name check, and
+older app builds.
 
 ### 6.4 Get Opponent Details (`GetOpponentDetailsUseCase`)
 
@@ -2230,7 +2239,7 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
 - [x] **"Not found" is modelled inconsistently for the same resource.** A missing `Team` threw `NotFoundException` in `UpdateTeamUseCase` and `CreateMatchUseCase`, but `ValidationException` in `GetTeamDetailsUseCase`, `GetTeamPlayersUseCase`, `GetAgeGroupStaffUseCase`, `AddPlayersToAgeGroupUseCase`, and `AddStaffToAgeGroupUseCase`. Similarly, a missing `Match` threw `ValidationException` in `AddMatchEventUseCase` but `NotFoundException` everywhere else a Match is looked up.
   **Fixed:** standardized on `NotFoundException` (404) for every "an entity looked up by ID doesn't exist" case, whether it's the primary resource or one referenced in the request (e.g. a `clubId`/`ageGroupId` on a create payload) -- 17 call sites across 11 use cases converted from `ValidationException` (400): `AddMatchEventUseCase`, `CreateAgeGroupsUseCase`, `CreateTeamsUseCase` (×2), `CreateTeamUseCase` (×2), `AddStaffToAgeGroupUseCase`, `AddPlayersToAgeGroupUseCase` (×2), `GetPlayersUseCase`, `GetTeamPlayersUseCase`, `GetAgeGroupStaffUseCase`, `GetEligiblePlayersForAgeGroupUseCase`, `GetTeamDetailsUseCase` (×4). Relationship-consistency checks on an entity that *was* found (e.g. "Age group does not belong to this club/season") correctly stayed `ValidationException` -- only genuine missing-entity lookups moved. None of these branches had test coverage before (confirmed by grepping the whole test tree for `"not found"` -- zero hits); added targeted tests for all 17, including new test files for the 5 use cases (`AddMatchEventUseCase`, `AddStaffToAgeGroupUseCase`, `GetTeamPlayersUseCase`, `GetAgeGroupStaffUseCase`, `GetEligiblePlayersForAgeGroupUseCase`) that had no test file at all.
 - [x] **Pagination is still missing.** `AI_GUIDELINES.md`, `TECHNICAL_DECISIONS.md` §5 and the `REQUIREMENTS.md` roadmap all call for `limit`/`offset` pagination on list endpoints, but none of the current list use cases (`GetTeamsUseCase`, `GetPlayersUseCase`, `GetMatchesUseCase`, `GetSeasonsUseCase`, `GetOpponentsUseCase`, `GetAgeGroupPlayersByClubUseCase`) implement it yet — this confirms the open roadmap item "API Scalability: Implement pagination for all list-based endpoints" is genuinely still pending, not just undocumented.
-  **Fixed for the lists that grow without bound** (`TECHNICAL_DECISIONS.md` §68): the club's matches (§7.1d), players (§5.1d) and members (§3.7) come a page at a time, filtered on the server, and the club screen gets its pool counts instead of every player (§3.3). Lists held to a season, an age group, a team or a match (teams, seasons, age groups, an age group's or team's players, call-ups, training sessions, the exercise library, staff, events, stats) stay whole on purpose. Still to page once clubs grow: the eligible players when adding to an age group, and the opponents.
+  **Fixed for the lists that grow without bound** (`TECHNICAL_DECISIONS.md` §68): the club's matches (§7.1d), players (§5.1d) and members (§3.7) come a page at a time, filtered on the server, and the club screen gets its pool counts instead of every player (§3.3). Lists held to a season, an age group, a team or a match (teams, seasons, age groups, an age group's or team's players, call-ups, training sessions, the exercise library, staff, events, stats) stay whole on purpose. The opponents page too (§6.3). Still to page once clubs grow: the eligible players when adding to an age group.
 - [x] **`UpdateClubMemberRoleUseCase` has no existence guard.** Unlike almost every other `Update*UseCase`, it never verified `targetUserId` is a real user or an existing member of `clubId` before writing the new role.
   **Fixed:** `updateMemberRole` already reported whether it matched a row (`> 0`); the use case now checks that result and throws `NotFoundException` instead of silently returning `false` for a non-member. See `UpdateClubMemberRoleUseCaseTest`.
 - [x] **`CreateTeamUseCase` foreign-key validation.** It now loads the age group and rejects the request (`ValidationException`) if it doesn't exist, or its `clubId`/`seasonId` don't match the request — see §4.5. `CreateTeamsUseCase` (batch, §4.5b) applies the same check once for the whole batch.

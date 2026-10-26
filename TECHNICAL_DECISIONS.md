@@ -2525,7 +2525,7 @@ Picking an opponent on Schedule match was a dropdown of every opponent plus an i
 - **Two modes, one screen:**
   - **SELECT:** from the Opponent field on Schedule match. Title "Choose opponent" and a check on the current pick. Tapping a row hands its id back through the `opponentPicked` saved-state key and closes the list.
   - **BROWSE:** from More → Opponents (shown to everyone in the club).
-- **Search:** pinned under the bar. It filters as you type on name and short name, ignoring case and accents (`OpponentSearch.kt`, tested in `OpponentSearchTest`).
+- **Search:** pinned under the bar. It filters as you type on name and short name, ignoring case and accents, on the server (§68): the list comes a page at a time.
 - **Sections:** sticky letter headers, accents folded, with anything that doesn't start with a letter under "#".
 - **Logo:** initials in a neutral grey circle (`OpponentLogo`), never green, which is kept for our own club. Logos can't be uploaded yet.
 - **No match counts on rows:** the design has "6 matches" on each row. It's left out because it would mean counting matches for every opponent just to draw the list.
@@ -2996,12 +2996,13 @@ The developer asked for pagination now, the players and matches lists first (202
 - **What pages:** the lists that grow without bound, season after season:
   - the club's matches (`GET /matches`, PROCESS_FLOWS §7.1d);
   - the club's players (`GET /players`, §5.1d);
-  - the club's members (`GET /clubs/{id}/members/overview`, §3.7), which grows with parents.
-- **What doesn't, on purpose:** lists held to a season, an age group, a team or a match: teams, seasons, age groups, an age group's or a team's players, the call-up pool, training sessions and plans, the exercise library, staff, a match's events, full stats and season records. Paging them would only complicate screens that need all of it (stats, pickers). Next to page once clubs grow: the eligible players when adding to an age group, and the opponents.
+  - the club's members (`GET /clubs/{id}/members/overview`, §3.7), which grows with parents;
+  - the club's opponents (`GET /opponents/list`, §6.3), on the Opponents screen. Its rows sort by the folded name with `COLLATE "C"` (character by character, as Kotlin compares), so the screen's letter groups fill in order as pages arrive. The opponent form still reads the whole list for its duplicate-name check, and the club screens still read every opponent to name the match rows.
+- **What doesn't, on purpose:** lists held to a season, an age group, a team or a match: teams, seasons, age groups, an age group's or a team's players, the call-up pool, training sessions and plans, the exercise library, staff, a match's events, full stats and season records. Paging them would only complicate screens that need all of it (stats, pickers). Next to page once clubs grow: the eligible players when adding to an age group.
 - **The contract** (`model/Paging.kt`):
   - `limit` (1–100; the app asks for `Paging.PAGE_SIZE`, 30) and `offset`. The answer is a page object with `hasMore`: the server reads `limit + 1` rows, and an extra row means another page.
   - **No `limit`, no paging:** the same endpoint returns the whole list as before, so app builds from before paging keep working.
-  - Each page also says whether the viewer can see anything at all (`anyMatches`, `anyPlayers`), so the app tells "nothing yet" from "nothing for these filters". Members get role counts for the whole club and for the search (`roleCounts`, `matchingRoleCounts`).
+  - Each page also says whether the viewer can see anything at all (`anyMatches`, `anyPlayers`, `anyOpponents`), so the app tells "nothing yet" from "nothing for these filters". Members get role counts for the whole club and for the search (`roleCounts`, `matchingRoleCounts`).
   - Orders end on the id, so rows with the same date or name keep one order from page to page.
 - **Filters on the server:** each list's filters moved from the device to the query, since a device holding one page can't filter the rest: season, age group, team and Upcoming / Finished for matches; season, age group and search for players; role and search for members.
   - **Search** is case- and accent-insensitive on both sides: `SearchText.key` folds the query, and SQL folds the column with `translate(lower(...))` over the same letters, so "joao" finds "João" (`data/repository/SqlSearch.kt`). No Postgres extension is needed. `%` and `_` are matched literally.

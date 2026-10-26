@@ -61,6 +61,55 @@ class GetOpponentListUseCaseTest {
             Opponent("o1", clubId, "académica Foz do Vez"),
             Opponent("o3", clubId, "AD Fontelas")
         )
+        coEvery { opponentRepository.hasOpponents(clubId) } returns true
+    }
+
+    private fun coordinator(): String {
+        val coordinator = user("coordinator")
+        coEvery { userRepository.findById(coordinator.id) } returns coordinator
+        coEvery { userRepository.getUserRoleInClub(coordinator.id, clubId) } returns ClubRole.COORDINATOR
+        return coordinator.id
+    }
+
+    @Test
+    fun aPageAsksForOneRowMoreToKnowIfThereIsAnother() = runBlocking<Unit> {
+        val page = (1..3).map { Opponent("p$it", clubId, "Opponent $it") }
+        coEvery { opponentRepository.getOpponentsPage(clubId, null, 3, 4) } returns page
+
+        val result = useCase(coordinator(), clubId, limit = 2, offset = 4)
+
+        assertEquals(listOf("p1", "p2"), result.opponents.map { it.id })
+        assertTrue(result.hasMore)
+        assertTrue(result.anyOpponents)
+    }
+
+    @Test
+    fun theLastPageHasNoMore() = runBlocking<Unit> {
+        coEvery { opponentRepository.getOpponentsPage(clubId, null, 3, 0) } returns listOf(Opponent("p1", clubId, "Opponent 1"))
+
+        val result = useCase(coordinator(), clubId, limit = 2)
+
+        assertEquals(1, result.opponents.size)
+        assertFalse(result.hasMore)
+    }
+
+    @Test
+    fun theSearchIsSentLowercaseWithoutAccents() = runBlocking<Unit> {
+        coEvery { opponentRepository.getOpponentsPage(clubId, "academica", 31, 0) } returns emptyList()
+
+        val result = useCase(coordinator(), clubId, search = "  Académica ", limit = 30)
+
+        assertTrue(result.opponents.isEmpty())
+        // Nothing matches, but the club has opponents: "nothing matches", not "no opponents yet".
+        assertTrue(result.anyOpponents)
+    }
+
+    @Test
+    fun aClubWithNoOpponentsHasNone() = runBlocking<Unit> {
+        coEvery { opponentRepository.getOpponentsPage(clubId, null, 31, 0) } returns emptyList()
+        coEvery { opponentRepository.hasOpponents(clubId) } returns false
+
+        assertFalse(useCase(coordinator(), clubId, limit = 30).anyOpponents)
     }
 
     @Test

@@ -865,8 +865,13 @@ const val OPPONENT_SHORT_NAME_MAX = 5
 @Serializable
 data class OpponentList(
     val clubName: String,
+    // The whole list, or one page of it (`limit`), by name.
     val opponents: List<Opponent>,
-    val canCreate: Boolean = false
+    val canCreate: Boolean = false,
+    val hasMore: Boolean = false,
+    // Whether the club has any opponent at all, whatever the search: "No opponents yet" rather than
+    // "nothing matches".
+    val anyOpponents: Boolean = opponents.isNotEmpty()
 )
 
 /**

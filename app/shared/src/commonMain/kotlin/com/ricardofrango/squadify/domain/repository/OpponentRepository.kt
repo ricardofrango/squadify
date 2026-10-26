@@ -12,8 +12,9 @@ interface OpponentRepository {
     // -- is authorized server-side. Null for contexts with no age-group scope. A GET has no body, so
     // this travels as a query param; createOpponent's equivalent lives on CreateOpponentRequest itself.
     suspend fun getOpponents(clubId: String, ageGroupId: String? = null): List<Opponent>
-    // The Opponents screen: the list, its Recent section and whether the caller can create one.
-    suspend fun getOpponentList(clubId: String, ageGroupId: String? = null): OpponentList
+    // The Opponents screen: the list and whether the caller can create one. With [limit], a page of it
+    // from [offset], searched on the server on [query]; without, the whole list.
+    suspend fun getOpponentList(clubId: String, ageGroupId: String? = null, query: String = "", offset: Int = 0, limit: Int? = null): OpponentList
     suspend fun getOpponentDetails(opponentId: String): OpponentDetails
     suspend fun createOpponent(clubId: String, request: CreateOpponentRequest): Opponent
     suspend fun updateOpponent(opponentId: String, request: UpdateOpponentRequest)
