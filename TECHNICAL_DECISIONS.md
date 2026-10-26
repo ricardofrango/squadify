@@ -2663,7 +2663,7 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
 
 **Exercises** (design 39f/h, `V18`):
 - **Library:** each age group has its own (`training_exercises`). Sessions link to exercises in order (`training_session_exercises`), so editing an exercise changes it in every session that uses it, and the edit screen says so ("Used in 14 sessions").
-- **On the session:** each exercise shows its number, name, description and minutes, with the total. With `MANAGE_TRAINING`, while not cancelled, exercises can be added, reordered with ▲ / ▼ (not dragging as designed) and removed with ×. Removing never touches the library.
+- **On the session:** each exercise shows its number, name, description and minutes, with the total. With `MANAGE_TRAINING`, while not cancelled, exercises can be added, reordered by dragging each by its handle, as designed (`DragReorderColumn`, `training/DragReorder.kt`: the row follows the finger, the rows it passes make room, and the new order is saved on release; a row takes a neighbour's place once past its middle, `dragTarget`, tested in `DragReorderTest`; screen readers get Move up / Move down actions on the handle) and removed with ×. Removing never touches the library.
 - **Add exercises** (`ExerciseLibraryScreen`): the library sorted by most used, with "Used n×", searchable by name and description, and leaving out what the session already has.
   - **Picking:** multi-select, added in the order picked.
   - **New:** creates an exercise and adds it straight away. The search text prefills its name.

@@ -1291,6 +1291,7 @@
     <string name="cd_edit_exercise">Editar exercício</string>
     <string name="cd_move_up">Mover para cima</string>
     <string name="cd_move_down">Mover para baixo</string>
+    <string name="cd_reorder">Arrastar para reordenar</string>
     <string name="msg_session_no_exercises">Ainda sem exercícios.</string>
     <!-- Training ratings (design 39g/i) -->
     <string name="title_rate_players">Avaliar jogadores</string>

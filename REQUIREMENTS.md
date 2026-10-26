@@ -237,7 +237,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - **Match Details:** line-ups, call-ups, events and score (once played: General, Stats, Events and Timeline tabs for the staff; General and the goals for everyone else), plus the details card (opponent, type, format such as 7x7 from the team's size, date, kickoff, location, notes).
       - **Live match console:** for coaches and staff.
       - **After the match:** finished results stay as history, with the post-match report and per-player stats. Season stats live on Player, Team and Age Group Details (see Phase 5).
-- [x] **Phase 8: Training & Periodization** (see §5b). Not yet: drag-to-reorder (up/down buttons on a session's exercises; objectives and phases keep the order they were added) and remembering List / Calendar.
+- [x] **Phase 8: Training & Periodization** (see §5b). A session's exercises are reordered by dragging each by its handle (objectives and phases keep the order they were added). Not yet: remembering List / Calendar.
     - [x] Training permission: a configurable club setting for sessions and plans.
     - [x] **First:** Macrocycle (year plan), mesocycles (month plans) and microcycles (week plans) for an age group, with a Home alert when a period starts without its plan. Built before the sessions, because a coach sets the year's, month's and week's objectives before preparing a session.
     - [x] Club country (Portugal by default), for public holidays.

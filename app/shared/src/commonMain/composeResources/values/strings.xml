@@ -1293,6 +1293,7 @@
     <string name="cd_edit_exercise">Edit exercise</string>
     <string name="cd_move_up">Move up</string>
     <string name="cd_move_down">Move down</string>
+    <string name="cd_reorder">Drag to reorder</string>
     <string name="msg_session_no_exercises">No exercises yet.</string>
     <!-- Training ratings (design 39g/i) -->
     <string name="title_rate_players">Rate players</string>
