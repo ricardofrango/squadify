@@ -46,6 +46,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
 class GetClubHomeUseCaseTest {
@@ -391,5 +392,44 @@ class GetClubHomeUseCaseTest {
         assertEquals(listOf("ts"), todo.map { it.sessionId })
         assertEquals(1, todo.single().count)
         assertEquals(2, todo.single().total)
+    }
+
+    @Test
+    fun aMatchNeverStartedWellPastKickoffAsksForItsResult() = runBlocking {
+        val u = "coord"
+        baseStubs(u, ClubRole.COORDINATOR)
+        coEvery { ageGroupRepository.getAgeGroupStaff(any()) } returns
+            listOf(AgeGroupStaffMember("c1", "Nuno", "F", AgeGroupRole.COACH))
+        val older = match("m-older", teamB.id, (-3).days)
+        val missed = match("m-missed", teamA.id, -(3).hours)
+        // An hour late: maybe still starting, not missing yet.
+        val late = match("m-late", teamA.id, -(1).hours)
+        val played = match("m-played", teamA.id, (-1).days).copy(status = MatchStatus.FINISHED, fullTimeMinute = 50)
+        coEvery { matchRepository.getMatchesByClub(clubId) } returns listOf(older, missed, late, played)
+        coEvery { matchRepository.getMatchesByTeam(any()) } returns emptyList()
+        coEvery { matchReportRepository.getCompletedMatchIds(any()) } returns setOf("m-played")
+
+        val missing = useCase(u, clubId).alerts.filter { it.type == ClubHomeAlertType.MATCH_NOT_PLAYED }
+
+        // Oldest first, with the names to show.
+        assertEquals(listOf("m-older", "m-missed"), missing.map { it.matchId })
+        assertEquals("Sub-15 A", missing.last().teamName)
+        assertEquals("AD Fontelas", missing.last().opponentName)
+    }
+
+    @Test
+    fun ageGroupStaffSeeTheirOwnMissingResultsOnly() = runBlocking {
+        // MANAGE_LIVE_MATCH defaults to Staff: they can enter the result, so they're asked to.
+        val u = "staff"
+        baseStubs(u, ClubRole.MEMBER)
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(u, ag1) } returns AgeGroupRole.STAFF
+        val mine = match("m-mine", teamA.id, (-1).days)
+        val other = match("m-other", teamB.id, (-1).days)
+        coEvery { matchRepository.getMatchesByClub(clubId) } returns listOf(mine, other)
+        coEvery { matchRepository.getMatchesByTeam(any()) } returns emptyList()
+
+        val missing = useCase(u, clubId).alerts.filter { it.type == ClubHomeAlertType.MATCH_NOT_PLAYED }
+
+        assertEquals(listOf("m-mine"), missing.map { it.matchId })
     }
 }

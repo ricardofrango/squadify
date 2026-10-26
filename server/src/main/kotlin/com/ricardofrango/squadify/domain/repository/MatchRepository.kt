@@ -8,9 +8,10 @@ interface MatchRepository {
     suspend fun getMatchesByClub(clubId: String): List<Match>
     // One page of [teamIds]' matches: UPCOMING is every match neither finished nor cancelled, soonest
     // first; FINISHED the finished ones, newest first.
-    suspend fun getMatchesPage(teamIds: Collection<String>, status: MatchListStatus, limit: Int, offset: Int): List<Match>
+    // [now] draws the line between NOT_PLAYED and UPCOMING (Match.isNotPlayed).
+    suspend fun getMatchesPage(teamIds: Collection<String>, status: MatchListStatus, limit: Int, offset: Int, now: kotlin.time.Instant): List<Match>
     // How many matches getMatchesPage's [status] list holds for [teamIds], over every page.
-    suspend fun countMatches(teamIds: Collection<String>, status: MatchListStatus): Int
+    suspend fun countMatches(teamIds: Collection<String>, status: MatchListStatus, now: kotlin.time.Instant): Int
     // Whether any of [teamIds] has a match, in any status.
     suspend fun hasMatches(teamIds: Collection<String>): Boolean
     // Every match against one opponent, newest first.

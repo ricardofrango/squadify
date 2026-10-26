@@ -15,15 +15,18 @@ import kotlin.test.assertTrue
 class ClubPagingTest {
 
     @Test
-    fun allWalksTheUpcomingListToItsEndThenTheResults() {
+    fun allWalksUpcomingThenTheNotPlayedThenTheResultsInTheOrderTheyHappen() {
         val cursor = MatchesCursor(MatchesStatusFilter.ALL)
         assertEquals(MatchListStatus.UPCOMING to 0, cursor.list to cursor.offset)
 
         cursor.advance(size = 30, more = true)
         assertEquals(MatchListStatus.UPCOMING to 30, cursor.list to cursor.offset)
 
-        // The last upcoming page: the results start from their own first row.
+        // The last upcoming page: the games never started follow, from their own first row.
         cursor.advance(size = 4, more = false)
+        assertEquals(MatchListStatus.NOT_PLAYED to 0, cursor.list to cursor.offset)
+
+        cursor.advance(size = 2, more = false)
         assertEquals(MatchListStatus.FINISHED to 0, cursor.list to cursor.offset)
         assertTrue(cursor.hasMore)
 
@@ -32,9 +35,12 @@ class ClubPagingTest {
     }
 
     @Test
-    fun upcomingOrFinishedAloneIsOneList() {
+    fun upcomingIsTheUpcomingThenTheNotPlayedAndFinishedIsOneList() {
         val upcoming = MatchesCursor(MatchesStatusFilter.UPCOMING)
+        assertEquals(MatchListStatus.UPCOMING, upcoming.list)
         upcoming.advance(size = 3, more = false)
+        assertEquals(MatchListStatus.NOT_PLAYED, upcoming.list)
+        upcoming.advance(size = 0, more = false)
         assertFalse(upcoming.hasMore)
 
         val finished = MatchesCursor(MatchesStatusFilter.FINISHED)

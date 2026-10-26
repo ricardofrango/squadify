@@ -12,6 +12,7 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.isNotPlayed
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchOutcome
 import com.ricardofrango.squadify.model.MatchStatus
@@ -112,9 +113,11 @@ class GetTeamDetailsUseCase(
         val now = Clock.System.now()
         val allMatches = matchRepository.getMatchesByTeam(teamId)
 
+        // Still scheduled well past kickoff: their own "Not played" section, not Upcoming.
+        val notPlayedMatches = allMatches.filter { it.isNotPlayed(now) }.sortedByDescending { it.dateTime }
         val upcomingMatches = allMatches
             .filter {
-                (it.status == MatchStatus.SCHEDULED && it.dateTime >= now) ||
+                (it.status == MatchStatus.SCHEDULED && !it.isNotPlayed(now)) ||
                     it.status == MatchStatus.LIVE || it.status == MatchStatus.HALF_TIME
             }
             .sortedBy { it.dateTime }
@@ -152,6 +155,7 @@ class GetTeamDetailsUseCase(
             poolSize = playerRepository.getPlayersByAgeGroup(team.ageGroupId).size,
             siblingTeamNames = siblingTeamNames,
             staff = ageGroupRepository.getAgeGroupStaff(team.ageGroupId),
+            notPlayedMatches = notPlayedMatches,
             upcomingMatches = upcomingMatches,
             upcomingMatchScores = upcomingMatchScores,
             recentResults = recentResults,

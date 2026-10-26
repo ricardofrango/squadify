@@ -180,6 +180,8 @@ private fun NeedsYouSection(
     if (home.alerts.isEmpty()) return
     val callUps = home.alerts.filter { it.type == ClubHomeAlertType.CALLUPS_UNSENT }
     val reports = home.alerts.filter { it.type == ClubHomeAlertType.MATCH_REPORT_PENDING }
+    val notPlayed = home.alerts.filter { it.type == ClubHomeAlertType.MATCH_NOT_PLAYED }
+    var notPlayedExpanded by rememberSaveable { mutableStateOf(false) }
     val gaps = home.alerts.filter { it.type == ClubHomeAlertType.AGE_GROUP_NEEDS_COACH }
     val missingPlans = home.alerts.filter { it.type.planLevel() != null }
     val trainingRatings = home.alerts.filter { it.type == ClubHomeAlertType.TRAINING_RATINGS_PENDING }
@@ -222,6 +224,35 @@ private fun NeedsYouSection(
                     }
                 }
             }
+        }
+        // A game never started, well past kickoff: its result is missing (amber, it's overdue by
+        // definition). Opens the match, where Enter result is. Grouped from 3, like the reports.
+        val notPlayedRow: (ClubHomeAlert) -> @Composable () -> Unit = { alert ->
+            {
+                AlertRowContent(
+                    alertText(alert),
+                    alert.date?.let { stringResource(Res.string.home_not_played_due, shortDateLabel(it), daysAgoLabel(it, today)) },
+                    Amber, Res.drawable.ic_chevron_right, alert.matchId?.let { id -> { onNavigateToMatch(id) } }
+                )
+            }
+        }
+        if (notPlayed.size >= REPORT_GROUP_THRESHOLD) {
+            val oldest = notPlayed.mapNotNull { it.date }.minOrNull()
+            add {
+                AlertRowContent(
+                    title = stringResource(Res.string.msg_home_matches_not_played, notPlayed.size),
+                    subtitle = oldest?.let { stringResource(Res.string.home_not_played_oldest, shortDateLabel(it), daysAgoLabel(it, today)) },
+                    dotColor = Amber,
+                    trailingIcon = if (notPlayedExpanded) Res.drawable.ic_expand_less else Res.drawable.ic_expand_more,
+                    onClick = { notPlayedExpanded = !notPlayedExpanded }
+                )
+            }
+            if (notPlayedExpanded) notPlayed.forEach { alert ->
+                val row = notPlayedRow(alert)
+                add { Box(Modifier.background(Color(0xFFFAFAFA)).padding(start = 24.dp)) { row() } }
+            }
+        } else {
+            notPlayed.forEach { add(notPlayedRow(it)) }
         }
         if (reports.size >= REPORT_GROUP_THRESHOLD) {
             val oldest = reports.mapNotNull { it.date }.minOrNull()
@@ -412,6 +443,8 @@ private fun alertText(alert: ClubHomeAlert, seasonName: String? = null): String 
         )
     ClubHomeAlertType.MATCH_REPORT_PENDING ->
         stringResource(Res.string.msg_home_match_report_pending, alert.teamName ?: "", alert.opponentName ?: "")
+    ClubHomeAlertType.MATCH_NOT_PLAYED ->
+        stringResource(Res.string.msg_home_match_not_played, alert.teamName ?: "", alert.opponentName ?: "")
     ClubHomeAlertType.SEASON_PLAN_MISSING ->
         stringResource(Res.string.home_season_no_plan, seasonName ?: "", alert.ageGroupName ?: "")
     ClubHomeAlertType.MONTH_PLAN_MISSING ->
@@ -519,6 +552,10 @@ private fun HomeTabPreview() {
                         matches = listOf(ClubHomeAlertMatch("m1", "Sub-15 A", "AD Fontelas"), ClubHomeAlertMatch("m2", "Sub-13 A", "GD Marinhas"))
                     ),
                     ClubHomeAlert(ClubHomeAlertType.AGE_GROUP_NEEDS_COACH, count = 1, ageGroupId = "ag-x", ageGroupName = "Sub-11"),
+                    ClubHomeAlert(
+                        ClubHomeAlertType.MATCH_NOT_PLAYED, count = 1, date = kotlinx.datetime.LocalDate(2026, 9, 20),
+                        matchId = "m-np", teamName = "Sub-13 B", opponentName = "CF Esperança"
+                    ),
                     ClubHomeAlert(
                         ClubHomeAlertType.MATCH_REPORT_PENDING, count = 1, date = kotlinx.datetime.LocalDate(2026, 9, 14),
                         matchId = "m-a", teamName = "Sub-15 C", opponentName = "SC Praia Norte"

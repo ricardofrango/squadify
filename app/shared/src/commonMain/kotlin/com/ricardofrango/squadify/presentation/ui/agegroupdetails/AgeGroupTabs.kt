@@ -531,6 +531,7 @@ internal fun AgeGroupMatchesTab(
 ) {
     val opponentsById = remember(details.opponents) { details.opponents.associateBy { it.id } }
     val teamsById = remember(details.teams) { details.teams.associateBy { it.id } }
+    val notPlayed = details.notPlayedMatches.filter { teamFilter == null || it.teamId == teamFilter }
     val upcoming = details.upcomingMatches.filter { teamFilter == null || it.teamId == teamFilter }
     val results = details.recentResults.filter { teamFilter == null || it.match.teamId == teamFilter }
 
@@ -553,6 +554,7 @@ internal fun AgeGroupMatchesTab(
             }
         }
         matchListSections(
+            notPlayed = MatchListSection(notPlayed.map { MatchListEntry(it, null, teamsById[it.teamId]?.name) }),
             upcoming = MatchListSection(upcoming.map { MatchListEntry(it, details.upcomingMatchScores[it.id], teamsById[it.teamId]?.name) }),
             results = MatchListSection(results.map {
                 MatchListEntry(it.match, MatchScore(it.match.id, it.ourScore, it.opponentScore), teamsById[it.match.teamId]?.name)

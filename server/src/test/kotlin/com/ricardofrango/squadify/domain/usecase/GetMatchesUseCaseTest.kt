@@ -192,7 +192,7 @@ class GetMatchesUseCaseTest {
         val otherSeason = team("team-3", ag1).copy(seasonId = "s0")
         coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team1, team2, otherSeason)
         val teamIds = slot<Collection<String>>()
-        coEvery { matchRepository.getMatchesPage(capture(teamIds), MatchListStatus.UPCOMING, 3, 0) } returns emptyList()
+        coEvery { matchRepository.getMatchesPage(capture(teamIds), MatchListStatus.UPCOMING, 3, 0, any()) } returns emptyList()
         coEvery { matchRepository.hasMatches(any()) } returns true
 
         val page = useCase.page(admin.id, clubIdA, MatchListStatus.UPCOMING, seasonId = "s1", ageGroupId = ag1, teamId = null, limit = 2, offset = 0)
@@ -212,8 +212,8 @@ class GetMatchesUseCaseTest {
         val finished = match("m1", team1.id).copy(status = MatchStatus.FINISHED)
         val live = match("m2", team1.id).copy(status = MatchStatus.LIVE)
         val scheduled = match("m3", team1.id)
-        coEvery { matchRepository.getMatchesPage(listOf(team1.id), MatchListStatus.FINISHED, 3, 4) } returns listOf(finished, live, scheduled)
-        coEvery { matchRepository.countMatches(listOf(team1.id), MatchListStatus.FINISHED) } returns 9
+        coEvery { matchRepository.getMatchesPage(listOf(team1.id), MatchListStatus.FINISHED, 3, 4, any()) } returns listOf(finished, live, scheduled)
+        coEvery { matchRepository.countMatches(listOf(team1.id), MatchListStatus.FINISHED, any()) } returns 9
         coEvery { matchEventRepository.getScoresByMatches(listOf("m1", "m2")) } returns mapOf("m1" to MatchScore("m1", 2, 1), "m2" to MatchScore("m2", 0, 0))
 
         val page = useCase.page(admin.id, clubIdA, MatchListStatus.FINISHED, null, null, null, limit = 2, offset = 4)
@@ -237,13 +237,13 @@ class GetMatchesUseCaseTest {
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag2) } returns null
         coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team1, team2)
-        coEvery { matchRepository.getMatchesPage(any(), any(), any(), any()) } returns emptyList()
+        coEvery { matchRepository.getMatchesPage(any(), any(), any(), any(), any()) } returns emptyList()
         coEvery { matchRepository.hasMatches(listOf(team1.id)) } returns false
 
         // Asking for another age group's team gives nothing rather than its matches.
         val page = useCase.page(coach.id, clubIdA, MatchListStatus.UPCOMING, null, null, teamId = team2.id, limit = 30, offset = 0)
 
-        coVerify { matchRepository.getMatchesPage(emptyList(), MatchListStatus.UPCOMING, 31, 0) }
+        coVerify { matchRepository.getMatchesPage(emptyList(), MatchListStatus.UPCOMING, 31, 0, any()) }
         assertFalse(page.anyMatches)
         assertFalse(page.hasMore)
         Unit

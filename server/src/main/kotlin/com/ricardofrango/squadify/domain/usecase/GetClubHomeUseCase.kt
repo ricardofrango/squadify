@@ -23,6 +23,7 @@ import com.ricardofrango.squadify.model.ClubHomeNextUp
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchStatus
+import com.ricardofrango.squadify.model.isNotPlayed
 import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.TrainingPlanLevel
 import com.ricardofrango.squadify.model.monthStartOf
@@ -182,6 +183,25 @@ class GetClubHomeUseCase(
                         matches = matches.sortedBy { it.dateTime }.map {
                             ClubHomeAlertMatch(it.id, teamNames[it.teamId] ?: "—", opponentLabel(it.opponentId))
                         }
+                    )
+                }
+        }
+
+        // Matches never started, well past their kickoff (Match.isNotPlayed): their result is missing.
+        // Oldest first, like the reports. For whoever can enter it (MANAGE_LIVE_MATCH, Staff by default).
+        val resultTeamIds = alertTeamIds(ConfigurablePermission.MANAGE_LIVE_MATCH)
+        if (resultTeamIds.isNotEmpty()) {
+            allMatches
+                .filter { it.teamId in resultTeamIds && it.isNotPlayed(now) }
+                .sortedBy { it.dateTime }
+                .forEach { match ->
+                    alerts += ClubHomeAlert(
+                        type = ClubHomeAlertType.MATCH_NOT_PLAYED,
+                        count = 1,
+                        date = match.dateTime.toLocalDateTime(tz).date,
+                        matchId = match.id,
+                        teamName = teamNames[match.teamId],
+                        opponentName = opponentLabel(match.opponentId)
                     )
                 }
         }

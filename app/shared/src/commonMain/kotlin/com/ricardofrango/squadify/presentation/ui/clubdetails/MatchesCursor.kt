@@ -3,15 +3,15 @@ package com.ricardofrango.squadify.presentation.ui.clubdetails
 import com.ricardofrango.squadify.model.MatchListStatus
 
 /**
- * Where the Matches tab is in its lists, which load a page at a time: Upcoming or Finished alone, or
- * All as Upcoming to its end and then Finished, so the tab keeps its order (upcoming soonest first,
- * then the results newest first).
+ * Where the Matches tab is in its lists, which load a page at a time: Upcoming (the upcoming
+ * matches, then the not-played ones) or Finished alone, or All as all three in turn, so the tab keeps
+ * its order, the order they happen in (upcoming soonest first, not played and the results newest first).
  */
 internal class MatchesCursor(status: MatchesStatusFilter) {
     private val lists = when (status) {
-        MatchesStatusFilter.UPCOMING -> listOf(MatchListStatus.UPCOMING)
+        MatchesStatusFilter.UPCOMING -> listOf(MatchListStatus.UPCOMING, MatchListStatus.NOT_PLAYED)
         MatchesStatusFilter.FINISHED -> listOf(MatchListStatus.FINISHED)
-        MatchesStatusFilter.ALL -> listOf(MatchListStatus.UPCOMING, MatchListStatus.FINISHED)
+        MatchesStatusFilter.ALL -> listOf(MatchListStatus.UPCOMING, MatchListStatus.NOT_PLAYED, MatchListStatus.FINISHED)
     }
     private var index = 0
 

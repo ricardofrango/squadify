@@ -1547,4 +1547,10 @@
     <string name="msg_record_minutes_invalid">Os minutos jogados têm de estar entre 0 e a duração do jogo.</string>
     <string name="msg_record_scorer_didnt_play">Há um golo ou assistência de um jogador sem minutos jogados.</string>
     <string name="msg_record_save_failed">Não foi possível guardar o registo do jogo. Tente novamente.</string>
+    <!-- Not played (never started, well past kickoff) -->
+    <string name="label_not_played">Não jogados</string>
+    <string name="msg_home_match_not_played">Resultado em falta: %1$s vs %2$s</string>
+    <string name="msg_home_matches_not_played">%1$d jogos sem resultado</string>
+    <string name="home_not_played_due">Marcado para %1$s · %2$s</string>
+    <string name="home_not_played_oldest">O mais antigo: %1$s · %2$s</string>
 </resources>

@@ -39,6 +39,9 @@ import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Team
+import com.ricardofrango.squadify.model.isNotPlayed
+import kotlin.time.Clock
+import kotlin.time.Instant
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
@@ -131,13 +134,17 @@ fun MatchesTab(
         }
     }
 
-    val (upcoming, finished) = remember(state.matches, state.selectedMatchesSeasonId, state.selectedMatchesAgeGroupId, state.selectedMatchesTeamId, teamsById) {
-        splitMatches(state, teamsById)
+    val split = remember(state.matches, state.selectedMatchesSeasonId, state.selectedMatchesAgeGroupId, state.selectedMatchesTeamId, teamsById) {
+        splitMatches(state, teamsById, Clock.System.now())
     }
+    val (notPlayed, upcoming, finished) = split
     fun entries(matches: List<Match>) = matches.map { MatchListEntry(it, state.matchScores[it.id], teamsById[it.teamId]?.name) }
     val upcomingSection = if (state.matchesStatus == MatchesStatusFilter.FINISHED) null
     else MatchListSection(entries(upcoming), total = maxOf(state.upcomingTotal ?: 0, upcoming.size))
-    // Under All the results come once Upcoming has loaded to its end.
+    // Not played comes once Upcoming has loaded to its end (a pushed match may show it sooner).
+    val notPlayedSection = if (state.matchesStatus == MatchesStatusFilter.FINISHED || state.notPlayedTotal == null && notPlayed.isEmpty()) null
+    else MatchListSection(entries(notPlayed), total = maxOf(state.notPlayedTotal ?: 0, notPlayed.size))
+    // Under All the results come once Upcoming and Not played have loaded to their end.
     val resultsSection = when {
         state.matchesStatus == MatchesStatusFilter.UPCOMING -> null
         state.matchesStatus == MatchesStatusFilter.ALL && state.finishedTotal == null -> null
@@ -203,6 +210,7 @@ fun MatchesTab(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 matchListSections(
+                    notPlayed = notPlayedSection,
                     upcoming = upcomingSection,
                     results = resultsSection,
                     opponentsById = opponentsById,
@@ -224,10 +232,11 @@ private fun MatchesStatusFilter.labelRes(): StringResource = when (this) {
 // ---- Sections ----
 
 /**
- * The loaded matches that fit the filters (a match pushed over the socket may not), as Upcoming
- * (neither finished nor cancelled, soonest first) and Finished (newest first), like the server's lists.
+ * The loaded matches that fit the filters (a match pushed over the socket may not), as Not played
+ * (never started, well past kickoff, newest first), Upcoming (the rest neither finished nor cancelled,
+ * soonest first) and Finished (newest first), like the server's lists.
  */
-private fun splitMatches(state: ClubDetailsUiState.Idle, teamsById: Map<String, Team>): Pair<List<Match>, List<Match>> {
+private fun splitMatches(state: ClubDetailsUiState.Idle, teamsById: Map<String, Team>, now: Instant): Triple<List<Match>, List<Match>, List<Match>> {
     val shown = state.matches.filter { m ->
         val team = teamsById[m.teamId] ?: return@filter false
         m.status != MatchStatus.CANCELLED &&
@@ -235,6 +244,7 @@ private fun splitMatches(state: ClubDetailsUiState.Idle, teamsById: Map<String, 
             (state.selectedMatchesAgeGroupId == null || team.ageGroupId == state.selectedMatchesAgeGroupId) &&
             (state.selectedMatchesTeamId == null || m.teamId == state.selectedMatchesTeamId)
     }
-    val (finished, upcoming) = shown.partition { it.status == MatchStatus.FINISHED }
-    return upcoming.sortedBy { it.dateTime } to finished.sortedByDescending { it.dateTime }
+    val (finished, open) = shown.partition { it.status == MatchStatus.FINISHED }
+    val (notPlayed, upcoming) = open.partition { it.isNotPlayed(now) }
+    return Triple(notPlayed.sortedByDescending { it.dateTime }, upcoming.sortedBy { it.dateTime }, finished.sortedByDescending { it.dateTime })
 }
