@@ -320,7 +320,7 @@
     <string name="tab_more">Mais</string>
 
     <!-- Club Matches tab -->
-    <string name="matches_status_upcoming">Por jogar</string>
+    <string name="matches_status_upcoming">Próximos</string>
     <string name="matches_status_finished">Terminados</string>
     <string name="matches_status_all">Todos</string>
     <string name="matches_live">AO VIVO</string>
