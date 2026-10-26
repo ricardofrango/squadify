@@ -186,7 +186,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [/] **Super Admin Summary**: Global platform health (Total clubs, active users, system logs).
     - [/] **Club Admin Summary**: Club overview (Total players/teams, financial status placeholder, upcoming matches).
     - [/] **Parent/Player Summary**: Personalized view (My next matches, my recent performance/events).
-    - [x] **API Scalability**: the lists that grow without bound come a page at a time, filtered on the server: the club's matches (Matches tab), players (Players screen) and members (Club settings → Members). The next page loads on scrolling. Lists held to a season, an age group, a team or a match stay whole on purpose. Next to page once clubs grow: the eligible players when adding to an age group, and the opponents. See `TECHNICAL_DECISIONS.md` §68.
+    - [x] **API Scalability**: the lists that grow without bound come a page at a time, filtered on the server: the club's matches (Matches tab), players (Players screen), members (Club settings → Members), opponents (Opponents screen) and the players who can join an age group (Add players). The next page loads on scrolling. Lists held to a season, an age group, a team or a match stay whole on purpose. See `TECHNICAL_DECISIONS.md` §68.
     - [x] **Email Service**: Integrated with Resend for club/age-group association notifications -- see `TECHNICAL_DECISIONS.md`'s EmailService section. `squadify.pt` is now a verified Resend sending domain (`RESEND_FROM_ADDRESS` set accordingly); no longer limited to the sandboxed `onboarding@resend.dev` address.
     - [x] **Club members list** (design 34): Club settings is split into Details · Members · Permissions tabs. Members lists everyone in the club by club role, with search, a role filter, what each person does (coach/staff age groups, parent of a player), and the pending club invites (resend, cancel). Invites can be sent as Member or Coordinator. Coordinators can change roles between Member and Coordinator; only admins can grant or remove Admin, and the last admin can't be demoted. Tapping a member opens Member details (design 35): contact (tap to mail or call, copy), the club role, and their age-group roles and linked players, which link to the age group or player. A pending invite opens with Resend and Cancel. Members can be removed from the club (their age-group staff roles go too; parent links stay). Only admins and coordinators remove members. There is deliberately no "Leave club" for members themselves (product decision).
     - [/] **Invite status visibility**:
@@ -216,7 +216,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - **People's photos** in Club settings → Members, Member details and age group staff.
       - **Club logo on push notifications** (Android), when the club has one and the server has a public address.
       - **Stats and pickers:** the team leaders card (photo, or the placeholder, before every name), the training stats table (the player badge) and Add staff's picker (the photo in the initials circle).
-      - **To decide:** whether a user's own photo should only be visible to people who share a club with them. Today any signed-in user can fetch the current one by its random id.
+      - **Decided** (the developer, 2026-10-26): a user's photo is always shown, to any signed-in user, by its current random id. It isn't limited to people who share a club with them.
     - [x] Client-side Architecture (MVVM, Koin, UseCases).
     - [x] API Integration (Ktor Client): every screen talks to the server through repositories over a shared authenticated Ktor client (bearer tokens, refresh on 401), plus WebSockets for the live match and the club's Matches tab.
     - [/] Role-specific Dashboards:
@@ -237,7 +237,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - **Match Details:** line-ups, call-ups, events and score (once played: General, Stats, Events and Timeline tabs for the staff; General and the goals for everyone else), plus the details card (opponent, type, format such as 7x7 from the team's size, date, kickoff, location, notes).
       - **Live match console:** for coaches and staff.
       - **After the match:** finished results stay as history, with the post-match report and per-player stats. Season stats live on Player, Team and Age Group Details (see Phase 5).
-- [x] **Phase 8: Training & Periodization** (see §5b). Not yet: drag-to-reorder (up/down buttons on a session's exercises; objectives and phases keep the order they were added) and remembering List / Calendar.
+- [x] **Phase 8: Training & Periodization** (see §5b). A session's exercises are reordered by dragging each by its handle (objectives and phases keep the order they were added). The sessions' List / Calendar choice is remembered on the device.
     - [x] Training permission: a configurable club setting for sessions and plans.
     - [x] **First:** Macrocycle (year plan), mesocycles (month plans) and microcycles (week plans) for an age group, with a Home alert when a period starts without its plan. Built before the sessions, because a coach sets the year's, month's and week's objectives before preparing a session.
     - [x] Club country (Portugal by default), for public holidays.

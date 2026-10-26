@@ -11,10 +11,17 @@ sealed class AddPlayersToAgeGroupUiState {
         val ageGroups: List<AgeGroup> = emptyList(),
         val seasons: List<Season> = emptyList(),
         val selectedAgeGroupId: String? = null,
-        // Club players eligible for the selected age group (old enough, not already in it). Refetched
-        // whenever the age-group picker changes.
+        // The pages loaded so far of the club players eligible for the selected age group (old enough,
+        // active, not already in it) whose name matches [query], by name. Refetched whenever the
+        // age-group picker or the search changes; the search runs on the server.
         val eligiblePlayers: List<Player> = emptyList(),
         val loadingEligible: Boolean = false,
+        val query: String = "",
+        val hasMore: Boolean = false,
+        val loadingMore: Boolean = false,
+        // Whether the age group has any eligible player at all, whatever the search: which empty state.
+        val anyEligible: Boolean = false,
+        // Kept across searches and pages, so a player picked before searching again stays picked.
         val selectedPlayerIds: Set<String> = emptySet(),
         val isSubmitting: Boolean = false,
         // Generic failure -- localized copy only, never a raw exception message. See AI_GUIDELINES.md

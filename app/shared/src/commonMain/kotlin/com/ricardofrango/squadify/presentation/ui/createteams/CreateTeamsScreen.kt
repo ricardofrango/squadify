@@ -29,6 +29,7 @@ import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.TeamItemRequest
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
+import com.ricardofrango.squadify.presentation.ui.components.PinnedBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -192,6 +193,21 @@ private fun CreateTeamsContent(
                 subtitle = clubName,
                 onNavigateBack = onNavigateBack
             )
+        },
+        bottomBar = {
+            // Pinned, as on every form: the team rows scroll under it.
+            val idle = uiState as? CreateTeamsUiState.Idle
+            if (idle != null && idle.seasons.isNotEmpty()) {
+                PinnedBottomBar {
+                    idle.error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+                    PrimaryLoadingButton(
+                        text = Res.string.btn_create_teams,
+                        submittingText = Res.string.btn_creating_teams,
+                        isLoading = idle.isSubmitting,
+                        onClick = onCreateClick
+                    )
+                }
+            }
         }
     ) { paddingValues ->
         when (uiState) {
@@ -262,17 +278,16 @@ private fun CreateTeamsContent(
                         )
                     }
 
-                    Text(
-                        text = stringResource(Res.string.msg_teams_intro),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = DeepCarbon.copy(alpha = 0.6f)
-                    )
-
-                    Text(
-                        text = stringResource(Res.string.msg_team_size_age_group_default),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = DeepCarbon.copy(alpha = 0.5f)
-                    )
+                    // Under the age group, so adding a row never means scrolling past the others.
+                    OutlinedButton(
+                        onClick = onAddRow,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = FormRoundedShape,
+                        border = BorderStroke(1.dp, PitchGreen.copy(alpha = 0.4f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PitchGreen)
+                    ) {
+                        Text("+ ${stringResource(Res.string.label_add_another_team)}")
+                    }
 
                     rows.forEachIndexed { index, row ->
                         TeamRowCard(
@@ -295,39 +310,6 @@ private fun CreateTeamsContent(
                             color = MaterialTheme.colorScheme.error
                         )
                     }
-
-                    OutlinedButton(
-                        onClick = onAddRow,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = FormRoundedShape,
-                        border = BorderStroke(1.dp, PitchGreen.copy(alpha = 0.4f)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PitchGreen)
-                    ) {
-                        Text("+ ${stringResource(Res.string.label_add_another_team)}")
-                    }
-
-                    if (uiState.error != null) {
-                        Text(
-                            text = uiState.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-
-                    PrimaryLoadingButton(
-                        text = Res.string.btn_create_teams,
-                        submittingText = Res.string.btn_creating_teams,
-                        isLoading = uiState.isSubmitting,
-                        onClick = onCreateClick
-                    )
-
-                    Text(
-                        text = stringResource(Res.string.msg_teams_footer_helper),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = DeepCarbon.copy(alpha = 0.5f),
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
                 }
             }
         }

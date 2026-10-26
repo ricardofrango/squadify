@@ -41,15 +41,24 @@ fun Route.opponentRoutes() {
                 call.respond(opponents)
             }
 
-            // The Opponents screen: the list plus its Recent section and whether the caller can create.
+            // The Opponents screen: the list and whether the caller can create. With `limit`, a page of it
+            // (`offset`), searched on `q`; without, the whole list.
             get("/list") {
-                val clubId = call.request.queryParameters["clubId"] ?: return@get call.respond(
+                val params = call.request.queryParameters
+                val clubId = params["clubId"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
                     ErrorResponse("clubId is required", "VAL_001")
                 )
-                val ageGroupId = call.request.queryParameters["ageGroupId"]
+                val ageGroupId = params["ageGroupId"]
                 val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
-                call.respond(getOpponentListUseCase(currentUserId, clubId, ageGroupId))
+                call.respond(
+                    getOpponentListUseCase(
+                        currentUserId, clubId, ageGroupId,
+                        search = params["q"],
+                        limit = Paging.limitOf(params["limit"]),
+                        offset = Paging.offsetOf(params["offset"])
+                    )
+                )
             }
 
             post {

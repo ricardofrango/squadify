@@ -6,9 +6,14 @@ import com.ricardofrango.squadify.domain.usecase.AddPlayersToAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetEligiblePlayersForAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.GetSeasonsUseCase
+import com.ricardofrango.squadify.model.Paging
 import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_add_players_failed
+import com.ricardofrango.squadify.model.Player
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -31,6 +36,9 @@ class AddPlayersToAgeGroupViewModel(
 
     private val _navigationEvent = MutableSharedFlow<AddPlayersToAgeGroupNavigationEvent>()
     val navigationEvent: SharedFlow<AddPlayersToAgeGroupNavigationEvent> = _navigationEvent.asSharedFlow()
+
+    // The page load under way, cancelled when the age group or the search changes.
+    private var eligibleJob: Job? = null
 
     fun load(clubId: String, initialAgeGroupId: String? = null) {
         if (_state.value is AddPlayersToAgeGroupUiState.Idle) return
@@ -78,26 +86,78 @@ class AddPlayersToAgeGroupViewModel(
                 selectedPlayerIds = emptySet(),
                 eligiblePlayers = emptyList(),
                 loadingEligible = true,
+                query = "",
+                hasMore = false,
                 error = null
             )
         }
         loadEligible(ageGroupId)
     }
 
-    private fun loadEligible(ageGroupId: String) {
-        viewModelScope.launch {
-            val players = try {
-                getEligiblePlayersForAgeGroupUseCase(ageGroupId)
+    // The list on screen stays while typing, until the search's own results arrive.
+    fun onSearchChanged(query: String) {
+        val current = _state.value as? AddPlayersToAgeGroupUiState.Idle ?: return
+        _state.update { current.copy(query = query) }
+        current.selectedAgeGroupId?.let { loadEligible(it, debounce = true) }
+    }
+
+    /**
+     * Loads the first pages for the current search, enough for [atLeast] rows, replacing the list.
+     * [debounce] waits for the typing to pause first, so a search isn't sent on every key.
+     */
+    private fun loadEligible(ageGroupId: String, atLeast: Int = Paging.PAGE_SIZE, debounce: Boolean = false) {
+        eligibleJob?.cancel()
+        eligibleJob = viewModelScope.launch {
+            if (debounce) delay(SEARCH_DEBOUNCE_MS)
+            val query = (_state.value as? AddPlayersToAgeGroupUiState.Idle)?.query.orEmpty()
+            val players = mutableListOf<Player>()
+            var hasMore = false
+            var anyEligible = false
+            try {
+                do {
+                    val page = getEligiblePlayersForAgeGroupUseCase(ageGroupId, query, players.size)
+                    players += page.players
+                    hasMore = page.hasMore
+                    anyEligible = anyEligible || page.anyPlayers
+                } while (hasMore && players.size < atLeast)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                emptyList()
+                // Shown as no eligible players, as before; coming back from New player tries again.
+                players.clear()
+                hasMore = false
             }
-            _state.update { state ->
-                if (state is AddPlayersToAgeGroupUiState.Idle && state.selectedAgeGroupId == ageGroupId) {
-                    state.copy(eligiblePlayers = players, loadingEligible = false)
-                } else {
-                    state
+            update(ageGroupId) {
+                it.copy(eligiblePlayers = players, loadingEligible = false, hasMore = hasMore, loadingMore = false, anyEligible = anyEligible)
+            }
+        }
+    }
+
+    /** The next page, as the list nears its end. */
+    fun loadMore() {
+        val current = _state.value as? AddPlayersToAgeGroupUiState.Idle ?: return
+        val ageGroupId = current.selectedAgeGroupId ?: return
+        if (!current.hasMore || eligibleJob?.isActive == true) return
+        eligibleJob = viewModelScope.launch {
+            update(ageGroupId) { it.copy(loadingMore = true) }
+            try {
+                val page = getEligiblePlayersForAgeGroupUseCase(ageGroupId, current.query, current.eligiblePlayers.size)
+                update(ageGroupId) {
+                    it.copy(eligiblePlayers = (it.eligiblePlayers + page.players).distinctBy { p -> p.id }, hasMore = page.hasMore, loadingMore = false)
                 }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Scrolling back to the end tries again.
+                update(ageGroupId) { it.copy(loadingMore = false) }
             }
+        }
+    }
+
+    // Only while [ageGroupId] is still the one picked: a late answer for another is dropped.
+    private fun update(ageGroupId: String, block: (AddPlayersToAgeGroupUiState.Idle) -> AddPlayersToAgeGroupUiState.Idle) {
+        _state.update { state ->
+            if (state is AddPlayersToAgeGroupUiState.Idle && state.selectedAgeGroupId == ageGroupId) block(state) else state
         }
     }
 
@@ -109,8 +169,9 @@ class AddPlayersToAgeGroupViewModel(
     fun refreshEligiblePlayers() {
         val current = _state.value as? AddPlayersToAgeGroupUiState.Idle ?: return
         val ageGroupId = current.selectedAgeGroupId ?: return
-        _state.update { current.copy(loadingEligible = true, error = null) }
-        loadEligible(ageGroupId)
+        _state.update { current.copy(error = null) }
+        // As many rows as were on screen come back, so the list doesn't shrink under the user.
+        loadEligible(ageGroupId, atLeast = maxOf(Paging.PAGE_SIZE, current.eligiblePlayers.size))
     }
 
     fun onPlayerToggled(playerId: String) {
@@ -149,5 +210,9 @@ class AddPlayersToAgeGroupViewModel(
                 _state.update { current.copy(isSubmitting = false, error = message) }
             }
         }
+    }
+
+    private companion object {
+        const val SEARCH_DEBOUNCE_MS = 300L
     }
 }

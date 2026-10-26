@@ -1227,7 +1227,7 @@ graph TD
 
 A **disabled** player (§5.3b) is refused (`ValidationException`) and never listed as eligible.
 
-`GetEligiblePlayersForAgeGroupUseCase` is the read counterpart: every **active** club player with `birthDate.year >= ageGroup.endYear` who isn't already in the group; visible to a coordinator or any age-group staff. Playing up is unbounded — a young player is eligible for any older age group, never a younger one.
+`GetEligiblePlayersForAgeGroupUseCase` is the read counterpart: every **active** club player with `birthDate.year >= ageGroup.endYear` who isn't already in the group; visible to a coordinator or any age-group staff. Playing up is unbounded — a young player is eligible for any older age group, never a younger one. With `limit`, `GET /age-groups/{id}/players/eligible` returns one page of them (`PlayersPage`, `page`): the same rules as a query (not in the pool, active, born on or after 1 January of `endYear`), searched on `q` like the Players screen, by name, with `anyPlayers` for whether any is eligible at all. Without `limit` it returns them all, for older app builds.
 
 Age groups carry a `startYear`/`endYear` birth-year **span**, not a single birth year (see §4.3): most (football) are single-year, with `startYear == endYear`; some (typically futsal) span two consecutive birth years to have enough players for a squad -- e.g. a Benjamins group covering 2016 and 2017 is `startYear = 2017, endYear = 2016`. Eligibility above and the inferred "Sub N" name (client-side `AgeGroupDefaults.inferredName`) are both always keyed off `endYear` -- the oldest birth year the group allows -- so a two-year group behaves exactly like the old single-birth-year field with the threshold lowered by one year; `startYear` is otherwise informational (shown in the UI, not compared against).
 
@@ -1368,22 +1368,31 @@ so a field the user emptied is cleared. It's opened from Opponent details, with 
 
 ```mermaid
 graph TD
-    A[Start: userId, clubId, ageGroupId?] --> AG{ageGroupId supplied?}
+    A[Start: userId, clubId, ageGroupId?, search?, limit?, offset] --> AG{ageGroupId supplied?}
     AG -- Yes --> AGF[Fetch AgeGroup by id]
     AGF -- not found --> N(["Throw NotFoundException"])
     AGF -- found, wrong club --> FB(["Throw ForbiddenException"])
     AGF -- found, right club --> B
     AG -- No --> B[CheckUserPermissionUseCase — minClubRole=MEMBER, minAgeGroupRole=COACH, ageGroupId]
     B -- denied --> F(["Throw ForbiddenException"])
-    B -- allowed --> C["Club name; the club's opponents sorted by name"]
-    C --> D["canCreate: non-throwing probe — minClubRole=COORDINATOR, configurablePermission=CREATE_OPPONENT, ageGroupId"]
-    D --> Z(["Return OpponentList: clubName, opponents, canCreate"])
+    B -- allowed --> C["Club name"]
+    C --> L{limit given?}
+    L -- No --> W["Every opponent, by name (lowercase, accents folded); hasMore = false"]
+    L -- Yes --> P["getOpponentsPage: name or short name contains the folded search; by folded name, then id; limit + 1 rows from offset"]
+    P --> PM["The first limit rows; hasMore = an extra row came back"]
+    W --> AO
+    PM --> AO["anyOpponents: an unsearched row came back, else hasOpponents(clubId)"]
+    AO --> D["canCreate: non-throwing probe — minClubRole=COORDINATOR, configurablePermission=CREATE_OPPONENT, ageGroupId"]
+    D --> Z(["Return OpponentList: clubName, opponents, canCreate, hasMore, anyOpponents"])
 ```
 
 `GET /opponents/list` feeds the Opponents screen (design 38) in both its modes: picking an opponent for a
 match, and browsing them from the More panel. Who may read it is the same as `GetOpponentsUseCase`, including
-the age-group coach path. The client searches and groups the list itself, so there's no paging: a club has
-dozens of opponents, not thousands.
+the age-group coach path. The screen asks for a page at a time (`limit`, `offset`, `q`), searched on the
+server on the name or short name, ignoring case and accents (`TECHNICAL_DECISIONS.md` §68). The rows are
+ordered character by character (`COLLATE "C"`), as the app sorts them, so its letter groups don't shuffle
+as pages arrive. Without `limit` it returns the whole list: the opponent form's duplicate-name check, and
+older app builds.
 
 ### 6.4 Get Opponent Details (`GetOpponentDetailsUseCase`)
 
@@ -1949,7 +1958,7 @@ Every mutating action applies its own REST response to local state immediately, 
 - **Actions run one at a time, after any pending lineup save, and apply a change onto the latest state** instead of restoring a snapshot from when they were tapped. A finished substitution no longer wipes a swap made while it was sending, and two substitutions' OUT/IN events can't interleave (they're paired by minute and order, see `currentPitchSlots`).
 - **A refused lineup save reloads the server's pitch** rather than putting back the arrangement from before that tap, which also discarded later taps.
 
-The running clock (shown as `MM:SS`) is `elapsedMatchSeconds(match, now)` -- in the console, with `now` on the server's clock (`MatchDetails.serverNow` and `estimateServerClockOffset`, so the device's own clock being a few seconds off doesn't shift it; the second half always restarts at exactly the half length), a pure function in `common/model/Models.kt` shared by this screen and the club Matches list's live badge (`MatchRow`, via `MatchesTab`) so the two can never disagree: `now - Match.kickoffAt`, or once the second half has started, `halfLengthMinutes + (now - Match.secondHalfStartedAt)` -- and if `Match.pausedAt` is set, `now` is substituted with the frozen `pausedAt` instant so the value stops advancing. Recomputed every second (this screen) or every 15 seconds (the coarser whole-minutes list badge) and on every recomposition, so it's correct across navigation/app restarts and unaffected by the device's timezone (`Instant` subtraction is timezone-agnostic). The clock correction (§8.2e, opened by tapping the clock) is a server-persisted correction, not a local overlay -- `LiveMatchViewModel.onSetMinute` refetches `MatchDetails` after the call commits, the same "server is the sole time authority" pattern as Pause/Resume. Everything that matters for the record — score, events, status, the Starting XI, and the kickoff/second-half/paused timestamps — is server-authoritative.
+The running clock (shown as `MM:SS`) is `elapsedMatchSeconds(match, now)` -- in the console, with `now` on the server's clock (`MatchDetails.serverNow` and `estimateServerClockOffset`, so the device's own clock being a few seconds off doesn't shift it; the second half always restarts at exactly the half length), a pure function in `common/model/Models.kt` shared by this screen and the match lists' live badge (`MatchRow`, with `now` from `ServerClock`, learnt from every response's `X-Server-Time`) so the two can never disagree: `now - Match.kickoffAt`, or once the second half has started, `halfLengthMinutes + (now - Match.secondHalfStartedAt)` -- and if `Match.pausedAt` is set, `now` is substituted with the frozen `pausedAt` instant so the value stops advancing. Recomputed every second (this screen) or every 15 seconds (the coarser whole-minutes list badge) and on every recomposition, so it's correct across navigation/app restarts and unaffected by the device's timezone (`Instant` subtraction is timezone-agnostic). The clock correction (§8.2e, opened by tapping the clock) is a server-persisted correction, not a local overlay -- `LiveMatchViewModel.onSetMinute` refetches `MatchDetails` after the call commits, the same "server is the sole time authority" pattern as Pause/Resume. Everything that matters for the record — score, events, status, the Starting XI, and the kickoff/second-half/paused timestamps — is server-authoritative.
 
 ### 8.5 Subscribe to Club Matches Updates (`GetClubMatchesUpdatesUseCase`)
 
@@ -2230,7 +2239,7 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
 - [x] **"Not found" is modelled inconsistently for the same resource.** A missing `Team` threw `NotFoundException` in `UpdateTeamUseCase` and `CreateMatchUseCase`, but `ValidationException` in `GetTeamDetailsUseCase`, `GetTeamPlayersUseCase`, `GetAgeGroupStaffUseCase`, `AddPlayersToAgeGroupUseCase`, and `AddStaffToAgeGroupUseCase`. Similarly, a missing `Match` threw `ValidationException` in `AddMatchEventUseCase` but `NotFoundException` everywhere else a Match is looked up.
   **Fixed:** standardized on `NotFoundException` (404) for every "an entity looked up by ID doesn't exist" case, whether it's the primary resource or one referenced in the request (e.g. a `clubId`/`ageGroupId` on a create payload) -- 17 call sites across 11 use cases converted from `ValidationException` (400): `AddMatchEventUseCase`, `CreateAgeGroupsUseCase`, `CreateTeamsUseCase` (×2), `CreateTeamUseCase` (×2), `AddStaffToAgeGroupUseCase`, `AddPlayersToAgeGroupUseCase` (×2), `GetPlayersUseCase`, `GetTeamPlayersUseCase`, `GetAgeGroupStaffUseCase`, `GetEligiblePlayersForAgeGroupUseCase`, `GetTeamDetailsUseCase` (×4). Relationship-consistency checks on an entity that *was* found (e.g. "Age group does not belong to this club/season") correctly stayed `ValidationException` -- only genuine missing-entity lookups moved. None of these branches had test coverage before (confirmed by grepping the whole test tree for `"not found"` -- zero hits); added targeted tests for all 17, including new test files for the 5 use cases (`AddMatchEventUseCase`, `AddStaffToAgeGroupUseCase`, `GetTeamPlayersUseCase`, `GetAgeGroupStaffUseCase`, `GetEligiblePlayersForAgeGroupUseCase`) that had no test file at all.
 - [x] **Pagination is still missing.** `AI_GUIDELINES.md`, `TECHNICAL_DECISIONS.md` §5 and the `REQUIREMENTS.md` roadmap all call for `limit`/`offset` pagination on list endpoints, but none of the current list use cases (`GetTeamsUseCase`, `GetPlayersUseCase`, `GetMatchesUseCase`, `GetSeasonsUseCase`, `GetOpponentsUseCase`, `GetAgeGroupPlayersByClubUseCase`) implement it yet — this confirms the open roadmap item "API Scalability: Implement pagination for all list-based endpoints" is genuinely still pending, not just undocumented.
-  **Fixed for the lists that grow without bound** (`TECHNICAL_DECISIONS.md` §68): the club's matches (§7.1d), players (§5.1d) and members (§3.7) come a page at a time, filtered on the server, and the club screen gets its pool counts instead of every player (§3.3). Lists held to a season, an age group, a team or a match (teams, seasons, age groups, an age group's or team's players, call-ups, training sessions, the exercise library, staff, events, stats) stay whole on purpose. Still to page once clubs grow: the eligible players when adding to an age group, and the opponents.
+  **Fixed for the lists that grow without bound** (`TECHNICAL_DECISIONS.md` §68): the club's matches (§7.1d), players (§5.1d) and members (§3.7) come a page at a time, filtered on the server, and the club screen gets its pool counts instead of every player (§3.3). Lists held to a season, an age group, a team or a match (teams, seasons, age groups, an age group's or team's players, call-ups, training sessions, the exercise library, staff, events, stats) stay whole on purpose. The opponents (§6.3) and the players eligible for an age group (§5.3, Add players) page too.
 - [x] **`UpdateClubMemberRoleUseCase` has no existence guard.** Unlike almost every other `Update*UseCase`, it never verified `targetUserId` is a real user or an existing member of `clubId` before writing the new role.
   **Fixed:** `updateMemberRole` already reported whether it matched a row (`> 0`); the use case now checks that result and throws `NotFoundException` instead of silently returning `false` for a non-member. See `UpdateClubMemberRoleUseCaseTest`.
 - [x] **`CreateTeamUseCase` foreign-key validation.** It now loads the age group and rejects the request (`ValidationException`) if it doesn't exist, or its `clubId`/`seasonId` don't match the request — see §4.5. `CreateTeamsUseCase` (batch, §4.5b) applies the same check once for the whole batch.
@@ -2244,7 +2253,8 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
   - ~~**Login:** "Forgot password?" has no flow.~~ Fixed: emailed 6-digit code (§2.9, §2.10).
   - ~~**Club settings:** "Add logo" does nothing.~~ Fixed: club logo upload (§3.4c). Opponent logos are still inert.
   - ~~**Account:** "Change email" is likewise non-functional.~~ Fixed: code sent to the new address (§2.11, §2.12).
-- [ ] **The club Matches list's live badge uses the device clock.** The live console counts on the server's clock (`MatchDetails.serverNow`, §8.4), but `MatchRow`'s badge still uses `now` from the device. It only shows whole minutes, so a few seconds of drift rarely shows. Fixing it would need the server's time on the matches list too.
+- [x] **The club Matches list's live badge uses the device clock.** The live console counts on the server's clock (`MatchDetails.serverNow`, §8.4), but `MatchRow`'s badge still used `now` from the device.
+  **Fixed:** every server response carries the server's time (`X-Server-Time`, epoch ms, exposed to the browser through CORS). The app's HTTP client feeds each one into `ServerClock`, the same midpoint estimate as the console's, and `MatchRow` counts with `ServerClock.now()`. Every list with a live badge (club Matches, Team and Age Group Games, Home, Opponent details) now agrees with the console.
 - [x] **Invite emails are not sent.** Every invite-creation path used to only write to the `Invites` table (§10), with no email call anywhere.
   **Partly fixed:** `ProvisionClubUseCase`/`AddClubMembersUseCase` now send emails via Resend (`TECHNICAL_DECISIONS.md` §14). The `PARENT_PLAYER` paths (`CreatePlayersUseCase`/`UpdatePlayerUseCase`) still send nothing, on purpose, since parents/players are out of scope for now.
 

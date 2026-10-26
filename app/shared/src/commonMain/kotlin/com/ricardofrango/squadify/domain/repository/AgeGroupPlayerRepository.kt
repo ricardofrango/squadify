@@ -1,11 +1,12 @@
 package com.ricardofrango.squadify.domain.repository
 
 import com.ricardofrango.squadify.model.AgeGroupPlayer
-import com.ricardofrango.squadify.model.Player
+import com.ricardofrango.squadify.model.PlayersPage
 
 interface AgeGroupPlayerRepository {
     /** Club players who may be added to [ageGroupId]: old enough for it and not already in it. */
-    suspend fun getEligiblePlayers(ageGroupId: String): List<Player>
+    /** One page of the club players who may join [ageGroupId]'s pool, by name, searched on [query]. */
+    suspend fun getEligiblePlayersPage(ageGroupId: String, query: String, offset: Int, limit: Int): PlayersPage
 
     suspend fun addPlayers(ageGroupId: String, playerIds: List<String>): List<AgeGroupPlayer>
 

@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.ourSideFirst
+import com.ricardofrango.squadify.domain.service.ServerClock
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
@@ -213,8 +215,10 @@ private fun LiveMinute(match: Match, color: Color) {
             }
         }
     }
-    // Shares elapsedMatchSeconds with the live console, so the two can never disagree.
-    val minute = remember(tick, match) { (elapsedMatchSeconds(match, Clock.System.now()) / 60).coerceIn(0, 130) }
+    // Shares elapsedMatchSeconds with the live console and counts on the server's clock, as it does,
+    // so the two can never disagree.
+    val offset by ServerClock.offset.collectAsState()
+    val minute = remember(tick, match, offset) { (elapsedMatchSeconds(match, ServerClock.now()) / 60).coerceIn(0, 130) }
     Text(
         // The apostrophe is appended here, not baked into the string resource -- the resource
         // generator doesn't reliably unescape a trailing \' in a formatted string.

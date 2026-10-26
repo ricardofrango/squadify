@@ -19,6 +19,8 @@ import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greaterEq
+import kotlinx.datetime.LocalDate
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -42,9 +44,9 @@ class ExposedPlayerRepository : PlayerRepository {
             .offset(offset.toLong())
             .map(::toPlayer)
 
-    override suspend fun hasPlayers(clubId: String, visibleAgeGroupIds: Set<String>?): Boolean =
+    override suspend fun hasPlayers(clubId: String, filter: PlayerListFilter): Boolean =
         !Players.selectAll()
-            .where { playersMatching(clubId, PlayerListFilter(visibleAgeGroupIds = visibleAgeGroupIds)) }
+            .where { playersMatching(clubId, filter) }
             .limit(1)
             .empty()
 
@@ -68,6 +70,11 @@ class ExposedPlayerRepository : PlayerRepository {
             op = op and (inPools(it) or (Players.id notInSubQuery AgeGroupPlayers.select(AgeGroupPlayers.playerId)))
         }
         filter.search?.takeIf { it.isNotEmpty() }?.let { op = op and searchKeyOf(Players.firstName, Players.lastName).containsSearch(it) }
+        filter.notInAgeGroupId?.let {
+            op = op and (Players.id notInSubQuery AgeGroupPlayers.select(AgeGroupPlayers.playerId).where { AgeGroupPlayers.ageGroupId eq it.toUuid() })
+        }
+        filter.bornFromYear?.let { op = op and (Players.birthDate greaterEq LocalDate(it, 1, 1)) }
+        if (filter.activeOnly) op = op and (Players.active eq true)
         return op
     }
 

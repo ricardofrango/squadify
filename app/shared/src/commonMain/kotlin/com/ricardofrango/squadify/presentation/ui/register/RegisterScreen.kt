@@ -231,19 +231,14 @@ private fun RegisterContent(
                     )
                 )
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(20.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    if (errorMessage != null) {
-                        Text(
-                            text = errorMessage,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
+                // Only when there is one: an always-reserved line left a wide gap under the title.
+                // It appears after tapping Register, at the bottom, so the fields moving isn't a problem.
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
 
                 FormSection(title = stringResource(Res.string.label_section_your_name)) {

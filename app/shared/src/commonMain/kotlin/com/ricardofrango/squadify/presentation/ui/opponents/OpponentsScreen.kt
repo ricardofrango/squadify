@@ -24,6 +24,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.ricardofrango.squadify.presentation.ui.components.LoadMoreEffect
+import com.ricardofrango.squadify.presentation.ui.components.loadingMoreItem
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -90,7 +93,8 @@ import squadify.app.shared.generated.resources.title_opponents
  * - SELECT ([selectMode]), from Schedule match's Opponent field: "Choose opponent", a check on
  *   [selectedOpponentId]; tapping a row picks it.
  * - BROWSE, from More → Opponents: tapping a row opens it.
- * Search filters as you type, on name and short name, ignoring case and accents. The create actions
+ * Search filters as you type, on the server, on name and short name, ignoring case and accents; the
+ * list comes a page at a time, the next loading as it scrolls. The create actions
  * (the + in the bar, the empty states' buttons) show only when the server says
  * the user may create, and when [onCreateOpponent] is given; it gets the search text to prefill Name.
  */
@@ -119,6 +123,7 @@ fun OpponentsScreen(
             selectMode = selectMode,
             selectedOpponentId = selectedOpponentId,
             onQueryChange = viewModel::onQueryChange,
+            onLoadMore = viewModel::loadMore,
             onNavigateBack = onNavigateBack,
             onRetry = { viewModel.load(clubId, ageGroupId, force = true) },
             onOpponentClick = onOpponentClick,
@@ -134,6 +139,7 @@ private fun OpponentsContent(
     selectMode: Boolean,
     selectedOpponentId: String?,
     onQueryChange: (String) -> Unit,
+    onLoadMore: () -> Unit,
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
     onOpponentClick: (Opponent) -> Unit,
@@ -176,8 +182,8 @@ private fun OpponentsContent(
                         }
                     }
                     is OpponentsUiState.Idle -> OpponentList(
-                        list = state.list,
-                        query = query,
+                        state = state,
+                        onLoadMore = onLoadMore,
                         selectMode = selectMode,
                         selectedOpponentId = selectedOpponentId,
                         onOpponentClick = onOpponentClick,
@@ -220,23 +226,24 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
 
 @Composable
 private fun OpponentList(
-    list: OpponentList,
-    query: String,
+    state: OpponentsUiState.Idle,
+    onLoadMore: () -> Unit,
     selectMode: Boolean,
     selectedOpponentId: String?,
     onOpponentClick: (Opponent) -> Unit,
     onCreateOpponent: ((name: String) -> Unit)?
 ) {
-    val matches = filterOpponents(list.opponents, query)
+    val list = state.list
+    val query = state.searched
     when {
-        list.opponents.isEmpty() -> CenteredMessage(
+        !list.anyOpponents -> CenteredMessage(
             title = stringResource(Res.string.msg_no_opponents_title),
             body = stringResource(Res.string.msg_no_opponents_body)
         ) {
             if (onCreateOpponent != null) CreateButton("+ ${stringResource(Res.string.btn_create_opponent)}") { onCreateOpponent(query.trim()) }
         }
 
-        matches.isEmpty() -> CenteredMessage(
+        list.opponents.isEmpty() -> CenteredMessage(
             title = stringResource(Res.string.msg_no_opponents_match, query.trim()),
             body = stringResource(if (onCreateOpponent != null) Res.string.msg_no_opponents_match_hint else Res.string.msg_ask_coordinator_opponent)
         ) {
@@ -246,9 +253,12 @@ private fun OpponentList(
         }
 
         else -> {
-            val groups = groupByLetter(matches)
-            LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = ScreenPadding.Bottom)) {
+            val groups = groupByLetter(list.opponents)
+            val listState = rememberLazyListState()
+            LoadMoreEffect(listState, enabled = list.hasMore && !state.loadingMore, onLoadMore = onLoadMore)
+            LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(bottom = ScreenPadding.Bottom)) {
                 letterGroups(groups, selectMode, selectedOpponentId, onOpponentClick)
+                loadingMoreItem(state.loadingMore)
             }
         }
     }
@@ -379,7 +389,15 @@ private val previewList = OpponentList(
 @Composable
 private fun OpponentsBrowsePreview() {
     SquadifyTheme {
-        OpponentsContent(OpponentsUiState.Idle(previewList), "", selectMode = false, selectedOpponentId = null, {}, {}, {}, {}, onCreateOpponent = {})
+        OpponentsContent(OpponentsUiState.Idle(previewList), "", selectMode = false, selectedOpponentId = null, {}, {}, {}, {}, {}, onCreateOpponent = {})
+    }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun OpponentsBrowseLandscapePreview() {
+    SquadifyTheme {
+        OpponentsContent(OpponentsUiState.Idle(previewList), "", selectMode = false, selectedOpponentId = null, {}, {}, {}, {}, {}, onCreateOpponent = {})
     }
 }
 
@@ -387,7 +405,7 @@ private fun OpponentsBrowsePreview() {
 @Composable
 private fun OpponentsSelectPreview() {
     SquadifyTheme {
-        OpponentsContent(OpponentsUiState.Idle(previewList), "", selectMode = true, selectedOpponentId = "o1", {}, {}, {}, {}, onCreateOpponent = {})
+        OpponentsContent(OpponentsUiState.Idle(previewList), "", selectMode = true, selectedOpponentId = "o1", {}, {}, {}, {}, {}, onCreateOpponent = {})
     }
 }
 
@@ -395,7 +413,7 @@ private fun OpponentsSelectPreview() {
 @Composable
 private fun OpponentsNoMatchPreview() {
     SquadifyTheme {
-        OpponentsContent(OpponentsUiState.Idle(previewList), "Sporting Lourel", selectMode = true, selectedOpponentId = null, {}, {}, {}, {}, onCreateOpponent = {})
+        OpponentsContent(OpponentsUiState.Idle(previewList.copy(opponents = emptyList(), anyOpponents = true), searched = "Sporting Lourel"), "Sporting Lourel", selectMode = true, selectedOpponentId = null, {}, {}, {}, {}, {}, onCreateOpponent = {})
     }
 }
 
@@ -403,7 +421,7 @@ private fun OpponentsNoMatchPreview() {
 @Composable
 private fun OpponentsEmptyPreview() {
     SquadifyTheme {
-        OpponentsContent(OpponentsUiState.Idle(previewList.copy(opponents = emptyList())), "", selectMode = false, selectedOpponentId = null, {}, {}, {}, {}, onCreateOpponent = {})
+        OpponentsContent(OpponentsUiState.Idle(previewList.copy(opponents = emptyList(), anyOpponents = false)), "", selectMode = false, selectedOpponentId = null, {}, {}, {}, {}, {}, onCreateOpponent = {})
     }
 }
 
@@ -411,6 +429,6 @@ private fun OpponentsEmptyPreview() {
 @Composable
 private fun OpponentsErrorPreview() {
     SquadifyTheme {
-        OpponentsContent(OpponentsUiState.Error, "", selectMode = false, selectedOpponentId = null, {}, {}, {}, {}, onCreateOpponent = null)
+        OpponentsContent(OpponentsUiState.Error, "", selectMode = false, selectedOpponentId = null, {}, {}, {}, {}, {}, onCreateOpponent = null)
     }
 }

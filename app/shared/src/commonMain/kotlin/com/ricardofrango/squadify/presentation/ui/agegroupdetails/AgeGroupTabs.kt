@@ -821,6 +821,8 @@ internal fun AgeGroupTrainingTab(
     plansState: AgeGroupPlansUiState,
     sessionsState: AgeGroupSessionsUiState,
     poolSize: Int,
+    calendar: Boolean,
+    onCalendar: (Boolean) -> Unit,
     onRetrySessions: () -> Unit,
     onCreateSessions: () -> Unit,
     onAddSession: (date: LocalDate?) -> Unit,
@@ -837,11 +839,10 @@ internal fun AgeGroupTrainingTab(
     onEditWeek: (LocalDate) -> Unit
 ) {
     val today = remember { Clock.System.todayIn(TimeZone.currentSystemDefault()) }
-    // List or Calendar, and the calendar's month and selected day; they reset when the tab is left.
-    var calendar by remember { mutableStateOf(false) }
+    // The calendar's month and selected day reset when the tab is left; List or Calendar is remembered.
     var month by remember { mutableStateOf(LocalDate(today.year, today.month, 1)) }
     var selectedDay by remember { mutableStateOf<LocalDate?>(today) }
-    val view = SessionsView(calendar, month, selectedDay, { calendar = it }, { month = it }, { selectedDay = it })
+    val view = SessionsView(calendar, month, selectedDay, onCalendar, { month = it }, { selectedDay = it })
     LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         when (plansState) {
             AgeGroupPlansUiState.Loading -> item {
@@ -875,7 +876,6 @@ internal fun AgeGroupTrainingTab(
     }
 }
 
-/** The sessions under the plan cards (design 39a/b): Upcoming, then Past, or the empty state. */
 /** The sessions' List / Calendar choice, hoisted out of the lazy list. */
 private class SessionsView(
     val calendar: Boolean,
@@ -886,6 +886,7 @@ private class SessionsView(
     val onSelectDay: (LocalDate) -> Unit
 )
 
+/** The sessions under the plan cards (design 39a/b): Upcoming, then Past, or the empty state. */
 private fun LazyListScope.sessionItems(
     state: AgeGroupSessionsUiState,
     poolSize: Int,

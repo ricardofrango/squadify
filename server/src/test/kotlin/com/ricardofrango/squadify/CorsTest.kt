@@ -1,12 +1,19 @@
 package com.ricardofrango.squadify
 
+import com.ricardofrango.squadify.model.SERVER_TIME_HEADER
+import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.options
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
+import kotlin.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /**
  * The browser's preflight for each method the app's repositories send. A refused one shows up in the
@@ -67,5 +74,24 @@ class CorsTest {
             header(HttpHeaders.AccessControlRequestMethod, "POST")
         }
         assertEquals(HttpStatusCode.Forbidden, response.status)
+    }
+
+    @Test
+    fun theServerTimeHeaderIsReadableByTheWebApp() = testApplication {
+        application { configureCors(webApp) }
+        val response = client.get("/anything") { header(HttpHeaders.Origin, webApp) }
+        assertEquals(SERVER_TIME_HEADER, response.headers[HttpHeaders.AccessControlExposeHeaders])
+    }
+
+    @Test
+    fun everyResponseCarriesTheServerTime() = testApplication {
+        application {
+            configureServerTime()
+            routing { get("/ping") { call.respondText("ok") } }
+        }
+        val before = Clock.System.now().toEpochMilliseconds()
+        val stamped = client.get("/ping").headers[SERVER_TIME_HEADER]?.toLong()
+        val after = Clock.System.now().toEpochMilliseconds()
+        assertTrue(stamped != null && stamped in before..after, "stamped $stamped")
     }
 }

@@ -8,6 +8,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.ricardofrango.squadify.presentation.ui.components.LoadMoreEffect
+import com.ricardofrango.squadify.presentation.ui.components.loadingMoreItem
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -26,6 +29,7 @@ import com.ricardofrango.squadify.model.PlayerPosition
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
+import com.ricardofrango.squadify.presentation.ui.components.PinnedBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -49,8 +53,8 @@ private val FormRoundedShape = RoundedCornerShape(18.dp)
  * design canvas linked in AI_GUIDELINES.md ("UI Design Reference"), consistent with the Create
  * Teams / Create Age Groups screens: an age-group picker (defaults to the age group in the most
  * recently-ending season), a search box, and a scrollable list of **eligible** players -- club
- * players old enough for the group who aren't in it yet (the server returns exactly that set, so
- * there's nothing to filter here beyond search). Tapping a row toggles it; a sticky CREATE adds the
+ * players old enough for the group who aren't in it yet, a page at a time and searched on the server
+ * (the next page loads as the list scrolls). Tapping a row toggles it; a sticky CREATE adds the
  * whole selection in one request.
  */
 @Composable
@@ -68,8 +72,6 @@ fun AddPlayersToAgeGroupScreen(
 ) {
     SquadifyClubTheme {
         val uiState = viewModel.state.collectSettledState()
-        var searchQuery by remember { mutableStateOf("") }
-
         LaunchedEffect(clubId) {
             viewModel.load(clubId, initialAgeGroupId)
         }
@@ -88,13 +90,10 @@ fun AddPlayersToAgeGroupScreen(
 
         AddPlayersToAgeGroupContent(
             uiState = uiState,
-            searchQuery = searchQuery,
             onNavigateBack = onNavigateBack,
-            onSearchChange = { searchQuery = it },
-            onAgeGroupSelected = {
-                searchQuery = ""
-                viewModel.onAgeGroupSelected(it)
-            },
+            onSearchChange = viewModel::onSearchChanged,
+            onAgeGroupSelected = viewModel::onAgeGroupSelected,
+            onLoadMore = viewModel::loadMore,
             onPlayerToggled = viewModel::onPlayerToggled,
             onAddNewPlayer = { onNavigateToCreatePlayers((uiState as? AddPlayersToAgeGroupUiState.Idle)?.selectedAgeGroup?.id) },
             onAddClick = viewModel::onAddClicked
@@ -106,10 +105,10 @@ fun AddPlayersToAgeGroupScreen(
 @Composable
 private fun AddPlayersToAgeGroupContent(
     uiState: AddPlayersToAgeGroupUiState,
-    searchQuery: String,
     onNavigateBack: () -> Unit,
     onSearchChange: (String) -> Unit,
     onAgeGroupSelected: (String) -> Unit,
+    onLoadMore: () -> Unit,
     onPlayerToggled: (String) -> Unit,
     onAddNewPlayer: () -> Unit,
     onAddClick: () -> Unit
@@ -129,6 +128,22 @@ private fun AddPlayersToAgeGroupContent(
                 subtitle = subtitle,
                 onNavigateBack = onNavigateBack
             )
+        },
+        bottomBar = {
+            // Pinned, as on every form: the list scrolls under it.
+            if (idle != null && idle.ageGroups.isNotEmpty()) {
+                val selectedCount = idle.selectedPlayerIds.size
+                PinnedBottomBar {
+                    idle.error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+                    PrimaryLoadingButton(
+                        text = if (selectedCount == 1) stringResource(Res.string.btn_add_player_one) else stringResource(Res.string.btn_add_players_other, selectedCount),
+                        submittingText = stringResource(Res.string.btn_adding_players),
+                        isLoading = idle.isSubmitting,
+                        enabled = selectedCount > 0,
+                        onClick = onAddClick
+                    )
+                }
+            }
         }
     ) { paddingValues ->
         when (uiState) {
@@ -154,13 +169,7 @@ private fun AddPlayersToAgeGroupContent(
                     )
                 }
             } else {
-                val filtered = remember(uiState.eligiblePlayers, searchQuery) {
-                    val q = searchQuery.trim().lowercase()
-                    if (q.isEmpty()) uiState.eligiblePlayers
-                    else uiState.eligiblePlayers.filter {
-                        "${it.firstName} ${it.lastName}".lowercase().contains(q)
-                    }
-                }
+                val searchQuery = uiState.query
                 val selectedCount = uiState.selectedPlayerIds.size
 
                 Column(
@@ -169,7 +178,7 @@ private fun AddPlayersToAgeGroupContent(
                         .padding(paddingValues)
                         .background(ScreenBackground)
                         .padding(horizontal = ScreenPadding.Horizontal)
-                        .padding(top = 16.dp, bottom = 24.dp),
+                        .padding(top = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     AgeGroupPicker(
@@ -226,47 +235,32 @@ private fun AddPlayersToAgeGroupContent(
                                     modifier = Modifier.align(Alignment.Center)
                                 )
 
-                            filtered.isEmpty() ->
-                                EligibleEmptyState(hasSearch = searchQuery.isNotBlank())
+                            uiState.eligiblePlayers.isEmpty() ->
+                                EligibleEmptyState(hasSearch = uiState.anyEligible && searchQuery.isNotBlank())
 
-                            else -> LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                contentPadding = PaddingValues(vertical = 4.dp)
-                            ) {
-                                items(filtered, key = { it.id }) { player ->
-                                    PlayerRow(
-                                        player = player,
-                                        selected = player.id in uiState.selectedPlayerIds,
-                                        playsUp = selectedAgeGroup != null &&
-                                            player.birthDate.year > selectedAgeGroup.endYear,
-                                        onClick = { onPlayerToggled(player.id) }
-                                    )
+                            else -> {
+                                val listState = rememberLazyListState()
+                                LoadMoreEffect(listState, enabled = uiState.hasMore && !uiState.loadingMore, onLoadMore = onLoadMore)
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    state = listState,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    contentPadding = PaddingValues(top = 4.dp, bottom = 12.dp)
+                                ) {
+                                    items(uiState.eligiblePlayers, key = { it.id }) { player ->
+                                        PlayerRow(
+                                            player = player,
+                                            selected = player.id in uiState.selectedPlayerIds,
+                                            playsUp = selectedAgeGroup != null &&
+                                                player.birthDate.year > selectedAgeGroup.endYear,
+                                            onClick = { onPlayerToggled(player.id) }
+                                        )
+                                    }
+                                    loadingMoreItem(uiState.loadingMore)
                                 }
                             }
                         }
                     }
-
-                    if (uiState.error != null) {
-                        Text(
-                            text = uiState.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-
-                    val addLabel = if (selectedCount == 1) {
-                        stringResource(Res.string.btn_add_player_one)
-                    } else {
-                        stringResource(Res.string.btn_add_players_other, selectedCount)
-                    }
-                    PrimaryLoadingButton(
-                        text = addLabel,
-                        submittingText = stringResource(Res.string.btn_adding_players),
-                        isLoading = uiState.isSubmitting,
-                        enabled = selectedCount > 0,
-                        onClick = onAddClick
-                    )
                 }
             }
         }
@@ -468,10 +462,10 @@ private fun AddPlayersToAgeGroupContentPreview() {
                 ),
                 selectedPlayerIds = setOf("p1")
             ),
-            searchQuery = "",
             onNavigateBack = {},
             onSearchChange = {},
             onAgeGroupSelected = {},
+            onLoadMore = {},
             onPlayerToggled = {},
             onAddNewPlayer = {},
             onAddClick = {}
@@ -490,10 +484,10 @@ private fun AddPlayersToAgeGroupEmptyPreview() {
                 selectedAgeGroupId = "a1",
                 eligiblePlayers = emptyList()
             ),
-            searchQuery = "",
             onNavigateBack = {},
             onSearchChange = {},
             onAgeGroupSelected = {},
+            onLoadMore = {},
             onPlayerToggled = {},
             onAddNewPlayer = {},
             onAddClick = {}
@@ -514,10 +508,10 @@ private fun AddPlayersToAgeGroupLandscapePreview() {
                 selectedPlayerIds = setOf("p1"),
                 isSubmitting = true
             ),
-            searchQuery = "",
             onNavigateBack = {},
             onSearchChange = {},
             onAgeGroupSelected = {},
+            onLoadMore = {},
             onPlayerToggled = {},
             onAddNewPlayer = {},
             onAddClick = {}

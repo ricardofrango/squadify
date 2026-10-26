@@ -326,8 +326,8 @@ private fun WeekStrip(details: TrainingSessionDetails, onOpenWeekPlan: (edit: Bo
 
 /**
  * The session's exercises, in order (design 39f): name, description and minutes, with the total.
- * With `MANAGE_TRAINING` and while not cancelled: "Add exercise", ▲ / ▼ to reorder and × to remove from
- * this session (never from the library).
+ * With `MANAGE_TRAINING` and while not cancelled: "Add exercise", a handle to drag each into its place
+ * and × to remove from this session (never from the library).
  */
 @Composable
 private fun ExercisesCard(details: TrainingSessionDetails, enabled: Boolean, onAdd: () -> Unit, onSet: (List<String>) -> Unit) {
@@ -343,8 +343,9 @@ private fun ExercisesCard(details: TrainingSessionDetails, enabled: Boolean, onA
             Text(stringResource(Res.string.msg_session_no_exercises), style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText)
             return@StatsCard
         }
-        exercises.forEachIndexed { i, exercise ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        DragReorderColumn(exercises, enabled = canChange && enabled, onMove = { from, to -> onSet(ids.moved(from, to)) }) { i, exercise, handle ->
+            Row(Modifier.fillMaxWidth().background(Color.White).padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (canChange) DragHandle(handle, enabled)
                 Text("${i + 1}", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = PitchGreen, modifier = Modifier.padding(end = 10.dp))
                 Column(Modifier.weight(1f)) {
                     Text(exercise.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = DeepCarbon)
@@ -352,7 +353,6 @@ private fun ExercisesCard(details: TrainingSessionDetails, enabled: Boolean, onA
                 }
                 exercise.durationMinutes?.let { Text("$it'", style = MaterialTheme.typography.labelLarge, color = DeepCarbon) }
                 if (canChange) {
-                    ReorderButtons(i, exercises.size, enabled) { from, to -> onSet(ids.moved(from, to)) }
                     IconButton(onClick = { onSet(ids.filterIndexed { j, _ -> j != i }) }, enabled = enabled) {
                         Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.cd_remove), tint = DeepCarbon.copy(alpha = 0.5f))
                     }

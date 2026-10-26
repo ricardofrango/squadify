@@ -24,10 +24,15 @@ class OpponentRepositoryImpl(
             ageGroupId?.let { parameter("ageGroupId", it) }
         }.handleResponse()
 
-    override suspend fun getOpponentList(clubId: String, ageGroupId: String?): OpponentList =
+    override suspend fun getOpponentList(clubId: String, ageGroupId: String?, query: String, offset: Int, limit: Int?): OpponentList =
         httpClient.get("${appConfig.baseUrl}/opponents/list") {
             parameter("clubId", clubId)
             ageGroupId?.let { parameter("ageGroupId", it) }
+            query.trim().takeIf { it.isNotEmpty() }?.let { parameter("q", it) }
+            limit?.let {
+                parameter("limit", it)
+                parameter("offset", offset)
+            }
         }.handleResponse()
 
     override suspend fun getOpponentDetails(opponentId: String): OpponentDetails =

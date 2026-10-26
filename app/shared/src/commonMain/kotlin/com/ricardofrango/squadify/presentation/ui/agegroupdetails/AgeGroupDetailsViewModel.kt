@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.domain.repository.UiPreferencesRepository
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupDetailsUseCase
@@ -31,7 +32,8 @@ class AgeGroupDetailsViewModel(
     private val getTrainingPlansUseCase: GetTrainingPlansUseCase,
     private val getTrainingSessionsUseCase: GetTrainingSessionsUseCase,
     private val getFullStatsUseCase: GetFullStatsUseCase,
-    private val removePlayerFromAgeGroupUseCase: RemovePlayerFromAgeGroupUseCase
+    private val removePlayerFromAgeGroupUseCase: RemovePlayerFromAgeGroupUseCase,
+    private val preferences: UiPreferencesRepository
 ) : ViewModel() {
 
     // One-off results of removing a player, for the snackbar.
@@ -61,6 +63,10 @@ class AgeGroupDetailsViewModel(
     // The Matches tab's team filter (null = all teams). Not remembered (33f).
     private val _matchesTeamId = MutableStateFlow<String?>(null)
     val matchesTeamId: StateFlow<String?> = _matchesTeamId.asStateFlow()
+
+    // The Training tab's sessions as a list or a calendar: the last choice, remembered on the device.
+    private val _sessionsCalendar = MutableStateFlow(preferences.get(KEY_SESSIONS_VIEW) == SESSIONS_CALENDAR)
+    val sessionsCalendar: StateFlow<Boolean> = _sessionsCalendar.asStateFlow()
 
     fun load(ageGroupId: String, forceReload: Boolean = false) {
         if (!forceReload && _state.value is AgeGroupDetailsUiState.Idle) return
@@ -151,5 +157,16 @@ class AgeGroupDetailsViewModel(
 
     fun onMatchesTeamSelected(teamId: String?) {
         _matchesTeamId.value = teamId
+    }
+
+    fun onSessionsCalendar(calendar: Boolean) {
+        _sessionsCalendar.value = calendar
+        preferences.set(KEY_SESSIONS_VIEW, if (calendar) SESSIONS_CALENDAR else SESSIONS_LIST)
+    }
+
+    private companion object {
+        const val KEY_SESSIONS_VIEW = "age_group_sessions_view"
+        const val SESSIONS_CALENDAR = "calendar"
+        const val SESSIONS_LIST = "list"
     }
 }

@@ -51,6 +51,7 @@ import com.ricardofrango.squadify.presentation.ui.register.RegisterViewModel
 import com.ricardofrango.squadify.presentation.navigation.PushLinkInbox
 import com.ricardofrango.squadify.presentation.ui.splash.SplashViewModel
 import com.russhwolf.settings.Settings
+import com.ricardofrango.squadify.data.remote.trackServerClock
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -108,6 +109,8 @@ val dataModule = module {
                 contentType(ContentType.Application.Json)
             }
             mapNetworkErrors()
+            // The authenticated client is derived from this one, so it keeps this too.
+            trackServerClock()
         }
     }
 

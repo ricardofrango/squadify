@@ -62,8 +62,6 @@ import squadify.app.shared.generated.resources.btn_retry
 import squadify.app.shared.generated.resources.cd_remove
 import squadify.app.shared.generated.resources.ic_add
 import squadify.app.shared.generated.resources.ic_close
-import squadify.app.shared.generated.resources.ic_expand_less
-import squadify.app.shared.generated.resources.ic_expand_more
 import squadify.app.shared.generated.resources.label_new_objective
 import squadify.app.shared.generated.resources.label_pick_date
 import squadify.app.shared.generated.resources.label_section_count
@@ -223,19 +221,6 @@ fun ObjectivesEditor(objectives: List<String>, enabled: Boolean, onChange: (List
 fun RemoveRowButton(enabled: Boolean, onRemove: () -> Unit) {
     IconButton(onClick = onRemove, enabled = enabled, modifier = Modifier.padding(start = 4.dp).size(32.dp)) {
         Icon(painterResource(Res.drawable.ic_close), stringResource(Res.string.cd_remove), tint = DeepCarbon.copy(alpha = 0.5f), modifier = Modifier.size(20.dp))
-    }
-}
-
-/** ▲ / ▼ to reorder a list item. */
-@Composable
-fun ReorderButtons(index: Int, size: Int, enabled: Boolean, onMove: (from: Int, to: Int) -> Unit) {
-    Column {
-        IconButton(onClick = { onMove(index, index - 1) }, enabled = enabled && index > 0, modifier = Modifier.size(28.dp)) {
-            Icon(painterResource(Res.drawable.ic_expand_less), null, tint = DeepCarbon.copy(alpha = 0.5f))
-        }
-        IconButton(onClick = { onMove(index, index + 1) }, enabled = enabled && index < size - 1, modifier = Modifier.size(28.dp)) {
-            Icon(painterResource(Res.drawable.ic_expand_more), null, tint = DeepCarbon.copy(alpha = 0.5f))
-        }
     }
 }
 
