@@ -212,6 +212,7 @@ class ClubDetailsViewModel(
                     matchesHasMore = cursor.hasMore,
                     matchesLoadingMore = false,
                     anyMatches = anyMatches,
+                    notPlayedTotal = totals[MatchListStatus.NOT_PLAYED],
                     upcomingTotal = totals[MatchListStatus.UPCOMING],
                     finishedTotal = totals[MatchListStatus.FINISHED]
                 )
@@ -238,6 +239,7 @@ class ClubDetailsViewModel(
                         matchesHasMore = cursor.hasMore,
                         matchesLoadingMore = false,
                         anyMatches = it.anyMatches || page.anyMatches,
+                        notPlayedTotal = if (list == MatchListStatus.NOT_PLAYED) page.total else it.notPlayedTotal,
                         upcomingTotal = if (list == MatchListStatus.UPCOMING) page.total else it.upcomingTotal,
                         finishedTotal = if (list == MatchListStatus.FINISHED) page.total else it.finishedTotal
                     )
@@ -366,7 +368,7 @@ class ClubDetailsViewModel(
     // The new filters' list replaces the old one; until it arrives the tab shows its spinner.
     private inline fun onMatchesFiltered(block: (ClubDetailsUiState.Idle) -> ClubDetailsUiState.Idle) {
         updateMatchesIdle {
-            block(it).copy(matches = emptyList(), matchScores = emptyMap(), matchesLoaded = false, matchesHasMore = false, upcomingTotal = null, finishedTotal = null)
+            block(it).copy(matches = emptyList(), matchScores = emptyMap(), matchesLoaded = false, matchesHasMore = false, notPlayedTotal = null, upcomingTotal = null, finishedTotal = null)
         }
         reloadMatches()
     }

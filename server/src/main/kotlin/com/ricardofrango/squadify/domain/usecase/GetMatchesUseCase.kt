@@ -14,6 +14,7 @@ import com.ricardofrango.squadify.model.MatchListStatus
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.MatchesPage
 import com.ricardofrango.squadify.model.Team
+import kotlin.time.Clock
 
 class GetMatchesUseCase(
     private val matchRepository: MatchRepository,
@@ -77,7 +78,8 @@ class GetMatchesUseCase(
             .filter { (seasonId == null || it.seasonId == seasonId) && (ageGroupId == null || it.ageGroupId == ageGroupId) && (teamId == null || it.id == teamId) }
             .map { it.id }
         // One extra row says whether another page follows.
-        val rows = matchRepository.getMatchesPage(teamIds, status, limit + 1, offset)
+        val now = Clock.System.now()
+        val rows = matchRepository.getMatchesPage(teamIds, status, limit + 1, offset, now)
         val matches = rows.take(limit)
         val started = matches.filter { it.status == MatchStatus.FINISHED || it.status == MatchStatus.LIVE || it.status == MatchStatus.HALF_TIME }
         MatchesPage(
@@ -85,7 +87,7 @@ class GetMatchesUseCase(
             scores = if (started.isEmpty()) emptyList() else matchEventRepository.getScoresByMatches(started.map { it.id }).values.toList(),
             hasMore = rows.size > limit,
             // A short first page is the whole list; otherwise count it.
-            total = if (offset == 0 && rows.size <= limit) rows.size else matchRepository.countMatches(teamIds, status),
+            total = if (offset == 0 && rows.size <= limit) rows.size else matchRepository.countMatches(teamIds, status, now),
             anyMatches = rows.isNotEmpty() || matchRepository.hasMatches(visible.map { it.id })
         )
     }

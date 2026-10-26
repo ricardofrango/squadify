@@ -30,6 +30,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.foundation.background
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.Res
+import squadify.app.shared.generated.resources.label_not_played
 import squadify.app.shared.generated.resources.label_recent_results
 import squadify.app.shared.generated.resources.label_upcoming
 import squadify.app.shared.generated.resources.msg_no_results_yet
@@ -39,7 +40,8 @@ import squadify.app.shared.generated.resources.team_schedule_short
 import kotlin.time.Instant
 
 // The match list of the Games / Matches tabs: a team's, an age group's and the club's. One look in all
-// three: "Upcoming · n" then "Recent results · n".
+// three: "Upcoming · n", "Not played · n" (only when there are some), then "Recent results · n" --
+// the order they happen in: the games to come, the past ones without a result, the results.
 
 /** One row: the match, its score once started, and its team's name (null leaves it off). */
 class MatchListEntry(val match: Match, val score: MatchScore?, val teamName: String?)
@@ -48,12 +50,14 @@ class MatchListEntry(val match: Match, val score: MatchScore?, val teamName: Str
 class MatchListSection(val entries: List<MatchListEntry>, val total: Int = entries.size)
 
 /**
- * "Upcoming · n" (with "Schedule" when [onSchedule] is given) and its rows, then "Recent results · n"
- * and its rows: every match the server sent, with no "See all" (the club's list loads more pages as it
- * scrolls). Each section shows a card when it's empty, and a null one is left out (the club's
- * Upcoming / Finished filter).
+ * "Upcoming · n" (with "Schedule" when [onSchedule] is given) and its rows; then "Not played · n" when
+ * [notPlayed] has any: matches never started, well past kickoff (Match.isNotPlayed), whose result is
+ * missing; then "Recent results · n" and its rows. Every match the server sent, with no "See all" (the
+ * club's list loads more pages as it scrolls). Upcoming and the results show a card when empty, Not
+ * played is left out; a null section is left out (the club's Upcoming / Finished filter).
  */
 fun LazyListScope.matchListSections(
+    notPlayed: MatchListSection?,
     upcoming: MatchListSection?,
     results: MatchListSection?,
     opponentsById: Map<String, Opponent>,
@@ -71,12 +75,24 @@ fun LazyListScope.matchListSections(
             items(upcoming.entries, key = { it.match.id }) { MatchListRow(it, opponentsById, clubLogoUrl, onOpenMatch) }
         }
     }
+    // Between the games to come and the results: in time, they're the past games without one.
+    val showNotPlayed = notPlayed != null && notPlayed.total > 0
+    if (showNotPlayed) {
+        item(key = "not-played-heading") {
+            MatchListHeading(
+                stringResource(Res.string.team_heading_count, stringResource(Res.string.label_not_played), notPlayed.total),
+                onSchedule = null,
+                modifier = Modifier.padding(top = if (upcoming != null) 6.dp else 0.dp)
+            )
+        }
+        items(notPlayed.entries, key = { it.match.id }) { MatchListRow(it, opponentsById, clubLogoUrl, onOpenMatch) }
+    }
     if (results != null) {
         item(key = "results-heading") {
             MatchListHeading(
                 stringResource(Res.string.team_heading_count, stringResource(Res.string.label_recent_results), results.total),
                 onSchedule = null,
-                modifier = Modifier.padding(top = if (upcoming != null) 6.dp else 0.dp)
+                modifier = Modifier.padding(top = if (upcoming != null || showNotPlayed) 6.dp else 0.dp)
             )
         }
         if (results.entries.isEmpty()) {
@@ -140,6 +156,7 @@ private fun MatchListPreviewFrame() {
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             matchListSections(
+                notPlayed = MatchListSection(listOf(previewEntry("m0", MatchStatus.SCHEDULED))),
                 upcoming = MatchListSection(listOf(previewEntry("m1", MatchStatus.SCHEDULED))),
                 results = MatchListSection(
                     listOf("m2", "m3", "m4", "m5").map { previewEntry(it, MatchStatus.FINISHED, MatchScore(it, 2, 1)) },

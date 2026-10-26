@@ -448,7 +448,10 @@ graph TD
     G -- No --> I
     H --> I["Call-up teams: every season team for admins/coordinators/platform admins; otherwise the teams of age groups where the caller's staff role clears the club's MANAGE_CALL_UPS setting"]
     I --> J["one CALLUPS_UNSENT alert per day for those teams' SCHEDULED matches within 5 days that have zero call-ups, listing those matches (id, team, opponent)"]
-    J --> K2["Report teams: same rule with the club's MANAGE_MATCH setting"]
+    K2["Report teams: same rule with the club's MANAGE_MATCH setting"]
+    J --> NP1["Result teams: same rule with the club's MANAGE_LIVE_MATCH setting (Staff by default)"]
+    NP1 --> NP2["one MATCH_NOT_PLAYED alert per match of those teams still SCHEDULED 2 hours or more past kickoff (Match.isNotPlayed), oldest first"]
+    NP2 --> K2
     K2 --> K["one MATCH_REPORT_PENDING alert per FINISHED match of those teams with a fullTimeMinute and no completed report (one batched report lookup), oldest first"]
     K --> Z(["Return ClubHome — club, seasonName, role, counts, nextUp, alerts"])
 ```
@@ -460,6 +463,8 @@ Alerts carry structured parts (`ageGroupName`, `date`, `count`, and for a pendin
 - **When it clears:** once the report is completed.
 - **Tapping it:** opens that match.
 - **Older matches:** matches finished before post-match stats existed (no `fullTimeMinute`) never show up, so the list isn't flooded with old fixtures.
+
+`MATCH_NOT_PLAYED` is a game whose result is missing: never started, 2 hours or more past its kickoff (`TECHNICAL_DECISIONS.md` §71). One per match, oldest first, with `matchId`, the names and the day it was due; amber, since it's overdue by definition, grouped from three like the reports. It goes to whoever can enter the result (`MANAGE_LIVE_MATCH`: admins and coordinators everywhere, the age group's staff by default). It clears once the game is started, its result entered (§8.1c) or it's cancelled. Tapping it opens the match, where Enter result is.
 
 ### 3.4 Update Club (`UpdateClubUseCase`)
 
@@ -790,14 +795,14 @@ graph TD
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D[Fetch club + season]
     D --> E[teams = club teams filtered to this age group]
-    E --> G["upcomingMatches = each team's matches that are either SCHEDULED with dateTime >= now, or currently LIVE/HALF_TIME, sorted by dateTime"]
+    E --> G["notPlayedMatches = each team's matches still SCHEDULED 2 hours or more past kickoff (Match.isNotPlayed), newest first; upcomingMatches = the other SCHEDULED ones, or currently LIVE/HALF_TIME, sorted by dateTime"]
     G --> G2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
     G2 -.-> G3["recentResults = each team's FINISHED matches, newest first, with scores (Matches tab)"]
     G2 --> H["canAddStaff = non-throwing probe: minClubRole=COORDINATOR only (no team-role path)"]
     H --> H1["canCreateTeam = non-throwing probe of configurablePermission=CREATE_TEAM on ageGroupId"]
     H1 --> H2["canManageMatch = non-throwing probe of configurablePermission=MANAGE_MATCH on ageGroupId -- schedule match"]
     H2 --> H3["canAssignPlayersToAgeGroup = non-throwing probe of configurablePermission=ASSIGN_PLAYERS_TO_AGE_GROUP on ageGroupId -- add players"]
-    H3 --> Z(["Return AgeGroupDetails: ageGroup, club, season, players (pool), staff, teams, upcomingMatches, upcomingMatchScores, recentResults, opponents, canAddStaff, canEditAgeGroup, canCreateTeam, canManageMatch, canAssignPlayersToAgeGroup"])
+    H3 --> Z(["Return AgeGroupDetails: ageGroup, club, season, players (pool), staff, teams, notPlayedMatches, upcomingMatches, upcomingMatchScores, recentResults, opponents, canAddStaff, canEditAgeGroup, canCreateTeam, canManageMatch, canAssignPlayersToAgeGroup"])
 ```
 
 `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canAddStaff` gates "Add staff" (permanently coordinator/admin-only, not club-configurable, the same way `ClubDetailsResponse.canEditClub` is), and `canEditAgeGroup` (the same probe, §4.4's gate) gates "Edit age group"; `canCreateTeam` gates "Create team" (`ConfigurablePermission.CREATE_TEAM`, defaults to Coach -- moved here from the fixed bucket in §37, since a coach who'd just set up an age group had no way to add a second team to it themselves); `canManageMatch` gates "Create match"; `canAssignPlayersToAgeGroup` gates "Add players" -- these last three are club-configurable and can each diverge from the coordinator-only default independently. A match in progress stays in `upcomingMatches` rather than disappearing between "scheduled" and "finished" -- `upcomingMatchScores` lets the client show its running score (see `MatchRow` in `TECHNICAL_DECISIONS.md`/the client's `presentation/ui/components` package).
@@ -934,12 +939,12 @@ graph TD
     C -- allowed --> D[Fetch club + age group + season]
     D --> G["canManageMatch = non-throwing probe of configurablePermission=MANAGE_MATCH on teamId"]
     G --> H[matches = matchRepository.getMatchesByTeam]
-    H --> I["upcomingMatches = SCHEDULED with dateTime >= now, OR currently LIVE/HALF_TIME, sorted ascending"]
+    H --> I["notPlayedMatches = SCHEDULED 2 hours or more past kickoff (Match.isNotPlayed), newest first; upcomingMatches = the other SCHEDULED ones, OR currently LIVE/HALF_TIME, sorted ascending"]
     I --> I2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
     H --> J["recentResults = FINISHED, newest first, each paired with its scoreline from matchEventRepository.getScoreByMatch → WIN/DRAW/LOSS"]
     I2 --> K[siblingTeamNames = other teams in the same age group]
     J --> K
-    K --> Z(["Return TeamDetails: team, club, ageGroup, season, poolSize, siblingTeamNames, staff, upcomingMatches, upcomingMatchScores, recentResults, opponents, canManageMatch, canViewMembers, canEditTeam"])
+    K --> Z(["Return TeamDetails: team, club, ageGroup, season, poolSize, siblingTeamNames, staff, notPlayedMatches, upcomingMatches, upcomingMatchScores, recentResults, opponents, canManageMatch, canViewMembers, canEditTeam"])
 ```
 
 `poolSize` / `staff` come from the age group (players and staff belong to it, not the team); the screen links back to the age-group detail for both. `club` is carried so a screen opened from here (e.g. Schedule Match) has the club name without another call. `opponents` is the club's full opponent list so the client can resolve `match.opponentId`. `canEditTeam` mirrors §4.6's gate (coordinator+, or this team's coach) and shows "Edit team". `canViewMembers` (a non-throwing `minClubRole=COORDINATOR` probe, the members overview's own gate, §3.7) makes the staff chips open Member details. `canManageMatch` gates the schedule-match action. As with the age-group screen, a live match stays in `upcomingMatches` (it hasn't reached `recentResults` yet) and `upcomingMatchScores` carries its running score.
@@ -1544,7 +1549,7 @@ graph TD
 `venue`: null keeps the match's, like the other fields. `location`: null keeps it, but a blank one now clears it, so moving a match to neutral ground in Edit match leaves it empty.
 ### 7.1d The Club's Matches, a Page at a Time (`GetMatchesUseCase.page`)
 
-`GET /v1/matches?clubId=&status=UPCOMING|FINISHED&limit=&offset=` with `seasonId`, `ageGroupId` and `teamId`: the club Matches tab. Without `limit` the endpoint still returns the whole list (`GetMatchesUseCase`), for app builds from before paging.
+`GET /v1/matches?clubId=&status=NOT_PLAYED|UPCOMING|FINISHED&limit=&offset=` with `seasonId`, `ageGroupId` and `teamId`: the club Matches tab. Without `limit` the endpoint still returns the whole list (`GetMatchesUseCase`), for app builds from before paging.
 
 ```mermaid
 graph TD
@@ -1556,15 +1561,17 @@ graph TD
     T --> N
     T2 --> N["Narrowed to seasonId, ageGroupId and teamId (a team outside them: no teams, an empty page)"]
     N --> Q{status}
-    Q -- UPCOMING --> U["limit + 1 matches neither finished nor cancelled, soonest first"]
+    Q -- NOT_PLAYED --> NP["limit + 1 matches still SCHEDULED 2 hours or more past kickoff (Match.isNotPlayed), newest first"]
+    Q -- UPCOMING --> U["limit + 1 matches neither finished nor cancelled nor not played, soonest first"]
     Q -- FINISHED --> R["limit + 1 finished matches, newest first"]
+    NP --> S
     U --> S
     R --> S["Scores of the page's finished, live and half-time matches, in one query"]
     S --> Z(["Return MatchesPage — the first limit matches, their scores, hasMore, total (the whole list's size, counted unless a short first page is the list), anyMatches (any match of the viewer's teams at all)"])
 ```
 
-- **All** (the tab's first and default status, then Upcoming and Finished) is Upcoming to its last page, then Finished from its first, so the tab keeps its order (`MatchesCursor` in the app).
-- **The tab's list** is the same as a team's and an age group's Games tab: "Upcoming · n" and "Recent results · n" (`total` gives n), each showing every match loaded, with no "See all": more pages load as the list scrolls.
+- **All** (the tab's first and default status, then Upcoming and Finished) is Upcoming to its last page, then Not played, then Finished from its first, so the tab keeps its order, the order things happen in (`MatchesCursor` in the app). The Upcoming status is Upcoming then Not played.
+- **The tab's list** is the same as a team's and an age group's Games tab: "Upcoming · n", "Not played · n" (only when there are some) and "Recent results · n" (`total` gives n), each showing every match loaded, with no "See all": more pages load as the list scrolls.
 - **Scores** come with the page: the tab no longer asks for each match's score on its own.
 - **Live updates** over the club socket (§8.5) still change, add or remove matches among those loaded.
 

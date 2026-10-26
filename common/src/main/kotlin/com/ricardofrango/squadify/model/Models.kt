@@ -3,6 +3,8 @@ package com.ricardofrango.squadify.model
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
 @Serializable
@@ -804,6 +806,8 @@ data class TeamDetails(
     val poolSize: Int,
     val siblingTeamNames: List<String>,
     val staff: List<AgeGroupStaffMember>,
+    // Matches never started, well past their kickoff (Match.isNotPlayed), newest first.
+    val notPlayedMatches: List<Match> = emptyList(),
     val upcomingMatches: List<Match>,
     // Scores for any LIVE/HALF_TIME entry in [upcomingMatches], keyed by Match.id -- SCHEDULED entries
     // have none. [recentResults] already carries its own score via TeamMatchResult, so this only
@@ -844,6 +848,8 @@ data class AgeGroupDetails(
     val players: List<Player>,
     val staff: List<AgeGroupStaffMember>,
     val teams: List<Team>,
+    // Matches never started, well past their kickoff (Match.isNotPlayed), newest first.
+    val notPlayedMatches: List<Match> = emptyList(),
     val upcomingMatches: List<Match>,
     // Scores for any LIVE/HALF_TIME entry in [upcomingMatches], keyed by Match.id -- SCHEDULED
     // entries have none. Lets a live match in this list show its running score.
@@ -977,6 +983,15 @@ data class Match(
     // SaveMatchRecordUseCase): its minutes were typed in, and it has no substitutions or timeline.
     val enteredAfterGame: Boolean = false
 )
+
+/**
+ * A match still SCHEDULED this long after its kickoff is taken as not played (no battery, no signal,
+ * or nobody started it): it leaves Upcoming for its own "Not played" section, and Home asks for its
+ * result (TECHNICAL_DECISIONS §71). Before that, a late start is still a start.
+ */
+val NOT_PLAYED_AFTER: Duration = 2.hours
+
+fun Match.isNotPlayed(now: Instant): Boolean = status == MatchStatus.SCHEDULED && now >= dateTime + NOT_PLAYED_AFTER
 
 /**
  * How far the server's clock is ahead of this device's (negative if behind), from one request: the
@@ -1344,6 +1359,12 @@ enum class ClubHomeAlertType {
     /** A finished match whose report isn't completed. Admins/coordinators: the whole club; staff: their age groups, per MANAGE_MATCH. */
     MATCH_REPORT_PENDING,
     /**
+     * A match never started, well past its kickoff (Match.isNotPlayed): its result is missing. One per
+     * match, oldest first, with [ClubHomeAlert.matchId], the names and the day it was due. Admins/
+     * coordinators: the whole club; staff: their age groups, per MANAGE_LIVE_MATCH.
+     */
+    MATCH_NOT_PLAYED,
+    /**
      * Training plans (design 40g): the season, the current month or the current week of an age group has
      * started without its plan. Shown to whoever may edit its training (MANAGE_TRAINING). [ClubHomeAlert.date]
      * is when the period started, so the client turns it amber a week later.
@@ -1368,9 +1389,10 @@ data class ClubHomeAlert(
     val ageGroupId: String? = null,
     val ageGroupName: String? = null,
     // CALLUPS_UNSENT: the day those matches fall on. MATCH_REPORT_PENDING: the day the match was played.
+    // MATCH_NOT_PLAYED: the day it was due.
     // *_PLAN_MISSING: the first day of the period (season start, the 1st of the month, the week's Monday).
     val date: LocalDate? = null,
-    // MATCH_REPORT_PENDING only -- the match to open, and the names to show:
+    // MATCH_REPORT_PENDING and MATCH_NOT_PLAYED -- the match to open, and the names to show:
     val matchId: String? = null,
     val teamName: String? = null,
     val opponentName: String? = null,

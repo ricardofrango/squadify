@@ -51,6 +51,7 @@ sealed class ClubDetailsUiState {
         val anyMatches: Boolean = false,
         // How many upcoming / finished matches there are for the filters, loaded or not, for the
         // section headings; null until that list's first page has come (All loads Upcoming first).
+        val notPlayedTotal: Int? = null,
         val upcomingTotal: Int? = null,
         val finishedTotal: Int? = null,
         val opponents: List<Opponent> = emptyList(),

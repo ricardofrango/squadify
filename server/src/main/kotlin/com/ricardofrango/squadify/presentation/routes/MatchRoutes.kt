@@ -50,7 +50,7 @@ fun Route.matchRoutes() {
                 val limit = Paging.limitOf(params["limit"])
                 if (limit != null) {
                     val status = params["status"]?.let { s -> MatchListStatus.entries.firstOrNull { it.name == s } }
-                        ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("status must be UPCOMING or FINISHED", "VAL_001"))
+                        ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("status must be NOT_PLAYED, UPCOMING or FINISHED", "VAL_001"))
                     return@get call.respond(
                         getMatchesUseCase.page(
                             currentUserId, clubId, status,

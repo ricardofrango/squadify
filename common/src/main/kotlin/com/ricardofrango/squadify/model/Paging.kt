@@ -17,9 +17,12 @@ object Paging {
     fun offsetOf(raw: String?): Int = raw?.toIntOrNull()?.coerceAtLeast(0) ?: 0
 }
 
-/** The club Matches tab's two lists: upcoming (soonest first) and finished (newest first). */
+/**
+ * The club Matches tab's lists: not played (never started, well past kickoff -- Match.isNotPlayed --
+ * newest first), upcoming (soonest first) and finished (newest first).
+ */
 @Serializable
-enum class MatchListStatus { UPCOMING, FINISHED }
+enum class MatchListStatus { NOT_PLAYED, UPCOMING, FINISHED }
 
 /** One page of the club's matches (`GET /matches` with `limit`). */
 @Serializable

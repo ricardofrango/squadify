@@ -383,6 +383,7 @@ private fun MatchesTab(
 ) {
     LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         matchListSections(
+            notPlayed = MatchListSection(details.notPlayedMatches.map { MatchListEntry(it, null, details.team.name) }),
             upcoming = MatchListSection(details.upcomingMatches.map { MatchListEntry(it, details.upcomingMatchScores[it.id], details.team.name) }),
             results = MatchListSection(details.recentResults.map {
                 MatchListEntry(it.match, MatchScore(it.match.id, it.ourScore, it.opponentScore), details.team.name)

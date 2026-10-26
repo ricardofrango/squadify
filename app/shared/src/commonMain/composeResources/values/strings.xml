@@ -1549,4 +1549,10 @@
     <string name="msg_record_minutes_invalid">Minutes played must be between 0 and the match length.</string>
     <string name="msg_record_scorer_didnt_play">A goal or assist is by a player with no minutes played.</string>
     <string name="msg_record_save_failed">Couldn\'t save the match record. Please try again.</string>
+    <!-- Not played (never started, well past kickoff) -->
+    <string name="label_not_played">Not played</string>
+    <string name="msg_home_match_not_played">Result missing: %1$s vs %2$s</string>
+    <string name="msg_home_matches_not_played">%1$d matches without a result</string>
+    <string name="home_not_played_due">Due %1$s · %2$s</string>
+    <string name="home_not_played_oldest">Oldest due %1$s · %2$s</string>
 </resources>

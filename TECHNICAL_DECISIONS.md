@@ -3059,3 +3059,19 @@ The developer, 2026-10-26: a game's record must be editable after it was played.
 - **Save** is pinned at the bottom (Save result for a first entry, Save changes after), disabled with the reason above it while the minutes are out of range or a scorer has no minutes. Leaving with changes asks first.
 - No new design canvas: the editor reuses the finished match's event cards, the segmented filter and the pinned bottom bar.
 
+## 71. Games Not Played
+
+The developer, 2026-10-26: a game whose date has passed without it being started gets its own section in the games lists, and a Home alert saying it's missing.
+
+**When a game is "not played":** still `SCHEDULED` **2 hours after its kickoff** (`Match.isNotPlayed`, `NOT_PLAYED_AFTER`, in `common`, so the server and the app agree). Before that, a late start is still a start, and the game stays in Upcoming. Enter result (§70) is already offered from kickoff, so a coach doesn't have to wait for the 2 hours.
+- **Before this:** a team's and an age group's Games tab only listed scheduled games from now on, so a game past its kickoff and never started vanished from both lists. The club Matches tab kept it at the top of Upcoming.
+
+**The lists:** "Not played · n" sits between "Upcoming · n" and "Recent results · n" in the shared match list (`matchListSections`, §68), newest first, and only when there are some (no empty card). The developer's call: that's the order things happen in, the games to come, then the past games without a result, then the results.
+- **Team and age group:** `TeamDetails` / `AgeGroupDetails.notPlayedMatches`; Upcoming leaves them out.
+- **The club Matches tab:** a third server list, `MatchListStatus.NOT_PLAYED` (`GET /matches?status=NOT_PLAYED`). `UPCOMING` no longer includes them. The tab's Upcoming status loads Upcoming then Not played, and All loads Upcoming, Not played, then Finished (`MatchesCursor`).
+- **Older app builds** asking for `UPCOMING` no longer get these games there. That's accepted: they're the rows needing action, and the app update shows them.
+
+**The Home alert:** `MATCH_NOT_PLAYED`, one per game, oldest first, "Result missing: Sub-15 A vs Fontelas" with the day it was due and how long ago, in amber. Three or more group into one expandable row, like the reports (§41). Tapping it opens the match, where Start match and Enter result are.
+- **Who sees it:** whoever can enter the result, `MANAGE_LIVE_MATCH` (§70): admins, coordinators and platform admins for the whole club, and the age group's staff by default.
+- **It clears** when the game is started, its result is entered, or it's cancelled.
+

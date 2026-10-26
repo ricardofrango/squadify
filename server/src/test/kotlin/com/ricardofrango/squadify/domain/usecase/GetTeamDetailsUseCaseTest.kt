@@ -40,6 +40,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
 /**
@@ -249,9 +250,14 @@ class GetTeamDetailsUseCaseTest {
         val future = match("m-future", 4.days, MatchStatus.SCHEDULED)
         val won = match("m-won", (-7).days, MatchStatus.FINISHED)
         val lost = match("m-lost", (-14).days, MatchStatus.FINISHED)
+        // Never started: a day ago and a week ago are "Not played", newest first. An hour late is
+        // still upcoming (it may be about to start).
+        val missedYesterday = match("m-missed-1", (-1).days, MatchStatus.SCHEDULED)
+        val missedLastWeek = match("m-missed-7", (-6).days, MatchStatus.SCHEDULED)
+        val late = match("m-late", -(1).hours, MatchStatus.SCHEDULED)
 
         stubResolvedTeamWithNoData()
-        coEvery { matchRepository.getMatchesByTeam(teamId) } returns listOf(lost, future, won)
+        coEvery { matchRepository.getMatchesByTeam(teamId) } returns listOf(lost, future, won, missedLastWeek, late, missedYesterday)
         coEvery { matchEventRepository.getScoreByMatch("m-won") } returns MatchScore("m-won", 3, 1)
         coEvery { matchEventRepository.getScoreByMatch("m-lost") } returns MatchScore("m-lost", 0, 2)
         coEvery { userRepository.findById(admin.id) } returns admin
@@ -259,12 +265,13 @@ class GetTeamDetailsUseCaseTest {
 
         val result = useCase(admin.id, teamId)
 
-        assertEquals(listOf("m-future"), result.upcomingMatches.map { it.id })
+        assertEquals(listOf("m-late", "m-future"), result.upcomingMatches.map { it.id })
+        assertEquals(listOf("m-missed-1", "m-missed-7"), result.notPlayedMatches.map { it.id })
         // Newest finished first.
         assertEquals(listOf("m-won", "m-lost"), result.recentResults.map { it.match.id })
         assertEquals(MatchOutcome.WIN, result.recentResults.first().outcome)
         assertEquals(MatchOutcome.LOSS, result.recentResults.last().outcome)
         // Every match, played or not: what deleting the team would remove.
-        assertEquals(3, result.matchCount)
+        assertEquals(6, result.matchCount)
     }
 }

@@ -10,13 +10,17 @@ import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchLineupChange
 import com.ricardofrango.squadify.model.MatchListStatus
 import com.ricardofrango.squadify.model.MatchStatus
+import com.ricardofrango.squadify.model.NOT_PLAYED_AFTER
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.Player
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.greaterEq
+import org.jetbrains.exposed.v1.core.lessEq
+import org.jetbrains.exposed.v1.core.not
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.notInList
 import org.jetbrains.exposed.v1.jdbc.batchInsert
@@ -56,11 +60,11 @@ class ExposedMatchRepository : MatchRepository {
             .orderBy(MatchesTable.dateTime)
             .map(::toMatch)
 
-    override suspend fun getMatchesPage(teamIds: Collection<String>, status: MatchListStatus, limit: Int, offset: Int): List<Match> {
+    override suspend fun getMatchesPage(teamIds: Collection<String>, status: MatchListStatus, limit: Int, offset: Int, now: Instant): List<Match> {
         if (teamIds.isEmpty()) return emptyList()
         val order = if (status == MatchListStatus.UPCOMING) SortOrder.ASC else SortOrder.DESC
         return MatchesTable.selectAll()
-            .where { matchesIn(teamIds, status) }
+            .where { matchesIn(teamIds, status, now) }
             // The id keeps matches at the same time in one order from page to page.
             .orderBy(MatchesTable.dateTime to order, MatchesTable.id to order)
             .limit(limit)
@@ -68,15 +72,20 @@ class ExposedMatchRepository : MatchRepository {
             .map(::toMatch)
     }
 
-    override suspend fun countMatches(teamIds: Collection<String>, status: MatchListStatus): Int =
-        if (teamIds.isEmpty()) 0 else MatchesTable.selectAll().where { matchesIn(teamIds, status) }.count().toInt()
+    override suspend fun countMatches(teamIds: Collection<String>, status: MatchListStatus, now: Instant): Int =
+        if (teamIds.isEmpty()) 0 else MatchesTable.selectAll().where { matchesIn(teamIds, status, now) }.count().toInt()
 
-    // UPCOMING: neither finished nor cancelled; FINISHED: finished.
-    private fun matchesIn(teamIds: Collection<String>, status: MatchListStatus) =
-        (MatchesTable.teamId inList teamIds.map { it.toUuid() }) and when (status) {
-            MatchListStatus.UPCOMING -> MatchesTable.status notInList listOf(MatchStatus.FINISHED, MatchStatus.CANCELLED)
+    // NOT_PLAYED: still scheduled well past kickoff (Match.isNotPlayed); UPCOMING: the rest that's
+    // neither finished nor cancelled; FINISHED: finished.
+    private fun matchesIn(teamIds: Collection<String>, status: MatchListStatus, now: Instant): Op<Boolean> {
+        val notPlayedBefore = now - NOT_PLAYED_AFTER
+        val notPlayed = (MatchesTable.status eq MatchStatus.SCHEDULED) and (MatchesTable.dateTime lessEq notPlayedBefore)
+        return (MatchesTable.teamId inList teamIds.map { it.toUuid() }) and when (status) {
+            MatchListStatus.NOT_PLAYED -> notPlayed
+            MatchListStatus.UPCOMING -> (MatchesTable.status notInList listOf(MatchStatus.FINISHED, MatchStatus.CANCELLED)) and not(notPlayed)
             MatchListStatus.FINISHED -> MatchesTable.status eq MatchStatus.FINISHED
         }
+    }
 
     override suspend fun hasMatches(teamIds: Collection<String>): Boolean =
         teamIds.isNotEmpty() && !MatchesTable.selectAll()

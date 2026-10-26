@@ -15,6 +15,7 @@ import com.ricardofrango.squadify.model.AgeGroupDetails
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchStatus
+import com.ricardofrango.squadify.model.isNotPlayed
 import com.ricardofrango.squadify.model.MatchOutcome
 import com.ricardofrango.squadify.model.TeamMatchResult
 import com.ricardofrango.squadify.model.AgeGroupRole
@@ -59,10 +60,12 @@ class GetAgeGroupDetailsUseCase(
             .filter { it.ageGroupId == ageGroupId }
 
         val now = Clock.System.now()
-        val upcomingMatches = teams
-            .flatMap { matchRepository.getMatchesByTeam(it.id) }
+        val teamMatches = teams.flatMap { matchRepository.getMatchesByTeam(it.id) }
+        // Still scheduled well past kickoff: their own "Not played" section, not Upcoming.
+        val notPlayedMatches = teamMatches.filter { it.isNotPlayed(now) }.sortedByDescending { it.dateTime }
+        val upcomingMatches = teamMatches
             .filter {
-                (it.status == MatchStatus.SCHEDULED && it.dateTime >= now) ||
+                (it.status == MatchStatus.SCHEDULED && !it.isNotPlayed(now)) ||
                     it.status == MatchStatus.LIVE || it.status == MatchStatus.HALF_TIME
             }
             .sortedBy { it.dateTime }
@@ -121,6 +124,7 @@ class GetAgeGroupDetailsUseCase(
             players = playerRepository.getPlayersByAgeGroup(ageGroupId),
             staff = ageGroupRepository.getAgeGroupStaff(ageGroupId),
             teams = teams,
+            notPlayedMatches = notPlayedMatches,
             upcomingMatches = upcomingMatches,
             upcomingMatchScores = upcomingMatchScores,
             recentResults = recentResults,
