@@ -89,12 +89,12 @@ fun <T> SegmentedFilter(
             }
         }
     } else {
-        Box(outlined.horizontalScroll(rememberScrollState())) {
-            FillOrScrollRow {
-                options.forEach { option ->
-                    val full = label(option)
-                    Segment(full, full, option == selected, Modifier, sidePadding = 14.dp) { onSelect(option) }
-                }
+        // The row itself carries the outline: a Box between them would drop the outline's width from
+        // the row's constraints, leaving the segments short of the right edge with a blank gap there.
+        FillOrScrollRow(outlined.horizontalScroll(rememberScrollState())) {
+            options.forEach { option ->
+                val full = label(option)
+                Segment(full, full, option == selected, Modifier, sidePadding = 14.dp) { onSelect(option) }
             }
         }
     }
@@ -137,8 +137,8 @@ private fun Segment(full: String, shown: String, isSelected: Boolean, modifier: 
  * wider, the row is as wide as they are and the outline scrolls.
  */
 @Composable
-private fun FillOrScrollRow(content: @Composable () -> Unit) {
-    Layout(content) { measurables, constraints ->
+private fun FillOrScrollRow(modifier: Modifier, content: @Composable () -> Unit) {
+    Layout(content, modifier) { measurables, constraints ->
         val height = measurables.maxOf { it.maxIntrinsicHeight(Int.MAX_VALUE) }.coerceAtLeast(constraints.minHeight)
         val widths = measurables.map { it.maxIntrinsicWidth(height) }
         // The outline's own width, which horizontalScroll leaves out of the constraints.
