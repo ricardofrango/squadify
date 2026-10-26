@@ -15,6 +15,7 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 import kotlin.uuid.Uuid
 import com.ricardofrango.squadify.util.toUuid
 
@@ -44,6 +45,17 @@ class ExposedMatchEventRepository : MatchEventRepository {
 
     override suspend fun deleteEvent(id: String): Boolean =
         MatchEvents.deleteWhere { MatchEvents.id eq id.toUuid() } > 0
+
+    override suspend fun updateEvent(event: MatchEvent): Boolean =
+        MatchEvents.update({ MatchEvents.id eq event.id.toUuid() }) {
+            it[type] = event.type
+            it[minute] = event.minute
+            it[period] = event.period
+            it[playerId] = event.playerId?.let(String::toUuid)
+            it[opponentPlayerName] = event.opponentPlayerName
+            it[isOpponent] = event.isOpponent
+            it[relatedEventId] = event.relatedEventId?.toUuid()
+        } > 0
 
     override suspend fun deleteEventsByMatch(matchId: String) {
         MatchEvents.deleteWhere { MatchEvents.matchId eq matchId.toUuid() }

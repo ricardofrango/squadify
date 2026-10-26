@@ -261,6 +261,12 @@ sealed class Screen {
     @SerialName("match-report")
     data class MatchReport(val matchId: String, val edit: Boolean = false) : Screen()
 
+    // A match's record after the game: a finished game's goals and cards corrected, or the result of
+    // one not followed live entered (TECHNICAL_DECISIONS §70).
+    @Serializable
+    @SerialName("match-record")
+    data class MatchRecord(val matchId: String) : Screen()
+
     @Serializable
     @SerialName("player")
     data class PlayerDetails(

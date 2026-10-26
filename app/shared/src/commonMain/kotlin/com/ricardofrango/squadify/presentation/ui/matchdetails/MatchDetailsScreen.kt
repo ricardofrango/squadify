@@ -75,6 +75,8 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Clock
+import com.ricardofrango.squadify.presentation.ui.matchrecord.canEditRecord
+import com.ricardofrango.squadify.presentation.ui.matchrecord.canEnterResult
 import kotlin.time.Instant
 
 internal val CardShape = RoundedCornerShape(16.dp)
@@ -98,6 +100,8 @@ fun MatchDetailsScreen(
     onEnterLiveMatch: (matchId: String) -> Unit,
     onRedirectToLiveMatch: (matchId: String) -> Unit,
     onOpenReport: (matchId: String, edit: Boolean) -> Unit,
+    // The match's record after the game: Edit on a finished match, Enter result on one not followed live.
+    onOpenRecord: (matchId: String) -> Unit,
     refreshOnReturn: Boolean = false,
     viewModel: MatchDetailsViewModel = koinViewModel()
 ) {
@@ -127,7 +131,8 @@ fun MatchDetailsScreen(
             onEditMatch = viewModel::onEditMatch,
             onDeleteMatch = viewModel::onDeleteMatch,
             onEnterLiveMatch = viewModel::onEnterLiveMatch,
-            onOpenReport = { edit -> onOpenReport(matchId, edit) }
+            onOpenReport = { edit -> onOpenReport(matchId, edit) },
+            onOpenRecord = { onOpenRecord(matchId) }
         )
     }
 }
@@ -146,13 +151,15 @@ private fun MatchDetailsContent(
     onEnterLiveMatch: () -> Unit,
     onSaveCallUp: () -> Unit = {},
     onOpenReport: (edit: Boolean) -> Unit,
-    initialTab: FinishedTab = FinishedTab.GENERAL
+    onOpenRecord: () -> Unit = {},
+    initialTab: FinishedTab = FinishedTab.GENERAL,
+    now: Instant = Clock.System.now()
 ) {
     val details = (uiState as? MatchDetailsUiState.Idle)?.details
     // A finished match's tabs, in the bottom bar (a rail in landscape), as on Team and Age Group details.
     var finishedTab by rememberSaveable { mutableStateOf(initialTab) }
     val finished = details?.match?.status == MatchStatus.FINISHED
-    val tabs = if (finished) finishedTabs(details!!.canSeeMatchRecord) else emptyList()
+    val tabs = if (finished) finishedTabs(details!!.canSeeMatchRecord, !details.match.enteredAfterGame) else emptyList()
     val selectedTab = finishedTab.takeIf { it in tabs } ?: FinishedTab.GENERAL
     var showDeleteConfirm by remember { mutableStateOf(false) }
     // Leaving with a call-up that hasn't been saved asks first (the top bar's back and the system's).
@@ -181,6 +188,12 @@ private fun MatchDetailsContent(
                     subtitle = details?.let { if (finished) listOf(whenLabel(it.match.dateTime), matchSubtitle(it)).joinToString(" · ") else matchSubtitle(it) },
                     onNavigateBack = requestBack,
                     actions = {
+                        // A played game's goals and cards can be corrected afterwards, by its staff.
+                        if (details != null && details.canEditRecord()) {
+                            IconButton(onClick = onOpenRecord) {
+                                Icon(painterResource(Res.drawable.ic_edit), contentDescription = stringResource(Res.string.cd_edit_match_record), tint = Color.White)
+                            }
+                        }
                         // Delete is the menu's only item, and a played (FINISHED) match can't be deleted.
                         if (details != null && details.canManageMatch && details.match.status != MatchStatus.FINISHED) {
                             var menuOpen by remember { mutableStateOf(false) }
@@ -210,8 +223,11 @@ private fun MatchDetailsContent(
             // Save call-up / Start match / Enter live match, by permission and call-up state (callUpView).
             val idle = uiState as? MatchDetailsUiState.Idle
             val button = idle?.callUpView()?.button ?: MatchDetailsButton.NONE
-            if (idle != null && button != MatchDetailsButton.NONE) {
-                BottomActionBar(state = idle, button = button, onSaveCallUp = onSaveCallUp, onEnterLiveMatch = onEnterLiveMatch)
+            // Past its kickoff and never started (no battery, no signal): its result can be entered
+            // instead, from the saved call-up.
+            val enterResult = idle != null && idle.selectedIds == idle.savedIds && idle.details.canEnterResult(now)
+            if (idle != null && (button != MatchDetailsButton.NONE || enterResult)) {
+                BottomActionBar(state = idle, button = button, enterResult = enterResult, onSaveCallUp = onSaveCallUp, onEnterLiveMatch = onEnterLiveMatch, onEnterResult = onOpenRecord)
             }
         }
     ) { paddingValues ->
@@ -595,13 +611,21 @@ private fun LinkText(text: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun BottomActionBar(state: MatchDetailsUiState.Idle, button: MatchDetailsButton, onSaveCallUp: () -> Unit, onEnterLiveMatch: () -> Unit) {
+private fun BottomActionBar(
+    state: MatchDetailsUiState.Idle,
+    button: MatchDetailsButton,
+    enterResult: Boolean,
+    onSaveCallUp: () -> Unit,
+    onEnterLiveMatch: () -> Unit,
+    onEnterResult: () -> Unit
+) {
     Surface(color = ScreenBackground, shadowElevation = 8.dp) {
         Column(
             Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = ScreenPadding.Horizontal, vertical = 12.dp)
+                .padding(horizontal = ScreenPadding.Horizontal, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             when (button) {
                 MatchDetailsButton.SAVE_CALL_UP, MatchDetailsButton.SAVE_CALL_UP_DISABLED -> PrimaryLoadingButton(
@@ -618,6 +642,14 @@ private fun BottomActionBar(state: MatchDetailsUiState.Idle, button: MatchDetail
                     PrimaryLoadingButton(text = label, submittingText = label, isLoading = false, onClick = onEnterLiveMatch)
                 }
                 MatchDetailsButton.NONE -> Unit
+            }
+            if (enterResult) {
+                OutlinedButton(
+                    onClick = onEnterResult,
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, PitchGreen)
+                ) { Text(stringResource(Res.string.btn_enter_result), color = PitchGreen, fontWeight = FontWeight.Bold) }
             }
         }
     }

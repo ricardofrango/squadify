@@ -16,6 +16,7 @@ import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchReport
 import com.ricardofrango.squadify.model.MatchReportDetails
 import com.ricardofrango.squadify.model.SaveMatchReportRequest
+import com.ricardofrango.squadify.model.SaveMatchRecordRequest
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.SetMatchMinuteRequest
@@ -86,6 +87,11 @@ class MatchRepositoryImpl(
 
     override suspend fun saveMatchReport(matchId: String, request: SaveMatchReportRequest): MatchReport =
         httpClient.put("${appConfig.baseUrl}/matches/$matchId/report") {
+            contentType(ContentType.Application.Json); setBody(request)
+        }.handleResponse()
+
+    override suspend fun saveMatchRecord(matchId: String, request: SaveMatchRecordRequest): Match =
+        httpClient.put("${appConfig.baseUrl}/matches/$matchId/record") {
             contentType(ContentType.Application.Json); setBody(request)
         }.handleResponse()
 

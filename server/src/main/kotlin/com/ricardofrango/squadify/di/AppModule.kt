@@ -193,6 +193,7 @@ val appModule = module {
     factory { NotifyMatchEventUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     factory { AddMatchEventUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { SaveMatchRecordUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { DeleteMatchEventUseCase(get(), get(), get(), get(), get(), get()) }
     factory { GetMatchEventsUseCase(get(), get(), get(), get()) }
     factory { GetMatchScoreUseCase(get(), get(), get(), get()) }

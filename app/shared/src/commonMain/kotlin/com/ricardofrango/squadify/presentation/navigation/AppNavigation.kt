@@ -70,6 +70,7 @@ import com.ricardofrango.squadify.presentation.ui.training.SeasonPlanScreen
 import com.ricardofrango.squadify.presentation.ui.training.WeekPlanScreen
 import com.ricardofrango.squadify.presentation.ui.matchdetails.MatchDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.matchreport.MatchReportScreen
+import com.ricardofrango.squadify.presentation.ui.matchrecord.MatchRecordScreen
 import com.ricardofrango.squadify.presentation.ui.livematch.LiveMatchScreen
 import com.ricardofrango.squadify.presentation.ui.playerdetails.PlayerDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.editplayer.EditPlayerScreen
@@ -1032,6 +1033,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 onNavigateBack = { navController.popBackStack() },
                 onEnterLiveMatch = { matchId -> navController.navigate(Screen.LiveMatch(matchId)) },
                 onOpenReport = { matchId, edit -> navController.navigate(Screen.MatchReport(matchId, edit)) },
+                onOpenRecord = { matchId -> navController.navigate(Screen.MatchRecord(matchId)) },
                 onRedirectToLiveMatch = { matchId ->
                     // Replace this entry rather than push on top of it -- otherwise back from
                     // LiveMatch lands back on this screen, which immediately redirects again.
@@ -1079,6 +1081,19 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 startEditing = screen.edit,
                 onNavigateBack = { navController.popBackStack() },
                 onReportSaved = { openerEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true) }
+            )
+        }
+
+        screen<Screen.MatchRecord> { backStackEntry ->
+            val screen: Screen.MatchRecord = backStackEntry.toRoute()
+            // Saved: back to Match Details, which reloads (and cascades to the lists that show the score).
+            MatchRecordScreen(
+                matchId = screen.matchId,
+                onNavigateBack = { navController.popBackStack() },
+                onSaved = {
+                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navController.popBackStack()
+                }
             )
         }
 

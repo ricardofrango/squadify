@@ -13,9 +13,13 @@ import com.ricardofrango.squadify.presentation.ui.livematch.buildDisplayEvents
 /** A finished match's tabs, in the bottom bar: General (the report and the details), Stats, Events, Timeline. */
 internal enum class FinishedTab { GENERAL, STATS, EVENTS, TIMELINE }
 
-/** The staff see every tab; anyone else General (the details only) and Events (the goals only). */
-internal fun finishedTabs(canSeeMatchRecord: Boolean): List<FinishedTab> =
-    if (canSeeMatchRecord) FinishedTab.entries else listOf(FinishedTab.GENERAL, FinishedTab.EVENTS)
+/**
+ * The staff see every tab; anyone else General (the details only) and Events (the goals only). A game
+ * entered after it was played ([hasTimeline] false) has no Timeline: nothing recorded the pitch.
+ */
+internal fun finishedTabs(canSeeMatchRecord: Boolean, hasTimeline: Boolean = true): List<FinishedTab> =
+    if (canSeeMatchRecord) FinishedTab.entries.filter { hasTimeline || it != FinishedTab.TIMELINE }
+    else listOf(FinishedTab.GENERAL, FinishedTab.EVENTS)
 
 /** The Stats tab's columns after the player, in order: the ranking first. */
 internal enum class MatchStatColumn { RATING, MINUTES, GOALS, ASSISTS, YELLOW, RED }

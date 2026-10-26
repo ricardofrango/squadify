@@ -23,6 +23,7 @@ fun Route.matchRoutes() {
     val manageCallUpsUseCase by inject<ManageCallUpsUseCase>()
     val addMatchEventUseCase by inject<AddMatchEventUseCase>()
     val deleteMatchEventUseCase by inject<DeleteMatchEventUseCase>()
+    val saveMatchRecordUseCase by inject<SaveMatchRecordUseCase>()
     val getMatchEventsUseCase by inject<GetMatchEventsUseCase>()
     val getMatchScoreUseCase by inject<GetMatchScoreUseCase>()
     val getLiveMatchUpdatesUseCase by inject<GetLiveMatchUpdatesUseCase>()
@@ -189,6 +190,14 @@ fun Route.matchRoutes() {
                     } else {
                         call.respond(HttpStatusCode.InternalServerError, ErrorResponse("Failed to set match minute"))
                     }
+                }
+
+                // After the game: correct its goals and cards, or enter a game not followed live.
+                put("/record") {
+                    val currentUserId = call.userId ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                    val matchId = call.parameters["matchId"] ?: return@put call.respond(HttpStatusCode.BadRequest)
+                    val request = call.receive<SaveMatchRecordRequest>()
+                    call.respond(saveMatchRecordUseCase(currentUserId, matchId, request))
                 }
 
                 route("/events") {
