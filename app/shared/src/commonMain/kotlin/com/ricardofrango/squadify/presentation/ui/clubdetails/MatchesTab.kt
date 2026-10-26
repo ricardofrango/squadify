@@ -1,7 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
-import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
+import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
 import com.ricardofrango.squadify.presentation.ui.theme.IsClubThemed
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.foundation.BorderStroke
@@ -28,7 +28,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.ricardofrango.squadify.presentation.ui.components.MatchListEntry
 import com.ricardofrango.squadify.presentation.ui.components.MatchListSection
-import com.ricardofrango.squadify.presentation.ui.components.RECENT_RESULTS_SHOWN
 import com.ricardofrango.squadify.presentation.ui.components.matchListSections
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,7 +52,8 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * The club Matches tab (design 14A / 14B): the club-wide fixture list, so each row names its team.
- * Season / age-group / team filter pills + an Upcoming / Finished / All status control, then the
+ * Season / age-group / team filter pills + an All / Upcoming / Finished status control (All by
+ * default, since both lists show), then the
  * same list as a team's and an age group's Games tab (matchListSections): "Upcoming · n" and
  * "Recent results · n", a page at a time. A match in progress renders as a green-bordered card with a
  * LIVE badge and running minute in place of the date.
@@ -134,10 +134,6 @@ fun MatchesTab(
     val (upcoming, finished) = remember(state.matches, state.selectedMatchesSeasonId, state.selectedMatchesAgeGroupId, state.selectedMatchesTeamId, teamsById) {
         splitMatches(state, teamsById)
     }
-    // "See all n" under the results, as on a team's and an age group's Games tab; a new filter folds them again.
-    var showAllResults by remember(state.matchesStatus, state.selectedMatchesSeasonId, state.selectedMatchesAgeGroupId, state.selectedMatchesTeamId) {
-        mutableStateOf(false)
-    }
     fun entries(matches: List<Match>) = matches.map { MatchListEntry(it, state.matchScores[it.id], teamsById[it.teamId]?.name) }
     val upcomingSection = if (state.matchesStatus == MatchesStatusFilter.FINISHED) null
     else MatchListSection(entries(upcoming), total = maxOf(state.upcomingTotal ?: 0, upcoming.size))
@@ -147,7 +143,6 @@ fun MatchesTab(
         state.matchesStatus == MatchesStatusFilter.ALL && state.finishedTotal == null -> null
         else -> MatchListSection(entries(finished), total = maxOf(state.finishedTotal ?: 0, finished.size))
     }
-    val resultsFolded = state.matchesStatus == MatchesStatusFilter.ALL && !showAllResults
 
     Column(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {
         LazyRow(
@@ -186,12 +181,12 @@ fun MatchesTab(
             }
         }
 
-        FilterChipRow(
-            options = listOf(MatchesStatusFilter.UPCOMING, MatchesStatusFilter.FINISHED, MatchesStatusFilter.ALL),
+        SegmentedFilter(
+            options = listOf(MatchesStatusFilter.ALL, MatchesStatusFilter.UPCOMING, MatchesStatusFilter.FINISHED),
             selected = state.matchesStatus,
             label = { stringResource(it.labelRes()) },
             onSelect = actions::onMatchesStatusSelected,
-            modifier = Modifier.padding(vertical = 8.dp)
+            modifier = Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 10.dp)
         )
 
         if (!state.matchesLoaded) {
@@ -200,9 +195,7 @@ fun MatchesTab(
             }
         } else {
             val listState = rememberLazyListState()
-            // Folded results need no more pages than the few they show.
-            val wantsMore = !(resultsFolded && resultsSection != null && finished.size > RECENT_RESULTS_SHOWN)
-            LoadMoreEffect(listState, enabled = state.matchesHasMore && !state.matchesLoadingMore && wantsMore, onLoadMore = actions::loadMoreMatches)
+            LoadMoreEffect(listState, enabled = state.matchesHasMore && !state.matchesLoadingMore, onLoadMore = actions::loadMoreMatches)
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
@@ -214,8 +207,6 @@ fun MatchesTab(
                     results = resultsSection,
                     opponentsById = opponentsById,
                     clubLogoUrl = details.club.logoUrl,
-                    showAllResults = !resultsFolded,
-                    onShowAllResults = { showAllResults = true },
                     onOpenMatch = onNavigateToMatch
                 )
                 loadingMoreItem(state.matchesLoadingMore)

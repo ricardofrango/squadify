@@ -38,7 +38,7 @@ sealed class ClubDetailsUiState {
         val selectedAgeGroupsSeasonId: String? = null,
         // Matches tab -- the pages of fixtures loaded so far for its filters + the opponent list
         // (best-effort, see ClubDetailsViewModel), plus its own filter set (season defaults to the most
-        // recent, status to UPCOMING). The filters run on the server; the next page loads on scrolling.
+        // recent, status to ALL). The filters run on the server; the next page loads on scrolling.
         val matches: List<Match> = emptyList(),
         // The score of each started match in `matches`, keyed by Match.id -- sent with its page, so a
         // finished fixture shows its result and a live one its current score.
@@ -57,7 +57,7 @@ sealed class ClubDetailsUiState {
         val selectedMatchesSeasonId: String? = null,
         val selectedMatchesAgeGroupId: String? = null,
         val selectedMatchesTeamId: String? = null,
-        val matchesStatus: MatchesStatusFilter = MatchesStatusFilter.UPCOMING,
+        val matchesStatus: MatchesStatusFilter = MatchesStatusFilter.ALL,
         val error: String? = null,
         // Resolved once when details load, so the screen just reads a flag instead of re-deriving it
         // from `details` on every recomposition: everything on this screen (teams, players, filters)

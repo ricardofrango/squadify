@@ -1,9 +1,10 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
+import com.ricardofrango.squadify.presentation.ui.components.shortFilterLabel
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.ricardofrango.squadify.presentation.ui.components.LoadMoreEffect
 import com.ricardofrango.squadify.presentation.ui.components.loadingMoreItem
-import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -332,15 +333,17 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
     )
 }
 
-/** All · Admins · Coordinators · Members · Pending · n -- scrolls sideways (34c). */
+/** All · Admins · Coordinators · Members · Pending · n, as one segmented control (34c). */
 @Composable
 private fun FilterChips(overview: ClubMembersOverview, selected: MembersFilter, onSelect: (MembersFilter) -> Unit) {
-    FilterChipRow(
-        options = MembersFilter.entries.filter { it != MembersFilter.PENDING || overview.pendingInvites.isNotEmpty() },
+    val pending = overview.pendingInvites.size
+    SegmentedFilter(
+        options = MembersFilter.entries.filter { it != MembersFilter.PENDING || pending > 0 },
         selected = selected,
-        label = { f -> stringResource(f.labelRes()).let { if (f == MembersFilter.PENDING) "$it · ${overview.pendingInvites.size}" else it } },
+        label = { f -> stringResource(f.labelRes()).let { if (f == MembersFilter.PENDING) "$it · $pending" else it } },
         onSelect = onSelect,
-        insidePaddedContent = true
+        // Cut, Pending keeps its count: "Pende. 2".
+        shortLabel = { f, full -> if (f == MembersFilter.PENDING) "${shortFilterLabel(full.substringBefore(" · "))} $pending" else shortFilterLabel(full) }
     )
 }
 

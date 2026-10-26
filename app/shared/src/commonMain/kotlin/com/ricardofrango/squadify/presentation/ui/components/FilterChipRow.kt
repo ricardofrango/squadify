@@ -24,8 +24,8 @@ import com.ricardofrango.squadify.presentation.ui.theme.IsClubThemed
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 
 /**
- * One filter chip: white, outlined, filled with the bar's colour when selected (the match Events tab's
- * chips, the developer's pick for every filter, 2026-10-25). It takes exactly its 32dp height: without
+ * One sort chip: white, outlined, filled with the bar's colour when selected (sorting only, as the
+ * call-up's "Sort: Position · Name"; filters are a SegmentedFilter since 2026-10-26). It takes exactly its 32dp height: without
  * that, Material pads its touch area to 48dp with invisible space above and below, which shows up as
  * extra padding around every row of chips.
  */
@@ -45,7 +45,8 @@ fun SquadifyFilterChip(label: String, selected: Boolean, onClick: () -> Unit) = 
 }
 
 /**
- * A single-choice filter as a row of [SquadifyFilterChip]s that scrolls sideways edge to edge: the
+ * A sort ("Sort" as [leadingLabel], then its options) as a row of [SquadifyFilterChip]s that scrolls
+ * sideways edge to edge: the
  * screen's side padding is inside the row ([horizontalPadding]), so a chip scrolls to the screen's edge
  * instead of being cut at the padding. Inside content that already has that padding (a `LazyColumn`
  * item, a padded column) set [insidePaddedContent], and the row reaches out over it to the edges.

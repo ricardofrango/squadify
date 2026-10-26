@@ -721,7 +721,6 @@
     <string name="team_first_match_hint">Shows up after the first finished match. Next up: %1$s vs %2$s.</string>
     <string name="team_view_match">View match</string>
     <string name="team_schedule_short">+ Create match</string>
-    <string name="team_see_all">See all %1$d</string>
     <string name="team_heading_count">%1$s · %2$d</string>
     <plurals name="squad_apps">
         <item quantity="one">%1$d app</item>

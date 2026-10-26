@@ -137,62 +137,14 @@ fun StatsHeaderRow(title: String, pillText: String?, onPillClick: (() -> Unit)?)
  */
 @Composable
 fun StatsFilterSegments(selected: StatsFilter, onSelected: (StatsFilter) -> Unit, modifier: Modifier = Modifier, bottomSpacing: Dp = 14.dp) {
-    Row(
-        modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .padding(bottom = bottomSpacing)
-            .clip(RoundedCornerShape(12.dp))
-            .border(1.5.dp, CarbonGray.copy(alpha = 0.16f), RoundedCornerShape(12.dp))
-    ) {
-        StatsFilter.entries.forEach { filter ->
-            val isSelected = filter == selected
-            val label = stringResource(filter.labelRes())
-            val short = shortFilterLabel(label)
-            // The selected segment takes the room its full name needs; the others, their short label.
-            val weight by animateFloatAsState(
-                (if (isSelected) label.length else short.length).coerceAtLeast(3).toFloat() + 2f,
-                animationSpec = tween(FilterAnimationMillis), label = "filterWeight"
-            )
-            val background by animateColorAsState(if (isSelected) ClubChrome else Color.White, tween(FilterAnimationMillis), label = "filterBackground")
-            val textColor by animateColorAsState(if (isSelected) Color.White else DeepCarbon, tween(FilterAnimationMillis), label = "filterText")
-            Box(
-                Modifier
-                    .weight(weight)
-                    .fillMaxHeight()
-                    .heightIn(min = 40.dp)
-                    .background(background)
-                    // The full name for screen readers, whatever is shown.
-                    .semantics { role = Role.Tab; this.selected = isSelected; contentDescription = label }
-                    .clickable { onSelected(filter) }
-                    .padding(horizontal = 4.dp, vertical = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                AnimatedContent(
-                    targetState = if (isSelected) label else short,
-                    transitionSpec = { fadeIn(tween(FilterAnimationMillis)) togetherWith fadeOut(tween(FilterAnimationMillis / 2)) },
-                    label = "filterLabel"
-                ) { text ->
-                    Text(
-                        text,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
-                        color = textColor,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        softWrap = false
-                    )
-                }
-            }
-        }
-    }
+    SegmentedFilter(
+        options = StatsFilter.entries,
+        selected = selected,
+        label = { stringResource(it.labelRes()) },
+        onSelect = onSelected,
+        modifier = modifier.padding(bottom = bottomSpacing)
+    )
 }
-
-private const val FilterAnimationMillis = 250
-
-/** "Official" → "Offic.", the "." saying it's cut; a label of 5 letters or fewer stays whole ("All", "Todos"). */
-internal fun shortFilterLabel(label: String): String = if (label.length <= ShortLabelLength) label else label.take(ShortLabelLength) + "."
-
-private const val ShortLabelLength = 5
 
 fun StatsFilter.labelRes() = when (this) {
     StatsFilter.ALL -> Res.string.stats_filter_all

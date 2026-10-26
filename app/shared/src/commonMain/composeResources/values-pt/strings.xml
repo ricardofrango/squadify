@@ -320,7 +320,7 @@
     <string name="tab_more">Mais</string>
 
     <!-- Club Matches tab -->
-    <string name="matches_status_upcoming">Por jogar</string>
+    <string name="matches_status_upcoming">Próximos</string>
     <string name="matches_status_finished">Terminados</string>
     <string name="matches_status_all">Todos</string>
     <string name="matches_live">AO VIVO</string>
@@ -719,7 +719,6 @@
     <string name="team_first_match_hint">Aparece depois do primeiro jogo terminado. Próximo: %1$s vs %2$s.</string>
     <string name="team_view_match">Ver jogo</string>
     <string name="team_schedule_short">+ Criar jogo</string>
-    <string name="team_see_all">Ver todos os %1$d</string>
     <string name="team_heading_count">%1$s · %2$d</string>
     <plurals name="squad_apps">
         <item quantity="one">%1$d jogo</item>

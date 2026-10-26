@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButton
@@ -54,11 +55,9 @@ import com.ricardofrango.squadify.model.leaders
 import com.ricardofrango.squadify.model.table
 import squadify.app.shared.generated.resources.ag_leaders
 import com.ricardofrango.squadify.presentation.ui.components.StatsFilterSegments
-import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
 import com.ricardofrango.squadify.presentation.ui.components.MatchListEntry
 import com.ricardofrango.squadify.presentation.ui.components.MatchListSection
 import com.ricardofrango.squadify.presentation.ui.components.matchListSections
-import com.ricardofrango.squadify.presentation.ui.components.SquadifyFilterChip
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
@@ -532,7 +531,6 @@ internal fun AgeGroupMatchesTab(
 ) {
     val opponentsById = remember(details.opponents) { details.opponents.associateBy { it.id } }
     val teamsById = remember(details.teams) { details.teams.associateBy { it.id } }
-    var showAllResults by remember { mutableStateOf(false) }
     val upcoming = details.upcomingMatches.filter { teamFilter == null || it.teamId == teamFilter }
     val results = details.recentResults.filter { teamFilter == null || it.match.teamId == teamFilter }
 
@@ -544,12 +542,13 @@ internal fun AgeGroupMatchesTab(
         if (details.teams.size > 1) {
             item {
                 val teamNames = details.teams.associate { it.id to it.name }
-                FilterChipRow(
+                // Team names in full ("Sub-15 A", "Sub-15 B" would cut alike), scrolling when they don't fit.
+                SegmentedFilter(
                     options = listOf<String?>(null) + details.teams.sortedBy { it.name }.map { it.id },
                     selected = teamFilter,
                     label = { id -> id?.let { teamNames[it] } ?: stringResource(Res.string.ag_all_teams) },
                     onSelect = onTeamFilter,
-                    insidePaddedContent = true
+                    shorten = false
                 )
             }
         }
@@ -560,8 +559,6 @@ internal fun AgeGroupMatchesTab(
             }),
             opponentsById = opponentsById,
             clubLogoUrl = details.club.logoUrl,
-            showAllResults = showAllResults,
-            onShowAllResults = { showAllResults = true },
             onOpenMatch = onOpenMatch,
             onSchedule = if (details.canManageMatch) onSchedule else null
         )
@@ -911,9 +908,15 @@ private fun LazyListScope.sessionItems(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         StatsHeading(stringResource(Res.string.label_sessions), Modifier.weight(1f))
                         if (data.sessions.isNotEmpty()) {
-                            SquadifyFilterChip(stringResource(Res.string.btn_list), !view.calendar) { view.onCalendar(false) }
-                            Spacer(Modifier.width(6.dp))
-                            SquadifyFilterChip(stringResource(Res.string.btn_calendar), view.calendar) { view.onCalendar(true) }
+                            // List · Calendar, the same segmented control as every filter, sized to its words.
+                            SegmentedFilter(
+                                options = listOf(false, true),
+                                selected = view.calendar,
+                                label = { stringResource(if (it) Res.string.btn_calendar else Res.string.btn_list) },
+                                onSelect = view.onCalendar,
+                                modifier = Modifier.width(IntrinsicSize.Max),
+                                shorten = false
+                            )
                         }
                     }
                     if (data.canEdit && data.sessions.isNotEmpty()) {

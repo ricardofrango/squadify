@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.runtime.CompositionLocalProvider
 import com.ricardofrango.squadify.presentation.ui.livematch.LocalPitchOnLight
@@ -45,7 +46,6 @@ import com.ricardofrango.squadify.model.matchTimeline
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.PersonPlaceholder
 import com.ricardofrango.squadify.presentation.ui.components.RatingPill
-import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
 import com.ricardofrango.squadify.presentation.ui.components.DetailBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.DetailRail
 import com.ricardofrango.squadify.presentation.ui.components.DetailTab
@@ -329,13 +329,13 @@ private fun EventsTab(details: MatchDetails, modifier: Modifier) {
     val shown = remember(all, filter) { all.filter(filter::accepts) }
     val twoHalves = details.match.halves == 2
     Column(modifier) {
-        // The chips scroll edge to edge (the screen's side padding is inside the row, not around it) and stay on top.
-        if (filtering) FilterChipRow(
+        // The filter stays on top while the events scroll.
+        if (filtering) SegmentedFilter(
             options = EventFilter.entries,
             selected = filter,
             label = { stringResource(it.labelRes()) },
             onSelect = { filter = it },
-            modifier = Modifier.padding(top = ScreenPadding.Top)
+            modifier = Modifier.padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top)
         )
         LazyColumn(
             Modifier.weight(1f),

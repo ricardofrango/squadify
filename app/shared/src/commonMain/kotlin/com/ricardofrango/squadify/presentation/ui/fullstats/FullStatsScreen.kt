@@ -1,11 +1,11 @@
 package com.ricardofrango.squadify.presentation.ui.fullstats
 
+import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
 import androidx.compose.ui.draw.clip
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.components.SectionBorder
 import com.ricardofrango.squadify.presentation.ui.components.SectionShape
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
-import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -329,12 +329,12 @@ private fun Filters(
         // The same chips from a team or from its age group: the age group (by its name), then each team.
         if (state.data.teams.isNotEmpty()) {
             val teamNames = state.data.teams.associate { it.id to it.name }
-            FilterChipRow(
+            SegmentedFilter(
                 options = listOf<String?>(null) + state.data.teams.map { it.id },
                 selected = state.teamId,
                 label = { id -> id?.let { teamNames[it] } ?: state.data.title },
                 onSelect = onTeamSelected,
-                insidePaddedContent = true
+                shorten = false
             )
         }
     }
