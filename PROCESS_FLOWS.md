@@ -1555,7 +1555,7 @@ graph TD
 ```
 
 - **All** (the tab's first and default status, then Upcoming and Finished) is Upcoming to its last page, then Finished from its first, so the tab keeps its order (`MatchesCursor` in the app).
-- **The tab's list** is the same as a team's and an age group's Games tab: "Upcoming · n" and "Recent results · n" (`total` gives n), the results folded to the latest three until "See all n". Under All, folded results load no more pages.
+- **The tab's list** is the same as a team's and an age group's Games tab: "Upcoming · n" and "Recent results · n" (`total` gives n), each showing every match loaded, with no "See all": more pages load as the list scrolls.
 - **Scores** come with the page: the tab no longer asks for each match's score on its own.
 - **Live updates** over the club socket (§8.5) still change, add or remove matches among those loaded.
 

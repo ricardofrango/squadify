@@ -381,7 +381,6 @@ private fun MatchesTab(
     onScheduleMatch: () -> Unit,
     onMatchClick: (String) -> Unit
 ) {
-    var showAllResults by remember { mutableStateOf(false) }
     LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         matchListSections(
             upcoming = MatchListSection(details.upcomingMatches.map { MatchListEntry(it, details.upcomingMatchScores[it.id], details.team.name) }),
@@ -390,8 +389,6 @@ private fun MatchesTab(
             }),
             opponentsById = opponentsById,
             clubLogoUrl = details.club.logoUrl,
-            showAllResults = showAllResults,
-            onShowAllResults = { showAllResults = true },
             onOpenMatch = onMatchClick,
             onSchedule = if (details.canManageMatch) onScheduleMatch else null
         )

@@ -36,7 +36,6 @@ import squadify.app.shared.generated.resources.msg_no_results_yet
 import squadify.app.shared.generated.resources.msg_no_upcoming_matches
 import squadify.app.shared.generated.resources.team_heading_count
 import squadify.app.shared.generated.resources.team_schedule_short
-import squadify.app.shared.generated.resources.team_see_all
 import kotlin.time.Instant
 
 // The match list of the Games / Matches tabs: a team's, an age group's and the club's. One look in all
@@ -48,21 +47,17 @@ class MatchListEntry(val match: Match, val score: MatchScore?, val teamName: Str
 /** One of the two sections. [total] also counts rows not loaded yet (the club's, a page at a time). */
 class MatchListSection(val entries: List<MatchListEntry>, val total: Int = entries.size)
 
-/** Recent results shown before "See all n". */
-const val RECENT_RESULTS_SHOWN = 3
-
 /**
  * "Upcoming · n" (with "Schedule" when [onSchedule] is given) and its rows, then "Recent results · n"
- * and the latest [RECENT_RESULTS_SHOWN] until "See all n" ([showAllResults]). Each section shows a card
- * when it's empty, and a null one is left out (the club's Upcoming / Finished filter).
+ * and its rows: every match the server sent, with no "See all" (the club's list loads more pages as it
+ * scrolls). Each section shows a card when it's empty, and a null one is left out (the club's
+ * Upcoming / Finished filter).
  */
 fun LazyListScope.matchListSections(
     upcoming: MatchListSection?,
     results: MatchListSection?,
     opponentsById: Map<String, Opponent>,
     clubLogoUrl: String?,
-    showAllResults: Boolean,
-    onShowAllResults: () -> Unit,
     onOpenMatch: (String) -> Unit,
     onSchedule: (() -> Unit)? = null
 ) {
@@ -87,18 +82,7 @@ fun LazyListScope.matchListSections(
         if (results.entries.isEmpty()) {
             item(key = "results-empty") { EmptyMatchCard(stringResource(Res.string.msg_no_results_yet)) }
         } else {
-            val shown = if (showAllResults) results.entries else results.entries.take(RECENT_RESULTS_SHOWN)
-            items(shown, key = { it.match.id }) { MatchListRow(it, opponentsById, clubLogoUrl, onOpenMatch) }
-            if (!showAllResults && results.total > RECENT_RESULTS_SHOWN) {
-                item(key = "results-see-all") {
-                    Text(
-                        stringResource(Res.string.team_see_all, results.total),
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = 13.sp),
-                        color = PitchGreen,
-                        modifier = Modifier.clickable(onClick = onShowAllResults).padding(horizontal = 2.dp, vertical = 6.dp)
-                    )
-                }
-            }
+            items(results.entries, key = { it.match.id }) { MatchListRow(it, opponentsById, clubLogoUrl, onOpenMatch) }
         }
     }
 }
@@ -163,8 +147,6 @@ private fun MatchListPreviewFrame() {
                 ),
                 opponentsById = mapOf("o1" to Opponent("o1", "c1", "Académica")),
                 clubLogoUrl = null,
-                showAllResults = false,
-                onShowAllResults = {},
                 onOpenMatch = {},
                 onSchedule = {}
             )

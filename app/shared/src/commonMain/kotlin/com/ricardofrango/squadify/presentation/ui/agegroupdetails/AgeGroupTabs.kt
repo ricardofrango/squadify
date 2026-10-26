@@ -531,7 +531,6 @@ internal fun AgeGroupMatchesTab(
 ) {
     val opponentsById = remember(details.opponents) { details.opponents.associateBy { it.id } }
     val teamsById = remember(details.teams) { details.teams.associateBy { it.id } }
-    var showAllResults by remember { mutableStateOf(false) }
     val upcoming = details.upcomingMatches.filter { teamFilter == null || it.teamId == teamFilter }
     val results = details.recentResults.filter { teamFilter == null || it.match.teamId == teamFilter }
 
@@ -560,8 +559,6 @@ internal fun AgeGroupMatchesTab(
             }),
             opponentsById = opponentsById,
             clubLogoUrl = details.club.logoUrl,
-            showAllResults = showAllResults,
-            onShowAllResults = { showAllResults = true },
             onOpenMatch = onOpenMatch,
             onSchedule = if (details.canManageMatch) onSchedule else null
         )
