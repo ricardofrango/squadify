@@ -11,6 +11,7 @@ import com.ricardofrango.squadify.domain.usecase.GetClubUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateClubPermissionsUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateClubUseCase
 import com.ricardofrango.squadify.model.AddClubMembersRequest
+import com.ricardofrango.squadify.model.Paging
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ClubPermissionSetting
@@ -27,6 +28,9 @@ import squadify.app.shared.generated.resources.msg_club_change_failed
 import squadify.app.shared.generated.resources.msg_failed_to_load_club
 import squadify.app.shared.generated.resources.msg_permission_denied
 import squadify.app.shared.generated.resources.msg_permissions_save_failed
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -67,15 +71,63 @@ class EditClubViewModel(
     private val _inviting = MutableStateFlow(false)
     val inviting: StateFlow<Boolean> = _inviting.asStateFlow()
 
-    fun loadMembers(clubId: String) {
-        viewModelScope.launch {
-            _members.update { MembersUiState.Loading }
-            _members.update {
-                try {
-                    MembersUiState.Loaded(getClubMembersOverviewUseCase(clubId))
-                } catch (e: Exception) {
-                    MembersUiState.Error
+    // The Members tab's role filter and search, which run on the server, and the page load under way.
+    private var membersFilter = MembersFilter.ALL
+    private var membersQuery = ""
+    private var membersJob: Job? = null
+
+    /**
+     * (Re)loads the Members tab's first pages, as many rows as were on screen so the list doesn't
+     * shrink under the user. The tab keeps showing what it had meanwhile; only the first load shows
+     * the skeleton.
+     */
+    fun loadMembers(clubId: String, debounce: Boolean = false) {
+        val loaded = (_members.value as? MembersUiState.Loaded)?.overview?.members?.size ?: 0
+        membersJob?.cancel()
+        membersJob = viewModelScope.launch {
+            if (debounce) delay(SEARCH_DEBOUNCE_MS)
+            if (_members.value !is MembersUiState.Loaded) _members.value = MembersUiState.Loading
+            _members.value = try {
+                // Pending lists only the invites, which come with any page: one member is enough.
+                var overview = if (membersFilter == MembersFilter.PENDING) getClubMembersOverviewUseCase(clubId, limit = 1)
+                else getClubMembersOverviewUseCase(clubId, membersFilter.role(), membersQuery)
+                while (membersFilter != MembersFilter.PENDING && overview.hasMore && overview.members.size < maxOf(Paging.PAGE_SIZE, loaded)) {
+                    val next = getClubMembersOverviewUseCase(clubId, membersFilter.role(), membersQuery, offset = overview.members.size)
+                    overview = next.copy(members = overview.members + next.members)
                 }
+                MembersUiState.Loaded(overview)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                MembersUiState.Error
+            }
+        }
+    }
+
+    /** The tab's role filter or search changed: its first page again (the search once typing pauses). */
+    fun onMembersFilter(clubId: String, filter: MembersFilter, query: String) {
+        val trimmed = query.trim()
+        if (filter == membersFilter && trimmed == membersQuery) return
+        val typing = trimmed != membersQuery
+        membersFilter = filter
+        membersQuery = trimmed
+        loadMembers(clubId, debounce = typing)
+    }
+
+    /** The Members tab's next page, as its list nears the end. */
+    fun loadMoreMembers(clubId: String) {
+        val current = _members.value as? MembersUiState.Loaded ?: return
+        if (!current.overview.hasMore || membersJob?.isActive == true) return
+        membersJob = viewModelScope.launch {
+            _members.value = current.copy(loadingMore = true)
+            _members.value = try {
+                val next = getClubMembersOverviewUseCase(clubId, membersFilter.role(), membersQuery, offset = current.overview.members.size)
+                MembersUiState.Loaded(next.copy(members = (current.overview.members + next.members).distinctBy { it.userId }))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Scrolling back to the end tries again.
+                current.copy(loadingMore = false)
             }
         }
     }
@@ -275,6 +327,8 @@ class EditClubViewModel(
         }
     }
 }
+
+private const val SEARCH_DEBOUNCE_MS = 300L
 
 // The server's limit (LogoImage.MAX_UPLOAD_BYTES): checked here too, so a big photo isn't sent for nothing.
 private const val MAX_LOGO_BYTES = 5 * 1024 * 1024

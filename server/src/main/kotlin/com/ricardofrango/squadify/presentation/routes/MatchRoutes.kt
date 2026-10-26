@@ -43,6 +43,24 @@ fun Route.matchRoutes() {
                 )
                 val teamId = call.request.queryParameters["teamId"]
                 val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                val params = call.request.queryParameters
+                // With `limit`: one page of the club Matches tab, filtered here. Without it: the whole
+                // list, for app builds from before paging.
+                val limit = Paging.limitOf(params["limit"])
+                if (limit != null) {
+                    val status = params["status"]?.let { s -> MatchListStatus.entries.firstOrNull { it.name == s } }
+                        ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("status must be UPCOMING or FINISHED", "VAL_001"))
+                    return@get call.respond(
+                        getMatchesUseCase.page(
+                            currentUserId, clubId, status,
+                            seasonId = params["seasonId"],
+                            ageGroupId = params["ageGroupId"],
+                            teamId = teamId,
+                            limit = limit,
+                            offset = Paging.offsetOf(params["offset"])
+                        )
+                    )
+                }
                 val matches = getMatchesUseCase(currentUserId, clubId, teamId)
                 call.respond(matches)
             }

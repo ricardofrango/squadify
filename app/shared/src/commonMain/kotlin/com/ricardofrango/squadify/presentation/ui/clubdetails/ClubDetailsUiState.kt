@@ -36,13 +36,19 @@ sealed class ClubDetailsUiState {
         // an age group only means something within one season. Defaults to the most recent season
         // (by end date) when details load.
         val selectedAgeGroupsSeasonId: String? = null,
-        // Matches tab -- the club's fixtures + opponent list (best-effort, see ClubDetailsViewModel),
-        // plus its own filter set (season defaults to the most recent, status to UPCOMING).
+        // Matches tab -- the pages of fixtures loaded so far for its filters + the opponent list
+        // (best-effort, see ClubDetailsViewModel), plus its own filter set (season defaults to the most
+        // recent, status to UPCOMING). The filters run on the server; the next page loads on scrolling.
         val matches: List<Match> = emptyList(),
-        // Final scores for `matches` entries with status FINISHED, keyed by Match.id -- best-effort,
-        // fetched after `matches` loads (see ClubDetailsViewModel), so a finished fixture can show its
-        // result instead of just a "FULL TIME" badge with no score.
+        // The score of each started match in `matches`, keyed by Match.id -- sent with its page, so a
+        // finished fixture shows its result and a live one its current score.
         val matchScores: Map<String, MatchScore> = emptyMap(),
+        // False until the first page for the current filters has arrived (the tab shows a spinner).
+        val matchesLoaded: Boolean = false,
+        val matchesHasMore: Boolean = false,
+        val matchesLoadingMore: Boolean = false,
+        // Whether the viewer can see any match of the club at all: false shows "No matches yet".
+        val anyMatches: Boolean = false,
         val opponents: List<Opponent> = emptyList(),
         val selectedMatchesSeasonId: String? = null,
         val selectedMatchesAgeGroupId: String? = null,

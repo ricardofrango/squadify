@@ -10,6 +10,8 @@ import com.ricardofrango.squadify.model.LiveMatchUpdate
 import com.ricardofrango.squadify.model.ManageCallUpRequest
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchDetails
+import com.ricardofrango.squadify.model.MatchListStatus
+import com.ricardofrango.squadify.model.MatchesPage
 import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchReport
 import com.ricardofrango.squadify.model.MatchReportDetails
@@ -41,9 +43,23 @@ class MatchRepositoryImpl(
             contentType(ContentType.Application.Json); setBody(request)
         }.handleResponse()
 
-    override suspend fun getMatches(clubId: String): List<Match> =
+    override suspend fun getMatchesPage(
+        clubId: String,
+        status: MatchListStatus,
+        seasonId: String?,
+        ageGroupId: String?,
+        teamId: String?,
+        offset: Int,
+        limit: Int
+    ): MatchesPage =
         httpClient.get("${appConfig.baseUrl}/matches") {
             parameter("clubId", clubId)
+            parameter("status", status.name)
+            seasonId?.let { parameter("seasonId", it) }
+            ageGroupId?.let { parameter("ageGroupId", it) }
+            teamId?.let { parameter("teamId", it) }
+            parameter("limit", limit)
+            parameter("offset", offset)
         }.handleResponse()
 
     override suspend fun getMatchDetails(matchId: String): MatchDetails =

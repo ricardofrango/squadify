@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
+import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
@@ -18,7 +19,8 @@ class GetClubDetailsUseCase(
     private val transactionManager: TransactionManager,
     private val userRepository: UserRepository,
     private val seasonRepository: SeasonRepository,
-    private val ageGroupRepository: AgeGroupRepository
+    private val ageGroupRepository: AgeGroupRepository,
+    private val playerRepository: PlayerRepository
 ) {
     suspend operator fun invoke(userId: String, clubId: String): ClubDetailsResponse = transactionManager.runInTransaction {
         // Everyone who is a member of the club (Member level 1) can see details
@@ -99,7 +101,8 @@ class GetClubDetailsUseCase(
             viewerRole = viewerRole,
             viewerAgeGroups = viewerAgeGroups,
             createTeamAgeGroupIds = allowedFor(ConfigurablePermission.CREATE_TEAM),
-            createPlayersAgeGroupIds = allowedFor(ConfigurablePermission.CREATE_PLAYERS)
+            createPlayersAgeGroupIds = allowedFor(ConfigurablePermission.CREATE_PLAYERS),
+            ageGroupPlayerCounts = playerRepository.countPlayersByAgeGroup(clubId)
         )
     }
 }

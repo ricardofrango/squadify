@@ -14,11 +14,6 @@ class AgeGroupPlayerRepositoryImpl(
     private val appConfig: AppConfig
 ) : AgeGroupPlayerRepository {
 
-    override suspend fun getAgeGroupPlayersByClub(clubId: String): List<AgeGroupPlayer> =
-        httpClient.get("${appConfig.baseUrl}/players/associations/age-group") {
-            parameter("clubId", clubId)
-        }.handleResponse()
-
     override suspend fun getEligiblePlayers(ageGroupId: String): List<Player> =
         httpClient.get("${appConfig.baseUrl}/age-groups/$ageGroupId/players/eligible").handleResponse()
 

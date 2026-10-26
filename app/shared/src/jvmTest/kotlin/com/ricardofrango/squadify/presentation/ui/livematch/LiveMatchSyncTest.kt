@@ -22,6 +22,8 @@ import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchLineup
+import com.ricardofrango.squadify.model.MatchListStatus
+import com.ricardofrango.squadify.model.MatchesPage
 import com.ricardofrango.squadify.model.MatchReport
 import com.ricardofrango.squadify.model.MatchReportDetails
 import com.ricardofrango.squadify.model.MatchScore
@@ -87,7 +89,7 @@ class LiveMatchSyncTest {
         override fun observeLiveMatch(matchId: String): Flow<LiveMatchUpdate> = socket
 
         override suspend fun createMatch(request: CreateMatchRequest): Match = error("unused")
-        override suspend fun getMatches(clubId: String): List<Match> = error("unused")
+        override suspend fun getMatchesPage(clubId: String, status: MatchListStatus, seasonId: String?, ageGroupId: String?, teamId: String?, offset: Int, limit: Int): MatchesPage = error("unused")
         override suspend fun updateMatch(matchId: String, request: UpdateMatchRequest) = error("unused")
         override suspend fun deleteMatch(matchId: String) = error("unused")
         override suspend fun updateMatchStatus(matchId: String, status: MatchStatus) = error("unused")

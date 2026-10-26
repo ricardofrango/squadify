@@ -428,6 +428,8 @@ The viewer fields feed the club's **More** panel (design 37):
 - **Account header:** `viewerRole` and `viewerAgeGroups` give the role chip, e.g. "Coach · Sub-15, Sub-17".
 - **Scoped create actions:** the two id lists are where a non-coordinator may create teams or add players. They come from the same club-configurable permissions the create endpoints enforce (Coach level by default), so the panel only offers what the server will accept. It opens Create Teams / Create Players with that age group.
 
+`ageGroupPlayerCounts` is how many players each age group's pool holds (one grouped count), for the Age groups tab's cards, so the app no longer downloads every player and pool link of the club to count them.
+
 `canEditClub` from the same single probe above — `CreateSeasonUseCase` and `CreateAgeGroupsUseCase` enforce the identical `minClubRole=COORDINATOR` gate, so one non-throwing check covers both response fields (they're separate fields, not one shared boolean, only so either could diverge later without an API shape change). The client uses them to distinguish, when a club has zero seasons or zero age groups, an admin/coordinator ("nothing here yet, create one") from a plain member ("nothing here yet") — see §4.1 and §4.3.
 
 ### 3.3b Get Club Home (`GetClubHomeUseCase`)
@@ -612,6 +614,25 @@ graph TD
 
 `viewerRole` is the caller's club role (a platform admin reads as `CLUB_ADMIN`), so the client can lock
 the Admin option for coordinators without a second request.
+
+Members and their accounts come from one join (`ClubRepository.getClubMembersPage`), not a user lookup per
+member, and the staff roles and player links are worked out only for the members returned.
+
+**A page at a time** (`?limit=&offset=`, `GetClubMembersOverviewUseCase.page`; the app always asks this way):
+
+```mermaid
+graph TD
+    A["Start: userId, clubId, role?, q?, userId filter?, limit, offset"] --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    B -- denied --> F(["Throw ForbiddenException"])
+    B -- allowed --> Q["q trimmed, lowercased, accents folded (SearchText.key): 'João' → 'joao'"]
+    Q --> C["limit + 1 active members matching role, q (in 'first last' or the email) and the one userId, if given — admins, then coordinators, then members, each by name"]
+    C --> R["roleCounts: members per role in the whole club; matchingRoleCounts: those matching q"]
+    R --> Z(["Return ClubMembersOverview — the first limit members, hasMore = a row more came back, both counts, every pending invite"])
+```
+
+- **Counts:** the tab's heading and filter counts read `roleCounts`; each role group's heading reads `matchingRoleCounts`, so both stay right while only some pages are loaded. `adminCount` (the last-admin rule) reads `roleCounts` too.
+- **Member details** asks for its one member (`userId`), or for an invite `limit=1`, since the invites always come whole.
+- **Without `limit`** the whole list comes back as before, for app builds from before paging.
 
 ### 3.7b Remove Club Member (`RemoveClubMemberUseCase`)
 
@@ -1083,6 +1104,25 @@ Season and filter selection:
 - A season he played only before stats were recorded shows an explanation instead of zeros.
 - Team Details' leaders open a player on the team's season and the current filter (`Screen.PlayerDetails(seasonId, statsFilter)`).
 
+### 5.1d The Club's Players, a Page at a Time (`GetPlayersUseCase.page`)
+
+`GET /v1/players?clubId=&limit=&offset=` with `seasonId`, `ageGroupId` and `q`: the club Players screen. Without `limit` the endpoint still returns the whole list (`GetPlayersUseCase`, for app builds from before paging, and `teamId`).
+
+```mermaid
+graph TD
+    A["Start: userId, clubId, seasonId?, ageGroupId?, q?, limit, offset"] --> B[CheckUserPermissionUseCase — minClubRole=MEMBER, allowPlayerOrParentAccess=true]
+    B -- denied --> F(["Throw ForbiddenException"])
+    B -- allowed --> V{"Club admin, coordinator or platform admin?"}
+    V -- yes --> W["Every player of the club"]
+    V -- no --> W2["Only players in the pools of the age groups they're staff on or have a linked player in"]
+    W --> S
+    W2 --> S["seasonId → its age groups: players in one of their pools, plus players in no pool yet; ageGroupId → that pool; q folded (SearchText.key) and found in 'first last'"]
+    S --> P["limit + 1 players, active first, then by first and last name"]
+    P --> Z(["Return PlayersPage — the first limit players, hasMore, anyPlayers (the viewer can see any player at all)"])
+```
+
+`anyPlayers` picks the screen's empty state: no players in the club at all ("register players") or none for these filters ("add them to an age group").
+
 ### 5.2 Update Player (`UpdatePlayerUseCase`)
 
 ```mermaid
@@ -1493,6 +1533,31 @@ graph TD
 
 
 `venue`: null keeps the match's, like the other fields. `location`: null keeps it, but a blank one now clears it, so moving a match to neutral ground in Edit match leaves it empty.
+### 7.1d The Club's Matches, a Page at a Time (`GetMatchesUseCase.page`)
+
+`GET /v1/matches?clubId=&status=UPCOMING|FINISHED&limit=&offset=` with `seasonId`, `ageGroupId` and `teamId`: the club Matches tab. Without `limit` the endpoint still returns the whole list (`GetMatchesUseCase`), for app builds from before paging.
+
+```mermaid
+graph TD
+    A["Start: userId, clubId, status, seasonId?, ageGroupId?, teamId?, limit, offset"] --> B[CheckUserPermissionUseCase — minClubRole=MEMBER, allowPlayerOrParentAccess=true]
+    B -- denied --> F(["Throw ForbiddenException"])
+    B -- allowed --> V{"Club admin, coordinator or platform admin?"}
+    V -- yes --> T["Every team of the club"]
+    V -- no --> T2["The teams of the age groups they're staff on or have a linked player in"]
+    T --> N
+    T2 --> N["Narrowed to seasonId, ageGroupId and teamId (a team outside them: no teams, an empty page)"]
+    N --> Q{status}
+    Q -- UPCOMING --> U["limit + 1 matches neither finished nor cancelled, soonest first"]
+    Q -- FINISHED --> R["limit + 1 finished matches, newest first"]
+    U --> S
+    R --> S["Scores of the page's finished, live and half-time matches, in one query"]
+    S --> Z(["Return MatchesPage — the first limit matches, their scores, hasMore, anyMatches (any match of the viewer's teams at all)"])
+```
+
+- **All** on the tab is Upcoming to its last page, then Finished from its first, so the tab keeps its order (`MatchesCursor` in the app).
+- **Scores** come with the page: the tab no longer asks for each match's score on its own.
+- **Live updates** over the club socket (§8.5) still change, add or remove matches among those loaded.
+
 ### 7.2 Manage Call-ups (`ManageCallUpsUseCase`) — batch replace
 
 ```mermaid
@@ -2163,7 +2228,8 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
   **Fixed:** added `NotFoundException` (DATA_003 -> 404) to that table.
 - [x] **"Not found" is modelled inconsistently for the same resource.** A missing `Team` threw `NotFoundException` in `UpdateTeamUseCase` and `CreateMatchUseCase`, but `ValidationException` in `GetTeamDetailsUseCase`, `GetTeamPlayersUseCase`, `GetAgeGroupStaffUseCase`, `AddPlayersToAgeGroupUseCase`, and `AddStaffToAgeGroupUseCase`. Similarly, a missing `Match` threw `ValidationException` in `AddMatchEventUseCase` but `NotFoundException` everywhere else a Match is looked up.
   **Fixed:** standardized on `NotFoundException` (404) for every "an entity looked up by ID doesn't exist" case, whether it's the primary resource or one referenced in the request (e.g. a `clubId`/`ageGroupId` on a create payload) -- 17 call sites across 11 use cases converted from `ValidationException` (400): `AddMatchEventUseCase`, `CreateAgeGroupsUseCase`, `CreateTeamsUseCase` (×2), `CreateTeamUseCase` (×2), `AddStaffToAgeGroupUseCase`, `AddPlayersToAgeGroupUseCase` (×2), `GetPlayersUseCase`, `GetTeamPlayersUseCase`, `GetAgeGroupStaffUseCase`, `GetEligiblePlayersForAgeGroupUseCase`, `GetTeamDetailsUseCase` (×4). Relationship-consistency checks on an entity that *was* found (e.g. "Age group does not belong to this club/season") correctly stayed `ValidationException` -- only genuine missing-entity lookups moved. None of these branches had test coverage before (confirmed by grepping the whole test tree for `"not found"` -- zero hits); added targeted tests for all 17, including new test files for the 5 use cases (`AddMatchEventUseCase`, `AddStaffToAgeGroupUseCase`, `GetTeamPlayersUseCase`, `GetAgeGroupStaffUseCase`, `GetEligiblePlayersForAgeGroupUseCase`) that had no test file at all.
-- [ ] **Pagination is still missing.** `AI_GUIDELINES.md`, `TECHNICAL_DECISIONS.md` §5 and the `REQUIREMENTS.md` roadmap all call for `limit`/`offset` pagination on list endpoints, but none of the current list use cases (`GetTeamsUseCase`, `GetPlayersUseCase`, `GetMatchesUseCase`, `GetSeasonsUseCase`, `GetOpponentsUseCase`, `GetAgeGroupPlayersByClubUseCase`) implement it yet — this confirms the open roadmap item "API Scalability: Implement pagination for all list-based endpoints" is genuinely still pending, not just undocumented.
+- [x] **Pagination is still missing.** `AI_GUIDELINES.md`, `TECHNICAL_DECISIONS.md` §5 and the `REQUIREMENTS.md` roadmap all call for `limit`/`offset` pagination on list endpoints, but none of the current list use cases (`GetTeamsUseCase`, `GetPlayersUseCase`, `GetMatchesUseCase`, `GetSeasonsUseCase`, `GetOpponentsUseCase`, `GetAgeGroupPlayersByClubUseCase`) implement it yet — this confirms the open roadmap item "API Scalability: Implement pagination for all list-based endpoints" is genuinely still pending, not just undocumented.
+  **Fixed for the lists that grow without bound** (`TECHNICAL_DECISIONS.md` §68): the club's matches (§7.1d), players (§5.1d) and members (§3.7) come a page at a time, filtered on the server, and the club screen gets its pool counts instead of every player (§3.3). Lists held to a season, an age group, a team or a match (teams, seasons, age groups, an age group's or team's players, call-ups, training sessions, the exercise library, staff, events, stats) stay whole on purpose. Still to page once clubs grow: the eligible players when adding to an age group, and the opponents.
 - [x] **`UpdateClubMemberRoleUseCase` has no existence guard.** Unlike almost every other `Update*UseCase`, it never verified `targetUserId` is a real user or an existing member of `clubId` before writing the new role.
   **Fixed:** `updateMemberRole` already reported whether it matched a row (`> 0`); the use case now checks that result and throws `NotFoundException` instead of silently returning `false` for a non-member. See `UpdateClubMemberRoleUseCaseTest`.
 - [x] **`CreateTeamUseCase` foreign-key validation.** It now loads the age group and rejects the request (`ValidationException`) if it doesn't exist, or its `clubId`/`seasonId` don't match the request — see §4.5. `CreateTeamsUseCase` (batch, §4.5b) applies the same check once for the whole batch.

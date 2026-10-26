@@ -55,11 +55,12 @@ class GetClubDetailsUseCaseTest {
     init { coEvery { clubPermissionRepository.getOverride(any(), any()) } returns null }
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository)
     private val seasonRepository = mockk<SeasonRepository>()
+    init { coEvery { playerRepository.countPlayersByAgeGroup(any()) } returns emptyMap() }
     init {
         coEvery { seasonRepository.getSeasonsByClub(any()) } returns emptyList()
         coEvery { ageGroupRepository.findByClubAndSeason(any(), any()) } returns emptyList()
     }
-    private val useCase = GetClubDetailsUseCase(clubRepository, checkUserPermissionUseCase, transactionManager, userRepository, seasonRepository, ageGroupRepository)
+    private val useCase = GetClubDetailsUseCase(clubRepository, checkUserPermissionUseCase, transactionManager, userRepository, seasonRepository, ageGroupRepository, playerRepository)
 
     private val clubIdA = "club-a"
     private val club = Club(

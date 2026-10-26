@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
+import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
@@ -12,6 +13,8 @@ import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.AgeGroupPlayer
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Match
+import com.ricardofrango.squadify.model.MatchListStatus
+import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Team
@@ -19,6 +22,8 @@ import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.slot
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
@@ -26,6 +31,8 @@ import kotlin.time.Instant
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /**
  * A non-admin sees only matches of teams in age groups they're attached to (an `AgeGroupStaff` role
@@ -39,6 +46,7 @@ class GetMatchesUseCaseTest {
     private val userRepository = mockk<UserRepository>()
     private val playerRepository = mockk<PlayerRepository>()
     private val ageGroupRepository = mockk<AgeGroupRepository>()
+    private val matchEventRepository = mockk<MatchEventRepository>()
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
@@ -49,7 +57,7 @@ class GetMatchesUseCaseTest {
     )
     private val useCase = GetMatchesUseCase(
         matchRepository, teamRepository, userRepository, playerRepository, ageGroupRepository,
-        checkUserPermissionUseCase, transactionManager
+        checkUserPermissionUseCase, transactionManager, matchEventRepository
     )
 
     private val clubIdA = "club-a"
@@ -168,6 +176,73 @@ class GetMatchesUseCaseTest {
         assertFailsWith<ForbiddenException> {
             useCase(outsider.id, clubIdA, team1.id)
         }
+        Unit
+    }
+
+    // ---- Paged (the club Matches tab) ----
+
+    private fun admin(): User = user("admin").also {
+        coEvery { userRepository.findById(it.id) } returns it
+        coEvery { userRepository.getUserRoleInClub(it.id, clubIdA) } returns ClubRole.CLUB_ADMIN
+    }
+
+    @Test
+    fun aPageNarrowsToTheSeasonAgeGroupAndTeamOnTheServer() = runBlocking {
+        val admin = admin()
+        val otherSeason = team("team-3", ag1).copy(seasonId = "s0")
+        coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team1, team2, otherSeason)
+        val teamIds = slot<Collection<String>>()
+        coEvery { matchRepository.getMatchesPage(capture(teamIds), MatchListStatus.UPCOMING, 3, 0) } returns emptyList()
+        coEvery { matchRepository.hasMatches(any()) } returns true
+
+        val page = useCase.page(admin.id, clubIdA, MatchListStatus.UPCOMING, seasonId = "s1", ageGroupId = ag1, teamId = null, limit = 2, offset = 0)
+
+        // Season s1 and age group 1: team 1 only, not team 2 (another age group) or team 3 (another season).
+        assertEquals(listOf(team1.id), teamIds.captured.toList())
+        assertEquals(emptyList(), page.matches)
+        assertTrue(page.anyMatches, "the club still has matches, just none for these filters")
+        Unit
+    }
+
+    @Test
+    fun anExtraRowMeansMoreFollowAndOnlyStartedMatchesGetAScore() = runBlocking {
+        val admin = admin()
+        coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team1)
+        val finished = match("m1", team1.id).copy(status = MatchStatus.FINISHED)
+        val live = match("m2", team1.id).copy(status = MatchStatus.LIVE)
+        val scheduled = match("m3", team1.id)
+        coEvery { matchRepository.getMatchesPage(listOf(team1.id), MatchListStatus.FINISHED, 3, 4) } returns listOf(finished, live, scheduled)
+        coEvery { matchEventRepository.getScoresByMatches(listOf("m1", "m2")) } returns mapOf("m1" to MatchScore("m1", 2, 1), "m2" to MatchScore("m2", 0, 0))
+
+        val page = useCase.page(admin.id, clubIdA, MatchListStatus.FINISHED, null, null, null, limit = 2, offset = 4)
+
+        // Two asked for, three came back: the third only says another page follows.
+        assertEquals(listOf("m1", "m2"), page.matches.map { it.id })
+        assertTrue(page.hasMore)
+        // The finished and the live match, not the scheduled one.
+        assertEquals(setOf("m1", "m2"), page.scores.map { it.matchId }.toSet())
+        Unit
+    }
+
+    @Test
+    fun aCoachsPageOnlyHasTheirOwnAgeGroupsTeams() = runBlocking {
+        val coach = user("coach-ag1")
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubIdA) } returns ClubRole.MEMBER
+        coEvery { playerRepository.getPlayersByUser(coach.id) } returns emptyList()
+        coEvery { ageGroupRepository.getAgeGroupsByClub(clubIdA) } returns listOf(ageGroup(ag1), ageGroup(ag2))
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag2) } returns null
+        coEvery { teamRepository.getTeamsByClub(clubIdA) } returns listOf(team1, team2)
+        coEvery { matchRepository.getMatchesPage(any(), any(), any(), any()) } returns emptyList()
+        coEvery { matchRepository.hasMatches(listOf(team1.id)) } returns false
+
+        // Asking for another age group's team gives nothing rather than its matches.
+        val page = useCase.page(coach.id, clubIdA, MatchListStatus.UPCOMING, null, null, teamId = team2.id, limit = 30, offset = 0)
+
+        coVerify { matchRepository.getMatchesPage(emptyList(), MatchListStatus.UPCOMING, 31, 0) }
+        assertFalse(page.anyMatches)
+        assertFalse(page.hasMore)
         Unit
     }
 }

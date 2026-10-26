@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.ricardofrango.squadify.presentation.ui.components.LoadMoreEffect
+import com.ricardofrango.squadify.presentation.ui.components.loadingMoreItem
 import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.foundation.BorderStroke
@@ -113,18 +116,11 @@ private fun MembersFilter.labelRes() = when (this) {
     MembersFilter.PENDING -> Res.string.members_filter_pending
 }
 
-private fun MembersFilter.role(): ClubRole? = when (this) {
+internal fun MembersFilter.role(): ClubRole? = when (this) {
     MembersFilter.ADMINS -> ClubRole.CLUB_ADMIN
     MembersFilter.COORDINATORS -> ClubRole.COORDINATOR
     MembersFilter.MEMBERS -> ClubRole.MEMBER
     else -> null
-}
-
-/** Search matches first name, last name and email (and "first last"), case-insensitively. */
-internal fun ClubMemberEntry.matches(query: String): Boolean {
-    val q = query.trim()
-    if (q.isEmpty()) return true
-    return "$firstName $lastName".contains(q, ignoreCase = true) || email.contains(q, ignoreCase = true)
 }
 
 internal fun ClubMemberEntry.initials(): String =
@@ -172,7 +168,9 @@ internal fun ClubMembersTab(
     onOpenMember: (ClubMemberEntry) -> Unit,
     onOpenInvite: (PendingClubInvite) -> Unit,
     onResend: (PendingClubInvite) -> Unit,
-    onCancelInvite: (PendingClubInvite) -> Unit
+    onCancelInvite: (PendingClubInvite) -> Unit,
+    // The next page of members, as the list nears its end.
+    onLoadMore: () -> Unit = {}
 ) {
     val padding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 20.dp)
     when (state) {
@@ -195,27 +193,27 @@ internal fun ClubMembersTab(
             if (sideBySide) {
                 Row(modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Column(Modifier.width(240.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Heading(overview.members.size, onInvite)
+                        Heading(overview.memberCount, onInvite)
                         SearchField(query, onQueryChange)
                         FilterList(overview, filter, onFilterChange)
                     }
                     MemberList(
                         overview, filter, query, Modifier.weight(1f).fillMaxHeight(), PaddingValues(bottom = 20.dp), header = {},
-                        onInvite, onOpenMember, onOpenInvite, onResend, onCancelInvite
+                        onInvite, onOpenMember, onOpenInvite, onResend, onCancelInvite, state.loadingMore, onLoadMore
                     )
                 }
             } else {
                 MemberList(
                     overview, filter, query, modifier, padding,
                     header = {
-                        item { Heading(overview.members.size, onInvite) }
+                        item { Heading(overview.memberCount, onInvite) }
                         // Nothing to search or filter when you're on your own.
-                        if (overview.members.size + overview.pendingInvites.size > 1) {
+                        if (overview.memberCount + overview.pendingInvites.size > 1) {
                             item { SearchField(query, onQueryChange) }
                             item { FilterChips(overview, filter, onFilterChange) }
                         }
                     },
-                    onInvite, onOpenMember, onOpenInvite, onResend, onCancelInvite
+                    onInvite, onOpenMember, onOpenInvite, onResend, onCancelInvite, state.loadingMore, onLoadMore
                 )
             }
         }
@@ -234,21 +232,28 @@ private fun MemberList(
     onOpenMember: (ClubMemberEntry) -> Unit,
     onOpenInvite: (PendingClubInvite) -> Unit,
     onResend: (PendingClubInvite) -> Unit,
-    onCancelInvite: (PendingClubInvite) -> Unit
+    onCancelInvite: (PendingClubInvite) -> Unit,
+    loadingMore: Boolean,
+    onLoadMore: () -> Unit
 ) {
-    val members = overview.members.filter { it.matches(query) }
+    // The members are already the server's pages for this filter and search; the invites come whole.
+    val members = overview.members
     val invites = overview.pendingInvites.filter { query.isBlank() || it.email.contains(query.trim(), ignoreCase = true) }
     val roleGroups = listOf(ClubRole.CLUB_ADMIN, ClubRole.COORDINATOR, ClubRole.MEMBER)
         .filter { filter == MembersFilter.ALL || filter.role() == it }
         .map { role -> role to members.filter { it.role == role }.sortedWith(compareBy({ it.firstName.lowercase() }, { it.lastName.lowercase() })) }
         .filter { it.second.isNotEmpty() }
-    val showInvites = (filter == MembersFilter.ALL || filter == MembersFilter.PENDING) && invites.isNotEmpty()
-    val onlyYou = overview.members.size <= 1 && overview.pendingInvites.isEmpty()
+    // Under the members, so only once the last page of them is in (Pending lists no members).
+    val showInvites = (filter == MembersFilter.PENDING || (filter == MembersFilter.ALL && !overview.hasMore)) && invites.isNotEmpty()
+    val onlyYou = overview.memberCount <= 1 && overview.pendingInvites.isEmpty()
 
-    LazyColumn(modifier, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    val listState = rememberLazyListState()
+    LoadMoreEffect(listState, enabled = filter != MembersFilter.PENDING && overview.hasMore && !loadingMore, threshold = 2, onLoadMore = onLoadMore)
+    LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         header()
         roleGroups.forEach { (role, group) ->
-            item(key = "h-$role") { StatsHeading("${stringResource(role.groupRes())} · ${group.size}", Modifier.padding(start = 2.dp, top = 4.dp)) }
+            // The group's size for this search, counting members not loaded yet.
+            item(key = "h-$role") { StatsHeading("${stringResource(role.groupRes())} · ${overview.matchingCountOf(role)}", Modifier.padding(start = 2.dp, top = 4.dp)) }
             item(key = "g-$role") {
                 StatsCard(contentPadding = 0.dp) {
                     group.forEachIndexed { i, m ->
@@ -258,6 +263,7 @@ private fun MemberList(
                 }
             }
         }
+        loadingMoreItem(loadingMore)
         if (showInvites) {
             item(key = "h-pending") { StatsHeading("${stringResource(Res.string.members_group_pending)} · ${invites.size}", Modifier.padding(start = 2.dp, top = 4.dp)) }
             item(key = "g-pending") {
@@ -273,7 +279,7 @@ private fun MemberList(
             onlyYou -> item {
                 EmptyCard(stringResource(Res.string.members_only_you_title), stringResource(Res.string.members_only_you_body), stringResource(Res.string.members_invite_title), filled = true, onInvite)
             }
-            roleGroups.isEmpty() && !showInvites && query.isNotBlank() -> item {
+            roleGroups.isEmpty() && !showInvites && query.isNotBlank() && (!overview.hasMore || filter == MembersFilter.PENDING) -> item {
                 EmptyCard(stringResource(Res.string.members_no_match_title, query.trim()), stringResource(Res.string.members_no_match_body), stringResource(Res.string.members_invite_title), filled = false, onInvite)
             }
         }
@@ -286,10 +292,11 @@ private fun ClubRole.groupRes() = when (this) {
     ClubRole.MEMBER -> Res.string.members_filter_members
 }
 
+// Whole-club counts, whatever page or search is loaded.
 private fun ClubMembersOverview.count(filter: MembersFilter) = when (filter) {
-    MembersFilter.ALL -> members.size + pendingInvites.size
+    MembersFilter.ALL -> memberCount + pendingInvites.size
     MembersFilter.PENDING -> pendingInvites.size
-    else -> members.count { it.role == filter.role() }
+    else -> filter.role()?.let(::countOf) ?: 0
 }
 
 @Composable

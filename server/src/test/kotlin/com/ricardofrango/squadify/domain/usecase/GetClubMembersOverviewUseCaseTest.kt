@@ -1,7 +1,9 @@
 package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
+import com.ricardofrango.squadify.domain.repository.ClubMemberAccount
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
+import com.ricardofrango.squadify.domain.repository.MemberListFilter
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.InviteRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
@@ -15,7 +17,6 @@ import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.AgeGroupPlayer
 import com.ricardofrango.squadify.model.AgeGroupStaffMember
-import com.ricardofrango.squadify.model.ClubMemberSummary
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Invite
 import com.ricardofrango.squadify.model.InviteType
@@ -34,6 +35,8 @@ import kotlinx.datetime.LocalDate
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /** Club settings → Members (design 34): members with what they do in the club, and pending invites. */
@@ -61,14 +64,16 @@ class GetClubMembersOverviewUseCaseTest {
     private val clubId = "club-1"
     private fun user(id: String, first: String) = User(id, "$id@t.com", "912", first, "L", status = UserStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0))
 
+    private fun account(id: String, first: String, role: ClubRole) =
+        ClubMemberAccount(id, first, "L", "$id@t.com", "912", role, Instant.fromEpochMilliseconds(0), null)
+
     private fun stub(viewerRole: ClubRole) {
         val viewer = user("viewer", "Vera")
         coEvery { userRepository.findById("viewer") } returns viewer
         coEvery { userRepository.getUserRoleInClub("viewer", clubId) } returns viewerRole
-        coEvery { userRepository.findById("coach") } returns user("coach", "Joao")
-        coEvery { clubRepository.getClubMembers(clubId) } returns listOf(
-            ClubMemberSummary("viewer", "Vera", "L", "viewer@t.com", viewerRole),
-            ClubMemberSummary("coach", "Joao", "L", "coach@t.com", ClubRole.MEMBER)
+        coEvery { clubRepository.getClubMembersPage(clubId, any(), any(), any()) } returns listOf(
+            account("viewer", "Vera", viewerRole),
+            account("coach", "Joao", ClubRole.MEMBER)
         )
         coEvery { seasonRepository.getSeasonsByClub(clubId) } returns listOf(
             Season("s-now", clubId, "2026/27", SeasonType.EUROPEAN_YEAR, LocalDate(2026, 9, 1), LocalDate(2027, 6, 30), active = true),
@@ -126,5 +131,28 @@ class GetClubMembersOverviewUseCaseTest {
         coVerify { inviteRepository.deleteInvite("inv-1") }
         assertFailsWith<NotFoundException> { invites.cancel("viewer", clubId, "inv-other") }
         Unit
+    }
+
+    @Test
+    fun aPageSearchesOnTheServerAndCountsRolesForTheWholeClub() = runBlocking {
+        stub(ClubRole.CLUB_ADMIN)
+        // Two asked for, three came back: the third only says another page follows.
+        coEvery { clubRepository.getClubMembersPage(clubId, MemberListFilter(ClubRole.MEMBER, "joao", null), 3, 2) } returns listOf(
+            account("coach", "João", ClubRole.MEMBER), account("m2", "João", ClubRole.MEMBER), account("m3", "João", ClubRole.MEMBER)
+        )
+        coEvery { ageGroupRepository.getAgeGroupStaff(any()) } returns emptyList()
+        coEvery { clubRepository.countClubMembersByRole(clubId, null) } returns mapOf(ClubRole.CLUB_ADMIN to 2, ClubRole.MEMBER to 40)
+        coEvery { clubRepository.countClubMembersByRole(clubId, "joao") } returns mapOf(ClubRole.MEMBER to 5)
+
+        // Case and accents don't matter: "  JOÃO " is searched as "joao".
+        val page = useCase.page("viewer", clubId, ClubRole.MEMBER, "  JOÃO ", memberUserId = null, limit = 2, offset = 2)
+
+        assertEquals(listOf("coach", "m2"), page.members.map { it.userId })
+        assertTrue(page.hasMore)
+        assertEquals(42, page.memberCount)
+        assertEquals(2, page.adminCount)
+        assertEquals(5, page.matchingCountOf(ClubRole.MEMBER))
+        assertEquals(0, page.matchingCountOf(ClubRole.CLUB_ADMIN))
+        assertFalse(page.pendingInvites.isEmpty(), "pending invites always come whole")
     }
 }

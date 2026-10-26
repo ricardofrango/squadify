@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.domain.repository
 
 import com.ricardofrango.squadify.model.ClubMembersOverview
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.Paging
 import com.ricardofrango.squadify.model.AddClubMembersRequest
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubDetailsResponse
@@ -17,7 +18,16 @@ interface ClubRepository {
     suspend fun getClubHome(clubId: String): ClubHome
     suspend fun getClubMembers(clubId: String): List<ClubMemberSummary>
     suspend fun addClubMembers(clubId: String, request: AddClubMembersRequest)
-    suspend fun getClubMembersOverview(clubId: String): ClubMembersOverview
+    // One page of Club settings → Members ([role] and [query] narrow it on the server), or just
+    // [userId] (Member details); the pending invites and role counts come whole.
+    suspend fun getClubMembersPage(
+        clubId: String,
+        role: ClubRole?,
+        query: String,
+        userId: String?,
+        offset: Int,
+        limit: Int = Paging.PAGE_SIZE
+    ): ClubMembersOverview
     suspend fun updateClubMemberRole(clubId: String, userId: String, role: ClubRole)
     suspend fun removeClubMember(clubId: String, userId: String)
     suspend fun resendClubInvite(clubId: String, inviteId: String)

@@ -68,7 +68,7 @@ We use **Exposed** as our SQL ORM.
 - **Security Testing**: The permission logic is covered by a suite of unit tests (`CheckUserPermissionUseCaseTest`) to prevent regression in access control.
 - **Resource Management**: Support for partial updates (PATCH) to manage resource states (e.g., active/inactive status for teams, seasons and players).
 - **Match-Opponent Relationship**: Matches are linked to a dedicated `Opponents` table rather than using simple strings. This ensures data consistency across the club and allows for richer opponent data (e.g., logos).
-- **Pagination**: To ensure scalability and performance as data grows (e.g., hundreds of players or matches), list-based endpoints (GET) will implement a standard pagination strategy using `limit` and `offset` (or `page`) query parameters. This prevents excessive memory consumption and slow response times.
+- **Pagination**: To ensure scalability and performance as data grows (e.g., hundreds of players or matches), the list endpoints that grow without bound take `limit` and `offset` query parameters and answer with one page and whether more follow. Built for the club's matches, players and members; see §68.
 - **Email System**: Sent via Resend for club and age-group association notifications (see §14). Parent/player invites (`PARENT_PLAYER`) still only write an `Invites` row with no email, since parents/players are out of scope for now.
 
 ## 6. Real-Time Communication: WebSockets
@@ -2988,3 +2988,30 @@ The developer liked a finished match's General tab (2026-10-25): a light grey ba
 - **Unchanged:** sheets, dialogs, dropdown menus and pinned bottom bars (white, with their shadow); Login (its own branded layout); the live match console (dark, §64).
 - **`FilterChipRow`** (`components/FilterChipRow.kt`): `SquadifyFilterChip` (a Material `FilterChip`: white, the bar's colour with white text when selected) in a `LazyRow` whose `contentPadding` is the screen's side padding, so the chips scroll to the screen's edge instead of being cut at the padding. Inside content that's already padded (a `LazyColumn` item), `insidePaddedContent = true` widens the row over that padding with a layout modifier. `leadingLabel` puts a word before the chips ("Sort"). A chip takes exactly its 32dp height (`LocalMinimumInteractiveComponentSize` unset around it): Material otherwise pads its touch area to 48dp with 8dp of invisible space above and below, which showed up as wrong top padding wherever a row of chips came first. It replaces the Matches tab's status chips, the call-up's Position / Name sort, Full stats' team chips (they wrapped, `FlowRow`; now one row), Club members' role filter, the finished match's Events filter, the age group's Games team filter, the team's player sort and the age group's List / Calendar toggle, each of which had its own chip. Dropdown pickers (`FilterSelector`) and a form's choices (training weekdays, intensity) aren't filters and keep their own controls.
 - **Match details' bottom bar** (Save call-up / Start / Enter live match) is the screen's grey, with no hint under the button (the minimum call-up and the kickoff countdown are gone from there; the disabled button and the header already say it), and the saving label is just "Saving…" so it fits on one line in Portuguese.
+
+## 68. Paging the Club's Long Lists
+
+The developer asked for pagination now, the players and matches lists first (2026-10-26). Before it, the club Matches tab downloaded every match the club ever had and then asked for each finished or live match's score on its own, and the Players screen downloaded every player and every pool link and filtered them on the device.
+
+- **What pages:** the lists that grow without bound, season after season:
+  - the club's matches (`GET /matches`, PROCESS_FLOWS §7.1d);
+  - the club's players (`GET /players`, §5.1d);
+  - the club's members (`GET /clubs/{id}/members/overview`, §3.7), which grows with parents.
+- **What doesn't, on purpose:** lists held to a season, an age group, a team or a match: teams, seasons, age groups, an age group's or a team's players, the call-up pool, training sessions and plans, the exercise library, staff, a match's events, full stats and season records. Paging them would only complicate screens that need all of it (stats, pickers). Next to page once clubs grow: the eligible players when adding to an age group, and the opponents.
+- **The contract** (`model/Paging.kt`):
+  - `limit` (1–100; the app asks for `Paging.PAGE_SIZE`, 30) and `offset`. The answer is a page object with `hasMore`: the server reads `limit + 1` rows, and an extra row means another page.
+  - **No `limit`, no paging:** the same endpoint returns the whole list as before, so app builds from before paging keep working.
+  - Each page also says whether the viewer can see anything at all (`anyMatches`, `anyPlayers`), so the app tells "nothing yet" from "nothing for these filters". Members get role counts for the whole club and for the search (`roleCounts`, `matchingRoleCounts`).
+  - Orders end on the id, so rows with the same date or name keep one order from page to page.
+- **Filters on the server:** each list's filters moved from the device to the query, since a device holding one page can't filter the rest: season, age group, team and Upcoming / Finished for matches; season, age group and search for players; role and search for members.
+  - **Search** is case- and accent-insensitive on both sides: `SearchText.key` folds the query, and SQL folds the column with `translate(lower(...))` over the same letters, so "joao" finds "João" (`data/repository/SqlSearch.kt`). No Postgres extension is needed. `%` and `_` are matched literally.
+  - **Players:** a season lists its age groups' pools plus players in no pool yet, as before; active players first, then by name.
+  - **Matches:** Upcoming is every match neither finished nor cancelled, soonest first; Finished is newest first. The tab's All is Upcoming to its end, then Finished (`MatchesCursor`). Each page brings the scores of its started matches in one query, which replaces the request per match.
+  - **Members:** admins, then coordinators, then members, each by name; one join with the accounts replaces a user lookup per member.
+- **The club screen** gets each age group's pool size (`ageGroupPlayerCounts`) instead of every player and pool link, which it only used to count.
+- **In the app:**
+  - `LoadMoreEffect` (`components/LoadMore.kt`) asks for the next page once the list is within a few rows of its end, and `loadingMoreItem` shows a spinner under the last row.
+  - A filter change loads the first page again, with a spinner in place of the list. A search waits for typing to pause (300 ms).
+  - A refresh (returning to the tab, back from adding players) reloads as many rows as were on screen, so the list doesn't shrink under the user.
+  - The Matches tab's live socket still updates, adds and removes matches among those loaded.
+  - Disabling a player keeps their row in place; the server puts them last on the next load.

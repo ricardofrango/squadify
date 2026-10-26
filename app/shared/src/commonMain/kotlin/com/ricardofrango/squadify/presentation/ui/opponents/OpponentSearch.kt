@@ -1,21 +1,13 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
 import com.ricardofrango.squadify.model.Opponent
+import com.ricardofrango.squadify.model.SearchText
 
 // Search and grouping for the Opponents list (design 38i): case- and accent-insensitive, on the name
 // and the short name, so "academica" finds "Académica".
 
-private val accents = mapOf(
-    'á' to 'a', 'à' to 'a', 'â' to 'a', 'ã' to 'a', 'ä' to 'a', 'å' to 'a',
-    'é' to 'e', 'è' to 'e', 'ê' to 'e', 'ë' to 'e',
-    'í' to 'i', 'ì' to 'i', 'î' to 'i', 'ï' to 'i',
-    'ó' to 'o', 'ò' to 'o', 'ô' to 'o', 'õ' to 'o', 'ö' to 'o',
-    'ú' to 'u', 'ù' to 'u', 'û' to 'u', 'ü' to 'u',
-    'ç' to 'c', 'ñ' to 'n', 'ý' to 'y', 'ÿ' to 'y'
-)
-
 /** Lowercase, without accents: what searching and sorting compare. */
-internal fun String.searchKey(): String = lowercase().map { accents[it] ?: it }.joinToString("")
+internal fun String.searchKey(): String = SearchText.key(this)
 
 /** The opponents matching [query] on name or short name, in the order given. A blank query matches all. */
 internal fun filterOpponents(opponents: List<Opponent>, query: String): List<Opponent> {

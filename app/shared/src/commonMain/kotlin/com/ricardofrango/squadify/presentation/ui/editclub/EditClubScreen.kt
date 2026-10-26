@@ -243,6 +243,8 @@ fun EditClubScreen(
             onPermissionChanged = viewModel::onPermissionChanged,
             onSavePermissionsClick = { viewModel.onSavePermissionsClicked(clubId) },
             onRetryMembers = { viewModel.loadMembers(clubId) },
+            onMembersFilter = { filter, query -> viewModel.onMembersFilter(clubId, filter, query) },
+            onLoadMoreMembers = { viewModel.loadMoreMembers(clubId) },
             onInvite = { email, role, onDone -> viewModel.invite(clubId, email, role, onDone) },
             onOpenMember = { onOpenMember(it.userId) },
             onOpenInvite = { onOpenInvite(it.inviteId) },
@@ -267,6 +269,9 @@ private fun EditClubContent(
     inviting: Boolean = false,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     onRetryMembers: () -> Unit = {},
+    // The Members tab's role filter and search run on the server, which sends a page at a time.
+    onMembersFilter: (MembersFilter, String) -> Unit = { _, _ -> },
+    onLoadMoreMembers: () -> Unit = {},
     onInvite: (email: String, role: ClubRole, onDone: () -> Unit) -> Unit = { _, _, _ -> },
     onOpenMember: (ClubMemberEntry) -> Unit = {},
     onOpenInvite: (PendingClubInvite) -> Unit = {},
@@ -280,6 +285,7 @@ private fun EditClubContent(
     // The Members tab's search and filter live with the screen, so they survive tab switches.
     var filter by remember { mutableStateOf(initialFilter) }
     var query by remember { mutableStateOf("") }
+    LaunchedEffect(filter, query) { onMembersFilter(filter, query) }
     var showInvite by remember { mutableStateOf(false) }
     var showDiscard by remember { mutableStateOf(false) }
 
@@ -371,7 +377,8 @@ private fun EditClubContent(
                             onOpenMember = onOpenMember,
                             onOpenInvite = onOpenInvite,
                             onResend = onResend,
-                            onCancelInvite = onCancelInvite
+                            onCancelInvite = onCancelInvite,
+                            onLoadMore = onLoadMoreMembers
                         )
                         else -> ClubDetailsForm(
                             state = uiState,

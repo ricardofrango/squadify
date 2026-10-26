@@ -4,8 +4,29 @@ import com.ricardofrango.squadify.model.AgeGroupPlayer
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.UserPlayerRelationship
 
+/**
+ * Which of the club's players a page of the Players screen holds (GetPlayersUseCase.page). Every set
+ * filter applies; null ones don't.
+ */
+data class PlayerListFilter(
+    // Only players in these age groups' pools: what a viewer below coordinator may see.
+    val visibleAgeGroupIds: Set<String>? = null,
+    // A season, as its age groups: players in one of their pools, plus players in no pool yet (just
+    // registered to the club), so registering a player never looks like it did nothing.
+    val seasonAgeGroupIds: Set<String>? = null,
+    val ageGroupId: String? = null,
+    // Already folded with SearchText.key; found anywhere in "first last".
+    val search: String? = null
+)
+
 interface PlayerRepository {
     suspend fun getPlayersByClub(clubId: String): List<Player>
+    // One page of the club's players matching [filter]: active ones first, then by name.
+    suspend fun getPlayersPage(clubId: String, filter: PlayerListFilter, limit: Int, offset: Int): List<Player>
+    // Whether the club has any player at all, or any in [visibleAgeGroupIds]' pools.
+    suspend fun hasPlayers(clubId: String, visibleAgeGroupIds: Set<String>?): Boolean
+    // How many players each age group's pool holds, by age group id (pools with none are left out).
+    suspend fun countPlayersByAgeGroup(clubId: String): Map<String, Int>
     suspend fun createPlayer(player: Player): Player
     suspend fun createPlayers(players: List<Player>): List<Player>
     suspend fun getPlayerById(id: String): Player?

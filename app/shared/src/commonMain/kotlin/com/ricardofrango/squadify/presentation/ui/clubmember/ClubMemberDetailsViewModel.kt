@@ -56,7 +56,9 @@ class ClubMemberDetailsViewModel(
         viewModelScope.launch {
             _state.value = ClubMemberDetailsUiState.Loading
             _state.value = try {
-                val overview = getClubMembersOverviewUseCase(clubId)
+                // Just this member, or (for an invite) the pending invites, which always come whole.
+                val overview = if (userId != null) getClubMembersOverviewUseCase(clubId, userId = userId)
+                else getClubMembersOverviewUseCase(clubId, limit = 1)
                 val member = userId?.let { id -> overview.members.firstOrNull { it.userId == id } }
                 val invite = inviteId?.let { id -> overview.pendingInvites.firstOrNull { it.inviteId == id } }
                 when {
@@ -90,7 +92,7 @@ class ClubMemberDetailsViewModel(
                     return@launch
                 }
                 // Refresh from the server: admin counts and the viewer's own role may have changed.
-                val overview = getClubMembersOverviewUseCase(clubId)
+                val overview = getClubMembersOverviewUseCase(clubId, userId = current.member.userId)
                 val member = overview.members.firstOrNull { it.userId == current.member.userId } ?: current.member.copy(role = role)
                 _state.value = ClubMemberDetailsUiState.Member(overview, member)
                 _events.emit(ClubMemberDetailsEvent.Message(getString(Res.string.member_now_role, "${member.firstName} ${member.lastName}", roleName)))

@@ -35,6 +35,8 @@ import com.ricardofrango.squadify.domain.usecase.UploadClubLogoUseCase
 import com.ricardofrango.squadify.domain.usecase.DeleteClubLogoUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubLogoUseCase
 import com.ricardofrango.squadify.model.LogoResponse
+import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.Paging
 import com.ricardofrango.squadify.util.LogoImage
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
@@ -186,7 +188,21 @@ fun Route.clubRoutes() {
                 get("/members/overview") {
                     val clubId = call.parameters["clubId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
                     val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
-                    call.respond(getClubMembersOverviewUseCase(currentUserId, clubId))
+                    val params = call.request.queryParameters
+                    // With `limit`: one page, filtered here. Without it: every member, for app builds
+                    // from before paging.
+                    val limit = Paging.limitOf(params["limit"])
+                        ?: return@get call.respond(getClubMembersOverviewUseCase(currentUserId, clubId))
+                    call.respond(
+                        getClubMembersOverviewUseCase.page(
+                            currentUserId, clubId,
+                            role = params["role"]?.let { r -> ClubRole.entries.firstOrNull { it.name == r } },
+                            search = params["q"],
+                            memberUserId = params["userId"],
+                            limit = limit,
+                            offset = Paging.offsetOf(params["offset"])
+                        )
+                    )
                 }
 
                 patch("/members/{memberUserId}") {

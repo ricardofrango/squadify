@@ -16,11 +16,23 @@ import com.ricardofrango.squadify.model.StartMatchRequest
 import com.ricardofrango.squadify.model.SetMatchLineupRequest
 import com.ricardofrango.squadify.model.MatchLineup
 import com.ricardofrango.squadify.model.UpdateMatchRequest
+import com.ricardofrango.squadify.model.MatchListStatus
+import com.ricardofrango.squadify.model.MatchesPage
+import com.ricardofrango.squadify.model.Paging
 import kotlinx.coroutines.flow.Flow
 
 interface MatchRepository {
     suspend fun createMatch(request: CreateMatchRequest): Match
-    suspend fun getMatches(clubId: String): List<Match>
+    // One page of the club Matches tab's [status] list, narrowed on the server.
+    suspend fun getMatchesPage(
+        clubId: String,
+        status: MatchListStatus,
+        seasonId: String?,
+        ageGroupId: String?,
+        teamId: String?,
+        offset: Int,
+        limit: Int = Paging.PAGE_SIZE
+    ): MatchesPage
     suspend fun getMatchDetails(matchId: String): MatchDetails
     suspend fun updateMatch(matchId: String, request: UpdateMatchRequest)
     suspend fun deleteMatch(matchId: String)

@@ -43,8 +43,21 @@ class ClubRepositoryImpl(
         }.handleResponse<Unit>()
     }
 
-    override suspend fun getClubMembersOverview(clubId: String): ClubMembersOverview =
-        httpClient.get("${appConfig.baseUrl}/clubs/$clubId/members/overview").handleResponse()
+    override suspend fun getClubMembersPage(
+        clubId: String,
+        role: ClubRole?,
+        query: String,
+        userId: String?,
+        offset: Int,
+        limit: Int
+    ): ClubMembersOverview =
+        httpClient.get("${appConfig.baseUrl}/clubs/$clubId/members/overview") {
+            role?.let { parameter("role", it.name) }
+            query.trim().takeIf { it.isNotEmpty() }?.let { parameter("q", it) }
+            userId?.let { parameter("userId", it) }
+            parameter("limit", limit)
+            parameter("offset", offset)
+        }.handleResponse()
 
     override suspend fun updateClubMemberRole(clubId: String, userId: String, role: ClubRole) {
         httpClient.patch("${appConfig.baseUrl}/clubs/$clubId/members/$userId") {

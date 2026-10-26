@@ -10,6 +10,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.CircularProgressIndicator
+import com.ricardofrango.squadify.presentation.ui.components.LoadMoreEffect
+import com.ricardofrango.squadify.presentation.ui.components.loadingMoreItem
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -78,7 +82,7 @@ fun MatchesTab(
     }
 
     // The club has no fixtures at all -- the full empty state, no filter row.
-    if (state.matches.isEmpty()) {
+    if (state.matchesLoaded && !state.anyMatches) {
         Column(
             modifier = Modifier.fillMaxSize().background(ScreenBackground).screenContentPadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -178,7 +182,11 @@ fun MatchesTab(
             modifier = Modifier.padding(vertical = 8.dp)
         )
 
-        if (groups.isEmpty()) {
+        if (!state.matchesLoaded) {
+            Box(Modifier.fillMaxWidth().screenContentPadding(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = PitchGreen)
+            }
+        } else if (groups.isEmpty() && !state.matchesHasMore) {
             Box(Modifier.fillMaxWidth().screenContentPadding(), contentAlignment = Alignment.Center) {
                 Text(
                     stringResource(Res.string.msg_no_matches_for_filters),
@@ -187,7 +195,10 @@ fun MatchesTab(
                 )
             }
         } else {
+            val listState = rememberLazyListState()
+            LoadMoreEffect(listState, enabled = state.matchesHasMore && !state.matchesLoadingMore, onLoadMore = actions::loadMoreMatches)
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = 0.dp, bottom = ScreenPadding.Bottom),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -214,6 +225,7 @@ fun MatchesTab(
                         )
                     }
                 }
+                loadingMoreItem(state.matchesLoadingMore)
             }
         }
     }
