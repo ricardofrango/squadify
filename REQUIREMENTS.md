@@ -211,7 +211,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] **Logos and photos everywhere they belong.** Wherever an image is set it's shown; where it isn't, the screen looks as before, apart from player rows. See `TECHNICAL_DECISIONS.md` §57.
       - **Opponent logo** before "vs" on every match card (Matches tab, Team and Age Group Details) and on Home's next-up card.
       - **Club and opponent logos** side by side at the top of Match details, and before each side's name on the live console's scoreboard.
-      - **Grey screens, white sections** (the developer, 2026-10-25): every screen has a light grey background with its content in white sections outlined in grey, as on a finished match's General tab. Filters that pick one option are the same chips everywhere (the match Events tab's), scrolling sideways to the screen's edge.
+      - **Grey screens, white sections** (the developer, 2026-10-25): every screen has a light grey background with its content in white sections outlined in grey, as on a finished match's General tab. Filters that pick one option are the same segmented control everywhere (the match type's: All · Official · Tournament · Friendly), and sorts the same chips with a "Sort" label (the call-up's), since 2026-10-26.
       - **Player rows** start with one badge: the photo with the shirt number under it, only the photo or only the number (centred), or a head-and-shoulders placeholder when there's neither. Used in call-ups and the pool (Match details), Age Group and Team members, Club players, Add players, the line-up picker and the live console's squad and minutes rows, the match report's ratings, and training ratings.
       - **People's photos** in Club settings → Members, Member details and age group staff.
       - **Club logo on push notifications** (Android), when the club has one and the server has a public address.
@@ -233,7 +233,7 @@ The domain follows a multi-tenant structure isolated by `clubId`:
       - **Account rows:** Account settings, Switch club (2+ clubs) and Log out (with a confirmation).
       - **Players:** the club's player list opens as its own screen, with season, age-group and search filters.
     - [x] Match center (Live updates & History):
-      - **Matches tab:** the club's Matches tab updates live. Below its filters (season, age group, team; Upcoming / Finished / All) it shows the same list as a team's and an age group's Games tab: Upcoming, then Recent results.
+      - **Matches tab:** the club's Matches tab updates live. Below its filters (season, age group, team; All / Upcoming / Finished, All by default) it shows the same list as a team's and an age group's Games tab: Upcoming, then Recent results.
       - **Match Details:** line-ups, call-ups, events and score (once played: General, Stats, Events and Timeline tabs for the staff; General and the goals for everyone else), plus the details card (opponent, type, format such as 7x7 from the team's size, date, kickoff, location, notes).
       - **Live match console:** for coaches and staff.
       - **After the match:** finished results stay as history, with the post-match report and per-player stats. Season stats live on Player, Team and Age Group Details (see Phase 5).

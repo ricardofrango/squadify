@@ -3016,3 +3016,15 @@ The developer asked for pagination now, the players and matches lists first (202
   - The Matches tab's live socket still updates, adds and removes matches among those loaded.
   - **One match list everywhere** (the developer, 2026-10-26): the club Matches tab keeps its filters, but its list is the team's and the age group's Games tab list, one shared component (`components/MatchList.kt`, `matchListSections`): "Upcoming · n" (with "Schedule" where allowed), then "Recent results · n" with the latest three until "See all n", an empty card for an empty section. The date groups (Earlier, Today, This weekend…) are gone. Upcoming shows only the first section, Finished only the second (unfolded), All both. Each page carries its list's `total` for the headings.
   - Disabling a player keeps their row in place; the server puts them last on the next load.
+
+## 69. Filters Are Segmented, Sorts Are Chips
+
+The developer, 2026-10-26: every filter looks like the match type's (All · Official · Tournament · Friendly), and every sort like the call-up's (Sort: Position · Name). Before, both were a row of chips (§67).
+
+- **`SegmentedFilter`** (`components/SegmentedFilter.kt`): one outlined bar of segments, the selected one filled with the bar's colour (`ClubChrome`). `StatsFilterSegments` is now one use of it.
+  - **A fixed set** (types, statuses, events, roles): the unselected segments show their first five letters and a "." and only the selected one its full name, so four or five fit side by side; switching animates. Members' Pending keeps its count when cut ("Pende. 2").
+  - **Names** (`shorten = false`: the age group's and Full stats' team filters, List · Calendar): a cut would make teams alike ("Sub-15 A", "Sub-15 B" → "Sub-1."), so each keeps its whole name. They share out the width when they fit, and scroll sideways inside the outline when they don't.
+- **Where:** the club Matches status, a finished match's Events filter, Club settings → Members (portrait; landscape keeps its vertical list with counts, 34d, too narrow for five segments), the age group Games team filter, Full stats' team filter, and the age group's List · Calendar switch.
+- **Sorts** keep `FilterChipRow` with "Sort" as its leading label: the call-up's Position · Name and the team's squad sort.
+- **The club Matches status** is now All · Upcoming · Finished, All by default: since the list shows Upcoming and Recent results together (§68), All is the natural first view.
+- Dropdown pickers (season, age group, team on the club Matches tab) stay `FilterSelector`.
