@@ -3136,4 +3136,15 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
     - a shared login: either a small login service whose signed tokens both servers verify with its public key, or Firebase Authentication (already in the project for Crashlytics; it can import the existing bcrypt hashes and provides Sign in with Apple, which the App Store requires alongside other social logins);
     - or, without one, a one-time transfer: the coach app gives a code, a club admin enters it in the clubs app, and the clubs server fetches the age group from the coach server, matching staff by email.
 
+**Hosting and deploys** (the developer, 2026-10-27):
+- **Railway:** the coach server and its Postgres database are two new services in the same Railway project, in both environments (staging and production), next to today's server, database and web app. Same project, so one staging token and one production token still cover everything.
+- **Staging deploys both servers when a change affects both.** As today (§17), each server service deploys from `develop` through Railway's GitHub integration, and its **Watch Paths** decide when:
+    - **clubs server:** `server/core/**`, `server/clubs/**`, `common/**`, the root build files;
+    - **coach server:** `server/core/**`, `server/coach/**`, `common/**`, the root build files.
+
+  A change to the shared code (`common`, `:server:core`, a shared migration) redeploys both servers; a change only to one server's module redeploys only that one.
+- **Migrations:** each server runs its own Flyway migrations on start, against its own database. A change to the shared game tables therefore comes with a migration in each server's folder, in the same PR, and the schema test above fails the build if one is missing.
+- **Coach app on staging:** Android builds go to Firebase App Distribution like the clubs app's (§17), from their own workflow, with the same kind of paths filter: `app/shared`, the coach app modules, `common`.
+- **Production:** `deploy-production.yml` deploys both servers on a release, like the web app (§13).
+
 **Payments and ads (later):** RevenueCat for subscriptions on Google Play and the App Store, reporting changes to the coach server; AdMob on the Free plan. When a subscription ends, the space falls back to Free: nothing is deleted, stats keep being calculated, and the other members lose access until it's paid again.
