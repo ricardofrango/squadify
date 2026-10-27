@@ -1,6 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
-import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
+import com.ricardofrango.squadify.presentation.ui.components.useNavigationRail
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.venueLocation
 import com.ricardofrango.squadify.presentation.ui.components.VenueSelector
@@ -166,7 +166,7 @@ private fun MatchDetailsContent(
     now: Instant = Clock.System.now()
 ) {
     val details = (uiState as? MatchDetailsUiState.Idle)?.details
-    // A finished match's tabs, in the bottom bar (a rail in landscape), as on Team and Age Group details.
+    // A finished match's tabs, in the bottom bar (a rail from a medium-width window up), as on Team and Age Group details.
     var finishedTab by rememberSaveable { mutableStateOf(initialTab) }
     val finished = details?.match?.status == MatchStatus.FINISHED
     val tabs = if (finished) finishedTabs(details!!.canSeeMatchRecord, !details.match.enteredAfterGame) else emptyList()
@@ -181,10 +181,10 @@ private fun MatchDetailsContent(
         isBackEnabled = callUpUnsaved,
         onBackCompleted = { showDiscard = true }
     )
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-    val landscape = isLandscapeLayout
+    Box(Modifier.fillMaxSize()) {
+    val rail = useNavigationRail()
     Row(Modifier.fillMaxSize()) {
-    if (landscape && tabs.isNotEmpty()) FinishedRail(tabs, selectedTab) { finishedTab = it }
+    if (rail && tabs.isNotEmpty()) FinishedRail(tabs, selectedTab) { finishedTab = it }
     Scaffold(
         modifier = Modifier.weight(1f),
         containerColor = ScreenBackground,
@@ -229,7 +229,7 @@ private fun MatchDetailsContent(
             }
         },
         bottomBar = {
-            if (tabs.isNotEmpty() && !landscape) FinishedBottomBar(tabs, selectedTab) { finishedTab = it }
+            if (tabs.isNotEmpty() && !rail) FinishedBottomBar(tabs, selectedTab) { finishedTab = it }
             // Save call-up / Start match / Enter live match, by permission and call-up state (callUpView).
             val idle = uiState as? MatchDetailsUiState.Idle
             val button = idle?.callUpView()?.button ?: MatchDetailsButton.NONE

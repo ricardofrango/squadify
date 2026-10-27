@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import com.ricardofrango.squadify.presentation.ui.components.useNavigationRail
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
@@ -308,8 +309,9 @@ private fun EditClubContent(
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = isLandscapeLayout
+        val rail = useNavigationRail()
         Row(Modifier.fillMaxSize()) {
-            if (landscape && idle != null) DetailRail(tabs, selectedTab, onTabSelected)
+            if (rail && idle != null) DetailRail(tabs, selectedTab, onTabSelected)
             Scaffold(
                 modifier = Modifier.weight(1f),
                 containerColor = ScreenBackground,
@@ -332,7 +334,7 @@ private fun EditClubContent(
                         }
                     )
                 },
-                bottomBar = { if (!landscape && idle != null) DetailBottomBar(tabs, selectedTab, onTabSelected) }
+                bottomBar = { if (!rail && idle != null) DetailBottomBar(tabs, selectedTab, onTabSelected) }
             ) { paddingValues ->
                 val boxModifier = Modifier.fillMaxSize().padding(paddingValues)
                 when (uiState) {

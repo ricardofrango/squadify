@@ -31,8 +31,8 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-// The tab bar of the club screen and the detail screens (designs 32, 33): a dark bottom bar in
-// portrait, a left rail in landscape (a bottom bar costs too much of a short screen; isLandscapeLayout).
+// The tab bar of the club screen and the detail screens (designs 32, 33): a dark bottom bar on a
+// compact window, a left rail from a medium-width window up (useNavigationRail).
 
 /** [dot] marks the tab with a small amber dot, e.g. unsaved changes on it (design 34). */
 data class DetailTab(val icon: DrawableResource, val label: StringResource, val dot: Boolean = false)

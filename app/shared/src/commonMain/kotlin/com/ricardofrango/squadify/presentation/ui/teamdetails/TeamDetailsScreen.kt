@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.useNavigationRail
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeHighlight
@@ -72,7 +73,7 @@ private val WeekdayDayMonth = LocalDate.Format {
  * The hub for one team (design 32): Stats · Matches · Members tabs under a fixed header (name, the
  * Next fixture, Upcoming · Played · Players used). A team is a scheduling handle under an age group,
  * so the Members tab lists only the players who actually played for THIS team, with the age group's
- * staff and pool as context under them. It always opens on Matches. In landscape the bottom bar becomes a side rail (32e). Manage affordances are
+ * staff and pool as context under them. It always opens on Matches. From a medium-width window up the bottom bar becomes a side rail (32e). Manage affordances are
  * gated on [TeamDetails.canManageMatch].
  */
 @Composable
@@ -154,8 +155,9 @@ private fun TeamDetailsContent(
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = isLandscapeLayout
+        val rail = useNavigationRail()
         Row(Modifier.fillMaxSize()) {
-            if (landscape && details != null) TeamRail(tab, selectTab)
+            if (rail && details != null) TeamRail(tab, selectTab)
             Scaffold(
                 modifier = Modifier.weight(1f),
                 containerColor = ScreenBackground,
@@ -207,7 +209,7 @@ private fun TeamDetailsContent(
                     }
                 },
                 bottomBar = {
-                    if (!landscape && details != null) TeamBottomBar(tab, selectTab)
+                    if (!rail && details != null) TeamBottomBar(tab, selectTab)
                 }
             ) { paddingValues ->
                 val boxModifier = Modifier.fillMaxSize().padding(paddingValues)

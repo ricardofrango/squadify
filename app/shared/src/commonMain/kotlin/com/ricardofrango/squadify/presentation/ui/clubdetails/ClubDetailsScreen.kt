@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.useNavigationRail
 import com.ricardofrango.squadify.presentation.ui.components.SectionBorder
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import kotlin.time.Instant
@@ -36,7 +37,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import com.ricardofrango.squadify.presentation.ui.components.DetailBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.DetailRail
 import com.ricardofrango.squadify.presentation.ui.components.DetailTab
-import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.components.readableListPadding
 import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import androidx.compose.foundation.layout.Spacer
@@ -828,11 +828,12 @@ private fun ClubDetailsContent(
     val onTabClick: (Int) -> Unit = { i -> if (i == clubTabs.lastIndex) moreOpen = !moreOpen else actions.onTabSelected(i) }
     val hasTabs = (uiState as? ClubDetailsUiState.Idle)?.details != null
 
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-    // A short, wide screen: the tabs move to a rail on the left, as on Team and Age Group details.
-    val landscape = isLandscapeLayout
+    Box(Modifier.fillMaxSize()) {
+    // From a medium-width window up (a phone on its side, a tablet, desktop), the tabs move to a rail
+    // on the left, as on Team and Age Group details.
+    val rail = useNavigationRail()
     Row(Modifier.fillMaxSize()) {
-    if (landscape && hasTabs) DetailRail(clubTabs, selectedIndex, onTabClick)
+    if (rail && hasTabs) DetailRail(clubTabs, selectedIndex, onTabClick)
     Scaffold(
         modifier = Modifier.weight(1f),
         topBar = {
@@ -847,7 +848,7 @@ private fun ClubDetailsContent(
         bottomBar = {
             // Only meaningful once the club details actually loaded -- while loading, or if the
             // fetch failed (Idle.details stays null), there's nothing for the tabs to show.
-            if (!landscape && hasTabs) DetailBottomBar(clubTabs, selectedIndex, onTabClick)
+            if (!rail && hasTabs) DetailBottomBar(clubTabs, selectedIndex, onTabClick)
         }
     ) { paddingValues ->
         Box(

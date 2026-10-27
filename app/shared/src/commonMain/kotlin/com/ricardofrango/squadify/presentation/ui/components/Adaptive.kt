@@ -2,20 +2,35 @@ package com.ricardofrango.squadify.presentation.ui.components
 
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
+import androidx.window.core.layout.WindowSizeClass
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 
-// How a screen adapts to the space it gets (TECHNICAL_DECISIONS.md §11.5). Every check measures the
-// space the screen actually has (a BoxWithConstraints), not the device, so a screen next to a rail or
-// in a resized desktop window decides on what it really has. The breakpoint is Material's: compact
-// below 600dp, medium and up from there.
+// How a screen adapts to the space it gets (TECHNICAL_DECISIONS.md §11.5). The breakpoints are
+// Material's window size classes (material3-adaptive / window-core): compact below 600dp wide, medium
+// and up from there. Two kinds of decision:
+// - Navigation (a rail or a bottom bar) follows the window's size class, [useNavigationRail].
+// - A screen's layout measures the space it actually has (a BoxWithConstraints), not the window, so a
+//   screen next to a rail or in a resized desktop window decides on what it really has.
 
 /** Material's medium width: from here there's room for two panes side by side, or a rail. */
-val MediumWidth: Dp = 600.dp
+val MediumWidth: Dp = WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp
+
+/**
+ * True from a medium-width window up (a phone on its side, a tablet, an unfolded foldable, desktop,
+ * a browser): the tabs go in a rail on the left instead of a bottom bar. Material's navigation suite
+ * would keep a bottom bar on a phone on its side (a compact height); the app's design (32e, 33e)
+ * moves it to the rail there too, since a bar costs too much of a short screen.
+ */
+@Composable
+fun useNavigationRail(): Boolean =
+    currentWindowAdaptiveInfoV2().windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
 
 /** The widest a form, or a list of single rows, gets; centred beyond that, so rows never stretch across a wide window. */
 val ReadableMaxWidth: Dp = 720.dp
@@ -25,7 +40,7 @@ val BoxWithConstraintsScope.isWide: Boolean get() = maxWidth >= MediumWidth
 
 /**
  * Wider than tall and at least [MediumWidth] wide: a phone on its side, a tablet or a desktop
- * window. The screens that save height here (a rail instead of a bottom bar, side-by-side panes) use this.
+ * window. The screens that save height here (side-by-side panes, a shorter header) use this.
  */
 val BoxWithConstraintsScope.isLandscapeLayout: Boolean get() = maxWidth > maxHeight && maxWidth >= MediumWidth
 
