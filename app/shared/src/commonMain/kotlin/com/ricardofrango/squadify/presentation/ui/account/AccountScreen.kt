@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -247,6 +248,7 @@ private fun AccountForm(
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
+            .readableWidth()
             .screenContentPadding(),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
@@ -577,6 +579,25 @@ private fun sampleIdle(dirty: Boolean = false) = AccountUiState.Idle(
 @Preview
 @Composable
 private fun AccountScreenPreview() {
+    SquadifyTheme {
+        AccountContent(
+            uiState = sampleIdle(),
+            onNavigateBack = {},
+            onRetry = {},
+            onFirstNameChange = {},
+            onLastNameChange = {},
+            onPhoneChange = {},
+            onSaveProfileClick = {},
+            onPasswordFormChange = {},
+            onChangePasswordClick = {},
+            onLogoutClick = {}
+        )
+    }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun AccountScreenLandscapePreview() {
     SquadifyTheme {
         AccountContent(
             uiState = sampleIdle(),

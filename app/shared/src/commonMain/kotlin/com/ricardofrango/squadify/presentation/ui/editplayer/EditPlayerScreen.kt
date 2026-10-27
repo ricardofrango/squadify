@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -231,6 +232,7 @@ private fun EditPlayerForm(
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
+                .readableWidth()
                 .screenContentPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -312,7 +314,7 @@ private fun EditPlayerForm(
         }
 
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp),
+            modifier = Modifier.readableWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (state.submitError != null) {
@@ -506,6 +508,34 @@ private fun sampleFields(filled: Boolean) = PlayerFormFields(
 @Preview
 @Composable
 private fun EditPlayerFilledPreview() {
+    SquadifyTheme {
+        val fields = sampleFields(filled = true)
+        EditPlayerContent(
+            uiState = EditPlayerUiState.Idle(
+                ageGroupId = "ag1",
+                ageGroupLabel = "Sub-15 A",
+                seasonLabel = "26/27",
+                original = fields,
+                form = fields.copy(lastName = "Fonseca")
+            ),
+            onNavigateBack = {},
+            onRetry = {},
+            onFirstNameChange = {},
+            onLastNameChange = {},
+            onDateClick = {},
+            onShirtNumberChange = {},
+            onPositionSelected = {},
+            onHeightChange = {},
+            onWeightChange = {},
+            onEmergencyContactChange = {},
+            onSaveClick = {}
+        )
+    }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun EditPlayerFilledLandscapePreview() {
     SquadifyTheme {
         val fields = sampleFields(filled = true)
         EditPlayerContent(

@@ -29,6 +29,7 @@ import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PinnedBottomBar
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -182,6 +183,8 @@ private fun AddStaffToAgeGroupContent(
                         .fillMaxSize()
                         .padding(paddingValues)
                         .background(ScreenBackground)
+                        // No wider than a form, centred, on a wide screen.
+                        .readableWidth()
                         .padding(horizontal = ScreenPadding.Horizontal)
                         .padding(top = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -442,6 +445,32 @@ private fun previewMember(id: String, first: String, last: String) = ClubMemberS
 @Preview
 @Composable
 private fun AddStaffToAgeGroupContentPreview() {
+    SquadifyTheme {
+        AddStaffToAgeGroupContent(
+            uiState = AddStaffToAgeGroupUiState.Idle(
+                ageGroups = listOf(previewAgeGroup("a1", "Sub 2015", "s1", 2015)),
+                seasons = listOf(previewSeason("s1", "26/27")),
+                selectedAgeGroupId = "a1",
+                eligibleMembers = listOf(
+                    previewMember("p1", "Nuno", "Faria"),
+                    previewMember("p2", "Rita", "Sousa")
+                ),
+                selectedRoles = mapOf("p1" to AgeGroupRole.COACH)
+            ),
+            searchQuery = "",
+            onNavigateBack = {},
+            onSearchChange = {},
+            onAgeGroupSelected = {},
+            onRoleTapped = { _, _ -> },
+            onAddNewStaff = {},
+            onAddClick = {}
+        )
+    }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun AddStaffToAgeGroupContentLandscapePreview() {
     SquadifyTheme {
         AddStaffToAgeGroupContent(
             uiState = AddStaffToAgeGroupUiState.Idle(

@@ -8,6 +8,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.BoxWithConstraints
+import com.ricardofrango.squadify.presentation.ui.components.readableListPadding
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
@@ -153,7 +156,8 @@ fun MatchesTab(
 
     Column(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {
         LazyRow(
-            modifier = Modifier.fillMaxWidth(),
+            // Lined up with the list under it, which is centred on a wide screen.
+            modifier = Modifier.readableWidth(),
             // No gap of its own under the selectors: the status chips' row leaves one.
             contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -193,7 +197,7 @@ fun MatchesTab(
             selected = state.matchesStatus,
             label = { stringResource(it.labelRes()) },
             onSelect = actions::onMatchesStatusSelected,
-            modifier = Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 10.dp)
+            modifier = Modifier.readableWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 10.dp)
         )
 
         if (!state.matchesLoaded) {
@@ -203,10 +207,12 @@ fun MatchesTab(
         } else {
             val listState = rememberLazyListState()
             LoadMoreEffect(listState, enabled = state.matchesHasMore && !state.matchesLoadingMore, onLoadMore = actions::loadMoreMatches)
+            // On a wide screen the rows stay readable, centred, and the whole width still scrolls.
+            BoxWithConstraints(Modifier.fillMaxSize()) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = 4.dp, bottom = ScreenPadding.Bottom),
+                contentPadding = readableListPadding(top = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 matchListSections(
@@ -218,6 +224,7 @@ fun MatchesTab(
                     onOpenMatch = onNavigateToMatch
                 )
                 loadingMoreItem(state.matchesLoadingMore)
+            }
             }
         }
     }

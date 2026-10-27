@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.venueLocation
 import com.ricardofrango.squadify.presentation.ui.components.VenueSelector
@@ -181,7 +182,7 @@ private fun MatchDetailsContent(
         onBackCompleted = { showDiscard = true }
     )
     BoxWithConstraints(Modifier.fillMaxSize()) {
-    val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
+    val landscape = isLandscapeLayout
     Row(Modifier.fillMaxSize()) {
     if (landscape && tabs.isNotEmpty()) FinishedRail(tabs, selectedTab) { finishedTab = it }
     Scaffold(

@@ -10,8 +10,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -69,10 +70,13 @@ fun DashboardScreen(
 
 @Composable
 private fun ClubList(clubs: List<Club>, onNavigateToClub: (String) -> Unit) {
-    LazyColumn(
+    // As many columns of club cards as fit: one on a phone, more on a wide screen.
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(320.dp),
         modifier = Modifier.fillMaxSize(),
         contentPadding = ScreenPadding.Values,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(clubs) { club ->
             ClubCard(club, onClick = { onNavigateToClub(club.id) })
@@ -256,6 +260,22 @@ private fun DashboardContent(
 @Preview
 @Composable
 private fun DashboardPreview() {
+    SquadifyTheme {
+        DashboardContent(
+            DashboardUiState.Idle(
+                clubs = listOf(
+                    Club("c1", "CD Ribamar", shortName = "CDR", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL),
+                    Club("c2", "GD Fontelas", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL)
+                )
+            ),
+            {}, {}, {}, {}
+        )
+    }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun DashboardLandscapePreview() {
     SquadifyTheme {
         DashboardContent(
             DashboardUiState.Idle(

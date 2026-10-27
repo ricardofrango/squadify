@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.isWide
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -115,7 +116,7 @@ fun HomeTab(
 
         // Landscape: Next up and Needs you side by side (27d); portrait: stacked.
         BoxWithConstraints {
-            val wide = maxWidth > 600.dp
+            val wide = isWide
             if (wide) {
                 Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     NextUpSection(home, clubLogoUrl, onNavigateToMatch, Modifier.weight(1f))

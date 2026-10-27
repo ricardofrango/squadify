@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.isWide
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -184,7 +185,7 @@ private fun CreateSessionsContent(
         Column(modifier) {
             if (preview == null) {
                 BoxWithConstraints(Modifier.weight(1f)) {
-                    val wide = maxWidth >= 600.dp
+                    val wide = isWide
                     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding()) {
                         EditorColumns(
                             wide = wide,

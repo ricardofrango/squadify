@@ -60,6 +60,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.shared.generated.resources.Res
@@ -131,7 +132,8 @@ private fun Filters(
     onSearchChanged: (String) -> Unit
 ) {
     val details = state.details
-    Column(Modifier.fillMaxWidth().padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top, bottom = 20.dp)) {
+    // Lined up with the list under it, which is centred on a wide screen.
+    Column(Modifier.readableWidth().padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top, bottom = 20.dp)) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             item {
                 FilterSelector(

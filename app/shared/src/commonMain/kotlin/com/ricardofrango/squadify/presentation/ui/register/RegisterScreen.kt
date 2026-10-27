@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -220,6 +221,7 @@ private fun RegisterContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
+                    .readableWidth()
                     .screenContentPadding(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -332,6 +334,12 @@ private fun RegisterContent(
 @Preview
 @Composable
 private fun RegisterPreview() {
+    SquadifyTheme { RegisterContent(RegisterUiState.Idle(), {}, { _, _, _, _, _, _ -> }) }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun RegisterLandscapePreview() {
     SquadifyTheme { RegisterContent(RegisterUiState.Idle(), {}, { _, _, _, _, _, _ -> }) }
 }
 

@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.matchreport
 
 import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
+import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import androidx.compose.foundation.BorderStroke
@@ -191,7 +192,7 @@ private fun MatchReportContent(
     }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val wide = maxWidth > maxHeight && maxWidth >= 600.dp
+        val wide = isLandscapeLayout
         Scaffold(
             containerColor = ScreenBackground,
             snackbarHost = {

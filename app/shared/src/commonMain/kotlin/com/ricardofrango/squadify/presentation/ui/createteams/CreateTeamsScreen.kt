@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -243,6 +244,7 @@ private fun CreateTeamsContent(
                         .padding(paddingValues)
                         .background(ScreenBackground)
                         .verticalScroll(rememberScrollState())
+                        .readableWidth()
                         .screenContentPadding(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {

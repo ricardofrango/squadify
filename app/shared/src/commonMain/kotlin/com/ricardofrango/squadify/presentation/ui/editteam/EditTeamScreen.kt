@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -167,7 +168,7 @@ private fun EditTeamContent(
                 Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
             }
             is EditTeamUiState.Idle -> Column(
-                modifier.verticalScroll(rememberScrollState()).screenContentPadding(),
+                modifier.verticalScroll(rememberScrollState()).readableWidth().screenContentPadding(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 SectionCard {

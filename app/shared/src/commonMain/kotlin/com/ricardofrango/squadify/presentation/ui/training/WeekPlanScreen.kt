@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -136,7 +137,7 @@ private fun WeekPlanContent(
         }
         Column(modifier) {
             WeekContextStrip(plans, monday)
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).readableWidth().screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (plan == null) {
                     StatsCard {
                         PlanEmpty(

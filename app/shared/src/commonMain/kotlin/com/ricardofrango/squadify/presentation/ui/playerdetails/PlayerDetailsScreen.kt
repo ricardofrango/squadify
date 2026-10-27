@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.theme.OnChromeAccent
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
@@ -284,7 +285,7 @@ private fun PlayerBody(
 
     // Landscape (30e): totals and Player info on the left, the match list beside them.
     BoxWithConstraints(modifier) {
-        if (maxWidth > maxHeight && maxWidth >= 600.dp) {
+        if (isLandscapeLayout) {
             Row(Modifier.fillMaxSize()) {
                 LazyColumn(Modifier.weight(1f), contentPadding = padding, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     item { statsCard() }

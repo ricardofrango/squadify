@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
+import com.ricardofrango.squadify.presentation.ui.components.isWide
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -183,7 +184,7 @@ private fun OpponentDetailsContent(
             }
             is OpponentDetailsUiState.Idle -> BoxWithConstraints(modifier) {
                 val d = state.details
-                if (maxWidth >= 600.dp) {
+                if (isWide) {
                     Row(Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             HeaderCard(d)

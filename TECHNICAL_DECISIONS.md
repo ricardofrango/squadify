@@ -287,7 +287,20 @@ The existing pattern (§10: Screen + `UiState` + `ViewModel`, MVVM/UDF, sealed-c
 
 Support phones, foldables, tablets, and desktop from the start, using window size classes, `material3-adaptive`, multi-pane layouts, and adaptive navigation (bottom bar on compact width ↔ navigation rail on expanded width). Retrofitting this after screens are built single-layout is significantly more expensive than designing for it upfront.
 
-**Status: not started.** No `material3-adaptive` dependency exists in `libs.versions.toml`, and no window-size-class logic exists in the codebase today. Given this project already ships a `desktopApp` target (inherently a large-width surface) alongside phone-sized Android/iOS targets, this is a real, current gap rather than a future nice-to-have — the guidance to do it "from day one" applies directly, since screens are actively being built without it right now.
+**Status: done (2026-10-27).** Every screen adapts to the space it gets. The shared pieces are in `presentation/ui/components/Adaptive.kt`:
+
+- **One breakpoint, Material's:** compact below 600dp (`MediumWidth`), medium and up from there. Each check measures the space the screen actually has (a `BoxWithConstraints`), not the device, so a screen next to a rail, in a split-screen window or in a resized desktop or browser window decides on what it really has. That's why there's no `material3-adaptive` dependency: its window size class describes the window, and every decision here is about the screen's own space, which `BoxWithConstraints` already gives with the same breakpoints. The roughly 25 inline checks (`maxWidth >= 600.dp`, `maxWidth > maxHeight && …`) now go through two helpers:
+  - `isLandscapeLayout` (wider than tall, at least 600dp): the screens that save height. The tabs move from the bottom bar to a rail (club screen, Team, Age Group, Club settings, a finished match), and panes go side by side (Match report, Member details, Player details, the live console). A tablet held upright keeps the bottom bar, as Material's navigation guidance has it for medium widths.
+  - `isWide` (at least 600dp, any orientation): two columns in the training screens, Home, and the opponent screens.
+  - Full stats keeps its own short-height check, and the pitch's direction stays on `maxWidth > maxHeight`: both are about the screen's shape, not its width.
+- **The club screen's tabs** (Home, Age groups, Teams, Games, More) use the shared `DetailBottomBar` / `DetailRail`, so in landscape they're a rail on the left, like Team and Age Group details.
+- **Nothing stretches across a wide window.** Forms and lists of single rows are 720dp at most (`ReadableMaxWidth`), centred:
+  - A scrolling form puts `Modifier.readableWidth()` after its `verticalScroll`, so the whole width still scrolls (mouse wheel over the margins on desktop and web).
+  - A `LazyColumn` takes `readableListPadding()` as its `contentPadding` instead, inside a `BoxWithConstraints`. Its sides are `ScreenPadding.Horizontal` plus whatever is left beyond 720dp, so the rows line up with a `readableWidth()` filter row above them.
+  - `PinnedBottomBar` caps its button the same way, so the main button lines up with the form. Forms with their own footer (Edit player, Create players, Create staff, Schedule match) do it themselves.
+  - Cards go in a grid instead: My clubs and the club's Age groups and Teams tabs are a `LazyVerticalGrid` of `GridCells.Adaptive(320.dp)`, one column on a phone and as many as fit on a wide screen.
+- **Not built:** list and details side by side (Matches, Players, Opponents), Material's list-detail pattern. It changes how navigation works (the details become a pane rather than a screen of their own on wide windows), so it's a separate piece of work, best done with the Navigation 3 migration (§11.4).
+- **Checked** by rendering the previews offscreen on the JVM (`ImageComposeScene`) at 400×800, 900×480, 800×1280 and 1280×800. Not on a real tablet.
 
 ### 11.6 Edge-to-edge (mandatory)
 
@@ -309,7 +322,7 @@ Android 15 (API 35) enforces edge-to-edge by default but still allowed an app-le
 
 ### 11.8 Open items against this guidance
 
-- [ ] Adopt `material3-adaptive` + window size classes; add adaptive navigation (bottom bar ↔ navigation rail) — nothing exists yet (§11.5).
+- [x] Adaptive layouts: one shared breakpoint, a rail in landscape, forms and lists no wider than 720dp, card grids (§11.5). Still open: list and details side by side, with Navigation 3.
 - [ ] Plan and execute the Navigation 2 → Navigation 3 migration, budgeting specifically for polymorphic route serialization on iOS/Web (§11.4).
 - [ ] Enable R8 full mode (`isMinifyEnabled = true` with an appropriate `proguard-rules.pro`) and add a Baseline Profile for `app/androidApp`'s release build (§11.7).
 - [ ] Audit screen-level composables for correct `WindowInsets` consumption now that edge-to-edge is unavoidable at the targeted API level (§11.6).

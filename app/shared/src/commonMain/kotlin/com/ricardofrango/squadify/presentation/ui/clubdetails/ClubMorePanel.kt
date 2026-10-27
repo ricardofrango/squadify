@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.theme.OnChromeAccent
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
@@ -193,7 +194,7 @@ internal fun ClubMorePanel(
     ) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val widthPx = with(LocalDensity.current) { maxWidth.toPx() }
-            val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
+            val landscape = isLandscapeLayout
             // Swipe right to close: the panel follows the finger. Released past 30% of the width or with
             // a quick flick, it carries on to the right from where it is, at the release velocity, and
             // closes; otherwise it springs back. One offset drives both, so there's never a jump.

@@ -244,6 +244,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
       - **Club logo on push notifications** (Android), when the club has one and the server has a public address.
       - **Stats and pickers:** the team leaders card (photo, or the placeholder, before every name), the training stats table (the player badge) and Add staff's picker (the photo in the initials circle).
       - **Decided** (the developer, 2026-10-26): a user's photo is always shown, to any signed-in user, by its current random id. It isn't limited to people who share a club with them.
+    - [x] **Tablets, foldables, desktop and web** (2026-10-27; see `TECHNICAL_DECISIONS.md` §11.5): every screen adapts to its width. In landscape the club screen's tabs become a rail on the left, like the detail screens'. Forms and lists are no wider than 720dp, centred, and card lists (My clubs, Age groups, Teams) become a grid. Still to do: list and details side by side (Matches, Players, Opponents).
     - [x] Client-side Architecture (MVVM, Koin, UseCases).
     - [x] API Integration (Ktor Client): every screen talks to the server through repositories over a shared authenticated Ktor client (bearer tokens, refresh on 401), plus WebSockets for the live match and the club's Matches tab.
     - [/] Role-specific Dashboards:

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeHighlight
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
@@ -236,7 +237,7 @@ private fun AgeGroupDetailsContent(
     val selectIndex: (Int) -> Unit = { selectTab(AgeGroupTab.entries[it]) }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
+        val landscape = isLandscapeLayout
         Row(Modifier.fillMaxSize()) {
             if (landscape && details != null) DetailRail(Tabs, tab.ordinal, selectIndex)
             Scaffold(

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -216,6 +217,7 @@ private fun CreateMatchForm(
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
+                .readableWidth()
                 .screenContentPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -336,7 +338,7 @@ private fun CreateMatchForm(
             // padded by Scaffold's own paddingValues, which (with no bottomBar slot in use) already
             // reserves the bottom system-bar inset -- adding it again pushed the button up an extra
             // inset's worth, leaving a large empty gap below it.
-            Box(Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp)) {
+            Box(Modifier.readableWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp)) {
                 PrimaryLoadingButton(
                     text = Res.string.btn_schedule_match,
                     submittingText = Res.string.btn_scheduling_match,
@@ -577,6 +579,18 @@ private fun sampleIdle(teamFixed: Boolean) = CreateMatchUiState.Idle(
 @Preview
 @Composable
 private fun CreateMatchFromAgeGroupPreview() {
+    SquadifyTheme {
+        CreateMatchContent(
+            uiState = sampleIdle(teamFixed = false),
+            onNavigateBack = {}, onRetry = {}, onTeamSelected = {}, onChooseOpponent = {},
+            onDateChange = {}, onTimeChange = {}, onLocationChange = {}, onNotesChange = {}, onMatchTypeSelected = {}, onSubmit = {}
+        )
+    }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun CreateMatchFromAgeGroupLandscapePreview() {
     SquadifyTheme {
         CreateMatchContent(
             uiState = sampleIdle(teamFixed = false),

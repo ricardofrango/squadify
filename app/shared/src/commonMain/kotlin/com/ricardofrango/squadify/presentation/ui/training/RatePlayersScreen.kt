@@ -1,12 +1,13 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.readableListPadding
+import androidx.compose.foundation.layout.BoxWithConstraints
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -59,7 +60,6 @@ import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
-import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import kotlinx.datetime.LocalDate
@@ -161,12 +161,14 @@ private fun RatePlayersContent(
             return@Scaffold
         }
         val players = ratings.players.sortedWith(playerComparator(state.sort))
-        // No bottom padding: the list runs straight into the pinned bar. Moving between boxes makes the
-        // keyboard close and reopen on some devices (Samsung): that's Compose's own behaviour, on every
-        // screen with several text boxes (TECHNICAL_DECISIONS.md §11.6).
+        // No bottom padding: the list runs straight into the pinned bar. Centred on a wide screen, the
+        // whole width still scrolling. Moving between boxes makes the keyboard close and reopen on some
+        // devices (Samsung): that's Compose's own behaviour, on every screen with several text boxes
+        // (TECHNICAL_DECISIONS.md §11.6).
+        BoxWithConstraints(modifier) {
         LazyColumn(
-            modifier,
-            contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top),
+            Modifier.fillMaxSize(),
+            contentPadding = readableListPadding(bottom = 0.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             item {
@@ -191,6 +193,7 @@ private fun RatePlayersContent(
                     onSave = onSave
                 )
             }
+        }
         }
     }
     if (askDiscard) DiscardChangesDialog(onDiscard = { askDiscard = false; onNavigateBack() }, onKeepEditing = { askDiscard = false })
