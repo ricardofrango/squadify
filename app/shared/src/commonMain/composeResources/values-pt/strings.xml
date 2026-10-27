@@ -121,7 +121,7 @@
     <string name="btn_creating_season">A criar...</string>
     <string name="btn_confirm">Confirmar</string>
     <string name="msg_create_season_failed">Ocorreu um erro ao criar a época. Por favor, tente novamente.</string>
-    <string name="msg_create_season_conflict">Entra em conflito com a época existente \"%1$s\".</string>
+    <string name="msg_create_season_conflict">Entra em conflito com a época existente "%1$s".</string>
     <string name="msg_create_season_conflict_unknown">Já existe uma época com estas datas.</string>
     <string name="label_select_start_date">Selecione a data de inicio</string>
     <string name="label_select_end_date">Selecione a data de fim</string>
@@ -1528,7 +1528,7 @@
     <string name="btn_add_event">+ Adicionar evento</string>
     <string name="msg_record_no_events">Ainda sem golos nem cartões.</string>
     <string name="label_minutes_played">Minutos jogados</string>
-    <string name="label_match_length_value">Jogo de %1$d\'</string>
+    <string name="label_match_length_value">Jogo de %1$d'</string>
     <string name="btn_full_match">Jogo todo</string>
     <string name="title_add_event">Adicionar evento</string>
     <string name="title_edit_event">Editar evento</string>
