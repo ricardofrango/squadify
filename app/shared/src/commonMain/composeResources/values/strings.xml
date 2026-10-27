@@ -1305,7 +1305,6 @@
     <string name="msg_ratings_cancelled">A cancelled session isn\'t rated.</string>
     <string name="home_training_needs_ratings">Training of %1$s needs player ratings · %2$s</string>
     <string name="home_trainings_need_ratings">%1$d trainings need player ratings</string>
-    <string name="label_not_rated">Not rated</string>
     <string name="label_absent_count">%1$d absent</string>
     <string name="msg_ratings_not_open">Ratings open when the session ends.</string>
     <!-- Training stats (design 39j) -->
@@ -1323,7 +1322,6 @@
     <string name="msg_absent_not_averaged">Absent (0) doesn\'t count towards the average.</string>
     <string name="msg_no_training_stats">No ended training sessions yet.</string>
     <!-- Rate players: text box -->
-    <string name="msg_rate_intro">Type each player's rating from 0 to 10, decimals allowed (7.5). 0 means absent; leave it empty if not rated yet. Ratings are only visible to staff.</string>
     <string name="msg_rating_invalid">Enter 0 to 10, e.g. 7.5</string>
     <!-- Edit team: delete -->
     <string name="btn_delete_team">Delete team</string>

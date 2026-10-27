@@ -2706,19 +2706,19 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
 - **Tests:** `TrainingSessionUseCasesTest` and `ExerciseLibraryTest`.
 
 **Player ratings** (design 39g/i, `V19`):
-- **Storage:** `training_ratings` holds one row per session and player, as tenths (0–100), so one decimal is exact.
-  - **0 means Absent** ("did not take part"), which makes ratings the attendance record. A player who trained gets 0.1–10.0.
+- **Storage:** `training_ratings` holds one row per session and player, as hundredths (0–1000), so two decimals are exact. Until 2026-10-27 it was tenths with one decimal; `V28` renamed `rating_tenths` to `rating_hundredths` and multiplied the existing ratings by 10, when the developer asked for "7.55" as well as "7.5".
+  - **0 means Absent** ("did not take part"), which makes ratings the attendance record. A player who trained gets 0.01–10.00.
   - **Saves are partial:** saving only some players is fine, and sending null clears a rating.
 - **Who:** every coach and staff member of the age group, and coordinators, can rate. Players and parents never see ratings, rated counts or averages.
 - **When:** ratings open when the session's end time passes (server time). A cancelled session isn't rated.
-- **Rate players** (`RatePlayersScreen`): the pool by shirt number.
-  - **Input:** a text box per player (decimal keyboard; Next moves to the following player). It takes 0 to 10 with up to one decimal, with a dot or a comma ("7.5", "7,5"); 0 means absent and an empty box means not rated. The design's quick 5–9 buttons, − / + and Absent button were dropped for this.
+- **Rate players** (`RatePlayersScreen`, reworked 2026-10-27 at the developer's request): the pool, sorted by **Name** (the default) or **Position** with the call-up's sort chips and order (`playerComparator`, §69). No intro text above the list, and no bottom padding under it: it runs into the pinned bar (`PinnedBottomBar`), which has "12 of 18 rated · 2 absent" above a full-width Save (and, before the session ends, "Ratings open when the session ends"). Under a player's name there's only "Absent" (for 0) or the invalid-input message; a rated or not-yet-rated player shows just the name, centred in the row. The gap from the count to Save is 12dp, the bar's padding under the button. Each box is 76dp wide with its text centred (four characters at most, "7,55"; `FormTextField`'s `textAlign`). The list ends with a spacer as tall as the keyboard (`WindowInsets.ime`, nothing while it's closed), so with the keyboard open the last players scroll above it.
+  - **Input:** a text box per player (decimal keyboard; Next moves to the following player). It takes 0 to 10 with up to two decimals, with a dot or a comma ("7.55", "7,55"); 0 means absent and an empty box means not rated. The design's quick 5–9 buttons, − / + and Absent button were dropped for this.
   - **Invalid input:** the box turns red with "Enter 0 to 10, e.g. 7.5" under the name, and Save waits until it's fixed. "7." while typing reads as 7, so the box doesn't flash red mid-number.
   - **Saving:** Save is enabled after any change while every box is valid. Leaving with changes asks first.
 - **On the session:** the ratings card (staff) says when ratings open. Once the session has ended it moves to the top with "12 of 18 rated" and Rate players.
 - **On the lists:** ended sessions show "Needs ratings" until everyone is rated, then the average (without Absent).
 - **Home to-do:** "Training of Thu 8 Oct needs player ratings · Sub-15", with "12 of 18 rated", opens Rate players. It's one row per session, grouped from 3 up like match reports, amber after 7 days.
-- **Tests:** `TrainingSessionUseCasesTest`, `GetClubHomeUseCaseTest`, `TrainingPeriodsTest` (tenths and attendance) and `RatePlayersTest`.
+- **Tests:** `TrainingSessionUseCasesTest`, `GetClubHomeUseCaseTest`, `TrainingPeriodsTest` (hundredths and attendance) and `RatePlayersTest`.
 
 **Training stats** (design 39j), staff only:
 - **Definitions:** attendance is the sessions a player was rated above 0 out of the ended, non-cancelled sessions in the period. The average leaves Absent out. Below 75% attendance shows amber.

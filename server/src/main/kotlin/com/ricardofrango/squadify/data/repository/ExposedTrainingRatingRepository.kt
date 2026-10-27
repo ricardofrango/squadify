@@ -23,7 +23,7 @@ class ExposedTrainingRatingRepository : TrainingRatingRepository {
             .where { TrainingRatingsTable.sessionId inList sessionIds.map { it.toUuid() } }
             .groupBy(
                 { it[TrainingRatingsTable.sessionId].toString() },
-                { TrainingRating(it[TrainingRatingsTable.playerId].toString(), it[TrainingRatingsTable.ratingTenths] / 10.0) }
+                { TrainingRating(it[TrainingRatingsTable.playerId].toString(), it[TrainingRatingsTable.ratingHundredths] / 100.0) }
             )
     }
 
@@ -33,11 +33,11 @@ class ExposedTrainingRatingRepository : TrainingRatingRepository {
             TrainingRatingsTable.deleteWhere { (TrainingRatingsTable.sessionId eq sessionId.toUuid()) and (TrainingRatingsTable.playerId inList cleared) }
         }
         val now = Clock.System.now()
-        val set = changes.mapNotNull { (player, tenths) -> tenths?.let { player to it } }
-        TrainingRatingsTable.batchUpsert(set) { (player, tenths) ->
+        val set = changes.mapNotNull { (player, hundredths) -> hundredths?.let { player to it } }
+        TrainingRatingsTable.batchUpsert(set) { (player, hundredths) ->
             this[TrainingRatingsTable.sessionId] = sessionId.toUuid()
             this[TrainingRatingsTable.playerId] = player.toUuid()
-            this[TrainingRatingsTable.ratingTenths] = tenths
+            this[TrainingRatingsTable.ratingHundredths] = hundredths
             this[TrainingRatingsTable.updatedAt] = now
             this[TrainingRatingsTable.updatedBy] = updatedBy.toUuid()
         }

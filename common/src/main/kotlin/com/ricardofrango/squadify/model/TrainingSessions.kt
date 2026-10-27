@@ -179,11 +179,11 @@ data class SaveTrainingRatingsRequest(val ratings: List<TrainingRatingChange>)
 @Serializable
 data class TrainingRatingChange(val playerId: String, val rating: Double?)
 
-/** A rating as stored: tenths, 0–100. Null when it isn't a valid rating (outside 0–10 or more than one decimal). */
-fun ratingToTenths(rating: Double): Int? {
-    val tenths = kotlin.math.round(rating * 10).toInt()
-    if (kotlin.math.abs(rating * 10 - tenths) > 1e-6 || tenths !in 0..100) return null
-    return tenths
+/** A rating as stored: hundredths, 0–1000. Null when it isn't a valid rating (outside 0–10 or more than two decimals). */
+fun ratingToHundredths(rating: Double): Int? {
+    val hundredths = kotlin.math.round(rating * 100).toInt()
+    if (kotlin.math.abs(rating * 100 - hundredths) > 1e-6 || hundredths !in 0..1000) return null
+    return hundredths
 }
 
 /** Attendance and average of a set of ratings: Absent (0) counts as not attended and isn't averaged. */

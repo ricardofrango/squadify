@@ -1303,7 +1303,6 @@
     <string name="msg_ratings_cancelled">Uma sessão cancelada não é avaliada.</string>
     <string name="home_training_needs_ratings">O treino de %1$s precisa de avaliações · %2$s</string>
     <string name="home_trainings_need_ratings">%1$d treinos precisam de avaliações</string>
-    <string name="label_not_rated">Por avaliar</string>
     <string name="label_absent_count">%1$d ausentes</string>
     <string name="msg_ratings_not_open">As avaliações abrem quando a sessão terminar.</string>
     <!-- Training stats (design 39j) -->
@@ -1321,7 +1320,6 @@
     <string name="msg_absent_not_averaged">Ausente (0) não conta para a média.</string>
     <string name="msg_no_training_stats">Ainda sem sessões de treino terminadas.</string>
     <!-- Rate players: text box -->
-    <string name="msg_rate_intro">Escreva a avaliação de cada jogador de 0 a 10, com decimais (7,5). 0 significa ausente; deixe vazio se ainda não avaliou. As avaliações só são visíveis para a equipa técnica.</string>
     <string name="msg_rating_invalid">De 0 a 10, ex.: 7,5</string>
     <!-- Edit team: delete -->
     <string name="btn_delete_team">Eliminar equipa</string>

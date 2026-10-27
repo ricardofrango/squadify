@@ -7,12 +7,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -60,14 +62,17 @@ fun FormTextField(
     // Next moves to the following field (Compose's default for ImeAction.Next); the last field's
     // action submits, like the button below it.
     imeAction: ImeAction = ImeAction.Next,
-    onImeAction: (() -> Unit)? = null
+    onImeAction: (() -> Unit)? = null,
+    // Centre for a short value in a narrow box (e.g. a rating); the placeholder follows it.
+    textAlign: TextAlign = TextAlign.Start
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = label?.let { { Text(it) } },
         supportingText = supporting?.let { { Text(it) } },
-        placeholder = placeholder?.let { { Text(it, color = Color.Gray.copy(alpha = 0.7f)) } },
+        placeholder = placeholder?.let { { Text(it, color = Color.Gray.copy(alpha = 0.7f), textAlign = textAlign, modifier = Modifier.fillMaxWidth()) } },
+        textStyle = LocalTextStyle.current.copy(textAlign = textAlign),
         modifier = modifier.fillMaxWidth(),
         singleLine = singleLine,
         minLines = minLines,

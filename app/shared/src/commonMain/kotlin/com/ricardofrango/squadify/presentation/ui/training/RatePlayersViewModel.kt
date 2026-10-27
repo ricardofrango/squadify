@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.domain.usecase.TrainingRatingsUseCase
 import com.ricardofrango.squadify.model.TrainingRatingChange
 import com.ricardofrango.squadify.model.TrainingRatings
 import com.ricardofrango.squadify.presentation.errorMessage
+import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -17,7 +18,7 @@ import kotlinx.coroutines.launch
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_ratings_save_failed
 
-// Rate players: a text box per player for a rating from 0 to 10 with up to one decimal ("7.5" or "7,5").
+// Rate players: a text box per player for a rating from 0 to 10 with up to two decimals ("7.55" or "7,55").
 // 0 means absent; an empty box means not rated. Saving is partial.
 
 /** A box's text read as a rating: [Valid] (null when empty) or [Invalid]. */
@@ -26,7 +27,7 @@ internal sealed interface RatingInput {
     data object Invalid : RatingInput
 }
 
-private val RatingPattern = Regex("""^\d{1,2}([.,]\d?)?$""")
+private val RatingPattern = Regex("""^\d{1,2}([.,]\d{0,2})?$""")
 
 internal fun parseRating(text: String): RatingInput {
     val trimmed = text.trim()
@@ -37,11 +38,16 @@ internal fun parseRating(text: String): RatingInput {
     return if (value <= 10.0) RatingInput.Valid(value) else RatingInput.Invalid
 }
 
-/** How a stored rating shows in its box: "8", "7.5", or empty when not rated. */
-internal fun ratingText(rating: Double?): String = when {
-    rating == null -> ""
-    rating % 1.0 == 0.0 -> rating.toInt().toString()
-    else -> rating.oneDecimalString()
+/** How a stored rating shows in its box: "8", "7.5", "7.55", or empty when not rated. */
+internal fun ratingText(rating: Double?): String {
+    if (rating == null) return ""
+    val hundredths = kotlin.math.round(rating * 100).toInt()
+    val decimals = hundredths % 100
+    return when {
+        decimals == 0 -> "${hundredths / 100}"
+        decimals % 10 == 0 -> "${hundredths / 100}.${decimals / 10}"
+        else -> "${hundredths / 100}.${decimals.toString().padStart(2, '0')}"
+    }
 }
 
 /** What changed against what was loaded: a new value, or null when a rating was cleared. */
@@ -60,7 +66,9 @@ data class RatePlayersUiState(
     // What's typed in each player's box.
     val texts: Map<String, String> = emptyMap(),
     val saving: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    // The list's order, by name by default; kept on screen only.
+    val sort: CallUpSort = CallUpSort.NAME
 ) {
     private val inputs: Map<String, RatingInput> get() = texts.mapValues { parseRating(it.value) }
     /** The players whose box isn't a valid rating; Save waits for them. */
@@ -102,9 +110,11 @@ class RatePlayersViewModel(
         val byPlayer = ratings.ratings.associate { it.playerId to it.rating }
         val values: Map<String, Double?> = ratings.players.associate { it.id to byPlayer[it.id] }
         _state.update {
-            RatePlayersUiState(loading = false, ratings = ratings, original = values, texts = values.mapValues { (_, v) -> ratingText(v) })
+            RatePlayersUiState(sort = it.sort, loading = false, ratings = ratings, original = values, texts = values.mapValues { (_, v) -> ratingText(v) })
         }
     }
+
+    fun onSort(sort: CallUpSort) = _state.update { it.copy(sort = sort) }
 
     fun onText(playerId: String, text: String) = _state.update { it.copy(texts = it.texts + (playerId to text), error = null) }
 
