@@ -48,11 +48,6 @@ concurrency:
 
 env:
   SQUADIFY_ENV: ${{ inputs.environment || 'staging' }}
-  # Webpack's production minifier runs out of Node's default heap on the runner. The runner has 16 GB
-  # in all, so the build below also runs one task at a time and compiles inside Gradle (no separate
-  # 4 GB Kotlin daemon): with webpack, wasm-opt, Gradle and the Kotlin daemon all at once, the runner
-  # ran out of memory and was shut down.
-  NODE_OPTIONS: --max-old-space-size=6144
 
 jobs:
   build:
@@ -67,8 +62,31 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       # Only so Gradle can configure :app:shared -> :core's Android target; nothing Android is built.
       - uses: android-actions/setup-android@v4
-      # No --configure-on-demand: the js/wasmJs targets don't support it.
-      - run: ./gradlew :app:webApp:composeCompatibilityBrowserDistribution -PsquadifyEnv="$SQUADIFY_ENV" --no-daemon --max-workers=1 -Pkotlin.compiler.execution.strategy=in-process -Dorg.gradle.jvmargs="-Xmx6g -Dfile.encoding=UTF-8"
+      # The runner of a private repo has 7 GB of memory. The Kotlin compile (a few GB of Gradle heap)
+      # and webpack's minifier (about 4 GB of Node) don't fit at the same time, and the runner was shut
+      # down when they overlapped. So the build runs in two Gradle invocations: the first compiles, and
+      # its JVM exits; the second, with a small heap, only links, optimises and bundles what's compiled.
+      # One task at a time in each, and some swap as a margin. No --configure-on-demand: the js/wasmJs
+      # targets don't support it.
+      - name: Add swap
+        run: |
+          sudo fallocate -l 4G /swapfile-build
+          sudo chmod 600 /swapfile-build
+          sudo mkswap /swapfile-build
+          sudo swapon /swapfile-build
+          free -h
+      - name: Compile
+        run: >-
+          ./gradlew :app:webApp:compileProductionExecutableKotlinJs :app:webApp:compileProductionExecutableKotlinWasmJs
+          -PsquadifyEnv="$SQUADIFY_ENV" --no-daemon --max-workers=1
+          -Pkotlin.compiler.execution.strategy=in-process -Dorg.gradle.jvmargs="-Xmx5g -Dfile.encoding=UTF-8"
+      - name: Bundle
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: >-
+          ./gradlew :app:webApp:composeCompatibilityBrowserDistribution
+          -PsquadifyEnv="$SQUADIFY_ENV" --no-daemon --max-workers=1
+          -Pkotlin.compiler.execution.strategy=in-process -Dorg.gradle.jvmargs="-Xmx1g -Dfile.encoding=UTF-8"
       - name: Assemble the upload
         run: |
           mkdir -p web-deploy/app/webApp

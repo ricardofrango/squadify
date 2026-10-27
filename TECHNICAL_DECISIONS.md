@@ -367,6 +367,15 @@ existing directory is not allowed"), regardless of `--configure-on-demand`.
   root and at `app/webApp/Dockerfile`, so it works whichever Dockerfile path the Railway service is set
   to. `app/webApp/Dockerfile` (the full build) stays for a self-contained `docker build` from the repo
   root.
+- **Fitting the runner's memory:** this repo is private, and GitHub's standard runner for a private repo
+  has 7 GB of memory. The first runs failed there: Node's default heap ran out in webpack's minifier, and
+  with that raised, the runner was shut down when the Kotlin compile's Gradle heap and webpack's Node
+  (about 4 GB at peak) overlapped. The workflow therefore builds in two Gradle invocations: **Compile**
+  (`compileProductionExecutableKotlinJs` / `...KotlinWasmJs`, a 5 GB heap, Kotlin in-process), then
+  **Bundle** (`composeCompatibilityBrowserDistribution` with a 1 GB heap, only linking, wasm-opt and
+  webpack, with Node at 4 GB), one task at a time, on 4 GB of added swap. `app/webApp/webpack.config.d/production.js`
+  also drops the production source maps (16 MB that nothing on the deployed site reads) and runs terser
+  on one thread.
 
 ## 14. Association Notification Email: EmailService + Resend
 
