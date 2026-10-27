@@ -530,7 +530,11 @@ Split across two mechanisms, deliberately not funneled entirely through GitHub A
 
 - **Web client, staging and production** (since 2026-10-27, §13): `.github/workflows/deploy-web.yml`
   builds the bundle in Actions and deploys it with the Railway CLI (`railway up web-deploy --path-as-root
-  --service webApp --ci`), replacing Railway's own build of it, which ran out of time. Staging: on push
+  --service "$RAILWAY_WEB_SERVICE" --ci`, the web service's ID, not its name, which failed with "Service
+  not found"; the ID is in the service's dashboard URL, `/service/<id>`). The ID comes from a repository
+  variable per environment: `RAILWAY_WEB_SERVICE_STAGING` (set; Railway project `empowering-creation`)
+  and `RAILWAY_WEB_SERVICE_PRODUCTION` (not yet: Railway production isn't set up; when it is, set it, and
+  check `deploy-production.yml`'s `--service server` too), replacing Railway's own build of it, which ran out of time. Staging: on push
   to `develop`, scoped with a `paths` filter to what the web client is built from (`app/webApp`,
   `app/shared`, `core`, `common`, the root build files); a newer push cancels a staging deploy still
   building. Production: `deploy-production.yml` calls it (`workflow_call`) after its test gate, or it's

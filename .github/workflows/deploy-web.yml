@@ -108,16 +108,24 @@ jobs:
     container: ghcr.io/railwayapp/cli:latest
     env:
       RAILWAY_TOKEN: ${{ (inputs.environment || 'staging') == 'production' && secrets.RAILWAY_TOKEN || secrets.RAILWAY_STAGING_TOKEN }}
+      # The web service's Railway ID (from its dashboard URL), a repository variable per environment,
+      # since a production in its own Railway project would have different IDs.
+      RAILWAY_WEB_SERVICE: ${{ (inputs.environment || 'staging') == 'production' && vars.RAILWAY_WEB_SERVICE_PRODUCTION || vars.RAILWAY_WEB_SERVICE_STAGING }}
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: web-deploy
           path: web-deploy
-      - name: Check the token
+      - name: Check the token and service
         run: |
           if [ -z "$RAILWAY_TOKEN" ]; then
             echo "::error::The Railway token for $SQUADIFY_ENV isn't set (RAILWAY_STAGING_TOKEN / RAILWAY_TOKEN)"
             exit 1
           fi
-      # --path-as-root: the upload's root is web-deploy/, not the repo.
-      - run: railway up web-deploy --path-as-root --service webApp --ci
+          if [ -z "$RAILWAY_WEB_SERVICE" ]; then
+            echo "::error::The web service's Railway ID for $SQUADIFY_ENV isn't set (variable RAILWAY_WEB_SERVICE_STAGING / RAILWAY_WEB_SERVICE_PRODUCTION)"
+            exit 1
+          fi
+      # --path-as-root: the upload's root is web-deploy/, not the repo. --service takes the service's
+      # ID rather than its name, which can be renamed in Railway.
+      - run: railway up web-deploy --path-as-root --service "$RAILWAY_WEB_SERVICE" --ci
