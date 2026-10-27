@@ -4,12 +4,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.compose.rememberNavController
 import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.network.ktor3.KtorNetworkFetcherFactory
 import com.ricardofrango.squadify.presentation.navigation.AppNavigation
-import com.ricardofrango.squadify.presentation.navigation.LocalAppNavController
+import com.ricardofrango.squadify.presentation.navigation.LocalAppNavigator
+import com.ricardofrango.squadify.presentation.navigation.rememberAppNavigator
 import com.ricardofrango.squadify.presentation.navigation.LocalClubThemes
 import com.ricardofrango.squadify.presentation.ui.theme.ClubThemeStore
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
@@ -28,10 +28,10 @@ fun App() {
     }
     SquadifyTheme {
         // A club's screens find their club (SquadifyClubTheme) through these.
-        val navController = rememberNavController()
+        val navigator = rememberAppNavigator()
         val clubThemes by koinInject<ClubThemeStore>().themes.collectAsStateWithLifecycle()
-        CompositionLocalProvider(LocalAppNavController provides navController, LocalClubThemes provides clubThemes) {
-            AppNavigation(navController)
+        CompositionLocalProvider(LocalAppNavigator provides navigator, LocalClubThemes provides clubThemes) {
+            AppNavigation(navigator)
         }
     }
 }

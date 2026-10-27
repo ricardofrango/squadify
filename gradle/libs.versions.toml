@@ -31,7 +31,7 @@ postgresql = "42.7.13"
 identityJvm = "202411.1"
 composeHotReload = "1.2.0"
 koinCore = "4.2.2"
-navigation = "2.9.2"
+navigation3 = "1.2.0"
 navigationevent = "1.0.1"
 kotlinx-coroutines = "1.11.0"
 kotlin-wrappers = "2026.8.0"
@@ -52,7 +52,10 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
 # Window size classes (TECHNICAL_DECISIONS §11.5).
 compose-material3-adaptive = { module = "org.jetbrains.compose.material3.adaptive:adaptive", version.ref = "material3Adaptive" }
-navigation = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation" }
+# Navigation 3: the app owns its back stack (TECHNICAL_DECISIONS §11.4).
+navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
+# A ViewModelStore per back-stack entry, as each NavBackStackEntry was in Navigation 2.
+androidx-lifecycle-viewmodelNavigation3 = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "androidx-lifecycle" }
 # NavigationBackHandler -- the replacement for Compose's deprecated BackHandler (ui-backhandler).
 navigationevent-compose = { module = "org.jetbrains.androidx.navigationevent:navigationevent-compose", version.ref = "navigationevent" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koinCore" }

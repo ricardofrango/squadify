@@ -1,8 +1,5 @@
 package com.ricardofrango.squadify.presentation.navigation
 
-import androidx.navigation.NavController
-import androidx.navigation.NavDestination
-import androidx.navigation.NavDestination.Companion.hasRoute
 import com.ricardofrango.squadify.model.PushLink
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,13 +46,6 @@ fun pushLinkBackStack(link: PushLink, onlyClubId: String?): List<Screen> {
     return club + listOfNotNull(target)
 }
 
-/** Replaces the whole back stack with [screens], bottom first. */
-fun NavController.openBackStack(screens: List<Screen>) {
-    val root = screens.firstOrNull() ?: return
-    navigate(root) { popUpTo(graph.id) { inclusive = true } }
-    screens.drop(1).forEach { navigate(it) }
-}
-
 /** Splash and the sign-in screens: a push link waits until the user is past them. */
-fun NavDestination.isBeforeSignIn(): Boolean =
-    hasRoute<Screen.Splash>() || hasRoute<Screen.Login>() || hasRoute<Screen.Register>() || hasRoute<Screen.ForgotPassword>()
+fun Screen.isBeforeSignIn(): Boolean =
+    this is Screen.Splash || this is Screen.Login || this is Screen.Register || this is Screen.ForgotPassword

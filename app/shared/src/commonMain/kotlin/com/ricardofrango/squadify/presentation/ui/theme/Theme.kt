@@ -7,7 +7,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.ricardofrango.squadify.model.ClubTheme
-import com.ricardofrango.squadify.presentation.navigation.LocalAppNavController
+import com.ricardofrango.squadify.presentation.navigation.LocalAppNavigator
 import com.ricardofrango.squadify.presentation.navigation.LocalClubThemes
 import com.ricardofrango.squadify.presentation.navigation.topClubId
 
@@ -51,8 +51,8 @@ fun SquadifyTheme(
  */
 @Composable
 fun SquadifyClubTheme(content: @Composable () -> Unit) {
-    val navController = LocalAppNavController.current
-    val clubId = rememberSaveable { navController?.topClubId().orEmpty() }
+    val navigator = LocalAppNavigator.current
+    val clubId = rememberSaveable { navigator?.topClubId().orEmpty() }
     SquadifyClubTheme(LocalClubThemes.current[clubId], content)
 }
 
