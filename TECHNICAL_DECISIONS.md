@@ -3105,3 +3105,35 @@ The developer, 2026-10-26: a game whose date has passed without it being started
 - **Who sees it:** whoever can enter the result, `MANAGE_LIVE_MATCH` (§70): admins, coordinators and platform admins for the whole club, and the age group's staff by default.
 - **It clears** when the game is started, its result is entered, or it's cancelled.
 
+
+## 72. Squadify for Coaches: a Second Product on Shared Code
+
+The developer, 2026-10-27: a lighter, separate product for a coach on their own (REQUIREMENTS §5c, Phase 9). *Planned; nothing is built yet.*
+
+**Two apps, two servers, two databases, one codebase.**
+- **Separate apps:** "Squadify for Clubs" (today's app, every platform) and "Squadify for Coaches" (Android and iOS only), each with its own store listing, app id, name and icon.
+- **Separate servers and databases:** the coach product has its own Ktor server, Postgres database and Railway service. Coach data can never reach a club's, each product scales and is priced on its own, and the coach schema has none of the clubs' roles and configurable permissions.
+- **Shared code:** what the two have in common, above all the live game sync, but also the models, the game use cases and the stats, is written once.
+
+**The server split:**
+- **`:server:core`**, a shared module: the game use cases (live sync, events, lineup, minutes, the record after the game §70, stats), `MatchPlayerStatsCalculator`, `LiveMatchBus`, `ClubMatchesBus`, `TransactionManager`, the repository interfaces, and the login code (password hashing, tokens, refresh). The models stay in `common`.
+- **`:server:clubs`** (today's `:server`) and **`:server:coach`**: each with its own routes, Koin setup, migrations and deploy.
+- **Permissions behind an interface:** today 84 use cases call `CheckUserPermissionUseCase` with club roles and configurable permissions (e.g. `MANAGE_LIVE_MATCH` in `AddMatchEventUseCase`). That call becomes an `AccessPolicy`, provided by each server:
+    - **clubs:** today's rules, unchanged;
+    - **coach:** a member of the space has full access, limited only by the space's plan (stats from Basic, staff following the game live from Pro, the member limit when inviting).
+- **Plan limits are enforced on the server**, not only hidden in the app, so a modified app can't get round them.
+- **Shared tables:** the shared Exposed repositories need the game tables (matches, call-ups, events, stats) to be identical in both databases. Each server owns its migrations, and a test on each runs its migrations and checks with Exposed that they match the shared table definitions, so the two schemas can't drift apart unnoticed.
+- **Order:** the shared module and `AccessPolicy` come first, with the clubs server moved onto them and its tests unchanged, before any coach code exists.
+
+**The app split:**
+- **`app/shared`** keeps the screens, view models, use cases and the repositories both apps use.
+- **A clubs module and a coach module**, each with its own Koin module (its own repository implementations where they differ, its own server URL), its own top-level navigation (the clubs app has the club switcher, Club settings, members, permissions; the coach app goes straight to the coach's space) and its own strings.
+- **Entry points:** today's Android, iOS, web and desktop apps start the clubs module; a second Android app module and a second iOS target start the coach module.
+
+**Accounts are not shared, for now.** Each server keeps its own users table, with the same login code from `:server:core`.
+- **Why not one login server for both:** it would be a third service to host, and if it went down both products would stop. It would also mean moving the clubs app's login (refresh, password reset, email change) onto it.
+- **What a shared login would give:** an easier move of an age group from a coach's space to a club later (REQUIREMENTS §5c), since the same person would already be known on both sides. That move isn't planned yet. When it is, choose between:
+    - a shared login: either a small login service whose signed tokens both servers verify with its public key, or Firebase Authentication (already in the project for Crashlytics; it can import the existing bcrypt hashes and provides Sign in with Apple, which the App Store requires alongside other social logins);
+    - or, without one, a one-time transfer: the coach app gives a code, a club admin enters it in the clubs app, and the clubs server fetches the age group from the coach server, matching staff by email.
+
+**Payments and ads (later):** RevenueCat for subscriptions on Google Play and the App Store, reporting changes to the coach server; AdMob on the Free plan. When a subscription ends, the space falls back to Free: nothing is deleted, stats keep being calculated, and the other members lose access until it's paid again.
