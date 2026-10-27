@@ -1,7 +1,8 @@
 name: Deploy production
 
 # Manual only (workflow_dispatch) -- deliberately not on push, per the developer. Deploys the server and
-# web client services to Railway's production environment via the Railway CLI, using the current state
+# web client services to Railway's production environment via the Railway CLI (the web client built
+# here first, by deploy-web.yml), using the current state
 # of whichever branch is selected when the workflow is run (defaults to main). Android/iOS store
 # publishing is out of scope here -- see ISSUES TO FIX.md.
 #
@@ -52,5 +53,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Deploy server
         run: railway up --service server --ci
-      - name: Deploy web client
-        run: railway up --service webApp --ci
+
+  # The web client is built here in Actions and Railway only serves it (deploy-web.yml), since
+  # Railway's own build of it ran out of time.
+  deploy-web-production:
+    needs: test
+    uses: ./.github/workflows/deploy-web.yml
+    with:
+      environment: production
+    secrets: inherit
