@@ -3162,3 +3162,16 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
 - **Account deletion:** the coach server needs an endpoint and the app a screen for it, because coaches sign up in the app (required by both stores). It deletes the user and, for an owner, the space with everything in it.
 
 **Payments and ads (later):** RevenueCat for subscriptions on Google Play and the App Store, reporting changes to the coach server; AdMob on the Free plan, after Google's consent form (UMP), which the EU requires. When a subscription ends, the space falls back to Free: nothing is deleted, stats keep being calculated, and the other members lose access until it's paid again.
+
+## 73. Date and Time Pickers in the App's Colours
+
+The developer, 2026-10-27: the kick-off time sheet and the calendars didn't match the app. The sheets were white (`containerColor = Color.White`), but Material's `DatePicker`, `DateRangePicker` and `TimePicker` took their colours from the colour scheme, and `SquadifyTheme` follows the phone's dark mode (`DarkColorScheme`). So with dark mode on, a dark calendar or clock sat between the white title and the white button, and the selected values used the dark scheme's grey `primary`.
+
+Now every picker takes fixed colours from `components/PickerColors.kt`: `squadifyDatePickerColors()` (Date picker sheet, Full stats' custom range) and `squadifyTimePickerColors()` (Time picker sheet).
+
+- **White surfaces, carbon text**, as the sheet around them.
+- **The selection in the accent** (`PitchGreen`, the club's colour on a club screen): the selected day and year, today's border, the clock's hand and selected number. A range's days in between and the time box being edited get the accent at 12%, like the More panel's icon tiles.
+- **Light grey** (`ScreenBackground`) for the clock dial and the time box not being edited.
+- The sheet title is a small grey label above the value, as in the date picker.
+
+Previews show both sheets in landscape and with dark mode on.

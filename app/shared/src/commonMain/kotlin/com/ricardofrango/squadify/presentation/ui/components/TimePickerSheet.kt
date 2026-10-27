@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
@@ -61,10 +62,11 @@ fun TimePickerSheet(
             Text(
                 text = stringResource(title),
                 modifier = Modifier.fillMaxWidth(),
-                color = DeepCarbon,
+                color = DeepCarbon.copy(alpha = 0.6f),
+                style = MaterialTheme.typography.labelLarge,
                 textAlign = TextAlign.Start
             )
-            TimePicker(state = timePickerState)
+            TimePicker(state = timePickerState, colors = squadifyTimePickerColors())
             Button(
                 onClick = { onConfirm(LocalTime(timePickerState.hour, timePickerState.minute)) },
                 modifier = Modifier.fillMaxWidth(),
@@ -83,6 +85,33 @@ fun TimePickerSheet(
 @Composable
 private fun TimePickerSheetPreview() {
     SquadifyTheme {
+        TimePickerSheet(
+            title = Res.string.label_select_kickoff_time,
+            initialTime = LocalTime(10, 30),
+            onConfirm = {},
+            onDismiss = {}
+        )
+    }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun TimePickerSheetLandscapePreview() {
+    SquadifyTheme {
+        TimePickerSheet(
+            title = Res.string.label_select_kickoff_time,
+            initialTime = LocalTime(10, 30),
+            onConfirm = {},
+            onDismiss = {}
+        )
+    }
+}
+
+// A phone in dark mode: the picker keeps the app's light colours.
+@Preview
+@Composable
+private fun TimePickerSheetDarkModePreview() {
+    SquadifyTheme(darkTheme = true) {
         TimePickerSheet(
             title = Res.string.label_select_kickoff_time,
             initialTime = LocalTime(10, 30),

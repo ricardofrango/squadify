@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SelectableDates
@@ -66,8 +65,10 @@ fun DatePickerSheet(
         sheetState = sheetState,
         containerColor = Color.White
     ) {
+        val colors = squadifyDatePickerColors()
         DatePicker(
             state = datePickerState,
+            colors = colors,
             showModeToggle = false,
             title = {
                 Text(
@@ -79,7 +80,7 @@ fun DatePickerSheet(
                             top = 16.dp
                         )
                     ),
-                    color = DatePickerDefaults.colors().titleContentColor,
+                    color = colors.titleContentColor,
                 )
             }
         )
@@ -109,6 +110,32 @@ fun DatePickerSheet(
 @Composable
 private fun CreateContentPreviewPortrait() {
     SquadifyTheme {
+        DatePickerSheet(
+            title = Res.string.label_select_start_date,
+            initialDate = LocalDate(2023, 1, 1),
+            onConfirm = {},
+            onDismiss = {}
+        )
+    }
+}
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun DatePickerSheetLandscapePreview() {
+    SquadifyTheme {
+        DatePickerSheet(
+            title = Res.string.label_select_start_date,
+            initialDate = LocalDate(2023, 1, 1),
+            onConfirm = {},
+            onDismiss = {}
+        )
+    }
+}
+
+// A phone in dark mode: the calendar keeps the app's light colours.
+@Preview
+@Composable
+private fun DatePickerSheetDarkModePreview() {
+    SquadifyTheme(darkTheme = true) {
         DatePickerSheet(
             title = Res.string.label_select_start_date,
             initialDate = LocalDate(2023, 1, 1),
