@@ -52,6 +52,8 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.ktx)
 
+    // The root keyboard padding in MainActivity (WindowInsets, windowInsetsPadding).
+    implementation(libs.compose.foundation)
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
     
