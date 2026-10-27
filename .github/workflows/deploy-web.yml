@@ -48,8 +48,11 @@ concurrency:
 
 env:
   SQUADIFY_ENV: ${{ inputs.environment || 'staging' }}
-  # Webpack's production minifier runs out of Node's default heap on the runner (16 GB of RAM).
-  NODE_OPTIONS: --max-old-space-size=8192
+  # Webpack's production minifier runs out of Node's default heap on the runner. The runner has 16 GB
+  # in all, so the build below also runs one task at a time and compiles inside Gradle (no separate
+  # 4 GB Kotlin daemon): with webpack, wasm-opt, Gradle and the Kotlin daemon all at once, the runner
+  # ran out of memory and was shut down.
+  NODE_OPTIONS: --max-old-space-size=6144
 
 jobs:
   build:
@@ -65,7 +68,7 @@ jobs:
       # Only so Gradle can configure :app:shared -> :core's Android target; nothing Android is built.
       - uses: android-actions/setup-android@v4
       # No --configure-on-demand: the js/wasmJs targets don't support it.
-      - run: ./gradlew :app:webApp:composeCompatibilityBrowserDistribution -PsquadifyEnv="$SQUADIFY_ENV" --no-daemon
+      - run: ./gradlew :app:webApp:composeCompatibilityBrowserDistribution -PsquadifyEnv="$SQUADIFY_ENV" --no-daemon --max-workers=1 -Pkotlin.compiler.execution.strategy=in-process -Dorg.gradle.jvmargs="-Xmx6g -Dfile.encoding=UTF-8"
       - name: Assemble the upload
         run: |
           mkdir -p web-deploy/app/webApp
