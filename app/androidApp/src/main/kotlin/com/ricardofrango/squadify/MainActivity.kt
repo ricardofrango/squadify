@@ -11,12 +11,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -43,9 +39,11 @@ class MainActivity : ComponentActivity(), KoinComponent {
             // The keyboard resizes the app instead of sliding the window up (adjustResize in the
             // manifest; without it Android panned the whole window, pushing the top bar under the status
             // bar and re-panning on every new field): everything is laid out above the keyboard. The
-            // navigation bar is left out, since each screen's Scaffold already pads for it; the insets
-            // used here are consumed, so a screen's own imePadding() doesn't add them again.
-            Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.ime.exclude(WindowInsets.navigationBars))) {
+            // full keyboard height: it covers the navigation bar, and consuming it here means a screen's
+            // navigationBarsPadding() and imePadding() add nothing more while it's open (consumed insets
+            // are counted per side, not per type, so leaving the navigation bar out here left pinned bars
+            // a navigation bar's height under the keyboard).
+            Box(Modifier.fillMaxSize().imePadding()) {
                 App()
             }
         }

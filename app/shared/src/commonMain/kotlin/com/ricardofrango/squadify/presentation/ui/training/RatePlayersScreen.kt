@@ -10,9 +10,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -164,7 +161,9 @@ private fun RatePlayersContent(
             return@Scaffold
         }
         val players = ratings.players.sortedWith(playerComparator(state.sort))
-        // No bottom padding: the list runs straight into the pinned bar.
+        // No bottom padding: the list runs straight into the pinned bar. Moving between boxes makes the
+        // keyboard close and reopen on some devices (Samsung): that's Compose's own behaviour, on every
+        // screen with several text boxes (TECHNICAL_DECISIONS.md §11.6).
         LazyColumn(
             modifier,
             contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top),
@@ -188,12 +187,10 @@ private fun RatePlayersContent(
                     invalid = player.id in state.invalid,
                     enabled = ratings.ratingsOpen && !state.saving,
                     last = i == players.lastIndex,
-                    onText = { onText(player.id, it) }
+                    onText = { onText(player.id, it) },
+                    onSave = onSave
                 )
             }
-            // As tall as the keyboard while it's open (nothing when it's closed), so the last players
-            // can scroll up above it.
-            item { Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.ime)) }
         }
     }
     if (askDiscard) DiscardChangesDialog(onDiscard = { askDiscard = false; onNavigateBack() }, onKeepEditing = { askDiscard = false })
@@ -207,7 +204,8 @@ private fun PlayerRatingRow(
     invalid: Boolean,
     enabled: Boolean,
     last: Boolean,
-    onText: (String) -> Unit
+    onText: (String) -> Unit,
+    onSave: () -> Unit
 ) {
     Surface(
         shape = RoundedCornerShape(14.dp),
@@ -237,8 +235,10 @@ private fun PlayerRatingRow(
                 enabled = enabled,
                 keyboardType = KeyboardType.Decimal,
                 isError = invalid,
-                // Next moves to the following player's box; the last one closes the keyboard.
+                // Next moves to the following player's box; the last one's action saves (when Save is
+                // enabled; otherwise it does nothing and the keyboard stays).
                 imeAction = if (last) ImeAction.Done else ImeAction.Next,
+                onImeAction = if (last) onSave else null,
                 // Four characters at most ("7,55"), centred.
                 textAlign = TextAlign.Center,
                 modifier = Modifier.width(76.dp)
