@@ -48,6 +48,8 @@ concurrency:
 
 env:
   SQUADIFY_ENV: ${{ inputs.environment || 'staging' }}
+  # Webpack's production minifier runs out of Node's default heap on the runner (16 GB of RAM).
+  NODE_OPTIONS: --max-old-space-size=8192
 
 jobs:
   build:
