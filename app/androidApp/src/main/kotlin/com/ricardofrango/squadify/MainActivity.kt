@@ -10,8 +10,16 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
@@ -32,7 +40,14 @@ class MainActivity : ComponentActivity(), KoinComponent {
 
         setContent {
             RequestNotificationPermission()
-            App()
+            // The keyboard resizes the app instead of sliding the window up (adjustResize in the
+            // manifest; without it Android panned the whole window, pushing the top bar under the status
+            // bar and re-panning on every new field): everything is laid out above the keyboard. The
+            // navigation bar is left out, since each screen's Scaffold already pads for it; the insets
+            // used here are consumed, so a screen's own imePadding() doesn't add them again.
+            Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.ime.exclude(WindowInsets.navigationBars))) {
+                App()
+            }
         }
     }
 
