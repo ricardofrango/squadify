@@ -358,6 +358,15 @@ existing directory is not allowed"), regardless of `--configure-on-demand`.
   setting (and any other project-level Gradle property) was silently never applied inside the container
   -- `:server`'s build happened to still succeed on Gradle/Kotlin's smaller defaults given its lighter
   compile, but this was luck, not correctness.
+- **Built in GitHub Actions, not on Railway** (2026-10-27): Railway's build of this Dockerfile grew past
+  its time limit ("DeadlineExceeded: context deadline exceeded") although the same command builds fine
+  elsewhere (about 16 minutes on a laptop). `.github/workflows/deploy-web.yml` now runs
+  `composeCompatibilityBrowserDistribution` on a GitHub runner and `railway up` uploads only the result:
+  the built files (`dist/`), `nginx.conf` and `app/webApp/prebuilt/Dockerfile`, an `nginx:alpine` image
+  that copies them in. Railway's build is then seconds. The upload carries that Dockerfile both at its
+  root and at `app/webApp/Dockerfile`, so it works whichever Dockerfile path the Railway service is set
+  to. `app/webApp/Dockerfile` (the full build) stays for a self-contained `docker build` from the repo
+  root.
 
 ## 14. Association Notification Email: EmailService + Resend
 
@@ -510,8 +519,19 @@ staging's auto-deploy triggers (both Railway's and the Android workflow's) point
 
 Split across two mechanisms, deliberately not funneled entirely through GitHub Actions:
 
-- **Railway (server + web client), staging**: Railway's own native GitHub integration (Railway dashboard
-  -> each service -> Settings -> Source), not a GitHub Actions workflow. Each staging-environment service
+- **Web client, staging and production** (since 2026-10-27, §13): `.github/workflows/deploy-web.yml`
+  builds the bundle in Actions and deploys it with the Railway CLI (`railway up web-deploy --path-as-root
+  --service webApp --ci`), replacing Railway's own build of it, which ran out of time. Staging: on push
+  to `develop`, scoped with a `paths` filter to what the web client is built from (`app/webApp`,
+  `app/shared`, `core`, `common`, the root build files); a newer push cancels a staging deploy still
+  building. Production: `deploy-production.yml` calls it (`workflow_call`) after its test gate, or it's
+  run by hand with environment = production. Tokens: `RAILWAY_STAGING_TOKEN` (a project token scoped to
+  staging) and the existing `RAILWAY_TOKEN` (production). The Railway webApp services no longer deploy
+  from GitHub themselves (Settings -> Source disconnected), or they'd still run the long build on every
+  push.
+- **Railway (server), staging**: Railway's own native GitHub integration (Railway dashboard
+  -> each service -> Settings -> Source), not a GitHub Actions workflow. *Until 2026-10-27 the web
+  client deployed this way too; see the item above.* Each staging-environment service
   is connected to this repo's `develop` branch with auto-deploy on, and Railway rebuilds/redeploys on
   every push using the same Dockerfiles already in the repo. Simpler and more reliable than reimplementing
   what Railway already does natively. Each service's **Watch Paths** setting (also Settings -> Source)
@@ -534,7 +554,7 @@ Split across two mechanisms, deliberately not funneled entirely through GitHub A
 - **Railway (server + web client), production**: `.github/workflows/deploy-production.yml`,
   `workflow_dispatch` only (the "Run workflow" button in the Actions tab, dispatched against `main` for a
   real release) -- deliberately not on push, per the developer. Same test gate, then the Railway CLI
-  (`ghcr.io/railwayapp/cli` container, `railway up --service <name> --ci`) via a `RAILWAY_TOKEN` project
+  (`ghcr.io/railwayapp/cli` container, `railway up --service <name> --ci`; the web client through `deploy-web.yml`, above) via a `RAILWAY_TOKEN` project
   token scoped to the production environment, following Railway's own documented CI pattern
   (https://docs.railway.com/cli/deploying). Android/iOS store publishing is deliberately out of scope
   here -- no signing/Play Console/App Store Connect pipeline exists yet (see `ISSUES TO FIX.md`).
@@ -542,7 +562,8 @@ Split across two mechanisms, deliberately not funneled entirely through GitHub A
 **Required repo secrets** (Settings -> Secrets and variables -> Actions) -- all set and verified working
 end-to-end against a real staging deploy: `FIREBASE_SERVICE_ACCOUNT_JSON`, `ANDROID_KEYSTORE_PROPERTIES`,
 `ANDROID_KEYSTORE_BASE64` (same service account/keystore used locally), and `RAILWAY_TOKEN` (a project
-token from Railway's dashboard, scoped to the production environment).
+token from Railway's dashboard, scoped to the production environment). Since 2026-10-27 also
+`RAILWAY_STAGING_TOKEN` (a project token scoped to the staging environment), for `deploy-web.yml`.
 
 ## 18. Call-up Status Simplified to Binary
 
