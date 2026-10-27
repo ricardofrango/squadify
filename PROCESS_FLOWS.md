@@ -4,6 +4,8 @@ This document maps every use case under `server/src/main/kotlin/.../domain/useca
 
 Generated from a read-through of all use cases on 2026-09-02. Per `AI_GUIDELINES.md`, this file should be revisited whenever a use case's business logic or flow changes.
 
+> **Squadify for Coaches** (planned, `TECHNICAL_DECISIONS.md` §72): its server's use cases and its database schema will get their own sections here once built. Until then, everything below is the clubs server.
+
 ## How to read these diagrams
 
 - Rectangles are actions or steps.

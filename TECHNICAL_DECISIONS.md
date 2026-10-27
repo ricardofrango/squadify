@@ -3120,7 +3120,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
 - **`:server:clubs`** (today's `:server`) and **`:server:coach`**: each with its own routes, Koin setup, migrations and deploy.
 - **Permissions behind an interface:** today 84 use cases call `CheckUserPermissionUseCase` with club roles and configurable permissions (e.g. `MANAGE_LIVE_MATCH` in `AddMatchEventUseCase`). That call becomes an `AccessPolicy`, provided by each server:
     - **clubs:** today's rules, unchanged;
-    - **coach:** a member of the space has full access, limited only by the space's plan (stats from Basic, staff following the game live from Pro, the member limit when inviting).
+    - **coach:** a member of the space (all staff, no roles) has full access, limited only by the space's plan: stats from Basic, staff following the game live from Pro, and the limits on age groups and on members per age group (REQUIREMENTS §5c). Over a limit after going down a plan, the earliest added members and the earliest created age groups keep working; the rest is kept but refused until the plan allows it.
 - **Plan limits are enforced on the server**, not only hidden in the app, so a modified app can't get round them.
 - **Shared tables:** the shared Exposed repositories need the game tables (matches, call-ups, events, stats) to be identical in both databases. Each server owns its migrations, and a test on each runs its migrations and checks with Exposed that they match the shared table definitions, so the two schemas can't drift apart unnoticed.
 - **Order:** the shared module and `AccessPolicy` come first, with the clubs server moved onto them and its tests unchanged, before any coach code exists.
@@ -3147,4 +3147,10 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
 - **Coach app on staging:** Android builds go to Firebase App Distribution like the clubs app's (§17), from their own workflow, with the same kind of paths filter: `app/shared`, the coach app modules, `common`.
 - **Production:** `deploy-production.yml` deploys both servers on a release, like the web app (§13).
 
-**Payments and ads (later):** RevenueCat for subscriptions on Google Play and the App Store, reporting changes to the coach server; AdMob on the Free plan. When a subscription ends, the space falls back to Free: nothing is deleted, stats keep being calculated, and the other members lose access until it's paid again.
+**Shared services:**
+- **Push:** a second app (Android and iOS) in the same Firebase project; the coach server sends with its own credentials and only to tokens in its own database.
+- **Email:** the same Resend domain (`squadify.pt`), with the coach product's own sender name and templates.
+- **Images:** the coach server's own storage for photos and logos.
+- **Account deletion:** the coach server needs an endpoint and the app a screen for it, because coaches sign up in the app (required by both stores). It deletes the user and, for an owner, the space with everything in it.
+
+**Payments and ads (later):** RevenueCat for subscriptions on Google Play and the App Store, reporting changes to the coach server; AdMob on the Free plan, after Google's consent form (UMP), which the EU requires. When a subscription ends, the space falls back to Free: nothing is deleted, stats keep being calculated, and the other members lose access until it's paid again.
