@@ -100,6 +100,27 @@ The domain follows a multi-tenant structure isolated by `clubId`:
   - **Player Details:** shows the player's own attendance and average training rating.
   - **Visibility:** staff only, like the ratings.
 
+## 5c. Squadify for Coaches *(planned -- see Phase 9)*
+The developer, 2026-10-27: a lighter, separate product for a coach on their own, outside any club. See `TECHNICAL_DECISIONS.md` §72 for how it's built.
+- **A separate app**, Android and iOS only (no web or desktop), with its own store listing. "Squadify for Clubs" (this app) and "Squadify for Coaches" don't share accounts or data: a coach's personal teams are in the coach app, their club's in the clubs app.
+- **What it has:** everything about games, since stats for the games are the point of the app: the coach's age groups and teams, players, seasons, opponents, the games calendar, call-ups, the live game, the record after the game, the match report and ratings, stats (Full stats included) and the games history, built from the same screens as the clubs app.
+- **What it leaves out:** training (§5b), a club concept (the developer: "more for the clubs"), and parents and players as users. The app is for staff organising their games, so every member is staff.
+- **No club and no roles.** Everything belongs to the coach's own space. The coach can invite other staff, and every member has full access.
+- **The owner:** whoever created the space. Only they pay, invite and remove members.
+- **Plans** (pricing still to be decided), for the whole space, not per person:
+
+    | Plan | Features | Age groups | Members |
+    |---|---|---|---|
+    | **Free**, with ads | Live game, calendar, history | 1 | 1 (the owner) |
+    | **Basic** | + stats | Up to 3 | Up to 3 per age group |
+    | **Pro** | + staff following the game live | No limit | No limit |
+
+- **Going down a plan** (payments stopped, or a change of plan): nothing is deleted, and stats keep being calculated, so going back up brings everything back.
+    - **Members over the limit:** the first ones added to each age group keep access (the first three on Basic; only the owner on Free). The others lose access until the plan allows them again.
+    - **Age groups over the limit:** the first ones created stay in use (three on Basic, one on Free). The others are kept but locked until the plan allows them again.
+- **Store requirements:** coaches sign up in the app, so the app must let them delete their account (App Store and Google Play rules). Ads on Free need the EU consent form first (Google's UMP). Each app has its own privacy policy and data-safety form.
+- **Moving to a club:** not for now. Later, possibly moving one age group (nothing more) from the coach app to a club.
+
 ## 6. Parent Features
 - **Dashboard**: Quick view of children's upcoming events.
 - **Calendar**: Aggregated view of all matches and training for their children.
@@ -251,3 +272,11 @@ The domain follows a multi-tenant structure isolated by `clubId`:
     - [x] Player evaluations per session, 0–10 with decimals (0 = did not take part), by any staff member of the age group. Staff-only.
     - [x] Home to-do when an ended session has players still to evaluate.
     - [x] Training stats (attendance, average rating) on Age Group Details' Stats tab and on Player Details, staff-only.
+- [ ] **Phase 9: Squadify for Coaches** (see §5c and `TECHNICAL_DECISIONS.md` §72):
+    - [ ] Shared server module (`:server:core`) with the game use cases, and the permission check behind an `AccessPolicy`. The clubs server moves onto it with no change in behaviour.
+    - [ ] The app split: shared screens and view models, plus a clubs module and a coach module (Koin setup, repositories, navigation, name, icon). A second Android app and a second iOS target.
+    - [ ] The coach server: its own database, migrations, users, spaces and members, deployed as its own Railway service and database, on staging and production. A change on `develop` that affects both servers (shared code or shared tables) deploys both to staging.
+    - [ ] The coach app: sign-up, first setup (sport, age group, team), invites.
+    - [ ] Plans stored and enforced on the server, set by a platform admin at first.
+    - [ ] Payments (RevenueCat) and ads on the Free plan (AdMob).
+    - [ ] Later: moving an age group from the coach app to a club.
