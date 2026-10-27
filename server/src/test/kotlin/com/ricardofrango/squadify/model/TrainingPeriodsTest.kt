@@ -53,12 +53,13 @@ class TrainingPeriodsTest {
     }
 
     @Test
-    fun ratingsAreStoredAsTenths() {
-        assertEquals(75, ratingToTenths(7.5))
-        assertEquals(0, ratingToTenths(0.0))
-        assertEquals(100, ratingToTenths(10.0))
-        assertEquals(null, ratingToTenths(7.25))
-        assertEquals(null, ratingToTenths(10.1))
+    fun ratingsAreStoredAsHundredths() {
+        assertEquals(750, ratingToHundredths(7.5))
+        assertEquals(755, ratingToHundredths(7.55))
+        assertEquals(0, ratingToHundredths(0.0))
+        assertEquals(1000, ratingToHundredths(10.0))
+        assertEquals(null, ratingToHundredths(7.555))
+        assertEquals(null, ratingToHundredths(10.01))
     }
 
     @Test

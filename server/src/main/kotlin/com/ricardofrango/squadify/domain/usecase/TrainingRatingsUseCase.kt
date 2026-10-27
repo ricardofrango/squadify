@@ -11,7 +11,7 @@ import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.SaveTrainingRatingsRequest
 import com.ricardofrango.squadify.model.TrainingRatings
 import com.ricardofrango.squadify.model.TrainingSession
-import com.ricardofrango.squadify.model.ratingToTenths
+import com.ricardofrango.squadify.model.ratingToHundredths
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -24,7 +24,7 @@ internal fun TrainingSession.ratingsOpen(now: LocalDateTime): Boolean =
 /**
  * Rating players after a training session (design 39g). Open to every coach and staff member of the age
  * group (and coordinators), never to players or parents. Ratings open when the session ends; each one is 0
- * ("did not take part") or 0.1–10.0 with one decimal, for players in the age group's pool. Saving is
+ * ("did not take part") or 0.01–10.00 with up to two decimals, for players in the age group's pool. Saving is
  * partial, and a null clears a rating.
  */
 class TrainingRatingsUseCase(
@@ -59,7 +59,7 @@ class TrainingRatingsUseCase(
         val pool = playerRepository.getPlayersByAgeGroup(ageGroup.id).map { it.id }.toSet()
         val changes = request.ratings.associate { change ->
             if (change.playerId !in pool) throw ValidationException("Only players of the age group can be rated")
-            change.playerId to change.rating?.let { ratingToTenths(it) ?: throw ValidationException("A rating is 0 to 10, with one decimal") }
+            change.playerId to change.rating?.let { ratingToHundredths(it) ?: throw ValidationException("A rating is 0 to 10, with up to two decimals") }
         }
         trainingRatingRepository.save(sessionId, changes, userId)
         get(userId, sessionId)

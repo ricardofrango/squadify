@@ -322,19 +322,21 @@ class TrainingSessionUseCasesTest {
         assertFailsWith<ValidationException> { ratingsUseCase.save(staff, "future", request) }
         assertFailsWith<ValidationException> { ratingsUseCase.save(staff, "today", request) }
         ratingsUseCase.save(staff, "past", request)
-        io.mockk.coVerify { ratingRepository.save("past", mapOf("p1" to 75), staff) }
+        io.mockk.coVerify { ratingRepository.save("past", mapOf("p1" to 750), staff) }
         change.cancel(user(ClubRole.COORDINATOR), "past")
         assertFailsWith<ValidationException> { ratingsUseCase.save(staff, "past", request) }
     }
 
     @Test
-    fun aRatingIsZeroToTenWithOneDecimalForPoolPlayersOnly() = runBlocking<Unit> {
+    fun aRatingIsZeroToTenWithUpToTwoDecimalsForPoolPlayersOnly() = runBlocking<Unit> {
         val coach = user(null, AgeGroupRole.COACH)
         coEvery { playerRepository.getPlayersByAgeGroup(ag.id) } returns pool
         existing("past", LocalDate(2026, 10, 15), LocalTime(18, 0))
         fun req(player: String, rating: Double?) = com.ricardofrango.squadify.model.SaveTrainingRatingsRequest(listOf(com.ricardofrango.squadify.model.TrainingRatingChange(player, rating)))
         assertFailsWith<ValidationException> { ratingsUseCase.save(coach, "past", req("p1", 10.5)) }
-        assertFailsWith<ValidationException> { ratingsUseCase.save(coach, "past", req("p1", 7.25)) }
+        assertFailsWith<ValidationException> { ratingsUseCase.save(coach, "past", req("p1", 7.255)) }
+        ratingsUseCase.save(coach, "past", req("p1", 7.55))
+        io.mockk.coVerify { ratingRepository.save("past", mapOf("p1" to 755), coach) }
         assertFailsWith<ValidationException> { ratingsUseCase.save(coach, "past", req("stranger", 7.0)) }
         ratingsUseCase.save(coach, "past", req("p2", 0.0))
         io.mockk.coVerify { ratingRepository.save("past", mapOf("p2" to 0), coach) }

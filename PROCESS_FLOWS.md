@@ -2224,9 +2224,9 @@ graph TD
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> O{"session ended (its end time passed) and not cancelled?"}
     O -- No --> V1(["Throw ValidationException"])
-    O -- Yes --> P{"every player in the age group's pool, every rating 0–10 with one decimal?"}
+    O -- Yes --> P{"every player in the age group's pool, every rating 0–10 with up to two decimals?"}
     P -- No --> V2(["Throw ValidationException"])
-    P -- Yes --> S["Upsert the given ratings (as tenths), delete those sent as null"]
+    P -- Yes --> S["Upsert the given ratings (as hundredths), delete those sent as null"]
     S --> Z(["Return the pool and the ratings"])
 ```
 
@@ -2643,7 +2643,7 @@ erDiagram
     TRAINING_RATINGS {
         uuid session_id PK, FK
         uuid player_id PK, FK
-        integer rating_tenths "0-100 (CHECK); 0 = did not take part"
+        integer rating_hundredths "0-1000 (CHECK); 0 = did not take part"
         timestamp updated_at
         uuid updated_by FK
     }
