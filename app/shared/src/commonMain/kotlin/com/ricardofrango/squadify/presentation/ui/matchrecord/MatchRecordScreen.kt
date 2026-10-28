@@ -259,13 +259,14 @@ private fun RecordBody(
         } else {
             item { SectionHeader(stringResource(Res.string.label_half_length)) }
             item {
-                // Chips that scroll sideways to the screen's edges, rather than a segmented bar
+                // The whole bar runs past the screen's padding and scrolls sideways, rather than
                 // scrolling inside its outline.
-                FilterChipRow(
+                SegmentedFilter(
                     options = RECORD_HALF_LENGTHS,
                     selected = state.halfLength,
                     label = { stringResource(Res.string.stats_minutes_value, it) },
                     onSelect = onHalfLength,
+                    shorten = false,
                     insidePaddedContent = true
                 )
             }
