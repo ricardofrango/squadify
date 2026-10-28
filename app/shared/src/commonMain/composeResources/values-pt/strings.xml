@@ -534,9 +534,6 @@
     <string name="report_chip_goals">G %1$d</string>
     <string name="report_chip_assists">A %1$d</string>
     <string name="report_chip_own_goals">AG %1$d</string>
-    <string name="report_new_hint_title">Comece pelas notas dos jogadores — a análise pode esperar.</string>
-    <string name="report_new_hint_body">Toque em Avaliar junto a cada jogador. É mais rápido com o jogo ainda fresco.</string>
-    <string name="report_new_hint_action">Avaliar o primeiro jogador</string>
     <string name="report_save_draft">Guardar rascunho</string>
     <string name="report_complete">Concluir relatório</string>
     <string name="report_update">Atualizar relatório</string>

@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -47,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -60,6 +62,7 @@ import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.ourSideFirst
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
+import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
 import com.ricardofrango.squadify.presentation.ui.components.PinnedBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
@@ -68,6 +71,7 @@ import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.livematch.DisplayEvent
 import com.ricardofrango.squadify.presentation.ui.livematch.buildDisplayEvents
+import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
 import com.ricardofrango.squadify.presentation.ui.matchdetails.RecordEventRow
 import com.ricardofrango.squadify.presentation.ui.matchdetails.SectionHeader
 import com.ricardofrango.squadify.presentation.ui.matchdetails.previewFinishedDetails
@@ -113,6 +117,7 @@ fun MatchRecordScreen(
             onHalfLength = viewModel::onHalfLength,
             onMinutes = viewModel::onMinutes,
             onFullMatch = viewModel::onFullMatch,
+            onSort = viewModel::onSort,
             onSave = viewModel::save
         )
     }
@@ -128,6 +133,7 @@ private fun MatchRecordContent(
     onHalfLength: (Int) -> Unit,
     onMinutes: (String, String) -> Unit,
     onFullMatch: (String) -> Unit,
+    onSort: (CallUpSort) -> Unit,
     onSave: () -> Unit
 ) {
     val idle = state as? MatchRecordUiState.Idle
@@ -180,7 +186,9 @@ private fun MatchRecordContent(
                 onEditEvent = { editing = it },
                 onHalfLength = onHalfLength,
                 onMinutes = onMinutes,
-                onFullMatch = onFullMatch
+                onFullMatch = onFullMatch,
+                onSort = onSort,
+                onSave = onSave
             )
         }
     }
@@ -228,7 +236,9 @@ private fun RecordBody(
     onEditEvent: (DraftEvent) -> Unit,
     onHalfLength: (Int) -> Unit,
     onMinutes: (String, String) -> Unit,
-    onFullMatch: (String) -> Unit
+    onFullMatch: (String) -> Unit,
+    onSort: (CallUpSort) -> Unit,
+    onSave: () -> Unit
 ) {
     val details = state.details
     val rows = remember(state.events) {
@@ -238,9 +248,7 @@ private fun RecordBody(
             .mapNotNull { row -> byKey[row.event.id]?.let { row to it } }
             .sortedWith(compareBy({ it.second.period }, { it.second.minute }))
     }
-    val players = remember(details) {
-        details.callUps.map { it.player }.sortedWith(compareBy({ it.shirtNumber ?: Int.MAX_VALUE }, { it.firstName.lowercase() }))
-    }
+    val players = remember(details, state.sort) { minutesOrder(details.callUps.map { it.player }, state.sort) }
     LazyColumn(modifier, contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item { ScoreCard(state) }
         if (!state.afterGame) {
@@ -274,9 +282,26 @@ private fun RecordBody(
                 )
             }
             item {
+                FilterChipRow(
+                    options = listOf(CallUpSort.NAME, CallUpSort.POSITION),
+                    selected = state.sort,
+                    label = { stringResource(if (it == CallUpSort.POSITION) Res.string.label_position_field else Res.string.label_sort_name) },
+                    onSelect = onSort,
+                    insidePaddedContent = true,
+                    leadingLabel = stringResource(Res.string.label_sort)
+                )
+            }
+            item {
                 SectionCard(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)) {
-                    players.forEach { player ->
-                        MinutesRow(player, state.minutes[player.id].orEmpty(), state.matchLength, { onMinutes(player.id, it) }, { onFullMatch(player.id) })
+                    players.forEachIndexed { i, player ->
+                        MinutesRow(
+                            player, state.minutes[player.id].orEmpty(), state.matchLength,
+                            enabled = !state.saving,
+                            last = i == players.lastIndex,
+                            onChange = { onMinutes(player.id, it) },
+                            onFullMatch = { onFullMatch(player.id) },
+                            onSave = onSave
+                        )
                     }
                 }
             }
@@ -307,7 +332,16 @@ private fun ScoreCard(state: MatchRecordUiState.Idle) {
 }
 
 @Composable
-private fun MinutesRow(player: Player, text: String, matchLength: Int, onChange: (String) -> Unit, onFullMatch: () -> Unit) {
+private fun MinutesRow(
+    player: Player,
+    text: String,
+    matchLength: Int,
+    enabled: Boolean,
+    last: Boolean,
+    onChange: (String) -> Unit,
+    onFullMatch: () -> Unit,
+    onSave: () -> Unit
+) {
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         PlayerBadge(player.photoUrl, player.shirtNumber, photoSize = 30.dp)
         Spacer(Modifier.width(8.dp))
@@ -323,7 +357,11 @@ private fun MinutesRow(player: Player, text: String, matchLength: Int, onChange:
             singleLine = true,
             placeholder = { Text("0", color = DeepCarbon.copy(alpha = 0.3f)) },
             suffix = { Text("'", color = DeepCarbon.copy(alpha = 0.5f)) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            enabled = enabled,
+            // Next moves to the following player's box; the last one's action saves (when Save is
+            // enabled; otherwise it does nothing and the keyboard stays), as on Rate players.
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = if (last) ImeAction.Done else ImeAction.Next),
+            keyboardActions = if (last) KeyboardActions(onDone = { onSave() }) else KeyboardActions.Default,
             isError = text.isNotBlank() && (text.toIntOrNull() ?: -1) !in 0..matchLength,
             shape = FieldShape,
             colors = fieldColors()
@@ -504,7 +542,7 @@ private fun RecordPreviewFrame(afterGame: Boolean) {
         val minutes = details.callUps.mapIndexed { i, it -> it.player.id to if (i < 7) "50" else if (i < 9) "20" else "" }.toMap()
         MatchRecordContent(
             state = MatchRecordUiState.Idle(details, events, halfLength = 25, minutes = minutes, dirty = true),
-            onNavigateBack = {}, onRetry = {}, onSaveEvent = {}, onDeleteEvent = {}, onHalfLength = {}, onMinutes = { _, _ -> }, onFullMatch = {}, onSave = {}
+            onNavigateBack = {}, onRetry = {}, onSaveEvent = {}, onDeleteEvent = {}, onHalfLength = {}, onMinutes = { _, _ -> }, onFullMatch = {}, onSort = {}, onSave = {}
         )
     }
 }

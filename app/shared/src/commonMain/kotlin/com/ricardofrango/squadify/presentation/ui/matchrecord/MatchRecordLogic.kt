@@ -5,7 +5,10 @@ import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchRecordEvent
 import com.ricardofrango.squadify.model.MatchStatus
+import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.SaveMatchRecordRequest
+import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
+import com.ricardofrango.squadify.presentation.ui.matchdetails.playerComparator
 import kotlin.time.Instant
 
 // A match's record after the game (TECHNICAL_DECISIONS.md §70): correcting the goals and cards of a
@@ -16,6 +19,13 @@ import kotlin.time.Instant
 internal val RECORD_HALF_LENGTHS = listOf(20, 25, 30, 40, 45)
 
 internal const val DEFAULT_HALF_LENGTH = 25
+
+/** The minutes list opens sorted by name, as Rate players. */
+internal val DEFAULT_MINUTES_SORT = CallUpSort.NAME
+
+/** The called-up players in the minutes list, by name or position (the call-up's order, §69). */
+internal fun minutesOrder(players: List<Player>, sort: CallUpSort = DEFAULT_MINUTES_SORT): List<Player> =
+    players.sortedWith(playerComparator(sort))
 
 /** A finished match's record can be edited by whoever runs its games (any of the age group's staff). */
 fun MatchDetails.canEditRecord(): Boolean =
