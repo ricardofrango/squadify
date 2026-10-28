@@ -1771,7 +1771,7 @@ graph TD
     ML -- Yes --> VM(["Throw ValidationException: a game followed live keeps its minutes"])
     ML -- No --> EV
     MH --> EV["Validate events: GOAL / OWN_GOAL / cards (an ASSIST only by id, a lone one); period 1..halves; minute 0..150; an id must be an editable event of this match, listed once"]
-    EV --> EP["Ours: player called up; a goal, own goal or assist by someone who played. Opponent: GOAL / OWN_GOAL only, no player. Assist: our GOAL, another called-up player who played"]
+    EV --> EP["Ours: player called up (a GOAL may have none: scorer unknown, then no assist); a goal, own goal or assist by someone who played. Opponent: GOAL / OWN_GOAL only, no player. Assist: our GOAL, another called-up player who played"]
     EP -- invalid --> VE(["Throw ValidationException"])
     EP -- ok --> AP["Delete every goal-linked ASSIST, then the editable events not sent back; update those sent with an id; insert the new ones; insert each goal's assist linked to it. Substitutions untouched"]
     AP --> FT{"afterGame?"}

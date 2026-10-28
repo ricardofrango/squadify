@@ -400,6 +400,7 @@
     <string name="title_pick_player_coming_on">Who comes on for %1$s?</string>
     <string name="title_pick_assist">Who assisted %1$s?</string>
     <string name="action_no_assist">No assist</string>
+    <string name="action_no_scorer">No scorer</string>
     <string name="title_pick_player_going_off">Who comes off for %1$s?</string>
     <string name="btn_half_time">Half time</string>
     <string name="btn_start_second_half">Start 2nd half</string>

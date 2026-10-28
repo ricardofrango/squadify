@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -258,12 +259,14 @@ private fun RecordBody(
         } else {
             item { SectionHeader(stringResource(Res.string.label_half_length)) }
             item {
-                SegmentedFilter(
+                // Chips that scroll sideways to the screen's edges, rather than a segmented bar
+                // scrolling inside its outline.
+                FilterChipRow(
                     options = RECORD_HALF_LENGTHS,
                     selected = state.halfLength,
                     label = { stringResource(Res.string.stats_minutes_value, it) },
                     onSelect = onHalfLength,
-                    shorten = false
+                    insidePaddedContent = true
                 )
             }
         }
@@ -384,18 +387,20 @@ private fun EventSheet(
     val details = state.details
     var draft by remember { mutableStateOf(initial) }
     var minuteText by remember { mutableStateOf(if (initial.key.isEmpty()) "" else initial.minute.toString()) }
+    // The half follows the minute typed until it's picked by hand (first-half stoppage time).
+    var periodPicked by remember { mutableStateOf(false) }
     val kind = draft.kind ?: RecordEventKind.GOAL
     val players = details.callUps.map { it.player }.sortedWith(compareBy({ it.firstName.lowercase() }, { it.lastName.lowercase() }))
     // Goals and assists only by someone who played; a card can go to anyone called up, the bench too.
     val pickable = if (kind == RecordEventKind.YELLOW || kind == RecordEventKind.RED) players else players.filter { it.id in state.scorers }
     val minute = minuteText.toIntOrNull()
-    val ready = minute != null && minute in 0..150 && (draft.isOpponent || draft.playerId != null)
+    val ready = minute != null && minute in 0..150 && (!draft.needsPlayer() || draft.playerId != null)
     val us = details.team.name
     val them = details.opponent.shortName ?: details.opponent.name
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Color.White) {
         Column(
-            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding.Horizontal).navigationBarsPadding().padding(bottom = 16.dp),
+            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding.Horizontal).navigationBarsPadding().imePadding().padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
@@ -407,7 +412,7 @@ private fun EventSheet(
                 selected = kind,
                 label = { stringResource(it.labelRes()) },
                 onSelect = { k ->
-                    draft = draft.copy(type = k.type, isOpponent = draft.isOpponent && k.hasSide, assistPlayerId = draft.assistPlayerId.takeIf { k == RecordEventKind.GOAL })
+                    draft = draft.copy(type = k.type, isOpponent = draft.isOpponent && k.hasSide, assistPlayerId = draft.assistPlayerId.takeIf { k == RecordEventKind.GOAL && draft.playerId != null })
                 },
                 shorten = false
             )
@@ -422,13 +427,20 @@ private fun EventSheet(
                 )
             }
             if (!draft.isOpponent) {
+                val goal = kind == RecordEventKind.GOAL
+                // Our goal can have no scorer (not known), as on the live console: "No scorer" first.
+                val noScorer = stringResource(Res.string.action_no_scorer)
                 PickerField(
                     label = stringResource(Res.string.label_player_section),
-                    value = players.firstOrNull { it.id == draft.playerId }?.let { "${it.firstName} ${it.lastName}" },
-                    options = pickable.map { it.id to "${it.firstName} ${it.lastName}" },
-                    onPick = { id -> draft = draft.copy(playerId = id, assistPlayerId = draft.assistPlayerId.takeIf { it != id }) }
+                    value = players.firstOrNull { it.id == draft.playerId }?.let { "${it.firstName} ${it.lastName}" } ?: noScorer.takeIf { goal },
+                    options = (if (goal) listOf("" to noScorer) else emptyList()) + pickable.map { it.id to "${it.firstName} ${it.lastName}" },
+                    onPick = { picked ->
+                        val id = picked.ifEmpty { null }
+                        draft = draft.copy(playerId = id, assistPlayerId = draft.assistPlayerId.takeIf { id != null && it != id })
+                    }
                 )
-                if (kind == RecordEventKind.GOAL) {
+                // An assist goes with a known scorer.
+                if (goal && draft.playerId != null) {
                     PickerField(
                         label = stringResource(Res.string.label_assist),
                         value = players.firstOrNull { it.id == draft.assistPlayerId }?.let { "${it.firstName} ${it.lastName}" } ?: stringResource(Res.string.action_no_assist),
@@ -441,7 +453,13 @@ private fun EventSheet(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = minuteText,
-                    onValueChange = { minuteText = it.filter(Char::isDigit).take(3) },
+                    onValueChange = { text ->
+                        minuteText = text.filter(Char::isDigit).take(3)
+                        val typed = minuteText.toIntOrNull()
+                        if (!periodPicked && typed != null) {
+                            draft = draft.copy(period = periodForMinute(typed, state.halfLength, details.match.halves))
+                        }
+                    },
                     label = { Text(stringResource(Res.string.label_minute)) },
                     suffix = { Text("'") },
                     singleLine = true,
@@ -455,7 +473,7 @@ private fun EventSheet(
                         options = listOf(1, 2),
                         selected = draft.period,
                         label = { stringResource(if (it == 2) Res.string.label_second_half else Res.string.label_first_half) },
-                        onSelect = { draft = draft.copy(period = it) },
+                        onSelect = { periodPicked = true; draft = draft.copy(period = it) },
                         modifier = Modifier.weight(1f),
                         shorten = false
                     )
@@ -539,9 +557,9 @@ private fun RecordPreviewFrame(afterGame: Boolean) {
         val finished = previewFinishedDetails(canSeeRecord = true).let { it.copy(canManageLiveMatch = true) }
         val details = if (afterGame) finished.copy(match = finished.match.copy(status = MatchStatus.SCHEDULED, halfLengthMinutes = null), playerStats = emptyList()) else finished
         val events = if (afterGame) draftEvents(finished.events).filter { it.type == EventType.GOAL } else draftEvents(details.events)
-        val minutes = details.callUps.mapIndexed { i, it -> it.player.id to if (i < 7) "50" else if (i < 9) "20" else "" }.toMap()
+        val minutes = details.callUps.mapIndexed { i, it -> it.player.id to if (i < 7) "60" else if (i < 9) "20" else "" }.toMap()
         MatchRecordContent(
-            state = MatchRecordUiState.Idle(details, events, halfLength = 25, minutes = minutes, dirty = true),
+            state = MatchRecordUiState.Idle(details, events, halfLength = 30, minutes = minutes, dirty = true),
             onNavigateBack = {}, onRetry = {}, onSaveEvent = {}, onDeleteEvent = {}, onHalfLength = {}, onMinutes = { _, _ -> }, onFullMatch = {}, onSort = {}, onSave = {}
         )
     }
