@@ -20,12 +20,14 @@ sealed class MatchDetailsUiState {
         /** The call-up as the server has it. */
         val savedIds: Set<String> get() = details.callUps.map { it.player.id }.toSet()
 
-        /** Every player who can be called up: the saved call-up and the rest of the pool. */
-        private val allPlayers get() = (details.callUps.map { it.player } + details.poolPlayers).distinctBy { it.id }
+        /**
+         * Every player who can be called up: the saved call-up and the rest of the pool. The editor
+         * lists them all in one list, the selected ones marked, so a tap doesn't move a player.
+         */
+        val candidates get() = (details.callUps.map { it.player } + details.poolPlayers).distinctBy { it.id }
 
-        /** The draft call-up's players, and the pool players not in it. */
-        val selectedPlayers get() = allPlayers.filter { it.id in selectedIds }
-        val availablePlayers get() = allPlayers.filterNot { it.id in selectedIds }
+        /** The draft call-up's players. */
+        val selectedPlayers get() = candidates.filter { it.id in selectedIds }
 
         /** The call-up on screen differs from the saved one: leaving asks before throwing it away. */
         val hasUnsavedCallUp: Boolean get() = details.canManageCallUps && selectedIds != savedIds
