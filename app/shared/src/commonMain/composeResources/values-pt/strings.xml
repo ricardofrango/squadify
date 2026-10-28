@@ -357,8 +357,6 @@
     <string name="btn_save">Guardar</string>
     <string name="label_match_directions">Direções</string>
     <string name="label_call_up">Convocatória</string>
-    <string name="label_available">Disponíveis</string>
-    <string name="label_available_from_pool">do plantel %1$s</string>
     <string name="label_callup_summary">%1$d/%2$d convocados</string>
     <string name="msg_squad_hint">%1$d convocados — costuma alinhar %2$d.</string>
     <string name="msg_no_callups">Ainda ninguém foi convocado.</string>

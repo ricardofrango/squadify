@@ -60,6 +60,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import squadify.app.shared.generated.resources.*
+import androidx.compose.foundation.border
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -289,7 +293,7 @@ private fun MatchDetailsContent(
 /**
  * The scoreboard line under the top bar, as football shows it: "[logo] Team 2 – 1 Opponent [logo]".
  * Each logo only when it's set, the score only once there is one (live or finished) -- before that,
- * "vs". Small enough for both names to fit; a long one is cut with "…".
+ * "vs". A long name wraps to a second line, then is cut with "…"; the crests keep their size.
  */
 @Composable
 private fun StatusBand(details: MatchDetails) {
@@ -307,7 +311,8 @@ private fun StatusBand(details: MatchDetails) {
     ) {
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
             left.logoUrl?.let { BandCrest(it, left.name); Spacer(Modifier.width(8.dp)) }
-            Text(left.name, style = nameStyle, color = nameColor, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
+            // The name takes what's left after the crest (which keeps its size): two lines, then "…".
+            Text(left.name, Modifier.weight(1f, fill = false), style = nameStyle, color = nameColor, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
         }
         Text(
             if (hasScore) "${left.score} – ${right.score}" else "vs",
@@ -316,7 +321,7 @@ private fun StatusBand(details: MatchDetails) {
             modifier = Modifier.padding(horizontal = 12.dp)
         )
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            Text(right.name, style = nameStyle, color = nameColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(right.name, Modifier.weight(1f, fill = false), style = nameStyle, color = nameColor, maxLines = 2, overflow = TextOverflow.Ellipsis)
             right.logoUrl?.let { Spacer(Modifier.width(8.dp)); BandCrest(it, right.name) }
         }
     }
@@ -379,12 +384,12 @@ private fun MatchBody(
     val canEditMatch = details.canManageMatch && notFinished && details.match.status != MatchStatus.CANCELLED
     var showEdit by remember { mutableStateOf(false) }
 
-    // The Position / Name chips order both lists -- the call-up and the Available pool below it.
+    // The Position / Name chips order the list.
     val playerOrder = playerComparator(state.sort)
     val editing = view.section == CallUpSection.EDITOR
-    // The editor lists the draft call-up; everyone else sees the saved one.
+    // The editor lists every candidate, the draft call-up selected; everyone else sees the saved call-up.
     val calledUp = (if (editing) state.selectedPlayers else details.callUps.map { it.player }).sortedWith(playerOrder)
-    val sortedPool = state.availablePlayers.sortedWith(playerOrder)
+    val candidates = state.candidates.sortedWith(playerOrder)
     val notesByPlayer = details.callUps.associate { it.player.id to it.callUp.notes }
 
     // A finished match isn't shown here but by FinishedMatchBody (its report card included).
@@ -421,7 +426,7 @@ private fun MatchBody(
                         // Once the game is played the count says nothing more; it's dropped.
                         pill = when {
                             details.match.status == MatchStatus.FINISHED -> null
-                            editing -> "${calledUp.size}/${calledUp.size + sortedPool.size}"
+                            editing -> "${calledUp.size}/${candidates.size}"
                             else -> calledUp.size.toString()
                         }
                     )
@@ -445,26 +450,21 @@ private fun MatchBody(
                         )
                     }
                 }
-                if (calledUp.isEmpty()) {
+                if (editing) {
+                    // One list: a tap selects or unselects a player, who stays where they are.
+                    items(candidates, key = { it.id }) { player ->
+                        val selected = player.id in state.selectedIds
+                        CallUpRow(
+                            player, notesByPlayer[player.id].takeIf { selected },
+                            selected = selected,
+                            onToggle = { if (selected) onRemoveFromCallUp(player) else onAddToCallUp(player) },
+                            enabled = !state.isSubmitting
+                        )
+                    }
+                } else if (calledUp.isEmpty()) {
                     item { Text(stringResource(Res.string.msg_no_callups), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
                 } else {
-                    items(calledUp, key = { "called-${it.id}" }) { player ->
-                        CallUpRow(player, notesByPlayer[player.id], onRemove = if (editing && !state.isSubmitting) { { onRemoveFromCallUp(player) } } else null)
-                    }
-                }
-
-                // ---- Available ----
-                if (editing && sortedPool.isNotEmpty()) {
-                    item {
-                        Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 12.dp)) {
-                            Text(stringResource(Res.string.label_available), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
-                            Spacer(Modifier.width(6.dp))
-                            Text(stringResource(Res.string.label_available_from_pool, details.ageGroup.name), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f))
-                        }
-                    }
-                    items(sortedPool, key = { "pool-${it.id}" }) { p ->
-                        PoolRow(p, onAdd = { if (!state.isSubmitting) onAddToCallUp(p) })
-                    }
+                    items(calledUp, key = { it.id }) { player -> CallUpRow(player, notesByPlayer[player.id]) }
                 }
             }
         }
@@ -538,9 +538,21 @@ private fun TypeRow(type: MatchType?, onSetType: (() -> Unit)?) {
     }
 }
 
+/**
+ * A player of the call-up. In the editor ([onToggle] set) every candidate is listed and a tap selects
+ * or unselects them: a selected player has a green border and tint and a check; nothing moves.
+ */
 @Composable
-private fun CallUpRow(player: Player, notes: String?, onRemove: (() -> Unit)? = null) {
-    Surface(modifier = Modifier.fillMaxWidth(), shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f))) {
+private fun CallUpRow(player: Player, notes: String?, selected: Boolean = false, onToggle: (() -> Unit)? = null, enabled: Boolean = true) {
+    val editor = onToggle != null
+    Surface(
+        modifier = Modifier.fillMaxWidth().then(
+            if (onToggle != null) Modifier.clip(CardShape).toggleable(value = selected, enabled = enabled, role = Role.Checkbox, onValueChange = { onToggle() }) else Modifier
+        ),
+        shape = CardShape,
+        color = if (selected) PitchGreen.copy(alpha = 0.06f) else Color.White,
+        border = if (selected) BorderStroke(1.5.dp, PitchGreen) else BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f))
+    ) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             PlayerBadge(player.photoUrl, player.shirtNumber)
             Spacer(Modifier.width(10.dp))
@@ -553,33 +565,18 @@ private fun CallUpRow(player: Player, notes: String?, onRemove: (() -> Unit)? = 
                     Text(it, style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.5f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            if (onRemove != null) {
+            if (editor) {
                 Spacer(Modifier.width(8.dp))
+                // Selected: a green check; not selected: an empty ring, so it reads as a choice.
                 Box(
-                    modifier = Modifier.size(28.dp).background(LossRed.copy(alpha = 0.12f), CircleShape).clickable(onClick = onRemove),
+                    modifier = Modifier.size(24.dp)
+                        .background(if (selected) PitchGreen else Color.Transparent, CircleShape)
+                        .border(1.5.dp, if (selected) PitchGreen else CarbonGray.copy(alpha = 0.3f), CircleShape),
                     contentAlignment = Alignment.Center
-                ) { Text("−", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = LossRed) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PoolRow(player: Player, onAdd: () -> Unit) {
-    Surface(modifier = Modifier.fillMaxWidth(), shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f))) {
-        Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            PlayerBadge(player.photoUrl, player.shirtNumber)
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text("${player.firstName} ${player.lastName}", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                player.position?.let {
-                    Text(stringResource(it.labelRes()), style = MaterialTheme.typography.bodySmall, color = DeepCarbon.copy(alpha = 0.55f))
+                ) {
+                    if (selected) Icon(painterResource(Res.drawable.ic_check), contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
                 }
             }
-            Box(
-                modifier = Modifier.size(28.dp).background(PitchGreen.copy(alpha = 0.15f), CircleShape).clickable(onClick = onAdd),
-                contentAlignment = Alignment.Center
-            ) { Text("+", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = PitchGreen) }
         }
     }
 }
@@ -915,6 +912,31 @@ private fun MatchDetailsScheduledCanManagePreview() {
         )
     }
 }
+
+/** A long opponent name with a crest: two lines, then "…", the crest at full size. */
+@Composable
+private fun LongOpponentPreview() {
+    SquadifyTheme {
+        val details = sampleDetails(MatchStatus.SCHEDULED, canManage = true).let {
+            it.copy(
+                opponent = it.opponent.copy(name = "Associação Desportiva e Recreativa da Quinta do Conde", shortName = null, logoUrl = "https://example.com/crest.png"),
+                clubLogoUrl = "https://example.com/club.png"
+            )
+        }
+        MatchDetailsContent(
+            uiState = MatchDetailsUiState.Idle(details, selectedIds = details.callUps.map { it.player.id }.toSet() - "p3"),
+            onNavigateBack = {}, onRetry = {}, onSortSelected = {}, onAddToCallUp = {}, onRemoveFromCallUp = {}, onEditMatch = {}, onDeleteMatch = {}, onEnterLiveMatch = {}, onOpenReport = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun MatchDetailsLongOpponentPreview() = LongOpponentPreview()
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun MatchDetailsLongOpponentLandscapePreview() = LongOpponentPreview()
 
 @Preview
 @Composable
