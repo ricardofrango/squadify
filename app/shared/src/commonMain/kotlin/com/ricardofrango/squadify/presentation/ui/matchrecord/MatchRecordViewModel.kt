@@ -8,6 +8,7 @@ import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.presentation.errorMessage
+import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -27,13 +28,15 @@ sealed class MatchRecordUiState {
 
     /**
      * [events] the goals and cards on screen; [halfLength] and [minutes] (player id -> what's typed)
-     * only matter for a game entered afterwards. Nothing is sent until Save.
+     * only matter for a game entered afterwards, [sort] is the minutes list's order. Nothing is sent
+     * until Save.
      */
     data class Idle(
         val details: MatchDetails,
         val events: List<DraftEvent>,
         val halfLength: Int,
         val minutes: Map<String, String>,
+        val sort: CallUpSort = DEFAULT_MINUTES_SORT,
         val saving: Boolean = false,
         val saveError: String? = null,
         val dirty: Boolean = false
@@ -110,6 +113,9 @@ class MatchRecordViewModel(
     fun onMinutes(playerId: String, text: String) = edit {
         it.copy(minutes = it.minutes + (playerId to text.filter(Char::isDigit).take(3)))
     }
+
+    /** The minutes list's order; not a change to the record. */
+    fun onSort(sort: CallUpSort) = _state.update { if (it is MatchRecordUiState.Idle) it.copy(sort = sort) else it }
 
     /** Every called-up player's minutes set to the whole match (most of a team often plays it all). */
     fun onFullMatch(playerId: String) = edit { it.copy(minutes = it.minutes + (playerId to it.matchLength.toString())) }
