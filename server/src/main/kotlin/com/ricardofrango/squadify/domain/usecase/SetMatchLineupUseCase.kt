@@ -1,10 +1,12 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.exception.ConflictException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.*
@@ -16,7 +18,8 @@ import com.ricardofrango.squadify.model.*
  * it's a formation change or players swapping positions, each also kept with its minute for the
  * finished match's timeline (MatchLineupChange). Substitutions and red cards don't come
  * through here: each device works those out from the events (see currentPitchSlots). Same match-day
- * permission as kicking off.
+ * permission as kicking off. Before kickoff it can also change how many a side the match is played
+ * ([SetMatchLineupRequest.teamSize]), the formation and positions then being for the new count.
  */
 class SetMatchLineupUseCase(
     private val matchRepository: MatchRepository,
@@ -25,6 +28,7 @@ class SetMatchLineupUseCase(
     private val liveMatchBus: LiveMatchBus,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager,
+    private val clubRepository: ClubRepository,
     private val clock: kotlin.time.Clock = kotlin.time.Clock.System
 ) {
     suspend operator fun invoke(userId: String, matchId: String, request: SetMatchLineupRequest): MatchLineup = transactionManager.runInTransaction {
@@ -44,7 +48,12 @@ class SetMatchLineupUseCase(
         }
 
         val team = teamRepository.getTeamById(match.teamId) ?: throw NotFoundException("Team not found")
-        val teamSize = team.teamSize ?: 11
+        val resizedTo = request.teamSize?.takeIf { it != match.effectiveTeamSize(team) }?.also { size ->
+            if (match.status != MatchStatus.SCHEDULED) throw ConflictException("The team size can only be changed before kickoff")
+            val club = clubRepository.getClubById(match.clubId) ?: throw NotFoundException("Club not found")
+            requireMatchTeamSize(size, club)
+        }
+        val teamSize = resizedTo ?: match.effectiveTeamSize(team)
         val formation = parseFormation(request.formation, teamSize)
             ?: throw ValidationException("The formation must add up to $teamSize players with the goalkeeper")
 
@@ -70,6 +79,9 @@ class SetMatchLineupUseCase(
         }
 
         val lineup = MatchLineup(formation.formationText(), slots)
+        // The team's own count is kept as null, so the match follows the team.
+        val sized = if (resizedTo != null) match.copy(teamSize = resizedTo.takeIf { it != team.teamSize }) else match
+        if (resizedTo != null) matchRepository.updateMatch(sized)
         matchRepository.setLineup(matchId, lineup.formation, slots)
         // During the game each arrangement is kept, at the match clock's minute, for the finished
         // match's timeline. Its half is worked out like an event's (AddMatchEventUseCase).
@@ -83,7 +95,7 @@ class SetMatchLineupUseCase(
             matchRepository.addLineupChange(matchId, MatchLineupChange(maxOf(0, minute), if (secondHalf) 2 else 1, lineup.formation, slots, clock.now()))
         }
         val score = matchEventRepository.getScoreByMatch(matchId)
-        liveMatchBus.publish(matchId, LiveMatchUpdate(score = score, match = match.copy(formation = lineup.formation), lineup = lineup))
+        liveMatchBus.publish(matchId, LiveMatchUpdate(score = score, match = sized.copy(formation = lineup.formation), lineup = lineup))
         lineup
     }
 }

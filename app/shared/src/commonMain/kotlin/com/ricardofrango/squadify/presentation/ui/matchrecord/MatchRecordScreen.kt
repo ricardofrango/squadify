@@ -71,6 +71,7 @@ import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
+import com.ricardofrango.squadify.presentation.ui.components.TeamSizeSelector
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.livematch.DisplayEvent
 import com.ricardofrango.squadify.presentation.ui.livematch.buildDisplayEvents
@@ -118,6 +119,7 @@ fun MatchRecordScreen(
             onSaveEvent = viewModel::onSaveEvent,
             onDeleteEvent = viewModel::onDeleteEvent,
             onHalfLength = viewModel::onHalfLength,
+            onTeamSize = viewModel::onTeamSize,
             onMinutes = viewModel::onMinutes,
             onFullMatch = viewModel::onFullMatch,
             onSort = viewModel::onSort,
@@ -134,6 +136,7 @@ private fun MatchRecordContent(
     onSaveEvent: (DraftEvent) -> Unit,
     onDeleteEvent: (String) -> Unit,
     onHalfLength: (Int) -> Unit,
+    onTeamSize: (Int) -> Unit = {},
     onMinutes: (String, String) -> Unit,
     onFullMatch: (String) -> Unit,
     onSort: (CallUpSort) -> Unit,
@@ -188,6 +191,7 @@ private fun MatchRecordContent(
                 onAddEvent = { editing = blankEvent() },
                 onEditEvent = { editing = it },
                 onHalfLength = onHalfLength,
+                onTeamSize = onTeamSize,
                 onMinutes = onMinutes,
                 onFullMatch = onFullMatch,
                 onSort = onSort,
@@ -238,6 +242,7 @@ private fun RecordBody(
     onAddEvent: () -> Unit,
     onEditEvent: (DraftEvent) -> Unit,
     onHalfLength: (Int) -> Unit,
+    onTeamSize: (Int) -> Unit = {},
     onMinutes: (String, String) -> Unit,
     onFullMatch: (String) -> Unit,
     onSort: (CallUpSort) -> Unit,
@@ -273,6 +278,13 @@ private fun RecordBody(
                     shorten = false,
                     insidePaddedContent = true
                 )
+            }
+            // How many a side it was played: the team's own count unless this game was another.
+            if (details.teamSizeOptions.size >= 2) {
+                item { SectionHeader(stringResource(Res.string.label_match_format)) }
+                item {
+                    TeamSizeSelector(options = details.teamSizeOptions, selected = state.teamSize, onSelected = onTeamSize, insidePaddedContent = true)
+                }
             }
         }
         item { SectionHeader(stringResource(Res.string.md_tab_events), trailing = stringResource(Res.string.btn_add_event) to onAddEvent) }
@@ -561,7 +573,7 @@ private fun fieldColors() = OutlinedTextFieldDefaults.colors(
 private fun RecordPreviewFrame(afterGame: Boolean) {
     SquadifyTheme {
         val finished = previewFinishedDetails(canSeeRecord = true).let { it.copy(canManageLiveMatch = true) }
-        val details = if (afterGame) finished.copy(match = finished.match.copy(status = MatchStatus.SCHEDULED, halfLengthMinutes = null), playerStats = emptyList()) else finished
+        val details = if (afterGame) finished.copy(match = finished.match.copy(status = MatchStatus.SCHEDULED, halfLengthMinutes = null), playerStats = emptyList(), teamSizeOptions = listOf(4, 5, 7, 9, 11)) else finished
         val events = if (afterGame) draftEvents(finished.events).filter { it.type == EventType.GOAL } else draftEvents(details.events)
         val minutes = details.callUps.mapIndexed { i, it -> it.player.id to if (i < 7) "60" else if (i < 9) "20" else "" }.toMap()
         MatchRecordContent(

@@ -298,7 +298,10 @@ data class MatchRecordEvent(
 data class SaveMatchRecordRequest(
     val events: List<MatchRecordEvent>,
     val halfLengthMinutes: Int? = null,
-    val minutesPlayed: Map<String, Int> = emptyMap()
+    val minutesPlayed: Map<String, Int> = emptyMap(),
+    // How many a side it was played (Match.teamSize), for a game entered after it was played only;
+    // null keeps it.
+    val teamSize: Int? = null
 )
 
 @Serializable
@@ -981,8 +984,22 @@ data class Match(
     val startingFormation: String? = null,
     // True for a game that wasn't followed live, whose result was entered afterwards (Enter result,
     // SaveMatchRecordUseCase): its minutes were typed in, and it has no substitutions or timeline.
-    val enteredAfterGame: Boolean = false
+    val enteredAfterGame: Boolean = false,
+    // The a-side count this match is played with, when it isn't the team's (a 9-a-side team playing a
+    // 7-a-side game). Null plays the team's; see [effectiveTeamSize] and [canChangeTeamSize].
+    val teamSize: Int? = null
 )
+
+/** How many a side this match is played: its own count, else the team's, else 11 (a team from before team sizes). */
+fun Match.effectiveTeamSize(team: Team): Int = teamSize ?: team.teamSize ?: 11
+
+/**
+ * Whether the match's team size can still change: before kickoff, or for a game whose result was
+ * entered afterwards. Never once it was followed live -- its line-up, minutes and timeline were played
+ * with that count.
+ */
+val Match.canChangeTeamSize: Boolean
+    get() = kickoffAt == null && (status == MatchStatus.SCHEDULED || (status == MatchStatus.FINISHED && enteredAfterGame))
 
 /**
  * A match still SCHEDULED this long after its kickoff is taken as not played (no battery, no signal,
@@ -1196,7 +1213,10 @@ data class MatchDetails(
     val canSeeMatchRecord: Boolean = false,
     val events: List<MatchEvent> = emptyList(),
     val playerStats: List<MatchPlayerStats> = emptyList(),
-    val lineupChanges: List<MatchLineupChange> = emptyList()
+    val lineupChanges: List<MatchLineupChange> = emptyList(),
+    // The a-side counts the club's sport is played with (SportType.teamSizes), for changing the
+    // match's own team size; empty from a server that predates it.
+    val teamSizeOptions: List<Int> = emptyList()
 )
 
 @Serializable
@@ -1225,7 +1245,10 @@ data class UpdateMatchRequest(
     // 1 or 2 (see Match.halves). Only changeable before kickoff.
     val halves: Int? = null,
     // Null keeps the match's venue.
-    val venue: MatchVenue? = null
+    val venue: MatchVenue? = null,
+    // One of the club sport's team sizes (Match.teamSize); null keeps it. Only while
+    // Match.canChangeTeamSize. Changing it before kickoff clears the pitch to the new size's default.
+    val teamSize: Int? = null
 )
 
 @Serializable
@@ -1257,7 +1280,9 @@ data class CreateMatchRequest(
     // 2 halves unless the match is a single period (Match.halves).
     val halves: Int = 2,
     // Required in the app; null only from an app that predates it, taken as HOME.
-    val venue: MatchVenue? = null
+    val venue: MatchVenue? = null,
+    // How many a side, when it isn't the team's (Match.teamSize); null plays the team's.
+    val teamSize: Int? = null
 )
 
 @Serializable
@@ -1280,9 +1305,9 @@ data class SetMatchMinuteRequest(
 
 /**
  * Body of `POST /matches/{matchId}/start` -- kicks a SCHEDULED match off: [startingPlayerIds] must be
- * exactly the team's a-side count (`Team.teamSize`, falling back to 11 when the team predates that
- * field) and each must already be called up (CALLED_UP or CONFIRMED). Every other called-up player
- * becomes the bench. See StartMatchUseCase.
+ * exactly the match's a-side count (`Match.effectiveTeamSize`: its own, else the team's, else 11)
+ * and each must already be called up (CALLED_UP or CONFIRMED). Every other called-up player becomes
+ * the bench. See StartMatchUseCase.
  */
 @Serializable
 data class StartMatchRequest(

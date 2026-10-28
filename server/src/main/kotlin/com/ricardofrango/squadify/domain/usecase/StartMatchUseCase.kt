@@ -61,10 +61,10 @@ class StartMatchUseCase(
                 throw ValidationException("A player can only be in the starting line-up once")
             }
 
-            // The a-side count this team plays -- falls back to 11 for teams recorded before team sizes
-            // existed (see PROCESS_FLOWS.md's team-size flows).
+            // The a-side count this match is played: its own, else the team's -- falling back to 11 for
+            // teams recorded before team sizes existed (see PROCESS_FLOWS.md's team-size flows).
             val team = teamRepository.getTeamById(match.teamId) ?: throw NotFoundException("Team not found")
-            val requiredCount = team.teamSize ?: 11
+            val requiredCount = match.effectiveTeamSize(team)
             if (startingIds.size != requiredCount) {
                 throw ValidationException("The starting line-up needs exactly $requiredCount players")
             }

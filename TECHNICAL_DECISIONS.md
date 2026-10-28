@@ -3198,3 +3198,21 @@ Now every picker takes fixed colours from `components/PickerColors.kt`: `squadif
 - The sheet title is a small grey label above the value, as in the date picker.
 
 Previews show both sheets in landscape and with dark mode on.
+
+## 74. A Match's Own Team Size
+
+The developer, 2026-10-28: a team's size (`Team.teamSize`) is its usual format, but a 9-a-side team can still play a 7-a-side game. So a match can say how many a side it's played.
+
+- **Stored on the match** (`matches.team_size`, V29). `null` plays the team's count, so a match that doesn't say follows the team if the team's size changes. Picking the team's own count back stores `null` too.
+- **One rule for every reader:** `Match.effectiveTeamSize(team)` gives the match's own count, else the team's, else 11. The call-up's minimum, the pitch (positions, default formation, formation check) and kickoff's starter count all use it, on the server and in the app (`MatchDetails.teamSize`).
+- **Allowed sizes:** the club sport's (`SportType.teamSizes`), checked on every write, as for teams. `MatchDetails.teamSizeOptions` gives the app the list.
+- **When it can change** (`Match.canChangeTeamSize`): before kickoff, or for a game whose result was entered afterwards (§70). Never once the game was followed live: its line-up, minutes and timeline were played with that count. The developer asked for this lock.
+- **Where it changes:**
+  - Schedule match: a "Format" control (`TeamSizeSelector`, a `SegmentedFilter`), starting on the chosen team's own count.
+  - Edit match, before kickoff.
+  - On the pre-kickoff pitch, in the formation sheet. A new size starts from its default formation.
+  - On the Enter result screen, for a game not followed live.
+- **Before kickoff the pitch follows.**
+  - From the formation sheet, `SetMatchLineupRequest.teamSize` carries the size with the new formation and the positions still on the pitch. That is one write, so the formation always fits the count.
+  - From Edit match, `UpdateMatchUseCase` resets the formation to the new size's default and keeps whoever stands in a position that still exists.
+  - Either way, every device hears it through `LiveMatchUpdate`.

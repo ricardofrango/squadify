@@ -1,25 +1,29 @@
 package com.ricardofrango.squadify.domain.usecase
 
-import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
+import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
+import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
-import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.exception.ValidationException
+import com.ricardofrango.squadify.model.AgeGroupRole
+import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ClubStatus
 import com.ricardofrango.squadify.model.CreateMatchRequest
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchType
 import com.ricardofrango.squadify.model.MatchVenue
 import com.ricardofrango.squadify.model.Opponent
+import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.Team
-import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
 import io.mockk.coEvery
@@ -49,8 +53,11 @@ class CreateMatchUseCaseTest {
     )
     private val notifyMatchEventUseCase = mockk<NotifyMatchEventUseCase>(relaxed = true)
     private val clubMatchesBus = mockk<ClubMatchesBus>(relaxed = true)
+    private val clubRepository = mockk<ClubRepository>().also {
+        coEvery { it.getClubById(any()) } returns Club("club-1", "FC", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL)
+    }
     private val useCase = CreateMatchUseCase(
-        matchRepository, teamRepository, opponentRepository, checkUserPermissionUseCase, notifyMatchEventUseCase, clubMatchesBus, transactionManager
+        matchRepository, teamRepository, opponentRepository, checkUserPermissionUseCase, notifyMatchEventUseCase, clubMatchesBus, transactionManager, clubRepository
     )
 
     private val clubId = "club-1"
@@ -77,6 +84,24 @@ class CreateMatchUseCaseTest {
 
         coVerify { notifyMatchEventUseCase(result.id, MatchNotificationEvent.SCHEDULED) }
         coVerify { clubMatchesBus.publish(clubId, com.ricardofrango.squadify.model.ClubMatchesUpdate(match = result)) }
+    }
+
+    @Test
+    fun aMatchCanBePlayedWithAnotherTeamSizeThanItsTeams() = runBlocking {
+        val coach = coach()
+        coEvery { teamRepository.getTeamById(teamId) } returns team.copy(teamSize = 9)
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
+        coEvery { opponentRepository.getOpponentById("opp-1") } returns opponent
+        coEvery { matchRepository.createMatch(any()) } answers { firstArg() }
+        fun request(size: Int) = CreateMatchRequest(teamId = teamId, opponentId = "opp-1", dateTime = Instant.fromEpochMilliseconds(1), type = MatchType.FRIENDLY, teamSize = size)
+
+        assertEquals(7, useCase(coach.id, request(7)).teamSize)
+        // The team's own count is stored as none, so the match follows the team.
+        assertEquals(null, useCase(coach.id, request(9)).teamSize)
+        assertFailsWith<ValidationException> { useCase(coach.id, request(6)) }
+        Unit
     }
 
     @Test

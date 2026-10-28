@@ -122,7 +122,7 @@ internal data class SquadMinutes(
 internal fun squadMinutes(details: MatchDetails, events: List<MatchEvent>, liveMinute: Int?): SquadMinutes {
     val callUps = details.callUps.map { it.callUp }
     val elapsed = elapsedMatchMinutes(matchHalves(details.match, liveMinute))
-    val onPitch = callUps.count { it.isStarting }.takeIf { it > 0 } ?: (details.team.teamSize ?: 11)
+    val onPitch = callUps.count { it.isStarting }.takeIf { it > 0 } ?: details.teamSize
     return SquadMinutes(
         byPlayer = playerMinutes(details.match, callUps, events, liveMinute),
         elapsed = elapsed,

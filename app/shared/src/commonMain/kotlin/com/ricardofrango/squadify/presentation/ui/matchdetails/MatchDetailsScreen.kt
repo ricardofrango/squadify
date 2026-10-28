@@ -43,6 +43,8 @@ import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
 import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.components.MatchTypeChip
 import com.ricardofrango.squadify.presentation.ui.components.HalvesSelector
+import com.ricardofrango.squadify.presentation.ui.components.TeamSizeSelector
+import com.ricardofrango.squadify.presentation.ui.livematch.teamSize
 import com.ricardofrango.squadify.presentation.ui.components.MatchTypeSelector
 import com.ricardofrango.squadify.presentation.ui.components.iconRes
 import com.ricardofrango.squadify.presentation.ui.components.DatePickerSheet
@@ -514,8 +516,8 @@ internal fun DetailsCard(details: MatchDetails, onSetType: (() -> Unit)?) {
         Column(Modifier.padding(vertical = 4.dp)) {
             DetailRow(stringResource(Res.string.label_opponent_field), details.opponent.name)
             TypeRow(m.type, onSetType)
-            // The format is the team's (how many a side it plays): 5x5, 7x7, 9x9, 11x11.
-            DetailRow(stringResource(Res.string.label_match_format), details.team.teamSize?.let { stringResource(Res.string.match_format_value, it) } ?: "—")
+            // The format is how many a side: the match's own, else the team's (5x5, 7x7, 9x9, 11x11).
+            DetailRow(stringResource(Res.string.label_match_format), (details.match.teamSize ?: details.team.teamSize)?.let { stringResource(Res.string.match_format_value, it) } ?: "—")
             DetailRow(stringResource(Res.string.label_match_date), m.dateTime.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(DayMonthYear))
             DetailRow(stringResource(Res.string.label_match_kickoff), timeLabel(m.dateTime))
             DetailRow(
@@ -692,6 +694,9 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
     var venue by remember { mutableStateOf(details.match.venue) }
     // The number of halves drives the live console, so it's only changeable before kickoff.
     val canChangeHalves = details.match.status == MatchStatus.SCHEDULED
+    // How many a side, for this match only; also only before kickoff (the pitch then resets to it).
+    var teamSize by remember { mutableStateOf(details.teamSize) }
+    val canChangeTeamSize = details.match.canChangeTeamSize && details.teamSizeOptions.size >= 2
     var showDate by remember { mutableStateOf(false) }
     var showTime by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -715,6 +720,10 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
             if (canChangeHalves) {
                 Text(stringResource(Res.string.label_halves).uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon.copy(alpha = 0.55f))
                 HalvesSelector(halves = halves, onSelected = { halves = it })
+            }
+            if (canChangeTeamSize) {
+                Text(stringResource(Res.string.label_match_format).uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon.copy(alpha = 0.55f))
+                TeamSizeSelector(options = details.teamSizeOptions, selected = teamSize, onSelected = { teamSize = it })
             }
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(stringResource(Res.string.label_venue).uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon.copy(alpha = 0.55f))
@@ -750,7 +759,8 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
                             notes = notes.trim().ifBlank { null },
                             type = type,
                             venue = venue,
-                            halves = halves.takeIf { canChangeHalves }
+                            halves = halves.takeIf { canChangeHalves },
+                            teamSize = teamSize.takeIf { canChangeTeamSize && it != details.teamSize }
                         )
                     )
                 },

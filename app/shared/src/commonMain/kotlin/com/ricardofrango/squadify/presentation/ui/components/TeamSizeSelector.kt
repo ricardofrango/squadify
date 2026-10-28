@@ -1,0 +1,25 @@
+package com.ricardofrango.squadify.presentation.ui.components
+
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import org.jetbrains.compose.resources.stringResource
+import squadify.app.shared.generated.resources.Res
+import squadify.app.shared.generated.resources.match_format_value
+
+/**
+ * How many a side a match is played ("5x5 · 7x7 · 9x9 · 11x11"), for Schedule match, Edit match and
+ * the result of a game not followed live. [options] are the club sport's team sizes; it starts on the
+ * team's own, and another is that match only.
+ */
+@Composable
+fun TeamSizeSelector(options: List<Int>, selected: Int, onSelected: (Int) -> Unit, modifier: Modifier = Modifier, insidePaddedContent: Boolean = false) {
+    SegmentedFilter(
+        options = options,
+        selected = selected,
+        label = { stringResource(Res.string.match_format_value, it) },
+        onSelect = onSelected,
+        modifier = modifier,
+        shorten = false,
+        insidePaddedContent = insidePaddedContent
+    )
+}

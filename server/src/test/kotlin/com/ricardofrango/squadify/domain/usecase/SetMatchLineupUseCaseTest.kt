@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
+import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
@@ -9,10 +10,13 @@ import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.exception.ConflictException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.CallUpStatus
+import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ClubStatus
 import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.LiveMatchUpdate
 import com.ricardofrango.squadify.model.Match
@@ -25,6 +29,7 @@ import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.SetMatchLineupRequest
+import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
@@ -57,7 +62,10 @@ class SetMatchLineupUseCaseTest {
     // The match clock: 12 minutes and 30 seconds after a kickoff at 1 ms.
     private val now = Instant.fromEpochMilliseconds(1 + 750_000)
     private val clock = object : kotlin.time.Clock { override fun now() = this@SetMatchLineupUseCaseTest.now }
-    private val useCase = SetMatchLineupUseCase(matchRepository, matchEventRepository, teamRepository, liveMatchBus, checkUserPermissionUseCase, transactionManager, clock)
+    private val clubRepository = mockk<ClubRepository>().also {
+        coEvery { it.getClubById(any()) } returns Club("club-1", "FC", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL)
+    }
+    private val useCase = SetMatchLineupUseCase(matchRepository, matchEventRepository, teamRepository, liveMatchBus, checkUserPermissionUseCase, transactionManager, clubRepository, clock)
 
     private val clubId = "club-1"
     private val matchId = "m-1"
@@ -117,6 +125,36 @@ class SetMatchLineupUseCaseTest {
         stub(live.copy(secondHalfStartedAt = Instant.fromEpochMilliseconds(1 + 690_000), firstHalfEndMinute = 32), starters)
         useCase(coach.id, matchId, SetMatchLineupRequest("2-3-1", slots))
         coVerify { matchRepository.addLineupChange(matchId, MatchLineupChange(31, 2, "2-3-1", slots, now)) }
+    }
+
+    @Test
+    fun beforeKickoffTheMatchCanBePlayedWithAnotherTeamSize() = runBlocking {
+        stub(scheduled)
+        coEvery { matchRepository.updateMatch(any()) } returns true
+        // The 7-a-side team plays this one 5-a-side: the formation and positions are for 5.
+        val result = useCase(coach.id, matchId, SetMatchLineupRequest("2-1-1", mapOf(0 to "p1", 4 to "p2"), teamSize = 5))
+
+        assertEquals(MatchLineup("2-1-1", mapOf(0 to "p1", 4 to "p2")), result)
+        coVerify { matchRepository.updateMatch(scheduled.copy(teamSize = 5)) }
+        coVerify { liveMatchBus.publish(matchId, LiveMatchUpdate(score = MatchScore(matchId, 0, 0), match = scheduled.copy(teamSize = 5, formation = "2-1-1"), lineup = result)) }
+        // A position past the new count, or a size the sport isn't played with, is refused.
+        assertFailsWith<ValidationException> { useCase(coach.id, matchId, SetMatchLineupRequest("2-1-1", mapOf(5 to "p1"), teamSize = 5)) }
+        assertFailsWith<ValidationException> { useCase(coach.id, matchId, SetMatchLineupRequest("2-2-1", emptyMap(), teamSize = 6)) }
+
+        // Back to the team's own count: stored as none, so it follows the team.
+        stub(scheduled.copy(teamSize = 5))
+        useCase(coach.id, matchId, SetMatchLineupRequest("2-3-1", emptyMap(), teamSize = 7))
+        coVerify { matchRepository.updateMatch(scheduled.copy(teamSize = null)) }
+    }
+
+    @Test
+    fun onceTheGameIsOnTheTeamSizeIsFixed() = runBlocking {
+        stub(scheduled.copy(status = MatchStatus.LIVE, kickoffAt = Instant.fromEpochMilliseconds(1), halfLengthMinutes = 30), ids.take(7).toSet())
+        coEvery { matchEventRepository.getEventsByMatch(matchId) } returns emptyList()
+        assertFailsWith<ConflictException> { useCase(coach.id, matchId, SetMatchLineupRequest("2-1-1", emptyMap(), teamSize = 5)) }
+        // The same count it kicked off with is no change.
+        useCase(coach.id, matchId, SetMatchLineupRequest("2-3-1", emptyMap(), teamSize = 7))
+        Unit
     }
 
     @Test

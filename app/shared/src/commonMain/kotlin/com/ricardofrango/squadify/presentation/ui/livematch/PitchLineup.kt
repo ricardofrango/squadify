@@ -5,6 +5,7 @@ import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchLineup
 import com.ricardofrango.squadify.model.autoArrangeSlots
 import com.ricardofrango.squadify.model.currentPitchSlots
+import com.ricardofrango.squadify.model.effectiveTeamSize
 import com.ricardofrango.squadify.model.formationText
 import com.ricardofrango.squadify.model.matchFormation
 
@@ -12,7 +13,8 @@ import com.ricardofrango.squadify.model.matchFormation
 // match and each player's position on their call-up (see Formation.kt), so one refetch or one socket
 // update keeps both in step.
 
-internal val MatchDetails.teamSize: Int get() = team.teamSize ?: 11
+/** How many a side this match is played: its own count, else the team's (Match.effectiveTeamSize). */
+internal val MatchDetails.teamSize: Int get() = match.effectiveTeamSize(team)
 
 /** The formation the match plays in now: its saved one, or the team size's default. */
 internal fun MatchDetails.formation(): List<Int> = matchFormation(match.formation, teamSize)
@@ -22,6 +24,10 @@ internal fun MatchDetails.storedSlots(): Map<Int, String> =
     callUps.mapNotNull { c -> c.callUp.pitchSlot?.let { it to c.callUp.playerId } }.toMap()
 
 internal fun MatchDetails.storedLineup() = MatchLineup(formation().formationText(), storedSlots())
+
+/** The match played [size] a side; the team's own count is kept as none, as the server does. */
+internal fun MatchDetails.withTeamSize(size: Int): MatchDetails =
+    copy(match = match.copy(teamSize = size.takeIf { it != team.teamSize }))
 
 internal fun MatchDetails.withLineup(lineup: MatchLineup): MatchDetails {
     val slotOf = lineup.slots.entries.associate { (slot, playerId) -> playerId to slot }

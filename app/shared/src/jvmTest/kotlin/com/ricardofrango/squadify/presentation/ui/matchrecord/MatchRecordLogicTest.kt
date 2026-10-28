@@ -88,6 +88,13 @@ class MatchRecordLogicTest {
     }
 
     @Test
+    fun onlyAGameEnteredAfterwardsSendsHowManyASideItWasPlayed() {
+        assertEquals(7, recordRequest(true, emptyList(), 25, emptyMap(), teamSize = 7).teamSize)
+        // A game followed live keeps the count it kicked off with.
+        assertNull(recordRequest(false, emptyList(), 25, emptyMap(), teamSize = 7).teamSize)
+    }
+
+    @Test
     fun theResultCanBeEnteredOnceKickoffHasPassedFromTheSavedCallUp() {
         val finished = previewFinishedDetails(canSeeRecord = true).copy(canManageLiveMatch = true)
         assertTrue(finished.canEditRecord())

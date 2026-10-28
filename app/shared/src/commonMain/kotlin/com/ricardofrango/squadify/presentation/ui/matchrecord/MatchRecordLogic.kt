@@ -170,15 +170,17 @@ internal fun recordProblem(
     return null
 }
 
-/** The request for the editor's state. Minutes only for a game entered afterwards. */
+/** The request for the editor's state. Minutes and the team size only for a game entered afterwards. */
 internal fun recordRequest(
     afterGame: Boolean,
     events: List<DraftEvent>,
     halfLength: Int,
-    minutes: Map<String, String>
+    minutes: Map<String, String>,
+    teamSize: Int? = null
 ): SaveMatchRecordRequest = SaveMatchRecordRequest(
     events = events.map { it.toRequest() },
     halfLengthMinutes = if (afterGame) halfLength else null,
+    teamSize = if (afterGame) teamSize else null,
     minutesPlayed = if (afterGame) {
         minutes.mapNotNull { (id, text) -> text.trim().toIntOrNull()?.let { id to it } }.toMap()
     } else {

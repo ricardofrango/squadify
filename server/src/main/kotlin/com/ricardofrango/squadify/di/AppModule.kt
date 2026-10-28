@@ -169,16 +169,16 @@ val appModule = module {
     factory { GetEligiblePlayersForAgeGroupUseCase(get(), get(), get(), get()) }
 
     factory { GetTeamsUseCase(get(), get(), get(), get(), get(), get()) }
-    factory { CreateMatchUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { CreateMatchUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetMatchesUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetMatchDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
-    factory { UpdateMatchUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { UpdateMatchUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { DeleteMatchUseCase(get(), get(), get(), get()) }
     factory { GetMatchReportUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { SaveMatchReportUseCase(get(), get(), get(), get(), get()) }
     factory { UpdateMatchStatusUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { StartMatchUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
-    factory { SetMatchLineupUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { SetMatchLineupUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { PauseMatchUseCase(get(), get(), get(), get(), get(), get()) }
     factory { ResumeMatchUseCase(get(), get(), get(), get(), get(), get()) }
     factory { SetMatchMinuteUseCase(get(), get(), get(), get(), get(), get()) }
@@ -193,7 +193,7 @@ val appModule = module {
     factory { NotifyMatchEventUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     factory { AddMatchEventUseCase(get(), get(), get(), get(), get(), get(), get()) }
-    factory { SaveMatchRecordUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { SaveMatchRecordUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { DeleteMatchEventUseCase(get(), get(), get(), get(), get(), get()) }
     factory { GetMatchEventsUseCase(get(), get(), get(), get()) }
     factory { GetMatchScoreUseCase(get(), get(), get(), get()) }

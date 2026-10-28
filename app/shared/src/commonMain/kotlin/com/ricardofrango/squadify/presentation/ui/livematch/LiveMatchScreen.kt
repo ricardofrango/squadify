@@ -429,7 +429,17 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
             emptyText = null,
             onDismiss = { sheet = null }
         )
-        PreKickoffSheet.Formation -> FormationSheet(formationText, teamSize, onApply = { actions.onSetLineup(it, slotIds); sheet = null }, onDismiss = { sheet = null })
+        // Before kickoff the team size can change too (not once the game is on): the positions
+        // past the new count empty.
+        PreKickoffSheet.Formation -> FormationSheet(
+            formationText, teamSize,
+            onApply = { f, size ->
+                if (size == teamSize) actions.onSetLineup(f, slotIds) else actions.onSetLineup(f, slotIds.filterKeys { it < size }, size)
+                sheet = null
+            },
+            onDismiss = { sheet = null },
+            teamSizes = details.teamSizeOptions
+        )
         null -> Unit
     }
 }
@@ -782,7 +792,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
     }
     if (showFormationSheet) {
         // The players keep their position numbers: who stands where in the new shape is the coach's call.
-        FormationSheet(formationText, details.teamSize, onApply = { actions.onSetLineup(it, currentSlotIds); showFormationSheet = false }, onDismiss = { showFormationSheet = false })
+        FormationSheet(formationText, details.teamSize, onApply = { f, _ -> actions.onSetLineup(f, currentSlotIds); showFormationSheet = false }, onDismiss = { showFormationSheet = false })
     }
     actionSheet?.let { sheet ->
         PlayerActionSheet(
@@ -1312,7 +1322,7 @@ private object PreviewLiveMatchActions : LiveMatchActions {
     override fun onFullTime() {}
     override fun onHalfTime() {}
     override fun onKickOff(halfLengthMinutes: Int) {}
-    override fun onSetLineup(formation: String, slots: Map<Int, String>) {}
+    override fun onSetLineup(formation: String, slots: Map<Int, String>, teamSize: Int?) {}
     override fun onSaveLineup(onSaved: () -> Unit) {}
     override fun onLogEvent(type: EventType, playerId: String, minute: Int) {}
     override fun onLogGoal(minute: Int, isOpponent: Boolean) {}
