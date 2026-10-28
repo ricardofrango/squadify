@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.livematch
 
+import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.components.homeFirst
 import com.ricardofrango.squadify.model.ourSideFirst
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
@@ -338,7 +339,7 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
     }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
+        val landscape = isLandscapeLayout
         // No app bar: the matchup sits at the top (system back leaves the screen).
         Column(Modifier.fillMaxSize().statusBarsPadding().padding(top = 8.dp)) {
             if (!landscape) matchup(Modifier.padding(horizontal = ScreenPadding.Horizontal).padding(bottom = 8.dp), false)
@@ -709,7 +710,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
     }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
+        val landscape = isLandscapeLayout
         if (landscape) {
             // Lying down (the developer's layout, 2026-10-23): on the left the tabs, then the tab (the
             // pitch with the bench under it); on the right the scoreboard as a column -- the clock on

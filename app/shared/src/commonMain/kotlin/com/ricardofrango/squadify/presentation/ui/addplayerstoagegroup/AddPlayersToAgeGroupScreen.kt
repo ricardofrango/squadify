@@ -30,6 +30,7 @@ import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.PinnedBottomBar
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -177,6 +178,8 @@ private fun AddPlayersToAgeGroupContent(
                         .fillMaxSize()
                         .padding(paddingValues)
                         .background(ScreenBackground)
+                        // No wider than a form, centred, on a wide screen.
+                        .readableWidth()
                         .padding(horizontal = ScreenPadding.Horizontal)
                         .padding(top = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)

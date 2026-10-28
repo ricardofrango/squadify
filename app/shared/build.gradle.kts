@@ -81,6 +81,7 @@ kotlin {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
+            implementation(libs.compose.material3.adaptive)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.uiToolingPreview)
@@ -89,7 +90,8 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             
             // Navigation
-            implementation(libs.navigation)
+            implementation(libs.navigation3.ui)
+            implementation(libs.androidx.lifecycle.viewmodelNavigation3)
             implementation(libs.navigationevent.compose)
 
             // Koin -- koin-core is `api`, not `implementation`: initKoin()'s return type (KoinApplication)

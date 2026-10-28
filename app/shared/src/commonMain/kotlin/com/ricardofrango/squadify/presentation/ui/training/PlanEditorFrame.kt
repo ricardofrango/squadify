@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.isWide
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
@@ -74,7 +75,7 @@ fun PlanEditorFrame(
         Column(modifier) {
             contextStrip()
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-                val wide = maxWidth >= 600.dp
+                val wide = isWide
                 // The error line sits inside the scroll, so its space scrolls with the form instead of
                 // staying fixed above Save.
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = 8.dp, bottom = 12.dp)) {

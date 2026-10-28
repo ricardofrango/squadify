@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import com.ricardofrango.squadify.presentation.ui.components.useNavigationRail
+import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import androidx.compose.ui.text.input.ImeAction
@@ -306,9 +308,10 @@ private fun EditClubContent(
     val selectedTab = idle?.selectedTab ?: EDIT_CLUB_TAB_DETAILS
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
+        val landscape = isLandscapeLayout
+        val rail = useNavigationRail()
         Row(Modifier.fillMaxSize()) {
-            if (landscape && idle != null) DetailRail(tabs, selectedTab, onTabSelected)
+            if (rail && idle != null) DetailRail(tabs, selectedTab, onTabSelected)
             Scaffold(
                 modifier = Modifier.weight(1f),
                 containerColor = ScreenBackground,
@@ -331,7 +334,7 @@ private fun EditClubContent(
                         }
                     )
                 },
-                bottomBar = { if (!landscape && idle != null) DetailBottomBar(tabs, selectedTab, onTabSelected) }
+                bottomBar = { if (!rail && idle != null) DetailBottomBar(tabs, selectedTab, onTabSelected) }
             ) { paddingValues ->
                 val boxModifier = Modifier.fillMaxSize().padding(paddingValues)
                 when (uiState) {

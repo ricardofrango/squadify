@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.useNavigationRail
 import com.ricardofrango.squadify.presentation.ui.components.SectionBorder
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import kotlin.time.Instant
@@ -13,8 +14,6 @@ import com.ricardofrango.squadify.presentation.ui.theme.FilterRowPadding
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
-import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
-import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import squadify.app.shared.generated.resources.ic_close
 import squadify.app.shared.generated.resources.cd_disable_player
@@ -34,7 +33,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.BoxWithConstraints
+import com.ricardofrango.squadify.presentation.ui.components.DetailBottomBar
+import com.ricardofrango.squadify.presentation.ui.components.DetailRail
+import com.ricardofrango.squadify.presentation.ui.components.DetailTab
+import com.ricardofrango.squadify.presentation.ui.components.readableListPadding
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,6 +48,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -57,10 +64,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarDefaults
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -141,7 +144,6 @@ import squadify.app.shared.generated.resources.tab_players
 import squadify.app.shared.generated.resources.tab_teams
 import squadify.app.shared.generated.resources.title_account
 import squadify.app.shared.generated.resources.title_club_details
-import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -318,40 +320,6 @@ private fun ClubDetailsTabContent(
     }
 }
 
-@Composable
-private fun RowScope.ClubTabItem(
-    selected: Boolean,
-    onClick: () -> Unit,
-    icon: DrawableResource,
-    label: String
-) {
-    NavigationBarItem(
-        selected = selected,
-        onClick = onClick,
-        icon = {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = label,
-                modifier = Modifier.size(24.dp)
-            )
-        },
-        label = {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                )
-            )
-        },
-        colors = NavigationBarItemDefaults.colors(
-            selectedIconColor = ChromeAccent,
-            selectedTextColor = ChromeAccent,
-            unselectedIconColor = Color.White.copy(alpha = 0.5f),
-            unselectedTextColor = Color.White.copy(alpha = 0.5f),
-            indicatorColor = ChromeAccent.copy(alpha = 0.15f)
-        )
-    )
-}
 
 @Composable
 private fun AgeGroupsFilterSection(
@@ -378,6 +346,9 @@ private fun AgeGroupsFilterSection(
     }
 }
 
+/** The narrowest an age group or team card gets before the grid drops a column. */
+private val CardMinWidth = 320.dp
+
 @Composable
 private fun AgeGroupList(
     ageGroups: List<com.ricardofrango.squadify.model.AgeGroup>,
@@ -385,10 +356,13 @@ private fun AgeGroupList(
     playerCountFor: (ageGroupId: String) -> Int,
     onAgeGroupClick: (ageGroupId: String) -> Unit
 ) {
-    LazyColumn(
+    // As many columns of cards as fit: one on a phone, more on a wide screen.
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(CardMinWidth),
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, bottom = ScreenPadding.Bottom, top = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(ageGroups) { ageGroup ->
             AgeGroupCard(
@@ -552,10 +526,12 @@ internal fun <T> FilterSelector(
 private fun TeamList(teams: List<Team>, onNavigateToTeam: (String) -> Unit) {
     // Callers only reach here with a non-empty list -- the empty case is handled one level up by
     // NoTeamsState (which also offers a coordinator the "create a team" action).
-    LazyColumn(
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(CardMinWidth),
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, bottom = ScreenPadding.Bottom, top = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(teams) { team ->
             TeamCard(team, onClick = { onNavigateToTeam(team.id) })
@@ -580,10 +556,12 @@ internal fun PlayerList(
     // NoPlayersState (which also offers the right "add players" action).
     val listState = rememberLazyListState()
     LoadMoreEffect(listState, enabled = hasMore && !loadingMore, onLoadMore = onLoadMore)
+    // Centred on a wide screen, the whole width still scrolling.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, bottom = ScreenPadding.Bottom, top = 8.dp),
+        contentPadding = readableListPadding(top = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(players, key = { it.id }) { player ->
@@ -595,6 +573,7 @@ internal fun PlayerList(
             )
         }
         loadingMoreItem(loadingMore)
+    }
     }
 }
 
@@ -782,6 +761,15 @@ internal fun NoPlayersState(
     )
 }
 
+/** The club's tabs, in [CLUB_TAB_HOME]..[CLUB_TAB_MATCHES] order, then More. */
+private val ClubTabs = listOf(
+    DetailTab(Res.drawable.ic_home, Res.string.tab_home),
+    DetailTab(Res.drawable.ic_age_group, Res.string.tab_age_groups),
+    DetailTab(Res.drawable.ic_teams, Res.string.tab_teams),
+    DetailTab(Res.drawable.ic_calendar, Res.string.tab_matches),
+    DetailTab(Res.drawable.ic_more, Res.string.tab_more)
+)
+
 /** The club screen's layout, with its actions behind [ClubDetailsActions] so it can be previewed. */
 @Composable
 private fun ClubDetailsContent(
@@ -833,8 +821,21 @@ private fun ClubDetailsContent(
         }
     }
 
+    // "More" opens the full-screen panel (design 37) -- Players, the create actions and Account all
+    // live there -- and shows as selected while it's open.
+    val clubTabs = ClubTabs
+    val selectedIndex = if (moreOpen) clubTabs.lastIndex else selectedTab
+    val onTabClick: (Int) -> Unit = { i -> if (i == clubTabs.lastIndex) moreOpen = !moreOpen else actions.onTabSelected(i) }
+    val hasTabs = (uiState as? ClubDetailsUiState.Idle)?.details != null
+
     Box(Modifier.fillMaxSize()) {
+    // From a medium-width window up (a phone on its side, a tablet, desktop), the tabs move to a rail
+    // on the left, as on Team and Age Group details.
+    val rail = useNavigationRail()
+    Row(Modifier.fillMaxSize()) {
+    if (rail && hasTabs) DetailRail(clubTabs, selectedIndex, onTabClick)
     Scaffold(
+        modifier = Modifier.weight(1f),
         topBar = {
             SquadifyTopBar(
                 title = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name
@@ -847,47 +848,7 @@ private fun ClubDetailsContent(
         bottomBar = {
             // Only meaningful once the club details actually loaded -- while loading, or if the
             // fetch failed (Idle.details stays null), there's nothing for the tabs to show.
-            if ((uiState as? ClubDetailsUiState.Idle)?.details != null) {
-                NavigationBar(
-                    containerColor = ClubChrome,
-                    tonalElevation = 0.dp,
-                    windowInsets = NavigationBarDefaults.windowInsets
-                ) {
-                    ClubTabItem(
-                        selected = selectedTab == CLUB_TAB_HOME,
-                        onClick = { actions.onTabSelected(CLUB_TAB_HOME) },
-                        icon = Res.drawable.ic_home,
-                        label = stringResource(Res.string.tab_home)
-                    )
-                    ClubTabItem(
-                        selected = selectedTab == CLUB_TAB_AGE_GROUPS,
-                        onClick = { actions.onTabSelected(CLUB_TAB_AGE_GROUPS) },
-                        icon = Res.drawable.ic_age_group,
-                        label = stringResource(Res.string.tab_age_groups)
-                    )
-                    ClubTabItem(
-                        selected = selectedTab == CLUB_TAB_TEAMS,
-                        onClick = { actions.onTabSelected(CLUB_TAB_TEAMS) },
-                        icon = Res.drawable.ic_teams,
-                        label = stringResource(Res.string.tab_teams)
-                    )
-                    ClubTabItem(
-                        selected = selectedTab == CLUB_TAB_MATCHES,
-                        onClick = { actions.onTabSelected(CLUB_TAB_MATCHES) },
-                        icon = Res.drawable.ic_calendar,
-                        label = stringResource(Res.string.tab_matches)
-                    )
-
-                    // "More" opens the full-screen panel (design 37) -- Players, the create actions and
-                    // Account all live there. Shown as selected while the panel is open.
-                    ClubTabItem(
-                        selected = moreOpen,
-                        onClick = { moreOpen = !moreOpen },
-                        icon = Res.drawable.ic_more,
-                        label = stringResource(Res.string.tab_more)
-                    )
-                }
-            }
+            if (!rail && hasTabs) DetailBottomBar(clubTabs, selectedIndex, onTabClick)
         }
     ) { paddingValues ->
         Box(
@@ -955,6 +916,8 @@ private fun ClubDetailsContent(
                 }
             }
         }
+    }
+
     }
 
     val details = (uiState as? ClubDetailsUiState.Idle)?.details

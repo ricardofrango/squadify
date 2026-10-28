@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.matchrecord
 
+import com.ricardofrango.squadify.presentation.ui.components.readableListPadding
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -250,7 +252,9 @@ private fun RecordBody(
             .sortedWith(compareBy({ it.second.period }, { it.second.minute }))
     }
     val players = remember(details, state.sort) { minutesOrder(details.callUps.map { it.player }, state.sort) }
-    LazyColumn(modifier, contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    // Centred on a wide screen, the whole width still scrolling.
+    BoxWithConstraints(modifier) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = readableListPadding(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item { ScoreCard(state) }
         if (!state.afterGame) {
             item {
@@ -310,6 +314,7 @@ private fun RecordBody(
                 }
             }
         }
+    }
     }
 }
 

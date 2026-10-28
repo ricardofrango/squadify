@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -284,6 +285,7 @@ private fun CreateAgeGroupsContent(
                         .padding(paddingValues)
                         .background(ScreenBackground)
                         .verticalScroll(rememberScrollState())
+                        .readableWidth()
                         .screenContentPadding(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
@@ -730,6 +732,40 @@ private fun previewSeason(id: String, name: String, startYear: Int) = Season(
 @Preview
 @Composable
 private fun CreateAgeGroupsContentPreview() {
+    val today = remember { LocalDate(2026, 9, 4) }
+    SquadifyTheme {
+        CreateAgeGroupsContent(
+            uiState = CreateAgeGroupsUiState.Idle(
+                seasons = listOf(previewSeason("s1", "26/27", 2026), previewSeason("s2", "25/26", 2025)),
+                selectedSeasonId = "s1"
+            ),
+            clubName = "CD Ribamar",
+            today = today,
+            rows = listOf(
+                AgeGroupRow(key = 0, startYear = 2015, endYear = 2015, teamSize = 11),
+                AgeGroupRow(
+                    key = 1, spanType = AgeGroupSpanType.TWO_YEAR,
+                    startYear = 2017, endYear = 2016, teamSize = 5
+                )
+            ),
+            teamSizeOptions = listOf(4, 5, 7, 9, 11),
+            onNavigateBack = {},
+            onSeasonSelected = {},
+            onRowSpanTypeSelected = { _, _ -> },
+            onRowStartYearSelected = { _, _ -> },
+            onRowEndYearSelected = { _, _ -> },
+            onRowNameChanged = { _, _ -> },
+            onRowTeamSizeSelected = { _, _ -> },
+            onAddRow = {},
+            onRemoveRow = {},
+            onCreateClick = {}
+        )
+    }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun CreateAgeGroupsContentLandscapePreview() {
     val today = remember { LocalDate(2026, 9, 4) }
     SquadifyTheme {
         CreateAgeGroupsContent(

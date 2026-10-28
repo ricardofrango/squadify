@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -134,6 +135,7 @@ private fun ForgotPasswordContent(
                 .imePadding()
                 .background(ScreenBackground)
                 .verticalScroll(rememberScrollState())
+                .readableWidth()
                 .screenContentPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -224,6 +226,12 @@ private fun ForgotPasswordContent(
 @Preview
 @Composable
 private fun ForgotPasswordEmailPreview() {
+    SquadifyTheme { ForgotPasswordContent(ForgotPasswordUiState(), "ana@clube.pt", {}, {}, {}, { _, _, _ -> }, {}, {}) }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun ForgotPasswordEmailLandscapePreview() {
     SquadifyTheme { ForgotPasswordContent(ForgotPasswordUiState(), "ana@clube.pt", {}, {}, {}, { _, _, _ -> }, {}, {}) }
 }
 

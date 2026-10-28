@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.isWide
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -132,7 +133,7 @@ private fun SeasonPlanContent(
         }
         val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
         BoxWithConstraints(modifier) {
-            val wide = maxWidth >= 600.dp
+            val wide = isWide
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatsCard { SeasonTimeline(plans.season, plan?.phases.orEmpty(), today) }
                 if (plan == null) {

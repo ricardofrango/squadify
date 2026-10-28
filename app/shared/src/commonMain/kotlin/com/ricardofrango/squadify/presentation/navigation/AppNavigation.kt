@@ -5,8 +5,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.lifecycle.Lifecycle
-import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -14,16 +12,20 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavDestination.Companion.hasRoute
-import androidx.navigation.NavController
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
 import com.ricardofrango.squadify.domain.service.SessionEventBus
 import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.togetherWith
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.ui.NavDisplay
 import com.ricardofrango.squadify.model.StatsFilter
 import com.ricardofrango.squadify.model.SportType
 import org.koin.compose.koinInject
@@ -105,16 +107,15 @@ private const val KEY_MEMBERS_CHANGED = "clubMembersChanged"
 private const val KEY_MEMBERS_MESSAGE = "clubMembersMessage"
 
 /**
- * Sets [key] on this entry's SavedStateHandle only while the entry is alive. Navigation throws if the
- * handle is touched before the entry is attached or after it's destroyed -- and an entry captured
- * earlier can be destroyed by the time it's used: when the activity is relaunched (a configuration
- * change, e.g. unlocking the phone mid-match), the back stack is torn down before the composition's
- * onDispose callbacks run. Skipping the flag then is safe: nothing is returning to that screen at
- * that moment, and the relaunch recomposes the screen on top, which registers its onDispose again
- * against the restored (alive) entry -- so the flag is still set when the user really leaves.
+ * Sets [key] on [entry]'s results only while it's still in the back stack. An entry captured earlier
+ * can be gone by the time it's used: after the app is recreated (a configuration change, e.g. unlocking
+ * the phone mid-match, or a process restart) the back stack is restored as new entries, and the old
+ * one is no longer anyone's. Skipping the flag then is safe: nothing is returning to that screen at
+ * that moment, and the restored screen on top registers its onDispose again against the restored
+ * entry, so the flag is still set when the user really leaves.
  */
-private fun NavBackStackEntry.setIfAlive(key: String, value: Any?) {
-    if (lifecycle.currentState.isAtLeast(Lifecycle.State.CREATED)) savedStateHandle[key] = value
+private fun AppNavigator.setIfAlive(entry: AppBackStackEntry?, key: String, value: Any?) {
+    if (entry != null && isAlive(entry)) entry.savedStateHandle[key] = value
 }
 
 /**
@@ -125,22 +126,21 @@ private fun NavBackStackEntry.setIfAlive(key: String, value: Any?) {
  * learn they're stale. Each intermediate detail screen forwards the signal on as it consumes it, so
  * the reload reaches every screen below when the user pops back.
  */
-private fun NavController.consumeAndCascadeStructureChanged(entry: NavBackStackEntry) {
+private fun AppNavigator.consumeAndCascadeStructureChanged(entry: AppBackStackEntry) {
     entry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false
     previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
 }
 
 @Composable
-fun AppNavigation(navController: NavHostController = rememberNavController()) {
+fun AppNavigation(navigator: AppNavigator = rememberAppNavigator()) {
     // Read (and, on web, cleared from the visible URL) exactly once, during this first composition --
-    // strictly before the LaunchedEffect below runs, so bindToBrowserHistoryIfWeb's own default
-    // "navigate straight to the initial URL fragment" behavior finds nothing left to act on; the deep
-    // link is instead handled explicitly, and only once the session check confirms it's safe to, by
-    // SplashViewModel below. See WebDeepLinking.kt / TECHNICAL_DECISIONS.md.
+    // strictly before the LaunchedEffect below binds the browser history; the deep link is instead
+    // opened explicitly, and only once the session check confirms it's safe to, by SplashViewModel
+    // below. See WebDeepLinking.kt / TECHNICAL_DECISIONS.md.
     val deepLinkRoute = remember { initialDeepLinkRouteOrNull() }
 
-    LaunchedEffect(navController) {
-        navController.bindToBrowserHistoryIfWeb()
+    LaunchedEffect(navigator) {
+        navigator.bindToBrowserHistoryIfWeb()
     }
     // Fires when the authenticated HTTP client (see Koin.kt) gives up on a request after its own
     // refresh-and-retry -- the session is truly dead, from wherever the user currently is in the app,
@@ -148,9 +148,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
     val sessionEventBus = koinInject<SessionEventBus>()
     LaunchedEffect(Unit) {
         sessionEventBus.forceLogout.collect {
-            navController.navigate(Screen.Login) {
-                popUpTo(navController.graph.id) { inclusive = true }
-            }
+            navigator.navigate(Screen.Login) { popUpToRoot() }
         }
     }
 
@@ -160,8 +158,8 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
     val pushLinkInbox = koinInject<PushLinkInbox>()
     val getClubsUseCase = koinInject<GetClubsUseCase>()
     val clubThemeStore = koinInject<ClubThemeStore>()
-    LaunchedEffect(navController) {
-        combine(pushLinkInbox.link, navController.currentBackStackEntryFlow) { link, entry -> link != null && !entry.destination.isBeforeSignIn() }
+    LaunchedEffect(navigator) {
+        combine(pushLinkInbox.link, snapshotFlow { navigator.currentBackStackEntry }.filterNotNull()) { link, entry -> link != null && !entry.screen.isBeforeSignIn() }
             .collect { ready ->
                 if (!ready) return@collect
                 val link = pushLinkInbox.take() ?: return@collect
@@ -171,57 +169,73 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 } catch (e: Exception) {
                     null
                 }
-                navController.openBackStack(pushLinkBackStack(link, onlyClubId))
+                navigator.openBackStack(pushLinkBackStack(link, onlyClubId))
             }
+    }
+
+    // Each screen gets its own view models (koinViewModel) and remembered state, kept while it's in the
+    // back stack and cleared when it's popped, as each NavBackStackEntry had. The view models' parent
+    // is the platform's owner (the activity on Android); where a platform provides none, the app's own.
+    val parentOwner = LocalViewModelStoreOwner.current ?: remember {
+        object : ViewModelStoreOwner {
+            override val viewModelStore = ViewModelStore()
+        }
     }
 
     // One horizontal "push" for the whole app: forward, the new screen slides in from the right while
     // the one below drifts a quarter-width left and dims slightly; back is the exact reverse. Leaving
     // the splash screen stays a plain fade -- sliding in from a splash reads as odd.
-    val fromSplash: AnimatedContentTransitionScope<NavBackStackEntry>.() -> Boolean =
-        { initialState.destination.hasRoute<Screen.Splash>() }
-    NavHost(
-        navController = navController,
-        startDestination = Screen.Splash,
-        enterTransition = {
-            if (fromSplash()) fadeIn(tween(NAV_ANIM_MS))
-            else slideInHorizontally(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { it }
-        },
-        exitTransition = {
-            if (fromSplash()) fadeOut(tween(NAV_ANIM_MS))
-            else slideOutHorizontally(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { -it / 4 } + fadeOut(tween(NAV_ANIM_MS), targetAlpha = 0.85f)
-        },
-        popEnterTransition = {
-            slideInHorizontally(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { -it / 4 } + fadeIn(tween(NAV_ANIM_MS), initialAlpha = 0.85f)
-        },
-        popExitTransition = {
+    val push: ContentTransform =
+        slideInHorizontally(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { it } togetherWith
+            (slideOutHorizontally(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { -it / 4 } + fadeOut(tween(NAV_ANIM_MS), targetAlpha = 0.85f))
+    val pop: ContentTransform =
+        (slideInHorizontally(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { -it / 4 } + fadeIn(tween(NAV_ANIM_MS), initialAlpha = 0.85f)) togetherWith
             slideOutHorizontally(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { it }
-        }
-    ) {
+    val fade: ContentTransform = fadeIn(tween(NAV_ANIM_MS)) togetherWith fadeOut(tween(NAV_ANIM_MS))
+
+    CompositionLocalProvider(LocalViewModelStoreOwner provides parentOwner) {
+    NavDisplay(
+        backStack = navigator.backStack,
+        onBack = { navigator.popBackStack() },
+        entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(),
+            rememberViewModelStoreNavEntryDecorator(parentOwner)
+        ),
+        transitionSpec = { if (initialState.entries.lastOrNull()?.metadata?.containsKey(SPLASH_ENTRY) == true) fade else push },
+        popTransitionSpec = { pop },
+        predictivePopTransitionSpec = { pop },
+        entryProvider = remember(navigator, deepLinkRoute) { appScreens(navigator, deepLinkRoute) }::entryFor
+    )
+    }
+}
+
+/** Every screen's content, and where each one navigates to. */
+private fun appScreens(navigator: AppNavigator, deepLinkRoute: String?): ScreenRegistry = screens {
         screen<Screen.Splash> {
             SplashScreen(
                 deepLinkRoute = deepLinkRoute,
                 onNavigateToLogin = {
-                    navController.navigate(Screen.Login) {
+                    navigator.navigate(Screen.Login) {
                         popUpTo(Screen.Splash) { inclusive = true }
                     }
                 },
                 onNavigateToDashboard = {
-                    navController.navigate(Screen.Dashboard) {
+                    navigator.navigate(Screen.Dashboard) {
                         popUpTo(Screen.Splash) { inclusive = true }
                     }
                 },
                 onNavigateToOnlyClub = { clubId ->
-                    navController.navigate(Screen.ClubDetails(clubId, isRootClub = true)) {
+                    navigator.navigate(Screen.ClubDetails(clubId, isRootClub = true)) {
                         popUpTo(Screen.Splash) { inclusive = true }
                     }
                 },
+                // A link that isn't a screen (any more) opens My clubs instead.
                 onNavigateToDeepLink = { route ->
-                    navController.navigate(route) {
+                    navigator.navigate(screenFromRoute(route) ?: Screen.Dashboard) {
                         popUpTo(Screen.Splash) { inclusive = true }
                     }
                 },
-                onNavigateToBackStack = { screens -> navController.openBackStack(screens) }
+                onNavigateToBackStack = { screens -> navigator.openBackStack(screens) }
             )
         }
 
@@ -229,17 +243,17 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val passwordResetEmail by entry.savedStateHandle.getStateFlow<String?>(KEY_PASSWORD_RESET_EMAIL, null).collectAsStateWithLifecycle()
             LoginScreen(
                 passwordResetEmail = passwordResetEmail,
-                onNavigateToForgotPassword = { email -> navController.navigate(Screen.ForgotPassword(email)) },
+                onNavigateToForgotPassword = { email -> navigator.navigate(Screen.ForgotPassword(email)) },
                 onNavigateToRegister = {
-                    navController.navigate(Screen.Register)
+                    navigator.navigate(Screen.Register)
                 },
                 onNavigateToDashboard = {
-                    navController.navigate(Screen.Dashboard) {
+                    navigator.navigate(Screen.Dashboard) {
                         popUpTo(Screen.Login) { inclusive = true }
                     }
                 },
                 onNavigateToOnlyClub = { clubId ->
-                    navController.navigate(Screen.ClubDetails(clubId, isRootClub = true)) {
+                    navigator.navigate(Screen.ClubDetails(clubId, isRootClub = true)) {
                         popUpTo(Screen.Login) { inclusive = true }
                     }
                 }
@@ -247,28 +261,28 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         }
         
         screen<Screen.ForgotPassword> { entry ->
-            val loginEntry = remember(entry) { navController.previousBackStackEntry }
+            val loginEntry = remember(entry) { navigator.previousBackStackEntry }
             ForgotPasswordScreen(
                 initialEmail = entry.toRoute<Screen.ForgotPassword>().email,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onPasswordReset = { email ->
-                    loginEntry?.setIfAlive(KEY_PASSWORD_RESET_EMAIL, email)
-                    navController.popBackStack()
+                    navigator.setIfAlive(loginEntry, KEY_PASSWORD_RESET_EMAIL, email)
+                    navigator.popBackStack()
                 }
             )
         }
 
         screen<Screen.ChangeEmail> { entry ->
-            val accountEntry = remember(entry) { navController.previousBackStackEntry }
+            val accountEntry = remember(entry) { navigator.previousBackStackEntry }
             ChangeEmailScreen(
                 currentEmail = entry.toRoute<Screen.ChangeEmail>().currentEmail.ifEmpty { null },
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onEmailChanged = { email ->
-                    accountEntry?.setIfAlive(KEY_EMAIL_CHANGED, email)
-                    navController.popBackStack()
+                    navigator.setIfAlive(accountEntry, KEY_EMAIL_CHANGED, email)
+                    navigator.popBackStack()
                 },
                 onSignedOut = {
-                    navController.navigate(Screen.Login) { popUpTo(navController.graph.id) { inclusive = true } }
+                    navigator.navigate(Screen.Login) { popUpToRoot() }
                 }
             )
         }
@@ -276,10 +290,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         screen<Screen.Register> {
             RegisterScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 },
                 onNavigateToDashboard = {
-                    navController.navigate(Screen.Dashboard) {
+                    navigator.navigate(Screen.Dashboard) {
                         popUpTo(Screen.Login) { inclusive = true }
                     }
                 }
@@ -289,17 +303,17 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         screen<Screen.Dashboard> {
             DashboardScreen(
                 onNavigateToClub = { clubId ->
-                    navController.navigate(Screen.ClubDetails(clubId))
+                    navigator.navigate(Screen.ClubDetails(clubId))
                 },
                 onNavigateToOnlyClub = { clubId ->
                     // The clubs list has nothing to offer a single-club user, so pop it off the back
                     // stack entirely -- ClubDetailsScreen(isRootClub = true) then has no back button.
-                    navController.navigate(Screen.ClubDetails(clubId, isRootClub = true)) {
+                    navigator.navigate(Screen.ClubDetails(clubId, isRootClub = true)) {
                         popUpTo(Screen.Dashboard) { inclusive = true }
                     }
                 },
                 onNavigateToAccount = {
-                    navController.navigate(Screen.Account)
+                    navigator.navigate(Screen.Account)
                 }
             )
         }
@@ -317,55 +331,55 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 clubId = screen.clubId,
                 showBackButton = !screen.isRootClub,
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 },
                 onNavigateToTeam = { teamId ->
-                    navController.navigate(Screen.TeamDetails(teamId))
+                    navigator.navigate(Screen.TeamDetails(teamId))
                 },
                 onNavigateToPlayer = { playerId ->
-                    navController.navigate(Screen.PlayerDetails(playerId))
+                    navigator.navigate(Screen.PlayerDetails(playerId))
                 },
                 onNavigateToCreateSeason = { clubName ->
-                    navController.navigate(Screen.CreateSeason(screen.clubId, clubName))
+                    navigator.navigate(Screen.CreateSeason(screen.clubId, clubName))
                 },
                 onNavigateToCreateAgeGroups = { clubName, sport, initialSeasonId ->
-                    navController.navigate(
+                    navigator.navigate(
                         Screen.CreateAgeGroups(screen.clubId, clubName, sport.name, initialSeasonId)
                     )
                 },
                 onNavigateToCreateTeams = { clubName, sport, ageGroupId ->
-                    navController.navigate(Screen.CreateTeams(screen.clubId, clubName, sport.name, ageGroupId))
+                    navigator.navigate(Screen.CreateTeams(screen.clubId, clubName, sport.name, ageGroupId))
                 },
                 onNavigateToAddPlayersToAgeGroup = { clubName ->
-                    navController.navigate(Screen.AddPlayersToAgeGroup(screen.clubId, clubName))
+                    navigator.navigate(Screen.AddPlayersToAgeGroup(screen.clubId, clubName))
                 },
                 onNavigateToCreatePlayers = { clubName, ageGroupId ->
-                    navController.navigate(Screen.CreatePlayers(screen.clubId, clubName, ageGroupId))
+                    navigator.navigate(Screen.CreatePlayers(screen.clubId, clubName, ageGroupId))
                 },
                 onNavigateToCreateStaff = { clubName ->
-                    navController.navigate(Screen.CreateStaff(screen.clubId, clubName))
+                    navigator.navigate(Screen.CreateStaff(screen.clubId, clubName))
                 },
                 onNavigateToAgeGroup = { ageGroupId ->
-                    navController.navigate(Screen.AgeGroupDetails(ageGroupId))
+                    navigator.navigate(Screen.AgeGroupDetails(ageGroupId))
                 },
                 onNavigateToMatch = { matchId ->
-                    navController.navigate(Screen.MatchDetails(matchId))
+                    navigator.navigate(Screen.MatchDetails(matchId))
                 },
                 onNavigateToAccount = {
-                    navController.navigate(Screen.Account)
+                    navigator.navigate(Screen.Account)
                 },
                 onNavigateToEditClub = {
-                    navController.navigate(Screen.EditClub(screen.clubId))
+                    navigator.navigate(Screen.EditClub(screen.clubId))
                 },
                 onNavigateToPlayers = {
-                    navController.navigate(Screen.ClubPlayers(screen.clubId))
+                    navigator.navigate(Screen.ClubPlayers(screen.clubId))
                 },
                 onNavigateToOpponents = {
-                    navController.navigate(Screen.Opponents(screen.clubId))
+                    navigator.navigate(Screen.Opponents(screen.clubId))
                 },
-                onNavigateToRateSession = { sessionId -> navController.navigate(Screen.RateTraining(sessionId)) },
+                onNavigateToRateSession = { sessionId -> navigator.navigate(Screen.RateTraining(sessionId)) },
                 onNavigateToEditPlan = { ageGroupId, level, start ->
-                    navController.navigate(
+                    navigator.navigate(
                         when (level) {
                             TrainingPlanLevel.SEASON -> Screen.EditSeasonPlan(ageGroupId)
                             TrainingPlanLevel.MONTH -> Screen.EditMonthPlan(ageGroupId, start.toString())
@@ -378,16 +392,16 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 // from the list went to the other list. A user who started straight in their only
                 // club (isRootClub: the list was popped) gets the list in place of this screen.
                 onSwitchClub = {
-                    if (!navController.popBackStack<Screen.Dashboard>(inclusive = false)) {
-                        navController.navigate(Screen.Dashboard) {
+                    if (!navigator.popBackStack<Screen.Dashboard>(inclusive = false)) {
+                        navigator.navigate(Screen.Dashboard) {
                             popUpTo<Screen.ClubDetails> { inclusive = true }
                         }
                     }
                 },
                 // Clear the whole back stack, so back from Sign in can't return into the club.
                 onLoggedOut = {
-                    navController.navigate(Screen.Login) {
-                        popUpTo(navController.graph.id) { inclusive = true }
+                    navigator.navigate(Screen.Login) {
+                        popUpToRoot()
                     }
                 },
                 refreshClubDetails = structureChanged
@@ -401,17 +415,17 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
                 .collectAsStateWithLifecycle()
             if (structureChanged) {
-                navController.consumeAndCascadeStructureChanged(backStackEntry)
+                navigator.consumeAndCascadeStructureChanged(backStackEntry)
             }
             ClubPlayersScreen(
                 clubId = screen.clubId,
-                onNavigateBack = { navController.popBackStack() },
-                onOpenPlayer = { playerId -> navController.navigate(Screen.PlayerDetails(playerId)) },
+                onNavigateBack = { navigator.popBackStack() },
+                onOpenPlayer = { playerId -> navigator.navigate(Screen.PlayerDetails(playerId)) },
                 onCreateAgeGroups = { clubName, sport, seasonId ->
-                    navController.navigate(Screen.CreateAgeGroups(screen.clubId, clubName, sport.name, seasonId))
+                    navigator.navigate(Screen.CreateAgeGroups(screen.clubId, clubName, sport.name, seasonId))
                 },
-                onCreatePlayers = { clubName -> navController.navigate(Screen.CreatePlayers(screen.clubId, clubName)) },
-                onAddPlayersToAgeGroup = { clubName -> navController.navigate(Screen.AddPlayersToAgeGroup(screen.clubId, clubName)) },
+                onCreatePlayers = { clubName -> navigator.navigate(Screen.CreatePlayers(screen.clubId, clubName)) },
+                onAddPlayersToAgeGroup = { clubName -> navigator.navigate(Screen.AddPlayersToAgeGroup(screen.clubId, clubName)) },
                 refresh = structureChanged
             )
         }
@@ -426,14 +440,14 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 .collectAsStateWithLifecycle()
             EditClubScreen(
                 clubId = screen.clubId,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onClubUpdated = {
-                    navController.previousBackStackEntry
+                    navigator.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
                 },
-                onOpenMember = { userId -> navController.navigate(Screen.ClubMemberDetails(screen.clubId, userId = userId)) },
-                onOpenInvite = { inviteId -> navController.navigate(Screen.ClubMemberDetails(screen.clubId, inviteId = inviteId)) },
+                onOpenMember = { userId -> navigator.navigate(Screen.ClubMemberDetails(screen.clubId, userId = userId)) },
+                onOpenInvite = { inviteId -> navigator.navigate(Screen.ClubMemberDetails(screen.clubId, inviteId = inviteId)) },
                 refreshMembers = membersChanged,
                 membersMessage = membersMessage,
                 onMembersRefreshed = {
@@ -447,11 +461,11 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.EditAgeGroup = backStackEntry.toRoute()
             EditAgeGroupScreen(
                 ageGroupId = screen.ageGroupId,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onAgeGroupUpdated = {
                     // Age Group Details (and the club below it) show the name and years: reload on return.
-                    navController.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navigator.popBackStack()
                 }
             )
         }
@@ -460,17 +474,17 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.EditTeam = backStackEntry.toRoute()
             EditTeamScreen(
                 teamId = screen.teamId,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onTeamUpdated = {
                     // Team Details (and the age group / club below it) show the name: reload on return.
-                    navController.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navigator.popBackStack()
                 },
                 onTeamDeleted = {
                     // Team Details is gone with the team: back to what opened it (the age group), which
                     // reloads and passes the refresh down (its teams, matches and the club's counts changed).
-                    if (!navController.popBackStack<Screen.TeamDetails>(inclusive = true)) navController.popBackStack()
-                    navController.currentBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    if (!navigator.popBackStack<Screen.TeamDetails>(inclusive = true)) navigator.popBackStack()
+                    navigator.currentBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
                 }
             )
         }
@@ -481,9 +495,9 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 clubId = screen.clubId,
                 userId = screen.userId,
                 inviteId = screen.inviteId,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onMembersChanged = { message ->
-                    navController.previousBackStackEntry?.savedStateHandle?.let {
+                    navigator.previousBackStackEntry?.savedStateHandle?.let {
                         it[KEY_MEMBERS_CHANGED] = true
                         if (message != null) it[KEY_MEMBERS_MESSAGE] = message
                         // Opened from an age group's or team's staff: their staff list may be stale too.
@@ -492,10 +506,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 },
                 onReturnToClub = {
                     // Past Club settings, which a demoted viewer may no longer be allowed to see.
-                    if (!navController.popBackStack<Screen.EditClub>(inclusive = true)) navController.popBackStack()
+                    if (!navigator.popBackStack<Screen.EditClub>(inclusive = true)) navigator.popBackStack()
                 },
-                onOpenAgeGroup = { ageGroupId -> navController.navigate(Screen.AgeGroupDetails(ageGroupId)) },
-                onOpenPlayer = { playerId -> navController.navigate(Screen.PlayerDetails(playerId)) }
+                onOpenAgeGroup = { ageGroupId -> navigator.navigate(Screen.AgeGroupDetails(ageGroupId)) },
+                onOpenPlayer = { playerId -> navigator.navigate(Screen.PlayerDetails(playerId)) }
             )
         }
 
@@ -505,13 +519,13 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 clubId = screen.clubId,
                 clubName = screen.clubName,
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 },
                 onSeasonCreated = {
-                    navController.previousBackStackEntry
+                    navigator.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 }
             )
         }
@@ -524,13 +538,13 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 sport = SportType.valueOf(screen.sport),
                 initialSeasonId = screen.initialSeasonId,
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 },
                 onAgeGroupsCreated = {
-                    navController.previousBackStackEntry
+                    navigator.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 }
             )
         }
@@ -543,13 +557,13 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 sport = SportType.valueOf(screen.sport),
                 initialAgeGroupId = screen.initialAgeGroupId,
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 },
                 onTeamsCreated = {
-                    navController.previousBackStackEntry
+                    navigator.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 }
             )
         }
@@ -563,23 +577,23 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
                 .collectAsStateWithLifecycle()
             if (structureChanged) {
-                navController.consumeAndCascadeStructureChanged(backStackEntry)
+                navigator.consumeAndCascadeStructureChanged(backStackEntry)
             }
             AddPlayersToAgeGroupScreen(
                 clubId = screen.clubId,
                 clubName = screen.clubName,
                 initialAgeGroupId = screen.initialAgeGroupId,
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 },
                 onNavigateToCreatePlayers = { ageGroupId ->
-                    navController.navigate(Screen.CreatePlayers(screen.clubId, screen.clubName, ageGroupId))
+                    navigator.navigate(Screen.CreatePlayers(screen.clubId, screen.clubName, ageGroupId))
                 },
                 onPlayersAdded = {
-                    navController.previousBackStackEntry
+                    navigator.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 },
                 refreshOnReturn = structureChanged
             )
@@ -594,42 +608,42 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 .getStateFlow<Int?>(KEY_TRAINING_MESSAGE, null)
                 .collectAsStateWithLifecycle()
             if (structureChanged) {
-                navController.consumeAndCascadeStructureChanged(backStackEntry)
+                navigator.consumeAndCascadeStructureChanged(backStackEntry)
             }
             AgeGroupDetailsScreen(
                 ageGroupId = screen.ageGroupId,
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToTeam = { teamId -> navController.navigate(Screen.TeamDetails(teamId)) },
-                onNavigateToFullStats = { ageGroupId -> navController.navigate(Screen.FullStats(ageGroupId = ageGroupId)) },
-                onNavigateToPlayer = { playerId -> navController.navigate(Screen.PlayerDetails(playerId)) },
-                onNavigateToMember = { clubId, userId -> navController.navigate(Screen.ClubMemberDetails(clubId, userId = userId)) },
-                onNavigateToEditAgeGroup = { ageGroupId -> navController.navigate(Screen.EditAgeGroup(ageGroupId)) },
-                onNavigateToMatch = { matchId -> navController.navigate(Screen.MatchDetails(matchId)) },
+                onNavigateBack = { navigator.popBackStack() },
+                onNavigateToTeam = { teamId -> navigator.navigate(Screen.TeamDetails(teamId)) },
+                onNavigateToFullStats = { ageGroupId -> navigator.navigate(Screen.FullStats(ageGroupId = ageGroupId)) },
+                onNavigateToPlayer = { playerId -> navigator.navigate(Screen.PlayerDetails(playerId)) },
+                onNavigateToMember = { clubId, userId -> navigator.navigate(Screen.ClubMemberDetails(clubId, userId = userId)) },
+                onNavigateToEditAgeGroup = { ageGroupId -> navigator.navigate(Screen.EditAgeGroup(ageGroupId)) },
+                onNavigateToMatch = { matchId -> navigator.navigate(Screen.MatchDetails(matchId)) },
                 onNavigateToAddPlayers = { clubId, clubName, ageGroupId ->
-                    navController.navigate(Screen.AddPlayersToAgeGroup(clubId, clubName, ageGroupId))
+                    navigator.navigate(Screen.AddPlayersToAgeGroup(clubId, clubName, ageGroupId))
                 },
                 onNavigateToAddStaff = { clubId, clubName, ageGroupId ->
-                    navController.navigate(Screen.AddStaffToAgeGroup(clubId, clubName, ageGroupId))
+                    navigator.navigate(Screen.AddStaffToAgeGroup(clubId, clubName, ageGroupId))
                 },
                 onNavigateToCreateTeams = { clubId, clubName, sport ->
-                    navController.navigate(Screen.CreateTeams(clubId, clubName, sport.name))
+                    navigator.navigate(Screen.CreateTeams(clubId, clubName, sport.name))
                 },
                 onNavigateToCreateMatch = { ageGroupId ->
-                    navController.navigate(Screen.CreateMatch(ageGroupId = ageGroupId))
+                    navigator.navigate(Screen.CreateMatch(ageGroupId = ageGroupId))
                 },
                 onNavigateToSeasonPlan = { ageGroupId, edit ->
-                    navController.navigate(if (edit) Screen.EditSeasonPlan(ageGroupId) else Screen.SeasonPlan(ageGroupId))
+                    navigator.navigate(if (edit) Screen.EditSeasonPlan(ageGroupId) else Screen.SeasonPlan(ageGroupId))
                 },
                 onNavigateToMonthPlan = { ageGroupId, month, edit ->
-                    navController.navigate(if (edit) Screen.EditMonthPlan(ageGroupId, month.toString()) else Screen.MonthPlan(ageGroupId, month.toString()))
+                    navigator.navigate(if (edit) Screen.EditMonthPlan(ageGroupId, month.toString()) else Screen.MonthPlan(ageGroupId, month.toString()))
                 },
-                onNavigateToCreateSessions = { ageGroupId -> navController.navigate(Screen.CreateTrainingSessions(ageGroupId)) },
-                onNavigateToAddSession = { ageGroupId, date -> navController.navigate(Screen.EditTrainingSession(ageGroupId, date = date?.toString())) },
-                onNavigateToSession = { sessionId -> navController.navigate(Screen.TrainingSession(sessionId)) },
+                onNavigateToCreateSessions = { ageGroupId -> navigator.navigate(Screen.CreateTrainingSessions(ageGroupId)) },
+                onNavigateToAddSession = { ageGroupId, date -> navigator.navigate(Screen.EditTrainingSession(ageGroupId, date = date?.toString())) },
+                onNavigateToSession = { sessionId -> navigator.navigate(Screen.TrainingSession(sessionId)) },
                 sessionsCreated = sessionsCreated,
                 onMessageShown = { backStackEntry.savedStateHandle[KEY_TRAINING_MESSAGE] = null },
                 onNavigateToWeekPlan = { ageGroupId, monday, edit ->
-                    navController.navigate(if (edit) Screen.EditWeekPlan(ageGroupId, monday.toString()) else Screen.WeekPlan(ageGroupId, monday.toString()))
+                    navigator.navigate(if (edit) Screen.EditWeekPlan(ageGroupId, monday.toString()) else Screen.WeekPlan(ageGroupId, monday.toString()))
                 },
                 refreshOnReturn = structureChanged
             )
@@ -642,13 +656,13 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 clubName = screen.clubName,
                 ageGroupId = screen.ageGroupId,
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 },
                 onPlayersCreated = {
-                    navController.previousBackStackEntry
+                    navigator.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 }
             )
         }
@@ -659,13 +673,13 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 clubId = screen.clubId,
                 clubName = screen.clubName,
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 },
                 onStaffCreated = {
-                    navController.previousBackStackEntry
+                    navigator.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 }
             )
         }
@@ -679,23 +693,23 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
                 .collectAsStateWithLifecycle()
             if (structureChanged) {
-                navController.consumeAndCascadeStructureChanged(backStackEntry)
+                navigator.consumeAndCascadeStructureChanged(backStackEntry)
             }
             AddStaffToAgeGroupScreen(
                 clubId = screen.clubId,
                 clubName = screen.clubName,
                 initialAgeGroupId = screen.initialAgeGroupId,
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 },
                 onNavigateToCreateStaff = {
-                    navController.navigate(Screen.CreateStaff(screen.clubId, screen.clubName))
+                    navigator.navigate(Screen.CreateStaff(screen.clubId, screen.clubName))
                 },
                 onStaffAdded = {
-                    navController.previousBackStackEntry
+                    navigator.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 },
                 refreshOnReturn = structureChanged
             )
@@ -707,29 +721,29 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
                 .collectAsStateWithLifecycle()
             if (structureChanged) {
-                navController.consumeAndCascadeStructureChanged(backStackEntry)
+                navigator.consumeAndCascadeStructureChanged(backStackEntry)
             }
             TeamDetailsScreen(
                 teamId = screen.teamId,
-                onNavigateToMember = { clubId, userId -> navController.navigate(Screen.ClubMemberDetails(clubId, userId = userId)) },
+                onNavigateToMember = { clubId, userId -> navigator.navigate(Screen.ClubMemberDetails(clubId, userId = userId)) },
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 },
                 onNavigateToAgeGroup = { ageGroupId ->
-                    navController.navigate(Screen.AgeGroupDetails(ageGroupId))
+                    navigator.navigate(Screen.AgeGroupDetails(ageGroupId))
                 },
                 onNavigateToPlayer = { playerId, seasonId, filter ->
-                    navController.navigate(Screen.PlayerDetails(playerId, seasonId = seasonId, statsFilter = filter.name))
+                    navigator.navigate(Screen.PlayerDetails(playerId, seasonId = seasonId, statsFilter = filter.name))
                 },
                 onNavigateToMatch = { matchId ->
-                    navController.navigate(Screen.MatchDetails(matchId))
+                    navigator.navigate(Screen.MatchDetails(matchId))
                 },
                 onScheduleMatch = {
-                    navController.navigate(Screen.CreateMatch(teamId = screen.teamId))
+                    navigator.navigate(Screen.CreateMatch(teamId = screen.teamId))
                 },
-                onOpenFullStats = { navController.navigate(Screen.FullStats(teamId = screen.teamId)) },
+                onOpenFullStats = { navigator.navigate(Screen.FullStats(teamId = screen.teamId)) },
                 // The team-editing screen doesn't exist yet -- this affordance stays inert.
-                onEditTeam = { navController.navigate(Screen.EditTeam(screen.teamId)) },
+                onEditTeam = { navigator.navigate(Screen.EditTeam(screen.teamId)) },
                 refreshOnReturn = structureChanged
             )
         }
@@ -739,8 +753,8 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             FullStatsScreen(
                 teamId = screen.teamId,
                 ageGroupId = screen.ageGroupId,
-                onNavigateBack = { navController.popBackStack() },
-                onOpenPlayer = { playerId, seasonId -> navController.navigate(Screen.PlayerDetails(playerId, seasonId = seasonId)) }
+                onNavigateBack = { navigator.popBackStack() },
+                onOpenPlayer = { playerId, seasonId -> navigator.navigate(Screen.PlayerDetails(playerId, seasonId = seasonId)) }
             )
         }
 
@@ -755,19 +769,19 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             CreateMatchScreen(
                 ageGroupId = screen.ageGroupId,
                 teamId = screen.teamId,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onChooseOpponent = { clubId, ageGroupId, selectedOpponentId ->
-                    navController.navigate(Screen.Opponents(clubId, select = true, ageGroupId = ageGroupId, selectedOpponentId = selectedOpponentId))
+                    navigator.navigate(Screen.Opponents(clubId, select = true, ageGroupId = ageGroupId, selectedOpponentId = selectedOpponentId))
                 },
                 pickedOpponentId = pickedOpponentId,
                 onPickedOpponentConsumed = { backStackEntry.savedStateHandle[KEY_OPPONENT_PICKED] = null },
                 createdOpponentName = createdOpponentName,
                 onCreatedOpponentShown = { backStackEntry.savedStateHandle[KEY_OPPONENT_CREATED] = null },
                 onMatchCreated = {
-                    navController.previousBackStackEntry
+                    navigator.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 }
             )
         }
@@ -786,17 +800,17 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 ageGroupId = screen.ageGroupId,
                 selectMode = screen.select,
                 selectedOpponentId = screen.selectedOpponentId,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onOpponentClick = { opponent ->
                     if (screen.select) {
-                        navController.previousBackStackEntry?.setIfAlive(KEY_OPPONENT_PICKED, opponent.id)
-                        navController.popBackStack()
+                        navigator.setIfAlive(navigator.previousBackStackEntry, KEY_OPPONENT_PICKED, opponent.id)
+                        navigator.popBackStack()
                     } else {
-                        navController.navigate(Screen.OpponentDetails(opponent.id))
+                        navigator.navigate(Screen.OpponentDetails(opponent.id))
                     }
                 },
                 onCreateOpponent = { name ->
-                    navController.navigate(Screen.CreateOpponent(screen.clubId, screen.ageGroupId, name, select = screen.select))
+                    navigator.navigate(Screen.CreateOpponent(screen.clubId, screen.ageGroupId, name, select = screen.select))
                 },
                 refresh = opponentsChanged
             )
@@ -809,13 +823,13 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
                 .collectAsStateWithLifecycle()
             if (edited) {
-                navController.consumeAndCascadeStructureChanged(backStackEntry)
+                navigator.consumeAndCascadeStructureChanged(backStackEntry)
             }
             OpponentDetailsScreen(
                 opponentId = screen.opponentId,
-                onNavigateBack = { navController.popBackStack() },
-                onOpenMatch = { matchId -> navController.navigate(Screen.MatchDetails(matchId)) },
-                onEdit = { navController.navigate(Screen.EditOpponent(screen.opponentId)) },
+                onNavigateBack = { navigator.popBackStack() },
+                onOpenMatch = { matchId -> navigator.navigate(Screen.MatchDetails(matchId)) },
+                onEdit = { navigator.navigate(Screen.EditOpponent(screen.opponentId)) },
                 refresh = edited
             )
         }
@@ -824,10 +838,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.EditOpponent = backStackEntry.toRoute()
             OpponentEditScreen(
                 opponentId = screen.opponentId,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onSaved = {
-                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.setIfAlive(navigator.previousBackStackEntry, KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navigator.popBackStack()
                 }
             )
         }
@@ -838,18 +852,18 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 clubId = screen.clubId,
                 ageGroupId = screen.ageGroupId,
                 initialName = screen.name,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onCreated = { opponent ->
                     if (screen.select) {
                         // Picking for a match: skip the list and go straight back to the form, with the
                         // new opponent selected (design 38d).
-                        val matchEntry = runCatching { navController.getBackStackEntry<Screen.CreateMatch>() }.getOrNull()
-                        matchEntry?.setIfAlive(KEY_OPPONENT_PICKED, opponent.id)
-                        matchEntry?.setIfAlive(KEY_OPPONENT_CREATED, opponent.name)
-                        if (!navController.popBackStack<Screen.CreateMatch>(inclusive = false)) navController.popBackStack()
+                        val matchEntry = runCatching { navigator.getBackStackEntry<Screen.CreateMatch>() }.getOrNull()
+                        navigator.setIfAlive(matchEntry, KEY_OPPONENT_PICKED, opponent.id)
+                        navigator.setIfAlive(matchEntry, KEY_OPPONENT_CREATED, opponent.name)
+                        if (!navigator.popBackStack<Screen.CreateMatch>(inclusive = false)) navigator.popBackStack()
                     } else {
-                        navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
-                        navController.popBackStack()
+                        navigator.setIfAlive(navigator.previousBackStackEntry, KEY_CLUB_STRUCTURE_CHANGED, true)
+                        navigator.popBackStack()
                     }
                 }
             )
@@ -861,12 +875,12 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val planChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
                 .collectAsStateWithLifecycle()
-            if (planChanged) navController.consumeAndCascadeStructureChanged(backStackEntry)
+            if (planChanged) navigator.consumeAndCascadeStructureChanged(backStackEntry)
             SeasonPlanScreen(
                 ageGroupId = screen.ageGroupId,
-                onNavigateBack = { navController.popBackStack() },
-                onEdit = { navController.navigate(Screen.EditSeasonPlan(screen.ageGroupId)) },
-                onOpenMonth = { month -> navController.navigate(Screen.MonthPlan(screen.ageGroupId, month.toString())) },
+                onNavigateBack = { navigator.popBackStack() },
+                onEdit = { navigator.navigate(Screen.EditSeasonPlan(screen.ageGroupId)) },
+                onOpenMonth = { month -> navigator.navigate(Screen.MonthPlan(screen.ageGroupId, month.toString())) },
                 refresh = planChanged
             )
         }
@@ -875,10 +889,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.EditSeasonPlan = backStackEntry.toRoute()
             SeasonPlanEditScreen(
                 ageGroupId = screen.ageGroupId,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onSaved = {
-                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.setIfAlive(navigator.previousBackStackEntry, KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navigator.popBackStack()
                 }
             )
         }
@@ -888,13 +902,13 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val planChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
                 .collectAsStateWithLifecycle()
-            if (planChanged) navController.consumeAndCascadeStructureChanged(backStackEntry)
+            if (planChanged) navigator.consumeAndCascadeStructureChanged(backStackEntry)
             MonthPlanScreen(
                 ageGroupId = screen.ageGroupId,
                 month = LocalDate.parse(screen.month),
-                onNavigateBack = { navController.popBackStack() },
-                onEdit = { navController.navigate(Screen.EditMonthPlan(screen.ageGroupId, screen.month)) },
-                onOpenWeek = { monday -> navController.navigate(Screen.WeekPlan(screen.ageGroupId, monday.toString())) },
+                onNavigateBack = { navigator.popBackStack() },
+                onEdit = { navigator.navigate(Screen.EditMonthPlan(screen.ageGroupId, screen.month)) },
+                onOpenWeek = { monday -> navigator.navigate(Screen.WeekPlan(screen.ageGroupId, monday.toString())) },
                 refresh = planChanged
             )
         }
@@ -905,10 +919,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 ageGroupId = screen.ageGroupId,
                 level = TrainingPlanLevel.MONTH,
                 periodStart = LocalDate.parse(screen.month),
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onSaved = {
-                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.setIfAlive(navigator.previousBackStackEntry, KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navigator.popBackStack()
                 }
             )
         }
@@ -918,14 +932,14 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val planChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
                 .collectAsStateWithLifecycle()
-            if (planChanged) navController.consumeAndCascadeStructureChanged(backStackEntry)
+            if (planChanged) navigator.consumeAndCascadeStructureChanged(backStackEntry)
             WeekPlanScreen(
                 ageGroupId = screen.ageGroupId,
                 monday = LocalDate.parse(screen.monday),
-                onNavigateBack = { navController.popBackStack() },
-                onEdit = { navController.navigate(Screen.EditWeekPlan(screen.ageGroupId, screen.monday)) },
-                onOpenSession = { sessionId -> navController.navigate(Screen.TrainingSession(sessionId)) },
-                onAddSession = { date -> navController.navigate(Screen.EditTrainingSession(screen.ageGroupId, date = date.toString())) },
+                onNavigateBack = { navigator.popBackStack() },
+                onEdit = { navigator.navigate(Screen.EditWeekPlan(screen.ageGroupId, screen.monday)) },
+                onOpenSession = { sessionId -> navigator.navigate(Screen.TrainingSession(sessionId)) },
+                onAddSession = { date -> navigator.navigate(Screen.EditTrainingSession(screen.ageGroupId, date = date.toString())) },
                 refresh = planChanged
             )
         }
@@ -936,10 +950,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 ageGroupId = screen.ageGroupId,
                 level = TrainingPlanLevel.WEEK,
                 periodStart = LocalDate.parse(screen.monday),
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onSaved = {
-                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.setIfAlive(navigator.previousBackStackEntry, KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navigator.popBackStack()
                 }
             )
         }
@@ -948,13 +962,13 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.CreateTrainingSessions = backStackEntry.toRoute()
             CreateSessionsScreen(
                 ageGroupId = screen.ageGroupId,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onCreated = { count ->
-                    navController.previousBackStackEntry?.let { previous ->
-                        previous.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
-                        previous.setIfAlive(KEY_TRAINING_MESSAGE, count)
+                    navigator.previousBackStackEntry?.let { previous ->
+                        navigator.setIfAlive(previous, KEY_CLUB_STRUCTURE_CHANGED, true)
+                        navigator.setIfAlive(previous, KEY_TRAINING_MESSAGE, count)
                     }
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 }
             )
         }
@@ -964,19 +978,19 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val sessionChanged by backStackEntry.savedStateHandle
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
                 .collectAsStateWithLifecycle()
-            if (sessionChanged) navController.consumeAndCascadeStructureChanged(backStackEntry)
+            if (sessionChanged) navigator.consumeAndCascadeStructureChanged(backStackEntry)
             SessionDetailsScreen(
                 sessionId = screen.sessionId,
-                onNavigateBack = { navController.popBackStack() },
-                onEdit = { ageGroupId -> navController.navigate(Screen.EditTrainingSession(ageGroupId, sessionId = screen.sessionId)) },
+                onNavigateBack = { navigator.popBackStack() },
+                onEdit = { ageGroupId -> navigator.navigate(Screen.EditTrainingSession(ageGroupId, sessionId = screen.sessionId)) },
                 onOpenWeekPlan = { ageGroupId, monday, edit ->
-                    navController.navigate(if (edit) Screen.EditWeekPlan(ageGroupId, monday.toString()) else Screen.WeekPlan(ageGroupId, monday.toString()))
+                    navigator.navigate(if (edit) Screen.EditWeekPlan(ageGroupId, monday.toString()) else Screen.WeekPlan(ageGroupId, monday.toString()))
                 },
-                onAddExercises = { navController.navigate(Screen.ExerciseLibrary(screen.sessionId)) },
-                onRatePlayers = { navController.navigate(Screen.RateTraining(screen.sessionId)) },
+                onAddExercises = { navigator.navigate(Screen.ExerciseLibrary(screen.sessionId)) },
+                onRatePlayers = { navigator.navigate(Screen.RateTraining(screen.sessionId)) },
                 onChanged = { deleted ->
-                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    if (deleted) navController.popBackStack()
+                    navigator.setIfAlive(navigator.previousBackStackEntry, KEY_CLUB_STRUCTURE_CHANGED, true)
+                    if (deleted) navigator.popBackStack()
                 },
                 refresh = sessionChanged
             )
@@ -986,10 +1000,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.RateTraining = backStackEntry.toRoute()
             RatePlayersScreen(
                 sessionId = screen.sessionId,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onSaved = {
-                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.setIfAlive(navigator.previousBackStackEntry, KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navigator.popBackStack()
                 }
             )
         }
@@ -998,10 +1012,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.ExerciseLibrary = backStackEntry.toRoute()
             ExerciseLibraryScreen(
                 sessionId = screen.sessionId,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onAdded = {
-                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.setIfAlive(navigator.previousBackStackEntry, KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navigator.popBackStack()
                 }
             )
         }
@@ -1012,10 +1026,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 ageGroupId = screen.ageGroupId,
                 sessionId = screen.sessionId,
                 date = screen.date?.let { LocalDate.parse(it) },
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onSaved = {
-                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.setIfAlive(navigator.previousBackStackEntry, KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navigator.popBackStack()
                 }
             )
         }
@@ -1026,18 +1040,18 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
                 .collectAsStateWithLifecycle()
             if (structureChanged) {
-                navController.consumeAndCascadeStructureChanged(backStackEntry)
+                navigator.consumeAndCascadeStructureChanged(backStackEntry)
             }
             MatchDetailsScreen(
                 matchId = screen.matchId,
-                onNavigateBack = { navController.popBackStack() },
-                onEnterLiveMatch = { matchId -> navController.navigate(Screen.LiveMatch(matchId)) },
-                onOpenReport = { matchId, edit -> navController.navigate(Screen.MatchReport(matchId, edit)) },
-                onOpenRecord = { matchId -> navController.navigate(Screen.MatchRecord(matchId)) },
+                onNavigateBack = { navigator.popBackStack() },
+                onEnterLiveMatch = { matchId -> navigator.navigate(Screen.LiveMatch(matchId)) },
+                onOpenReport = { matchId, edit -> navigator.navigate(Screen.MatchReport(matchId, edit)) },
+                onOpenRecord = { matchId -> navigator.navigate(Screen.MatchRecord(matchId)) },
                 onRedirectToLiveMatch = { matchId ->
                     // Replace this entry rather than push on top of it -- otherwise back from
                     // LiveMatch lands back on this screen, which immediately redirects again.
-                    navController.navigate(Screen.LiveMatch(matchId)) {
+                    navigator.navigate(Screen.LiveMatch(matchId)) {
                         popUpTo(screen) { inclusive = true }
                     }
                 },
@@ -1051,7 +1065,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             // MatchDetails' entry. Flagging it in onDispose (rather than only from onNavigateBack)
             // covers every way this screen can be left, including the system/gesture back button,
             // which pops the stack directly without ever calling onNavigateBack.
-            val matchDetailsEntry = navController.previousBackStackEntry
+            val matchDetailsEntry = navigator.previousBackStackEntry
             DisposableEffect(Unit) {
                 onDispose {
                     // Every action here (kick off, half/full time, events) mutates the match, and
@@ -1059,13 +1073,13 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                     // (and, cascading further, the screen that opened it) reload instead of showing a
                     // stale status/score, e.g. the "enter live match" button after full time.
                     // On an activity relaunch the entry is already destroyed here -- see setIfAlive.
-                    matchDetailsEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navigator.setIfAlive(matchDetailsEntry, KEY_CLUB_STRUCTURE_CHANGED, true)
                 }
             }
             LiveMatchScreen(
                 matchId = screen.matchId,
-                onNavigateBack = { navController.popBackStack() },
-                onOpenReport = { matchId, edit -> navController.navigate(Screen.MatchReport(matchId, edit)) }
+                onNavigateBack = { navigator.popBackStack() },
+                onOpenReport = { matchId, edit -> navigator.navigate(Screen.MatchReport(matchId, edit)) }
             )
         }
 
@@ -1075,12 +1089,12 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             // Flagged as soon as a save succeeds rather than only from onNavigateBack, because the
             // system/gesture back button pops this entry directly without calling it -- the same reason
             // LiveMatch flags its caller in onDispose. Match Details then reloads and cascades to Home.
-            val openerEntry = remember { navController.previousBackStackEntry }
+            val openerEntry = remember { navigator.previousBackStackEntry }
             MatchReportScreen(
                 matchId = screen.matchId,
                 startEditing = screen.edit,
-                onNavigateBack = { navController.popBackStack() },
-                onReportSaved = { openerEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true) }
+                onNavigateBack = { navigator.popBackStack() },
+                onReportSaved = { navigator.setIfAlive(openerEntry, KEY_CLUB_STRUCTURE_CHANGED, true) }
             )
         }
 
@@ -1089,10 +1103,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             // Saved: back to Match Details, which reloads (and cascades to the lists that show the score).
             MatchRecordScreen(
                 matchId = screen.matchId,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onSaved = {
-                    navController.previousBackStackEntry?.setIfAlive(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.setIfAlive(navigator.previousBackStackEntry, KEY_CLUB_STRUCTURE_CHANGED, true)
+                    navigator.popBackStack()
                 }
             )
         }
@@ -1103,18 +1117,18 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 .getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false)
                 .collectAsStateWithLifecycle()
             if (structureChanged) {
-                navController.consumeAndCascadeStructureChanged(backStackEntry)
+                navigator.consumeAndCascadeStructureChanged(backStackEntry)
             }
             PlayerDetailsScreen(
                 playerId = screen.playerId,
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 },
                 onEditPlayer = { playerId ->
-                    navController.navigate(Screen.EditPlayer(playerId))
+                    navigator.navigate(Screen.EditPlayer(playerId))
                 },
                 onOpenMatch = { matchId ->
-                    navController.navigate(Screen.MatchDetails(matchId))
+                    navigator.navigate(Screen.MatchDetails(matchId))
                 },
                 initialSeasonId = screen.seasonId,
                 initialFilter = screen.statsFilter?.let { name -> StatsFilter.entries.firstOrNull { it.name == name } },
@@ -1126,16 +1140,16 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val screen: Screen.EditPlayer = backStackEntry.toRoute()
             EditPlayerScreen(
                 playerId = screen.playerId,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateBack = { navigator.popBackStack() },
                 onPlayerUpdated = {
-                    navController.previousBackStackEntry
+                    navigator.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 },
                 // Saved straight away: the screen below reloads when it's back on top.
                 onPhotoChanged = {
-                    navController.previousBackStackEntry
+                    navigator.previousBackStackEntry
                         ?.savedStateHandle
                         ?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
                 }
@@ -1146,18 +1160,17 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val changedEmail by entry.savedStateHandle.getStateFlow<String?>(KEY_EMAIL_CHANGED, null).collectAsStateWithLifecycle()
             AccountScreen(
                 changedEmail = changedEmail,
-                onNavigateToChangeEmail = { email -> navController.navigate(Screen.ChangeEmail(email)) },
+                onNavigateToChangeEmail = { email -> navigator.navigate(Screen.ChangeEmail(email)) },
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navigator.popBackStack()
                 },
                 // Clear the whole back stack: a single-club user has no My clubs underneath, and a
                 // club left under Sign in would also draw it in that club's colours.
                 onNavigateToLogin = {
-                    navController.navigate(Screen.Login) {
-                        popUpTo(navController.graph.id) { inclusive = true }
+                    navigator.navigate(Screen.Login) {
+                        popUpToRoot()
                     }
                 }
             )
         }
     }
-}

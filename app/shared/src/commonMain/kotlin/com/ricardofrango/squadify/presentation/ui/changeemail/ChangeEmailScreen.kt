@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -121,6 +122,7 @@ private fun ChangeEmailContent(
                 .imePadding()
                 .background(ScreenBackground)
                 .verticalScroll(rememberScrollState())
+                .readableWidth()
                 .screenContentPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -199,6 +201,12 @@ private fun ChangeEmailContent(
 @Preview
 @Composable
 private fun ChangeEmailPreview() {
+    SquadifyTheme { ChangeEmailContent(ChangeEmailUiState(), {}, {}, { _, _ -> }, {}, {}, {}) }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun ChangeEmailLandscapePreview() {
     SquadifyTheme { ChangeEmailContent(ChangeEmailUiState(), {}, {}, { _, _ -> }, {}, {}, {}) }
 }
 

@@ -25,12 +25,13 @@ coil = "3.6.3"
 filekit = "0.16.0"
 logback = "1.6.3"
 material3 = "1.9.0"
+material3Adaptive = "1.3.0"
 mockk = "1.14.11"
 postgresql = "42.7.13"
 identityJvm = "202411.1"
 composeHotReload = "1.2.0"
 koinCore = "4.2.2"
-navigation = "2.9.2"
+navigation3 = "1.2.0"
 navigationevent = "1.0.1"
 kotlinx-coroutines = "1.11.0"
 kotlin-wrappers = "2026.8.0"
@@ -49,7 +50,12 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinxSerializationCore" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationCore" }
 compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
-navigation = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation" }
+# Window size classes (TECHNICAL_DECISIONS §11.5).
+compose-material3-adaptive = { module = "org.jetbrains.compose.material3.adaptive:adaptive", version.ref = "material3Adaptive" }
+# Navigation 3: the app owns its back stack (TECHNICAL_DECISIONS §11.4).
+navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
+# A ViewModelStore per back-stack entry, as each NavBackStackEntry was in Navigation 2.
+androidx-lifecycle-viewmodelNavigation3 = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "androidx-lifecycle" }
 # NavigationBackHandler -- the replacement for Compose's deprecated BackHandler (ui-backhandler).
 navigationevent-compose = { module = "org.jetbrains.androidx.navigationevent:navigationevent-compose", version.ref = "navigationevent" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koinCore" }

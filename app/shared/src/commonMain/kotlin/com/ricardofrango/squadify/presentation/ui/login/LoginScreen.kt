@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -185,6 +186,7 @@ private fun LoginContent(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
+                        .readableWidth()
                         .padding(horizontal = ScreenPadding.Horizontal, vertical = 32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -341,6 +343,14 @@ private fun LoginContent(
 @Preview
 @Composable
 private fun LoginPreview() {
+    SquadifyTheme {
+        LoginContent(LoginUiState.Idle(), "ana@clube.pt", "", false, null, {}, {}, {}, {}, {}, {})
+    }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun LoginLandscapePreview() {
     SquadifyTheme {
         LoginContent(LoginUiState.Idle(), "ana@clube.pt", "", false, null, {}, {}, {}, {}, {}, {})
     }

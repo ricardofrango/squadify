@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.useNavigationRail
+import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeHighlight
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
@@ -56,7 +58,7 @@ private val WeekdayDayMonth = LocalDate.Format {
 /**
  * The hub for one age group (design 33): Stats · Teams · Matches · Members tabs under a fixed header
  * (name, "Born 2012 · 26/27", and Teams · Players · Staff · Upcoming -- each number switches to its
- * tab). Always opens on Stats. In landscape the bottom bar becomes a side rail (33e). Each add/manage
+ * tab). Always opens on Stats. From a medium-width window up the bottom bar becomes a side rail (33e). Each add/manage
  * affordance is gated on its own `AgeGroupDetails` flag -- `canAddStaff` (coordinator+ only),
  * `canCreateTeam`, `canManageMatch` (schedule), or `canAssignPlayersToAgeGroup` (add players).
  */
@@ -236,9 +238,10 @@ private fun AgeGroupDetailsContent(
     val selectIndex: (Int) -> Unit = { selectTab(AgeGroupTab.entries[it]) }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val landscape = maxWidth > maxHeight && maxWidth >= 600.dp
+        val landscape = isLandscapeLayout
+        val rail = useNavigationRail()
         Row(Modifier.fillMaxSize()) {
-            if (landscape && details != null) DetailRail(Tabs, tab.ordinal, selectIndex)
+            if (rail && details != null) DetailRail(Tabs, tab.ordinal, selectIndex)
             Scaffold(
                 modifier = Modifier.weight(1f),
                 containerColor = ScreenBackground,
@@ -254,7 +257,7 @@ private fun AgeGroupDetailsContent(
                         if (details != null) AgeGroupStrip(details, selectTab)
                     }
                 },
-                bottomBar = { if (!landscape && details != null) DetailBottomBar(Tabs, tab.ordinal, selectIndex) }
+                bottomBar = { if (!rail && details != null) DetailBottomBar(Tabs, tab.ordinal, selectIndex) }
             ) { paddingValues ->
                 val boxModifier = Modifier.fillMaxSize().padding(paddingValues)
                 when (uiState) {

@@ -19,7 +19,8 @@ import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
  * A form's main button pinned to the bottom of the screen, for a `Scaffold`'s `bottomBar`: the
  * screen's grey, a shadow over the content scrolling under it, 12dp above and below the button, and
  * the navigation bar's inset under that (a `bottomBar` gets none from the `Scaffold`). The same as
- * Match details' bar. An error goes above the button, in [content].
+ * Match details' bar. An error goes above the button, in [content]. On a wide screen the button
+ * keeps the width of a form ([readableWidth]), centred, rather than stretching across the window.
  */
 @Composable
 fun PinnedBottomBar(content: @Composable ColumnScope.() -> Unit) {
@@ -28,6 +29,7 @@ fun PinnedBottomBar(content: @Composable ColumnScope.() -> Unit) {
             Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
+                .readableWidth()
                 .padding(horizontal = ScreenPadding.Horizontal, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             content = content

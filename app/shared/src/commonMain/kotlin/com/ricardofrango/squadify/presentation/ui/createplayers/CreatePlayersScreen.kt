@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -208,7 +209,7 @@ private fun CreatePlayersContent(
             // Fixed header: intro + "add row" -- stays put as the list below grows, instead of
             // scrolling out of reach.
             Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp),
+                modifier = Modifier.readableWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
@@ -232,6 +233,7 @@ private fun CreatePlayersContent(
                     .weight(1f)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
+                    .readableWidth()
                     .padding(horizontal = ScreenPadding.Horizontal),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {

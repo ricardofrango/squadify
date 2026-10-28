@@ -2,7 +2,7 @@
     <string name="app_name">Squadify</string>
 
     <!-- Shared error messages -->
-    <string name="msg_permission_denied">You don\'t have permission to do this. Ask a club coordinator or admin if you think this is wrong.</string>
+    <string name="msg_permission_denied">You don't have permission to do this. Ask a club coordinator or admin if you think this is wrong.</string>
 
     <string name="label_email">Email</string>
     <string name="label_password">Password</string>
@@ -10,7 +10,7 @@
     <string name="label_hide_password">Hide password</string>
     <string name="btn_login">Login</string>
     <string name="btn_loging_in">Signing in...</string>
-    <string name="msg_login_failed">Couldn\'t sign in. Check your email and password and try again.</string>
+    <string name="msg_login_failed">Couldn't sign in. Check your email and password and try again.</string>
     <string name="msg_forgot_password">Forgot Password?</string>
     <string name="label_or_divider">OR</string>
     <string name="btn_create_account">Create account</string>
@@ -26,14 +26,14 @@
     <string name="label_confirm_password">Confirm password</string>
     <string name="msg_passwords_do_not_match">Passwords do not match</string>
     <string name="msg_email_already_registered">An account with this email already exists. Try logging in instead.</string>
-    <string name="msg_registration_failed">Couldn\'t create your account. Please try again.</string>
+    <string name="msg_registration_failed">Couldn't create your account. Please try again.</string>
     <string name="msg_already_have_account">Already have an account? Login</string>
     <string name="title_my_clubs">My Clubs</string>
     <string name="title_account">Account</string>
     <string name="btn_logout">Logout</string>
     <string name="btn_retry">Retry</string>
     <string name="msg_no_clubs">No clubs found</string>
-    <string name="msg_failed_to_load_clubs">Couldn\'t load your clubs. Please try again.</string>
+    <string name="msg_failed_to_load_clubs">Couldn't load your clubs. Please try again.</string>
     <string name="sport_football">Football</string>
     <string name="sport_futsal">Futsal</string>
     <string name="label_active_member">Active Member</string>
@@ -46,10 +46,10 @@
     <string name="msg_no_teams_filter">No teams found for these filters</string>
     <string name="msg_no_players_filter">No players found for these filters</string>
     <string name="msg_no_seasons_title">This club has no seasons yet.</string>
-    <string name="msg_no_seasons_admin_subtitle">Teams and players can\'t be organised until one exists.</string>
+    <string name="msg_no_seasons_admin_subtitle">Teams and players can't be organised until one exists.</string>
     <string name="msg_no_seasons_member_subtitle">Ask a coordinator to set one up.</string>
     <string name="msg_no_age_groups_title">This club has no age groups yet.</string>
-    <string name="msg_no_age_groups_admin_subtitle">Teams and players can\'t be organised until one exists.</string>
+    <string name="msg_no_age_groups_admin_subtitle">Teams and players can't be organised until one exists.</string>
     <string name="msg_no_age_groups_member_subtitle">Ask a coordinator to set one up.</string>
     <string name="msg_no_teams_admin_subtitle">Create a team, or adjust the filters above.</string>
     <string name="msg_no_teams_member_subtitle">Try adjusting the filters above.</string>
@@ -75,7 +75,7 @@
     <string name="label_active">Active</string>
     <string name="label_inactive">Inactive</string>
     <string name="msg_precision_management">Precision management for your club</string>
-    <string name="msg_failed_to_load_player">Couldn\'t load this player. Please try again.</string>
+    <string name="msg_failed_to_load_player">Couldn't load this player. Please try again.</string>
     <string name="label_stat_goals">Goals</string>
     <string name="label_stat_assists">Assists</string>
     <string name="label_stat_called_up">Called up</string>
@@ -123,7 +123,7 @@
     <string name="btn_creating_season">Creating...</string>
     <string name="btn_confirm">Confirm</string>
     <string name="msg_create_season_failed">Something went wrong creating the season. Please try again.</string>
-    <string name="msg_create_season_conflict">Conflicts with the existing season \"%1$s\".</string>
+    <string name="msg_create_season_conflict">Conflicts with the existing season "%1$s".</string>
     <string name="msg_create_season_conflict_unknown">A season with these dates already exists.</string>
     <string name="label_select_start_date">Select start date</string>
     <string name="label_select_end_date">Select end date</string>
@@ -206,7 +206,7 @@
 
     <!-- Create Staff (registers a new person to the club by email) -->
     <string name="title_create_staff">Create staff</string>
-    <string name="msg_staff_intro">Add each staff member\'s email. They\'re added to the club right away if they already have an account, or invited to join if not.</string>
+    <string name="msg_staff_intro">Add each staff member's email. They're added to the club right away if they already have an account, or invited to join if not.</string>
     <string name="label_staff_member_section">New club staff member</string>
     <string name="label_email_field">Email *</string>
     <string name="msg_email_required">Give every row a valid email.</string>
@@ -220,7 +220,7 @@
     <!-- Add Players to the Club -->
     <string name="title_create_players">Add players</string>
     <string name="label_add_players_to_club">Create player</string>
-    <string name="msg_players_intro">Add each player\'s name and date of birth. You can put them in age groups afterwards.</string>
+    <string name="msg_players_intro">Add each player's name and date of birth. You can put them in age groups afterwards.</string>
     <string name="label_player_section">Player</string>
     <string name="label_first_name_field">First name *</string>
     <string name="label_last_name_field">Last name *</string>
@@ -244,7 +244,7 @@
     <string name="label_position_not_set">Not set</string>
     <string name="label_emergency_contact_field">Emergency contact</string>
     <string name="label_emergency_contact_placeholder">Name and phone number</string>
-    <string name="msg_emergency_contact_helper">Used on match day if a guardian can\'t be reached.</string>
+    <string name="msg_emergency_contact_helper">Used on match day if a guardian can't be reached.</string>
     <string name="msg_edit_player_optional_banner">Only the name and date of birth are required. The rest can wait.</string>
     <string name="btn_save_changes">Save changes</string>
     <string name="btn_saving_changes">Saving...</string>
@@ -252,7 +252,7 @@
     <string name="msg_edit_player_failed">Something went wrong saving these changes. Please try again.</string>
 
     <!-- Age Group Details -->
-    <string name="msg_failed_to_load_age_group">Couldn\'t load this age group. Please try again.</string>
+    <string name="msg_failed_to_load_age_group">Couldn't load this age group. Please try again.</string>
     <string name="label_eligibility_rule">Players born in %1$d or later</string>
     <string name="label_upcoming">Upcoming</string>
     <string name="label_upcoming_matches">Upcoming matches</string>
@@ -270,7 +270,7 @@
     <string name="label_role_staff">Staff</string>
 
     <!-- Team Details -->
-    <string name="msg_failed_to_load_team">Couldn\'t load this team. Please try again.</string>
+    <string name="msg_failed_to_load_team">Couldn't load this team. Please try again.</string>
     <string name="label_pool">Pool</string>
     <string name="label_played">Played</string>
     <string name="label_next">Next</string>
@@ -310,7 +310,7 @@
     <string name="btn_scheduling_match">Scheduling…</string>
     <string name="label_select_match_date">Match date</string>
     <string name="label_select_kickoff_time">Kick-off time</string>
-    <string name="msg_failed_to_load_match_form">Couldn\'t load this. Please try again.</string>
+    <string name="msg_failed_to_load_match_form">Couldn't load this. Please try again.</string>
     <string name="msg_create_match_failed">Something went wrong scheduling the match. Please try again.</string>
 
     <!-- Club Home tab -->
@@ -327,7 +327,7 @@
     <string name="matches_full_time">FT</string>
     <string name="matches_minute">%1$d</string>
     <string name="msg_no_matches_title">No matches scheduled yet</string>
-    <string name="msg_no_matches_subtitle">Fixtures are scheduled from a team, so we know who\'s playing.</string>
+    <string name="msg_no_matches_subtitle">Fixtures are scheduled from a team, so we know who's playing.</string>
     <string name="btn_go_to_age_groups">Go to age groups</string>
     <string name="label_role_club_admin">Club Admin</string>
     <string name="label_role_coordinator">Coordinator</string>
@@ -340,7 +340,7 @@
     <string name="msg_home_needs_coach">%1$s has no coach assigned</string>
     <string name="msg_home_callups_unsent">%1$d call-ups unsent for %2$s</string>
     <string name="msg_home_match_report_pending">Match report to fill: %1$s vs %2$s</string>
-    <string name="msg_failed_to_load_home">Couldn\'t load the home view. Please try again.</string>
+    <string name="msg_failed_to_load_home">Couldn't load the home view. Please try again.</string>
     <string name="weekday_monday">Monday</string>
     <string name="weekday_tuesday">Tuesday</string>
     <string name="weekday_wednesday">Wednesday</string>
@@ -351,8 +351,8 @@
 
     <!-- Match screen -->
     <string name="title_match">Match</string>
-    <string name="msg_failed_to_load_match">Couldn\'t load this match. Please try again.</string>
-    <string name="msg_match_change_failed">That change didn\'t save. Please try again.</string>
+    <string name="msg_failed_to_load_match">Couldn't load this match. Please try again.</string>
+    <string name="msg_match_change_failed">That change didn't save. Please try again.</string>
     <string name="label_edit">Edit</string>
     <string name="label_edit_match">Edit match</string>
     <string name="title_edit_match">Edit match</string>
@@ -418,10 +418,10 @@
     <string name="label_event_assist">Assist · %1$s</string>
     <string name="label_event_substitution">%1$s → %2$s</string>
     <string name="msg_confirm_delete_event_title">Delete this event?</string>
-    <string name="msg_confirm_delete_event_body">This can\'t be undone.</string>
+    <string name="msg_confirm_delete_event_body">This can't be undone.</string>
     <string name="label_delete_match">Delete match</string>
     <string name="msg_confirm_delete_match_title">Delete this match?</string>
-    <string name="msg_confirm_delete_match_body">This removes the match, its call-ups, and any logged events. This can\'t be undone.</string>
+    <string name="msg_confirm_delete_match_body">This removes the match, its call-ups, and any logged events. This can't be undone.</string>
     <string name="msg_no_events_yet">No events logged yet.</string>
     <string name="label_result_cancelled">CANCELLED</string>
     <string name="msg_minutes_played_subtitle">Per player, from the sub log</string>
@@ -447,13 +447,13 @@
     <string name="label_new_badge">New</string>
     <string name="label_stadium_location_placeholder">e.g. Campo do Ribamar, Estrada da Praia</string>
     <string name="msg_stadium_location_helper">Where home matches are played, if different from the club address. Suggested as the location when you schedule a home match.</string>
-    <string name="msg_failed_to_load_club">Couldn\'t load this club. Please try again.</string>
-    <string name="msg_club_change_failed">That change didn\'t save. Please try again.</string>
+    <string name="msg_failed_to_load_club">Couldn't load this club. Please try again.</string>
+    <string name="msg_club_change_failed">That change didn't save. Please try again.</string>
 
     <!-- Edit User Details -->
-    <string name="msg_failed_to_load_account">Couldn\'t load your account. Please try again.</string>
-    <string name="msg_profile_save_failed">Couldn\'t save your changes. Please try again.</string>
-    <string name="msg_password_change_failed">Couldn\'t change your password. Please try again.</string>
+    <string name="msg_failed_to_load_account">Couldn't load your account. Please try again.</string>
+    <string name="msg_profile_save_failed">Couldn't save your changes. Please try again.</string>
+    <string name="msg_password_change_failed">Couldn't change your password. Please try again.</string>
     <string name="msg_member_since_status">Member since %1$s · %2$s</string>
     <string name="label_pending_status">Pending</string>
     <string name="label_suspended_status">Suspended</string>
@@ -474,20 +474,20 @@
 
     <!-- Club Permissions -->
     <string name="msg_permissions_intro">Set the minimum role required for each action below. Coordinators and club admins can always do them, except an action set to Admins only.</string>
-    <string name="msg_permissions_save_failed">These permissions didn\'t save. Please try again.</string>
+    <string name="msg_permissions_save_failed">These permissions didn't save. Please try again.</string>
     <string name="label_permission_level_staff">Any staff</string>
     <string name="label_permission_level_coach">Coach only</string>
     <string name="label_permission_level_coordinator_only">Coordinator only</string>
     <string name="label_permission_create_players">Create players</string>
     <string name="msg_permission_create_players_desc">Who can register new players to the club or an age group.</string>
     <string name="label_permission_edit_player">Edit players</string>
-    <string name="msg_permission_edit_player_desc">Who can edit an existing player\'s details.</string>
+    <string name="msg_permission_edit_player_desc">Who can edit an existing player's details.</string>
     <string name="label_permission_assign_players_to_age_group">Assign players to an age group</string>
-    <string name="msg_permission_assign_players_to_age_group_desc">Who can add existing club players to an age group\'s pool.</string>
+    <string name="msg_permission_assign_players_to_age_group_desc">Who can add existing club players to an age group's pool.</string>
     <string name="label_permission_create_opponent">Create opponents</string>
     <string name="msg_permission_create_opponent_desc">Who can add a new opponent club.</string>
     <string name="label_permission_edit_opponent">Edit opponents</string>
-    <string name="msg_permission_edit_opponent_desc">Who can edit an existing opponent\'s details.</string>
+    <string name="msg_permission_edit_opponent_desc">Who can edit an existing opponent's details.</string>
     <string name="label_permission_create_team">Create teams</string>
     <string name="msg_permission_create_team_desc">Who can create a new team within an age group.</string>
     <string name="label_permission_manage_match">Schedule matches</string>
@@ -495,7 +495,7 @@
     <string name="label_permission_manage_call_ups">Manage call-ups</string>
     <string name="msg_permission_manage_call_ups_desc">Who can set the pre-match squad list for a game.</string>
     <string name="label_permission_manage_live_match">Run live matches</string>
-    <string name="msg_permission_manage_live_match_desc">Who can kick off, pause or resume, correct the clock, change a match\'s status, or add and remove goals, cards, and substitutions.</string>
+    <string name="msg_permission_manage_live_match_desc">Who can kick off, pause or resume, correct the clock, change a match's status, or add and remove goals, cards, and substitutions.</string>
     <string name="label_permission_manage_training">Create and edit training</string>
     <string name="msg_permission_manage_training_desc">Who can plan the season, months and weeks of an age group, and create, edit and cancel its training sessions. Rating players is open to all its coaches and staff.</string>
     <string name="btn_save_permissions">Save permissions</string>
@@ -610,7 +610,7 @@
     <string name="label_match_type_friendly">Friendly</string>
     <string name="label_match_type_championship">Championship</string>
     <string name="label_match_type_tournament">Tournament</string>
-    <string name="label_match_type_friendly_desc">Doesn\'t count towards any standings.</string>
+    <string name="label_match_type_friendly_desc">Doesn't count towards any standings.</string>
     <string name="label_match_type_championship_desc">A league fixture — counts in the table.</string>
     <string name="label_match_type_tournament_desc">Part of a cup or a multi-team event.</string>
     <string name="msg_match_type_hint">Pick one — it decides where the result counts.</string>
@@ -643,7 +643,7 @@
     <string name="stats_no_matches_body">Stats appear here after %1$s plays a first match with stats recorded.</string>
     <string name="stats_pre_stats_title">No stats for this season</string>
     <string name="stats_pre_stats_option">played before stats were recorded</string>
-    <string name="stats_load_failed_title">Couldn\'t load the stats</string>
+    <string name="stats_load_failed_title">Couldn't load the stats</string>
     <string name="stats_load_failed_body">Check your connection and try again.</string>
     <string name="stats_season">Season</string>
     <string name="stats_close">Close</string>
@@ -671,8 +671,8 @@
     <string name="record_leaders_rating">Ranking</string>
     <string name="record_leaders_not_enough_rated">Not enough rated matches</string>
     <string name="record_no_results_title">No results yet</string>
-    <string name="record_no_results_body">The record and team leaders appear after %1$s\'s first finished match.</string>
-    <string name="record_load_failed_title">Couldn\'t load the season record</string>
+    <string name="record_no_results_body">The record and team leaders appear after %1$s's first finished match.</string>
+    <string name="record_load_failed_title">Couldn't load the season record</string>
     <string name="record_load_failed_body">The rest of the team page is still available.</string>
     <plurals name="stats_avg_from_rated">
         <item quantity="one">Avg rating from %1$d rated match</item>
@@ -698,7 +698,7 @@
     <string name="squad_sort_goals">Goals</string>
     <string name="squad_sort_rating">Rating</string>
     <string name="squad_sort_name">Name</string>
-    <string name="squad_bench_group">Called up, didn\'t play · %1$d</string>
+    <string name="squad_bench_group">Called up, didn't play · %1$d</string>
     <string name="squad_bench_row">Called up %1$d× · no minutes</string>
     <string name="squad_staff_title">Age-group staff</string>
     <string name="squad_pool_title">%1$s pool · %2$d players</string>
@@ -709,7 +709,7 @@
     <string name="squad_empty_official">Nobody has played an official match this season</string>
     <string name="squad_empty_tournament">Nobody has played a tournament match this season</string>
     <string name="squad_switch_to_all">Switch to All to see every player used.</string>
-    <string name="squad_load_failed_title">Couldn\'t load this team\'s players</string>
+    <string name="squad_load_failed_title">Couldn't load this team's players</string>
     <string name="squad_load_failed_body">Stats and Matches still work. Check your connection and try again.</string>
     <string name="team_first_match_hint">Shows up after the first finished match. Next up: %1$s vs %2$s.</string>
     <string name="team_view_match">View match</string>
@@ -734,7 +734,7 @@
     <string name="ag_band_none">Still to play</string>
     <string name="ag_played_both">Played for both %1$s and %2$s</string>
     <string name="ag_played_several">Played for more than one team</string>
-    <string name="ag_band_hint">Tap a band to see who\'s in it.</string>
+    <string name="ag_band_hint">Tap a band to see who's in it.</string>
     <string name="ag_players_used">%1$d players used</string>
     <string name="ag_create_team_short">+ Create team</string>
     <string name="ag_all_teams">All teams</string>
@@ -755,7 +755,7 @@
     <string name="ag_no_players_body">Players are registered on the club first, then added here.</string>
     <string name="ag_no_matches_no_teams">No matches — create a team first.</string>
     <string name="ag_stats_failed_body">Teams, Matches and Members still work.</string>
-    <string name="ag_members_failed_title">Couldn\'t load this season\'s appearances</string>
+    <string name="ag_members_failed_title">Couldn't load this season's appearances</string>
     <plurals name="ag_member_apps">
         <item quantity="one">%1$d app</item>
         <item quantity="other">%1$d apps</item>
@@ -792,14 +792,14 @@
     <string name="members_send_invite">Send invite</string>
     <string name="members_invite_helper">They get an email with a link. Age-group roles are added later from the age group.</string>
     <string name="members_invite_sent">Invite sent to %1$s</string>
-    <string name="members_invite_failed">Couldn\'t send the invite. Try again.</string>
-    <string name="members_only_you_title">You\'re the only member so far</string>
+    <string name="members_invite_failed">Couldn't send the invite. Try again.</string>
+    <string name="members_only_you_title">You're the only member so far</string>
     <string name="members_only_you_body">Invite coordinators, coaches and parents by email. They join as soon as they register.</string>
     <string name="members_no_match_title">No members match “%1$s”</string>
     <string name="members_no_match_body">Check the spelling, or invite them by email.</string>
-    <string name="members_load_failed_title">Couldn\'t load members</string>
+    <string name="members_load_failed_title">Couldn't load members</string>
     <string name="members_load_failed_body">Details and Permissions still work.</string>
-    <string name="members_action_failed">Couldn\'t complete that. Try again.</string>
+    <string name="members_action_failed">Couldn't complete that. Try again.</string>
     <string name="members_line_coordinator_only">Coordinator only</string>
     <string name="club_discard_confirm">Discard</string>
     <string name="club_discard_title">Discard unsaved changes?</string>
@@ -828,9 +828,9 @@
     <string name="member_make_role">Make %1$s</string>
     <string name="member_saving">Saving…</string>
     <string name="member_now_role">%1$s is now %2$s</string>
-    <string name="member_you_now_role">You\'re now %1$s — returning to Club details</string>
+    <string name="member_you_now_role">You're now %1$s — returning to Club details</string>
     <string name="member_make_admin_title">Make %1$s an admin?</string>
-    <string name="member_make_admin_body">Admins can change everyone\'s roles and the club details.</string>
+    <string name="member_make_admin_body">Admins can change everyone's roles and the club details.</string>
     <string name="member_make_admin_confirm">Make Admin</string>
     <string name="member_lock_last_admin">The club needs at least one admin. Make someone else an admin first.</string>
     <string name="member_lock_admin_only">Only admins can grant or remove Admin.</string>
@@ -849,9 +849,9 @@
     <string name="member_invite_note">Name, phone, roles and linked players appear once %1$s registers.</string>
     <string name="member_resend_invite">Resend invite</string>
     <string name="member_invited_today">Invited today</string>
-    <string name="member_load_failed_title">Couldn\'t load this member</string>
+    <string name="member_load_failed_title">Couldn't load this member</string>
     <string name="member_load_failed_body">Check your connection and try again.</string>
-    <string name="member_role_failed">Couldn\'t change the role. Try again.</string>
+    <string name="member_role_failed">Couldn't change the role. Try again.</string>
     <string name="member_remove">Remove from club</string>
     <string name="member_remove_title">Remove %1$s from the club?</string>
     <string name="member_remove_body_role">They lose their %1$s role.</string>
@@ -860,20 +860,20 @@
     <string name="member_remove_body_account">Their account stays; you can invite them again later.</string>
     <string name="member_remove_confirm">Remove</string>
     <string name="member_removed">%1$s was removed from the club</string>
-    <string name="member_remove_failed">Couldn\'t remove this member. Try again.</string>
+    <string name="member_remove_failed">Couldn't remove this member. Try again.</string>
     <plurals name="member_invited_ago">
         <item quantity="one">Invited %1$d day ago</item>
         <item quantity="other">Invited %1$d days ago</item>
     </plurals>
     <!-- Edit team -->
-    <string name="edit_team_size_helper">How many players start each match (e.g. 7 for 7-a-side). Checked at kickoff; matches already played aren\'t affected.</string>
-    <string name="edit_team_failed">Couldn\'t save the team. Try again.</string>
-    <string name="edit_team_load_failed">Couldn\'t load this team.</string>
+    <string name="edit_team_size_helper">How many players start each match (e.g. 7 for 7-a-side). Checked at kickoff; matches already played aren't affected.</string>
+    <string name="edit_team_failed">Couldn't save the team. Try again.</string>
+    <string name="edit_team_load_failed">Couldn't load this team.</string>
     <!-- Edit age group -->
     <string name="edit_age_group">Edit age group</string>
     <string name="edit_age_group_size_helper">The default for teams created from now on. Existing teams keep theirs; change it in Edit team.</string>
-    <string name="edit_age_group_failed">Couldn\'t save the age group. Try again.</string>
-    <string name="edit_age_group_load_failed">Couldn\'t load this age group.</string>
+    <string name="edit_age_group_failed">Couldn't save the age group. Try again.</string>
+    <string name="edit_age_group_load_failed">Couldn't load this age group.</string>
     <plurals name="edit_age_group_shut_out">
         <item quantity="one">%1$d player in this age group was born before %2$d. Remove them from the pool first, or keep an older birth year.</item>
         <item quantity="other">%1$d players in this age group were born before %2$d. Remove them from the pool first, or keep an older birth year.</item>
@@ -941,7 +941,7 @@
     <string name="more_switch_club">Switch club</string>
     <string name="more_log_out">Log out</string>
     <string name="more_log_out_title">Log out of Squadify?</string>
-    <string name="more_log_out_body">You\'ll need your email and password to sign in again on this device.</string>
+    <string name="more_log_out_body">You'll need your email and password to sign in again on this device.</string>
     <string name="more_role_admin">Admin</string>
     <string name="more_role_coordinator">Coordinator</string>
     <string name="more_role_coach">Coach</string>
@@ -960,11 +960,11 @@
     </plurals>
     <!-- Forgot password -->
     <string name="title_forgot_password">Forgot password</string>
-    <string name="msg_forgot_email_intro">Enter your account\'s email and we\'ll send you a 6-digit code to set a new password.</string>
+    <string name="msg_forgot_email_intro">Enter your account's email and we'll send you a 6-digit code to set a new password.</string>
     <string name="msg_enter_email">Enter your email address.</string>
     <string name="btn_send_code">Send code</string>
     <string name="btn_sending_code">Sending...</string>
-    <string name="msg_forgot_code_intro">We\'ve sent a code to %1$s. It expires in 15 minutes.</string>
+    <string name="msg_forgot_code_intro">We've sent a code to %1$s. It expires in 15 minutes.</string>
     <string name="label_reset_code">6-digit code</string>
     <string name="btn_set_new_password">Set new password</string>
     <string name="btn_setting_new_password">Saving...</string>
@@ -973,24 +973,24 @@
     <string name="btn_use_different_email">Use a different email</string>
     <string name="msg_reset_code_format">Enter the 6-digit code from the email.</string>
     <string name="msg_reset_code_invalid">This code is wrong or has expired. Check the email or send a new code.</string>
-    <string name="msg_reset_failed">Couldn\'t set your new password. Please try again.</string>
-    <string name="msg_reset_request_failed">Couldn\'t send the code. Please try again.</string>
+    <string name="msg_reset_failed">Couldn't set your new password. Please try again.</string>
+    <string name="msg_reset_request_failed">Couldn't send the code. Please try again.</string>
     <string name="msg_password_reset_done">Password changed. Sign in with your new password.</string>
-    <string name="msg_reset_no_account">There\'s no account with this email.</string>
+    <string name="msg_reset_no_account">There's no account with this email.</string>
     <!-- Change email -->
-    <string name="msg_change_email_intro">Enter the new email you want to sign in with, and your current password. We\'ll send a 6-digit code to the new address to confirm it.</string>
+    <string name="msg_change_email_intro">Enter the new email you want to sign in with, and your current password. We'll send a 6-digit code to the new address to confirm it.</string>
     <string name="label_new_email">New email</string>
-    <string name="msg_change_email_code_intro">We\'ve sent a code to %1$s. It expires in 15 minutes.</string>
+    <string name="msg_change_email_code_intro">We've sent a code to %1$s. It expires in 15 minutes.</string>
     <string name="btn_confirm_email_change">Confirm new email</string>
     <string name="btn_confirming">Confirming...</string>
     <string name="msg_change_email_same">This is already your email.</string>
-    <string name="msg_change_email_taken">There\'s already an account with this email.</string>
-    <string name="msg_change_email_wrong_password">Couldn\'t change your email: the current password is incorrect.</string>
-    <string name="msg_change_email_failed">Couldn\'t change your email. Please try again.</string>
+    <string name="msg_change_email_taken">There's already an account with this email.</string>
+    <string name="msg_change_email_wrong_password">Couldn't change your email: the current password is incorrect.</string>
+    <string name="msg_change_email_failed">Couldn't change your email. Please try again.</string>
     <string name="msg_email_changed">Email changed. Sign in with it from now on.</string>
-    <string name="msg_password_change_wrong_password">Couldn\'t change your password: the current password is incorrect.</string>
+    <string name="msg_password_change_wrong_password">Couldn't change your password: the current password is incorrect.</string>
     <string name="title_signed_out">Signed out</string>
-    <string name="msg_signed_out_wrong_passwords">You entered a wrong password 3 times, so you\'ve been signed out for your security. Sign in again to continue.</string>
+    <string name="msg_signed_out_wrong_passwords">You entered a wrong password 3 times, so you've been signed out for your security. Sign in again to continue.</string>
     <string name="btn_ok">OK</string>
     <!-- Opponents list (design 38) -->
     <string name="title_opponents">Opponents</string>
@@ -1004,14 +1004,14 @@
     <string name="msg_no_opponents_match">No opponents match “%1$s”</string>
     <string name="msg_no_opponents_match_hint">Check the spelling or search the short name.</string>
     <string name="msg_ask_coordinator_opponent">Ask a coordinator to add it.</string>
-    <string name="msg_opponents_load_failed">Couldn\'t load opponents</string>
+    <string name="msg_opponents_load_failed">Couldn't load opponents</string>
     <string name="msg_check_connection">Check your connection and try again.</string>
     <string name="more_opponents">Opponents</string>
     <!-- Create / Edit opponent (design 38e) -->
     <string name="title_create_opponent">Create opponent</string>
     <string name="btn_creating_opponent">Creating…</string>
     <string name="msg_opponent_logo_hint">PNG or JPEG, up to 5 MB. Saved with the opponent.</string>
-    <string name="msg_opponent_logo_failed">Saved, but the logo couldn\'t be uploaded. Try again.</string>
+    <string name="msg_opponent_logo_failed">Saved, but the logo couldn't be uploaded. Try again.</string>
     <string name="label_opponent_stadium_section">STADIUM</string>
     <string name="label_opponent_contact_section">CONTACT · OPTIONAL</string>
     <string name="label_opponent_notes_section">NOTES · OPTIONAL</string>
@@ -1031,10 +1031,10 @@
     <string name="label_opponent_notes_placeholder">e.g. Artificial pitch, parking behind the stand</string>
     <string name="btn_open_in_maps">Open in Maps</string>
     <string name="msg_opponent_name_taken">An opponent with this name already exists</string>
-    <string name="msg_create_opponent_failed">Couldn\'t create the opponent. Please try again.</string>
+    <string name="msg_create_opponent_failed">Couldn't create the opponent. Please try again.</string>
     <string name="msg_opponent_created_selected">%1$s created and selected</string>
     <string name="title_edit_opponent">Edit opponent</string>
-    <string name="msg_opponent_save_failed">Couldn\'t save the opponent. Please try again.</string>
+    <string name="msg_opponent_save_failed">Couldn't save the opponent. Please try again.</string>
     <string name="cd_edit_opponent">Edit opponent</string>
     <!-- Opponent details (design 38f) -->
     <string name="title_opponent">Opponent</string>
@@ -1053,7 +1053,7 @@
     <string name="msg_no_matches_against">No matches against %1$s yet</string>
     <string name="msg_h2h_after_first_match">Results and the last-5 form appear after the first finished match.</string>
     <string name="label_matches_count">Matches · %1$d</string>
-    <string name="msg_opponent_load_failed">Couldn\'t load this opponent</string>
+    <string name="msg_opponent_load_failed">Couldn't load this opponent</string>
     <!-- Training plans (design 40) -->
     <string name="month_full_1">January</string>
     <string name="month_full_2">February</string>
@@ -1085,7 +1085,7 @@
     <string name="msg_season_range">Season %1$s – %2$s. Every date must fall inside it.</string>
     <string name="msg_must_end_by">Must end by %1$s, the end of the season.</string>
     <string name="msg_must_start_from">Must start on or after %1$s, the start of the season.</string>
-    <string name="msg_end_before_start">The end can\'t be before the start.</string>
+    <string name="msg_end_before_start">The end can't be before the start.</string>
     <string name="btn_save_season_plan">Save season plan</string>
     <string name="label_phase_name">Name</string>
     <string name="label_plan_start">Start</string>
@@ -1097,11 +1097,11 @@
     <string name="msg_plan_read_only">A coordinator or a coach with planning rights can add it.</string>
     <string name="label_timeline_today">Today</string>
     <string name="title_discard_changes">Discard changes?</string>
-    <string name="msg_discard_plan_changes">Your changes to this plan haven\'t been saved.</string>
+    <string name="msg_discard_plan_changes">Your changes to this plan haven't been saved.</string>
     <string name="btn_discard">Discard</string>
     <string name="btn_keep_editing">Keep editing</string>
-    <string name="msg_plan_save_failed">Couldn\'t save the plan. Please try again.</string>
-    <string name="msg_plans_load_failed">Couldn\'t load the plans</string>
+    <string name="msg_plan_save_failed">Couldn't save the plan. Please try again.</string>
+    <string name="msg_plans_load_failed">Couldn't load the plans</string>
     <string name="cd_remove">Remove</string>
     <string name="cd_edit_plan">Edit plan</string>
     <string name="title_plan_month">Plan %1$s</string>
@@ -1116,7 +1116,7 @@
     <string name="label_focus_placeholder">One line, e.g. Pressing triggers</string>
     <string name="label_notes_field">Notes</string>
     <string name="title_replace_typed">Replace what you typed?</string>
-    <string name="msg_replace_typed">Copying replaces the focus, objectives and notes you\'ve typed.</string>
+    <string name="msg_replace_typed">Copying replaces the focus, objectives and notes you've typed.</string>
     <string name="btn_replace">Replace</string>
     <string name="cd_previous">Previous</string>
     <string name="cd_next">Next</string>
@@ -1153,7 +1153,7 @@
     <string name="wd_short_5">Fri</string>
     <string name="wd_short_6">Sat</string>
     <string name="wd_short_7">Sun</string>
-    <string name="holiday_new_year">New Year\'s Day</string>
+    <string name="holiday_new_year">New Year's Day</string>
     <string name="holiday_good_friday">Good Friday</string>
     <string name="holiday_easter">Easter</string>
     <string name="holiday_freedom_day">Freedom Day</string>
@@ -1162,7 +1162,7 @@
     <string name="holiday_portugal_day">Portugal Day</string>
     <string name="holiday_assumption">Assumption</string>
     <string name="holiday_republic_day">Republic Day</string>
-    <string name="holiday_all_saints">All Saints\' Day</string>
+    <string name="holiday_all_saints">All Saints' Day</string>
     <string name="holiday_restoration">Restoration of Independence</string>
     <string name="holiday_immaculate_conception">Immaculate Conception</string>
     <string name="holiday_christmas">Christmas</string>
@@ -1179,7 +1179,7 @@
     <string name="label_location_field">Location</string>
     <string name="msg_location_stadium_helper">The club’s stadium — change it for this batch if needed.</string>
     <string name="label_also_holidays">Also on public holidays</string>
-    <string name="msg_holidays_helper">%1$s\'s national holidays are skipped unless this is on. Municipal holidays aren\'t considered.</string>
+    <string name="msg_holidays_helper">%1$s's national holidays are skipped unless this is on. Municipal holidays aren't considered.</string>
     <string name="btn_preview_n_sessions">Preview %1$d sessions</string>
     <string name="label_pick_time">Pick a time</string>
     <string name="title_preview">Preview</string>
@@ -1197,8 +1197,8 @@
     <string name="msg_replace_content">%1$d sessions with exercises or ratings will be replaced and their data deleted.</string>
     <string name="btn_back_to_preview">Back to preview</string>
     <string name="msg_sessions_created">%1$d sessions created</string>
-    <string name="msg_create_sessions_failed">Couldn\'t create the sessions. Please try again.</string>
-    <string name="msg_preview_failed">Couldn\'t preview the sessions. Please try again.</string>
+    <string name="msg_create_sessions_failed">Couldn't create the sessions. Please try again.</string>
+    <string name="msg_preview_failed">Couldn't preview the sessions. Please try again.</string>
     <string name="label_upcoming_sessions">UPCOMING</string>
     <string name="label_past_sessions">PAST</string>
     <string name="chip_today">TODAY</string>
@@ -1211,7 +1211,7 @@
     <string name="btn_create_sessions">Create sessions</string>
     <string name="btn_add_one_session">Add one session</string>
     <string name="label_sessions">SESSIONS</string>
-    <string name="msg_sessions_load_failed">Couldn\'t load the sessions</string>
+    <string name="msg_sessions_load_failed">Couldn't load the sessions</string>
     <plurals name="label_n_exercises">
         <item quantity="one">%1$d exercise</item>
         <item quantity="other">%1$d exercises</item>
@@ -1224,7 +1224,7 @@
     <string name="label_date_required">Date *</string>
     <string name="label_session_notes_placeholder">e.g. Extra session before the cup game</string>
     <string name="btn_add_session">Add session</string>
-    <string name="msg_session_save_failed">Couldn\'t save the session. Please try again.</string>
+    <string name="msg_session_save_failed">Couldn't save the session. Please try again.</string>
     <string name="label_training_subtitle">Training · %1$s · %2$s</string>
     <string name="status_upcoming">Upcoming</string>
     <plurals name="status_in_days">
@@ -1241,13 +1241,13 @@
     <string name="title_cancel_session">Cancel this session?</string>
     <string name="msg_cancel_session">%1$s stays on the calendar as cancelled. Its exercises are kept and you can restore it.</string>
     <string name="title_delete_session">Delete this session?</string>
-    <string name="msg_delete_session">It\'s removed with its exercises and ratings. This can\'t be undone.</string>
+    <string name="msg_delete_session">It's removed with its exercises and ratings. This can't be undone.</string>
     <string name="msg_session_cancelled_by">This session was cancelled on %1$s by %2$s.</string>
     <string name="msg_session_cancelled">This session was cancelled on %1$s.</string>
     <string name="btn_week_plan">Week plan ›</string>
     <string name="btn_plan_the_week">Plan the week</string>
-    <string name="msg_session_change_failed">That didn\'t work. Please try again.</string>
-    <string name="msg_session_load_failed">Couldn\'t load this session</string>
+    <string name="msg_session_change_failed">That didn't work. Please try again.</string>
+    <string name="msg_session_load_failed">Couldn't load this session</string>
     <string name="title_training">Training</string>
     <string name="btn_list">List</string>
     <string name="btn_calendar">Calendar</string>
@@ -1278,9 +1278,9 @@
     <string name="label_objectives">Objectives</string>
     <string name="label_objectives_placeholder">e.g. Press on the back pass</string>
     <string name="btn_save_and_add">Save and add to session</string>
-    <string name="msg_used_in_sessions">Used in %1$d sessions. Changes apply everywhere it\'s used.</string>
-    <string name="msg_exercise_save_failed">Couldn\'t save the exercise. Please try again.</string>
-    <string name="msg_library_load_failed">Couldn\'t load the exercises</string>
+    <string name="msg_used_in_sessions">Used in %1$d sessions. Changes apply everywhere it's used.</string>
+    <string name="msg_exercise_save_failed">Couldn't save the exercise. Please try again.</string>
+    <string name="msg_library_load_failed">Couldn't load the exercises</string>
     <string name="msg_library_empty">No exercises yet. Create the first one with New.</string>
     <string name="msg_library_no_match">No exercises match “%1$s”</string>
     <string name="cd_edit_exercise">Edit exercise</string>
@@ -1293,12 +1293,12 @@
     <string name="label_absent">Did not take part</string>
     <string name="label_rated_count">%1$d of %2$d rated</string>
     <string name="btn_save_ratings">Save</string>
-    <string name="msg_ratings_save_failed">Couldn\'t save the ratings. Please try again.</string>
-    <string name="msg_ratings_load_failed">Couldn\'t load the ratings</string>
+    <string name="msg_ratings_save_failed">Couldn't save the ratings. Please try again.</string>
+    <string name="msg_ratings_load_failed">Couldn't load the ratings</string>
     <string name="label_player_ratings_staff">PLAYER RATINGS · STAFF ONLY</string>
     <string name="msg_ratings_open_at">Ratings open after the session ends, at %1$s.</string>
     <string name="btn_rate_players">Rate players</string>
-    <string name="msg_ratings_cancelled">A cancelled session isn\'t rated.</string>
+    <string name="msg_ratings_cancelled">A cancelled session isn't rated.</string>
     <string name="home_training_needs_ratings">Training of %1$s needs player ratings · %2$s</string>
     <string name="home_trainings_need_ratings">%1$d trainings need player ratings</string>
     <string name="label_absent_count">%1$d absent</string>
@@ -1315,7 +1315,7 @@
     <string name="col_avg">AVG</string>
     <string name="label_attendance_tile">Attendance · %1$d of %2$d</string>
     <string name="label_avg_tile">Avg rating · %1$d rated</string>
-    <string name="msg_absent_not_averaged">Absent (0) doesn\'t count towards the average.</string>
+    <string name="msg_absent_not_averaged">Absent (0) doesn't count towards the average.</string>
     <string name="msg_no_training_stats">No ended training sessions yet.</string>
     <!-- Rate players: text box -->
     <string name="msg_rating_invalid">Enter 0 to 10, e.g. 7.5</string>
@@ -1323,54 +1323,54 @@
     <string name="btn_delete_team">Delete team</string>
     <string name="title_delete_team">Delete %1$s?</string>
     <plurals name="msg_delete_team_matches">
-        <item quantity="one">This can\'t be undone. This team\'s %1$d game will be deleted, with all its stats: call-up, events, player stats and report, even if it was played. The players stay in the age group.</item>
-        <item quantity="other">This can\'t be undone. This team\'s %1$d games will be deleted, with all their stats: call-ups, events, player stats and reports, played games included. The players stay in the age group.</item>
+        <item quantity="one">This can't be undone. This team's %1$d game will be deleted, with all its stats: call-up, events, player stats and report, even if it was played. The players stay in the age group.</item>
+        <item quantity="other">This can't be undone. This team's %1$d games will be deleted, with all their stats: call-ups, events, player stats and reports, played games included. The players stay in the age group.</item>
     </plurals>
-    <string name="msg_delete_team_no_matches">This can\'t be undone. The team has no games yet. The players stay in the age group.</string>
-    <string name="edit_team_delete_failed">Couldn\'t delete the team. Try again.</string>
+    <string name="msg_delete_team_no_matches">This can't be undone. The team has no games yet. The players stay in the age group.</string>
+    <string name="edit_team_delete_failed">Couldn't delete the team. Try again.</string>
     <!-- Remove a player from an age group / disable in the club -->
     <string name="cd_remove_from_age_group">Remove %1$s from the age group</string>
     <string name="title_remove_player_age_group">Remove %1$s from %2$s?</string>
-    <string name="msg_remove_player_age_group">They stay in the club and can be added again later. Matches they played still show them, but this age group\'s stats stop counting them. They also leave the call-ups of matches that haven\'t started.</string>
+    <string name="msg_remove_player_age_group">They stay in the club and can be added again later. Matches they played still show them, but this age group's stats stop counting them. They also leave the call-ups of matches that haven't started.</string>
     <string name="btn_remove">Remove</string>
     <string name="msg_player_removed_age_group">%1$s removed from %2$s</string>
-    <string name="msg_remove_player_failed">Couldn\'t remove the player. Try again.</string>
+    <string name="msg_remove_player_failed">Couldn't remove the player. Try again.</string>
     <string name="cd_disable_player">Disable %1$s</string>
     <string name="title_disable_player">Disable %1$s?</string>
-    <string name="msg_disable_player">They stay in their age groups and their data and match history stay, but they leave the call-ups of matches that haven\'t started and can\'t be called up while disabled. They show as disabled.</string>
+    <string name="msg_disable_player">They stay in their age groups and their data and match history stay, but they leave the call-ups of matches that haven't started and can't be called up while disabled. They show as disabled.</string>
     <string name="btn_disable">Disable</string>
     <string name="label_player_disabled">Disabled</string>
     <string name="msg_player_disabled">%1$s disabled</string>
-    <string name="msg_disable_player_failed">Couldn\'t disable the player. Try again.</string>
+    <string name="msg_disable_player_failed">Couldn't disable the player. Try again.</string>
     <!-- Reactivate a disabled player -->
     <string name="btn_reactivate">Reactivate</string>
     <string name="msg_player_reactivated">%1$s reactivated</string>
-    <string name="msg_reactivate_player_failed">Couldn\'t reactivate the player. Try again.</string>
+    <string name="msg_reactivate_player_failed">Couldn't reactivate the player. Try again.</string>
     <!-- Club-level permission: disable and reactivate players -->
     <string name="label_permission_manage_player_status">Disable and reactivate players</string>
-    <string name="msg_permission_manage_player_status_desc">Disable a player (nothing is deleted; they leave upcoming call-ups and can\'t be called up), and reactivate them.</string>
+    <string name="msg_permission_manage_player_status_desc">Disable a player (nothing is deleted; they leave upcoming call-ups and can't be called up), and reactivate them.</string>
     <string name="label_permission_level_admins_coordinators">Admins and coordinators</string>
     <string name="label_permission_level_admins_only">Admins only</string>
     <string name="msg_permission_admin_only_setting">Only a club admin can change this.</string>
     <!-- Age group Members: disabled players section -->
     <string name="ag_disabled_heading">Disabled</string>
-    <string name="msg_ag_disabled_hint">Disabled in the club: still in this age group, but they can\'t be called up. Reactivate them from the club\'s Players screen.</string>
+    <string name="msg_ag_disabled_hint">Disabled in the club: still in this age group, but they can't be called up. Reactivate them from the club's Players screen.</string>
     <!-- Club logo -->
     <string name="label_change_logo">Change logo</string>
     <string name="btn_remove_logo">Remove</string>
     <string name="msg_logo_hint">PNG or JPEG, up to 5 MB. Saved straight away.</string>
     <string name="msg_logo_saving">Saving the logo…</string>
     <string name="msg_logo_too_big">That image is larger than 5 MB. Pick a smaller one.</string>
-    <string name="msg_logo_upload_failed">Couldn\'t upload the logo. Try again.</string>
-    <string name="msg_logo_remove_failed">Couldn\'t remove the logo. Try again.</string>
+    <string name="msg_logo_upload_failed">Couldn't upload the logo. Try again.</string>
+    <string name="msg_logo_remove_failed">Couldn't remove the logo. Try again.</string>
     <!-- Club colours (Club settings > Details) -->
     <string name="label_club_colours_section">CLUB COLOURS</string>
-    <string name="msg_club_colours_none">Using Squadify\'s colours. Pick two for your club: a strong main colour and a lighter second one.</string>
+    <string name="msg_club_colours_none">Using Squadify's colours. Pick two for your club: a strong main colour and a lighter second one.</string>
     <string name="btn_choose_club_colours">Choose club colours</string>
     <string name="label_main_colour">Main colour</string>
     <string name="label_second_colour">Second colour</string>
     <string name="msg_main_colour_hint">Bars and buttons, with white text on it</string>
-    <string name="msg_second_colour_hint">What\'s selected on the bars</string>
+    <string name="msg_second_colour_hint">What's selected on the bars</string>
     <string name="btn_swap_colours">Swap</string>
     <string name="btn_remove_colours">Remove colours</string>
     <string name="msg_club_colours_saved_hint">Everyone in the club sees the app in these colours.</string>
@@ -1390,15 +1390,15 @@
     <string name="btn_remove_photo">Remove</string>
     <string name="msg_photo_hint">PNG or JPEG, up to 5 MB. Saved straight away.</string>
     <string name="msg_photo_saving">Saving the photo…</string>
-    <string name="msg_photo_upload_failed">Couldn\'t upload the photo. Try again.</string>
-    <string name="msg_photo_remove_failed">Couldn\'t remove the photo. Try again.</string>
+    <string name="msg_photo_upload_failed">Couldn't upload the photo. Try again.</string>
+    <string name="msg_photo_remove_failed">Couldn't remove the photo. Try again.</string>
     <string name="label_match_format">Format</string>
     <string name="match_format_value">%1$dx%1$d</string>
     <string name="msg_age_group_conflict_rows">Rows %1$s use birth years that already have an age group in this season.</string>
     <string name="btn_save_callup">Save call-up</string>
     <string name="btn_saving_callup">Saving…</string>
-    <string name="msg_callup_not_ready">The call-up isn\'t ready yet.</string>
-    <string name="msg_callup_save_failed">Couldn\'t save the call-up. Try again.</string>
+    <string name="msg_callup_not_ready">The call-up isn't ready yet.</string>
+    <string name="msg_callup_save_failed">Couldn't save the call-up. Try again.</string>
     <string name="label_venue">Where</string>
     <string name="venue_home">Home</string>
     <string name="venue_away">Away</string>
@@ -1407,7 +1407,7 @@
     <string name="match_type_abbr_championship">Cha</string>
     <string name="match_type_abbr_tournament">Tou</string>
     <string name="match_row_half_time">HT</string>
-    <string name="msg_callup_discard">Your changes to the call-up haven\'t been saved and will be lost.</string>
+    <string name="msg_callup_discard">Your changes to the call-up haven't been saved and will be lost.</string>
     <!-- Live pitch view -->
     <string name="tab_pitch">Pitch</string>
     <string name="lm_change_formation">Change formation</string>
@@ -1478,12 +1478,12 @@
     <string name="fs_to">To</string>
     <string name="fs_final_title">Final ranking</string>
     <string name="fs_final_info">How the final ranking works</string>
-    <string name="fs_final_body">The final ranking is the average of every game and training rating in the period, together. Each game counts as one rating and each training as one rating. A training the player missed doesn\'t count.</string>
+    <string name="fs_final_body">The final ranking is the average of every game and training rating in the period, together. Each game counts as one rating and each training as one rating. A training the player missed doesn't count.</string>
     <string name="fs_final_example">Example: 1 game rated 7.0 and 3 trainings rated 6.0, 7.0 and 8.0 → (7.0 + 6.0 + 7.0 + 8.0) ÷ 4 = 7.0</string>
     <string name="fs_empty_title">No games or trainings in this period</string>
     <string name="fs_empty_hint">Widen the date range to see player stats.</string>
     <string name="fs_widen">Widen range</string>
-    <string name="fs_error_title">Couldn\'t load the stats</string>
+    <string name="fs_error_title">Couldn't load the stats</string>
 
     <!-- A finished match's record (Match Details: Stats, Events, Timeline) -->
     <string name="md_tab_general">General</string>
@@ -1530,7 +1530,7 @@
     <string name="btn_add_event">+ Add event</string>
     <string name="msg_record_no_events">No goals or cards yet.</string>
     <string name="label_minutes_played">Minutes played</string>
-    <string name="label_match_length_value">%1$d\' match</string>
+    <string name="label_match_length_value">%1$d' match</string>
     <string name="btn_full_match">Full match</string>
     <string name="title_add_event">Add event</string>
     <string name="title_edit_event">Edit event</string>
@@ -1539,10 +1539,10 @@
     <string name="label_choose_player">Choose a player</string>
     <string name="btn_done">Done</string>
     <string name="btn_delete_event">Delete event</string>
-    <string name="msg_record_discard">Your changes to the match record haven\'t been saved and will be lost.</string>
+    <string name="msg_record_discard">Your changes to the match record haven't been saved and will be lost.</string>
     <string name="msg_record_minutes_invalid">Minutes played must be between 0 and the match length.</string>
     <string name="msg_record_scorer_didnt_play">A goal or assist is by a player with no minutes played.</string>
-    <string name="msg_record_save_failed">Couldn\'t save the match record. Please try again.</string>
+    <string name="msg_record_save_failed">Couldn't save the match record. Please try again.</string>
     <!-- Not played (never started, well past kickoff) -->
     <string name="label_not_played">Not played</string>
     <string name="msg_home_match_not_played">Result missing: %1$s vs %2$s</string>

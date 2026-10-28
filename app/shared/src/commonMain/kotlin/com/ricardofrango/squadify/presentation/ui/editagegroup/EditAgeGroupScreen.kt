@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -168,7 +169,7 @@ private fun EditAgeGroupForm(
     val freeYears = allYears - state.usedByOthers
 
     Column(
-        modifier.verticalScroll(rememberScrollState()).screenContentPadding(),
+        modifier.verticalScroll(rememberScrollState()).readableWidth().screenContentPadding(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         SectionCard(spacing = 16.dp) {
@@ -267,6 +268,18 @@ private fun EditAgeGroupForm(
 @Preview
 @Composable
 private fun EditAgeGroupPreview() {
+    SquadifyTheme {
+        val fields = AgeGroupFormFields("Sub-15", twoYears = false, startYear = 2011, endYear = 2011, teamSize = 11)
+        EditAgeGroupContent(
+            state = EditAgeGroupUiState.Idle("2025/26", listOf(4, 5, 7, 9, 11), setOf(2012, 2013), listOf(2011, 2011, 2012), fields, fields),
+            onNavigateBack = {}, onRetry = {}, onChange = {}, onSave = {}
+        )
+    }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun EditAgeGroupLandscapePreview() {
     SquadifyTheme {
         val fields = AgeGroupFormFields("Sub-15", twoYears = false, startYear = 2011, endYear = 2011, teamSize = 11)
         EditAgeGroupContent(

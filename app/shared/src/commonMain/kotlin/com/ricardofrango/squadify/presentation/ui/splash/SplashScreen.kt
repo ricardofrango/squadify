@@ -82,3 +82,11 @@ private fun SplashScreenPreview() {
         SplashContent()
     }
 }
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun SplashScreenLandscapePreview() {
+    SquadifyTheme {
+        SplashContent()
+    }
+}
