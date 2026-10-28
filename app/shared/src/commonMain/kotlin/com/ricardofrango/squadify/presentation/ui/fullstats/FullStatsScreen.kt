@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.fullstats
 
+import com.ricardofrango.squadify.presentation.ui.components.squadifyDatePickerColors
 import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
 import androidx.compose.ui.draw.clip
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
@@ -675,7 +676,7 @@ private fun CustomRangeSheet(state: FullStatsUiState.Loaded, onApply: (LocalDate
         }
     )
     FullStatsSheetFrame(onDismiss, stringResource(Res.string.fs_period_custom)) {
-        DateRangePicker(state = pickerState, modifier = Modifier.heightIn(max = 460.dp), title = null, headline = null, showModeToggle = false)
+        DateRangePicker(state = pickerState, colors = squadifyDatePickerColors(), modifier = Modifier.heightIn(max = 460.dp), title = null, headline = null, showModeToggle = false)
         val start = pickerState.selectedStartDateMillis
         val end = pickerState.selectedEndDateMillis ?: start
         SheetButton(stringResource(Res.string.btn_apply), { if (start != null && end != null) onApply(start.date(), end.date()) }, enabled = start != null)
