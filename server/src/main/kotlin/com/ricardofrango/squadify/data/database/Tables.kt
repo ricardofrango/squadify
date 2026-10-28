@@ -269,6 +269,8 @@ object Matches : Table("matches") {
     val startingFormation = varchar("starting_formation", 20).nullable()
     // V27: the result was entered after the game, not followed live (see Match.enteredAfterGame).
     val enteredAfterGame = bool("entered_after_game").default(false)
+    // V29: how many a side this match is played (see Match.teamSize).
+    val teamSize = integer("team_size")
 
     override val primaryKey = PrimaryKey(id)
 }

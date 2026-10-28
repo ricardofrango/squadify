@@ -153,7 +153,8 @@ class GetMatchDetailsUseCase(
             canSeeMatchRecord = canReadReport,
             events = events,
             playerStats = playerStats,
-            lineupChanges = lineupChanges
+            lineupChanges = lineupChanges,
+            teamSizeOptions = club?.sport?.teamSizes.orEmpty()
         )
     }
 }

@@ -12,7 +12,8 @@ import com.ricardofrango.squadify.model.matchFormation
 // match and each player's position on their call-up (see Formation.kt), so one refetch or one socket
 // update keeps both in step.
 
-internal val MatchDetails.teamSize: Int get() = team.teamSize ?: 11
+/** How many a side this match is played (Match.teamSize). */
+internal val MatchDetails.teamSize: Int get() = match.teamSize
 
 /** The formation the match plays in now: its saved one, or the team size's default. */
 internal fun MatchDetails.formation(): List<Int> = matchFormation(match.formation, teamSize)
@@ -22,6 +23,9 @@ internal fun MatchDetails.storedSlots(): Map<Int, String> =
     callUps.mapNotNull { c -> c.callUp.pitchSlot?.let { it to c.callUp.playerId } }.toMap()
 
 internal fun MatchDetails.storedLineup() = MatchLineup(formation().formationText(), storedSlots())
+
+/** The match played [size] a side. */
+internal fun MatchDetails.withTeamSize(size: Int): MatchDetails = copy(match = match.copy(teamSize = size))
 
 internal fun MatchDetails.withLineup(lineup: MatchLineup): MatchDetails {
     val slotOf = lineup.slots.entries.associate { (slot, playerId) -> playerId to slot }

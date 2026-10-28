@@ -2,7 +2,6 @@ package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
-import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
@@ -20,7 +19,6 @@ import com.ricardofrango.squadify.model.*
 class StartMatchUseCase(
     private val matchRepository: MatchRepository,
     private val matchEventRepository: MatchEventRepository,
-    private val teamRepository: TeamRepository,
     private val liveMatchBus: LiveMatchBus,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
@@ -61,10 +59,8 @@ class StartMatchUseCase(
                 throw ValidationException("A player can only be in the starting line-up once")
             }
 
-            // The a-side count this team plays -- falls back to 11 for teams recorded before team sizes
-            // existed (see PROCESS_FLOWS.md's team-size flows).
-            val team = teamRepository.getTeamById(match.teamId) ?: throw NotFoundException("Team not found")
-            val requiredCount = team.teamSize ?: 11
+            // The a-side count this match is played (Match.teamSize).
+            val requiredCount = match.teamSize
             if (startingIds.size != requiredCount) {
                 throw ValidationException("The starting line-up needs exactly $requiredCount players")
             }

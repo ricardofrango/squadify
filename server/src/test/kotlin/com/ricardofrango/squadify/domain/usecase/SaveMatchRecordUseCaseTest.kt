@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.domain.usecase
 
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
+import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchPlayerStatsRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
@@ -14,8 +15,10 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.CallUpStatus
+import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubMatchesUpdate
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.ClubStatus
 import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchCallUp
@@ -27,6 +30,7 @@ import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.SaveMatchRecordRequest
+import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
@@ -62,9 +66,12 @@ class SaveMatchRecordUseCaseTest {
     private val notify = mockk<NotifyMatchEventUseCase>(relaxed = true)
     private val clubMatchesBus = mockk<ClubMatchesBus>(relaxed = true)
     private val now = Instant.fromEpochMilliseconds(10_000_000)
+    private val clubRepository = mockk<ClubRepository>().also {
+        coEvery { it.getClubById(any()) } returns Club("club-1", "FC", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL)
+    }
     private val useCase = SaveMatchRecordUseCase(
         matchRepository, eventRepository, statsRepository, mockk<LiveMatchBus>(relaxed = true),
-        checkUserPermissionUseCase, notify, clubMatchesBus, transactionManager, now = { now }
+        checkUserPermissionUseCase, notify, clubMatchesBus, transactionManager, clubRepository, now = { now }
     )
 
     private val clubId = "club-1"
@@ -235,6 +242,29 @@ class SaveMatchRecordUseCaseTest {
         assertEquals(1, byPlayer.getValue("duda").redCards)
         coVerify(exactly = 1) { notify(matchId, MatchNotificationEvent.FULL_TIME, null) }
         coVerify { clubMatchesBus.publish(clubId, ClubMatchesUpdate(match = saved)) }
+    }
+
+    @Test
+    fun aGameNotFollowedLiveSaysHowManyASideItWasPlayed() = runBlocking {
+        coEvery { matchRepository.getMatchById(matchId) } returns notPlayed
+        coEvery { eventRepository.getEventsByMatch(matchId) } returns emptyList()
+        coEvery { statsRepository.getByMatch(matchId) } returns emptyList()
+        coEvery { matchRepository.updateMatch(any()) } returns true
+
+        val saved = useCase(staff, matchId, SaveMatchRecordRequest(emptyList(), halfLengthMinutes = 25, teamSize = 7))
+
+        assertEquals(7, saved.teamSize)
+        coVerify { matchRepository.updateMatch(notPlayed.copy(teamSize = 7)) }
+        // A size the sport isn't played with is refused.
+        assertFailsWith<ValidationException> { useCase(staff, matchId, SaveMatchRecordRequest(emptyList(), halfLengthMinutes = 25, teamSize = 6)) }
+        Unit
+    }
+
+    @Test
+    fun aMatchFollowedLiveKeepsItsTeamSize() = runBlocking {
+        stubFinished(emptyList())
+        assertFailsWith<ValidationException> { useCase(staff, matchId, SaveMatchRecordRequest(emptyList(), teamSize = 7)) }
+        Unit
     }
 
     @Test

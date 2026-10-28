@@ -902,7 +902,7 @@ graph TD
 
 `teamSize` is the a-side format (how many players start a match), checked at kickoff by
 `StartMatchUseCase` -- not a squad size, which is never stored. Changing it doesn't touch matches
-already played. The client's **Edit team** screen (Team Details ⋮) edits the name and team size;
+already played or scheduled: each match keeps its own team size (§7.1). The client's **Edit team** screen (Team Details ⋮) edits the name and team size;
 `TeamDetails.canEditTeam` (§4.6b) is the same gate as a non-throwing probe, so the menu item only shows
 where saving would work.
 
@@ -1459,7 +1459,7 @@ In the app the logo is part of the Create / Edit opponent form and is saved with
 
 ```mermaid
 graph TD
-    A[Start: userId, teamId, opponentId, location, dateTime, notes, type, halves] --> B[Fetch Team by id]
+    A[Start: userId, teamId, opponentId, location, dateTime, notes, type, halves, teamSize?] --> B[Fetch Team by id]
     B -- not found --> N1(["Throw NotFoundException: Team not found"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_MATCH, teamId]
     C -- denied --> F(["Throw ForbiddenException"])
@@ -1469,7 +1469,9 @@ graph TD
     E -- Yes --> FB(["Throw ForbiddenException: opponent belongs to another club"])
     E -- No --> HV{"halves not 1 or 2?"}
     HV -- Yes --> VH(["Throw ValidationException"])
-    HV -- No --> G["Create Match — status SCHEDULED, type = request.type (FRIENDLY / CHAMPIONSHIP / TOURNAMENT), halves = request.halves (default 2)"]
+    HV -- No --> TS{"teamSize set? — load club, must be in club.sport.teamSizes"}
+    TS -- "not in it" --> VT(["Throw ValidationException"])
+    TS -- "ok / not set" --> G["Create Match — status SCHEDULED, type = request.type (FRIENDLY / CHAMPIONSHIP / TOURNAMENT), halves = request.halves (default 2), teamSize = request.teamSize ?: team.teamSize ?: 11"]
     G --> H[Persist Match]
     H --> I["Transaction commits"]
     I --> J["NotifyMatchEventUseCase(match.id, SCHEDULED) — best-effort push to every club member (§8.2b)"]
@@ -1487,6 +1489,13 @@ graph TD
 - **Where it's set:** Schedule match has a "2 halves · 1 half" control, defaulting to 2 halves. The edit sheet offers it too, but only before kickoff, because the number of halves drives the live console. Changing it after kickoff is a 409.
 - **Shown on Match Details:** a single-period match shows "1 half" next to the date.
 - **On the live console:** a one-half match has no half time. The action bar only offers Full time, the clock reads "MATCH" instead of "1ST HALF", and pre-kickoff asks for the "Match length". The server refuses HALF_TIME for it (§8.2).
+
+**Team size** (how many a side, `Match.teamSize`, `matches.team_size`, required: V29 added it, V30 filled every existing match with its team's count, 11 for a team without one, and made it NOT NULL). A new match takes its team's count unless another is picked: a 9-a-side team can play a 7-a-side game. It drives the call-up's minimum, the pitch's positions and formation, and kickoff's starter count. A match keeps its count when its team's size changes later, so a game played 9-a-side stays 9-a-side. The size must be one of the club sport's (`SportType.teamSizes`).
+- **Where it changes** (`Match.canChangeTeamSize`): before kickoff, or for a game whose result was entered afterwards (§8.1c). Never once the game was followed live (`kickoffAt` set).
+- **Schedule match:** a "Format" control (5x5 · 7x7 · …), starting on the chosen team's own count.
+- **Edit match:** the same control, before kickoff only (§7.1c).
+- **Pre-kickoff pitch:** the formation sheet picks it too (§8.0b).
+- **Enter result:** the record screen picks it for a game not followed live (§8.1c).
 
 ### 7.1b Get Match Details (`GetMatchDetailsUseCase`)
 
@@ -1525,7 +1534,7 @@ The bottom button just opens the live match screen; starting the game and record
 
 ```mermaid
 graph TD
-    A[Start: userId, matchId, patch (opponentId?, dateTime?, location?, notes?, type?, halves?)] --> B[Fetch Match by id]
+    A[Start: userId, matchId, patch (opponentId?, dateTime?, location?, notes?, type?, halves?, venue?, teamSize?)] --> B[Fetch Match by id]
     B -- not found --> N1(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
@@ -1534,13 +1543,19 @@ graph TD
     S -- No --> HV{"patch.halves not 1 or 2? or changed after kickoff?"}
     HV -- "not 1 or 2" --> VH(["Throw ValidationException"])
     HV -- "changed, status != SCHEDULED" --> CH(["Throw ConflictException (409)"])
-    HV -- No --> D{patch.opponentId set?}
+    HV -- No --> TS{"patch.teamSize differs from the match's effective size?"}
+    TS -- "Yes, but not canChangeTeamSize (kicked off)" --> CT(["Throw ConflictException (409)"])
+    TS -- "Yes, not in club.sport.teamSizes" --> VT(["Throw ValidationException"])
+    TS -- "Yes and valid / No" --> D{patch.opponentId set?}
     D -- Yes --> E[Fetch Opponent; reject if it belongs to another club]
     D -- No --> G
     E --> G["Merge non-null patch fields onto the match"]
     G --> H{"opponentId, dateTime, or location actually changed value?"}
-    H --> I[Persist updated Match — status and call-ups are untouched]
-    I --> J["Transaction commits"]
+    H --> I[Persist updated Match — status and call-ups are untouched; teamSize as sent]
+    I --> RZ{"teamSize changed?"}
+    RZ -- Yes --> RL["setLineup: the new size's default formation, keeping the pitch slots below the new count; LiveMatchUpdate(score, match, lineup) after commit"]
+    RZ -- No --> J
+    RL --> J["Transaction commits"]
     J --> K{"Did a schedule field change?"}
     K -- Yes --> L["NotifyMatchEventUseCase(matchId, RESCHEDULED) — best-effort push to every club member (§8.2b)"]
     K -- "No (notes/type-only edit)" --> Z
@@ -1648,7 +1663,7 @@ graph TD
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D{"status == SCHEDULED? halfLengthMinutes > 0? startingPlayerIds non-empty, no duplicates?"}
     D -- No --> V1(["Throw ValidationException"])
-    D -- Yes --> E[Fetch Team — required count = team.teamSize ?: 11]
+    D -- Yes --> E[Required count = match.teamSize]
     E -- count mismatch --> V2(["Throw ValidationException"])
     E -- ok --> G[Fetch this match's call-ups]
     G -- a starter isn't in the call-up list --> V3(["Throw ValidationException"])
@@ -1664,21 +1679,24 @@ graph TD
     K --> Z(["Return success"])
 ```
 
-This is the "KICK OFF" action on the live match console's pre-kickoff pitch (client, see §8.4): it locks in the Starting XI (everyone else called up becomes the bench), the half length and the formation in one write, then flips the match live. The starters are the players placed on the pitch (§8.0b); the formation is also kept as `startingFormation`, which prefills the match report's tactic (§8.6). The a-side count comes from `Team.teamSize` (falling back to 11 for teams recorded before that field existed — see the team-size flows in §4.3/§4.5). It also stamps `Match.kickoffAt` with the wall-clock instant of kickoff — the client derives the live running clock from this timestamp rather than any locally-ticking counter (see §8.4).
+This is the "KICK OFF" action on the live match console's pre-kickoff pitch (client, see §8.4): it locks in the Starting XI (everyone else called up becomes the bench), the half length and the formation in one write, then flips the match live. The starters are the players placed on the pitch (§8.0b); the formation is also kept as `startingFormation`, which prefills the match report's tactic (§8.6). The a-side count is the match's own (`Match.teamSize`, §7.1). It also stamps `Match.kickoffAt` with the wall-clock instant of kickoff — the client derives the live running clock from this timestamp rather than any locally-ticking counter (see §8.4).
 
 ### 8.0b Set Match Line-up (`SetMatchLineupUseCase`) — the live pitch view
 
-`PUT /v1/matches/{matchId}/lineup` with `SetMatchLineupRequest(formation, slots)`, `slots` being position → player id. A formation is "D-M-A" (defenders-midfielders-attackers) adding up to the team size with the goalkeeper. Positions are numbered 0 (the goalkeeper), then defence, midfield and attack, each zone left to right (`common/model/Formation.kt`).
+`PUT /v1/matches/{matchId}/lineup` with `SetMatchLineupRequest(formation, slots, teamSize?)`, `slots` being position → player id. Before kickoff `teamSize` changes how many a side the match is played (§7.1); the formation and slots are then for the new count. A formation is "D-M-A" (defenders-midfielders-attackers) adding up to the team size with the goalkeeper. Positions are numbered 0 (the goalkeeper), then defence, midfield and attack, each zone left to right (`common/model/Formation.kt`).
 
 ```mermaid
 graph TD
-    A[Start: userId, matchId, formation, slots] --> B[Fetch Match by id]
+    A[Start: userId, matchId, formation, slots, teamSize?] --> B[Fetch Match by id]
     B -- not found --> N(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_LIVE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D{"status FINISHED or CANCELLED?"}
     D -- Yes --> V1(["Throw ValidationException"])
-    D -- No --> E["Fetch Team — teamSize ?: 11; parseFormation(formation, teamSize)"]
+    D -- No --> TZ{"request.teamSize differs from match.teamSize?"}
+    TZ -- "Yes, status != SCHEDULED" --> CZ(["Throw ConflictException (409)"])
+    TZ -- "Yes, not in club.sport.teamSizes" --> VZ(["Throw ValidationException"])
+    TZ -- "Yes and valid: teamSize = it, saved on the match / No: match.teamSize" --> E["parseFormation(formation, teamSize)"]
     E -- "doesn't add up" --> V2(["Throw ValidationException"])
     E -- ok --> G{"Every position in 0 until teamSize, no player twice, every player called up?"}
     G -- No --> V3(["Throw ValidationException"])
@@ -1752,7 +1770,7 @@ Removes a mis-logged goal, card, or substitution row. The client always confirms
 
 ```mermaid
 graph TD
-    A["Start: userId, matchId, events, halfLengthMinutes?, minutesPlayed"] --> B[Fetch Match by id]
+    A["Start: userId, matchId, events, halfLengthMinutes?, minutesPlayed, teamSize?"] --> B[Fetch Match by id]
     B -- not found --> N1(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_LIVE_MATCH, teamId=match.teamId]
     C -- denied --> F(["Throw ForbiddenException"])
@@ -1765,7 +1783,10 @@ graph TD
     AG --> CU{"afterGame: a saved call-up?"}
     FG --> CU
     CU -- No --> VC(["Throw ValidationException: save the call-up first"])
-    CU -- "Yes, or followed live" --> M{"afterGame?"}
+    CU -- "Yes, or followed live" --> TQ{"teamSize sent?"}
+    TQ -- "Yes, followed live" --> VQ(["Throw ValidationException: a game followed live keeps its team size"])
+    TQ -- "Yes, not in club.sport.teamSizes" --> VQ2(["Throw ValidationException"])
+    TQ -- "Yes and valid / No: the match's" --> M{"afterGame?"}
     M -- Yes --> MH["halfLength = request ?: match's; 1..60. Each minutesPlayed key called up, 0..halfLength × halves"]
     M -- No --> ML{"halfLength or minutes sent?"}
     ML -- Yes --> VM(["Throw ValidationException: a game followed live keeps its minutes"])
@@ -1775,7 +1796,7 @@ graph TD
     EP -- invalid --> VE(["Throw ValidationException"])
     EP -- ok --> AP["Delete every goal-linked ASSIST, then the editable events not sent back; update those sent with an id; insert the new ones; insert each goal's assist linked to it. Substitutions untouched"]
     AP --> FT{"afterGame?"}
-    FT -- Yes --> FE["markEnteredAfterGame: FINISHED, entered_after_game, half length, first_half_end = halfLength (2 halves), full_time = halfLength × halves"]
+    FT -- Yes --> FE["markEnteredAfterGame: FINISHED, entered_after_game, half length, first_half_end = halfLength (2 halves), full_time = halfLength × halves; the team size, when it changed"]
     FT -- No --> ST
     FE --> ST{"fullTimeMinute set?"}
     ST -- "No (finished before stats existed)" --> PB
@@ -2540,6 +2561,7 @@ erDiagram
         varchar formation "nullable -- the live pitch view's formation now, D-M-A (V25); null means the team size's default"
         varchar starting_formation "nullable -- the formation at kickoff, set by StartMatchUseCase; prefills the report's tactic (V25)"
         boolean entered_after_game "default false -- the result was entered afterwards, not followed live; minutes typed in, no substitutions or timeline (V27)"
+        integer team_size "not null -- how many a side this match is played; the team's count unless another was picked (V29, filled from teams.team_size and made NOT NULL in V30)"
     }
     MATCH_CALL_UPS {
         uuid id PK

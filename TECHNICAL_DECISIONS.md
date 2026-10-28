@@ -3198,3 +3198,22 @@ Now every picker takes fixed colours from `components/PickerColors.kt`: `squadif
 - The sheet title is a small grey label above the value, as in the date picker.
 
 Previews show both sheets in landscape and with dark mode on.
+
+## 74. A Match's Own Team Size
+
+The developer, 2026-10-28: a team's size (`Team.teamSize`) is its usual format, but a 9-a-side team can still play a 7-a-side game. So a match can say how many a side it's played.
+
+- **Stored on every match, required** (`matches.team_size`). V29 added it. V30 filled each existing match with its team's count (11 for a team without one) and made it NOT NULL. A new match takes its team's count unless another is picked.
+- **A match keeps its count.** The developer's rule: a team that moves from 9-a-side to 7-a-side mustn't turn its games played 9-a-side into 7-a-side ones. So nothing falls back to the team's current size. A first draft used `null` for "the team's", which would have done exactly that.
+- **One value for every reader:** `Match.teamSize` drives the call-up's minimum, the pitch (positions, default formation, formation check) and kickoff's starter count, on the server and in the app (`MatchDetails.teamSize`).
+- **Allowed sizes:** the club sport's (`SportType.teamSizes`), checked on every write, as for teams. `MatchDetails.teamSizeOptions` gives the app the list.
+- **When it can change** (`Match.canChangeTeamSize`): before kickoff, or for a game whose result was entered afterwards (§70). Never once the game was followed live: its line-up, minutes and timeline were played with that count. The developer asked for this lock.
+- **Where it changes:**
+  - Schedule match: a "Format" control (`TeamSizeSelector`, a `SegmentedFilter`), starting on the chosen team's own count.
+  - Edit match, before kickoff.
+  - On the pre-kickoff pitch, in the formation sheet. A new size starts from its default formation.
+  - On the Enter result screen, for a game not followed live.
+- **Before kickoff the pitch follows.**
+  - From the formation sheet, `SetMatchLineupRequest.teamSize` carries the size with the new formation and the positions still on the pitch. That is one write, so the formation always fits the count.
+  - From Edit match, `UpdateMatchUseCase` resets the formation to the new size's default and keeps whoever stands in a position that still exists.
+  - Either way, every device hears it through `LiveMatchUpdate`.

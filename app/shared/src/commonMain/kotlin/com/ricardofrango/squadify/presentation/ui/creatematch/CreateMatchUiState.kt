@@ -38,6 +38,10 @@ sealed class CreateMatchUiState {
         val matchTypeError: Boolean = false,
         // 2 halves unless switched to a single period (no half time).
         val halves: Int = 2,
+        // The a-side counts the club's sport is played with, and the one picked: the selected team's
+        // own (11 for a team without one) until changed -- a 9-a-side team can play a 7-a-side game.
+        val teamSizeOptions: List<Int> = emptyList(),
+        val teamSize: Int? = null,
         // Home, away or neutral -- no default, it has to be picked; it prefills [location].
         val venue: MatchVenue? = null,
         // Set when Schedule is tapped with no venue picked, like matchTypeError.

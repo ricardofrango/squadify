@@ -58,7 +58,8 @@ class CreateMatchViewModel(
         val seasonName: String,
         val teams: List<Team>,
         val teamFixed: Boolean,
-        val clubLocation: String?
+        val clubLocation: String?,
+        val teamSizes: List<Int>
     )
 
     fun load(ageGroupId: String?, teamId: String?) {
@@ -69,10 +70,10 @@ class CreateMatchViewModel(
             try {
                 val ctx = when {
                     teamId != null -> getTeamDetailsUseCase(teamId).let { d ->
-                        Context(d.club.id, d.club.name, d.ageGroup.id, d.ageGroup.name, d.season.name, listOf(d.team), teamFixed = true, clubLocation = d.club.stadiumLocation ?: d.club.address)
+                        Context(d.club.id, d.club.name, d.ageGroup.id, d.ageGroup.name, d.season.name, listOf(d.team), teamFixed = true, clubLocation = d.club.stadiumLocation ?: d.club.address, teamSizes = d.club.sport.teamSizes)
                     }
                     ageGroupId != null -> getAgeGroupDetailsUseCase(ageGroupId).let { d ->
-                        Context(d.club.id, d.club.name, d.ageGroup.id, d.ageGroup.name, d.season.name, d.teams, teamFixed = false, clubLocation = d.club.stadiumLocation ?: d.club.address)
+                        Context(d.club.id, d.club.name, d.ageGroup.id, d.ageGroup.name, d.season.name, d.teams, teamFixed = false, clubLocation = d.club.stadiumLocation ?: d.club.address, teamSizes = d.club.sport.teamSizes)
                     }
                     else -> {
                         _state.update { CreateMatchUiState.Error(getString(Res.string.msg_failed_to_load_match_form)) }
@@ -84,6 +85,7 @@ class CreateMatchViewModel(
                 } catch (e: Exception) {
                     emptyList()
                 }
+                val selected = if (ctx.teamFixed || ctx.teams.size == 1) ctx.teams.firstOrNull() else null
                 _state.update {
                     CreateMatchUiState.Idle(
                         clubId = ctx.clubId,
@@ -93,7 +95,9 @@ class CreateMatchViewModel(
                         seasonName = ctx.seasonName,
                         teamFixed = ctx.teamFixed,
                         teams = ctx.teams,
-                        selectedTeamId = if (ctx.teamFixed || ctx.teams.size == 1) ctx.teams.firstOrNull()?.id else null,
+                        selectedTeamId = selected?.id,
+                        teamSizeOptions = ctx.teamSizes,
+                        teamSize = selected?.let { it.teamSize ?: 11 },
                         opponents = opponents,
                         clubLocation = ctx.clubLocation,
                         date = nextSaturday(),
@@ -110,7 +114,12 @@ class CreateMatchViewModel(
         _state.update { if (it is CreateMatchUiState.Idle) block(it) else it }
     }
 
-    fun onTeamSelected(teamId: String) = updateIdle { it.copy(selectedTeamId = teamId, error = null) }
+    // Another team starts from its own count.
+    fun onTeamSelected(teamId: String) = updateIdle { state ->
+        state.copy(selectedTeamId = teamId, teamSize = state.teams.find { it.id == teamId }?.let { it.teamSize ?: 11 }, error = null)
+    }
+
+    fun onTeamSizeSelected(teamSize: Int) = updateIdle { it.copy(teamSize = teamSize) }
 
     /**
      * The opponent picked on the Opponents screen. One created there is not in [CreateMatchUiState.Idle.opponents]
@@ -181,7 +190,8 @@ class CreateMatchViewModel(
                         notes = current.notes.trim().ifBlank { null },
                         type = matchType,
                         halves = current.halves,
-                        venue = current.venue
+                        venue = current.venue,
+                        teamSize = current.teamSize
                     )
                 )
                 _navigationEvent.emit(CreateMatchNavigationEvent.NavigateBackWithMatchCreated)

@@ -19,11 +19,14 @@ data class MatchLineup(
 /**
  * Body of `PUT /matches/{matchId}/lineup` -- the whole arrangement, replacing the saved one. Before
  * kickoff the slotted players are the starters; during the game they must be on the pitch.
+ * [teamSize] changes how many a side the match is played (Match.teamSize), before kickoff only; the
+ * formation and slots are then for the new count. Null keeps it.
  */
 @Serializable
 data class SetMatchLineupRequest(
     val formation: String,
-    val slots: Map<Int, String>
+    val slots: Map<Int, String>,
+    val teamSize: Int? = null
 )
 
 /** "2-3-1" -> [2, 3, 1], when it's three whole numbers that with the goalkeeper make [teamSize]. */

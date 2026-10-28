@@ -56,7 +56,6 @@ class StartMatchUseCaseTest {
     private val useCase = StartMatchUseCase(
         matchRepository,
         matchEventRepository,
-        teamRepository,
         liveMatchBus,
         checkUserPermissionUseCase,
         notifyMatchEventUseCase,
@@ -68,7 +67,8 @@ class StartMatchUseCaseTest {
     private val matchId = "m-1"
     private val teamId = "t-1"
     private val ag1 = "ag-1"
-    private val match = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1))
+    // A 7-a-side match (its team's count, V29).
+    private val match = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), teamSize = 7)
     private val team7aside = Team(teamId, clubId, ag1, "s-1", "Sub-15 A", "A", active = true, teamSize = 7)
 
     private fun coach() = User("coach", "coach@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))

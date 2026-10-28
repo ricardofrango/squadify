@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.domain.usecase.SaveMatchRecordUseCase
 import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchStatus
+import com.ricardofrango.squadify.presentation.ui.livematch.teamSize
 import com.ricardofrango.squadify.presentation.errorMessage
 import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -27,15 +28,16 @@ sealed class MatchRecordUiState {
     data class Error(val message: String) : MatchRecordUiState()
 
     /**
-     * [events] the goals and cards on screen; [halfLength] and [minutes] (player id -> what's typed)
-     * only matter for a game entered afterwards, [sort] is the minutes list's order. Nothing is sent
-     * until Save.
+     * [events] the goals and cards on screen; [halfLength], [teamSize] (how many a side) and [minutes]
+     * (player id -> what's typed) only matter for a game entered afterwards, [sort] is the minutes
+     * list's order. Nothing is sent until Save.
      */
     data class Idle(
         val details: MatchDetails,
         val events: List<DraftEvent>,
         val halfLength: Int,
         val minutes: Map<String, String>,
+        val teamSize: Int = details.teamSize,
         val sort: CallUpSort = DEFAULT_MINUTES_SORT,
         val saving: Boolean = false,
         val saveError: String? = null,
@@ -110,6 +112,8 @@ class MatchRecordViewModel(
 
     fun onHalfLength(minutes: Int) = edit { it.copy(halfLength = minutes) }
 
+    fun onTeamSize(size: Int) = edit { it.copy(teamSize = size) }
+
     fun onMinutes(playerId: String, text: String) = edit {
         it.copy(minutes = it.minutes + (playerId to text.filter(Char::isDigit).take(3)))
     }
@@ -128,7 +132,7 @@ class MatchRecordViewModel(
             try {
                 saveMatchRecordUseCase(
                     current.details.match.id,
-                    recordRequest(current.afterGame, current.events, current.halfLength, current.minutes)
+                    recordRequest(current.afterGame, current.events, current.halfLength, current.minutes, current.teamSize)
                 )
                 _state.value = current.copy(saving = false, dirty = false)
                 _saved.emit(Unit)

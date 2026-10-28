@@ -68,7 +68,10 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -682,10 +685,21 @@ internal fun withAutoDash(previous: String, typed: String): String {
     return if (text.isNotEmpty() && text.last().isDigit() && text.count { it == '-' } < 2) "$text-" else text
 }
 
+/**
+ * The formation, typed or picked. With [teamSizes] (before kickoff) the match's team size is picked
+ * here too: another size starts from its default formation, and [onApply] gets the size with it.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-internal fun FormationSheet(current: String, teamSize: Int, onApply: (String) -> Unit, onDismiss: () -> Unit) {
+internal fun FormationSheet(
+    current: String,
+    initialTeamSize: Int,
+    onApply: (formation: String, teamSize: Int) -> Unit,
+    onDismiss: () -> Unit,
+    teamSizes: List<Int> = emptyList()
+) {
     var field by remember { mutableStateOf(TextFieldValue(current, TextRange(current.length))) }
+    var teamSize by remember { mutableStateOf(initialTeamSize) }
     val text = field.text
     val parsed = parseFormation(text, teamSize)
     val outfield = teamSize - 1
@@ -696,7 +710,7 @@ internal fun FormationSheet(current: String, teamSize: Int, onApply: (String) ->
             stringResource(Res.string.lm_formation_wrong_sum, text.trim(), numbers.sumOf { it ?: 0 }, outfield)
         else -> stringResource(Res.string.lm_formation_wrong_format, defaultFormation(teamSize).formationText())
     }
-    val apply = { parsed?.let { onApply(it.formationText()) } }
+    val apply = { parsed?.let { onApply(it.formationText(), teamSize) } }
     val muted = Color.White.copy(alpha = 0.55f)
     // Design "Squadify Pitch View": title with the team size, a filled field (red edge when wrong),
     // the error, the formations to pick, and flat Cancel / Apply.
@@ -704,7 +718,31 @@ internal fun FormationSheet(current: String, teamSize: Int, onApply: (String) ->
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 20.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(Res.string.lm_change_formation), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                Text(stringResource(Res.string.lm_team_size_side, teamSize), color = muted, fontSize = 12.sp)
+                if (teamSizes.size < 2) Text(stringResource(Res.string.lm_team_size_side, teamSize), color = muted, fontSize = 12.sp)
+            }
+            if (teamSizes.size >= 2) {
+                // How many a side this match is played, whatever the team's usual count.
+                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        teamSizes.forEach { size ->
+                            val selected = size == teamSize
+                            Surface(
+                                onClick = {
+                                    if (size != teamSize) {
+                                        teamSize = size
+                                        val default = defaultFormation(size).formationText()
+                                        field = TextFieldValue(default, TextRange(default.length))
+                                    }
+                                },
+                                shape = RoundedCornerShape(16.dp),
+                                color = if (selected) PitchGreen else Color.White.copy(alpha = 0.06f),
+                                modifier = Modifier.semantics { role = Role.RadioButton; this.selected = selected }
+                            ) {
+                                Text(stringResource(Res.string.lm_team_size_side, size), color = Color.White, fontSize = 14.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                            }
+                        }
+                    }
+                }
             }
             OutlinedTextField(
                 value = field,

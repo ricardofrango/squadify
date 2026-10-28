@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchPlayerStatsRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
@@ -33,6 +34,9 @@ private val RECORD_EVENT_TYPES = setOf(EventType.GOAL, EventType.OWN_GOAL, Event
  *   typed in. It becomes FINISHED ([Match.enteredAfterGame]) with a single "final result" push, and
  *   stays editable the same way, minutes included. It never has substitutions or a timeline.
  *
+ * A game not followed live can also say how many a side it was played ([SaveMatchRecordRequest.teamSize]);
+ * a game followed live keeps the count it kicked off with.
+ *
  * Either way the record stays editable, and each save rebuilds the players' stats lines, keeping
  * their match report ratings.
  */
@@ -45,6 +49,7 @@ class SaveMatchRecordUseCase(
     private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val clubMatchesBus: ClubMatchesBus,
     private val transactionManager: TransactionManager,
+    private val clubRepository: ClubRepository,
     private val now: () -> Instant = { Clock.System.now() }
 ) {
     suspend operator fun invoke(userId: String, matchId: String, request: SaveMatchRecordRequest): Match {
@@ -86,6 +91,12 @@ class SaveMatchRecordUseCase(
                 }
                 null
             }
+            val teamSize = request.teamSize?.let { size ->
+                if (!afterGame) throw ValidationException("A match followed live keeps its team size")
+                val club = clubRepository.getClubById(match.clubId) ?: throw NotFoundException("Club not found")
+                requireMatchTeamSize(size, club)
+                size
+            } ?: match.teamSize
             if (halfLength != null) {
                 request.minutesPlayed.forEach { (playerId, minutes) ->
                     if (playerId !in calledUp) throw ValidationException("Only called-up players have minutes")
@@ -109,7 +120,9 @@ class SaveMatchRecordUseCase(
 
             val recorded = if (halfLength != null) {
                 matchRepository.markEnteredAfterGame(matchId, halfLength, match.halves)
+                if (teamSize != match.teamSize) matchRepository.updateMatch(match.copy(teamSize = teamSize))
                 match.copy(
+                    teamSize = teamSize,
                     status = MatchStatus.FINISHED,
                     enteredAfterGame = true,
                     halfLengthMinutes = halfLength,

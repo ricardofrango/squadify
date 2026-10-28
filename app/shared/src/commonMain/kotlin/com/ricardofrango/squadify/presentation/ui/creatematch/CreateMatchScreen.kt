@@ -27,6 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.presentation.ui.components.HalvesSelector
+import com.ricardofrango.squadify.presentation.ui.components.TeamSizeSelector
 import com.ricardofrango.squadify.presentation.ui.components.MatchTypeSelector
 import com.ricardofrango.squadify.model.MatchType
 import com.ricardofrango.squadify.model.Team
@@ -122,6 +123,7 @@ fun CreateMatchScreen(
             onNotesChange = viewModel::onNotesChange,
             onMatchTypeSelected = viewModel::onMatchTypeSelected,
             onHalvesSelected = viewModel::onHalvesSelected,
+            onTeamSizeSelected = viewModel::onTeamSizeSelected,
             onVenueSelected = viewModel::onVenueSelected,
             onSubmit = viewModel::onSubmit
         )
@@ -143,6 +145,7 @@ private fun CreateMatchContent(
     onNotesChange: (String) -> Unit,
     onMatchTypeSelected: (MatchType) -> Unit,
     onHalvesSelected: (Int) -> Unit = {},
+    onTeamSizeSelected: (Int) -> Unit = {},
     onVenueSelected: (MatchVenue) -> Unit = {},
     onSubmit: () -> Unit
 ) {
@@ -185,6 +188,7 @@ private fun CreateMatchContent(
                 onNotesChange = onNotesChange,
                 onMatchTypeSelected = onMatchTypeSelected,
                 onHalvesSelected = onHalvesSelected,
+                onTeamSizeSelected = onTeamSizeSelected,
                 onVenueSelected = onVenueSelected,
                 onSubmit = onSubmit
             )
@@ -204,6 +208,7 @@ private fun CreateMatchForm(
     onNotesChange: (String) -> Unit,
     onMatchTypeSelected: (MatchType) -> Unit,
     onHalvesSelected: (Int) -> Unit = {},
+    onTeamSizeSelected: (Int) -> Unit = {},
     onVenueSelected: (MatchVenue) -> Unit = {},
     onSubmit: () -> Unit
 ) {
@@ -260,6 +265,13 @@ private fun CreateMatchForm(
             // ---- Halves (two by default; one is a single period with no half time) ----
             FieldCard(label = stringResource(Res.string.label_halves), required = false) {
                 HalvesSelector(halves = state.halves, onSelected = onHalvesSelected)
+            }
+
+            // ---- Format: the team's own count until changed (a 9-a-side team playing 7-a-side) ----
+            if (state.teamSize != null && state.teamSizeOptions.size >= 2) {
+                FieldCard(label = stringResource(Res.string.label_match_format), required = false) {
+                    TeamSizeSelector(options = state.teamSizeOptions, selected = state.teamSize, onSelected = onTeamSizeSelected)
+                }
             }
 
             // ---- When ----
@@ -569,6 +581,8 @@ private fun sampleIdle(teamFixed: Boolean) = CreateMatchUiState.Idle(
         Team("t2", "c1", "ag1", "s1", "Sub-15 B", "B", true)
     ),
     selectedTeamId = if (teamFixed) "t1" else null,
+    teamSizeOptions = listOf(4, 5, 7, 9, 11),
+    teamSize = if (teamFixed) 7 else null,
     opponents = listOf(Opponent("o1", "c1", "AD Fontelas", "ADF", null)),
     selectedOpponentId = if (teamFixed) "o1" else null,
     date = LocalDate(2026, 9, 12),

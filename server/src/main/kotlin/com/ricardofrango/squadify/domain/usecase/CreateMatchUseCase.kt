@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
@@ -18,7 +19,8 @@ class CreateMatchUseCase(
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val clubMatchesBus: ClubMatchesBus,
-    private val transactionManager: TransactionManager
+    private val transactionManager: TransactionManager,
+    private val clubRepository: ClubRepository
 ) {
     suspend operator fun invoke(
         userId: String,
@@ -48,6 +50,11 @@ class CreateMatchUseCase(
             if (request.halves !in 1..2) {
                 throw ValidationException("A match is played in 1 or 2 halves")
             }
+            // The team's count unless another is picked; kept on the match from now on.
+            val teamSize = request.teamSize?.also { size ->
+                val club = clubRepository.getClubById(team.clubId) ?: throw NotFoundException("Club not found")
+                requireMatchTeamSize(size, club)
+            } ?: team.teamSize ?: 11
 
             val match = Match(
                 id = Uuid.random().toString(),
@@ -60,7 +67,8 @@ class CreateMatchUseCase(
                 notes = request.notes,
                 type = request.type,
                 halves = request.halves,
-                venue = request.venue ?: MatchVenue.HOME
+                venue = request.venue ?: MatchVenue.HOME,
+                teamSize = teamSize
             )
 
             matchRepository.createMatch(match)

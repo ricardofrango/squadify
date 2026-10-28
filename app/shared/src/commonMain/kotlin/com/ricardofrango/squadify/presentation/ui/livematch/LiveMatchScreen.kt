@@ -429,7 +429,17 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
             emptyText = null,
             onDismiss = { sheet = null }
         )
-        PreKickoffSheet.Formation -> FormationSheet(formationText, teamSize, onApply = { actions.onSetLineup(it, slotIds); sheet = null }, onDismiss = { sheet = null })
+        // Before kickoff the team size can change too (not once the game is on): the positions
+        // past the new count empty.
+        PreKickoffSheet.Formation -> FormationSheet(
+            formationText, teamSize,
+            onApply = { f, size ->
+                if (size == teamSize) actions.onSetLineup(f, slotIds) else actions.onSetLineup(f, slotIds.filterKeys { it < size }, size)
+                sheet = null
+            },
+            onDismiss = { sheet = null },
+            teamSizes = details.teamSizeOptions
+        )
         null -> Unit
     }
 }
@@ -782,7 +792,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
     }
     if (showFormationSheet) {
         // The players keep their position numbers: who stands where in the new shape is the coach's call.
-        FormationSheet(formationText, details.teamSize, onApply = { actions.onSetLineup(it, currentSlotIds); showFormationSheet = false }, onDismiss = { showFormationSheet = false })
+        FormationSheet(formationText, details.teamSize, onApply = { f, _ -> actions.onSetLineup(f, currentSlotIds); showFormationSheet = false }, onDismiss = { showFormationSheet = false })
     }
     actionSheet?.let { sheet ->
         PlayerActionSheet(
@@ -1312,7 +1322,7 @@ private object PreviewLiveMatchActions : LiveMatchActions {
     override fun onFullTime() {}
     override fun onHalfTime() {}
     override fun onKickOff(halfLengthMinutes: Int) {}
-    override fun onSetLineup(formation: String, slots: Map<Int, String>) {}
+    override fun onSetLineup(formation: String, slots: Map<Int, String>, teamSize: Int?) {}
     override fun onSaveLineup(onSaved: () -> Unit) {}
     override fun onLogEvent(type: EventType, playerId: String, minute: Int) {}
     override fun onLogGoal(minute: Int, isOpponent: Boolean) {}
@@ -1340,7 +1350,8 @@ internal fun previewLiveDetails(match: Match, placed: Int = 7): MatchDetails {
         player("p9", "Gonçalo", "Pires", 14, PlayerPosition.STRIKER)
     )
     return MatchDetails(
-        match = match,
+        // A 7-a-side match, as its team.
+        match = match.copy(teamSize = 7),
         opponent = Opponent(id = "o1", clubId = "c1", name = "AD Fontelas", shortName = "Fontelas"),
         team = Team(id = "t1", clubId = "c1", ageGroupId = "ag1", seasonId = "s1", name = "Sub-13 A", active = true, teamSize = 7),
         ageGroup = AgeGroup(id = "ag1", clubId = "c1", name = "Sub-13", seasonId = "s1", startYear = 2013, endYear = 2013),

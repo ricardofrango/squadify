@@ -76,8 +76,11 @@ interface LiveMatchActions {
     fun onHalfTime()
     /** Kicks off with the players placed on the pitch, in its formation. */
     fun onKickOff(halfLengthMinutes: Int)
-    /** Saves the pitch's formation and who stands in each position (slot -> player id). */
-    fun onSetLineup(formation: String, slots: Map<Int, String>)
+    /**
+     * Saves the pitch's formation and who stands in each position (slot -> player id). Before kickoff
+     * [teamSize] changes how many a side the match is played; null keeps it.
+     */
+    fun onSetLineup(formation: String, slots: Map<Int, String>, teamSize: Int? = null)
     fun onSaveLineup(onSaved: () -> Unit)
     fun onLogEvent(type: EventType, playerId: String, minute: Int)
     fun onLogGoal(minute: Int, isOpponent: Boolean)
@@ -114,6 +117,8 @@ class LiveMatchViewModel(
     // The arrangement still to send, the running save loop, and the slots of the last one sent until
     // the socket echoes them back. All touched on the main thread only (viewModelScope).
     private var desiredLineup: MatchLineup? = null
+    // A team size picked before kickoff, sent with the next lineup.
+    private var desiredTeamSize: Int? = null
     private var lineupJob: Job? = null
     // The last lineup save was refused (Save then stays on the screen).
     private var lineupRefused = false
@@ -243,11 +248,18 @@ class LiveMatchViewModel(
      * which shouldn't wait on the network. Saves go one at a time; taps made meanwhile are sent as one,
      * the latest, when the save in flight returns. A refused save reloads the server's pitch.
      */
-    override fun onSetLineup(formation: String, slots: Map<Int, String>) {
+    override fun onSetLineup(formation: String, slots: Map<Int, String>, teamSize: Int?) {
         if (_state.value !is LiveMatchUiState.Idle) return
         val lineup = MatchLineup(formation, slots)
-        _state.update { (it as? LiveMatchUiState.Idle)?.copy(details = it.details.withLineup(lineup), error = null) ?: it }
+        _state.update {
+            (it as? LiveMatchUiState.Idle)?.let { idle ->
+                val details = idle.details.withLineup(lineup)
+                idle.copy(details = if (teamSize != null) details.withTeamSize(teamSize) else details, error = null)
+            } ?: it
+        }
         desiredLineup = lineup
+        // Kept until sent: a later tap's lineup is already for the new count.
+        if (teamSize != null) desiredTeamSize = teamSize
         if (lineupJob?.isActive != true) lineupJob = viewModelScope.launch { drainLineups() }
     }
 
@@ -269,13 +281,16 @@ class LiveMatchViewModel(
         while (true) {
             val next = desiredLineup ?: return
             desiredLineup = null
+            val teamSize = desiredTeamSize
+            desiredTeamSize = null
             awaitingEcho = next.slots
             try {
-                setMatchLineupUseCase(matchId, SetMatchLineupRequest(next.formation, next.slots))
+                setMatchLineupUseCase(matchId, SetMatchLineupRequest(next.formation, next.slots, teamSize))
                 lineupRefused = false
             } catch (e: Exception) {
                 lineupRefused = true
                 desiredLineup = null
+                desiredTeamSize = null
                 awaitingEcho = null
                 // The pitch first, so the coach never keeps working on one the server doesn't have.
                 runCatching { fetchDetails() }.getOrNull()?.let { details ->

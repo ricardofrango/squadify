@@ -20,8 +20,8 @@ enum class MatchDetailsButton { SAVE_CALL_UP_DISABLED, SAVE_CALL_UP, START_MATCH
 
 data class CallUpView(val section: CallUpSection, val button: MatchDetailsButton)
 
-/** The fewest players a call-up needs: the team's size (how many start), 11 for a team without one. */
-fun MatchDetails.minimumCallUp(): Int = team.teamSize ?: 11
+/** The fewest players a call-up needs: the match's team size (how many start). */
+fun MatchDetails.minimumCallUp(): Int = match.teamSize
 
 /**
  * What the call-up section and the bottom button show (the developer's rules, 2026-10-23). The
