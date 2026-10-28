@@ -60,6 +60,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import squadify.app.shared.generated.resources.*
+import kotlin.math.ceil
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.border
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.draw.clip
@@ -312,7 +317,7 @@ private fun StatusBand(details: MatchDetails) {
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
             left.logoUrl?.let { BandCrest(it, left.name); Spacer(Modifier.width(8.dp)) }
             // The name takes what's left after the crest (which keeps its size): two lines, then "…".
-            Text(left.name, Modifier.weight(1f, fill = false), style = nameStyle, color = nameColor, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
+            BandName(left.name, nameStyle, nameColor, TextAlign.End, Modifier.weight(1f, fill = false))
         }
         Text(
             if (hasScore) "${left.score} – ${right.score}" else "vs",
@@ -321,10 +326,30 @@ private fun StatusBand(details: MatchDetails) {
             modifier = Modifier.padding(horizontal = 12.dp)
         )
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            Text(right.name, Modifier.weight(1f, fill = false), style = nameStyle, color = nameColor, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            BandName(right.name, nameStyle, nameColor, TextAlign.Start, Modifier.weight(1f, fill = false))
             right.logoUrl?.let { Spacer(Modifier.width(8.dp)); BandCrest(it, right.name) }
         }
     }
+}
+
+/**
+ * A side's name on the band, up to two lines. Wrapped text is as wide as the room it's given, which
+ * left a gap between a long name and its crest; this is only as wide as its longest line.
+ */
+@Composable
+private fun BandName(name: String, style: TextStyle, color: Color, align: TextAlign, modifier: Modifier) {
+    val measurer = rememberTextMeasurer()
+    Text(
+        name,
+        modifier.layout { measurable, constraints ->
+            val text = measurer.measure(name, style, TextOverflow.Ellipsis, maxLines = 2, constraints = Constraints(maxWidth = constraints.maxWidth))
+            val widest = (0 until text.lineCount).maxOf { ceil(text.getLineRight(it) - text.getLineLeft(it)).toInt() }
+                .coerceIn(constraints.minWidth, constraints.maxWidth)
+            val placeable = measurable.measure(constraints.copy(minWidth = widest, maxWidth = widest))
+            layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+        },
+        style = style, color = color, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = align
+    )
 }
 
 private data class BandSide(val name: String, val logoUrl: String?, val score: Int)
