@@ -73,14 +73,14 @@ class UpdateMatchUseCaseTest {
     private val liveMatchBus = mockk<LiveMatchBus>(relaxed = true)
     private val useCase = UpdateMatchUseCase(
         matchRepository, opponentRepository, checkUserPermissionUseCase, notifyMatchEventUseCase, clubMatchesBus, transactionManager,
-        teamRepository, clubRepository, matchEventRepository, liveMatchBus
+        clubRepository, matchEventRepository, liveMatchBus
     )
 
     private val clubId = "club-1"
     private val matchId = "m-1"
     private val teamId = "t-1"
     private val ag1 = "ag-1"
-    private val match = Match(matchId, clubId, teamId, "opp-1", "Old field", Instant.fromEpochMilliseconds(1), notes = "old")
+    private val match = Match(matchId, clubId, teamId, "opp-1", "Old field", Instant.fromEpochMilliseconds(1), notes = "old", teamSize = 7)
 
     private fun user(id: String) = User(id, "$id@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
 
@@ -274,17 +274,9 @@ class UpdateMatchUseCaseTest {
     }
 
     @Test
-    fun theTeamsOwnSizeIsStoredAsNoneAndASizeTheSportDoesntHaveIsRefused() = runBlocking {
+    fun aSizeTheSportIsntPlayedWithIsRefused() = runBlocking {
         val coach = coachOfA7ASideTeam()
-        coEvery { matchRepository.getMatchById(matchId) } returns match.copy(teamSize = 5)
-        val saved = slot<Match>()
-        coEvery { matchRepository.updateMatch(capture(saved)) } returns true
-        coEvery { matchRepository.getCallUpsForMatch(matchId) } returns emptyList()
-        coEvery { matchRepository.setLineup(any(), any(), any()) } returns true
-
-        useCase(coach.id, matchId, UpdateMatchRequest(teamSize = 7))
-        assertEquals(null, saved.captured.teamSize)
-
+        coEvery { matchRepository.getMatchById(matchId) } returns match
         assertFailsWith<ValidationException> { useCase(coach.id, matchId, UpdateMatchRequest(teamSize = 6)) }
         Unit
     }

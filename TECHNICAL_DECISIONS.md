@@ -3203,8 +3203,9 @@ Previews show both sheets in landscape and with dark mode on.
 
 The developer, 2026-10-28: a team's size (`Team.teamSize`) is its usual format, but a 9-a-side team can still play a 7-a-side game. So a match can say how many a side it's played.
 
-- **Stored on the match** (`matches.team_size`, V29). `null` plays the team's count, so a match that doesn't say follows the team if the team's size changes. Picking the team's own count back stores `null` too.
-- **One rule for every reader:** `Match.effectiveTeamSize(team)` gives the match's own count, else the team's, else 11. The call-up's minimum, the pitch (positions, default formation, formation check) and kickoff's starter count all use it, on the server and in the app (`MatchDetails.teamSize`).
+- **Stored on every match, required** (`matches.team_size`). V29 added it. V30 filled each existing match with its team's count (11 for a team without one) and made it NOT NULL. A new match takes its team's count unless another is picked.
+- **A match keeps its count.** The developer's rule: a team that moves from 9-a-side to 7-a-side mustn't turn its games played 9-a-side into 7-a-side ones. So nothing falls back to the team's current size. A first draft used `null` for "the team's", which would have done exactly that.
+- **One value for every reader:** `Match.teamSize` drives the call-up's minimum, the pitch (positions, default formation, formation check) and kickoff's starter count, on the server and in the app (`MatchDetails.teamSize`).
 - **Allowed sizes:** the club sport's (`SportType.teamSizes`), checked on every write, as for teams. `MatchDetails.teamSizeOptions` gives the app the list.
 - **When it can change** (`Match.canChangeTeamSize`): before kickoff, or for a game whose result was entered afterwards (§70). Never once the game was followed live: its line-up, minutes and timeline were played with that count. The developer asked for this lock.
 - **Where it changes:**

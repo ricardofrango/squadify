@@ -65,13 +65,13 @@ class SetMatchLineupUseCaseTest {
     private val clubRepository = mockk<ClubRepository>().also {
         coEvery { it.getClubById(any()) } returns Club("club-1", "FC", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL)
     }
-    private val useCase = SetMatchLineupUseCase(matchRepository, matchEventRepository, teamRepository, liveMatchBus, checkUserPermissionUseCase, transactionManager, clubRepository, clock)
+    private val useCase = SetMatchLineupUseCase(matchRepository, matchEventRepository, liveMatchBus, checkUserPermissionUseCase, transactionManager, clubRepository, clock)
 
     private val clubId = "club-1"
     private val matchId = "m-1"
     private val teamId = "t-1"
     private val ag1 = "ag-1"
-    private val scheduled = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1))
+    private val scheduled = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), teamSize = 7)
     private val coach = User("coach", "coach@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0))
     private val ids = (1..8).map { "p$it" }
 
@@ -141,10 +141,10 @@ class SetMatchLineupUseCaseTest {
         assertFailsWith<ValidationException> { useCase(coach.id, matchId, SetMatchLineupRequest("2-1-1", mapOf(5 to "p1"), teamSize = 5)) }
         assertFailsWith<ValidationException> { useCase(coach.id, matchId, SetMatchLineupRequest("2-2-1", emptyMap(), teamSize = 6)) }
 
-        // Back to the team's own count: stored as none, so it follows the team.
+        // And back to 7: the count is always stored on the match.
         stub(scheduled.copy(teamSize = 5))
         useCase(coach.id, matchId, SetMatchLineupRequest("2-3-1", emptyMap(), teamSize = 7))
-        coVerify { matchRepository.updateMatch(scheduled.copy(teamSize = null)) }
+        coVerify { matchRepository.updateMatch(scheduled) }
     }
 
     @Test

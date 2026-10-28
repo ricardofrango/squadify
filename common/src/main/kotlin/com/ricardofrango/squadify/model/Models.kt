@@ -985,13 +985,11 @@ data class Match(
     // True for a game that wasn't followed live, whose result was entered afterwards (Enter result,
     // SaveMatchRecordUseCase): its minutes were typed in, and it has no substitutions or timeline.
     val enteredAfterGame: Boolean = false,
-    // The a-side count this match is played with, when it isn't the team's (a 9-a-side team playing a
-    // 7-a-side game). Null plays the team's; see [effectiveTeamSize] and [canChangeTeamSize].
-    val teamSize: Int? = null
+    // How many a side this match is played (V29). Set when it's scheduled, from the team's count
+    // unless another is picked (a 9-a-side team playing a 7-a-side game), and kept when the team's size
+    // changes later. See [canChangeTeamSize]. The default is only for constructing a Match in code.
+    val teamSize: Int = 11
 )
-
-/** How many a side this match is played: its own count, else the team's, else 11 (a team from before team sizes). */
-fun Match.effectiveTeamSize(team: Team): Int = teamSize ?: team.teamSize ?: 11
 
 /**
  * Whether the match's team size can still change: before kickoff, or for a game whose result was
@@ -1281,7 +1279,7 @@ data class CreateMatchRequest(
     val halves: Int = 2,
     // Required in the app; null only from an app that predates it, taken as HOME.
     val venue: MatchVenue? = null,
-    // How many a side, when it isn't the team's (Match.teamSize); null plays the team's.
+    // How many a side (Match.teamSize); null takes the team's (11 for a team without one).
     val teamSize: Int? = null
 )
 
@@ -1305,8 +1303,7 @@ data class SetMatchMinuteRequest(
 
 /**
  * Body of `POST /matches/{matchId}/start` -- kicks a SCHEDULED match off: [startingPlayerIds] must be
- * exactly the match's a-side count (`Match.effectiveTeamSize`: its own, else the team's, else 11)
- * and each must already be called up (CALLED_UP or CONFIRMED). Every other called-up player becomes
+ * exactly the match's a-side count (`Match.teamSize`) and each must already be called up (CALLED_UP or CONFIRMED). Every other called-up player becomes
  * the bench. See StartMatchUseCase.
  */
 @Serializable

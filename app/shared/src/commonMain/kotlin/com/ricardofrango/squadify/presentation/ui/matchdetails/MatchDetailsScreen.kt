@@ -516,8 +516,8 @@ internal fun DetailsCard(details: MatchDetails, onSetType: (() -> Unit)?) {
         Column(Modifier.padding(vertical = 4.dp)) {
             DetailRow(stringResource(Res.string.label_opponent_field), details.opponent.name)
             TypeRow(m.type, onSetType)
-            // The format is how many a side: the match's own, else the team's (5x5, 7x7, 9x9, 11x11).
-            DetailRow(stringResource(Res.string.label_match_format), (details.match.teamSize ?: details.team.teamSize)?.let { stringResource(Res.string.match_format_value, it) } ?: "—")
+            // The format is how many a side this match is played: 5x5, 7x7, 9x9, 11x11.
+            DetailRow(stringResource(Res.string.label_match_format), stringResource(Res.string.match_format_value, details.match.teamSize))
             DetailRow(stringResource(Res.string.label_match_date), m.dateTime.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(DayMonthYear))
             DetailRow(stringResource(Res.string.label_match_kickoff), timeLabel(m.dateTime))
             DetailRow(
@@ -1015,6 +1015,7 @@ private fun callUpSample(saved: Int, canManageCallUps: Boolean, canManageLiveMat
     val base = sampleDetails(MatchStatus.SCHEDULED, canManage = canManageCallUps)
     return base.copy(
         team = base.team.copy(teamSize = 5),
+        match = base.match.copy(teamSize = 5),
         callUps = callUpSamplePlayers.take(saved).map {
             MatchCallUpWithPlayer(MatchCallUp(id = "cu-${it.id}", matchId = "m1", playerId = it.id, status = CallUpStatus.CALLED_UP), it)
         },

@@ -1350,7 +1350,8 @@ internal fun previewLiveDetails(match: Match, placed: Int = 7): MatchDetails {
         player("p9", "Gonçalo", "Pires", 14, PlayerPosition.STRIKER)
     )
     return MatchDetails(
-        match = match,
+        // A 7-a-side match, as its team.
+        match = match.copy(teamSize = 7),
         opponent = Opponent(id = "o1", clubId = "c1", name = "AD Fontelas", shortName = "Fontelas"),
         team = Team(id = "t1", clubId = "c1", ageGroupId = "ag1", seasonId = "s1", name = "Sub-13 A", active = true, teamSize = 7),
         ageGroup = AgeGroup(id = "ag1", clubId = "c1", name = "Sub-13", seasonId = "s1", startYear = 2013, endYear = 2013),

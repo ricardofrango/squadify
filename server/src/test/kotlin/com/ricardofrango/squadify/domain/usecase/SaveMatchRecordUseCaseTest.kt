@@ -71,7 +71,7 @@ class SaveMatchRecordUseCaseTest {
     }
     private val useCase = SaveMatchRecordUseCase(
         matchRepository, eventRepository, statsRepository, mockk<LiveMatchBus>(relaxed = true),
-        checkUserPermissionUseCase, notify, clubMatchesBus, transactionManager, teamRepository, clubRepository, now = { now }
+        checkUserPermissionUseCase, notify, clubMatchesBus, transactionManager, clubRepository, now = { now }
     )
 
     private val clubId = "club-1"

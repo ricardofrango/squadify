@@ -50,12 +50,11 @@ class CreateMatchUseCase(
             if (request.halves !in 1..2) {
                 throw ValidationException("A match is played in 1 or 2 halves")
             }
-            // The team's own count is kept as null, so the match follows the team if that changes.
-            val teamSize = request.teamSize?.let { size ->
+            // The team's count unless another is picked; kept on the match from now on.
+            val teamSize = request.teamSize?.also { size ->
                 val club = clubRepository.getClubById(team.clubId) ?: throw NotFoundException("Club not found")
                 requireMatchTeamSize(size, club)
-                size.takeIf { it != team.teamSize }
-            }
+            } ?: team.teamSize ?: 11
 
             val match = Match(
                 id = Uuid.random().toString(),

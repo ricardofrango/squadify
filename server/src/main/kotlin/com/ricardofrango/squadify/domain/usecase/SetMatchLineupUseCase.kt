@@ -3,7 +3,6 @@ package com.ricardofrango.squadify.domain.usecase
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
-import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ConflictException
@@ -24,7 +23,6 @@ import com.ricardofrango.squadify.model.*
 class SetMatchLineupUseCase(
     private val matchRepository: MatchRepository,
     private val matchEventRepository: MatchEventRepository,
-    private val teamRepository: TeamRepository,
     private val liveMatchBus: LiveMatchBus,
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager,
@@ -47,13 +45,12 @@ class SetMatchLineupUseCase(
             throw ValidationException("The pitch can't be changed once the match is over")
         }
 
-        val team = teamRepository.getTeamById(match.teamId) ?: throw NotFoundException("Team not found")
-        val resizedTo = request.teamSize?.takeIf { it != match.effectiveTeamSize(team) }?.also { size ->
+        val resizedTo = request.teamSize?.takeIf { it != match.teamSize }?.also { size ->
             if (match.status != MatchStatus.SCHEDULED) throw ConflictException("The team size can only be changed before kickoff")
             val club = clubRepository.getClubById(match.clubId) ?: throw NotFoundException("Club not found")
             requireMatchTeamSize(size, club)
         }
-        val teamSize = resizedTo ?: match.effectiveTeamSize(team)
+        val teamSize = resizedTo ?: match.teamSize
         val formation = parseFormation(request.formation, teamSize)
             ?: throw ValidationException("The formation must add up to $teamSize players with the goalkeeper")
 
@@ -79,8 +76,7 @@ class SetMatchLineupUseCase(
         }
 
         val lineup = MatchLineup(formation.formationText(), slots)
-        // The team's own count is kept as null, so the match follows the team.
-        val sized = if (resizedTo != null) match.copy(teamSize = resizedTo.takeIf { it != team.teamSize }) else match
+        val sized = if (resizedTo != null) match.copy(teamSize = resizedTo) else match
         if (resizedTo != null) matchRepository.updateMatch(sized)
         matchRepository.setLineup(matchId, lineup.formation, slots)
         // During the game each arrangement is kept, at the match clock's minute, for the finished

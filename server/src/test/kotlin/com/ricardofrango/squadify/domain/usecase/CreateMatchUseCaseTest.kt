@@ -98,9 +98,12 @@ class CreateMatchUseCaseTest {
         fun request(size: Int) = CreateMatchRequest(teamId = teamId, opponentId = "opp-1", dateTime = Instant.fromEpochMilliseconds(1), type = MatchType.FRIENDLY, teamSize = size)
 
         assertEquals(7, useCase(coach.id, request(7)).teamSize)
-        // The team's own count is stored as none, so the match follows the team.
-        assertEquals(null, useCase(coach.id, request(9)).teamSize)
         assertFailsWith<ValidationException> { useCase(coach.id, request(6)) }
+        // Without one picked, the team's count -- stored on the match, so a later change to the team
+        // doesn't touch it.
+        assertEquals(9, useCase(coach.id, request(7).copy(teamSize = null)).teamSize)
+        coEvery { teamRepository.getTeamById(teamId) } returns team.copy(teamSize = null)
+        assertEquals(11, useCase(coach.id, request(7).copy(teamSize = null)).teamSize)
         Unit
     }
 

@@ -4,7 +4,6 @@ import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchPlayerStatsRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
-import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
@@ -50,7 +49,6 @@ class SaveMatchRecordUseCase(
     private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val clubMatchesBus: ClubMatchesBus,
     private val transactionManager: TransactionManager,
-    private val teamRepository: TeamRepository,
     private val clubRepository: ClubRepository,
     private val now: () -> Instant = { Clock.System.now() }
 ) {
@@ -97,9 +95,7 @@ class SaveMatchRecordUseCase(
                 if (!afterGame) throw ValidationException("A match followed live keeps its team size")
                 val club = clubRepository.getClubById(match.clubId) ?: throw NotFoundException("Club not found")
                 requireMatchTeamSize(size, club)
-                val team = teamRepository.getTeamById(match.teamId) ?: throw NotFoundException("Team not found")
-                // The team's own count is kept as null, so the match follows the team.
-                size.takeIf { it != team.teamSize }
+                size
             } ?: match.teamSize
             if (halfLength != null) {
                 request.minutesPlayed.forEach { (playerId, minutes) ->

@@ -4,7 +4,6 @@ import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
-import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
@@ -23,7 +22,6 @@ import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.UpdateMatchRequest
 import com.ricardofrango.squadify.model.canChangeTeamSize
 import com.ricardofrango.squadify.model.defaultFormation
-import com.ricardofrango.squadify.model.effectiveTeamSize
 import com.ricardofrango.squadify.model.formationText
 
 /**
@@ -42,7 +40,6 @@ class UpdateMatchUseCase(
     private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val clubMatchesBus: ClubMatchesBus,
     private val transactionManager: TransactionManager,
-    private val teamRepository: TeamRepository,
     private val clubRepository: ClubRepository,
     private val matchEventRepository: MatchEventRepository,
     private val liveMatchBus: LiveMatchBus
@@ -80,9 +77,8 @@ class UpdateMatchUseCase(
                 }
             }
 
-            val team = request.teamSize?.let { teamRepository.getTeamById(match.teamId) ?: throw NotFoundException("Team not found") }
             val newTeamSize = request.teamSize?.let { size ->
-                if (size == match.effectiveTeamSize(team!!)) return@let null
+                if (size == match.teamSize) return@let null
                 // The live console was played with it, so it's fixed once play starts.
                 if (!match.canChangeTeamSize) throw ConflictException("The team size can only be changed before kickoff")
                 val club = clubRepository.getClubById(match.clubId) ?: throw NotFoundException("Club not found")
@@ -107,8 +103,7 @@ class UpdateMatchUseCase(
                 type = request.type ?: match.type,
                 halves = request.halves ?: match.halves,
                 venue = request.venue ?: match.venue,
-                // The team's own count is kept as null, so the match follows the team.
-                teamSize = if (newTeamSize != null) newTeamSize.takeIf { it != team!!.teamSize } else match.teamSize
+                teamSize = newTeamSize ?: match.teamSize
             )
 
             // Only the schedule-relevant fields warrant a "match updated" push -- a notes-only edit

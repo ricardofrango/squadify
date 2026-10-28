@@ -902,7 +902,7 @@ graph TD
 
 `teamSize` is the a-side format (how many players start a match), checked at kickoff by
 `StartMatchUseCase` -- not a squad size, which is never stored. Changing it doesn't touch matches
-already played, nor a match with its own team size (§7.1); the team's other matches follow it. The client's **Edit team** screen (Team Details ⋮) edits the name and team size;
+already played or scheduled: each match keeps its own team size (§7.1). The client's **Edit team** screen (Team Details ⋮) edits the name and team size;
 `TeamDetails.canEditTeam` (§4.6b) is the same gate as a non-throwing probe, so the menu item only shows
 where saving would work.
 
@@ -1471,7 +1471,7 @@ graph TD
     HV -- Yes --> VH(["Throw ValidationException"])
     HV -- No --> TS{"teamSize set? — load club, must be in club.sport.teamSizes"}
     TS -- "not in it" --> VT(["Throw ValidationException"])
-    TS -- "ok / not set" --> G["Create Match — status SCHEDULED, type = request.type (FRIENDLY / CHAMPIONSHIP / TOURNAMENT), halves = request.halves (default 2), teamSize = request.teamSize unless it's the team's own (then null)"]
+    TS -- "ok / not set" --> G["Create Match — status SCHEDULED, type = request.type (FRIENDLY / CHAMPIONSHIP / TOURNAMENT), halves = request.halves (default 2), teamSize = request.teamSize ?: team.teamSize ?: 11"]
     G --> H[Persist Match]
     H --> I["Transaction commits"]
     I --> J["NotifyMatchEventUseCase(match.id, SCHEDULED) — best-effort push to every club member (§8.2b)"]
@@ -1490,7 +1490,7 @@ graph TD
 - **Shown on Match Details:** a single-period match shows "1 half" next to the date.
 - **On the live console:** a one-half match has no half time. The action bar only offers Full time, the clock reads "MATCH" instead of "1ST HALF", and pre-kickoff asks for the "Match length". The server refuses HALF_TIME for it (§8.2).
 
-**Team size** (how many a side, `Match.teamSize`, V29). A match is played with its team's count unless it says otherwise: a 9-a-side team can play a 7-a-side game. `Match.effectiveTeamSize(team)` is the match's own, else the team's, else 11; it drives the call-up's minimum, the pitch's positions and formation, and kickoff's starter count. `null` means the team's, and picking the team's own count back stores `null`, so the match follows the team. The size must be one of the club sport's (`SportType.teamSizes`).
+**Team size** (how many a side, `Match.teamSize`, `matches.team_size`, required: V29 added it, V30 filled every existing match with its team's count, 11 for a team without one, and made it NOT NULL). A new match takes its team's count unless another is picked: a 9-a-side team can play a 7-a-side game. It drives the call-up's minimum, the pitch's positions and formation, and kickoff's starter count. A match keeps its count when its team's size changes later, so a game played 9-a-side stays 9-a-side. The size must be one of the club sport's (`SportType.teamSizes`).
 - **Where it changes** (`Match.canChangeTeamSize`): before kickoff, or for a game whose result was entered afterwards (§8.1c). Never once the game was followed live (`kickoffAt` set).
 - **Schedule match:** a "Format" control (5x5 · 7x7 · …), starting on the chosen team's own count.
 - **Edit match:** the same control, before kickoff only (§7.1c).
@@ -1551,7 +1551,7 @@ graph TD
     D -- No --> G
     E --> G["Merge non-null patch fields onto the match"]
     G --> H{"opponentId, dateTime, or location actually changed value?"}
-    H --> I[Persist updated Match — status and call-ups are untouched; teamSize null when it's the team's own]
+    H --> I[Persist updated Match — status and call-ups are untouched; teamSize as sent]
     I --> RZ{"teamSize changed?"}
     RZ -- Yes --> RL["setLineup: the new size's default formation, keeping the pitch slots below the new count; LiveMatchUpdate(score, match, lineup) after commit"]
     RZ -- No --> J
@@ -1663,7 +1663,7 @@ graph TD
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D{"status == SCHEDULED? halfLengthMinutes > 0? startingPlayerIds non-empty, no duplicates?"}
     D -- No --> V1(["Throw ValidationException"])
-    D -- Yes --> E[Fetch Team — required count = match.effectiveTeamSize(team): the match's own, else team.teamSize, else 11]
+    D -- Yes --> E[Required count = match.teamSize]
     E -- count mismatch --> V2(["Throw ValidationException"])
     E -- ok --> G[Fetch this match's call-ups]
     G -- a starter isn't in the call-up list --> V3(["Throw ValidationException"])
@@ -1679,7 +1679,7 @@ graph TD
     K --> Z(["Return success"])
 ```
 
-This is the "KICK OFF" action on the live match console's pre-kickoff pitch (client, see §8.4): it locks in the Starting XI (everyone else called up becomes the bench), the half length and the formation in one write, then flips the match live. The starters are the players placed on the pitch (§8.0b); the formation is also kept as `startingFormation`, which prefills the match report's tactic (§8.6). The a-side count is the match's (`Match.effectiveTeamSize`: its own team size, else `Team.teamSize`, falling back to 11 for teams recorded before that field existed — see §7.1 and the team-size flows in §4.3/§4.5). It also stamps `Match.kickoffAt` with the wall-clock instant of kickoff — the client derives the live running clock from this timestamp rather than any locally-ticking counter (see §8.4).
+This is the "KICK OFF" action on the live match console's pre-kickoff pitch (client, see §8.4): it locks in the Starting XI (everyone else called up becomes the bench), the half length and the formation in one write, then flips the match live. The starters are the players placed on the pitch (§8.0b); the formation is also kept as `startingFormation`, which prefills the match report's tactic (§8.6). The a-side count is the match's own (`Match.teamSize`, §7.1). It also stamps `Match.kickoffAt` with the wall-clock instant of kickoff — the client derives the live running clock from this timestamp rather than any locally-ticking counter (see §8.4).
 
 ### 8.0b Set Match Line-up (`SetMatchLineupUseCase`) — the live pitch view
 
@@ -1693,10 +1693,10 @@ graph TD
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D{"status FINISHED or CANCELLED?"}
     D -- Yes --> V1(["Throw ValidationException"])
-    D -- No --> TZ{"request.teamSize differs from match.effectiveTeamSize(team)?"}
+    D -- No --> TZ{"request.teamSize differs from match.teamSize?"}
     TZ -- "Yes, status != SCHEDULED" --> CZ(["Throw ConflictException (409)"])
     TZ -- "Yes, not in club.sport.teamSizes" --> VZ(["Throw ValidationException"])
-    TZ -- "Yes and valid: teamSize = it, saved on the match (null when the team's own) / No: the match's effective size" --> E["parseFormation(formation, teamSize)"]
+    TZ -- "Yes and valid: teamSize = it, saved on the match / No: match.teamSize" --> E["parseFormation(formation, teamSize)"]
     E -- "doesn't add up" --> V2(["Throw ValidationException"])
     E -- ok --> G{"Every position in 0 until teamSize, no player twice, every player called up?"}
     G -- No --> V3(["Throw ValidationException"])
@@ -1786,7 +1786,7 @@ graph TD
     CU -- "Yes, or followed live" --> TQ{"teamSize sent?"}
     TQ -- "Yes, followed live" --> VQ(["Throw ValidationException: a game followed live keeps its team size"])
     TQ -- "Yes, not in club.sport.teamSizes" --> VQ2(["Throw ValidationException"])
-    TQ -- "Yes and valid (null when the team's own) / No: the match's" --> M{"afterGame?"}
+    TQ -- "Yes and valid / No: the match's" --> M{"afterGame?"}
     M -- Yes --> MH["halfLength = request ?: match's; 1..60. Each minutesPlayed key called up, 0..halfLength × halves"]
     M -- No --> ML{"halfLength or minutes sent?"}
     ML -- Yes --> VM(["Throw ValidationException: a game followed live keeps its minutes"])
@@ -2561,7 +2561,7 @@ erDiagram
         varchar formation "nullable -- the live pitch view's formation now, D-M-A (V25); null means the team size's default"
         varchar starting_formation "nullable -- the formation at kickoff, set by StartMatchUseCase; prefills the report's tactic (V25)"
         boolean entered_after_game "default false -- the result was entered afterwards, not followed live; minutes typed in, no substitutions or timeline (V27)"
-        integer team_size "nullable -- how many a side this match is played when not its team's (V29); null plays teams.team_size"
+        integer team_size "not null -- how many a side this match is played; the team's count unless another was picked (V29, filled from teams.team_size and made NOT NULL in V30)"
     }
     MATCH_CALL_UPS {
         uuid id PK
