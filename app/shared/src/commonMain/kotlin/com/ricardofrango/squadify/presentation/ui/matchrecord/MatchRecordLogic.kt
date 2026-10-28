@@ -18,7 +18,17 @@ import kotlin.time.Instant
 /** The half lengths offered, as on the live console. */
 internal val RECORD_HALF_LENGTHS = listOf(20, 25, 30, 40, 45)
 
-internal const val DEFAULT_HALF_LENGTH = 25
+internal const val DEFAULT_HALF_LENGTH = 30
+
+/**
+ * The half an event's minute falls in, counted from kickoff: up to the half's length is the first,
+ * past it the second. Only a guess for the sheet: first-half stoppage time is changed by hand.
+ */
+internal fun periodForMinute(minute: Int, halfLength: Int, halves: Int): Int =
+    if (halves == 2 && minute > halfLength) 2 else 1
+
+/** One of our goals can be saved without a scorer (as on the live console); cards need a player. */
+internal fun DraftEvent.needsPlayer(): Boolean = !isOpponent && type != EventType.GOAL
 
 /** The minutes list opens sorted by name, as Rate players. */
 internal val DEFAULT_MINUTES_SORT = CallUpSort.NAME

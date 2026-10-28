@@ -183,7 +183,12 @@ class SaveMatchRecordUseCase(
                 }
                 return@forEach
             }
-            val playerId = event.playerId ?: throw ValidationException("Pick the player")
+            // One of our goals can have no scorer (not known, as the live console allows); it then
+            // has no assist either. Cards and own goals need the player.
+            val playerId = event.playerId ?: run {
+                if (event.type == EventType.GOAL && event.assistPlayerId == null) return@forEach
+                throw ValidationException("Pick the player")
+            }
             if (playerId !in calledUp) throw ValidationException("The player wasn't called up for this match")
             val scores = event.type == EventType.GOAL || event.type == EventType.OWN_GOAL || event.type == EventType.ASSIST
             if (scores && statsKnown && playerId !in played) throw ValidationException("The player didn't play in this match")

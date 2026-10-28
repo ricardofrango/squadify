@@ -398,6 +398,7 @@
     <string name="title_pick_player_coming_on">Quem entra por %1$s?</string>
     <string name="title_pick_assist">Quem assistiu %1$s?</string>
     <string name="action_no_assist">Sem assistência</string>
+    <string name="action_no_scorer">Sem marcador</string>
     <string name="title_pick_player_going_off">Quem sai por %1$s?</string>
     <string name="btn_half_time">Intervalo</string>
     <string name="btn_start_second_half">Iniciar 2ª parte</string>

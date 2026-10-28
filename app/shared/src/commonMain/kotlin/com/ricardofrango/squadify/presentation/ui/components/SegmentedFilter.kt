@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
+import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -61,6 +64,9 @@ import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
  * - **Names** ([shorten] false, e.g. teams, which a cut would make alike: "Sub-1."): every segment
  *   shows its whole label; they fill the width when they fit and scroll sideways inside the outline
  *   when they don't.
+ * - **Past the screen's edge** ([shorten] false and [insidePaddedContent], inside padded content):
+ *   the whole bar, outline included, runs past the screen's padding to its edges and scrolls sideways,
+ *   so the last options are scrolled to rather than cut inside the outline.
  */
 @Composable
 fun <T> SegmentedFilter(
@@ -70,6 +76,7 @@ fun <T> SegmentedFilter(
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
     shorten: Boolean = true,
+    insidePaddedContent: Boolean = false,
     shortLabel: (T, String) -> String = { _, full -> shortFilterLabel(full) }
 ) {
     val shape = RoundedCornerShape(12.dp)
@@ -86,6 +93,19 @@ fun <T> SegmentedFilter(
                     animationSpec = tween(FilterAnimationMillis), label = "segmentWeight"
                 )
                 Segment(full, if (isSelected) full else short, isSelected, Modifier.weight(weight).fillMaxHeight(), sidePadding = 4.dp) { onSelect(option) }
+            }
+        }
+    } else if (insidePaddedContent) {
+        BoxWithConstraints(modifier.fillMaxWidth().bleed(ScreenPadding.Horizontal)) {
+            // The screen's width minus its padding: the bar fills it when its options fit.
+            val room = maxWidth - ScreenPadding.Horizontal * 2
+            Box(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = ScreenPadding.Horizontal)) {
+                FillOrScrollRow(Modifier.widthIn(min = room).clip(shape).border(1.5.dp, CarbonGray.copy(alpha = 0.16f), shape)) {
+                    options.forEach { option ->
+                        val full = label(option)
+                        Segment(full, full, option == selected, Modifier, sidePadding = 14.dp) { onSelect(option) }
+                    }
+                }
             }
         }
     } else {

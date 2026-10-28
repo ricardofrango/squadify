@@ -77,7 +77,7 @@ fun <T> FilterChipRow(
 }
 
 /** Widens the content by [amount] on each side, over its parent's padding. */
-private fun Modifier.bleed(amount: Dp) = layout { measurable, constraints ->
+internal fun Modifier.bleed(amount: Dp) = layout { measurable, constraints ->
     val extra = (amount * 2).roundToPx()
     val placeable = measurable.measure(
         constraints.copy(

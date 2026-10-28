@@ -175,6 +175,20 @@ class SaveMatchRecordUseCaseTest {
     }
 
     @Test
+    fun ourGoalCanHaveNoScorerButNotAnAssistWithout() = runBlocking {
+        stubFinished(emptyList())
+        useCase(staff, matchId, SaveMatchRecordRequest(listOf(MatchRecordEvent(type = EventType.GOAL, minute = 5))))
+        coVerify { eventRepository.addEvent(match { it.type == EventType.GOAL && it.playerId == null && !it.isOpponent }) }
+        assertFailsWith<ValidationException> {
+            useCase(staff, matchId, SaveMatchRecordRequest(listOf(MatchRecordEvent(type = EventType.GOAL, minute = 5, assistPlayerId = "ana"))))
+        }
+        assertFailsWith<ValidationException> {
+            useCase(staff, matchId, SaveMatchRecordRequest(listOf(MatchRecordEvent(type = EventType.YELLOW_CARD, minute = 5))))
+        }
+        Unit
+    }
+
+    @Test
     fun theOpponentsGoalsHaveNoPlayer() = runBlocking {
         stubFinished(emptyList())
         assertFailsWith<ValidationException> {
