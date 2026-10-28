@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.matchreport
 
+import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
+import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import androidx.compose.ui.text.input.ImeAction
@@ -27,7 +29,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -151,6 +152,7 @@ internal fun EditorBody(
     onRate: (String, Int) -> Unit,
     onClearRating: (String) -> Unit,
     onRateNext: () -> Unit,
+    onRatingSort: (CallUpSort) -> Unit,
     modifier: Modifier = Modifier
 ) {
     when (state.tab) {
@@ -174,7 +176,7 @@ internal fun EditorBody(
             onFieldsChanged = onFieldsChanged,
             modifier = modifier
         )
-        ReportTab.PLAYERS -> PlayersTab(state, wide, onToggleRating, onRate, onClearRating, onRateNext, modifier)
+        ReportTab.PLAYERS -> PlayersTab(state, wide, onToggleRating, onRate, onClearRating, onRateNext, onRatingSort, modifier)
     }
 }
 
@@ -286,6 +288,7 @@ private fun PlayersTab(
     onRate: (String, Int) -> Unit,
     onClearRating: (String) -> Unit,
     onRateNext: () -> Unit,
+    onRatingSort: (CallUpSort) -> Unit,
     modifier: Modifier
 ) {
     val total = state.players.size
@@ -293,8 +296,15 @@ private fun PlayersTab(
         if (!wide) {
             item { UnratedProgress(state.unratedCount, total, onRateNext) }
         }
-        if (state.isBrandNew) {
-            item { NewReportHint(onRateNext) }
+        item {
+            FilterChipRow(
+                options = listOf(CallUpSort.NAME, CallUpSort.POSITION),
+                selected = state.ratingSort,
+                label = { stringResource(if (it == CallUpSort.POSITION) Res.string.label_position_field else Res.string.label_sort_name) },
+                onSelect = onRatingSort,
+                insidePaddedContent = true,
+                leadingLabel = stringResource(Res.string.label_sort)
+            )
         }
         item {
             Surface(Modifier.fillMaxWidth(), shape = ReportCardShape, color = Color.White, border = ReportCardBorder) {
@@ -344,30 +354,6 @@ internal fun UnratedProgress(unrated: Int, total: Int, onRateNext: (() -> Unit)?
             trackColor = CarbonGray.copy(alpha = 0.08f),
             drawStopIndicator = {}
         )
-    }
-}
-
-@Composable
-private fun NewReportHint(onRateFirst: () -> Unit) {
-    Surface(Modifier.fillMaxWidth(), shape = ReportCardShape, color = Color.White, border = BorderStroke(1.dp, PitchGreen.copy(alpha = 0.3f))) {
-        Row(Modifier.padding(16.dp)) {
-            Box(Modifier.size(36.dp).background(PitchGreen.copy(alpha = 0.12f), CircleShape), contentAlignment = Alignment.Center) {
-                Text("★", color = PitchGreen, style = MaterialTheme.typography.titleMedium)
-            }
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text(stringResource(Res.string.report_new_hint_title), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
-                Spacer(Modifier.height(4.dp))
-                Text(stringResource(Res.string.report_new_hint_body), style = MaterialTheme.typography.bodySmall, color = SecondaryText)
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    stringResource(Res.string.report_new_hint_action),
-                    modifier = Modifier.clickable(onClick = onRateFirst).padding(vertical = 4.dp),
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    color = PitchGreen
-                )
-            }
-        }
     }
 }
 

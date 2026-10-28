@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchreport
 
+import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.data.remote.ApiException
@@ -70,6 +71,8 @@ class MatchReportViewModel(
     fun onFieldsChanged(transform: (ReportFields) -> ReportFields) = updateIdle { it.copy(fields = transform(it.fields)) }
 
     fun onReadSortSelected(sort: ReportPlayerSort) = updateIdle { it.copy(readSort = sort) }
+
+    fun onRatingSortSelected(sort: CallUpSort) = updateIdle { it.copy(ratingSort = sort) }
 
     /** Tapping a player's rating button opens their grid, or closes it if it's already open. */
     fun onToggleRating(playerId: String) =

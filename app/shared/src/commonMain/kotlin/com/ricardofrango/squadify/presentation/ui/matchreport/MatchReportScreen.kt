@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchreport
 
+import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import androidx.compose.foundation.BorderStroke
@@ -126,6 +127,7 @@ fun MatchReportScreen(
             onClearRating = viewModel::onClearRating,
             onRateNext = viewModel::onRateNext,
             onReadSortSelected = viewModel::onReadSortSelected,
+            onRatingSortSelected = viewModel::onRatingSortSelected,
             onSave = viewModel::onSave,
             onToastShown = viewModel::onToastShown
         )
@@ -145,6 +147,7 @@ private fun MatchReportContent(
     onClearRating: (String) -> Unit,
     onRateNext: () -> Unit,
     onReadSortSelected: (ReportPlayerSort) -> Unit,
+    onRatingSortSelected: (CallUpSort) -> Unit,
     onSave: (SaveAction) -> Unit,
     onToastShown: () -> Unit
 ) {
@@ -258,7 +261,7 @@ private fun MatchReportContent(
                 )
                 is MatchReportUiState.Idle -> if (uiState.editing) {
                     Row(modifier) {
-                        EditorBody(uiState, wide, onFieldsChanged, onToggleRating, onRate, onClearRating, onRateNext, Modifier.weight(1f))
+                        EditorBody(uiState, wide, onFieldsChanged, onToggleRating, onRate, onClearRating, onRateNext, onRatingSortSelected, Modifier.weight(1f))
                         if (wide) EditorActions(uiState, wide = true, onSaveDraft = { onSave(SaveAction.DRAFT) }, onComplete = { showCompleteDialog = true })
                     }
                 } else {
@@ -575,7 +578,7 @@ private fun previewIdle(details: MatchReportDetails, editing: Boolean, tab: Repo
 private fun PreviewContent(state: MatchReportUiState) = SquadifyTheme {
     MatchReportContent(
         uiState = state, onNavigateBack = {}, onRetry = {}, onStartEditing = {}, onTabSelected = {}, onFieldsChanged = {},
-        onToggleRating = {}, onRate = { _, _ -> }, onClearRating = {}, onRateNext = {}, onReadSortSelected = {}, onSave = {}, onToastShown = {}
+        onToggleRating = {}, onRate = { _, _ -> }, onClearRating = {}, onRateNext = {}, onReadSortSelected = {}, onRatingSortSelected = {}, onSave = {}, onToastShown = {}
     )
 }
 

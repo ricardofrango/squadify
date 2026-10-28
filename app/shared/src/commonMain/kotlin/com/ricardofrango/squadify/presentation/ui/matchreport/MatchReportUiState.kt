@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchreport
 
+import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
 import com.ricardofrango.squadify.model.MatchPlayerRatingInput
 import com.ricardofrango.squadify.model.MatchPlayerStatsWithPlayer
 import com.ricardofrango.squadify.model.MatchReport
@@ -72,6 +73,8 @@ sealed class MatchReportUiState {
         // The player whose 0-10 grid is open in the portrait editor, if any.
         val openRatingFor: String? = null,
         val readSort: ReportPlayerSort = ReportPlayerSort.RATING,
+        // The editor's Players tab order.
+        val ratingSort: CallUpSort = DEFAULT_RATING_SORT,
         val saving: SaveAction? = null,
         // The last save failed: header chip "Not saved" + a retry snackbar until a save succeeds.
         val failedAction: SaveAction? = null,
@@ -79,7 +82,7 @@ sealed class MatchReportUiState {
         // A transient, localized message for a failed save that isn't a plain network error (e.g. 403).
         val saveErrorMessage: String? = null
     ) : MatchReportUiState() {
-        val players: List<MatchPlayerStatsWithPlayer> get() = editorOrder(details.playerStats)
+        val players: List<MatchPlayerStatsWithPlayer> get() = ratingOrder(details.playerStats, ratingSort)
         val hasStats: Boolean get() = details.playerStats.isNotEmpty()
         val unratedCount: Int get() = players.count { ratings[it.player.id] == null }
         val isCompleted: Boolean get() = details.report?.completedAt != null

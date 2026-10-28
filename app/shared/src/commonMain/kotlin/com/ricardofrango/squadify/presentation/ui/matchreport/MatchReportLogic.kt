@@ -1,6 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.matchreport
 
 import com.ricardofrango.squadify.model.MatchPlayerStatsWithPlayer
+import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
+import com.ricardofrango.squadify.presentation.ui.matchdetails.playerComparator
 import kotlin.math.roundToInt
 
 /**
@@ -16,11 +18,20 @@ fun ratingBand(rating: Int): RatingBand = when {
     else -> RatingBand.TOP
 }
 
-/** Player order in the editor: the team sheet, by shirt number (players without one last), then name. */
-fun editorOrder(rows: List<MatchPlayerStatsWithPlayer>): List<MatchPlayerStatsWithPlayer> =
+/** The team sheet: by shirt number (players without one last), then name. The read view's Number order. */
+fun teamSheetOrder(rows: List<MatchPlayerStatsWithPlayer>): List<MatchPlayerStatsWithPlayer> =
     rows.sortedWith(
         compareBy<MatchPlayerStatsWithPlayer>({ it.player.shirtNumber ?: Int.MAX_VALUE }, { it.player.lastName.lowercase() }, { it.player.firstName.lowercase() })
     )
+
+/** The editor's Players tab opens sorted by name, as Rate players and the match record's minutes. */
+val DEFAULT_RATING_SORT = CallUpSort.NAME
+
+/** The editor's Players tab: by name or position, the call-up's order (§69). Rate next follows it. */
+fun ratingOrder(rows: List<MatchPlayerStatsWithPlayer>, sort: CallUpSort = DEFAULT_RATING_SORT): List<MatchPlayerStatsWithPlayer> {
+    val byPlayer = playerComparator(sort)
+    return rows.sortedWith { a, b -> byPlayer.compare(a.player, b.player) }
+}
 
 /**
  * After rating [current], the next player to open: the first unrated player after it in [orderedIds],
@@ -48,8 +59,8 @@ fun readOrder(
     ratings: Map<String, Int?>,
     sort: ReportPlayerSort
 ): List<MatchPlayerStatsWithPlayer> = when (sort) {
-    ReportPlayerSort.NUMBER -> editorOrder(rows)
-    ReportPlayerSort.RATING -> editorOrder(rows).sortedWith(
+    ReportPlayerSort.NUMBER -> teamSheetOrder(rows)
+    ReportPlayerSort.RATING -> teamSheetOrder(rows).sortedWith(
         compareBy<MatchPlayerStatsWithPlayer> { ratings[it.player.id] == null }
             .thenByDescending { ratings[it.player.id] ?: -1 }
     )

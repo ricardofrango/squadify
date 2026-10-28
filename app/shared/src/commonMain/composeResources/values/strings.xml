@@ -536,9 +536,6 @@
     <string name="report_chip_goals">G %1$d</string>
     <string name="report_chip_assists">A %1$d</string>
     <string name="report_chip_own_goals">OG %1$d</string>
-    <string name="report_new_hint_title">Start with the player ratings — the analysis can wait.</string>
-    <string name="report_new_hint_body">Tap Rate next to each player. Ratings are quickest while the match is fresh.</string>
-    <string name="report_new_hint_action">Rate the first player</string>
     <string name="report_save_draft">Save draft</string>
     <string name="report_complete">Complete report</string>
     <string name="report_update">Update report</string>

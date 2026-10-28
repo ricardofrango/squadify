@@ -3,6 +3,8 @@ package com.ricardofrango.squadify.presentation.ui.matchreport
 import com.ricardofrango.squadify.model.MatchPlayerStats
 import com.ricardofrango.squadify.model.MatchPlayerStatsWithPlayer
 import com.ricardofrango.squadify.model.Player
+import com.ricardofrango.squadify.model.PlayerPosition
+import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -10,9 +12,9 @@ import kotlin.test.assertNull
 
 class MatchReportLogicTest {
 
-    private fun row(id: String, number: Int?) = MatchPlayerStatsWithPlayer(
+    private fun row(id: String, number: Int?, first: String = "F$id", position: PlayerPosition? = null) = MatchPlayerStatsWithPlayer(
         MatchPlayerStats("m", id, true, 70, 0, 0, 0, 0, 0),
-        Player(id, "c", "F$id", "L$id", LocalDate(2011, 1, 1), shirtNumber = number, active = true)
+        Player(id, "c", first, "L$id", LocalDate(2011, 1, 1), shirtNumber = number, active = true, position = position)
     )
 
     @Test
@@ -22,9 +24,26 @@ class MatchReportLogicTest {
     }
 
     @Test
-    fun theEditorListsPlayersByShirtNumberWithUnnumberedLast() {
-        val ordered = editorOrder(listOf(row("c", null), row("a", 10), row("b", 1)))
+    fun theTeamSheetListsPlayersByShirtNumberWithUnnumberedLast() {
+        val ordered = teamSheetOrder(listOf(row("c", null), row("a", 10), row("b", 1)))
         assertEquals(listOf("b", "a", "c"), ordered.map { it.player.id })
+    }
+
+    private val squad = listOf(
+        row("a", 9, "Tomás", PlayerPosition.STRIKER),
+        row("b", 1, "Rui", PlayerPosition.GOALKEEPER),
+        row("c", 14, "Bruno", null),
+        row("d", 4, "Gil", PlayerPosition.DEFENDER)
+    )
+
+    @Test
+    fun theRatingsTabOpensSortedByName() {
+        assertEquals(listOf("Bruno", "Gil", "Rui", "Tomás"), ratingOrder(squad).map { it.player.firstName })
+    }
+
+    @Test
+    fun theRatingsTabSortsByPositionWithNoPositionLast() {
+        assertEquals(listOf("Rui", "Gil", "Tomás", "Bruno"), ratingOrder(squad, CallUpSort.POSITION).map { it.player.firstName })
     }
 
     @Test
