@@ -10,8 +10,10 @@ sealed class MatchDetailsUiState {
     data class Idle(
         val details: MatchDetails,
         val sort: CallUpSort = CallUpSort.POSITION,
-        // A call-up / status / manage write is in flight (edits are applied optimistically first).
-        val isSubmitting: Boolean = false,
+        // "Save call-up" is in flight: only the call-up's button and rows show it.
+        val isSavingCallUp: Boolean = false,
+        // A match edit or delete is in flight: the edit sheet's save shows it, not the call-up's button.
+        val isUpdatingMatch: Boolean = false,
         // An optimistic write was rolled back -- shown as a transient message, not a full error state.
         val transientError: String? = null,
         // The call-up on screen: a draft until "Save call-up" sends it. Starts as the saved one.
@@ -31,6 +33,17 @@ sealed class MatchDetailsUiState {
 
         /** The call-up on screen differs from the saved one: leaving asks before throwing it away. */
         val hasUnsavedCallUp: Boolean get() = details.canManageCallUps && selectedIds != savedIds
+
+        /**
+         * This freshly loaded state with [previous]'s call-up on screen, so a reload after editing the
+         * match doesn't throw away a call-up being edited (after "Save call-up" it's the saved one
+         * anyway). Players no longer in the pool drop out of it.
+         */
+        fun keepingDraftOf(previous: Idle?): Idle {
+            if (previous == null) return this
+            val ids = candidates.map { it.id }.toSet()
+            return copy(selectedIds = previous.selectedIds.filterTo(mutableSetOf()) { it in ids })
+        }
     }
 }
 

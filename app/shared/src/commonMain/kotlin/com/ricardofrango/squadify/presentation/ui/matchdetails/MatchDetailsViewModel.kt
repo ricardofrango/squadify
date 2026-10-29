@@ -53,10 +53,9 @@ class MatchDetailsViewModel(
                     return@launch
                 }
                 _state.update { current ->
-                    MatchDetailsUiState.Idle(
-                        details = details,
-                        sort = (current as? MatchDetailsUiState.Idle)?.sort ?: CallUpSort.POSITION
-                    )
+                    val previous = current as? MatchDetailsUiState.Idle
+                    MatchDetailsUiState.Idle(details = details, sort = previous?.sort ?: CallUpSort.POSITION)
+                        .keepingDraftOf(previous)
                 }
             } catch (e: Exception) {
                 val message = errorMessage(e, Res.string.msg_failed_to_load_match)
@@ -85,16 +84,16 @@ class MatchDetailsViewModel(
      */
     fun onSaveCallUp() {
         val current = idle() ?: return
-        if (!current.details.canManageCallUps || current.isSubmitting) return
+        if (!current.details.canManageCallUps || current.isSavingCallUp) return
         if (current.selectedIds.size < current.details.minimumCallUp()) return
         viewModelScope.launch {
-            _state.update { current.copy(isSubmitting = true, transientError = null) }
+            _state.update { current.copy(isSavingCallUp = true, transientError = null) }
             try {
                 manageCallUpsUseCase(matchId, current.selectedIds.toList())
                 load(matchId, forceReload = true)
             } catch (e: Exception) {
                 val message = errorMessage(e, Res.string.msg_callup_save_failed)
-                updateIdle { it.copy(isSubmitting = false, transientError = message) }
+                updateIdle { it.copy(isSavingCallUp = false, transientError = message) }
             }
         }
     }
@@ -103,7 +102,7 @@ class MatchDetailsViewModel(
         val current = idle() ?: return
         if (!current.details.canManageMatch) return
         viewModelScope.launch {
-            _state.update { current.copy(isSubmitting = true, transientError = null) }
+            _state.update { current.copy(isUpdatingMatch = true, transientError = null) }
             try {
                 updateMatchUseCase(matchId, request)
                 load(matchId, forceReload = true)
@@ -111,7 +110,7 @@ class MatchDetailsViewModel(
                 val message = errorMessage(e, Res.string.msg_match_change_failed)
                 _state.update {
                     (it as? MatchDetailsUiState.Idle)?.copy(
-                        isSubmitting = false,
+                        isUpdatingMatch = false,
                         transientError = message
                     ) ?: it
                 }
@@ -134,7 +133,7 @@ class MatchDetailsViewModel(
         val current = idle() ?: return
         if (!current.details.canManageMatch) return
         viewModelScope.launch {
-            _state.update { current.copy(isSubmitting = true, transientError = null) }
+            _state.update { current.copy(isUpdatingMatch = true, transientError = null) }
             try {
                 deleteMatchUseCase(matchId)
                 _navEvent.emit(MatchDetailsNavEvent.MatchDeleted)
@@ -142,7 +141,7 @@ class MatchDetailsViewModel(
                 val message = errorMessage(e, Res.string.msg_match_change_failed)
                 _state.update {
                     (it as? MatchDetailsUiState.Idle)?.copy(
-                        isSubmitting = false,
+                        isUpdatingMatch = false,
                         transientError = message
                     ) ?: it
                 }
