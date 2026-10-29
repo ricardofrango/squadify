@@ -276,10 +276,17 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
     - [x] Home to-do when an ended session has players still to evaluate.
     - [x] Training stats (attendance, average rating) on Age Group Details' Stats tab and on Player Details, staff-only.
 - [ ] **Phase 9: Squadify for Coaches** (see §5c and `TECHNICAL_DECISIONS.md` §72):
+    - **Launch order** (the developer, 2026-10-29): Squadify for Coaches launches first, before the clubs app; selling to a coach is easier than to a club. So the release work below is for the coach app's launch, and the clubs app reuses it.
     - [ ] Shared server module (`:server:core`) with the game use cases, and the permission check behind an `AccessPolicy`. The clubs server moves onto it with no change in behaviour.
     - [ ] The app split: shared screens and view models, plus a clubs module and a coach module (Koin setup, repositories, navigation, name, icon). A second Android app and a second iOS target.
     - [ ] The coach server: its own database, migrations, users, spaces and members, deployed as its own Railway service and database, on staging and production. A change on `develop` that affects both servers (shared code or shared tables) deploys both to staging.
     - [ ] The coach app: sign-up, first setup (sport, age group, team), invites.
     - [ ] Plans stored and enforced on the server, set by a platform admin at first.
     - [ ] Payments (RevenueCat) and ads on the Free plan (AdMob).
+    - [ ] **Launch readiness** (Android and iOS, needed before the coach app goes to the stores):
+        - [ ] R8 full mode (`isMinifyEnabled = true` with the right keep rules) and a Baseline Profile for the release build (`TECHNICAL_DECISIONS.md` §11.7, §11.8).
+        - [ ] Edge-to-edge: audit every screen's `WindowInsets` (§11.6, §11.8).
+        - [ ] iOS: registered with Firebase (Crashlytics, push), and pushes received on iOS (`TECHNICAL_DECISIONS.md` §12).
+        - [ ] Store requirements (§5c): account deletion in the app, Google's UMP consent form before ads, a privacy policy and data-safety form.
+        - [ ] Production: the coach server, its database and the push credentials on Railway production.
     - [ ] Later: moving an age group from the coach app to a club.
