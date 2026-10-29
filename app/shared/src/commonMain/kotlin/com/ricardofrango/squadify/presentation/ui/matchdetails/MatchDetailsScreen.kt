@@ -486,7 +486,7 @@ private fun MatchBody(
                             player, notesByPlayer[player.id].takeIf { selected },
                             selected = selected,
                             onToggle = { if (selected) onRemoveFromCallUp(player) else onAddToCallUp(player) },
-                            enabled = !state.isSubmitting
+                            enabled = !state.isSavingCallUp
                         )
                     }
                 } else if (calledUp.isEmpty()) {
@@ -501,7 +501,7 @@ private fun MatchBody(
     if (showEdit) {
         EditMatchSheet(
             details = details,
-            submitting = state.isSubmitting,
+            submitting = state.isUpdatingMatch,
             onSave = { onEditMatch(it); showEdit = false },
             onDismiss = { showEdit = false }
         )
@@ -656,7 +656,7 @@ private fun BottomActionBar(
                 MatchDetailsButton.SAVE_CALL_UP, MatchDetailsButton.SAVE_CALL_UP_DISABLED -> PrimaryLoadingButton(
                     text = Res.string.btn_save_callup,
                     submittingText = Res.string.btn_saving_callup,
-                    isLoading = state.isSubmitting,
+                    isLoading = state.isSavingCallUp,
                     enabled = button == MatchDetailsButton.SAVE_CALL_UP,
                     onClick = onSaveCallUp
                 )
