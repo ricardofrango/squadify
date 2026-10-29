@@ -31,8 +31,9 @@ class RegisterUseCaseTest {
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
+    // As the clubs server wires it: signing up accepts the invites waiting for that email.
     private val useCase = RegisterUseCase(
-        userRepository, playerRepository, inviteRepository, clubRepository, transactionManager
+        userRepository, transactionManager, listOf(AcceptInvitesOnRegister(playerRepository, inviteRepository, clubRepository))
     )
 
     private val email = "new@test.com"

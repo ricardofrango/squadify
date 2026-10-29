@@ -213,7 +213,9 @@ sequenceDiagram
 - `:server:core` (`server/core`): the game code the clubs and coach servers share (§72): game use cases,
   repository and service interfaces, stats, `AccessPolicy`, and `SquadifyException` with its subtypes
   (`server/core/.../exception/SquadifyException.kt`) -- these are never used client-side.
-- `server/coach` (planned, §72): the Squadify for Coaches backend.
+- `:server:web` (`server/web`): the Ktor setup both servers install (`installSquadifyApi`: JWT sign-in, JSON,
+  WebSockets, the errors' status codes, server time; `configureCors`; `ApplicationCall.userId`) (§72).
+- `:server:coach` (`server/coach`): the Squadify for Coaches backend, on its own database (§72).
 - `:common`: Plain-JVM module (no KMP targets) holding the model source files shared with the client
   apps (request/response DTOs, etc). Exists so building `:server` never needs to configure a Kotlin
   Multiplatform target (Android, iOS, JS, Wasm) -- Gradle fully configures a project's build script for
@@ -576,7 +578,7 @@ Split across two mechanisms, deliberately not funneled entirely through GitHub A
   is connected to this repo's `develop` branch with auto-deploy on, and Railway rebuilds/redeploys on
   every push using the same Dockerfiles already in the repo. Simpler and more reliable than reimplementing
   what Railway already does natively. Each service's **Watch Paths** setting (also Settings -> Source)
-  should be scoped to what it actually depends on (server: `server/clubs/**`, `server/core/**`, `server/data/**`, `common/**`, root build files, with its Dockerfile path `server/clubs/Dockerfile` (until 2026-10-29 `server/**` and `server/Dockerfile`);
+  should be scoped to what it actually depends on (server: `server/clubs/**`, `server/core/**`, `server/data/**`, `server/web/**`, `common/**`, root build files, with its Dockerfile path `server/clubs/Dockerfile` (until 2026-10-29 `server/**` and `server/Dockerfile`);
   web: `app/webApp/**`, `app/shared/**`, `core/**`, root build files) so a change to the *other* client
   doesn't trigger an unnecessary redeploy of a service nothing in it actually changed.
 - **Android -> Firebase App Distribution, staging**: `.github/workflows/deploy-staging.yml`, triggered on
@@ -3184,7 +3186,15 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
 - **`:server:data`, as built** (2026-10-29, step 3a): `server/data`, a plain JVM module (`api` on `:server:core` and Exposed): `Tables.kt` with `sharedTables` and `clubsOnlyTables`, every Exposed repository and `toUuid`. Each server keeps its own connection, Flyway migrations and Koin bindings.
     - **The schema test:** `SchemaCheck` (`:server:data`'s test fixtures) creates a scratch database on the tests' Postgres, runs a server's migrations, and returns what Exposed (`statementsRequiredToActualizeScheme`) would still change for the given tables. `ClubsSchemaTest` expects nothing for all the tables. Its first run found two drifts, fixed in `Tables.kt` to match the live database (PROCESS_FLOWS §12).
     - **Railway:** the clubs server's Watch Paths gain `/server/data/**`.
-- **Next (step 3b):** the coach server, `server/coach` (`:server:coach`): Ktor, its config, its migrations creating `sharedTables` (with its own `CoachSchemaTest`), the login code moved into core, register/login/refresh, and a `CoachAccessPolicy` on space membership.
+- **The coach server, as built** (2026-10-29, step 3b): `server/coach` (`:server:coach`, package `com.ricardofrango.squadify.coach`), on `:server:core`, `:server:data` and a new `:server:web`.
+    - **Shared sign-in:** `JwtTokens` (core) signs and verifies the tokens, one instance per server with its own secret and audience (clubs `JwtConfig`, coach `CoachTokens`, `squadify-coach-users`), so a token from one product is refused by the other. `LoginUseCase`, `RefreshTokenUseCase` and `RegisterUseCase` moved to core. Sign-up runs each server's `NewAccountListener`s; the clubs server's `AcceptInvitesOnRegister` accepts the invites waiting for that email, as before.
+    - **`:server:web`:** `installSquadifyApi(tokens, realm)` installs what both APIs share (JWT `auth-jwt`, JSON, WebSockets, `StatusPages` with every exception's status and `ErrorResponse`, the server-time header); `configureCors` and `ApplicationCall.userId` moved there too. The clubs server calls it with `JwtConfig` and adds CORS; the coach server has no web client, so no CORS.
+    - **Config (`CoachConfig`):** the clubs server's variable names on its own Railway service: `APP_ENV`, `SERVER_PORT` (8090 locally, 8080 in its image), `JWT_SECRET` (its own), `DATABASE_HOST`/`PORT`/`USER`/`PASSWORD`/`NAME` (`squadify_coach_dev` locally, `squadify_coach_production` by default in production). In production the host, password and secret are required.
+    - **Database (`CoachDatabase`):** Flyway with the coach's own `db/migration`. `V1__shared_tables.sql` is `sharedTables` exactly as the clubs migrations V1..V30 leave them (pg_dump of those tables from a database migrated with the clubs migrations), so every constraint name and default matches. Locally (not in production) the database is created when missing, so it runs on the same Postgres as the clubs server, and in CI, with nothing to set up.
+    - **API so far:** `GET /` and `/v1/auth/register`, `/login`, `/refresh` (the clubs server's requests and responses).
+    - **Tests:** `CoachSchemaTest` (the migrations against `sharedTables`) and `CoachApplicationTest` (boots the server; sign up, a taken email, sign in, refresh, a wrong password). CI runs `:server:web:test` and `:server:coach:test` too.
+    - **Deploy:** `server/coach/Dockerfile`, building `:server:coach:buildFatJar` into `coach-all.jar`. Railway: a new service and Postgres database (see the PR), Watch Paths `server/coach/**`, `server/core/**`, `server/data/**`, `server/web/**`, `common/**` and the root build files. The clubs server's Watch Paths gain `server/web/**`. The production workflow doesn't deploy the coach server yet.
+- **Next (step 3c):** the coach's space and access: first setup (the space with its sport, the first age group and team, the season picked from the date), a `CoachAccessPolicy` on `age_group_staff` and `club_members`, the structure use cases (age groups, teams, players, opponents) on the policy, and the game routes shared between both servers.
 
 **The app split:**
 - **`app/shared`** keeps the screens, view models, use cases and the repositories both apps use.
@@ -3200,8 +3210,8 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
 **Hosting and deploys** (the developer, 2026-10-27):
 - **Railway:** the coach server and its Postgres database are two new services in the same Railway project, in both environments (staging and production), next to today's server, database and web app. Same project, so one staging token and one production token still cover everything.
 - **Staging deploys both servers when a change affects both.** As today (§17), each server service deploys from `develop` through Railway's GitHub integration, and its **Watch Paths** decide when:
-    - **clubs server:** `server/core/**`, `server/data/**`, `server/clubs/**`, `common/**`, the root build files;
-    - **coach server:** `server/core/**`, `server/data/**`, `server/coach/**`, `common/**`, the root build files.
+    - **clubs server:** `server/core/**`, `server/data/**`, `server/web/**`, `server/clubs/**`, `common/**`, the root build files;
+    - **coach server:** `server/core/**`, `server/data/**`, `server/web/**`, `server/coach/**`, `common/**`, the root build files.
 
   A change to the shared code (`common`, `:server:core`, a shared migration) redeploys both servers; a change only to one server's module redeploys only that one.
 - **Migrations:** each server runs its own Flyway migrations on start, against its own database. A change to the shared game tables therefore comes with a migration in each server's folder, in the same PR, and the schema test above fails the build if one is missing.

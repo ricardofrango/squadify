@@ -27,6 +27,8 @@ dependencies {
     api(project(":server:core"))
     // The Exposed tables and repositories shared with the coach server.
     api(project(":server:data"))
+    // The Ktor setup shared with the coach server.
+    implementation(project(":server:web"))
     implementation(libs.logback)
 
     // koin

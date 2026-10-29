@@ -126,6 +126,8 @@ Their individual diagrams are omitted below to avoid 15 near-identical copies; o
 
 ### 2.1 Register (`RegisterUseCase`)
 
+`RegisterUseCase` is in `:server:core`, shared with the coach server (`TECHNICAL_DECISIONS.md` §72): it validates, refuses a taken email, hashes the password and creates the user, then runs each server's `NewAccountListener`s in the same transaction. The clubs server's one, `AcceptInvitesOnRegister`, is the invites part below (from "Find pending Invites"). The coach server has none yet, so it stops at "Create User".
+
 ```mermaid
 graph TD
     A[Start: email, password, phone, firstName, lastName] --> B{email or password blank?}

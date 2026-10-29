@@ -41,7 +41,7 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: gradle/actions/setup-gradle@v6
-      - run: ./gradlew :server:core:test :server:data:test :server:clubs:test --no-daemon
+      - run: ./gradlew :server:core:test :server:data:test :server:web:test :server:clubs:test :server:coach:test --no-daemon
 
   deploy-railway-production:
     needs: test
