@@ -2352,6 +2352,7 @@ Player Details shows a **Season stats** card with a per-match list (design 30), 
 **Loading and errors:** the stats load separately from the screen's main data, so an error or empty state stays inside the card while the rest of the page still loads.
 
 **Where it deviates from the design:**
+- **Season pill on Player Details** (the developer, 2026-10-29): it sits under the "Season stats" heading, not beside it (`StatsHeaderRow(stacked = true)`). Its label (season and age group, "2026/27 · Sub-15 A") is long enough to squash the heading on a phone. Team Details and Opponent details keep it on the right.
 - **Season pill on Team Details:** it's a label, not a switcher. A team belongs to one season in our model, so there's no other season of *this* team to switch to.
 - **Team Details landscape:** two columns (record + leaders beside the existing lists), not the design's three.
 - **Recent events:** the list on Player Details is dropped, as the design proposed. Every match row now carries its goals, assists and cards.

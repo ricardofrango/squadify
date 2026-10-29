@@ -128,7 +128,7 @@ internal fun PlayerSeasonStatsCard(
                 // A season played only before stats were recorded: explain, rather than show zeros
                 // that would read as "played and did nothing" (30c).
                 season.matches.isEmpty() -> StatsCard(contentPadding = 16.dp) {
-                    StatsHeaderRow(title, season.pillLabel(), onOpenSeasons)
+                    StatsHeaderRow(title, season.pillLabel(), onOpenSeasons, stacked = true)
                     if (season.preStatsMatchCount > 0) {
                         StatsMessage(
                             stringResource(Res.string.stats_pre_stats_title),
@@ -143,7 +143,7 @@ internal fun PlayerSeasonStatsCard(
                 }
 
                 else -> StatsCard {
-                    StatsHeaderRow(title, season.pillLabel(), onOpenSeasons)
+                    StatsHeaderRow(title, season.pillLabel(), onOpenSeasons, stacked = true)
                     StatsFilterSegments(state.filter, onFilterSelected)
                     val rows = season.matches.inFilter(state.filter)
                     if (rows.isEmpty()) {

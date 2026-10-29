@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -106,26 +107,47 @@ fun StatsHeading(text: String, modifier: Modifier = Modifier) {
     )
 }
 
-/** The card's heading row, with the season pill on the right. [onPillClick] null renders it inert, without a chevron. */
+/**
+ * The card's heading row, with the season pill on the right. [onPillClick] null renders it inert, without a chevron.
+ * [stacked] puts the pill under the heading instead, for a pill too long to sit beside it (Player
+ * details' "2026/27 · Sub-13 A" squashed the heading).
+ */
 @Composable
-fun StatsHeaderRow(title: String, pillText: String?, onPillClick: (() -> Unit)?) {
-    Row(Modifier.fillMaxWidth().padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        StatsHeading(title, Modifier.weight(1f))
-        if (pillText != null) {
-            Row(
-                Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .border(1.5.dp, CarbonGray.copy(alpha = 0.16f), RoundedCornerShape(10.dp))
-                    .then(if (onPillClick != null) Modifier.clickable(onClick = onPillClick) else Modifier)
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(pillText, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1)
-                if (onPillClick != null) {
-                    Spacer(Modifier.width(4.dp))
-                    Icon(painterResource(Res.drawable.ic_expand_more), contentDescription = null, tint = DeepCarbon, modifier = Modifier.size(16.dp))
-                }
-            }
+fun StatsHeaderRow(title: String, pillText: String?, onPillClick: (() -> Unit)?, stacked: Boolean = false) {
+    if (stacked) {
+        Column(Modifier.fillMaxWidth().padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatsHeading(title)
+            if (pillText != null) SeasonPill(pillText, onPillClick)
+        }
+    } else {
+        Row(Modifier.fillMaxWidth().padding(bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            StatsHeading(title, Modifier.weight(1f))
+            if (pillText != null) SeasonPill(pillText, onPillClick)
+        }
+    }
+}
+
+@Composable
+private fun SeasonPill(text: String, onClick: (() -> Unit)?) {
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .border(1.5.dp, CarbonGray.copy(alpha = 0.16f), RoundedCornerShape(10.dp))
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+            color = DeepCarbon,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false)
+        )
+        if (onClick != null) {
+            Spacer(Modifier.width(4.dp))
+            Icon(painterResource(Res.drawable.ic_expand_more), contentDescription = null, tint = DeepCarbon, modifier = Modifier.size(16.dp))
         }
     }
 }
