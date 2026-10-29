@@ -1,24 +1,22 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.GameScope
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.PlayerListFilter
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
-import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
-import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.PlayersPage
 import com.ricardofrango.squadify.model.SearchText
-import com.ricardofrango.squadify.model.AgeGroupRole
 
 class GetPlayersUseCase(
     private val playerRepository: PlayerRepository,
     private val teamRepository: TeamRepository,
-    private val userRepository: UserRepository,
     private val ageGroupRepository: AgeGroupRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
@@ -29,14 +27,7 @@ class GetPlayersUseCase(
         if (teamId != null) {
             // Scoped to one team: a club admin/coordinator, that team's age-group coach/staff, or a
             // player/parent linked to a player in that age group can see the pool.
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = clubId,
-                minClubRole = ClubRole.MEMBER,
-                minAgeGroupRole = AgeGroupRole.STAFF,
-                teamId = teamId,
-                allowPlayerOrParentAccess = true
-            )
+            accessPolicy.requireViewGames(userId, GameScope(clubId, teamId = teamId))
 
             val team = teamRepository.getTeamById(teamId) ?: throw NotFoundException("Team not found")
             playerRepository.getPlayersByAgeGroup(team.ageGroupId)
@@ -44,31 +35,12 @@ class GetPlayersUseCase(
             // No team filter: club admins/coordinators see every player in the club. Everyone else
             // only sees players in age groups they're attached to -- an AgeGroupStaff assignment or a
             // linked player in that age group's pool.
-            checkUserPermissionUseCase(userId, clubId, minClubRole = ClubRole.MEMBER, allowPlayerOrParentAccess = true)
+            accessPolicy.requireViewClub(userId, clubId)
 
-            if (seesEverything(userId, clubId)) {
+            val visibleAgeGroupIds = accessPolicy.visibleAgeGroupIds(userId, clubId)
+            if (visibleAgeGroupIds == null) {
                 playerRepository.getPlayersByClub(clubId)
             } else {
-                val linkedPlayerIds = playerRepository.getPlayersByUser(userId)
-                    .filter { it.clubId == clubId }
-                    .map { it.id }
-                    .toSet()
-                val linkedAgeGroupIds = if (linkedPlayerIds.isEmpty()) {
-                    emptySet()
-                } else {
-                    playerRepository.getAgeGroupPlayersByClub(clubId)
-                        .filter { it.playerId in linkedPlayerIds }
-                        .map { it.ageGroupId }
-                        .toSet()
-                }
-
-                val visibleAgeGroupIds = ageGroupRepository.getAgeGroupsByClub(clubId)
-                    .filter { ag ->
-                        ageGroupRepository.getUserRoleInAgeGroup(userId, ag.id) != null || ag.id in linkedAgeGroupIds
-                    }
-                    .map { it.id }
-                    .toSet()
-
                 visibleAgeGroupIds.flatMap { playerRepository.getPlayersByAgeGroup(it) }.distinctBy { it.id }
             }
         }
@@ -88,10 +60,9 @@ class GetPlayersUseCase(
         limit: Int,
         offset: Int
     ): PlayersPage = transactionManager.runInTransaction {
-        checkUserPermissionUseCase(userId, clubId, minClubRole = ClubRole.MEMBER, allowPlayerOrParentAccess = true)
+        accessPolicy.requireViewClub(userId, clubId)
 
-        val visible = if (seesEverything(userId, clubId)) null
-        else visibleAgeGroups(playerRepository, ageGroupRepository, userId, clubId).map { it.id }.toSet()
+        val visible = accessPolicy.visibleAgeGroupIds(userId, clubId)
         val filter = PlayerListFilter(
             visibleAgeGroupIds = visible,
             seasonAgeGroupIds = seasonId?.let { season ->
@@ -107,11 +78,5 @@ class GetPlayersUseCase(
             hasMore = rows.size > limit,
             anyPlayers = rows.isNotEmpty() || playerRepository.hasPlayers(clubId, PlayerListFilter(visibleAgeGroupIds = visible))
         )
-    }
-
-    // Club admins, coordinators and platform admins see every player of the club.
-    private suspend fun seesEverything(userId: String, clubId: String): Boolean {
-        val role = userRepository.getUserRoleInClub(userId, clubId)
-        return role == ClubRole.CLUB_ADMIN || role == ClubRole.COORDINATOR || userRepository.findById(userId)?.isPlatformAdmin == true
     }
 }

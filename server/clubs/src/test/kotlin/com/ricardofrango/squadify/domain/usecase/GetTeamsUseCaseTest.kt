@@ -1,11 +1,13 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.AgeGroupPlayer
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Player
@@ -41,7 +43,7 @@ class GetTeamsUseCaseTest {
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
     private val useCase = GetTeamsUseCase(
-        teamRepository, userRepository, playerRepository, ageGroupRepository, checkUserPermissionUseCase, transactionManager
+        teamRepository, ClubAccessPolicy(checkUserPermissionUseCase), transactionManager
     )
 
     private val clubIdA = "club-a"
@@ -57,6 +59,13 @@ class GetTeamsUseCaseTest {
     private val team1 = team("team-1", ag1)
     private val team2 = team("team-2", ag2)
     private val team3 = team("team-3", ag3)
+
+    // The club's age groups: who sees which is worked out over them (visibleAgeGroups).
+    init {
+        coEvery { ageGroupRepository.getAgeGroupsByClub(clubIdA) } returns listOf(ag1, ag2, ag3).map {
+            AgeGroup(id = it, clubId = clubIdA, name = it, seasonId = "season-1", startYear = 2014, endYear = 2014)
+        }
+    }
 
     private fun user(id: String) = User(
         id = id, email = "$id@test.com", firstName = "Test", lastName = "User",

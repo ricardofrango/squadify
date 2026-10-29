@@ -1,17 +1,17 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.scope
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.UpdateTeamRequest
 
 class UpdateTeamUseCase(
     private val teamRepository: TeamRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager,
     private val clubRepository: ClubRepository
 ) {
@@ -23,14 +23,7 @@ class UpdateTeamUseCase(
         val existingTeam = teamRepository.getTeamById(teamId)
             ?: throw NotFoundException("Team not found")
 
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = existingTeam.clubId,
-            minClubRole = ClubRole.COORDINATOR,
-            minAgeGroupRole = AgeGroupRole.COACH,
-            teamId = teamId,
-            errorMessage = "Only admins, coordinators, or this team's coach can update it"
-        )
+        accessPolicy.requireEditTeam(userId, existingTeam.scope, "Only admins, coordinators, or this team's coach can update it")
 
         if (request.name?.isBlank() == true) {
             throw ValidationException("Team name cannot be empty")

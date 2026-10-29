@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
@@ -32,7 +33,7 @@ class GetTeamPlayersUseCaseTest {
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
-    private val useCase = GetTeamPlayersUseCase(playerRepository, teamRepository, checkUserPermissionUseCase, transactionManager)
+    private val useCase = GetTeamPlayersUseCase(playerRepository, teamRepository, ClubAccessPolicy(checkUserPermissionUseCase), transactionManager)
 
     @Test
     fun aNonexistentTeamIsNotFound() = runBlocking {

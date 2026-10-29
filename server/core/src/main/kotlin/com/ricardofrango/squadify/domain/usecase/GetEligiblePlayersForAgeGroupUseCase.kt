@@ -1,15 +1,15 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.GameScope
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.PlayerListFilter
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
-import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.PlayersPage
 import com.ricardofrango.squadify.model.SearchText
-import com.ricardofrango.squadify.model.AgeGroupRole
 
 /**
  * The players a coordinator or an age-group coach may pick from when adding to this age group: every
@@ -19,7 +19,7 @@ import com.ricardofrango.squadify.model.AgeGroupRole
 class GetEligiblePlayersForAgeGroupUseCase(
     private val playerRepository: PlayerRepository,
     private val ageGroupRepository: AgeGroupRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, ageGroupId: String): List<Player> = transactionManager.runInTransaction {
@@ -46,12 +46,6 @@ class GetEligiblePlayersForAgeGroupUseCase(
 
     private suspend fun authorizedAgeGroup(userId: String, ageGroupId: String) =
         (ageGroupRepository.getAgeGroupById(ageGroupId) ?: throw NotFoundException("Age group not found")).also {
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = it.clubId,
-                minClubRole = ClubRole.MEMBER,
-                minAgeGroupRole = AgeGroupRole.STAFF,
-                ageGroupId = ageGroupId
-            )
+            accessPolicy.requireStaff(userId, GameScope(it.clubId, ageGroupId = ageGroupId))
         }
 }

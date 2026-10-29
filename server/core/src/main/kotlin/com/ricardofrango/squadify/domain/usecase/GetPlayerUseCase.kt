@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.GameScope
+import com.ricardofrango.squadify.domain.access.allowed
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
@@ -7,10 +10,7 @@ import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
-import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.PlayerProfile
 import com.ricardofrango.squadify.model.PlayerProfileEvent
@@ -30,31 +30,20 @@ class GetPlayerUseCase(
     private val opponentRepository: OpponentRepository,
     private val ageGroupRepository: AgeGroupRepository,
     private val seasonRepository: SeasonRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, playerId: String): PlayerProfile = transactionManager.runInTransaction {
         val player = playerRepository.getPlayerById(playerId) ?: throw NotFoundException("Player not found")
 
-        checkUserPermissionUseCase(userId, player.clubId, minClubRole = ClubRole.MEMBER)
+        accessPolicy.requireMember(userId, player.clubId)
 
         val ageGroup = playerRepository.getAgeGroupIdsByPlayer(playerId)
             .firstNotNullOfOrNull { ageGroupRepository.getAgeGroupById(it) }
         val ageGroupLabel = ageGroup?.name
         val seasonLabel = ageGroup?.let { seasonRepository.getSeasonById(it.seasonId) }?.name
 
-        val canEditPlayer = try {
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = player.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                configurablePermission = ConfigurablePermission.EDIT_PLAYER,
-                ageGroupId = ageGroup?.id
-            )
-            true
-        } catch (e: ForbiddenException) {
-            false
-        }
+        val canEditPlayer = allowed { accessPolicy.requireEditPlayer(userId, GameScope(player.clubId, ageGroupId = ageGroup?.id)) }
 
         // Newest first (see getAllEventsByPlayer) -- counted for the stat totals, and its head doubles
         // as the "recent events" list once each is resolved to its match/opponent.

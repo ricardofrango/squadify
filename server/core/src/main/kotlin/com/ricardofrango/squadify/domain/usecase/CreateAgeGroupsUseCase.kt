@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
@@ -7,7 +8,6 @@ import com.ricardofrango.squadify.exception.ConflictException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AgeGroup
-import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.birthYearsOverlap
 import com.ricardofrango.squadify.model.CreateAgeGroupsRequest
 import kotlin.uuid.Uuid
@@ -15,16 +15,11 @@ import kotlin.uuid.Uuid
 class CreateAgeGroupsUseCase(
     private val ageGroupRepository: AgeGroupRepository,
     private val clubRepository: ClubRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, request: CreateAgeGroupsRequest): List<AgeGroup> = transactionManager.runInTransaction {
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = request.clubId,
-            minClubRole = ClubRole.COORDINATOR,
-            errorMessage = "Only admins or coordinators can create age groups"
-        )
+        accessPolicy.requireCreateAgeGroups(userId, request.clubId, "Only admins or coordinators can create age groups")
 
         if (request.items.isEmpty()) {
             throw ValidationException("At least one age group must be provided")

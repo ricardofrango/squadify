@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.GameScope
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
@@ -8,8 +10,6 @@ import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AddPlayersToAgeGroupRequest
 import com.ricardofrango.squadify.model.AgeGroupPlayer
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.ConfigurablePermission
 import kotlin.uuid.Uuid
 
 /**
@@ -22,7 +22,7 @@ import kotlin.uuid.Uuid
 class AddPlayersToAgeGroupUseCase(
     private val playerRepository: PlayerRepository,
     private val ageGroupRepository: AgeGroupRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
@@ -33,13 +33,10 @@ class AddPlayersToAgeGroupUseCase(
         val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId)
             ?: throw NotFoundException("Age group not found")
 
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = ageGroup.clubId,
-            minClubRole = ClubRole.COORDINATOR,
-            configurablePermission = ConfigurablePermission.ASSIGN_PLAYERS_TO_AGE_GROUP,
-            ageGroupId = ageGroupId,
-            errorMessage = "Only admins, coordinators, or this age group's coaches can add players"
+        accessPolicy.requireManagePool(
+            userId,
+            GameScope(ageGroup.clubId, ageGroupId = ageGroupId),
+            "Only admins, coordinators, or this age group's coaches can add players"
         )
 
         if (request.playerIds.isEmpty()) {

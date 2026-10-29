@@ -286,6 +286,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
     - [/] The coach server: its own database, migrations, users, spaces and members, deployed as its own Railway service and database, on staging and production. A change on `develop` that affects both servers (shared code or shared tables) deploys both to staging.
         - [x] `server/coach`: its own database and migrations (the shared tables), accounts (sign-up, sign-in, refresh), schema test, Dockerfile (`TECHNICAL_DECISIONS.md` §72).
         - [ ] Railway: the coach service and database on staging, then production.
+        - [x] The structure use cases (age groups, teams, players, opponents) in `:server:core`, on the `AccessPolicy` (`TECHNICAL_DECISIONS.md` §72).
         - [ ] Spaces and members: first setup, `CoachAccessPolicy`, the structure and game routes.
     - [ ] The coach app: sign-up, first setup (sport, age group, team), invites.
     - [ ] Plans stored and enforced on the server, set by a platform admin at first.

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
@@ -47,7 +48,7 @@ class UpdateTeamUseCaseTest {
     init { coEvery { clubPermissionRepository.getOverride(any(), any()) } returns null }
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository)
     private val clubRepository = mockk<ClubRepository>()
-    private val useCase = UpdateTeamUseCase(teamRepository, checkUserPermissionUseCase, transactionManager, clubRepository)
+    private val useCase = UpdateTeamUseCase(teamRepository, ClubAccessPolicy(checkUserPermissionUseCase), transactionManager, clubRepository)
 
     private val clubIdA = "club-a"
     private val team1 = "team-1"

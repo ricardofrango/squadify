@@ -75,9 +75,9 @@ graph TD
 
 Key behaviours baked into this one function: Platform Admins bypass everything ("God Mode"); a club-level `CLUB_ADMIN`/`COORDINATOR` role satisfies almost any check without needing a lower-level role; a plain `MEMBER` role is only sufficient when no age-group-specific check is requested; `COACH`/`STAFF` roles are validated per **age group** via `age_group_staff` (a `teamId` passed by a caller is resolved to its age group first); the opt-in player/parent path grants a read when a linked player sits in the relevant age group's pool. `configurablePermission` (mutually exclusive with a literal `minAgeGroupRole` at any one call site) resolves the effective staff-role threshold from the club's own `ClubPermissionOverrides` setting instead of a hardcoded constant — see `TECHNICAL_DECISIONS.md` §35 for the full configurable-permissions design, including which actions are (and deliberately aren't) configurable, and the `ClubPermissionRepository.getOverride` row-exists-vs-null distinction that a naive `?:` chain would get wrong. A **club-level** configurable action (`ConfigurablePermission.isClubLevel`, today only `MANAGE_PLAYER_STATUS`) is checked before all of that: its setting is a minimum **club** role (`minClubRole`: `COORDINATOR` by default, or `CLUB_ADMIN`), it replaces the caller's `minClubRole`, and no age-group role passes it (`TECHNICAL_DECISIONS.md` §55).
 
-### 1.1b `AccessPolicy` — the game use cases' gate
+### 1.1b `AccessPolicy` — the shared use cases' gate
 
-The game use cases (matches, call-ups, the live game, the record and report, match details, the live feeds and the stats) live in the shared `:server:core` module (`server/core`) and don't call `CheckUserPermissionUseCase` themselves: they ask an `AccessPolicy` by intent, so the coach server can share them with its own policy (`TECHNICAL_DECISIONS.md` §72). The clubs server's `ClubAccessPolicy` turns each into the §1.1 check below, so where a flowchart in §7–§8 shows `CheckUserPermissionUseCase` for one of them, that's the check `ClubAccessPolicy` makes.
+The game use cases (matches, call-ups, the live game, the record and report, match details, the live feeds and the stats) and the structure use cases (age groups, teams, players, the age-group pool and opponents) live in the shared `:server:core` module (`server/core`) and don't call `CheckUserPermissionUseCase` themselves: they ask an `AccessPolicy` by intent, so the coach server can share them with its own policy (`TECHNICAL_DECISIONS.md` §72). The clubs server's `ClubAccessPolicy` turns each into the §1.1 check below, so where a flowchart shows `CheckUserPermissionUseCase` for one of them, that's the check `ClubAccessPolicy` makes.
 
 | `AccessPolicy` | `CheckUserPermissionUseCase` call (clubs) |
 |---|---|
@@ -87,6 +87,22 @@ The game use cases (matches, call-ups, the live game, the record and report, mat
 | `requireManageCallUps(scope)` | `COORDINATOR`, `MANAGE_CALL_UPS`, the team |
 | `requireManageLiveMatch(scope)` | `COORDINATOR`, `MANAGE_LIVE_MATCH`, the team |
 | `requireSeeRatings(scope)` | `COORDINATOR`, `minAgeGroupRole = STAFF`, the team or age group |
+| `requireViewClub(club)` | `MEMBER`, `allowPlayerOrParentAccess = true` (the club's age groups, teams and players lists) |
+| `visibleAgeGroupIds(club)` | all (null) for club admins, coordinators and platform admins; otherwise the age groups the caller is staff on or has a linked player in (`visibleAgeGroups`) |
+| `requireStaff(scope)` | `MEMBER`, `minAgeGroupRole = STAFF`, the age group (players who could join the pool) |
+| `requireViewOpponents(scope)` | `MEMBER`, `minAgeGroupRole = COACH`, the age group if given |
+| `requireViewMembers(club)` | `COORDINATOR` |
+| `requireCreateAgeGroups(club)` | `COORDINATOR` |
+| `requireEditAgeGroup(scope)`, `requireManageStaff(scope)` | `COORDINATOR` |
+| `requireManageTeams(scope)` (create, delete) | `COORDINATOR`, `CREATE_TEAM`, the age group |
+| `requireEditTeam(scope)` | `COORDINATOR`, `minAgeGroupRole = COACH`, the team |
+| `requireCreatePlayers(scope)` | `COORDINATOR`, `CREATE_PLAYERS`, the age group if given |
+| `requireEditPlayer(scope)` | `COORDINATOR`, `EDIT_PLAYER`, the age group if given |
+| `requireManagePool(scope)` (add, remove) | `COORDINATOR`, `ASSIGN_PLAYERS_TO_AGE_GROUP`, the age group |
+| `requireCreateOpponent(scope)` | `COORDINATOR`, `CREATE_OPPONENT`, the age group if given |
+| `requireEditOpponent(scope)` | `COORDINATOR`, `EDIT_OPPONENT`, the age group if given |
+
+**A player's emails:** creating or editing a player with the player's own email or parents' emails runs the server's `PlayerContacts` in the same transaction. The clubs server's `ClubPlayerContacts` makes them club members, parent links or invites, as before (§5.1, §5.2). `PlayerContacts.None`, for a server without player or parent accounts, refuses any email with a 400.
 
 ### 1.2 `CheckUserIsAdminUseCase` — platform-level gate
 
@@ -1034,6 +1050,8 @@ The client's `table(query)` rules:
 
 ### 5.1 Create Players (`CreatePlayersUseCase`) — batch, with self & parent invites
 
+The permission check is `ClubAccessPolicy`'s (§1.1b), and the self and parent invite steps after the players are created are the clubs server's `ClubPlayerContacts` (`PlayerContacts`, §1.1b); the coach server refuses any email.
+
 ```mermaid
 graph TD
     A[Start: userId, clubId, players list, ageGroupId?] --> AG{ageGroupId supplied?}
@@ -1147,6 +1165,8 @@ graph TD
 `anyPlayers` picks the screen's empty state: no players in the club at all ("register players") or none for these filters ("add them to an age group").
 
 ### 5.2 Update Player (`UpdatePlayerUseCase`)
+
+The permission check is `ClubAccessPolicy`'s (§1.1b), and the player's email and the parents' replacement after the save are the clubs server's `ClubPlayerContacts` (`PlayerContacts`, §1.1b); the coach server refuses any email.
 
 ```mermaid
 graph TD

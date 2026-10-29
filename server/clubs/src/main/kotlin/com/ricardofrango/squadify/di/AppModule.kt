@@ -146,7 +146,7 @@ val appModule = module {
     factory { CreateSeasonUseCase(get(), get(), get()) }
     factory { UpdateSeasonUseCase(get(), get(), get()) }
 
-    factory { GetAgeGroupsUseCase(get(), get(), get(), get(), get()) }
+    factory { GetAgeGroupsUseCase(get(), get(), get()) }
     factory { CreateAgeGroupsUseCase(get(), get(), get(), get()) }
     factory { UpdateAgeGroupUseCase(get(), get(), get(), get(), get()) }
     factory { GetTrainingPlansUseCase(get(), get(), get(), get(), get(), get()) }
@@ -164,17 +164,18 @@ val appModule = module {
 
     factory { GetPlayerUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetPlayerSeasonStatsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
-    factory { GetPlayersUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { GetPlayersUseCase(get(), get(), get(), get(), get()) }
     factory { GetAgeGroupPlayersByClubUseCase(get(), get(), get()) }
-    factory { CreatePlayersUseCase(get(), get(), get(), get(), get(), get(), get()) }
-    factory { UpdatePlayerUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory<PlayerContacts> { ClubPlayerContacts(get(), get(), get(), get()) }
+    factory { CreatePlayersUseCase(get(), get(), get(), get(), get()) }
+    factory { UpdatePlayerUseCase(get(), get(), get(), get(), get()) }
     factory { AddPlayersToAgeGroupUseCase(get(), get(), get(), get()) }
     factory { RemovePlayerFromAgeGroupUseCase(get(), get(), get(), get(), get(), get()) }
     factory { DisablePlayerUseCase(get(), get(), get(), get(), get()) }
     factory { ReactivatePlayerUseCase(get(), get(), get()) }
     factory { GetEligiblePlayersForAgeGroupUseCase(get(), get(), get(), get()) }
 
-    factory { GetTeamsUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { GetTeamsUseCase(get(), get(), get()) }
     factory { CreateMatchUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetMatchesUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetMatchDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
