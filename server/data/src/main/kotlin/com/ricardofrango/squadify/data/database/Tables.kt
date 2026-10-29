@@ -316,7 +316,10 @@ object MatchEvents : Table("match_events") {
 // swap (V26, see MatchLineupChange). [slots] is JSON, slot -> player id.
 object MatchLineupChanges : Table("match_lineup_changes") {
     val id = uuid("id")
-    val matchId = uuid("match_id").references(Matches.id, onDelete = ReferenceOption.CASCADE)
+    // V26 declared the key inline, so Postgres named it and left ON UPDATE at its default (NO ACTION).
+    val matchId = uuid("match_id").references(
+        Matches.id, onDelete = ReferenceOption.CASCADE, onUpdate = ReferenceOption.NO_ACTION, fkName = "match_lineup_changes_match_id_fkey"
+    )
     val minute = integer("minute")
     val period = integer("period")
     val formation = varchar("formation", 20)
@@ -398,10 +401,10 @@ object TrainingPlansTable : Table("training_plans") {
     val level = enumerationByName("level", 10, TrainingPlanLevel::class)
     val periodStart = date("period_start")
     val focus = varchar("focus", 255).nullable()
-    val objectives = text("objectives")
+    val objectives = text("objectives").default("[]")
     val notes = text("notes").nullable()
     val intensity = enumerationByName("intensity", 10, TrainingIntensity::class).nullable()
-    val phases = text("phases")
+    val phases = text("phases").default("[]")
     val updatedAt = timestamp("updated_at")
     val updatedBy = uuid("updated_by").references(Users.id)
 
@@ -463,3 +466,20 @@ object TrainingRatingsTable : Table("training_ratings") {
 
     override val primaryKey = PrimaryKey(sessionId, playerId)
 }
+
+/**
+ * The tables both databases have (TECHNICAL_DECISIONS §72): accounts, the club (a coach's space in the
+ * coach database) and its members and structure, and everything about games. Each server's migrations
+ * create them, and its schema test checks them against these definitions.
+ */
+val sharedTables: List<Table> = listOf(
+    Users, RefreshTokens, PasswordResetCodes, EmailChangeCodes, FcmTokens,
+    Clubs, ClubMembers, Seasons, AgeGroups, Teams, Players, AgeGroupPlayers, AgeGroupStaff, Opponents,
+    Matches, MatchCallUps, MatchEvents, MatchLineupChanges, MatchPlayerStatsTable, MatchReports
+)
+
+/** The clubs database's own: parents' links, invites, configurable permissions and training. */
+val clubsOnlyTables: List<Table> = listOf(
+    UserPlayers, Invites, ClubPermissionOverrides,
+    TrainingPlansTable, TrainingSessionsTable, TrainingExercisesTable, TrainingSessionExercisesTable, TrainingRatingsTable
+)
