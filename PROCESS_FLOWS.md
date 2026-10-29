@@ -981,6 +981,7 @@ The W/D/L record, form, goals and team leaders are all derived on the client fro
   - Players on zero are left out.
   - Ties share a rank (1, 1, 1, 4), ordered by name.
   - The rating board needs at least two rated matches per player.
+  - **The ranking shown** in Team leaders isn't this games-only board but the team's Full stats final ranking (§4.6d: games and trainings, Absent counting as 0, at least two ratings), from `GET /teams/{teamId}/full-stats` loaded after the record (`TeamRecordUiState.Loaded.leaders()`). Until it loads, or if it fails, the ranking is left out. The age group's leaders card ranks the same way.
 
 ### 4.6d Get Full Stats (`GetFullStatsUseCase`)
 

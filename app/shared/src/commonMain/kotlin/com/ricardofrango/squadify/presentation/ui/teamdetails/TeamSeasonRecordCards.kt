@@ -221,18 +221,18 @@ internal fun FormSquare(entry: TeamFormEntry, onClick: () -> Unit) {
 private data class Quad(val bg: Color, val fg: Color, val letter: StringResource, val word: StringResource)
 
 /**
- * Team leaders: one list under the other -- Ranking (average rating, staff only), Goals, Assists,
- * Time -- each the top five (the developer's call, 2026-10-23; it was a 2x2 grid of top threes).
+ * Team leaders: one list under the other -- Ranking (the final ranking, games and trainings, a missed
+ * training counting as 0; staff only), Goals, Assists, Time -- each the top five (the developer's call, 2026-10-23; it was a 2x2 grid of top threes).
  * Every row shows the player's photo, or the head-and-shoulders placeholder. Tapping a name opens
  * the player on this season and filter. "See full stats" at the bottom opens the whole table ([onSeeAll]).
  */
 @Composable
 internal fun TeamLeadersCard(state: TeamRecordUiState.Loaded, onSeeAll: (() -> Unit)? = null, onOpenPlayer: (String) -> Unit) =
-    LeadersCard(stringResource(Res.string.record_team_leaders), state.record.leaders(state.filter), state.record.canSeeRatings, onSeeAll, onOpenPlayer)
+    LeadersCard(stringResource(Res.string.record_team_leaders), state.leaders(), state.record.canSeeRatings, onSeeAll, onOpenPlayer)
 
 /**
  * The leaders card: Ranking (staff only), Goals, Assists, Time, each the top five. Shared by Team
- * leaders and the age group's leaders (whose ranking is games and trainings together).
+ * leaders and the age group's leaders, both ranking on games and trainings together.
  */
 @Composable
 internal fun LeadersCard(

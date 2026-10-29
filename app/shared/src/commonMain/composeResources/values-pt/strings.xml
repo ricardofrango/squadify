@@ -1476,8 +1476,8 @@
     <string name="fs_to">Até</string>
     <string name="fs_final_title">Classificação final</string>
     <string name="fs_final_info">Como funciona a classificação final</string>
-    <string name="fs_final_body">A classificação final é a média de todas as avaliações do período, jogos e treinos juntos. Cada jogo conta como uma avaliação e cada treino como uma avaliação. Um treino a que o jogador faltou não conta.</string>
-    <string name="fs_final_example">Exemplo: 1 jogo com 7.0 e 3 treinos com 6.0, 7.0 e 8.0 → (7.0 + 6.0 + 7.0 + 8.0) ÷ 4 = 7.0</string>
+    <string name="fs_final_body">A classificação final é a média de todas as avaliações do período, jogos e treinos juntos. Cada jogo conta como uma avaliação e cada treino como uma avaliação. Um treino a que o jogador faltou (Ausente) conta como 0, por isso faltar aos treinos baixa a classificação.</string>
+    <string name="fs_final_example">Exemplo: 1 jogo com 7.0 e 3 treinos com 8.0, 8.0 e Ausente → (7.0 + 8.0 + 8.0 + 0) ÷ 4 = 5.8</string>
     <string name="fs_empty_title">Sem jogos nem treinos neste período</string>
     <string name="fs_empty_hint">Alarga o intervalo de datas para ver as estatísticas.</string>
     <string name="fs_widen">Alargar período</string>
