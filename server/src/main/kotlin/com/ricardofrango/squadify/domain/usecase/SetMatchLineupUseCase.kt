@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.scope
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
@@ -24,7 +26,7 @@ class SetMatchLineupUseCase(
     private val matchRepository: MatchRepository,
     private val matchEventRepository: MatchEventRepository,
     private val liveMatchBus: LiveMatchBus,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager,
     private val clubRepository: ClubRepository,
     private val clock: kotlin.time.Clock = kotlin.time.Clock.System
@@ -32,14 +34,7 @@ class SetMatchLineupUseCase(
     suspend operator fun invoke(userId: String, matchId: String, request: SetMatchLineupRequest): MatchLineup = transactionManager.runInTransaction {
         val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
 
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = match.clubId,
-            minClubRole = ClubRole.COORDINATOR,
-            configurablePermission = ConfigurablePermission.MANAGE_LIVE_MATCH,
-            teamId = match.teamId,
-            errorMessage = "Only admins, coordinators, coaches, or team staff can arrange the pitch"
-        )
+        accessPolicy.requireManageLiveMatch(userId, match.scope, "Only admins, coordinators, coaches, or team staff can arrange the pitch")
 
         if (match.status == MatchStatus.FINISHED || match.status == MatchStatus.CANCELLED) {
             throw ValidationException("The pitch can't be changed once the match is over")

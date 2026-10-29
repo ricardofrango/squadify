@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.GameScope
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
@@ -16,7 +18,7 @@ class CreateMatchUseCase(
     private val matchRepository: MatchRepository,
     private val teamRepository: TeamRepository,
     private val opponentRepository: OpponentRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val clubMatchesBus: ClubMatchesBus,
     private val transactionManager: TransactionManager,
@@ -32,14 +34,7 @@ class CreateMatchUseCase(
                 teamRepository.getTeamById(request.teamId) ?: throw NotFoundException("Team not found")
 
             // 2. Single granular permission check using team's clubId
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = team.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                configurablePermission = ConfigurablePermission.MANAGE_MATCH,
-                teamId = request.teamId,
-                errorMessage = "Only admins, coordinators, or team coaches can create matches"
-            )
+            accessPolicy.requireManageMatch(userId, GameScope(team.clubId, teamId = request.teamId), "Only admins, coordinators, or team coaches can create matches")
 
             val opponent = opponentRepository.getOpponentById(request.opponentId)
                 ?: throw NotFoundException("Opponent not found")

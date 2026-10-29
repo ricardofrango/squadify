@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.scope
+import com.ricardofrango.squadify.domain.access.allowed
+import com.ricardofrango.squadify.domain.access.GameScope
+import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchPlayerStatsRepository
@@ -13,8 +17,6 @@ import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.AgeGroup
-import com.ricardofrango.squadify.model.AgeGroupRole
-import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.FullStatsData
 import com.ricardofrango.squadify.model.FullStatsLine
 import com.ricardofrango.squadify.model.FullStatsMatch
@@ -50,39 +52,25 @@ class GetFullStatsUseCase(
     private val playerRepository: PlayerRepository,
     private val trainingSessionRepository: TrainingSessionRepository,
     private val trainingRatingRepository: TrainingRatingRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager,
     private val clock: Clock = Clock.System
 ) {
     suspend fun team(userId: String, teamId: String): FullStatsData = transactionManager.runInTransaction {
         val team = teamRepository.getTeamById(teamId) ?: throw NotFoundException("Team not found")
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = team.clubId,
-            minClubRole = ClubRole.MEMBER,
-            minAgeGroupRole = AgeGroupRole.STAFF,
-            teamId = teamId,
-            allowPlayerOrParentAccess = true
-        )
+        accessPolicy.requireViewGames(userId, team.scope)
         val ageGroup = ageGroupRepository.getAgeGroupById(team.ageGroupId) ?: throw NotFoundException("Age group not found")
         build(userId, ageGroup)
     }
 
     suspend fun ageGroup(userId: String, ageGroupId: String): FullStatsData = transactionManager.runInTransaction {
         val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId) ?: throw NotFoundException("Age group not found")
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = ageGroup.clubId,
-            minClubRole = ClubRole.MEMBER,
-            minAgeGroupRole = AgeGroupRole.STAFF,
-            ageGroupId = ageGroupId,
-            allowPlayerOrParentAccess = true
-        )
+        accessPolicy.requireViewGames(userId, GameScope(ageGroup.clubId, ageGroupId = ageGroupId))
         build(userId, ageGroup)
     }
 
     private suspend fun canSeeRatings(userId: String, ageGroup: AgeGroup) =
-        allowed { checkUserPermissionUseCase.requireRateTraining(userId, ageGroup) }
+        allowed { accessPolicy.requireSeeRatings(userId, GameScope(ageGroup.clubId, ageGroupId = ageGroup.id)) }
 
     private suspend fun build(userId: String, ageGroup: AgeGroup): FullStatsData {
         val canSeeRatings = canSeeRatings(userId, ageGroup)

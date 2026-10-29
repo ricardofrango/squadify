@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.scope
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchPlayerStatsRepository
@@ -45,7 +47,7 @@ class SaveMatchRecordUseCase(
     private val matchEventRepository: MatchEventRepository,
     private val matchPlayerStatsRepository: MatchPlayerStatsRepository,
     private val liveMatchBus: LiveMatchBus,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val clubMatchesBus: ClubMatchesBus,
     private val transactionManager: TransactionManager,
@@ -57,14 +59,7 @@ class SaveMatchRecordUseCase(
         lateinit var score: MatchScore
         val saved = transactionManager.runInTransaction {
             val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = match.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                configurablePermission = ConfigurablePermission.MANAGE_LIVE_MATCH,
-                teamId = match.teamId,
-                errorMessage = "Insufficient permissions to edit this match's record"
-            )
+            accessPolicy.requireManageLiveMatch(userId, match.scope, "Insufficient permissions to edit this match's record")
 
             val afterGame = when (match.status) {
                 MatchStatus.FINISHED -> match.enteredAfterGame

@@ -1,13 +1,13 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.scope
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ConflictException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.ClubMatchesUpdate
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchStatus
 
 /**
@@ -22,7 +22,7 @@ import com.ricardofrango.squadify.model.MatchStatus
  */
 class DeleteMatchUseCase(
     private val matchRepository: MatchRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val clubMatchesBus: ClubMatchesBus,
     private val transactionManager: TransactionManager
 ) {
@@ -33,14 +33,7 @@ class DeleteMatchUseCase(
             val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
             clubId = match.clubId
 
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = match.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                configurablePermission = ConfigurablePermission.MANAGE_MATCH,
-                teamId = match.teamId,
-                errorMessage = "Only admins, coordinators, or team coaches can delete a match"
-            )
+            accessPolicy.requireManageMatch(userId, match.scope, "Only admins, coordinators, or team coaches can delete a match")
 
             if (match.status == MatchStatus.FINISHED) {
                 throw ConflictException("A match that has been played can't be deleted")

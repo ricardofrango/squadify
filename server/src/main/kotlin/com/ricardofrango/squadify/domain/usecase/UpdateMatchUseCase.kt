@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.scope
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
@@ -11,10 +13,7 @@ import com.ricardofrango.squadify.exception.ConflictException
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
-import com.ricardofrango.squadify.model.MatchVenue
 import com.ricardofrango.squadify.model.ClubMatchesUpdate
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.LiveMatchUpdate
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchLineup
@@ -36,7 +35,7 @@ import com.ricardofrango.squadify.model.formationText
 class UpdateMatchUseCase(
     private val matchRepository: MatchRepository,
     private val opponentRepository: OpponentRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val clubMatchesBus: ClubMatchesBus,
     private val transactionManager: TransactionManager,
@@ -56,14 +55,7 @@ class UpdateMatchUseCase(
         val success = transactionManager.runInTransaction {
             val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
 
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = match.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                configurablePermission = ConfigurablePermission.MANAGE_MATCH,
-                teamId = match.teamId,
-                errorMessage = "Only admins, coordinators, or team coaches can edit a match"
-            )
+            accessPolicy.requireManageMatch(userId, match.scope, "Only admins, coordinators, or team coaches can edit a match")
 
             if (match.status == MatchStatus.FINISHED || match.status == MatchStatus.CANCELLED) {
                 throw ConflictException("A finished or cancelled match can't be edited")

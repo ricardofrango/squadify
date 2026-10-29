@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.scope
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchPlayerStatsRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
@@ -28,7 +30,7 @@ class UpdateMatchStatusUseCase(
     private val matchEventRepository: MatchEventRepository,
     private val matchPlayerStatsRepository: MatchPlayerStatsRepository,
     private val liveMatchBus: LiveMatchBus,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val clubMatchesBus: ClubMatchesBus,
     private val transactionManager: TransactionManager
@@ -47,14 +49,7 @@ class UpdateMatchStatusUseCase(
                 ?: throw NotFoundException("Match not found")
 
             // 2. Single permission check (Fail Fast) using match's clubId and teamId
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = match.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                configurablePermission = ConfigurablePermission.MANAGE_LIVE_MATCH,
-                teamId = match.teamId,
-                errorMessage = "Only admins, coordinators, coaches, or team staff can update match status"
-            )
+            accessPolicy.requireManageLiveMatch(userId, match.scope, "Only admins, coordinators, coaches, or team staff can update match status")
 
             if (status !in (VALID_MATCH_STATUS_TRANSITIONS[match.status] ?: emptySet())) {
                 throw ValidationException("Cannot change match status from ${match.status} to $status")

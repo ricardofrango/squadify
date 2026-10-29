@@ -1,6 +1,5 @@
 package com.ricardofrango.squadify.domain.usecase
 
-import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ConfigurablePermission
@@ -29,10 +28,3 @@ internal suspend fun CheckUserPermissionUseCase.requireRateTraining(userId: Stri
         ageGroupId = ageGroup.id,
         errorMessage = "Only this age group's staff can rate its training"
     )
-
-internal suspend fun allowed(check: suspend () -> Unit): Boolean = try {
-    check()
-    true
-} catch (e: ForbiddenException) {
-    false
-}

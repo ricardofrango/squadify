@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
@@ -57,7 +58,7 @@ class StartMatchUseCaseTest {
         matchRepository,
         matchEventRepository,
         liveMatchBus,
-        checkUserPermissionUseCase,
+        ClubAccessPolicy(checkUserPermissionUseCase),
         notifyMatchEventUseCase,
         clubMatchesBus,
         transactionManager

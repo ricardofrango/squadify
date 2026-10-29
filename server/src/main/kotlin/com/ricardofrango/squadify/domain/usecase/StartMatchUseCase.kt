@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.scope
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
@@ -20,7 +22,7 @@ class StartMatchUseCase(
     private val matchRepository: MatchRepository,
     private val matchEventRepository: MatchEventRepository,
     private val liveMatchBus: LiveMatchBus,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val clubMatchesBus: ClubMatchesBus,
     private val transactionManager: TransactionManager,
@@ -36,14 +38,7 @@ class StartMatchUseCase(
         val success = transactionManager.runInTransaction {
             val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
 
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = match.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                configurablePermission = ConfigurablePermission.MANAGE_LIVE_MATCH,
-                teamId = match.teamId,
-                errorMessage = "Only admins, coordinators, coaches, or team staff can start a match"
-            )
+            accessPolicy.requireManageLiveMatch(userId, match.scope, "Only admins, coordinators, coaches, or team staff can start a match")
 
             if (match.status != MatchStatus.SCHEDULED) {
                 throw ValidationException("Match has already started")

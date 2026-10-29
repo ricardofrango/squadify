@@ -3158,6 +3158,11 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
 - **Plan limits are enforced on the server**, not only hidden in the app, so a modified app can't get round them.
 - **Shared tables:** the shared Exposed repositories need the game tables (matches, call-ups, events, stats) to be identical in both databases. Each server owns its migrations, and a test on each runs its migrations and checks with Exposed that they match the shared table definitions, so the two schemas can't drift apart unnoticed.
 - **Order:** the shared module and `AccessPolicy` come first, with the clubs server moved onto them and its tests unchanged, before any coach code exists.
+- **`AccessPolicy`, as built** (2026-10-29, step 1): `domain/access/AccessPolicy.kt` asks by intent, not by role: `requireMember`, `requireViewGames`, `requireManageMatch`, `requireManageCallUps`, `requireManageLiveMatch`, `requireSeeRatings`, each with a `GameScope` (club, and team or age group), plus `allowed { }` for a screen's yes/no flags.
+    - **Clubs:** `ClubAccessPolicy` makes each check through `CheckUserPermissionUseCase` with the same arguments the use cases passed before, so behaviour is unchanged (`ClubAccessPolicyTest` pins each one). Players and parents can only ever pass `requireViewGames`, the policy's single read path.
+    - **On it now:** the 22 game use cases: creating, editing and deleting matches, call-ups, the live game (start, pause, resume, minute, status, events, pitch), the record and report, match details, the live feeds (score, events, the match's and the club's updates), and the stats (team and age group season records, full stats, a player's season stats). Full stats' ratings gate is `requireSeeRatings` (it was the training rating check, the same roles).
+    - **Not on it:** listing a club's matches (`GetMatchesUseCase`, which narrows what each person sees by their club role), and every club-only use case. They keep `CheckUserPermissionUseCase`.
+    - **Still in `:server`:** the interface lives in `domain/access` until step 2 moves the game code into `:server:core`.
 
 **The app split:**
 - **`app/shared`** keeps the screens, view models, use cases and the repositories both apps use.

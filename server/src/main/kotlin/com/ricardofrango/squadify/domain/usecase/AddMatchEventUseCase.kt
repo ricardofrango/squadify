@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.scope
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
@@ -15,7 +17,7 @@ class AddMatchEventUseCase(
     private val matchEventRepository: MatchEventRepository,
     private val matchRepository: MatchRepository,
     private val liveMatchBus: LiveMatchBus,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val notifyMatchEventUseCase: NotifyMatchEventUseCase,
     private val clubMatchesBus: ClubMatchesBus,
     private val transactionManager: TransactionManager
@@ -31,14 +33,7 @@ class AddMatchEventUseCase(
                 ?: throw NotFoundException("Match not found")
 
             // 2. Single granular permission check using metadata from match
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = match.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                configurablePermission = ConfigurablePermission.MANAGE_LIVE_MATCH,
-                teamId = match.teamId,
-                errorMessage = "Insufficient permissions to add match events"
-            )
+            accessPolicy.requireManageLiveMatch(userId, match.scope, "Insufficient permissions to add match events")
 
             // Events only exist while the match is being played. Once it's FINISHED its player stats
             // are frozen from these events (see UpdateMatchStatusUseCase), so they can't change after.

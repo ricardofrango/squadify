@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.GameScope
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.MatchPlayerStatsRepository
 import com.ricardofrango.squadify.domain.repository.MatchReportRepository
@@ -11,12 +13,10 @@ import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
-import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.PlayerSeason
 import com.ricardofrango.squadify.model.PlayerSeasonMatch
 import com.ricardofrango.squadify.model.PlayerSeasonStats
-import com.ricardofrango.squadify.model.AgeGroupRole
 
 /**
  * Player Details' season stats (design 30): every season the player was registered in, newest first,
@@ -36,12 +36,12 @@ class GetPlayerSeasonStatsUseCase(
     private val ageGroupRepository: AgeGroupRepository,
     private val seasonRepository: SeasonRepository,
     private val opponentRepository: OpponentRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, playerId: String): PlayerSeasonStats = transactionManager.runInTransaction {
         val player = playerRepository.getPlayerById(playerId) ?: throw NotFoundException("Player not found")
-        checkUserPermissionUseCase(userId, player.clubId, minClubRole = ClubRole.MEMBER)
+        accessPolicy.requireMember(userId, player.clubId)
 
         val matchesById = matchRepository.getMatchesByClub(player.clubId).associateBy { it.id }
         val teamsById = teamRepository.getTeamsByClub(player.clubId).associateBy { it.id }
@@ -53,14 +53,7 @@ class GetPlayerSeasonStatsUseCase(
 
         // The report's read gate, probed once per team the player has lines in.
         suspend fun canSeeRatings(teamId: String?, ageGroupId: String?): Boolean = try {
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = player.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                minAgeGroupRole = AgeGroupRole.STAFF,
-                teamId = teamId,
-                ageGroupId = ageGroupId
-            )
+            accessPolicy.requireSeeRatings(userId, GameScope(player.clubId, teamId = teamId, ageGroupId = ageGroupId))
             true
         } catch (e: ForbiddenException) {
             false

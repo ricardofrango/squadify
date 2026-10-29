@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
@@ -65,7 +66,7 @@ class SetMatchLineupUseCaseTest {
     private val clubRepository = mockk<ClubRepository>().also {
         coEvery { it.getClubById(any()) } returns Club("club-1", "FC", status = ClubStatus.ACTIVE, createdAt = Instant.fromEpochMilliseconds(0), sport = SportType.FOOTBALL)
     }
-    private val useCase = SetMatchLineupUseCase(matchRepository, matchEventRepository, liveMatchBus, checkUserPermissionUseCase, transactionManager, clubRepository, clock)
+    private val useCase = SetMatchLineupUseCase(matchRepository, matchEventRepository, liveMatchBus, ClubAccessPolicy(checkUserPermissionUseCase), transactionManager, clubRepository, clock)
 
     private val clubId = "club-1"
     private val matchId = "m-1"
