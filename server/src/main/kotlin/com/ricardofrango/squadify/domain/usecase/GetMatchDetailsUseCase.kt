@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.scope
+import com.ricardofrango.squadify.domain.access.allowed
+import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
@@ -12,15 +15,11 @@ import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
-import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchReportStatus
 import com.ricardofrango.squadify.model.MatchReportSummary
 import com.ricardofrango.squadify.model.MatchStatus
-import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.domain.stats.MatchPlayerStatsCalculator
 
@@ -35,21 +34,14 @@ class GetMatchDetailsUseCase(
     private val matchReportRepository: MatchReportRepository,
     private val matchPlayerStatsRepository: MatchPlayerStatsRepository,
     private val userRepository: UserRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager,
     private val clubRepository: ClubRepository
 ) {
     suspend operator fun invoke(userId: String, matchId: String): MatchDetails = transactionManager.runInTransaction {
         val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
 
-        checkUserPermissionUseCase(
-            userId,
-            match.clubId,
-            minClubRole = ClubRole.MEMBER,
-            minAgeGroupRole = AgeGroupRole.STAFF,
-            teamId = match.teamId,
-            allowPlayerOrParentAccess = true
-        )
+        accessPolicy.requireViewGames(userId, match.scope)
 
         val opponent = opponentRepository.getOpponentById(match.opponentId)
             ?: throw NotFoundException("Opponent not found")
@@ -74,35 +66,11 @@ class GetMatchDetailsUseCase(
         // its default and have them disagree (e.g. call-ups open to staff but live-match ops
         // coordinator-only). See TECHNICAL_DECISIONS.md §35 on why these must track the real
         // configurable thresholds instead of a literal minAgeGroupRole.
-        suspend fun canDo(permission: ConfigurablePermission): Boolean = try {
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = match.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                configurablePermission = permission,
-                teamId = match.teamId
-            )
-            true
-        } catch (e: ForbiddenException) {
-            false
-        }
-
-        val canManageMatch = canDo(ConfigurablePermission.MANAGE_MATCH)
+        val canManageMatch = allowed { accessPolicy.requireManageMatch(userId, match.scope) }
 
         // The report card: only for a finished match, and only for someone who may read the report
         // (same gate as GetMatchReportUseCase -- coordinators/admins and the age group's staff).
-        val canReadReport = match.status == MatchStatus.FINISHED && try {
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = match.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                minAgeGroupRole = AgeGroupRole.STAFF,
-                teamId = match.teamId
-            )
-            true
-        } catch (e: ForbiddenException) {
-            false
-        }
+        val canReadReport = match.status == MatchStatus.FINISHED && allowed { accessPolicy.requireSeeRatings(userId, match.scope) }
         val saved = if (canReadReport) matchReportRepository.getByMatch(matchId) else null
         val stats = if (canReadReport) matchPlayerStatsRepository.getByMatch(matchId) else emptyList()
         val report = if (canReadReport) {
@@ -143,8 +111,8 @@ class GetMatchDetailsUseCase(
             callUps = callUps,
             poolPlayers = poolPlayers,
             canManageMatch = canManageMatch,
-            canManageCallUps = canDo(ConfigurablePermission.MANAGE_CALL_UPS),
-            canManageLiveMatch = canDo(ConfigurablePermission.MANAGE_LIVE_MATCH),
+            canManageCallUps = allowed { accessPolicy.requireManageCallUps(userId, match.scope) },
+            canManageLiveMatch = allowed { accessPolicy.requireManageLiveMatch(userId, match.scope) },
             score = matchEventRepository.getScoreByMatch(matchId),
             report = report,
             serverNow = kotlin.time.Clock.System.now(),

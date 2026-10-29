@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.GameScope
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchPlayerStatsRepository
 import com.ricardofrango.squadify.domain.repository.MatchReportRepository
@@ -11,9 +13,7 @@ import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
-import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.MatchStatus
-import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.Season
@@ -41,29 +41,16 @@ class GetTeamSeasonRecordUseCase(
     private val matchReportRepository: MatchReportRepository,
     private val opponentRepository: OpponentRepository,
     private val playerRepository: PlayerRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, teamId: String): TeamSeasonRecord = transactionManager.runInTransaction {
         val team = teamRepository.getTeamById(teamId) ?: throw NotFoundException("Team not found")
 
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = team.clubId,
-            minClubRole = ClubRole.MEMBER,
-            minAgeGroupRole = AgeGroupRole.STAFF,
-            teamId = teamId,
-            allowPlayerOrParentAccess = true
-        )
+        accessPolicy.requireViewGames(userId, GameScope(team.clubId, teamId = teamId))
 
         val canSeeRatings = try {
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = team.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                minAgeGroupRole = AgeGroupRole.STAFF,
-                teamId = teamId
-            )
+            accessPolicy.requireSeeRatings(userId, GameScope(team.clubId, teamId = teamId))
             true
         } catch (e: ForbiddenException) {
             false

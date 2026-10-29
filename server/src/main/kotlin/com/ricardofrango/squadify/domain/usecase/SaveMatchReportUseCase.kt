@@ -1,13 +1,13 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.scope
 import com.ricardofrango.squadify.domain.repository.MatchPlayerStatsRepository
 import com.ricardofrango.squadify.domain.repository.MatchReportRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchReport
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.SaveMatchReportRequest
@@ -25,21 +25,14 @@ class SaveMatchReportUseCase(
     private val matchRepository: MatchRepository,
     private val matchReportRepository: MatchReportRepository,
     private val matchPlayerStatsRepository: MatchPlayerStatsRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, matchId: String, request: SaveMatchReportRequest): MatchReport =
         transactionManager.runInTransaction {
             val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
 
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = match.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                configurablePermission = ConfigurablePermission.MANAGE_MATCH,
-                teamId = match.teamId,
-                errorMessage = "Only admins, coordinators, or this team's coaches can write the match report"
-            )
+            accessPolicy.requireManageMatch(userId, match.scope, "Only admins, coordinators, or this team's coaches can write the match report")
 
             if (match.status != MatchStatus.FINISHED) {
                 throw ValidationException("A match report can only be written once the match has finished")

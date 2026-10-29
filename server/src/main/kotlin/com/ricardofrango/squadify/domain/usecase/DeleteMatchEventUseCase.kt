@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.scope
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
@@ -8,8 +10,6 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.ClubMatchesUpdate
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.LiveMatchUpdate
 import com.ricardofrango.squadify.model.MatchStatus
 
@@ -22,7 +22,7 @@ class DeleteMatchEventUseCase(
     private val matchEventRepository: MatchEventRepository,
     private val matchRepository: MatchRepository,
     private val liveMatchBus: LiveMatchBus,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val clubMatchesBus: ClubMatchesBus,
     private val transactionManager: TransactionManager
 ) {
@@ -33,14 +33,7 @@ class DeleteMatchEventUseCase(
     ): Boolean = transactionManager.runInTransaction {
         val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
 
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = match.clubId,
-            minClubRole = ClubRole.COORDINATOR,
-            configurablePermission = ConfigurablePermission.MANAGE_LIVE_MATCH,
-            teamId = match.teamId,
-            errorMessage = "Insufficient permissions to delete match events"
-        )
+        accessPolicy.requireManageLiveMatch(userId, match.scope, "Insufficient permissions to delete match events")
 
         // Same rule as AddMatchEventUseCase: a FINISHED match's events (and the player stats frozen
         // from them) are final.

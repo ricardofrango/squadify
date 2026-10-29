@@ -75,6 +75,19 @@ graph TD
 
 Key behaviours baked into this one function: Platform Admins bypass everything ("God Mode"); a club-level `CLUB_ADMIN`/`COORDINATOR` role satisfies almost any check without needing a lower-level role; a plain `MEMBER` role is only sufficient when no age-group-specific check is requested; `COACH`/`STAFF` roles are validated per **age group** via `age_group_staff` (a `teamId` passed by a caller is resolved to its age group first); the opt-in player/parent path grants a read when a linked player sits in the relevant age group's pool. `configurablePermission` (mutually exclusive with a literal `minAgeGroupRole` at any one call site) resolves the effective staff-role threshold from the club's own `ClubPermissionOverrides` setting instead of a hardcoded constant — see `TECHNICAL_DECISIONS.md` §35 for the full configurable-permissions design, including which actions are (and deliberately aren't) configurable, and the `ClubPermissionRepository.getOverride` row-exists-vs-null distinction that a naive `?:` chain would get wrong. A **club-level** configurable action (`ConfigurablePermission.isClubLevel`, today only `MANAGE_PLAYER_STATUS`) is checked before all of that: its setting is a minimum **club** role (`minClubRole`: `COORDINATOR` by default, or `CLUB_ADMIN`), it replaces the caller's `minClubRole`, and no age-group role passes it (`TECHNICAL_DECISIONS.md` §55).
 
+### 1.1b `AccessPolicy` — the game use cases' gate
+
+The game use cases (matches, call-ups, the live game, the record and report, match details, the live feeds and the stats) don't call `CheckUserPermissionUseCase` themselves: they ask an `AccessPolicy` by intent, so the coach server can share them with its own policy (`TECHNICAL_DECISIONS.md` §72). The clubs server's `ClubAccessPolicy` turns each into the §1.1 check below, so where a flowchart in §7–§8 shows `CheckUserPermissionUseCase` for one of them, that's the check `ClubAccessPolicy` makes.
+
+| `AccessPolicy` | `CheckUserPermissionUseCase` call (clubs) |
+|---|---|
+| `requireMember(club)` | `minClubRole = MEMBER` |
+| `requireViewGames(scope)` | `MEMBER`, `minAgeGroupRole = STAFF`, the team or age group, `allowPlayerOrParentAccess = true` |
+| `requireManageMatch(scope)` | `COORDINATOR`, `configurablePermission = MANAGE_MATCH`, the team |
+| `requireManageCallUps(scope)` | `COORDINATOR`, `MANAGE_CALL_UPS`, the team |
+| `requireManageLiveMatch(scope)` | `COORDINATOR`, `MANAGE_LIVE_MATCH`, the team |
+| `requireSeeRatings(scope)` | `COORDINATOR`, `minAgeGroupRole = STAFF`, the team or age group |
+
 ### 1.2 `CheckUserIsAdminUseCase` — platform-level gate
 
 ```mermaid

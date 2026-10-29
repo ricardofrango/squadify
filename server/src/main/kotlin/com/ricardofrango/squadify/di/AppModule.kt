@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.di
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.config.ServerConfig
 import com.ricardofrango.squadify.data.database.DatabaseFactory
 import com.ricardofrango.squadify.data.repository.*
@@ -98,6 +100,8 @@ val appModule = module {
     factory { ConfirmEmailChangeUseCase(get(), get(), get(), get()) }
     factory { RefreshTokenUseCase(get(), get()) }
     factory { CheckUserPermissionUseCase(get(), get(), get(), get(), get(), get()) }
+    // Who may do what with games (TECHNICAL_DECISIONS §72): the clubs server's roles and permissions.
+    factory<AccessPolicy> { ClubAccessPolicy(get()) }
     factory { GetClubPermissionsUseCase(get(), get(), get()) }
     factory { UpdateClubPermissionsUseCase(get(), get(), get()) }
     factory { CheckUserIsAdminUseCase(get(), get()) }

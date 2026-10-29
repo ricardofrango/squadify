@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.scope
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
@@ -8,8 +10,6 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.ClubMatchesUpdate
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.LiveMatchUpdate
 import com.ricardofrango.squadify.model.MatchStatus
 import kotlin.time.Instant
@@ -26,20 +26,13 @@ class PauseMatchUseCase(
     private val matchEventRepository: MatchEventRepository,
     private val liveMatchBus: LiveMatchBus,
     private val clubMatchesBus: ClubMatchesBus,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, matchId: String): Boolean = transactionManager.runInTransaction {
         val match = matchRepository.getMatchById(matchId) ?: throw NotFoundException("Match not found")
 
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = match.clubId,
-            minClubRole = ClubRole.COORDINATOR,
-            configurablePermission = ConfigurablePermission.MANAGE_LIVE_MATCH,
-            teamId = match.teamId,
-            errorMessage = "Only admins, coordinators, coaches, or team staff can pause a match"
-        )
+        accessPolicy.requireManageLiveMatch(userId, match.scope, "Only admins, coordinators, coaches, or team staff can pause a match")
 
         if (match.status != MatchStatus.LIVE) {
             throw ValidationException("Can only pause a match that is currently live")

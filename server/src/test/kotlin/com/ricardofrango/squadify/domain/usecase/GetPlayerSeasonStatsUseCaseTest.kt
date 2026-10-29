@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.repository.MatchPlayerStatsRepository
@@ -58,7 +59,7 @@ class GetPlayerSeasonStatsUseCaseTest {
     )
     private val useCase = GetPlayerSeasonStatsUseCase(
         playerRepository, matchRepository, statsRepository, reportRepository, teamRepository, ageGroupRepository,
-        seasonRepository, opponentRepository, checkUserPermissionUseCase, transactionManager
+        seasonRepository, opponentRepository, ClubAccessPolicy(checkUserPermissionUseCase), transactionManager
     )
 
     private val clubId = "club-1"

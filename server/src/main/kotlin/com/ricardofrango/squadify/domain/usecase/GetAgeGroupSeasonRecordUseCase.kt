@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.GameScope
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchPlayerStatsRepository
@@ -13,8 +15,6 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.AgeGroupSeasonRecord
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.AgeGroupRole
 
 /**
  * Age Group Details' Stats and Members data (design 33): every team's season record (see
@@ -33,29 +33,16 @@ class GetAgeGroupSeasonRecordUseCase(
     private val matchReportRepository: MatchReportRepository,
     private val opponentRepository: OpponentRepository,
     private val playerRepository: PlayerRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, ageGroupId: String): AgeGroupSeasonRecord = transactionManager.runInTransaction {
         val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId) ?: throw NotFoundException("Age group not found")
 
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = ageGroup.clubId,
-            minClubRole = ClubRole.MEMBER,
-            minAgeGroupRole = AgeGroupRole.STAFF,
-            ageGroupId = ageGroupId,
-            allowPlayerOrParentAccess = true
-        )
+        accessPolicy.requireViewGames(userId, GameScope(ageGroup.clubId, ageGroupId = ageGroupId))
 
         val canSeeRatings = try {
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = ageGroup.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                minAgeGroupRole = AgeGroupRole.STAFF,
-                ageGroupId = ageGroupId
-            )
+            accessPolicy.requireSeeRatings(userId, GameScope(ageGroup.clubId, ageGroupId = ageGroupId))
             true
         } catch (e: ForbiddenException) {
             false
