@@ -290,7 +290,7 @@ private fun AgeGroupDetailsContent(
                                 details = d, recordState = recordState, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,
                                 nextHint = nextHint, onViewNext = next?.let { { onMatchClick(it.id) } }, sideBySide = landscape,
                                 onGoToTeams = { onTabSelected(AgeGroupTab.TEAMS) }, onRetry = onRetryRecord,
-                                onFilterSelected = onFilterSelected, onOpenPlayer = onPlayerClick,
+                                onFilterSelected = onFilterSelected, onOpenPlayer = onPlayerClick, onOpenMatch = onMatchClick,
                                 fullStats = fullStats,
                                 onOpenFullStats = onOpenFullStats
                             )
