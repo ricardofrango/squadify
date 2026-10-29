@@ -25,6 +25,8 @@ dependencies {
     api(project(":common"))
     // The game code shared with the coach server (TECHNICAL_DECISIONS §72).
     api(project(":server:core"))
+    // The Exposed tables and repositories shared with the coach server.
+    api(project(":server:data"))
     implementation(libs.logback)
 
     // koin
@@ -78,6 +80,7 @@ dependencies {
     implementation(libs.identity.jvm)
 
     testImplementation(libs.mockk)
+    testImplementation(testFixtures(project(":server:data")))
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.kotlin.testJunit)
 }

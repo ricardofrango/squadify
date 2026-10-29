@@ -208,6 +208,8 @@ sequenceDiagram
 ## 9. Project Structure (KMP)
 - `:server:clubs` (`server/clubs`, was `:server` until 2026-10-29): the Squadify for Clubs Ktor backend.
   Depends on `:common` and `:server:core` directly, not `:core`.
+- `:server:data` (`server/data`): the Exposed tables (`Tables.kt`) and every Exposed repository, shared by
+  both servers (§72), with `SchemaCheck` in its test fixtures for each server's schema test.
 - `:server:core` (`server/core`): the game code the clubs and coach servers share (§72): game use cases,
   repository and service interfaces, stats, `AccessPolicy`, and `SquadifyException` with its subtypes
   (`server/core/.../exception/SquadifyException.kt`) -- these are never used client-side.
@@ -574,7 +576,7 @@ Split across two mechanisms, deliberately not funneled entirely through GitHub A
   is connected to this repo's `develop` branch with auto-deploy on, and Railway rebuilds/redeploys on
   every push using the same Dockerfiles already in the repo. Simpler and more reliable than reimplementing
   what Railway already does natively. Each service's **Watch Paths** setting (also Settings -> Source)
-  should be scoped to what it actually depends on (server: `server/clubs/**`, `server/core/**`, `common/**`, root build files, with its Dockerfile path `server/clubs/Dockerfile` (until 2026-10-29 `server/**` and `server/Dockerfile`);
+  should be scoped to what it actually depends on (server: `server/clubs/**`, `server/core/**`, `server/data/**`, `common/**`, root build files, with its Dockerfile path `server/clubs/Dockerfile` (until 2026-10-29 `server/**` and `server/Dockerfile`);
   web: `app/webApp/**`, `app/shared/**`, `core/**`, root build files) so a change to the *other* client
   doesn't trigger an unnecessary redeploy of a service nothing in it actually changed.
 - **Android -> Firebase App Distribution, staging**: `.github/workflows/deploy-staging.yml`, triggered on
@@ -3150,7 +3152,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
 
 **Two apps, two servers, two databases, one codebase.**
 - **Separate apps:** "Squadify for Clubs" (today's app, every platform) and "Squadify for Coaches" (Android and iOS only), each with its own store listing, app id, name and icon.
-- **Separate servers and databases:** the coach product has its own Ktor server, Postgres database and Railway service. Coach data can never reach a club's, each product scales and is priced on its own, and the coach schema has none of the clubs' roles and configurable permissions.
+- **Separate servers and databases:** the coach product has its own Ktor server, Postgres database and Railway service. Coach data can never reach a club's, each product scales and is priced on its own, and the coach database has none of the clubs' configurable permissions, parents or training; its only member roles are owner and staff (see "One schema, the coach's a subset" below).
 - **Shared code:** what the two have in common, above all the live game sync, but also the models, the game use cases and the stats, is written once.
 
 **The server split:**
@@ -3172,7 +3174,17 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
     - **Training in the interfaces:** full stats reads training ratings, so the training repository interfaces are in core too. The coach server, which has no training, will return none.
     - **Still in the clubs server:** the Exposed repositories and `Tables.kt`, the routes and Koin setup, `CheckUserPermissionUseCase` and `ClubAccessPolicy`, the login and account use cases, and every club-only use case. The use case tests stay there too, since they run the real club permission check through `ClubAccessPolicy`.
     - **The rename:** today's server moved to `server/clubs` as `:server:clubs` in the same step (the developer, 2026-10-29), so the coach server can sit beside it as `server/coach`. `:server` is now only the folder that holds them. Its Dockerfile is `server/clubs/Dockerfile`, building `:server:clubs:buildFatJar` into `clubs-all.jar`; CI runs `:server:core:test :server:clubs:test`; locally it's `./gradlew :server:clubs:run`, with dev images in `server/clubs/uploads`. Railway's server service needs its Dockerfile path and Watch Paths updated to match (§17).
-    - **Next:** the coach server (`server/coach`) needs the game tables and their Exposed repositories shared too, and the login code; those move with it, together with the schema test.
+- **One schema, the coach's a subset** (the developer, 2026-10-29): the coach database reuses the clubs' tables for accounts, structure and games instead of having its own. A coach's **space is a `clubs` row**, and its **members are `club_members` rows**: the owner as `CLUB_ADMIN`, invited staff with one staff role. Per-age-group staff (the plan's members per age group) are `age_group_staff` rows. So every Exposed repository is shared as is. The coach database leaves out parents' links, invites, configurable permissions and training (`clubsOnlyTables`). The other option, its own `spaces`/`space_members` tables, would have meant splitting the club, user, player and age group repositories and their interfaces into shared and clubs-only parts.
+- **Keeping clubs, members and seasons out of the coach's way** (the developer, 2026-10-29: they must not add entropy). In the coach product they're plumbing, never features:
+    - **Access is per age group, through `age_group_staff`** (a user linked to an age group): a coach sees and manages the age groups they're staff on. The owner is staff on every age group of the space. This is the table that links users to age groups, so no new one is needed.
+    - **The space (`clubs`) is created at sign-up**, with the coach as its owner (`club_members`, `CLUB_ADMIN`), and is never named a club, listed, switched or edited as one in the coach app. Only what a coach needs from it is shown: the sport, a name and a logo.
+    - **`club_members` only says who belongs to the space and who owns it** (owner or staff). It drives the plan's member limits and who may invite, nothing else.
+    - **Seasons are automatic:** the current one is created or picked from the date when a coach creates an age group, and the app only shows a season where stats need one (a season picker on stats). No season screens.
+    - **Coach code doesn't build on them beyond this.** A coach feature that seems to need more of the club, its members or seasons is a decision for the developer first.
+- **`:server:data`, as built** (2026-10-29, step 3a): `server/data`, a plain JVM module (`api` on `:server:core` and Exposed): `Tables.kt` with `sharedTables` and `clubsOnlyTables`, every Exposed repository and `toUuid`. Each server keeps its own connection, Flyway migrations and Koin bindings.
+    - **The schema test:** `SchemaCheck` (`:server:data`'s test fixtures) creates a scratch database on the tests' Postgres, runs a server's migrations, and returns what Exposed (`statementsRequiredToActualizeScheme`) would still change for the given tables. `ClubsSchemaTest` expects nothing for all the tables. Its first run found two drifts, fixed in `Tables.kt` to match the live database (PROCESS_FLOWS §12).
+    - **Railway:** the clubs server's Watch Paths gain `/server/data/**`.
+- **Next (step 3b):** the coach server, `server/coach` (`:server:coach`): Ktor, its config, its migrations creating `sharedTables` (with its own `CoachSchemaTest`), the login code moved into core, register/login/refresh, and a `CoachAccessPolicy` on space membership.
 
 **The app split:**
 - **`app/shared`** keeps the screens, view models, use cases and the repositories both apps use.
@@ -3188,8 +3200,8 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
 **Hosting and deploys** (the developer, 2026-10-27):
 - **Railway:** the coach server and its Postgres database are two new services in the same Railway project, in both environments (staging and production), next to today's server, database and web app. Same project, so one staging token and one production token still cover everything.
 - **Staging deploys both servers when a change affects both.** As today (§17), each server service deploys from `develop` through Railway's GitHub integration, and its **Watch Paths** decide when:
-    - **clubs server:** `server/core/**`, `server/clubs/**`, `common/**`, the root build files;
-    - **coach server:** `server/core/**`, `server/coach/**`, `common/**`, the root build files.
+    - **clubs server:** `server/core/**`, `server/data/**`, `server/clubs/**`, `common/**`, the root build files;
+    - **coach server:** `server/core/**`, `server/data/**`, `server/coach/**`, `common/**`, the root build files.
 
   A change to the shared code (`common`, `:server:core`, a shared migration) redeploys both servers; a change only to one server's module redeploys only that one.
 - **Migrations:** each server runs its own Flyway migrations on start, against its own database. A change to the shared game tables therefore comes with a migration in each server's folder, in the same PR, and the schema test above fails the build if one is missing.

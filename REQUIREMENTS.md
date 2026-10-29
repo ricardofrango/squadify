@@ -280,7 +280,8 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
     - [/] Shared server module (`:server:core`) with the game use cases, and the permission check behind an `AccessPolicy`. The clubs server moves onto it with no change in behaviour.
         - [x] The game use cases ask an `AccessPolicy`; the clubs server's (`ClubAccessPolicy`) makes the same checks as before (`TECHNICAL_DECISIONS.md` §72).
         - [x] The `:server:core` module, with the game use cases, the repository and service interfaces, the stats and the exceptions moved into it (`TECHNICAL_DECISIONS.md` §72).
-        - [ ] The shared game tables, their Exposed repositories and the login code, moved with the coach server.
+        - [x] The shared tables and every Exposed repository in `:server:data`, with a schema test per server (`TECHNICAL_DECISIONS.md` §72). The coach database reuses the clubs' tables: a space is a club, its members club members.
+        - [ ] The login code, moved with the coach server.
     - [ ] The app split: shared screens and view models, plus a clubs module and a coach module (Koin setup, repositories, navigation, name, icon). A second Android app and a second iOS target.
     - [ ] The coach server: its own database, migrations, users, spaces and members, deployed as its own Railway service and database, on staging and production. A change on `develop` that affects both servers (shared code or shared tables) deploys both to staging.
     - [ ] The coach app: sign-up, first setup (sport, age group, team), invites.
