@@ -23,6 +23,8 @@ tasks.named<JavaExec>("run") {
 
 dependencies {
     api(project(":common"))
+    // The game code shared with the coach server (TECHNICAL_DECISIONS §72).
+    api(project(":server:core"))
     implementation(libs.logback)
 
     // koin

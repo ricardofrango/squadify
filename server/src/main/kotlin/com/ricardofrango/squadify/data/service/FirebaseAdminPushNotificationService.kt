@@ -163,9 +163,11 @@ class FirebaseAdminPushNotificationService(
          * opponent (with their logo), or our team when nobody's credited (an own goal, the score box).
          */
         fun goalMessage(link: PushLink, teamName: String, opponentName: String, score: MatchScore, goal: GoalPush): PushMessage {
+            // A local: GoalPush lives in :server:core, so its property can't be smart cast here.
+            val scorerName = goal.scorerName
             val (sender, senderName) = when {
                 !goal.forUs -> PushMessage.Sender.OPPONENT to opponentName
-                goal.scorerName != null -> PushMessage.Sender.SCORER to goal.scorerName
+                scorerName != null -> PushMessage.Sender.SCORER to scorerName
                 else -> PushMessage.Sender.TEAM to teamName
             }
             return PushMessage(

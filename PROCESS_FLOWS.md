@@ -77,7 +77,7 @@ Key behaviours baked into this one function: Platform Admins bypass everything (
 
 ### 1.1b `AccessPolicy` — the game use cases' gate
 
-The game use cases (matches, call-ups, the live game, the record and report, match details, the live feeds and the stats) don't call `CheckUserPermissionUseCase` themselves: they ask an `AccessPolicy` by intent, so the coach server can share them with its own policy (`TECHNICAL_DECISIONS.md` §72). The clubs server's `ClubAccessPolicy` turns each into the §1.1 check below, so where a flowchart in §7–§8 shows `CheckUserPermissionUseCase` for one of them, that's the check `ClubAccessPolicy` makes.
+The game use cases (matches, call-ups, the live game, the record and report, match details, the live feeds and the stats) live in the shared `:server:core` module (`server/core`) and don't call `CheckUserPermissionUseCase` themselves: they ask an `AccessPolicy` by intent, so the coach server can share them with its own policy (`TECHNICAL_DECISIONS.md` §72). The clubs server's `ClubAccessPolicy` turns each into the §1.1 check below, so where a flowchart in §7–§8 shows `CheckUserPermissionUseCase` for one of them, that's the check `ClubAccessPolicy` makes.
 
 | `AccessPolicy` | `CheckUserPermissionUseCase` call (clubs) |
 |---|---|

@@ -3,8 +3,9 @@
 #
 # Build context is the REPO ROOT (see the build command in README/deploy notes: `docker build -f
 # server/Dockerfile .`) -- settings.gradle.kts includes every module (app:androidApp, app:desktopApp,
-# app:shared, app:webApp, common, core, server), but :server depends only on :common, a plain-JVM
-# module holding the shared models/exceptions (:core re-sources those same files for its own
+# app:shared, app:webApp, common, core, server, server:core), but :server depends only on :common, a
+# plain-JVM module holding the shared models, and :server:core (server/core, the game code shared with
+# the coach server -- TECHNICAL_DECISIONS.md §72; copied with server/ below) (:core re-sources those same files for its own
 # multiplatform targets, so nothing is duplicated -- see common/build.gradle.kts and core/build.gradle.kts).
 # --configure-on-demand below skips configuring every project except the ones :server:buildFatJar
 # actually needs, so this build never touches :core's Android/iOS/JS/Wasm targets or the client app
@@ -20,7 +21,7 @@ COPY settings.gradle.kts build.gradle.kts gradle.properties ./
 RUN chmod +x gradlew
 
 # The whole repo -- settings.gradle.kts references every module's directory, but --configure-on-demand
-# means only :common and :server are actually evaluated/compiled.
+# means only :common, :server:core and :server are actually evaluated/compiled.
 COPY common ./common
 COPY core ./core
 COPY server ./server
