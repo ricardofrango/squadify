@@ -1478,8 +1478,8 @@
     <string name="fs_to">To</string>
     <string name="fs_final_title">Final ranking</string>
     <string name="fs_final_info">How the final ranking works</string>
-    <string name="fs_final_body">The final ranking is the average of every game and training rating in the period, together. Each game counts as one rating and each training as one rating. A training the player missed doesn't count.</string>
-    <string name="fs_final_example">Example: 1 game rated 7.0 and 3 trainings rated 6.0, 7.0 and 8.0 → (7.0 + 6.0 + 7.0 + 8.0) ÷ 4 = 7.0</string>
+    <string name="fs_final_body">The final ranking is the average of every game and training rating in the period, together. Each game counts as one rating and each training as one rating. A training the player missed (Absent) counts as 0, so missing training lowers the ranking.</string>
+    <string name="fs_final_example">Example: 1 game rated 7.0 and 3 trainings rated 8.0, 8.0 and Absent → (7.0 + 8.0 + 8.0 + 0) ÷ 4 = 5.8</string>
     <string name="fs_empty_title">No games or trainings in this period</string>
     <string name="fs_empty_hint">Widen the date range to see player stats.</string>
     <string name="fs_widen">Widen range</string>

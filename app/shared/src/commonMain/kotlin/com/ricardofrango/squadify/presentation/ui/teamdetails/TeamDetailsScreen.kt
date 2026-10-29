@@ -573,12 +573,28 @@ private fun sampleRecord(staff: Boolean, empty: Boolean = false): TeamSeasonReco
     return TeamSeasonRecord("t1", "s1", "2026/27", matches, lines, players, canSeeRatings = staff)
 }
 
+/** The record as Full stats data, with three trainings (one player missing one), for Team leaders' ranking. */
+private fun sampleFullStats(record: TeamSeasonRecord) = FullStatsData(
+    title = "Sub-13", ageGroupId = "ag1", seasonId = record.seasonId, seasonName = record.seasonName,
+    seasonStart = LocalDate(2026, 9, 1), seasonEnd = LocalDate(2027, 6, 30),
+    teams = listOf(FullStatsTeam(record.teamId, "Sub-13 A")),
+    matches = record.matches.map { FullStatsMatch(it.matchId, record.teamId, it.dateTime, it.matchType, it.ourScore, it.opponentScore) },
+    lines = record.playerLines.map { FullStatsLine(it.matchId, it.playerId, it.started, it.minutesPlayed, it.goals, it.assists, 0, 0, it.rating) },
+    trainings = if (!record.canSeeRatings) emptyList() else (1..3).map { d ->
+        FullStatsTraining("t$d", LocalDate(2026, 10, d), record.players.mapIndexed { i, p -> TrainingRating(p.id, if (i == 0 && d == 3) 0.0 else 6.0 + (i + d) % 4) })
+    },
+    players = record.players,
+    canSeeRatings = record.canSeeRatings
+)
+
 
 @Composable
 private fun TeamPreview(details: TeamDetails, record: TeamRecordUiState, tab: TeamTab = TeamTab.STATS, dark: Boolean = false) {
     SquadifyTheme(darkTheme = dark) {
         TeamDetailsContent(
-            uiState = TeamDetailsUiState.Idle(details), recordState = record, tab = tab, squadSort = SquadSort.APPS,
+            uiState = TeamDetailsUiState.Idle(details),
+            recordState = (record as? TeamRecordUiState.Loaded)?.let { it.copy(fullStats = sampleFullStats(it.record)) } ?: record,
+            tab = tab, squadSort = SquadSort.APPS,
             onTabSelected = {}, onSquadSortSelected = {},
             onNavigateBack = {}, onRetry = {}, onRetryRecord = {}, onFilterSelected = {}, onNavigateToAgeGroup = {},
             onNavigateToPlayer = { _, _, _ -> }, onScheduleMatch = {}, onEditTeam = {}, onMatchClick = {}

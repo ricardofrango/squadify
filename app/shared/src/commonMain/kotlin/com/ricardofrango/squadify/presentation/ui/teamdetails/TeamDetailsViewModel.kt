@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.ui.teamdetails
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ricardofrango.squadify.domain.usecase.GetFullStatsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTeamDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTeamSeasonRecordUseCase
 import com.ricardofrango.squadify.domain.repository.UiPreferencesRepository
@@ -19,6 +20,7 @@ import kotlinx.coroutines.launch
 class TeamDetailsViewModel(
     private val getTeamDetailsUseCase: GetTeamDetailsUseCase,
     private val getTeamSeasonRecordUseCase: GetTeamSeasonRecordUseCase,
+    private val getFullStatsUseCase: GetFullStatsUseCase,
     private val preferences: UiPreferencesRepository
 ) : ViewModel() {
 
@@ -71,7 +73,12 @@ class TeamDetailsViewModel(
                 _record.update { TeamRecordUiState.Loaded(getTeamSeasonRecordUseCase(teamId), filter) }
             } catch (e: Exception) {
                 _record.update { TeamRecordUiState.Error }
+                return@launch
             }
+            // Team leaders' ranking counts trainings too, so it comes from the Full stats data. The
+            // rest of the card shows meanwhile; if it fails, the ranking is left out.
+            val fullStats = runCatching { getFullStatsUseCase.team(teamId) }.getOrNull() ?: return@launch
+            _record.update { (it as? TeamRecordUiState.Loaded)?.copy(fullStats = fullStats) ?: it }
         }
     }
 

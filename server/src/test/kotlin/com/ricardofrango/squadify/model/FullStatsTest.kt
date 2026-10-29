@@ -56,11 +56,22 @@ class FullStatsTest {
         assertEquals(7.7, r.trainingRating) // (6 + 8 + 9) / 3
         // (7 + 5 + 6 + 8 + 9) / 5 = 7.0 -- not the average of the two averages (6.85)
         assertEquals(7.0, r.finalRating)
-        // An absent training (0) is left out.
-        assertEquals(7.0, t.row("p2").trainingRating)
-        assertEquals(7.5, t.row("p2").finalRating) // (8 + 7) / 2
+        // An absent training counts as a 0.
+        assertEquals(3.5, t.row("p2").trainingRating) // (0 + 7) / 2
+        assertEquals(5.0, t.row("p2").finalRating) // (8 + 0 + 7) / 3
         assertEquals(3, t.games)
         assertEquals(3, t.trainings)
+    }
+
+    @Test
+    fun missingATrainingLowersTheTrainingAndFinalRanking() {
+        // The developer's example (2026-10-29): 8, 8 and Absent is (8 + 8 + 0) / 3, not 8.
+        val trainings = listOf(8.0, 8.0, 0.0).mapIndexed { i, r -> FullStatsTraining("t$i", day(19 + i), listOf(TrainingRating("p3", r))) }
+        val t = data().copy(trainings = trainings).table(FullStatsQuery(), utc)
+        val r = t.row("p3")
+        assertEquals(5.3, r.trainingRating)
+        assertEquals(5.5, r.finalRating) // (6 + 8 + 8 + 0) / 4
+        assertEquals(4, r.ratings)
     }
 
     @Test
@@ -126,8 +137,8 @@ class FullStatsTest {
     @Test
     fun theAgeGroupLeadersRankOnGamesAndTrainingsTogether() {
         val leaders = data().table(FullStatsQuery(), utc).leaders()
-        // p2: (8 + 7) / 2 = 7.5 tops p1's 7.0; p3 has a single rating, short of the two needed.
-        assertEquals(listOf("p2", "p1"), leaders.averageRating.map { it.playerId })
+        // p1's 7.0 tops p2's 5.0, (8 + 0 + 7) / 3 with the missed training; p3 has a single rating, short of the two needed.
+        assertEquals(listOf("p1", "p2"), leaders.averageRating.map { it.playerId })
         assertEquals(listOf(1, 2), leaders.averageRating.map { it.rank })
         // Players on zero are left out.
         assertEquals(listOf("p1"), leaders.goals.map { it.playerId })
