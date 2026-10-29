@@ -170,13 +170,15 @@ internal fun AgeGroupStatsTab(
     onRetry: () -> Unit,
     onFilterSelected: (StatsFilter) -> Unit,
     onOpenPlayer: (String) -> Unit,
+    // A team's last-five result square opens that match.
+    onOpenMatch: (String) -> Unit,
     // The leaders card's data (the Full stats data); null hides it until loaded.
     fullStats: FullStatsData? = null,
     // The Full stats table for the whole age group, from the leaders card's footer.
     onOpenFullStats: () -> Unit = {}
 ) {
     LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        statsItems(details, recordState, nextHint, onViewNext, sideBySide, onGoToTeams, onRetry, onFilterSelected, onOpenPlayer)
+        statsItems(details, recordState, nextHint, onViewNext, sideBySide, onGoToTeams, onRetry, onFilterSelected, onOpenPlayer, onOpenMatch)
         // As a team's Team leaders, for the whole age group: the ranking is games and trainings together
         // (the developer, 2026-10-24; it replaced the training card with its month filter and sort).
         if (fullStats != null && details.teams.isNotEmpty() && recordState is AgeGroupRecordUiState.Loaded) {
@@ -197,7 +199,8 @@ private fun LazyListScope.statsItems(
     onGoToTeams: () -> Unit,
     onRetry: () -> Unit,
     onFilterSelected: (StatsFilter) -> Unit,
-    onOpenPlayer: (String) -> Unit
+    onOpenPlayer: (String) -> Unit,
+    onOpenMatch: (String) -> Unit
 ) {
         when {
             details.teams.isEmpty() -> item {
@@ -244,12 +247,12 @@ private fun LazyListScope.statsItems(
                         if (sideBySide) {
                             item {
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
-                                    Box(Modifier.weight(1f)) { ResultsByTeamCard(record, recordState.filter, combined) }
+                                    Box(Modifier.weight(1f)) { ResultsByTeamCard(record, recordState.filter, combined, onOpenMatch) }
                                     Box(Modifier.weight(1f)) { PoolMinutesCard(record, recordState.filter, details.ageGroup.name, teamsById, onOpenPlayer) }
                                 }
                             }
                         } else {
-                            item { ResultsByTeamCard(record, recordState.filter, combined) }
+                            item { ResultsByTeamCard(record, recordState.filter, combined, onOpenMatch) }
                             item { PoolMinutesCard(record, recordState.filter, details.ageGroup.name, teamsById, onOpenPlayer) }
                         }
                     }
@@ -259,7 +262,7 @@ private fun LazyListScope.statsItems(
 }
 
 @Composable
-private fun ResultsByTeamCard(record: AgeGroupSeasonRecord, filter: StatsFilter, combined: TeamRecordTotals) {
+private fun ResultsByTeamCard(record: AgeGroupSeasonRecord, filter: StatsFilter, combined: TeamRecordTotals, onOpenMatch: (String) -> Unit) {
     StatsCard(contentPadding = 0.dp) {
         StatsHeading(stringResource(Res.string.ag_results_by_team), Modifier.padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 4.dp))
         record.teams.forEachIndexed { i, team ->
@@ -278,7 +281,7 @@ private fun ResultsByTeamCard(record: AgeGroupSeasonRecord, filter: StatsFilter,
                     Spacer(Modifier.width(10.dp))
                     WdlCount(t.lost, stringResource(Res.string.record_form_loss), AlertRed)
                     Spacer(Modifier.weight(1f))
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) { t.form.forEach { FormSquare(it) {} } }
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) { t.form.forEach { FormSquare(it) { onOpenMatch(it.matchId) } } }
                 }
             }
         }

@@ -2373,7 +2373,7 @@ Player Details shows a **Season stats** card with a per-match list (design 30), 
 - **Starting tab:** it always opens on Stats. The developer chose this over 33f's "Teams, then last used".
 - **Header strip:** Teams · Players · Staff · Upcoming. Each number switches to its tab, with Players and Staff both opening Members.
 - **Stats:** two cards.
-  - *Results by team*, with a combined age-group line.
+  - *Results by team*, with a combined age-group line. Each team's last-five squares open that match, as on Team Details.
   - *Minutes across the pool*, in four neutral bands (Lots of time / Some time / A little time / Still to play). Only the two lower bands list names, and tapping a band shows everyone in it.
   - Age-group leaders are left out on purpose: they're a team story, already told on Team Details.
 - **Teams:** cards with the season record, players used, the next fixture, and the average rating for staff.
