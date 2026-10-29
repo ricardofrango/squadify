@@ -17,10 +17,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 
-/** Whether a session's ratings are open: it has ended (in the server's time zone, the club's) and isn't cancelled. */
-internal fun TrainingSession.ratingsOpen(now: LocalDateTime): Boolean =
-    !cancelled && (date < now.date || (date == now.date && endTime <= now.time))
-
 /**
  * Rating players after a training session (design 39g). Open to every coach and staff member of the age
  * group (and coordinators), never to players or parents. Ratings open when the session ends; each one is 0

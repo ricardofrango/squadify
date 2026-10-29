@@ -7,7 +7,7 @@ plugins {
 }
 
 // No build-variant system for Kotlin/JS or Wasm, so the same dev/staging/production split is done via a
-// Gradle property instead: server/Dockerfile equivalents pass `-PsquadifyEnv=staging|production` when
+// Gradle property instead: server/clubs/Dockerfile equivalents pass `-PsquadifyEnv=staging|production` when
 // building for deployment. Defaults to "dev" (localhost) for local `jsBrowserDevelopmentRun`. See
 // TECHNICAL_DECISIONS.md's "Environment-Based App Config" section.
 val squadifyEnv = (findProperty("squadifyEnv") as String?) ?: "dev"

@@ -11,7 +11,7 @@ A concrete set of test personas and scenarios covering every user type described
 
 ## The permission tests today
 
-`server/src/test/kotlin/.../domain/usecase/CheckUserPermissionUseCaseTest.kt` covers these personas against the current permission model (`ClubRole`/`AgeGroupRole`, configurable permissions), with 22 tests. It once targeted an obsolete model and didn't compile; it has since been rewritten (see `ISSUES TO FIX.md`). New scenarios from this matrix belong there.
+`server/clubs/src/test/kotlin/.../domain/usecase/CheckUserPermissionUseCaseTest.kt` covers these personas against the current permission model (`ClubRole`/`AgeGroupRole`, configurable permissions), with 22 tests. It once targeted an obsolete model and didn't compile; it has since been rewritten (see `ISSUES TO FIX.md`). New scenarios from this matrix belong there.
 
 ## 1. Test personas
 

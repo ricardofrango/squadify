@@ -34,7 +34,7 @@ RUN mkdir -p $ANDROID_SDK_ROOT/cmdline-tools && \
 
 ENV PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
 
-# Versions must match gradle/libs.versions.toml's android-compileSdk -- see server/Dockerfile's note
+# Versions must match gradle/libs.versions.toml's android-compileSdk -- see server/clubs/Dockerfile's note
 # on the "platforms;android-37.0" (not "android-37") package-naming gotcha.
 RUN yes | sdkmanager --licenses > /dev/null && \
     sdkmanager "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"

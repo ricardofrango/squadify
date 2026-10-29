@@ -1,6 +1,6 @@
 # Process Flows - Squadify Platform
 
-This document maps every use case under `server/src/main/kotlin/.../domain/usecase` to a flowchart of its current, as-implemented logic. It complements [REQUIREMENTS.md](./REQUIREMENTS.md) (what the system should do) and [TECHNICAL_DECISIONS.md](./TECHNICAL_DECISIONS.md) (why it's built this way) with a process-level view: what each use case actually does today, branch by branch.
+This document maps every use case under `server/clubs/src/main/kotlin/.../domain/usecase` to a flowchart of its current, as-implemented logic. It complements [REQUIREMENTS.md](./REQUIREMENTS.md) (what the system should do) and [TECHNICAL_DECISIONS.md](./TECHNICAL_DECISIONS.md) (why it's built this way) with a process-level view: what each use case actually does today, branch by branch.
 
 Generated from a read-through of all use cases on 2026-09-02. Per `AI_GUIDELINES.md`, this file should be revisited whenever a use case's business logic or flow changes.
 
@@ -77,7 +77,7 @@ Key behaviours baked into this one function: Platform Admins bypass everything (
 
 ### 1.1b `AccessPolicy` — the game use cases' gate
 
-The game use cases (matches, call-ups, the live game, the record and report, match details, the live feeds and the stats) don't call `CheckUserPermissionUseCase` themselves: they ask an `AccessPolicy` by intent, so the coach server can share them with its own policy (`TECHNICAL_DECISIONS.md` §72). The clubs server's `ClubAccessPolicy` turns each into the §1.1 check below, so where a flowchart in §7–§8 shows `CheckUserPermissionUseCase` for one of them, that's the check `ClubAccessPolicy` makes.
+The game use cases (matches, call-ups, the live game, the record and report, match details, the live feeds and the stats) live in the shared `:server:core` module (`server/core`) and don't call `CheckUserPermissionUseCase` themselves: they ask an `AccessPolicy` by intent, so the coach server can share them with its own policy (`TECHNICAL_DECISIONS.md` §72). The clubs server's `ClubAccessPolicy` turns each into the §1.1 check below, so where a flowchart in §7–§8 shows `CheckUserPermissionUseCase` for one of them, that's the check `ClubAccessPolicy` makes.
 
 | `AccessPolicy` | `CheckUserPermissionUseCase` call (clubs) |
 |---|---|
@@ -2353,7 +2353,7 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
 
 ## 12. Database Schema: Current State of the Art
 
-Source of truth: `server/src/main/kotlin/.../data/database/Tables.kt` (20 Exposed `Table` objects, describing the schema for query-building) **and** the versioned SQL files under `server/src/main/resources/db/migration/` (which actually create/alter it — see `TECHNICAL_DECISIONS.md` §34). `DatabaseFactory.init()` runs Flyway against those files on every boot, so the diagram below and the real Postgres tables are guaranteed to match *as long as every `Tables.kt` change ships with a matching new migration file* — unlike the old `SchemaUtils.createMissingTablesAndColumns` approach, Flyway does not infer schema changes from `Tables.kt` automatically.
+Source of truth: `server/clubs/src/main/kotlin/.../data/database/Tables.kt` (20 Exposed `Table` objects, describing the schema for query-building) **and** the versioned SQL files under `server/clubs/src/main/resources/db/migration/` (which actually create/alter it — see `TECHNICAL_DECISIONS.md` §34). `DatabaseFactory.init()` runs Flyway against those files on every boot, so the diagram below and the real Postgres tables are guaranteed to match *as long as every `Tables.kt` change ships with a matching new migration file* — unlike the old `SchemaUtils.createMissingTablesAndColumns` approach, Flyway does not infer schema changes from `Tables.kt` automatically.
 
 ### 12.1 Entity-Relationship Diagram
 
@@ -2718,7 +2718,7 @@ erDiagram
 ### 12.4 Current persistence setup
 
 - **Engine**: PostgreSQL, both dev and production. H2 has been removed entirely. The connection is built from `ServerConfig.kt`'s `DATABASE_HOST`/`DATABASE_PORT`/`DATABASE_USER`/`DATABASE_PASSWORD`/`DATABASE_NAME` env vars — host and password are required explicitly when `APP_ENV=production` (no silent fallback), while the database name defaults per environment (`squadify_dev` / `squadify_production`), so dev and production stay isolated even against the same Postgres server. `docker-compose.yml` at the repo root provides a local Postgres matching the dev defaults.
-- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, `V5__match_reports.sql`, `V6__match_event_period.sql`, `V7__match_report_opponent_tactic.sql`, `V8__match_event_assist_link.sql`, and so on up to `V26__match_lineup_changes.sql` (see the folder for the full list). An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
+- **Schema creation / migrations**: Flyway, run from `DatabaseFactory.init()` on every boot (`baselineOnMigrate(true)`, `baselineVersion("1")`) against `server/clubs/src/main/resources/db/migration/` — currently `V1__baseline.sql` (the 17 original tables), `V2__club_permission_overrides.sql`, `V3__unique_club_members.sql`, `V4__match_player_stats.sql`, `V5__match_reports.sql`, `V6__match_event_period.sql`, `V7__match_report_opponent_tactic.sql`, `V8__match_event_assist_link.sql`, and so on up to `V26__match_lineup_changes.sql` (see the folder for the full list). An existing untracked database is baselined at V1 without re-running it; an empty one runs V1 in full. This replaced `SchemaUtils.createMissingTablesAndColumns` — see `TECHNICAL_DECISIONS.md` §34. Every schema change now needs a new `V<n>__description.sql` alongside the `Tables.kt` edit.
 - **Legacy backfill**: right after Flyway, `DatabaseFactory.init()` still runs a raw, idempotent SQL block that backfills `age_groups.start_year`/`end_year` from the old single `birth_year` column (if it still exists) and then drops that column (§4.3/§5.3). It's a no-op once `birth_year` is gone. It was deliberately left outside the migration chain because there's no way to confirm every environment has already run it.
 - **Connection pool**: HikariCP, `maximumPoolSize = 3` in dev / `10` in production, `autoCommit = false`, isolation level `TRANSACTION_REPEATABLE_READ`.
 

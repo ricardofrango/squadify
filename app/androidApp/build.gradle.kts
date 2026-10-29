@@ -69,7 +69,7 @@ dependencies {
 }
 
 // Single source of truth for the human-facing semantic version lives in root gradle.properties
-// (VERSION_NAME) -- shared with server/build.gradle.kts so the two can't drift by hand-editing one and
+// (VERSION_NAME) -- shared with server/clubs/build.gradle.kts so the two can't drift by hand-editing one and
 // forgetting the other. versionCode is computed separately: CI passes -PversionCode=<n>
 // (deploy-staging.yml uses ${{ github.run_number }}, which auto-increments every workflow run) so every
 // uploaded build has a unique, strictly-increasing code even when VERSION_NAME doesn't change between
