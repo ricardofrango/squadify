@@ -7,13 +7,14 @@ import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.LoginRequest
 import com.ricardofrango.squadify.model.LoginResponse
 import com.ricardofrango.squadify.model.UserStatus
-import com.ricardofrango.squadify.security.JwtConfig
+import com.ricardofrango.squadify.security.JwtTokens
 import kotlin.time.Instant
 import org.mindrot.jbcrypt.BCrypt
 
 class LoginUseCase(
     private val userRepository: UserRepository,
-    private val transactionManager: TransactionManager
+    private val transactionManager: TransactionManager,
+    private val tokens: JwtTokens
 ) {
     suspend operator fun invoke(request: LoginRequest): LoginResponse = transactionManager.runInTransaction {
         if (request.email.isBlank() || request.password.isBlank()) {
@@ -37,9 +38,9 @@ class LoginUseCase(
             throw UnauthorizedException("Your account is not active")
         }
 
-        val accessToken = JwtConfig.generateAccessToken(user.id)
-        val refreshToken = JwtConfig.generateRefreshToken()
-        val expiresAt = Instant.fromEpochMilliseconds(JwtConfig.getRefreshTokenExpiration())
+        val accessToken = tokens.generateAccessToken(user.id)
+        val refreshToken = tokens.generateRefreshToken()
+        val expiresAt = Instant.fromEpochMilliseconds(tokens.getRefreshTokenExpiration())
         
         userRepository.saveRefreshToken(user.id, refreshToken, expiresAt)
         

@@ -4,12 +4,13 @@ import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.UnauthorizedException
 import com.ricardofrango.squadify.model.TokenResponse
-import com.ricardofrango.squadify.security.JwtConfig
+import com.ricardofrango.squadify.security.JwtTokens
 import kotlin.time.Instant
 
 class RefreshTokenUseCase(
     private val userRepository: UserRepository,
-    private val transactionManager: TransactionManager
+    private val transactionManager: TransactionManager,
+    private val tokens: JwtTokens
 ) {
     suspend operator fun invoke(refreshToken: String): TokenResponse = transactionManager.runInTransaction {
         val stored = userRepository.findRefreshToken(refreshToken)
@@ -27,9 +28,9 @@ class RefreshTokenUseCase(
         userRepository.deleteRefreshToken(refreshToken)
         val userId = stored.userId
 
-        val newAccessToken = JwtConfig.generateAccessToken(userId)
-        val newRefreshToken = JwtConfig.generateRefreshToken()
-        val expiresAt = Instant.fromEpochMilliseconds(JwtConfig.getRefreshTokenExpiration())
+        val newAccessToken = tokens.generateAccessToken(userId)
+        val newRefreshToken = tokens.generateRefreshToken()
+        val expiresAt = Instant.fromEpochMilliseconds(tokens.getRefreshTokenExpiration())
         
         userRepository.saveRefreshToken(userId, newRefreshToken, expiresAt)
         

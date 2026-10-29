@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.security.JwtConfig
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.UnauthorizedException
@@ -27,7 +28,7 @@ class LoginUseCaseTest {
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
-    private val useCase = LoginUseCase(userRepository, transactionManager)
+    private val useCase = LoginUseCase(userRepository, transactionManager, JwtConfig)
 
     private val password = "correct-horse-battery-staple"
     private val passwordHash = BCrypt.hashpw(password, BCrypt.gensalt())

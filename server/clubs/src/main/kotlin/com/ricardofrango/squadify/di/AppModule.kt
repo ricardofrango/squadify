@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.di
 
+import com.ricardofrango.squadify.security.JwtConfig
 import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.config.ServerConfig
@@ -79,7 +80,8 @@ val appModule = module {
     factory { GetClubDetailsUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { GetClubHomeUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { ProvisionClubUseCase(get(), get(), get(), get(), get(), get()) }
-    factory { RegisterUseCase(get(), get(), get(), get(), get()) }
+    // Signing up accepts the invites waiting for that email.
+    factory { RegisterUseCase(get(), get(), listOf(AcceptInvitesOnRegister(get(), get(), get()))) }
     factory {
         SeedPlatformAdminUseCase(
             get(),
@@ -89,7 +91,7 @@ val appModule = module {
             adminPassword = ServerConfig.seedAdminPassword,
         )
     }
-    factory { LoginUseCase(get(), get()) }
+    factory { LoginUseCase(get(), get(), JwtConfig) }
     factory { GetCurrentUserUseCase(get(), get()) }
     factory { UpdateProfileUseCase(get(), get()) }
     factory { CurrentPasswordGuard(get(), get()) }
@@ -98,7 +100,7 @@ val appModule = module {
     factory { ResetPasswordUseCase(get(), get(), get()) }
     factory { RequestEmailChangeUseCase(get(), get(), get(), get(), get()) }
     factory { ConfirmEmailChangeUseCase(get(), get(), get(), get()) }
-    factory { RefreshTokenUseCase(get(), get()) }
+    factory { RefreshTokenUseCase(get(), get(), JwtConfig) }
     factory { CheckUserPermissionUseCase(get(), get(), get(), get(), get(), get()) }
     // Who may do what with games (TECHNICAL_DECISIONS §72): the clubs server's roles and permissions.
     factory<AccessPolicy> { ClubAccessPolicy(get()) }

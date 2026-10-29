@@ -30,6 +30,7 @@ Use the run configurations provided by the run widget in your IDE's toolbar. You
   - `./gradlew :server:clubs:run` runs the server (port 8080, or `SERVER_PORT`). Stop it with Ctrl+C.
   - `./gradlew -t :server:clubs:classes` compiles on every save; the running server reloads the new code by itself (see `TECHNICAL_DECISIONS.md` §59).
   - Don't use `./gradlew -t :server:clubs:run`: it never reloads, and it can leave a server holding port 8080 after Ctrl+C. To free the port: `lsof -ti tcp:8080 | xargs kill`.
+- Coach server (Squadify for Coaches): `./gradlew :server:coach:run` (port 8090, or `SERVER_PORT`). It creates its own local database, `squadify_coach_dev`, on the same Postgres the first time.
 - Web app:
   - Wasm target (faster, modern browsers): `./gradlew :app:webApp:wasmJsBrowserDevelopmentRun`
   - JS target (slower, supports older browsers): `./gradlew :app:webApp:jsBrowserDevelopmentRun`
@@ -41,7 +42,7 @@ Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
 
 - Android tests: `./gradlew :app:shared:testAndroidHostTest`
 - Desktop tests: `./gradlew :app:shared:jvmTest`
-- Server tests: `./gradlew :server:clubs:test`
+- Server tests: `./gradlew :server:core:test :server:data:test :server:web:test :server:clubs:test :server:coach:test`
 - Web tests:
   - Wasm target: `./gradlew :app:shared:wasmJsTest`
   - JS target: `./gradlew :app:shared:jsTest`

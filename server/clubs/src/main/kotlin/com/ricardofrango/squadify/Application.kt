@@ -17,45 +17,23 @@ import com.ricardofrango.squadify.presentation.routes.trainingRoutes
 import com.ricardofrango.squadify.presentation.routes.fcmTokenRoutes
 import com.ricardofrango.squadify.domain.usecase.SeedPlatformAdminUseCase
 import com.ricardofrango.squadify.security.JwtConfig
-import com.ricardofrango.squadify.model.ErrorResponse
-import com.ricardofrango.squadify.model.SERVER_TIME_HEADER
-import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.response.header
-import com.ricardofrango.squadify.exception.*
 import com.ricardofrango.squadify.config.AppEnvironment
 import com.ricardofrango.squadify.config.ServerConfig
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpMethod
-import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.application.serverConfig
-import io.ktor.server.application.install
 import io.ktor.server.config.MapApplicationConfig
-import io.ktor.server.auth.Authentication
-import io.ktor.server.auth.jwt.JWTPrincipal
-import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.engine.applicationEnvironment
 import io.ktor.server.engine.connector
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import io.ktor.server.plugins.BadRequestException
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
-import io.ktor.server.plugins.statuspages.*
-import io.ktor.server.request.ContentTransformationException
-import io.ktor.server.websocket.*
-import kotlinx.serialization.SerializationException
-import io.ktor.http.HttpStatusCode
-import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
-import kotlin.time.Duration.Companion.seconds
-import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
 import org.koin.ktor.ext.getKoin
 import org.koin.dsl.koinApplication
 import org.koin.ktor.plugin.setKoinApplication
@@ -111,87 +89,7 @@ fun Application.module() {
     // one) as written, unlike Ktor's Url.hostWithPort, which always forces one in -- allowHost needs to
     // match the browser's actual Origin header ("https://host", no ":443") exactly.
     configureCors(ServerConfig.webAppBaseUrl, allowAnyLocalhost = ServerConfig.environment == AppEnvironment.DEV)
-    configureServerTime()
-
-    install(Authentication) {
-        jwt("auth-jwt") {
-            realm = "club-manager"
-            verifier(JwtConfig.verifier)
-            validate { credential ->
-                if (credential.payload.subject != null) {
-                    JWTPrincipal(credential.payload)
-                } else {
-                    null
-                }
-            }
-            challenge { _, _ ->
-                call.respond(HttpStatusCode.Unauthorized, ErrorResponse("Token is invalid or expired", "AUTH_001"))
-            }
-        }
-    }
-
-    install(ContentNegotiation) {
-        json(
-            Json {
-                prettyPrint = true
-                isLenient = true
-                ignoreUnknownKeys = true
-            }
-        )
-    }
-
-    install(WebSockets) {
-        pingPeriod = 15.seconds
-        timeout = 15.seconds
-        // The live-match socket (MatchRoutes.kt) is server-to-client broadcast only -- it never reads
-        // `incoming` frames -- so there's no legitimate reason for a large inbound frame. Capped well
-        // above any real LiveMatchUpdate payload (small JSON) but far below Long.MAX_VALUE, which let
-        // a single oversized frame exhaust memory (see "issues to fix.md", "Unbounded WebSocket frame
-        // size").
-        maxFrameSize = 64 * 1024L
-        masking = false
-        contentConverter = KotlinxWebsocketSerializationConverter(Json)
-    }
-
-    install(StatusPages) {
-        exception<SquadifyException> { call, cause ->
-            cause.printStackTrace()
-            val status = when (cause) {
-                is UnauthorizedException -> HttpStatusCode.Unauthorized
-                is ForbiddenException -> HttpStatusCode.Forbidden
-                is WrongPasswordException -> HttpStatusCode.BadRequest
-                is TooManyPasswordAttemptsException -> HttpStatusCode.Forbidden
-                is NotFoundException -> HttpStatusCode.NotFound
-                is ConflictException -> HttpStatusCode.Conflict
-                is ValidationException -> HttpStatusCode.BadRequest
-                is IllegalIdFormatException -> HttpStatusCode.BadRequest
-                is DatabaseException -> HttpStatusCode.InternalServerError
-                else -> HttpStatusCode.BadRequest
-            }
-            call.respond(status, ErrorResponse(cause.message, cause.code, (cause as? ConflictException)?.rows))
-        }
-        exception<BadRequestException> { call, cause ->
-            cause.printStackTrace()
-            call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid request body or parameters", "VAL_000"))
-        }
-        exception<ContentTransformationException> { call, cause ->
-            cause.printStackTrace()
-            call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid request body content", "VAL_000"))
-        }
-        exception<SerializationException> { call, cause ->
-            cause.printStackTrace()
-            call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid field values in request body", "VAL_000"))
-        }
-        exception<Throwable> { call, cause ->
-            // Log the actual cause for the developer (optional, usually handled by Ktor logging)
-            cause.printStackTrace()
-            // Mask internal details for any other unhandled exceptions
-            call.respond(
-                HttpStatusCode.InternalServerError,
-                ErrorResponse("An internal server error occurred", "-1")
-            )
-        }
-    }
+    installSquadifyApi(JwtConfig, realm = "club-manager")
 
     routing {
         // Unversioned -- infra/uptime checks hit this directly, no reason to make them know the API version.
@@ -215,50 +113,3 @@ fun Application.module() {
         }
     }
 }
-
-/**
- * The web client's CORS rules, kept apart from [module] so a test can check them without a database.
- * Every method a repository uses has to be listed: a browser refuses anything else at the preflight
- * and the app only sees "Failed to fetch" (PUT was missing, so saving a match report, a training plan,
- * session ratings or exercises failed on web only).
- *
- * In dev ([allowAnyLocalhost]) the web app is also accepted from localhost on any port: the webpack
- * dev server moves to the next free port (8082, ...) when 8081 is taken, and the browser then sent an
- * origin the server refused.
- */
-fun Application.configureCors(webAppBaseUrl: String, allowAnyLocalhost: Boolean = false) {
-    install(CORS) {
-        if (allowAnyLocalhost) {
-            allowOrigins { origin -> LOCALHOST_ORIGIN.matches(origin) }
-        }
-        val webAppUri = java.net.URI(webAppBaseUrl)
-        val webAppAuthority = webAppUri.authority
-            ?: throw IllegalStateException(
-                "WEBAPP_BASE_URL (\"${webAppBaseUrl}\") must be a full URL including a " +
-                    "scheme, e.g. \"https://example.com\" -- CORS can't determine the allowed origin's " +
-                    "host from a value with no scheme."
-            )
-        allowHost(webAppAuthority, schemes = listOf(webAppUri.scheme))
-        allowMethod(HttpMethod.Get)
-        allowMethod(HttpMethod.Post)
-        allowMethod(HttpMethod.Put)
-        allowMethod(HttpMethod.Patch)
-        allowMethod(HttpMethod.Delete)
-        allowHeader(HttpHeaders.Authorization)
-        allowHeader(HttpHeaders.ContentType)
-        allowNonSimpleContentTypes = true
-        // The browser hides any other header from the app's code unless it's exposed.
-        exposeHeader(SERVER_TIME_HEADER)
-    }
-}
-
-/** Every response carries the server's time ([SERVER_TIME_HEADER]), for the app's estimate of its clock. */
-fun Application.configureServerTime() {
-    install(ServerTimePlugin)
-}
-
-private val ServerTimePlugin = createApplicationPlugin("ServerTime") {
-    onCall { call -> call.response.header(SERVER_TIME_HEADER, kotlin.time.Clock.System.now().toEpochMilliseconds()) }
-}
-
-private val LOCALHOST_ORIGIN = Regex("""http://(localhost|127\.0\.0\.1)(:\d+)?""")

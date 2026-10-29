@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.security.JwtConfig
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.UnauthorizedException
@@ -31,7 +32,7 @@ class RefreshTokenUseCaseTest {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
     private val repo = FakeUserRepository()
-    private val useCase = RefreshTokenUseCase(repo, transactionManager)
+    private val useCase = RefreshTokenUseCase(repo, transactionManager, JwtConfig)
 
     private fun now() = System.currentTimeMillis()
     private fun instantIn(ms: Long) = Instant.fromEpochMilliseconds(now() + ms)
