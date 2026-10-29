@@ -1008,7 +1008,7 @@ The client's `table(query)` rules:
 - **Query:** a date range (inclusive; open for the whole season), the match type (as §4.6c's filter; trainings count whatever the type) and one team or none (the whole age group). Entering from a team preselects that team; from the age group, none.
 - **Rows:** with no team, the whole pool; with a team, the players who played for it this season (a start or 1+ minute), whatever the other filters.
 - **Totals** (games, goals, assists, minutes, cards, won/drawn/lost) count only the games the player played in the query.
-- **Games ranking:** the average of the player's rated games. **Training ranking:** the average of their training ratings, leaving Absent (0) out.
+- **Games ranking:** the average of the player's rated games. **Training ranking:** the average of their training ratings, Absent counting as 0 (8, 8 and Absent is (8 + 8 + 0) ÷ 3); sessions they weren't rated in don't count.
 - **Final ranking:** every game and training rating together, each counting once, divided by how many there are (not the average of the two averages).
 - **Sorting** by any column; players with no value (unrated) always go last, ties by name. The Player column sorts by name, A to Z first.
 

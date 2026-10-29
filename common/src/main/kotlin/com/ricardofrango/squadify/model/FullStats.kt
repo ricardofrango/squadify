@@ -143,8 +143,9 @@ fun FullStatsData.table(query: FullStatsQuery, timeZone: TimeZone = TimeZone.cur
     }
 
     val linesByPlayer = lines.filter { it.played && it.matchId in matchesInQuery }.groupBy { it.playerId }
-    // An absent player (0) is left out of the training average, as everywhere else.
-    val trainingByPlayer = trainingsInQuery.flatMap { it.ratings }.filter { it.rating > 0.0 }.groupBy({ it.playerId }, { it.rating })
+    // A session the player missed (Absent, 0) counts as a 0 in their averages: 8, 8 and Absent is 5.3,
+    // so missing training lowers the ranking. Only sessions the player was rated in count.
+    val trainingByPlayer = trainingsInQuery.flatMap { it.ratings }.groupBy({ it.playerId }, { it.rating })
 
     val rows = members.map { player ->
         val played = linesByPlayer[player.id].orEmpty()
