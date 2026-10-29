@@ -1,6 +1,6 @@
 services:
   # Local dev database, matching ServerConfig.kt's DEV defaults (host=localhost, port=5432,
-  # user=postgres, password=postgres, db=squadify_dev) so `./gradlew :server:run` works with no
+  # user=postgres, password=postgres, db=squadify_dev) so `./gradlew :server:clubs:run` works with no
   # further setup beyond `docker compose up -d`. Not used in production -- see README/
   # TECHNICAL_DECISIONS.md §3 for the real deployment's connection details (DATABASE_HOST/
   # DATABASE_PASSWORD etc., required explicitly when APP_ENV=production).

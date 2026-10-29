@@ -16,7 +16,7 @@ This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop (JVM
   The most important subfolder is [commonMain](./core/src/commonMain/kotlin). If preferred, you
   can add code to the platform-specific folders here too.
 
-* [/server](./server/src/main/kotlin) is for the Ktor server application.
+* [/server](./server/clubs/src/main/kotlin) is for the Ktor server application.
 
 ### Running the apps
 
@@ -27,9 +27,9 @@ Use the run configurations provided by the run widget in your IDE's toolbar. You
   - Hot reload: `./gradlew :app:desktopApp:hotRun --auto`
   - Standard run: `./gradlew :app:desktopApp:run`
 - Server, in two terminals:
-  - `./gradlew :server:run` runs the server (port 8080, or `SERVER_PORT`). Stop it with Ctrl+C.
-  - `./gradlew -t :server:classes` compiles on every save; the running server reloads the new code by itself (see `TECHNICAL_DECISIONS.md` §59).
-  - Don't use `./gradlew -t :server:run`: it never reloads, and it can leave a server holding port 8080 after Ctrl+C. To free the port: `lsof -ti tcp:8080 | xargs kill`.
+  - `./gradlew :server:clubs:run` runs the server (port 8080, or `SERVER_PORT`). Stop it with Ctrl+C.
+  - `./gradlew -t :server:clubs:classes` compiles on every save; the running server reloads the new code by itself (see `TECHNICAL_DECISIONS.md` §59).
+  - Don't use `./gradlew -t :server:clubs:run`: it never reloads, and it can leave a server holding port 8080 after Ctrl+C. To free the port: `lsof -ti tcp:8080 | xargs kill`.
 - Web app:
   - Wasm target (faster, modern browsers): `./gradlew :app:webApp:wasmJsBrowserDevelopmentRun`
   - JS target (slower, supports older browsers): `./gradlew :app:webApp:jsBrowserDevelopmentRun`
@@ -41,7 +41,7 @@ Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
 
 - Android tests: `./gradlew :app:shared:testAndroidHostTest`
 - Desktop tests: `./gradlew :app:shared:jvmTest`
-- Server tests: `./gradlew :server:test`
+- Server tests: `./gradlew :server:clubs:test`
 - Web tests:
   - Wasm target: `./gradlew :app:shared:wasmJsTest`
   - JS target: `./gradlew :app:shared:jsTest`

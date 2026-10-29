@@ -15,7 +15,7 @@ application {
 }
 
 // Local runs only (not the deployed jar): Ktor's development mode, so the server reloads its code when
-// `./gradlew -t :server:classes` recompiles it. A `-t :server:run` can't do that -- Gradle waits for
+// `./gradlew -t :server:clubs:classes` recompiles it. A `-t :server:clubs:run` can't do that -- Gradle waits for
 // the build to finish before watching, and `run` never finishes while the server is up.
 tasks.named<JavaExec>("run") {
     jvmArgs("-Dio.ktor.development=true")

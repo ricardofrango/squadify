@@ -22,7 +22,7 @@ We use **Exposed** as our SQL ORM.
 - **Version 1.4.0+**: We use the latest stable version (using the `v1` package structure).
 - **DSL Approach**: We prefer the Type-safe DSL for building queries.
 - **Aggregation Efficiency**: When fetching lists that depend on multiple conditions (e.g., getting clubs where a user is either a member OR a parent), we use the `exists` operator with subqueries to perform the logic in a single SQL command. This avoids multiple round-trips to the database and improves performance.
-- **PostgreSQL, dev and production alike**: H2 has been removed entirely -- both environments now connect to a real PostgreSQL instance via HikariCP, differing only in *which* database they point at. `ServerConfig.kt` resolves the connection from environment variables (`DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME`): `DATABASE_HOST`/`DATABASE_PASSWORD` are required explicitly when `APP_ENV=production` (the server refuses to start rather than fall back to a local default), while `DATABASE_NAME` defaults per environment -- `squadify_dev` locally, `squadify_production` in production -- so the two never collide even against the same Postgres server. `docker-compose.yml` at the repo root spins up a local Postgres matching the dev defaults (`docker compose up -d`), so `./gradlew :server:run` still works with no further setup.
+- **PostgreSQL, dev and production alike**: H2 has been removed entirely -- both environments now connect to a real PostgreSQL instance via HikariCP, differing only in *which* database they point at. `ServerConfig.kt` resolves the connection from environment variables (`DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME`): `DATABASE_HOST`/`DATABASE_PASSWORD` are required explicitly when `APP_ENV=production` (the server refuses to start rather than fall back to a local default), while `DATABASE_NAME` defaults per environment -- `squadify_dev` locally, `squadify_production` in production -- so the two never collide even against the same Postgres server. `docker-compose.yml` at the repo root spins up a local Postgres matching the dev defaults (`docker compose up -d`), so `./gradlew :server:clubs:run` still works with no further setup.
 - **Multi-Tenancy**: Every club-specific table contains a `clubId` to ensure data isolation.
 - **Atomic Transactions**: We use a `TransactionManager` service in the Domain layer to orchestrate complex operations spanning multiple repositories. This ensures that a Use Case is either fully committed or completely rolled back in case of failure, maintaining data integrity (e.g., creating a player and their invitations must be an atomic unit).
 - **Concurrency**: All database operations are wrapped in a `dbQuery` utility using `suspendTransaction` to ensure they don't block the Ktor threads.
@@ -206,8 +206,12 @@ sequenceDiagram
 ```
 
 ## 9. Project Structure (KMP)
-- `:server`: Ktor backend. Depends on `:common` directly, not `:core`. Owns `SquadifyException` and its
-  subtypes directly (`server/.../exception/SquadifyException.kt`) -- these are never used client-side.
+- `:server:clubs` (`server/clubs`, was `:server` until 2026-10-29): the Squadify for Clubs Ktor backend.
+  Depends on `:common` and `:server:core` directly, not `:core`.
+- `:server:core` (`server/core`): the game code the clubs and coach servers share (§72): game use cases,
+  repository and service interfaces, stats, `AccessPolicy`, and `SquadifyException` with its subtypes
+  (`server/core/.../exception/SquadifyException.kt`) -- these are never used client-side.
+- `server/coach` (planned, §72): the Squadify for Coaches backend.
 - `:common`: Plain-JVM module (no KMP targets) holding the model source files shared with the client
   apps (request/response DTOs, etc). Exists so building `:server` never needs to configure a Kotlin
   Multiplatform target (Android, iOS, JS, Wasm) -- Gradle fully configures a project's build script for
@@ -357,7 +361,7 @@ existing:
 ## 13. Web Client Deployment: Docker + nginx
 
 `app/webApp/Dockerfile` builds and serves the web client, deployed as its own Railway service alongside
-`:server` (see `server/Dockerfile`). Build context is the repo root, same reasoning as `:server`'s
+`:server` (see `server/clubs/Dockerfile`). Build context is the repo root, same reasoning as `:server`'s
 Dockerfile: `settings.gradle.kts`'s `include(...)` requires every listed project directory to physically
 exist in the build context (verified -- omitting one fails with "Configuring project ':x' without an
 existing directory is not allowed"), regardless of `--configure-on-demand`.
@@ -570,7 +574,7 @@ Split across two mechanisms, deliberately not funneled entirely through GitHub A
   is connected to this repo's `develop` branch with auto-deploy on, and Railway rebuilds/redeploys on
   every push using the same Dockerfiles already in the repo. Simpler and more reliable than reimplementing
   what Railway already does natively. Each service's **Watch Paths** setting (also Settings -> Source)
-  should be scoped to what it actually depends on (server: `server/**`, `common/**`, root build files;
+  should be scoped to what it actually depends on (server: `server/clubs/**`, `server/core/**`, `common/**`, root build files, with its Dockerfile path `server/clubs/Dockerfile` (until 2026-10-29 `server/**` and `server/Dockerfile`);
   web: `app/webApp/**`, `app/shared/**`, `core/**`, root build files) so a change to the *other* client
   doesn't trigger an unnecessary redeploy of a service nothing in it actually changed.
 - **Android -> Firebase App Distribution, staging**: `.github/workflows/deploy-staging.yml`, triggered on
@@ -578,7 +582,7 @@ Split across two mechanisms, deliberately not funneled entirely through GitHub A
   (itself, `app/shared`, `core`, the version catalog/wrapper/root build files) -- added after the
   developer noticed the workflow was rebuilding and redistributing an unchanged APK on every push
   regardless of whether anything Android-relevant had changed. Railway has nothing to do with Android
-  builds, so this genuinely needs a real CI job -- runs `:server:test` as a gate, then
+  builds, so this genuinely needs a real CI job -- runs `:server:clubs:test` as a gate, then
   `android-actions/setup-android` (GitHub's own runners don't necessarily have the exact
   `compileSdk`/`build-tools` versions this project pins) and
   `./gradlew :app:androidApp:assembleStagingRelease :app:androidApp:appDistributionUploadStagingRelease`.
@@ -871,7 +875,7 @@ the actual FCM call is real): registered a token, had an admin add that user to 
 second pass, as staff to an age group), and confirmed the log shows the token was found (`fcm_tokens`
 query) and the push was attempted (`skipping push to 1 device(s)`); repeated both with a user who has
 no registered token and confirmed no push log line appears at all for them (only the email skip).
-`:server:test` passes, including a `FirebaseAdminPushNotificationServiceTest` mirroring
+`:server:clubs:test` passes, including a `FirebaseAdminPushNotificationServiceTest` mirroring
 `ResendEmailServiceTest`'s "must never throw with no credential configured" contract test, and an
 updated `AddStaffToAgeGroupUseCaseTest` covering the new constructor shape.
 
@@ -965,7 +969,7 @@ two separate passes:
   push attempt), then cancelled it (logged one push attempt) -- exactly 3 attempts across 4 API calls,
   matching the expected SCHEDULED/RESCHEDULED/CANCELLED firings precisely.
 
-`:server:test` passes, including `NotifyMatchEventUseCaseTest` (happy path per event -- all eight now,
+`:server:clubs:test` passes, including `NotifyMatchEventUseCaseTest` (happy path per event -- all eight now,
 including the three schedule ones -- no tokens found sends nothing, nonexistent match / a repository
 throwing both still never propagate), `FirebaseAdminPushNotificationServiceTest` cases for every method
 (plus one exercising the >500-token chunking path), a new `CreateMatchUseCaseTest` (this use case had
@@ -1012,7 +1016,7 @@ genuine `200` from `fcm.googleapis.com` -- both checks used a throwaway test cla
 after, never committed.
 
 **`ServerConfig.firebaseServiceAccountJson` gained a local-dev file fallback.** Requiring
-`FIREBASE_SERVICE_ACCOUNT_JSON` exported in every shell before `./gradlew :server:run` works was
+`FIREBASE_SERVICE_ACCOUNT_JSON` exported in every shell before `./gradlew :server:clubs:run` works was
 explicitly rejected by the developer as a permanent requirement -- the fix needed to be in code, not a
 runtime habit. Mirrors the exact pattern `app/androidApp/build.gradle.kts` already uses for the release
 keystore (`keystorePropertiesFile.exists()` -> use it, else fall back): when the env var isn't set,
@@ -1021,7 +1025,7 @@ implementation of this used a single repo-root-relative path and silently never 
 launch method it was actually for -- Gradle's `application`/`test` tasks default their JVM's working
 directory to the `server/` *module* folder, not the repo root, even though `./gradlew` itself is
 conventionally invoked from the root (confirmed empirically: `File(".").absolutePath` printed
-`.../server` under both `:server:run` and `:server:test`). Fixed by trying `../firebase-service-account.json`
+`.../server` under both `:server:clubs:run` and `:server:clubs:test`). Fixed by trying `../firebase-service-account.json`
 first (what actually resolves under Gradle's real working directory) with the bare repo-root-relative
 form kept as a second candidate for any other invocation method. The env var still takes priority over
 both when set, since Railway (staging/production) has no reliable place to mount a file at all -- this
@@ -1057,7 +1061,7 @@ endpoint) and then a batch of two more (batch endpoint) under the same age group
 two push attempts were logged -- one per API call, not three (one per team) -- each correctly gathering
 every club member's tokens (including the admin's own accumulated tokens from earlier test sessions;
 Firebase rejected those specific ones as invalid strings, logged as a failure count, not an exception,
-matching the existing "log and continue" contract). `:server:test` passes, including new
+matching the existing "log and continue" contract). `:server:clubs:test` passes, including new
 `CreateTeamUseCaseTest`/`CreateTeamsUseCaseTest` cases asserting the notification fires with the right
 team name(s)/age-group/club name, and that no club member having a token sends nothing.
 
@@ -1200,7 +1204,7 @@ whatever changed on the match while its own screen was open and the club socket 
 to the Matches tab -- `viewModelScope` being cleared isn't the right cancellation trigger here, tab-leave
 is, so the job needs to be cancellable on its own.
 
-**Verified**: `:server:compileKotlin`, `:server:test` (full suite, including new/updated coverage for
+**Verified**: `:server:compileKotlin`, `:server:clubs:test` (full suite, including new/updated coverage for
 `GetClubMatchesUpdatesUseCase` and the publish call in each of the seven modified use cases: the original
 five plus `AddMatchEventUseCase`/`DeleteMatchEventUseCase` for the goal-score follow-up),
 `:app:shared:compileKotlinJvm`, `:app:androidApp:compileDevDebugKotlin` all clean. Route existence and
@@ -1306,7 +1310,7 @@ and the resume-time shift math depends on the server's own `now()` for both the 
 duration calculation, so trusting this device's clock for either would reintroduce exactly the kind of
 disagreement-between-screens bug this whole section started with.
 
-**Verified**: `:server:test` (full suite, including new coverage for `PauseMatchUseCase`/
+**Verified**: `:server:clubs:test` (full suite, including new coverage for `PauseMatchUseCase`/
 `ResumeMatchUseCase` -- permission gate, LIVE-only guard, already-paused/not-paused guards, and the
 first-half-vs-second-half branch of which timestamp shifts on resume), `:app:shared:compileKotlinJvm`,
 `:app:androidApp:compileDevDebugKotlin` all clean. **Not verified**: no real-device pass confirming pause/
@@ -1344,7 +1348,7 @@ verified").
    `LiveMatchViewModel.onSetMinute` refetches `MatchDetails` afterward, same as `onPauseClock`/
    `onResumeClock` and for the same reason -- the server is the sole time authority.
 
-**Verified (addendum)**: `:server:test` (including new `SetMatchMinuteUseCaseTest` coverage: the
+**Verified (addendum)**: `:server:clubs:test` (including new `SetMatchMinuteUseCaseTest` coverage: the
 first-half/second-half shift-target branches, the paused-uses-frozen-instant case, the LIVE-only guard,
 and rejecting a negative minute), `:app:shared:compileKotlinJvm`, `:app:androidApp:compileDevDebugKotlin`
 all clean. **Not verified**: same real-device gap as above, now also covering whether a manually-set
@@ -1353,7 +1357,7 @@ minute actually renders correctly and consistently across both screens and a sec
 ## 30. Automatic Version Naming on Deploy
 
 **Problem**: every merge to `develop` triggers a new staging deploy (`deploy-staging.yml`), but
-`app/androidApp/build.gradle.kts`'s `versionCode`/`versionName` and `server/build.gradle.kts`'s `version`
+`app/androidApp/build.gradle.kts`'s `versionCode`/`versionName` and `server/clubs/build.gradle.kts`'s `version`
 were plain hardcoded literals (`2`/`"1.1.0"`/`"1.1.0"` respectively), each edited by hand independently
 and never bumped by CI. Every staging build looked identical to a tester (same `versionName`, same
 `versionCode`), with no way to tell two different deploys apart from the installed app alone. iOS
@@ -1371,7 +1375,7 @@ fundamentally two Gradle properties and one CI flag:
   (`1.1.0` today) -- a deliberate, manual bump for when something actually warrants calling itself a new
   version, not tied to every merge. Root `gradle.properties` entries are automatically visible as project
   properties to every subproject, so `app/androidApp/build.gradle.kts` (`versionName`) and
-  `server/build.gradle.kts` (`version`) both read the same value via `project.findProperty("VERSION_NAME")`
+  `server/clubs/build.gradle.kts` (`version`) both read the same value via `project.findProperty("VERSION_NAME")`
   instead of each carrying its own independent literal that can silently drift from the other.
 - **Auto-incrementing build number**: `deploy-staging.yml`'s Gradle invocation now passes
   `-PversionCode=${{ github.run_number }}` -- the workflow's own run number, which GitHub Actions
@@ -1391,7 +1395,7 @@ fundamentally two Gradle properties and one CI flag:
   feature/release boundaries, which is more churn than the problem warranted. The build-number suffix
   achieves the actual goal (distinguishing deploys) without touching the deliberate semantic version at all.
 
-**Server**: `version` in `server/build.gradle.kts` now reads from the same `VERSION_NAME`, so it can't
+**Server**: `version` in `server/clubs/build.gradle.kts` now reads from the same `VERSION_NAME`, so it can't
 independently drift from Android's, but this is currently still just the Gradle module/artifact version
 (e.g. the fat-jar's filename) -- not exposed anywhere at runtime (no `/version` endpoint). Unlike Android,
 Railway's staging/production deploys aren't GitHub-Actions-driven at all (each Railway service auto-deploys
@@ -1464,7 +1468,7 @@ were missing one:
   accepting both independently; these three use cases needed the explicit check since their `clubId`
   comes from elsewhere (the request body / route) for reasons unrelated to the age group.
 
-**Verified**: `:server:test` (full suite, including new `CreatePlayersUseCaseTest`/
+**Verified**: `:server:clubs:test` (full suite, including new `CreatePlayersUseCaseTest`/
 `CreateOpponentUseCaseTest`/`GetOpponentsUseCaseTest` -- age-group-scoped coach passes, wrong-age-group
 coach denied, no-age-group-context denied for a non-coordinator, cross-club age group rejected, not-found
 age group rejected, coordinator's club-wide path unaffected), `:app:shared:compileKotlinJvm`,
@@ -1517,7 +1521,7 @@ so it's rendered as a static, inert label, the same reasoning applied to the sel
 "Change email" affordance in a parallel change. The mockup's "Reset demo" was left out entirely
 (prototype-only convenience, no real counterpart).
 
-**Verified**: `:server:test` (full suite, including new `UpdateClubUseCaseTest` cases — blank name
+**Verified**: `:server:clubs:test` (full suite, including new `UpdateClubUseCaseTest` cases — blank name
 rejected before any repository call, coordinator can set `stadiumLocation`), `:app:shared:compileKotlinJvm`,
 `:app:androidApp:compileDevDebugKotlin` all clean. **Not verified**: no real-device pass; the Permissions
 tab and the Create Match auto-fill are explicitly out of scope for this change.
@@ -1554,7 +1558,7 @@ non-interactive label; it works now (§49); email itself is
 shown read-only with a "Verified" badge, since `LoginUseCase` denies non-`ACTIVE` accounts outright, so
 every session that can reach this screen is, by construction, already on an active, verified account.
 
-**Verified**: `:server:test` (full suite, including new `UpdateProfileUseCaseTest`/
+**Verified**: `:server:clubs:test` (full suite, including new `UpdateProfileUseCaseTest`/
 `ChangePasswordUseCaseTest` -- happy path, blank-field validation, wrong current password rejected, short
 new password rejected without even querying the user), `:app:shared:compileKotlinJvm`,
 `:app:androidApp:compileDevDebugKotlin` all clean. **Not verified**: no real-device pass, and "Change
@@ -1571,11 +1575,11 @@ no rollback, and "might lead to unpredictable state in the database if a failure
 can't do a drop or rename -- `Application.kt`'s `age_groups.birth_year → start_year/end_year` cleanup
 needed a hand-written, guarded `exec()` block instead (see below).
 
-**Adopted Flyway**, already present in the version catalog and `server/build.gradle.kts`
+**Adopted Flyway**, already present in the version catalog and `server/clubs/build.gradle.kts`
 (`flyway-core` + `flyway-database-postgresql`, both unused until now) -- no new dependency needed, just
 wiring it up:
 
-- **`server/src/main/resources/db/migration/V1__baseline.sql`** -- the schema as it stood right before
+- **`server/clubs/src/main/resources/db/migration/V1__baseline.sql`** -- the schema as it stood right before
   this change, for every one of the 17 tables. Not hand-transcribed from `Tables.kt` (too easy to get a
   type/default/nullability subtly wrong): generated by pointing the *existing* boot path
   (`SchemaUtils.createMissingTablesAndColumns`, briefly, one last time) at a genuinely empty local
@@ -1596,7 +1600,7 @@ wiring it up:
   executes `V1__baseline.sql` end-to-end. Every migration numbered above V1 always actually runs,
   everywhere, once written.
 - **Verified both paths directly**, not just by reasoning about Flyway's docs: ran the server (`./gradlew
-  :server:run` with `DATABASE_NAME` overridden) against (a) a brand-new empty database -- Flyway created
+  :server:clubs:run` with `DATABASE_NAME` overridden) against (a) a brand-new empty database -- Flyway created
   `flyway_schema_history`, ran V1 for real, all 17 tables + FKs appeared, history row `version=1,
   description=baseline`; (b) a database pre-loaded with `V1__baseline.sql` directly (simulating an
   existing dev/staging/production database untouched by this change) -- Flyway baselined at version 1
@@ -1618,12 +1622,12 @@ wiring it up:
 **Discovered, not fixed, while investigating this**: on this machine, `localhost:5432` is actually served
 by a native Homebrew Postgres (`postgres:1067`, bound to `127.0.0.1`/`::1`), not the `docker-compose.yml`
 Postgres container -- a more specific loopback bind wins over Docker's wildcard bind for the same port.
-Both have their own separate `squadify_dev` database. `./gradlew :server:run` has therefore been talking
+Both have their own separate `squadify_dev` database. `./gradlew :server:clubs:run` has therefore been talking
 to the native instance all along; the Docker container (and its `squadify_postgres_data` volume) may be
 sitting entirely unused. Not touched as part of this change -- worth the developer's own look before
 assuming either one is "the" local dev database.
 
-**Verified**: `:server:test` (unaffected -- no test touches a real database), plus the three live-boot
+**Verified**: `:server:clubs:test` (unaffected -- no test touches a real database), plus the three live-boot
 scenarios above against real local Postgres databases (not just unit tests). **Not verified**: an actual
 staging/production boot after this change ships (can't be verified from this repo/session).
 
@@ -1729,7 +1733,7 @@ case already does; the discipline this reinforces is that transaction-boundary c
 only a real device/DB pass (or an integration test against a real database, which this project doesn't
 have) can actually verify -- not something to assume from a passing mocked test suite.
 
-**Verified**: `:server:test` (full suite, including new `CheckUserPermissionUseCaseTest` cases for the
+**Verified**: `:server:clubs:test` (full suite, including new `CheckUserPermissionUseCaseTest` cases for the
 configurable-permission resolution -- default fallback, explicit override, coordinator-only override
 correctly denying a coach who'd otherwise pass, coordinator bypass never even querying the repository --
 plus new `UpdatePlayerUseCaseTest`/`UpdateOpponentUseCaseTest`/`GetClubPermissionsUseCaseTest`/
@@ -1857,7 +1861,7 @@ never shown, only this one static string -- while finally telling the user *what
 was. Wired into every catch block found doing this across the app (both load-failure and submit-failure
 paths), not just the ones the developer happened to hit live-testing.
 
-**Verified**: `:server:test` (full suite, including three new `GetAgeGroupDetailsUseCaseTest` cases that
+**Verified**: `:server:clubs:test` (full suite, including three new `GetAgeGroupDetailsUseCaseTest` cases that
 directly demonstrate the old bug -- a coach clearing `canManageMatch`/`canAssignPlayersToAgeGroup` but
 correctly still failing `canManageAgeGroup`, which the old single-flag design couldn't express), plus
 `GetMatchDetailsUseCaseTest`/`GetTeamDetailsUseCaseTest`/`GetPlayerUseCaseTest` updated for the renamed/
@@ -1926,7 +1930,7 @@ group afterward, inside the Create Teams form, so there's no single age group to
 `CREATE_TEAM` against in advance; a coach still reaches the now-open path through their own age group's
 detail screen, which is the concrete workflow that was reported broken.
 
-**Verified**: `:server:test` (full suite, including new `CreateTeamUseCaseTest`/`CreateTeamsUseCaseTest`
+**Verified**: `:server:clubs:test` (full suite, including new `CreateTeamUseCaseTest`/`CreateTeamsUseCaseTest`
 cases showing an age-group coach now succeeding and an age-group staff member still correctly denied by
 default, plus updated `GetAgeGroupDetailsUseCaseTest` cases distinguishing `canAddStaff` from
 `canCreateTeam` for a coach), `:app:shared:compileKotlinJvm`, `:app:androidApp:compileDevDebugKotlin` all
@@ -1961,7 +1965,7 @@ merge #78 vs. develop's #90+) at the time, and landing a change on `main` first 
 of `develop` on this one commit, backwards from how every other change in this project ships (see the
 branch-strategy note this repo's memory already carries).
 
-**Verified**: `:server:test` full suite green, including the updated `JwtConfigTest`. **Not verified**:
+**Verified**: `:server:clubs:test` full suite green, including the updated `JwtConfigTest`. **Not verified**:
 a live device pass confirming a session actually survives 48 hours without being force-refreshed by some
 other path first (e.g. app reinstall, manual logout).
 
@@ -2059,7 +2063,7 @@ consistent with each other, but each keeps its own reason to exist -- Splash pro
 at cold start so the very first authenticated request of a session doesn't need to detour through a 401
 first, while this interceptor is the safety net for a session that outlives that single refresh.
 
-**Verified**: `:server:test`, `:app:shared:jvmTest` (5 new tests, including the two bugs above caught and
+**Verified**: `:server:clubs:test`, `:app:shared:jvmTest` (5 new tests, including the two bugs above caught and
 fixed), `:app:shared:compileKotlinJvm`/`compileKotlinJs`/`compileKotlinWasmJs`/`compileKotlinIosArm64`,
 `:app:androidApp:compileDevDebugKotlin` all clean. **Not verified**: a live device pass watching an actual
 session survive a real access-token expiry mid-match without the user noticing.
@@ -2106,7 +2110,7 @@ vacuous by temporarily commenting out the `clearAuthTokens()` call under test (v
 edit) -- the test failed as expected (`BUILD FAILED`, wrong `Authorization` header) -- then restoring it
 and confirming green again.
 
-**Verified**: `:app:shared:jvmTest` (6 tests, including the new regression test), `:server:test`,
+**Verified**: `:app:shared:jvmTest` (6 tests, including the new regression test), `:server:clubs:test`,
 `:app:shared:compileKotlinJvm`/`compileKotlinJs`/`compileKotlinWasmJs`/`compileKotlinIosArm64`,
 `:app:androidApp:compileDevDebugKotlin` all clean. **Not verified**: a live device pass on staging
 re-running the exact reported repro (log out, log in as a different user, open Account without clearing
@@ -2283,7 +2287,7 @@ Per the developer: no "player of the match", and no attendance.
 **Not built from the design:** remembering the read-view sort per user (it resets to "by rating" on each visit), and autosave (the design lists it as later).
 
 **Verified:**
-- **Unit tests:** `:server:test`, including the new calculator, report and home tests.
+- **Unit tests:** `:server:clubs:test`, including the new calculator, report and home tests.
 - **End to end:** a throwaway test (not committed) ran the real app module on a fresh Postgres database, with `V1`–`V6` applied, through the real HTTP routes. It covered:
   - kickoff, goals, "Set minute" corrections
   - a half-time substitution, second half, full time
@@ -2816,7 +2820,7 @@ Per the developer, 2026-10-22: a match notification opens the match, an age grou
 
 Per the developer, 2026-10-21: club logos first (opponents later), stored on Railway so everything stays in one place. Opponent logos, players' photos and users' own photos followed on 2026-10-23.
 
-- **Storage:** an `ImageStorage` interface with three implementations. `S3ImageStorage` talks to a **Railway Storage Bucket** (S3-compatible, private, free egress) through the AWS SDK v2 with the JDK's HTTP client (the Apache and Netty clients are excluded). `LocalImageStorage` keeps files under `server/uploads/` (gitignored) in dev. `UnavailableImageStorage` is used in production without a bucket, and uploads are refused: a Railway container's disk is wiped on every deploy, so silently writing there would lose logos.
+- **Storage:** an `ImageStorage` interface with three implementations. `S3ImageStorage` talks to a **Railway Storage Bucket** (S3-compatible, private, free egress) through the AWS SDK v2 with the JDK's HTTP client (the Apache and Netty clients are excluded). `LocalImageStorage` keeps files under `server/clubs/uploads/` (gitignored) in dev. `UnavailableImageStorage` is used in production without a bucket, and uploads are refused: a Railway container's disk is wiped on every deploy, so silently writing there would lose logos.
 - **Configuration:** `STORAGE_BUCKET`, `STORAGE_ENDPOINT` (default `https://storage.railway.app`), `STORAGE_REGION` (default `auto`), `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY`. On Railway they're mapped from the bucket's reference variables (`${{Bucket.BUCKET}}` and so on). One bucket per environment, like the databases.
 - **Paths:** storage key `clubs/{clubId}/logo/{imageId}.png`; the same path under the API is what `clubs.logo_url` holds (no migration: the column already existed). Grouped by club so later images (player photos, opponent logos) get their own folders.
 - **Replacing:** each upload gets a **new image id**, so a path never changes content and apps can cache an image for good (`Cache-Control: immutable`), with no stale logo after a change. The **old file is deleted before the new one is stored** (developer's call), so storage doesn't grow. The image is validated and resized first, so a bad file never costs the current logo. If storing the new one fails, `logo_url` is cleared rather than left pointing at a deleted file.
@@ -2890,8 +2894,8 @@ Per the developer, 2026-10-21: a club can set its own colours. It's both colours
 
 Per the developer, 2026-10-23: the local server kept running old code until it was stopped and started again, and a forgotten `-t` run kept holding port 8080.
 
-- **Why `-t :server:run` never reloaded.** Gradle's continuous mode only looks for changes once the build has finished, and `run` doesn't finish while the server is up. It also leaves the server running after Ctrl+C: the server is a child of the Gradle daemon, not of the terminal.
-- **Now:** two terminals, `./gradlew :server:run` (the server) and `./gradlew -t :server:classes` (compiles on every save). The server reloads its own code on the next request after a compile, in a fraction of a second. Stop it with Ctrl+C, like any process.
+- **Why `-t :server:clubs:run` never reloaded.** Gradle's continuous mode only looks for changes once the build has finished, and `run` doesn't finish while the server is up. It also leaves the server running after Ctrl+C: the server is a child of the Gradle daemon, not of the terminal.
+- **Now:** two terminals, `./gradlew :server:clubs:run` (the server) and `./gradlew -t :server:clubs:classes` (compiles on every save). The server reloads its own code on the next request after a compile, in a fraction of a second. Stop it with Ctrl+C, like any process.
 - **How:**
   - The `run` task sets `io.ktor.development=true`, so only local runs reload. The deployed server doesn't use that task, so it doesn't watch anything.
   - The server watches the compiled `classes` and `resources`.
@@ -3151,7 +3155,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
 
 **The server split:**
 - **`:server:core`**, a shared module: the game use cases (live sync, events, lineup, minutes, the record after the game §70, stats), `MatchPlayerStatsCalculator`, `LiveMatchBus`, `ClubMatchesBus`, `TransactionManager`, the repository interfaces, and the login code (password hashing, tokens, refresh). The models stay in `common`.
-- **`:server:clubs`** (today's `:server`) and **`:server:coach`**: each with its own routes, Koin setup, migrations and deploy.
+- **`:server:clubs`** (`server/clubs`, renamed from `:server` in step 2) and **`:server:coach`**: each with its own routes, Koin setup, migrations and deploy.
 - **Permissions behind an interface:** today 84 use cases call `CheckUserPermissionUseCase` with club roles and configurable permissions (e.g. `MANAGE_LIVE_MATCH` in `AddMatchEventUseCase`). That call becomes an `AccessPolicy`, provided by each server:
     - **clubs:** today's rules, unchanged;
     - **coach:** a member of the space (all staff, no roles) has full access, limited only by the space's plan: stats from Basic, staff following the game live from Pro, and the limits on age groups and on members per age group (REQUIREMENTS §5c). Over a limit after going down a plan, the earliest added members and the earliest created age groups keep working; the rest is kept but refused until the plan allows it.
@@ -3163,11 +3167,11 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
     - **On it now:** the 22 game use cases: creating, editing and deleting matches, call-ups, the live game (start, pause, resume, minute, status, events, pitch), the record and report, match details, the live feeds (score, events, the match's and the club's updates), and the stats (team and age group season records, full stats, a player's season stats). Full stats' ratings gate is `requireSeeRatings` (it was the training rating check, the same roles).
     - **Not on it:** listing a club's matches (`GetMatchesUseCase`, which narrows what each person sees by their club role), and every club-only use case. They keep `CheckUserPermissionUseCase`.
     - **Where:** the interface is in `:server:core` (step 2, below); `ClubAccessPolicy` stays in the clubs server.
-- **`:server:core`, as built** (2026-10-29, step 2): `server/core`, a plain JVM module (`api` on `:common`, coroutines and datetime; bcrypt and logback inside), with no Ktor, no Exposed and no club roles. The clubs server (`:server`) depends on it with `api`. Files kept their packages, so no import changed.
+- **`:server:core`, as built** (2026-10-29, step 2): `server/core`, a plain JVM module (`api` on `:common`, coroutines and datetime; bcrypt and logback inside), with no Ktor, no Exposed and no club roles. The clubs server (`:server:clubs`) depends on it with `api`. Files kept their packages, so no import changed.
     - **In it:** the 24 game use cases (the 22 on the `AccessPolicy` plus `NotifyMatchEventUseCase`, the live game's pushes, and `MatchTeamSize.kt`); every repository interface and every service interface (`TransactionManager`, `LiveMatchBus`, `ClubMatchesBus`, `PushNotificationService`, `ImageStorage`, `EmailService`, `CurrentPasswordGuard`); `MatchPlayerStatsCalculator`; the exceptions; `AccessPolicy`; and the helpers they need: `ImagePaths`, `PublicImageLinks` (a goal push's images) and `ratingsOpen` (full stats counts ended trainings).
     - **Training in the interfaces:** full stats reads training ratings, so the training repository interfaces are in core too. The coach server, which has no training, will return none.
     - **Still in the clubs server:** the Exposed repositories and `Tables.kt`, the routes and Koin setup, `CheckUserPermissionUseCase` and `ClubAccessPolicy`, the login and account use cases, and every club-only use case. The use case tests stay there too, since they run the real club permission check through `ClubAccessPolicy`.
-    - **Not renamed yet:** the clubs server is still `:server` (`server/src`), not `:server:clubs`. Renaming it now would change the Dockerfile path and Railway's settings for nothing; it's done with the coach server (step 3), when Railway changes anyway. `server/**` already covers `server/core`, so the clubs server redeploys on a core change, as it should.
+    - **The rename:** today's server moved to `server/clubs` as `:server:clubs` in the same step (the developer, 2026-10-29), so the coach server can sit beside it as `server/coach`. `:server` is now only the folder that holds them. Its Dockerfile is `server/clubs/Dockerfile`, building `:server:clubs:buildFatJar` into `clubs-all.jar`; CI runs `:server:core:test :server:clubs:test`; locally it's `./gradlew :server:clubs:run`, with dev images in `server/clubs/uploads`. Railway's server service needs its Dockerfile path and Watch Paths updated to match (§17).
     - **Next:** the coach server (`server/coach`) needs the game tables and their Exposed repositories shared too, and the login code; those move with it, together with the schema test.
 
 **The app split:**
