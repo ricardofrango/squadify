@@ -45,6 +45,7 @@ Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
 - Android tests: `./gradlew :app:shared:testAndroidHostTest`
 - Desktop tests: `./gradlew :app:shared:jvmTest`
 - Server tests: `./gradlew :server:core:test :server:data:test :server:web:test :server:clubs:test :server:coach:test`
+  - The coach server's tests run on their own database, `squadify_coach_test`, dropped when they finish, so `squadify_coach_dev` keeps only what you create.
 - Web tests:
   - Wasm target: `./gradlew :app:shared:wasmJsTest`
   - JS target: `./gradlew :app:shared:jsTest`
