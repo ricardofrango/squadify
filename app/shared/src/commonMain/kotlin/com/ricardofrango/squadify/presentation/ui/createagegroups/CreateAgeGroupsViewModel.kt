@@ -1,5 +1,11 @@
 package com.ricardofrango.squadify.presentation.ui.createagegroups
 
+import com.ricardofrango.squadify.domain.SeasonDateDefaults
+import com.ricardofrango.squadify.domain.config.AppFeatures
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
+import kotlin.time.Clock
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.data.remote.ApiException
@@ -26,7 +32,8 @@ import org.jetbrains.compose.resources.getString
 class CreateAgeGroupsViewModel(
     private val createAgeGroupsUseCase: CreateAgeGroupsUseCase,
     private val getAgeGroupsUseCase: GetAgeGroupsUseCase,
-    private val getSeasonsUseCase: GetSeasonsUseCase
+    private val getSeasonsUseCase: GetSeasonsUseCase,
+    private val features: AppFeatures
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<CreateAgeGroupsUiState>(CreateAgeGroupsUiState.Loading)
@@ -39,7 +46,10 @@ class CreateAgeGroupsViewModel(
         if (_state.value is CreateAgeGroupsUiState.Idle) return
 
         viewModelScope.launch {
-            val seasons = try {
+            // Without seasons to pick (the coach app), the season the server picks, shown and not sent.
+            val seasons = if (!features.seasons) {
+                listOf(SeasonDateDefaults.automaticSeason(clubId, Clock.System.todayIn(TimeZone.currentSystemDefault())))
+            } else try {
                 getSeasonsUseCase(clubId)
             } catch (e: Exception) {
                 emptyList()
@@ -59,6 +69,7 @@ class CreateAgeGroupsViewModel(
                 ?: seasons.maxByOrNull { it.startDate }?.id
             _state.update {
                 CreateAgeGroupsUiState.Idle(
+                    pickSeason = features.seasons,
                     seasons = seasons,
                     selectedSeasonId = selectedSeasonId,
                     ageGroups = ageGroups
@@ -86,7 +97,7 @@ class CreateAgeGroupsViewModel(
         viewModelScope.launch {
             _state.update { current.copy(isSubmitting = true, error = null, conflictRows = emptySet()) }
             try {
-                createAgeGroupsUseCase(CreateAgeGroupsRequest(clubId, seasonId, items))
+                createAgeGroupsUseCase(CreateAgeGroupsRequest(clubId, seasonId.takeIf { current.pickSeason }, items))
                 _navigationEvent.emit(CreateAgeGroupsNavigationEvent.NavigateBackWithAgeGroupsCreated)
             } catch (e: Exception) {
                 // The server reports every clashing row (ApiException.rows): they're marked, and named

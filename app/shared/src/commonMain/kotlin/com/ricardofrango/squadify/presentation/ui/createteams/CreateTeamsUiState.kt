@@ -7,6 +7,9 @@ sealed class CreateTeamsUiState {
     data object Loading : CreateTeamsUiState()
 
     data class Idle(
+        // False where the server picks the season (the coach app): no season shown, and the teams go
+        // in the age group's own season.
+        val pickSeason: Boolean = true,
         // The club's seasons, for the picker. Defaults to the most recent by end date (see
         // CreateTeamsViewModel) but stays changeable.
         val seasons: List<Season> = emptyList(),

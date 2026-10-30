@@ -19,6 +19,7 @@
 
     <!-- The space's home -->
     <string name="coach_home_age_groups">Escalões</string>
+    <string name="coach_home_add_age_group">+ Adicionar escalão</string>
     <string name="coach_home_born">Nascidos em %1$s</string>
     <string name="coach_home_no_age_groups">Ainda não estás em nenhum escalão.</string>
     <string name="msg_coach_home_failed">Não foi possível carregar a tua equipa. Verifica a ligação e tenta outra vez.</string>

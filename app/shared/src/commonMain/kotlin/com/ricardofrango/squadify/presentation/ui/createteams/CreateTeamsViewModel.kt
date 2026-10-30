@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.createteams
 
+import com.ricardofrango.squadify.domain.config.AppFeatures
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.CreateTeamsUseCase
@@ -22,7 +24,8 @@ import kotlinx.coroutines.launch
 class CreateTeamsViewModel(
     private val createTeamsUseCase: CreateTeamsUseCase,
     private val getSeasonsUseCase: GetSeasonsUseCase,
-    private val getAgeGroupsUseCase: GetAgeGroupsUseCase
+    private val getAgeGroupsUseCase: GetAgeGroupsUseCase,
+    private val features: AppFeatures
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<CreateTeamsUiState>(CreateTeamsUiState.Loading)
@@ -35,7 +38,8 @@ class CreateTeamsViewModel(
         if (_state.value is CreateTeamsUiState.Idle) return
 
         viewModelScope.launch {
-            val seasons = try {
+            // Without seasons to pick (the coach app), the age group's own season, not shown.
+            val seasons = if (!features.seasons) emptyList() else try {
                 getSeasonsUseCase(clubId)
             } catch (e: Exception) {
                 emptyList()
@@ -49,9 +53,11 @@ class CreateTeamsViewModel(
             // setting teams up for. Still changeable via the picker.
             // An age group passed in (a coach's scoped action) wins, along with its own season.
             val initial = initialAgeGroupId?.let { id -> ageGroups.firstOrNull { it.id == id } }
-            val selectedSeasonId = initial?.seasonId ?: seasons.maxByOrNull { it.endDate }?.id
+            val selectedSeasonId = initial?.seasonId
+                ?: if (features.seasons) seasons.maxByOrNull { it.endDate }?.id else ageGroups.lastOrNull()?.seasonId
             _state.update {
                 CreateTeamsUiState.Idle(
+                    pickSeason = features.seasons,
                     seasons = seasons,
                     selectedSeasonId = selectedSeasonId,
                     ageGroups = ageGroups,

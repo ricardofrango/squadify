@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.domain.config.AppFeatures
+
 import com.ricardofrango.squadify.domain.usecase.TrainingStatsUseCase
 import com.ricardofrango.squadify.model.PlayerTrainingSeason
 import androidx.lifecycle.ViewModel
@@ -16,7 +18,8 @@ import kotlinx.coroutines.launch
 class PlayerDetailsViewModel(
     private val getPlayerDetailsUseCase: GetPlayerDetailsUseCase,
     private val getPlayerSeasonStatsUseCase: GetPlayerSeasonStatsUseCase,
-    private val trainingStatsUseCase: TrainingStatsUseCase
+    private val trainingStatsUseCase: TrainingStatsUseCase,
+    private val features: AppFeatures
 ) : ViewModel() {
 
     // Training attendance and average per season (design 39j); empty for anyone who can't see it.
@@ -45,7 +48,10 @@ class PlayerDetailsViewModel(
             }
         }
         loadSeasonStats(playerId, initialSeasonId, initialFilter)
-        viewModelScope.launch { _training.value = runCatching { trainingStatsUseCase.player(playerId).seasons }.getOrDefault(emptyList()) }
+        // The coach app has no training: no call, and the card stays hidden.
+        if (features.training) {
+            viewModelScope.launch { _training.value = runCatching { trainingStatsUseCase.player(playerId).seasons }.getOrDefault(emptyList()) }
+        }
     }
 
     fun loadSeasonStats(playerId: String, initialSeasonId: String? = null, initialFilter: StatsFilter? = null) {

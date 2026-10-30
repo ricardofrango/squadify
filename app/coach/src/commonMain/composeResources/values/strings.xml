@@ -19,6 +19,7 @@
 
     <!-- The space's home -->
     <string name="coach_home_age_groups">Age groups</string>
+    <string name="coach_home_add_age_group">+ Add age group</string>
     <string name="coach_home_born">Born %1$s</string>
     <string name="coach_home_no_age_groups">You're not on any age group yet.</string>
     <string name="msg_coach_home_failed">Couldn't load your team. Check your connection and try again.</string>

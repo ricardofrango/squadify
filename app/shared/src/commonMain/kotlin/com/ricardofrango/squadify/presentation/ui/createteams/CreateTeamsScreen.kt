@@ -198,7 +198,7 @@ private fun CreateTeamsContent(
         bottomBar = {
             // Pinned, as on every form: the team rows scroll under it.
             val idle = uiState as? CreateTeamsUiState.Idle
-            if (idle != null && idle.seasons.isNotEmpty()) {
+            if (idle != null && (idle.seasons.isNotEmpty() || !idle.pickSeason)) {
                 PinnedBottomBar {
                     idle.error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
                     PrimaryLoadingButton(
@@ -221,7 +221,7 @@ private fun CreateTeamsContent(
                 }
             }
 
-            is CreateTeamsUiState.Idle -> if (uiState.seasons.isEmpty()) {
+            is CreateTeamsUiState.Idle -> if (uiState.pickSeason && uiState.seasons.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize().padding(paddingValues).background(ScreenBackground).screenContentPadding(),
                     contentAlignment = Alignment.Center
@@ -248,14 +248,16 @@ private fun CreateTeamsContent(
                         .screenContentPadding(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    PickerField(
-                        label = stringResource(Res.string.label_season_field),
-                        selectedText = uiState.selectedSeason?.name,
-                        placeholder = stringResource(Res.string.label_choose_season),
-                        options = uiState.seasons.map { it.id to it.name },
-                        isError = false,
-                        onOptionSelected = onSeasonSelected
-                    )
+                    if (uiState.pickSeason) {
+                        PickerField(
+                            label = stringResource(Res.string.label_season_field),
+                            selectedText = uiState.selectedSeason?.name,
+                            placeholder = stringResource(Res.string.label_choose_season),
+                            options = uiState.seasons.map { it.id to it.name },
+                            isError = false,
+                            onOptionSelected = onSeasonSelected
+                        )
+                    }
 
                     PickerField(
                         label = stringResource(Res.string.label_age_group_field),

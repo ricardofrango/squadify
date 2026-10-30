@@ -137,6 +137,7 @@ fun OpponentFormScreen(
             onFormChange = viewModel::onFormChange,
             onNameFocusLost = viewModel::onNameFocusLost,
             onSubmit = viewModel::onSubmit,
+            showLogo = viewModel.showsLogo,
             onLogoPicked = viewModel::onLogoPicked,
             onRemoveLogo = viewModel::onRemoveLogo
         )
@@ -169,6 +170,7 @@ fun OpponentEditScreen(
             onFormChange = viewModel::onFormChange,
             onNameFocusLost = viewModel::onNameFocusLost,
             onSubmit = viewModel::onSubmit,
+            showLogo = viewModel.showsLogo,
             onLogoPicked = viewModel::onLogoPicked,
             onRemoveLogo = viewModel::onRemoveLogo
         )
@@ -186,6 +188,8 @@ private fun OpponentFormContent(
     onFormChange: (OpponentForm) -> Unit,
     onNameFocusLost: () -> Unit,
     onSubmit: () -> Unit,
+    // False without the server's image storage (the coach app, for now).
+    showLogo: Boolean = true,
     onLogoPicked: (ByteArray) -> Unit = {},
     onRemoveLogo: () -> Unit = {}
 ) {
@@ -221,7 +225,7 @@ private fun OpponentFormContent(
                     if (wide) {
                         Row(Modifier.screenContentPadding(), horizontalArrangement = Arrangement.spacedBy(32.dp)) {
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                LogoHeader(state, onLogoPicked, onRemoveLogo)
+                                if (showLogo) LogoHeader(state, onLogoPicked, onRemoveLogo)
                                 IdentitySection(state, onFormChange, onNameFocusLost)
                                 StadiumSection(state, onFormChange)
                             }
@@ -233,7 +237,7 @@ private fun OpponentFormContent(
                         }
                     } else {
                         Column(Modifier.screenContentPadding(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            LogoHeader(state, onLogoPicked, onRemoveLogo)
+                            if (showLogo) LogoHeader(state, onLogoPicked, onRemoveLogo)
                             IdentitySection(state, onFormChange, onNameFocusLost)
                             StadiumSection(state, onFormChange)
                             ContactSection(state, onFormChange, onSubmit)

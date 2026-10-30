@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.domain.config.AppFeatures
+
 import com.ricardofrango.squadify.domain.repository.UiPreferencesRepository
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,8 +35,12 @@ class AgeGroupDetailsViewModel(
     private val getTrainingSessionsUseCase: GetTrainingSessionsUseCase,
     private val getFullStatsUseCase: GetFullStatsUseCase,
     private val removePlayerFromAgeGroupUseCase: RemovePlayerFromAgeGroupUseCase,
-    private val preferences: UiPreferencesRepository
+    private val preferences: UiPreferencesRepository,
+    private val features: AppFeatures
 ) : ViewModel() {
+
+    // The coach app has no training: no Training tab and no training calls.
+    val showsTraining: Boolean = features.training
 
     // One-off results of removing a player, for the snackbar.
     private val _playerRemoval = MutableSharedFlow<PlayerRemovalResult>()
@@ -71,14 +77,19 @@ class AgeGroupDetailsViewModel(
     fun load(ageGroupId: String, forceReload: Boolean = false) {
         if (!forceReload && _state.value is AgeGroupDetailsUiState.Idle) return
         loadRecord(ageGroupId)
-        loadPlans(ageGroupId)
-        loadSessions(ageGroupId)
+        if (features.training) {
+            loadPlans(ageGroupId)
+            loadSessions(ageGroupId)
+        }
         viewModelScope.launch { _fullStats.value = runCatching { getFullStatsUseCase.ageGroup(ageGroupId) }.getOrNull() }
 
         viewModelScope.launch {
             _state.update { AgeGroupDetailsUiState.Loading }
             try {
-                _state.update { AgeGroupDetailsUiState.Idle(getAgeGroupDetailsUseCase(ageGroupId)) }
+                val details = getAgeGroupDetailsUseCase(ageGroupId)
+                // Without club members (the coach app), staff join with an invite code, not from Add
+                // staff, and a staff name opens no member's page: both follow canAddStaff.
+                _state.update { AgeGroupDetailsUiState.Idle(if (features.clubMembers) details else details.copy(canAddStaff = false)) }
             } catch (e: Exception) {
                 val message = errorMessage(e, Res.string.msg_failed_to_load_age_group)
                 _state.update { AgeGroupDetailsUiState.Error(message) }

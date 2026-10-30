@@ -289,12 +289,14 @@ private fun CreateAgeGroupsContent(
                         .screenContentPadding(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    SeasonField(
-                        label = stringResource(Res.string.label_season_field),
-                        seasons = uiState.seasons,
-                        selectedSeasonId = uiState.selectedSeasonId,
-                        onSeasonSelected = onSeasonSelected
-                    )
+                    if (uiState.pickSeason) {
+                        SeasonField(
+                            label = stringResource(Res.string.label_season_field),
+                            seasons = uiState.seasons,
+                            selectedSeasonId = uiState.selectedSeasonId,
+                            onSeasonSelected = onSeasonSelected
+                        )
+                    }
 
                     Text(
                         text = stringResource(Res.string.msg_age_groups_intro),

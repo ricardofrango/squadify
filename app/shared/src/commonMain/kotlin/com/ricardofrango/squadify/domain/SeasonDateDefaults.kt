@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain
 
+import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.SeasonType
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.Month
@@ -42,4 +43,24 @@ object SeasonDateDefaults {
 
         SeasonType.CALENDAR_YEAR -> startDate.year.toString()
     }
+
+    /**
+     * The season a server picks by itself when none is sent (the coach server, TECHNICAL_DECISIONS §72):
+     * the European one running [today], named as it names it ("26/27"). Its id is
+     * [AUTOMATIC_SEASON_ID], never a real season's: a screen shows it, and sends no season.
+     */
+    fun automaticSeason(clubId: String, today: LocalDate): Season {
+        val (start, end) = datesFor(SeasonType.EUROPEAN_YEAR, today)
+        return Season(
+            id = AUTOMATIC_SEASON_ID,
+            clubId = clubId,
+            name = inferredName(SeasonType.EUROPEAN_YEAR, start, end),
+            type = SeasonType.EUROPEAN_YEAR,
+            startDate = start,
+            endDate = end,
+            active = true
+        )
+    }
+
+    const val AUTOMATIC_SEASON_ID = ""
 }

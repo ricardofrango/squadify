@@ -11,6 +11,8 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
@@ -22,11 +24,13 @@ import com.ricardofrango.squadify.coach.presentation.ui.home.CoachHomeScreen
 import com.ricardofrango.squadify.coach.presentation.ui.spacesetup.SpaceSetupScreen
 import com.ricardofrango.squadify.domain.service.SessionEventBus
 import com.ricardofrango.squadify.presentation.navigation.AppNavigator
+import com.ricardofrango.squadify.presentation.navigation.KEY_CLUB_STRUCTURE_CHANGED
 import com.ricardofrango.squadify.presentation.navigation.SPLASH_ENTRY
 import com.ricardofrango.squadify.presentation.navigation.Screen
 import com.ricardofrango.squadify.presentation.navigation.ScreenRegistry
 import com.ricardofrango.squadify.presentation.navigation.rememberAppNavigator
 import com.ricardofrango.squadify.presentation.navigation.screens
+import com.ricardofrango.squadify.presentation.navigation.sharedScreens
 import com.ricardofrango.squadify.presentation.ui.login.LoginScreen
 import com.ricardofrango.squadify.presentation.ui.register.RegisterScreen
 import com.ricardofrango.squadify.presentation.ui.splash.SplashScreen
@@ -37,8 +41,8 @@ private const val NAV_ANIM_MS = 300
 
 /**
  * The coach app's navigation (TECHNICAL_DECISIONS §72): sign-in, then straight to the coach's space,
- * or its first setup before there is one. No club list, Club settings, seasons or training. The shared
- * screens under the space (age group, team, match) join in the next step.
+ * or its first setup before there is one, and under it the screens both apps share. No club list, Club
+ * settings, seasons or training.
  */
 @Composable
 fun CoachNavigation(navigator: AppNavigator = rememberAppNavigator()) {
@@ -122,10 +126,22 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
         )
     }
 
-    screen<Screen.CoachHome> {
+    screen<Screen.CoachHome> { entry ->
+        // Set by the screens opened from here (an age group created or edited, a team added...).
+        val changed by entry.savedStateHandle.getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false).collectAsStateWithLifecycle()
         CoachHomeScreen(
             onNavigateToSetup = { openAsRoot(Screen.SpaceSetup) },
-            onSignedOut = { openAsRoot(Screen.Login) }
+            onSignedOut = { openAsRoot(Screen.Login) },
+            onOpenAgeGroup = { ageGroupId -> navigator.navigate(Screen.AgeGroupDetails(ageGroupId)) },
+            onCreateAgeGroups = { spaceId, spaceName, sport ->
+                navigator.navigate(Screen.CreateAgeGroups(spaceId, spaceName, sport.name))
+            },
+            refresh = changed,
+            onRefreshed = { entry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false }
         )
     }
+
+    // The age group, team, player, opponent, match and stats screens, as in the clubs app. What the
+    // coach app leaves out (training, seasons, photos, club members) is its AppFeatures (CoachKoin).
+    sharedScreens(navigator)
 }
