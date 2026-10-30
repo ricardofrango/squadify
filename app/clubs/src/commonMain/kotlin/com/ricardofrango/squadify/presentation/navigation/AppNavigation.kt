@@ -219,13 +219,8 @@ private fun appScreens(navigator: AppNavigator, deepLinkRoute: String?): ScreenR
                         popUpTo(Screen.Splash) { inclusive = true }
                     }
                 },
-                onNavigateToDashboard = {
-                    navigator.navigate(Screen.Dashboard) {
-                        popUpTo(Screen.Splash) { inclusive = true }
-                    }
-                },
-                onNavigateToOnlyClub = { clubId ->
-                    navigator.navigate(Screen.ClubDetails(clubId, isRootClub = true)) {
+                onNavigateToHome = { home ->
+                    navigator.navigate(home) {
                         popUpTo(Screen.Splash) { inclusive = true }
                     }
                 },
@@ -247,13 +242,8 @@ private fun appScreens(navigator: AppNavigator, deepLinkRoute: String?): ScreenR
                 onNavigateToRegister = {
                     navigator.navigate(Screen.Register)
                 },
-                onNavigateToDashboard = {
-                    navigator.navigate(Screen.Dashboard) {
-                        popUpTo(Screen.Login) { inclusive = true }
-                    }
-                },
-                onNavigateToOnlyClub = { clubId ->
-                    navigator.navigate(Screen.ClubDetails(clubId, isRootClub = true)) {
+                onSignedIn = { home ->
+                    navigator.navigate(home) {
                         popUpTo(Screen.Login) { inclusive = true }
                     }
                 }

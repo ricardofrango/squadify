@@ -42,6 +42,17 @@ sealed class Screen {
     @SerialName("account")
     data object Account : Screen()
 
+    // Squadify for Coaches (TECHNICAL_DECISIONS §72): the coach app's home, its space, and the space's
+    // first setup, right after signing up. Declared here with every other route so the back stack can
+    // be saved and restored; their screens are in :app:coach.
+    @Serializable
+    @SerialName("space")
+    data object CoachHome : Screen()
+
+    @Serializable
+    @SerialName("space-setup")
+    data object SpaceSetup : Screen()
+
     // isRootClub is true only when this is the single club a user with just one club is bounced to
     // straight from Dashboard (see DashboardViewModel.NavigateToOnlyClub) -- Dashboard is popped off
     // the back stack in that case, so ClubDetailsScreen hides its back button and centers the title

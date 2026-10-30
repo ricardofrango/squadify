@@ -47,7 +47,7 @@ import kotlin.time.Clock
 
 /** Whether a row covers a single birth year (most football age groups) or a two-year span (typical
  * for futsal, which needs two birth years' worth of kids to field a squad). */
-internal enum class AgeGroupSpanType { SINGLE_YEAR, TWO_YEAR }
+enum class AgeGroupSpanType { SINGLE_YEAR, TWO_YEAR }
 
 /** One row of the batch. [key] is a stable identity for Compose iteration since rows can be removed
  * from the middle of the list (a plain index would shift and confuse item state).
@@ -565,7 +565,7 @@ private fun AgeGroupRowCard(
 }
 
 @Composable
-internal fun TeamSizeField(
+fun TeamSizeField(
     label: String,
     selectedTeamSize: Int?,
     options: List<Int>,
@@ -624,7 +624,7 @@ internal fun TeamSizeField(
 }
 
 @Composable
-internal fun AgeGroupSpanTypeField(
+fun AgeGroupSpanTypeField(
     label: String,
     selectedType: AgeGroupSpanType,
     onTypeSelected: (AgeGroupSpanType) -> Unit
@@ -665,7 +665,7 @@ internal fun AgeGroupSpanTypeField(
 }
 
 @Composable
-internal fun YearOfBirthField(
+fun YearOfBirthField(
     label: String,
     selectedYear: Int?,
     availableYears: List<Int>,

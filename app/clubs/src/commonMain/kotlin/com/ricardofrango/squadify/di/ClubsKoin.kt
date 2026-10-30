@@ -3,6 +3,8 @@ package com.ricardofrango.squadify.di
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.service.NoOpPushTokenProvider
 import com.ricardofrango.squadify.domain.service.PushTokenProvider
+import com.ricardofrango.squadify.presentation.navigation.ClubsSignedInHome
+import com.ricardofrango.squadify.presentation.navigation.SignedInHome
 import com.ricardofrango.squadify.presentation.ui.addstafftoagegroup.AddStaffToAgeGroupViewModel
 import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubDetailsViewModel
 import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubPlayersViewModel
@@ -17,6 +19,7 @@ import org.koin.dsl.module
 
 /** The clubs app's own screens: the club list, the club's home and settings, members, seasons, staff. */
 val clubsModule = module {
+    single<SignedInHome> { ClubsSignedInHome(get(), get()) }
     viewModelOf(::DashboardViewModel)
     viewModelOf(::ClubDetailsViewModel)
     viewModelOf(::ClubPlayersViewModel)

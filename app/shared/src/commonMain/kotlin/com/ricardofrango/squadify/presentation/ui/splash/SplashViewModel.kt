@@ -3,11 +3,11 @@ package com.ricardofrango.squadify.presentation.ui.splash
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.CheckAndRefreshSessionUseCase
-import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
 import com.ricardofrango.squadify.domain.usecase.RegisterCurrentFcmTokenUseCase
 import com.ricardofrango.squadify.presentation.navigation.PushLinkInbox
+import com.ricardofrango.squadify.presentation.navigation.Screen
+import com.ricardofrango.squadify.presentation.navigation.SignedInHome
 import com.ricardofrango.squadify.presentation.navigation.pushLinkBackStack
-import com.ricardofrango.squadify.presentation.ui.theme.ClubThemeStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -16,10 +16,9 @@ import kotlinx.coroutines.launch
 
 class SplashViewModel(
     private val checkAndRefreshSessionUseCase: CheckAndRefreshSessionUseCase,
-    private val getClubsUseCase: GetClubsUseCase,
+    private val signedInHome: SignedInHome,
     private val registerCurrentFcmTokenUseCase: RegisterCurrentFcmTokenUseCase,
-    private val pushLinkInbox: PushLinkInbox,
-    private val clubThemeStore: ClubThemeStore
+    private val pushLinkInbox: PushLinkInbox
 ) : ViewModel() {
 
     // Set once, before the first collection of [navigationEvent] -- see SplashScreen. Not a constructor
@@ -42,8 +41,8 @@ class SplashViewModel(
             if (checkAndRefreshSessionUseCase()) {
                 registerCurrentFcmTokenUseCase()
 
-                // A deep-linked route (a shared web link) takes priority over the usual
-                // Dashboard/single-club redirect below, but only now that the session is confirmed
+                // A deep-linked route (a shared web link) takes priority over the home
+                // below, but only now that the session is confirmed
                 // valid -- an expired/logged-out visitor never reaches this branch at all, so a stale
                 // shared link can't be used to bypass Login.
                 val route = deepLinkRoute
@@ -52,32 +51,20 @@ class SplashViewModel(
                     return@launch
                 }
 
-                // Checked up front so a single-club session lands directly on that club's details
-                // instead of visiting Dashboard first -- Dashboard would make the exact same redirect
-                // itself (DashboardViewModel.NavigateToOnlyClub, kept as a fallback), but only after
-                // mounting, which is visible as a brief flash of the clubs list. A fetch failure here
-                // just falls back to Dashboard, which has its own retry-capable error state.
-                // The clubs' colours are kept too: a screen opened from a push notification below
-                // never shows My clubs or the club screen, which would otherwise have stored them.
-                val onlyClub = try {
-                    getClubsUseCase().also(clubThemeStore::remember).singleOrNull()
-                } catch (e: Exception) {
-                    null
-                }
+                // The app's own home (SignedInHome), checked up front so it opens straight away. In
+                // the clubs app a single-club session lands directly on that club instead of the club
+                // list, which would only redirect there itself after a visible flash. The clubs app's
+                // check also keeps the clubs' colours, for a screen opened from a push notification.
+                val home = signedInHome.screen()
                 // A tapped push notification opens its club and target instead (§56). Taken only here,
                 // with the session confirmed; signed out, it waits in the inbox until after Login.
                 val pushLink = pushLinkInbox.take()
                 if (pushLink != null) {
-                    _navigationEvent.emit(SplashNavigationEvent.NavigateToBackStack(pushLinkBackStack(pushLink, onlyClub?.id)))
+                    val onlyClubId = (home as? Screen.ClubDetails)?.takeIf { it.isRootClub }?.clubId
+                    _navigationEvent.emit(SplashNavigationEvent.NavigateToBackStack(pushLinkBackStack(pushLink, onlyClubId)))
                     return@launch
                 }
-                _navigationEvent.emit(
-                    if (onlyClub != null) {
-                        SplashNavigationEvent.NavigateToOnlyClub(onlyClub.id)
-                    } else {
-                        SplashNavigationEvent.NavigateToDashboard
-                    }
-                )
+                _navigationEvent.emit(SplashNavigationEvent.NavigateToHome(home))
             } else {
                 _navigationEvent.emit(SplashNavigationEvent.NavigateToLogin)
             }

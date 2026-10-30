@@ -4,11 +4,8 @@ import com.ricardofrango.squadify.presentation.navigation.Screen
 
 sealed class SplashNavigationEvent {
     data object NavigateToLogin : SplashNavigationEvent()
-    data object NavigateToDashboard : SplashNavigationEvent()
-    // A single-club user goes straight to their club's details instead of Dashboard, whose clubs
-    // list has nothing to offer them -- checked here rather than after Dashboard mounts so the user
-    // never sees a flash of the clubs list before DashboardViewModel's own redirect would fire.
-    data class NavigateToOnlyClub(val clubId: String) : SplashNavigationEvent()
+    // The app's home once signed in (SignedInHome).
+    data class NavigateToHome(val screen: Screen) : SplashNavigationEvent()
     // A shared web link (see AppNavigation's initialDeepLinkRouteOrNull) resolves here -- only once the
     // session is confirmed valid, so an expired/logged-out visitor still lands on Login like normal
     // rather than bypassing it. [route] is the raw NavController route string, navigated to verbatim.

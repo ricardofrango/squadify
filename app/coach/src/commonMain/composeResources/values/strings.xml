@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Squadify for Coaches: the coach app's own text. Shared screens use app/shared's strings. -->
+
+    <!-- First setup -->
+    <string name="space_setup_title">Set up your team</string>
+    <string name="space_setup_intro">Tell us about the team you coach. You can add more age groups and teams later.</string>
+    <string name="space_setup_section_space">Club or team</string>
+    <string name="space_setup_name">Name *</string>
+    <string name="space_setup_name_supporting">Your club's or your team's name, as you want to see it.</string>
+    <string name="space_setup_sport">Sport</string>
+    <string name="space_setup_season">Season %1$s. It changes on its own every July.</string>
+    <string name="space_setup_section_team">First team</string>
+    <string name="space_setup_team_name">Team name</string>
+    <string name="space_setup_team_name_supporting">Left empty, it's the age group's name.</string>
+    <string name="btn_space_setup_create">Create</string>
+    <string name="btn_space_setup_creating">Creating…</string>
+    <string name="msg_space_setup_failed">Couldn't set it up. Check your connection and try again.</string>
+
+    <!-- The space's home -->
+    <string name="coach_home_age_groups">Age groups</string>
+    <string name="coach_home_born">Born %1$s</string>
+    <string name="coach_home_no_age_groups">You're not on any age group yet.</string>
+    <string name="msg_coach_home_failed">Couldn't load your team. Check your connection and try again.</string>
+</resources>

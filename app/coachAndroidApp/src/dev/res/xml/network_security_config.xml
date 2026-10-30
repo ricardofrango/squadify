@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dev flavor only: it talks plain HTTP to a server on the LAN, whose address is resolved at build
+     time (see devHost in build.gradle.kts), so cleartext can't be pinned to one IP here. Staging and
+     prod use src/main's config, which allows no cleartext to LAN addresses. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
