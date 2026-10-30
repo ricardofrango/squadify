@@ -3228,7 +3228,8 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
     - **No email**, so the coach server still needs no email service.
     - **Config:** `APP_ENV=staging` now counts as deployed like `production` (`CoachConfig.deployed`): the database host and password and `JWT_SECRET` are required, and the database is never created by the server.
     - **Tests:** `CoachStaffTest` (a code shared, used in lower case without the dash, the staff seeing and managing only that age group, refused to invite or create age groups, the code refused a second time and for the owner, a second age group, removed from both and out of the space; a withdrawn code) and `StaffInvitesTest` (the code alphabet, typing it any way, an expired code).
-- **Next:** the coach server and its database on Railway staging (the developer creates them with this step's PR), then the app split.
+- **On Railway staging** (2026-10-30): the `coach-server` service (`server/coach/Dockerfile`, from `develop`, the Watch Paths above, a public domain on port 8080) and its own Postgres database, in the staging environment next to the clubs server. Its variables: `APP_ENV=staging`, its own `JWT_SECRET`, and `DATABASE_*` referencing the coach database's `PG*` variables. Railway waits for the commit's CI checks before deploying. Production comes with the coach app's launch: the same setup in the production environment, and `deploy-production.yml` deploying it on a release.
+- **Next:** the app split (the coach app's own module, Android app and iOS target).
 
 **The app split:**
 - **`app/shared`** keeps the screens, view models, use cases and the repositories both apps use.

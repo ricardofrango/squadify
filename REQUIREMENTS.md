@@ -288,7 +288,9 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
     - [ ] The app split: shared screens and view models, plus a clubs module and a coach module (Koin setup, repositories, navigation, name, icon). A second Android app and a second iOS target.
     - [/] The coach server: its own database, migrations, users, spaces and members, deployed as its own Railway service and database, on staging and production. A change on `develop` that affects both servers (shared code or shared tables) deploys both to staging.
         - [x] `server/coach`: its own database and migrations (the shared tables), accounts (sign-up, sign-in, refresh), schema test, Dockerfile (`TECHNICAL_DECISIONS.md` §72).
-        - [ ] Railway: the coach service and database on staging, then production.
+        - [/] Railway: the coach service and database on staging, then production.
+            - [x] Staging (2026-10-30): `coach-server` and its own Postgres, deploying from `develop` (`TECHNICAL_DECISIONS.md` §72).
+            - [ ] Production, with the coach app's launch.
         - [x] The structure use cases (age groups, teams, players, opponents) in `:server:core`, on the `AccessPolicy` (`TECHNICAL_DECISIONS.md` §72).
         - [x] First setup (the space, its sport, the first age group and team, the season from the date), `CoachAccessPolicy` (owner and staff), and the age group, team, player and opponent routes (`TECHNICAL_DECISIONS.md` §72).
         - [x] The game routes, shared between both servers (`gameRoutes`, `:server:web`).
