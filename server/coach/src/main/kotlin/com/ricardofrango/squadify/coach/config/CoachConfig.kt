@@ -2,12 +2,20 @@ package com.ricardofrango.squadify.coach.config
 
 /**
  * The coach server's settings, from its Railway service's environment (TECHNICAL_DECISIONS §72). Same
- * variable names as the clubs server, set on its own service: in production (`APP_ENV=production`) the
- * database host and password and the JWT secret must be set, or it refuses to start; locally everything
+ * variable names as the clubs server, set on its own service: on staging and production
+ * (`APP_ENV=staging` or `production`) the database host and password and the JWT secret must be set, or
+ * it refuses to start; locally everything
  * defaults to docker-compose's Postgres and a database of its own, `squadify_coach_dev`.
  */
 object CoachConfig {
-    val production: Boolean = System.getenv("APP_ENV")?.trim()?.lowercase() in setOf("production", "prod")
+    private val appEnv = System.getenv("APP_ENV")?.trim()?.lowercase()
+    val production: Boolean = appEnv in setOf("production", "prod")
+
+    /**
+     * On Railway (staging or production): the database, its password and the secret must be given,
+     * and the database is never created here. Locally neither, so the server runs with no setup.
+     */
+    val deployed: Boolean = production || appEnv == "staging"
 
     val port: Int = System.getenv("SERVER_PORT")?.toIntOrNull() ?: 8090
 
@@ -22,7 +30,7 @@ object CoachConfig {
 
     private fun env(name: String) = System.getenv(name)?.takeIf { it.isNotBlank() }
 
-    /** Null outside production, so the caller's dev default applies; in production, refuses to start. */
+    /** Null locally, so the caller's dev default applies; deployed, refuses to start. */
     private fun required(name: String): String? =
-        if (production) throw IllegalStateException("$name environment variable must be set when APP_ENV=production.") else null
+        if (deployed) throw IllegalStateException("$name environment variable must be set when APP_ENV=$appEnv.") else null
 }

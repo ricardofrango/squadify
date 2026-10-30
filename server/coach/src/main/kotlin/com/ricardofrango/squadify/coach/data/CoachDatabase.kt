@@ -19,7 +19,7 @@ import java.sql.DriverManager
 object CoachDatabase : TransactionManager {
     fun init(): HikariDataSource {
         val server = "jdbc:postgresql://${CoachConfig.databaseHost}:${CoachConfig.databasePort}"
-        if (!CoachConfig.production) createIfMissing(server)
+        if (!CoachConfig.deployed) createIfMissing(server)
 
         val dataSource = HikariDataSource(
             HikariConfig().apply {
@@ -27,7 +27,7 @@ object CoachDatabase : TransactionManager {
                 jdbcUrl = "$server/${CoachConfig.databaseName}"
                 username = CoachConfig.databaseUser
                 password = CoachConfig.databasePassword
-                maximumPoolSize = if (CoachConfig.production) 10 else 3
+                maximumPoolSize = if (CoachConfig.deployed) 10 else 3
                 isAutoCommit = false
                 transactionIsolation = "TRANSACTION_REPEATABLE_READ"
                 validate()

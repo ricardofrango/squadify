@@ -116,6 +116,9 @@ class ExposedAgeGroupRepository : AgeGroupRepository {
         return AgeGroupStaff.deleteWhere { (AgeGroupStaff.userId eq userId.toUuid()) and (AgeGroupStaff.ageGroupId inList ageGroupIds) }
     }
 
+    override suspend fun removeStaffFromAgeGroup(ageGroupId: String, userId: String): Boolean =
+        AgeGroupStaff.deleteWhere { (AgeGroupStaff.userId eq userId.toUuid()) and (AgeGroupStaff.ageGroupId eq ageGroupId.toUuid()) } > 0
+
     override suspend fun getAgeGroupStaff(ageGroupId: String): List<AgeGroupStaffMember> =
         (AgeGroupStaff innerJoin Users).selectAll()
             .where { AgeGroupStaff.ageGroupId eq ageGroupId.toUuid() }

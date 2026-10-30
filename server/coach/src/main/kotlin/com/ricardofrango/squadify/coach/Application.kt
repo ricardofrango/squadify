@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.coach.di.CoachTokens
 import com.ricardofrango.squadify.coach.di.coachModule
 import com.ricardofrango.squadify.coach.routes.authRoutes
 import com.ricardofrango.squadify.coach.routes.spaceRoutes
+import com.ricardofrango.squadify.coach.routes.staffRoutes
 import com.ricardofrango.squadify.coach.routes.structureRoutes
 import com.ricardofrango.squadify.installSquadifyApi
 import com.ricardofrango.squadify.presentation.routes.gameRoutes
@@ -50,6 +51,7 @@ fun Application.module() {
             authRoutes()
             spaceRoutes()
             structureRoutes()
+            staffRoutes()
             gameRoutes(CoachTokens)
         }
     }

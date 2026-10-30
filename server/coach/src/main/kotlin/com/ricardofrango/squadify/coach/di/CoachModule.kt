@@ -3,10 +3,17 @@ package com.ricardofrango.squadify.coach.di
 import com.ricardofrango.squadify.coach.access.CoachAccessPolicy
 import com.ricardofrango.squadify.coach.config.CoachConfig
 import com.ricardofrango.squadify.coach.data.CoachDatabase
+import com.ricardofrango.squadify.coach.data.ExposedStaffInviteRepository
+import com.ricardofrango.squadify.coach.data.StaffInviteRepository
 import com.ricardofrango.squadify.coach.data.NoPushNotifications
 import com.ricardofrango.squadify.coach.data.NoTrainingRatings
 import com.ricardofrango.squadify.coach.data.NoTrainingSessions
+import com.ricardofrango.squadify.coach.domain.AcceptStaffInviteUseCase
 import com.ricardofrango.squadify.coach.domain.CoachSeasons
+import com.ricardofrango.squadify.coach.domain.CreateStaffInviteUseCase
+import com.ricardofrango.squadify.coach.domain.GetStaffInvitesUseCase
+import com.ricardofrango.squadify.coach.domain.RemoveStaffUseCase
+import com.ricardofrango.squadify.coach.domain.RevokeStaffInviteUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpaceUseCase
 import com.ricardofrango.squadify.coach.domain.SetUpSpaceUseCase
 import com.ricardofrango.squadify.data.repository.ExposedAgeGroupRepository
@@ -89,6 +96,14 @@ val coachModule = module {
     factory { CoachSeasons(get()) }
     factory { SetUpSpaceUseCase(get(), get(), get(), get(), get()) }
     factory { GetSpaceUseCase(get(), get()) }
+
+    // Staff: invite codes for an age group, and taking someone off one.
+    single<StaffInviteRepository> { ExposedStaffInviteRepository() }
+    factory { CreateStaffInviteUseCase(get(), get(), get(), get()) }
+    factory { GetStaffInvitesUseCase(get(), get(), get(), get()) }
+    factory { RevokeStaffInviteUseCase(get(), get(), get(), get()) }
+    factory { AcceptStaffInviteUseCase(get(), get(), get(), get()) }
+    factory { RemoveStaffUseCase(get(), get(), get(), get()) }
 
     // Age groups, teams, players and opponents: the shared use cases.
     factory { CreateTeamUseCase(get(), get(), get(), get(), get(), get(), get()) }

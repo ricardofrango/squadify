@@ -780,7 +780,7 @@ graph TD
     I --> Z(["Return created AgeGroups"])
 ```
 
-`seasonId` is optional in the request only for the coach server, which fills in the current season before calling this use case (§13.4); on the clubs server a request without one is refused.
+`seasonId` is optional in the request only for the coach server, which fills in the current season before calling this use case (§13.5); on the clubs server a request without one is refused.
 
 Every clashing item is reported, not only the first. The 409's `ErrorResponse.rows` lists them (0-based, in request order), so Create age groups marks each of those rows in red and names them in its message. Within the batch, the later of two items sharing a year is the one reported. The other row checks (blank name, inverted range, invalid team size) still stop at the first, and the screen prevents them before submitting.
 
@@ -2799,7 +2799,7 @@ graph TD
     V -- No --> VE(["Throw ValidationException"])
     V -- Yes --> S[Create the space: a clubs row, ACTIVE, with the sport]
     S --> O[Add the coach as its owner: club_members CLUB_ADMIN]
-    O --> SE[The current season: CoachSeasons, §13.4]
+    O --> SE[The current season: CoachSeasons, §13.5]
     SE --> AG[Create the age group in that season]
     AG --> T["Create the team: its size, or the age group's"]
     T --> Z(["Return SpaceSetup: space, season, age group, team"])
@@ -2811,7 +2811,34 @@ All in one transaction, so a refused setup creates nothing. `GET /v1/space` (`Ge
 
 The games are the shared `gameRoutes` (`:server:web`), the same use cases and paths as on the clubs server (§7–§8), behind `CoachAccessPolicy` (§13.1): the owner in every age group, staff in their own. Full stats has no trainings to count. The WebSockets accept only the coach server's own tokens.
 
-### 13.4 Automatic seasons (`CoachSeasons`)
+### 13.4 Staff invites (`CreateStaffInviteUseCase`, `AcceptStaffInviteUseCase`, `RemoveStaffUseCase`)
+
+```mermaid
+graph TD
+    O[Owner: POST /age-groups/id/invites] --> P{requireManageStaff: the owner?}
+    P -- No --> F(["Throw ForbiddenException"])
+    P -- Yes --> C[New code, 6 unambiguous characters, never reused; expires in 7 days]
+    C --> R(["Return StaffInvite: K7Q-4MZ"])
+    A[Signed in: POST /invites/code/accept] --> N[Normalize: upper case, letters and digits]
+    N --> Q{Code found?}
+    Q -- No --> NF(["Throw NotFoundException"])
+    Q -- Yes --> U{Already used?}
+    U -- Yes --> C1(["Throw ConflictException"])
+    U -- No --> E{Expired?}
+    E -- Yes --> V(["Throw ValidationException"])
+    E -- No --> M{"Member of another space, the owner, or already staff on it?"}
+    M -- Yes --> C2(["Throw ConflictException"])
+    M -- No --> J[Join the space as MEMBER if not in it; staff row COACH on the age group]
+    J --> K{Mark the code used, only if still unused}
+    K -- lost a race --> C3(["Throw ConflictException: rolls back"])
+    K -- marked --> Z(["Return CoachSpace, isOwner = false"])
+```
+
+Removing (`DELETE /age-groups/{id}/staff/{userId}`, the owner only): the owner can't be removed; otherwise the staff row goes, and the space membership too when it was their last age group of the space. Withdrawing (`DELETE /age-groups/{id}/invites/{code}`) deletes a code that hasn't been used.
+
+**The coach database's own table**, beyond the shared ones (§12): `staff_invites` (`id`, `code` unique, `age_group_id` → `age_groups` ON DELETE CASCADE, `created_by` → `users`, `created_at`, `expires_at`, `accepted_by` → `users` nullable, `accepted_at` nullable), from `V2__staff_invites.sql`.
+
+### 13.5 Automatic seasons (`CoachSeasons`)
 
 The season running today, July 1st to June 30th (`EUROPEAN_YEAR`): found by its type and dates, or created the first time, named "26/27". Used by the first setup and by `POST /v1/age-groups` without a `seasonId`, where the route checks `requireCreateAgeGroups` first, then fills in the season and calls `CreateAgeGroupsUseCase` (§4.3).
 

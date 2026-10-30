@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.model
 
 import kotlinx.serialization.Serializable
+import kotlin.time.Instant
 
 // Squadify for Coaches (REQUIREMENTS §5c, TECHNICAL_DECISIONS §72): a coach's space is a club row the
 // coach owns, never shown as a club. These are the coach server's first-setup request and responses.
@@ -26,6 +27,20 @@ data class SpaceSetup(
     val season: Season,
     val ageGroup: AgeGroup,
     val team: Team
+)
+
+/**
+ * A code the owner shares so someone joins an age group of the space as staff (REQUIREMENTS §5c).
+ * Single-use, and valid until [expiresAt]. [code] is shown as "K7Q-4MZ"; it's accepted with or
+ * without the dash, in any case.
+ */
+@Serializable
+data class StaffInvite(
+    val code: String,
+    val ageGroupId: String,
+    val ageGroupName: String,
+    val createdAt: Instant,
+    val expiresAt: Instant
 )
 
 /** The space the signed-in coach belongs to, and whether they own it. */
