@@ -2,28 +2,7 @@ package com.ricardofrango.squadify.data.service
 
 import com.ricardofrango.squadify.config.ServerConfig
 import com.ricardofrango.squadify.domain.service.EmailService
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.header
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
-import io.ktor.http.contentType
-import io.ktor.http.isSuccess
-import io.ktor.serialization.kotlinx.json.json
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import org.slf4j.LoggerFactory
-
-@Serializable
-private data class ResendEmailRequest(
-    val from: String,
-    val to: List<String>,
-    val subject: String,
-    val html: String
-)
+import com.ricardofrango.squadify.email.ResendSender
 
 /**
  * Sends via Resend's API (https://resend.com/docs/api-reference/emails/send-email). Until a real
@@ -32,13 +11,8 @@ private data class ResendEmailRequest(
  * TECHNICAL_DECISIONS.md.
  */
 class ResendEmailService : EmailService {
-    private val logger = LoggerFactory.getLogger(javaClass)
-
-    private val client = HttpClient(CIO) {
-        install(ContentNegotiation) {
-            json(Json { ignoreUnknownKeys = true })
-        }
-    }
+    // The sending itself is shared with the coach server (:server:web).
+    private val sender = ResendSender(ServerConfig.resendApiKey, ServerConfig.emailFromAddress)
 
     override suspend fun sendClubInvite(to: String, clubName: String) {
         send(
@@ -114,29 +88,5 @@ class ResendEmailService : EmailService {
         )
     }
 
-    private suspend fun send(to: String, subject: String, html: String) {
-        if (ServerConfig.resendApiKey.isBlank()) {
-            logger.warn("RESEND_API_KEY not set -- skipping email to {} ({})", to, subject)
-            return
-        }
-        try {
-            val response = client.post("https://api.resend.com/emails") {
-                header("Authorization", "Bearer ${ServerConfig.resendApiKey}")
-                contentType(ContentType.Application.Json)
-                setBody(
-                    ResendEmailRequest(
-                        from = ServerConfig.emailFromAddress,
-                        to = listOf(to),
-                        subject = subject,
-                        html = html
-                    )
-                )
-            }
-            if (!response.status.isSuccess()) {
-                logger.error("Resend send to {} failed: {} {}", to, response.status, response.bodyAsText())
-            }
-        } catch (e: Exception) {
-            logger.error("Resend send to {} threw", to, e)
-        }
-    }
+    private suspend fun send(to: String, subject: String, html: String) = sender.send(to, subject, html)
 }

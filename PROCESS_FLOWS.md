@@ -262,6 +262,8 @@ rejected (401) and a blank token is rejected (400). Covered by `RegisterFcmToken
 
 ### 2.6 Get Current User (`GetCurrentUserUseCase`)
 
+**On both servers:** 2.6, 2.7, 2.8 and 2.9 to 2.12 are in `:server:core`, served by the shared `accountRoutes` (`:server:web`) on the clubs and the coach server, each with its own users and `EmailService` (the coach server's sends as "Squadify Coach"). The profile photo (2.7b) is still the clubs server's only.
+
 Backs the Account screen's own profile load. No `CheckUserPermissionUseCase` call, same reasoning as §2.5: `userId` is always the caller's own JWT subject, never a parameter, so there's no cross-user access to guard.
 
 ```mermaid

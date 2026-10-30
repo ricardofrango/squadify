@@ -302,6 +302,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [x] First setup (the space, its sport, the first age group and team, the season from the date), `CoachAccessPolicy` (owner and staff), and the age group, team, player and opponent routes (`TECHNICAL_DECISIONS.md` §72).
         - [x] The game routes, shared between both servers (`gameRoutes`, `:server:web`).
         - [x] Staff invites: a single-use code per age group, accepted after signing up; the owner withdraws codes and removes staff (`TECHNICAL_DECISIONS.md` §72).
+        - [x] The account on the coach server: profile, password, email change and Forgot password, shared with the clubs server (`accountRoutes`), with the coach's own emails (`TECHNICAL_DECISIONS.md` §72).
         - [x] One space of your own and staff in others: `GET /v1/spaces` lists each with your age groups there; a code can be used while owning a space, and a space set up while staff elsewhere (`TECHNICAL_DECISIONS.md` §72).
     - [x] The coach app: sign-up, first setup (sport, age group, team), invites: one list of every age group with a side menu, joining with a code, Invite staff (share, copy, withdraw) and removing staff (`TECHNICAL_DECISIONS.md` §72).
         - [ ] Later: staff invites by email, with the account and Forgot password reuse (the coach's Resend sender).
@@ -314,5 +315,6 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [ ] iOS: registered with Firebase (Crashlytics, push), and pushes received on iOS (`TECHNICAL_DECISIONS.md` §12).
         - [ ] Store requirements (§5c): account deletion in the app, Google's UMP consent form before ads, a privacy policy and data-safety form.
         - [ ] Production: the coach server, its database and the push credentials on Railway production.
+        - [ ] Emails (the developer, 2026-10-30): in the language of the user's device, not only English, and a designed template with better lettering and the app's logo. Today the coach server's emails, like the clubs server's, are plain English. Check this before the first launch.
     - [ ] Later: moving an age group from the coach app to a club.
 - [ ] **Server integration tests for Squadify for Clubs** (the developer, 2026-10-30; `TECHNICAL_DECISIONS.md` §72): as on the coach server, tests that start the clubs server on its own test database (`squadify_test`, dropped after the run) and call its endpoints for the main flows: sign-up and invites, a club's structure, a game from scheduling to stats, the live feeds. `ApplicationTest` and `CorsTest` move onto it too, off `squadify_dev`.

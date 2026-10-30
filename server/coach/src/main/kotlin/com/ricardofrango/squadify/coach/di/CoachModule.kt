@@ -1,5 +1,19 @@
 package com.ricardofrango.squadify.coach.di
 
+import com.ricardofrango.squadify.coach.data.CoachEmailService
+import com.ricardofrango.squadify.data.repository.ExposedEmailChangeRepository
+import com.ricardofrango.squadify.data.repository.ExposedPasswordResetRepository
+import com.ricardofrango.squadify.domain.repository.EmailChangeRepository
+import com.ricardofrango.squadify.domain.repository.PasswordResetRepository
+import com.ricardofrango.squadify.domain.service.CurrentPasswordGuard
+import com.ricardofrango.squadify.domain.service.EmailService
+import com.ricardofrango.squadify.domain.usecase.ChangePasswordUseCase
+import com.ricardofrango.squadify.domain.usecase.ConfirmEmailChangeUseCase
+import com.ricardofrango.squadify.domain.usecase.GetCurrentUserUseCase
+import com.ricardofrango.squadify.domain.usecase.RequestEmailChangeUseCase
+import com.ricardofrango.squadify.domain.usecase.RequestPasswordResetUseCase
+import com.ricardofrango.squadify.domain.usecase.ResetPasswordUseCase
+import com.ricardofrango.squadify.domain.usecase.UpdateProfileUseCase
 import com.ricardofrango.squadify.coach.access.CoachAccessPolicy
 import com.ricardofrango.squadify.coach.config.CoachConfig
 import com.ricardofrango.squadify.coach.data.CoachDatabase
@@ -90,6 +104,20 @@ val coachModule = module {
     factory { RegisterUseCase(get(), get()) }
     factory { LoginUseCase(get(), get(), CoachTokens) }
     factory { RefreshTokenUseCase(get(), get(), CoachTokens) }
+
+    // The account (accountRoutes, shared with the clubs server): profile, password, email change and
+    // Forgot password, with the coach's own emails. No profile photo until its image storage.
+    single<EmailService> { CoachEmailService() }
+    single<PasswordResetRepository> { ExposedPasswordResetRepository() }
+    single<EmailChangeRepository> { ExposedEmailChangeRepository() }
+    factory { CurrentPasswordGuard(get(), get()) }
+    factory { GetCurrentUserUseCase(get(), get()) }
+    factory { UpdateProfileUseCase(get(), get()) }
+    factory { ChangePasswordUseCase(get(), get(), get()) }
+    factory { RequestPasswordResetUseCase(get(), get(), get(), get()) }
+    factory { ResetPasswordUseCase(get(), get(), get()) }
+    factory { RequestEmailChangeUseCase(get(), get(), get(), get(), get()) }
+    factory { ConfirmEmailChangeUseCase(get(), get(), get(), get()) }
 
     // Who may do what: the space's owner everywhere, its staff in their age groups.
     factory<AccessPolicy> { CoachAccessPolicy(get(), get(), get(), get()) }
