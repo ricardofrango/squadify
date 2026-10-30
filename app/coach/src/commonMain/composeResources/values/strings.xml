@@ -61,4 +61,33 @@
     <string name="msg_invite_create_failed">Couldn't create a code. Try again.</string>
     <string name="msg_invite_withdraw_failed">Couldn't withdraw the code. Try again.</string>
     <string name="msg_invites_failed">Couldn't load the codes.</string>
+
+    <!-- Deleting the account -->
+    <string name="delete_account_title">Delete account</string>
+    <string name="delete_account_space">Your team "%1$s" is deleted with everything in it: %2$s, %3$s and %4$s, with all their stats and reports.</string>
+    <plurals name="delete_account_age_groups">
+        <item quantity="one">%1$d age group</item>
+        <item quantity="other">%1$d age groups</item>
+    </plurals>
+    <plurals name="delete_account_players">
+        <item quantity="one">%1$d player</item>
+        <item quantity="other">%1$d players</item>
+    </plurals>
+    <plurals name="delete_account_games">
+        <item quantity="one">%1$d game</item>
+        <item quantity="other">%1$d games</item>
+    </plurals>
+    <plurals name="delete_account_staff">
+        <item quantity="one">%1$d person you invited loses access to it.</item>
+        <item quantity="other">%1$d people you invited lose access to it.</item>
+    </plurals>
+    <string name="delete_account_staff_spaces">You also leave the age groups you joined with a code. The reports you wrote there stay, under their owner's name.</string>
+    <string name="delete_account_final">This can't be undone.</string>
+    <string name="delete_account_password">Your password</string>
+    <string name="btn_delete_account_confirm">Delete my account</string>
+    <string name="btn_delete_account_deleting">Deleting…</string>
+    <string name="title_delete_account_confirm">Delete your account?</string>
+    <string name="msg_delete_account_wrong_password">Wrong password.</string>
+    <string name="msg_delete_account_failed">Couldn't delete your account. Check your connection and try again.</string>
+    <string name="msg_delete_account_load_failed">Couldn't load your account.</string>
 </resources>

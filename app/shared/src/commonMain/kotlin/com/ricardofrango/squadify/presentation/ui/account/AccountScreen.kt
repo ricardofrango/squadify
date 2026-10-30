@@ -78,6 +78,8 @@ fun AccountScreen(
     onNavigateToChangeEmail: (currentEmail: String) -> Unit,
     // Set when coming back from Change email with the new address.
     changedEmail: String? = null,
+    // Delete account, where the app has it (AppFeatures.accountDeletion).
+    onNavigateToDeleteAccount: () -> Unit = {},
     viewModel: AccountViewModel = koinViewModel()
 ) {
     SquadifyClubTheme {
@@ -133,7 +135,8 @@ fun AccountScreen(
             onLogoutClick = { viewModel.onLogoutClicked() },
             onPhotoPicked = viewModel::onPhotoPicked,
             onRemovePhoto = viewModel::onRemovePhoto,
-            showPhoto = viewModel.showsPhoto
+            showPhoto = viewModel.showsPhoto,
+            onDeleteAccountClick = if (viewModel.offersAccountDeletion) onNavigateToDeleteAccount else null
         )
     }
 }
@@ -155,7 +158,9 @@ private fun AccountContent(
     onPhotoPicked: (ByteArray) -> Unit = {},
     onRemovePhoto: () -> Unit = {},
     // False in the coach app until its server has image storage: initials only, no photo actions.
-    showPhoto: Boolean = true
+    showPhoto: Boolean = true,
+    // Null: no "Delete account" (the clubs app, for now).
+    onDeleteAccountClick: (() -> Unit)? = null
 ) {
     val idle = uiState as? AccountUiState.Idle
 
@@ -214,7 +219,8 @@ private fun AccountContent(
                     onLogoutClick = onLogoutClick,
                     onPhotoPicked = onPhotoPicked,
                     onRemovePhoto = onRemovePhoto,
-                    showPhoto = showPhoto
+                    showPhoto = showPhoto,
+                    onDeleteAccountClick = onDeleteAccountClick
                 )
             }
         }
@@ -245,7 +251,8 @@ private fun AccountForm(
     onLogoutClick: () -> Unit,
     onPhotoPicked: (ByteArray) -> Unit,
     onRemovePhoto: () -> Unit,
-    showPhoto: Boolean
+    showPhoto: Boolean,
+    onDeleteAccountClick: (() -> Unit)?
 ) {
     val form = state.form
     val passwordForm = state.passwordForm
@@ -311,6 +318,12 @@ private fun AccountForm(
                 text = stringResource(Res.string.btn_logout),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
+        }
+
+        if (onDeleteAccountClick != null) {
+            TextButton(onClick = onDeleteAccountClick, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(Res.string.btn_delete_account), color = MaterialTheme.colorScheme.error)
+            }
         }
     }
 }
@@ -691,7 +704,8 @@ private fun AccountNoPhotoPreviewContent() {
             onPasswordFormChange = {},
             onChangePasswordClick = {},
             onLogoutClick = {},
-            showPhoto = false
+            showPhoto = false,
+            onDeleteAccountClick = {}
         )
     }
 }

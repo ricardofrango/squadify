@@ -1,6 +1,11 @@
 package com.ricardofrango.squadify.coach.di
 
+import com.ricardofrango.squadify.coach.data.AccountDeletionRepositoryImpl
 import com.ricardofrango.squadify.coach.data.SpaceRepositoryImpl
+import com.ricardofrango.squadify.coach.domain.AccountDeletionRepository
+import com.ricardofrango.squadify.coach.domain.DeleteAccountUseCase
+import com.ricardofrango.squadify.coach.domain.GetAccountDeletionSummaryUseCase
+import com.ricardofrango.squadify.coach.presentation.ui.deleteaccount.DeleteAccountViewModel
 import com.ricardofrango.squadify.coach.data.StaffInviteRepositoryImpl
 import com.ricardofrango.squadify.coach.domain.CreateStaffInviteUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
@@ -29,6 +34,9 @@ import org.koin.dsl.module
 val coachModule = module {
     single<SpaceRepository> { SpaceRepositoryImpl(get(), get()) }
     single<StaffInviteRepository> { StaffInviteRepositoryImpl(get(), get()) }
+    single<AccountDeletionRepository> { AccountDeletionRepositoryImpl(get(), get()) }
+    factory { GetAccountDeletionSummaryUseCase(get()) }
+    factory { DeleteAccountUseCase(get()) }
     factory { GetSpacesUseCase(get()) }
     factory { SetUpSpaceUseCase(get()) }
     factory { JoinWithCodeUseCase(get()) }
@@ -39,11 +47,13 @@ val coachModule = module {
     // The developer, 2026-10-30: no training (REQUIREMENTS §5c); seasons are automatic; staff join with
     // invite codes, not from club members (the owner invites and removes them in Age Group Details); no photos or logos until the coach server's image storage
     // is configured.
-    single { AppFeatures(training = false, seasons = false, photos = false, clubMembers = false) }
+    // Account deletion: the stores require it for an app where people sign up.
+    single { AppFeatures(training = false, seasons = false, photos = false, clubMembers = false, accountDeletion = true) }
     viewModelOf(::SpaceSetupViewModel)
     viewModelOf(::CoachHomeViewModel)
     viewModelOf(::JoinWithCodeViewModel)
     viewModelOf(::InviteStaffViewModel)
+    viewModelOf(::DeleteAccountViewModel)
 }
 
 /**

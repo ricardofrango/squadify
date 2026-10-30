@@ -40,6 +40,9 @@ class AccountViewModel(
     // The coach app has no photos until its server's image storage: no photo or photo actions.
     val showsPhoto: Boolean = features.photos
 
+    // Delete account: the coach app only, for now.
+    val offersAccountDeletion: Boolean = features.accountDeletion
+
     private val _state = MutableStateFlow<AccountUiState>(AccountUiState.Loading)
     val state: StateFlow<AccountUiState> = _state.asStateFlow()
 

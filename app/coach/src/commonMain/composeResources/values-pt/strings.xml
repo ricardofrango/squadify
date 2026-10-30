@@ -61,4 +61,33 @@
     <string name="msg_invite_create_failed">Não foi possível criar um código. Tenta outra vez.</string>
     <string name="msg_invite_withdraw_failed">Não foi possível retirar o código. Tenta outra vez.</string>
     <string name="msg_invites_failed">Não foi possível carregar os códigos.</string>
+
+    <!-- Deleting the account -->
+    <string name="delete_account_title">Eliminar conta</string>
+    <string name="delete_account_space">A tua equipa "%1$s" é eliminada com tudo o que tem: %2$s, %3$s e %4$s, com todas as estatísticas e relatórios.</string>
+    <plurals name="delete_account_age_groups">
+        <item quantity="one">%1$d escalão</item>
+        <item quantity="other">%1$d escalões</item>
+    </plurals>
+    <plurals name="delete_account_players">
+        <item quantity="one">%1$d jogador</item>
+        <item quantity="other">%1$d jogadores</item>
+    </plurals>
+    <plurals name="delete_account_games">
+        <item quantity="one">%1$d jogo</item>
+        <item quantity="other">%1$d jogos</item>
+    </plurals>
+    <plurals name="delete_account_staff">
+        <item quantity="one">%1$d pessoa que convidaste perde o acesso.</item>
+        <item quantity="other">%1$d pessoas que convidaste perdem o acesso.</item>
+    </plurals>
+    <string name="delete_account_staff_spaces">Também sais dos escalões em que entraste com um código. Os relatórios que lá escreveste ficam, em nome do dono.</string>
+    <string name="delete_account_final">Isto não pode ser desfeito.</string>
+    <string name="delete_account_password">A tua palavra-passe</string>
+    <string name="btn_delete_account_confirm">Eliminar a minha conta</string>
+    <string name="btn_delete_account_deleting">A eliminar…</string>
+    <string name="title_delete_account_confirm">Eliminar a tua conta?</string>
+    <string name="msg_delete_account_wrong_password">Palavra-passe errada.</string>
+    <string name="msg_delete_account_failed">Não foi possível eliminar a tua conta. Verifica a ligação e tenta outra vez.</string>
+    <string name="msg_delete_account_load_failed">Não foi possível carregar a tua conta.</string>
 </resources>

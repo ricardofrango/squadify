@@ -15,5 +15,7 @@ data class AppFeatures(
     val photos: Boolean,
     // Staff come from the club's members: a staff name opens the member's page, and Add staff picks from
     // the members.
-    val clubMembers: Boolean
+    val clubMembers: Boolean,
+    // Deleting the account from Account (the coach app; its server has it). Off in the clubs app for now.
+    val accountDeletion: Boolean = false
 )

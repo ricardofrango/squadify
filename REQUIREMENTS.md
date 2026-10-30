@@ -314,7 +314,9 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [ ] R8 full mode (`isMinifyEnabled = true` with the right keep rules) and a Baseline Profile for the release build (`TECHNICAL_DECISIONS.md` §11.7, §11.8).
         - [ ] Edge-to-edge: audit every screen's `WindowInsets` (§11.6, §11.8).
         - [ ] iOS: registered with Firebase (Crashlytics, push), and pushes received on iOS (`TECHNICAL_DECISIONS.md` §12).
-        - [ ] Store requirements (§5c): account deletion in the app, Google's UMP consent form before ads, a privacy policy and data-safety form.
+        - [/] Store requirements (§5c): account deletion in the app, Google's UMP consent form before ads, a privacy policy and data-safety form.
+            - [x] Account deletion in the app (2026-10-30): from Account, with the password, at once; an owner's space goes with everything in it (`TECHNICAL_DECISIONS.md` §72).
+            - [ ] An email address for deletion requests from outside the app, in the Play Store listing (the developer chooses it).
         - [ ] Production: the coach server, its database and the push credentials on Railway production.
         - [ ] Emails (the developer, 2026-10-30): in the language of the user's device, not only English, and a designed template with better lettering and the app's logo. Today the coach server's emails, like the clubs server's, are plain English. Check this before the first launch.
     - [ ] Later: moving an age group from the coach app to a club.

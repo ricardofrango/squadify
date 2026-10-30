@@ -42,6 +42,11 @@ sealed class Screen {
     @SerialName("account")
     data object Account : Screen()
 
+    // Delete account, from Account: the coach app only, for now (AppFeatures.accountDeletion).
+    @Serializable
+    @SerialName("delete-account")
+    data object DeleteAccount : Screen()
+
     // Squadify for Coaches (TECHNICAL_DECISIONS §72): the coach app's home (every age group the coach
     // has), setting up their own space, joining with a code, and inviting staff. Declared here with every other route so the back stack can
     // be saved and restored; their screens are in :app:coach.

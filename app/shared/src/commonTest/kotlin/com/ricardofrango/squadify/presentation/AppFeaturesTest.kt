@@ -86,4 +86,11 @@ class AppFeaturesTest {
         val staff = details(canAddStaff = false).idleFor(coach)
         assertFalse(staff.details.canAddStaff || staff.invitesStaff)
     }
+
+    @Test
+    fun onlyAnAppThatTurnsItOnOffersAccountDeletion() {
+        // The clubs app's features leave it out (its own rules come later); the coach app's turn it on.
+        assertFalse(clubs.accountDeletion)
+        assertTrue(coach.copy(accountDeletion = true).accountDeletion)
+    }
 }
