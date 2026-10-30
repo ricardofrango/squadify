@@ -13,6 +13,7 @@ import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ClubStatus
 import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
+import com.ricardofrango.squadify.model.SpaceAgeGroups
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.Team
 import kotlin.time.Clock
@@ -20,8 +21,8 @@ import kotlin.uuid.Uuid
 
 /**
  * The first setup, right after signing up (REQUIREMENTS §5c): the coach's space, owned by them, with
- * its first age group and team in the current season. One space per account for now, so a coach who
- * already belongs to one is refused.
+ * its first age group and team in the current season. A coach owns one space at most, so a second is
+ * refused; being staff in someone else's doesn't count.
  */
 class SetUpSpaceUseCase(
     private val clubRepository: ClubRepository,
@@ -31,7 +32,7 @@ class SetUpSpaceUseCase(
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, request: SetUpSpaceRequest): SpaceSetup = transactionManager.runInTransaction {
-        if (clubRepository.getMemberships(userId).isNotEmpty()) {
+        if (clubRepository.getMemberships(userId).any { it.second == ClubRole.CLUB_ADMIN }) {
             throw ConflictException("You already have a space")
         }
         val name = request.name.trim().takeIf { it.isNotEmpty() } ?: throw ValidationException("The space's name is required")
@@ -84,7 +85,31 @@ class SetUpSpaceUseCase(
     }
 }
 
-/** The space the coach belongs to: their own, or the first they were added to. 404 before the first setup. */
+/**
+ * Every space the coach is in, their own first, each with the age groups they have there: all of their
+ * own space's, and the ones they're staff on in the others. Empty before they set up or join one.
+ */
+class GetSpacesUseCase(
+    private val clubRepository: ClubRepository,
+    private val ageGroupRepository: AgeGroupRepository,
+    private val transactionManager: TransactionManager
+) {
+    suspend operator fun invoke(userId: String): List<SpaceAgeGroups> = transactionManager.runInTransaction {
+        clubRepository.getMemberships(userId)
+            .sortedByDescending { it.second == ClubRole.CLUB_ADMIN }
+            .map { (space, role) ->
+                val isOwner = role == ClubRole.CLUB_ADMIN
+                val ageGroups = ageGroupRepository.getAgeGroupsByClub(space.id)
+                    .filter { isOwner || ageGroupRepository.getUserRoleInAgeGroup(userId, it.id) != null }
+                SpaceAgeGroups(space, isOwner, ageGroups)
+            }
+    }
+}
+
+/**
+ * The space the coach belongs to: their own, or the first they were added to. 404 before the first setup.
+ * The app before [GetSpacesUseCase]; it goes once the app lists every space.
+ */
 class GetSpaceUseCase(
     private val clubRepository: ClubRepository,
     private val transactionManager: TransactionManager

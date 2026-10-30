@@ -43,7 +43,18 @@ data class StaffInvite(
     val expiresAt: Instant
 )
 
-/** The space the signed-in coach belongs to, and whether they own it. */
+/**
+ * One space the signed-in coach is in, with the age groups they have there: every one in the space they
+ * own, the ones they're staff on in someone else's (REQUIREMENTS §5c).
+ */
+@Serializable
+data class SpaceAgeGroups(
+    val space: Club,
+    val isOwner: Boolean,
+    val ageGroups: List<AgeGroup>
+)
+
+/** A space the signed-in coach belongs to, and whether they own it. */
 @Serializable
 data class CoachSpace(
     val space: Club,

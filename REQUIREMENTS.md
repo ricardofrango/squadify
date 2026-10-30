@@ -110,7 +110,8 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
 - **Staff** manage everything in the age groups they're on (teams, players, matches, stats), and see the space's opponents and add to them, but don't create age groups. The owner has access to every age group of the space, by that rule alone, so a new age group needs nothing more.
 - **Inviting staff** (the developer, 2026-10-30): the owner creates an invite code for an age group and shares it (WhatsApp, SMS). Whoever enters it, signing up first if needed, joins that age group as staff. A code works once and expires after 7 days; the owner can withdraw it before. One person can be staff on several age groups, each with its own code. The owner can take someone off an age group; off their last one, they leave the space. No emails are sent for now; the code is shared from the phone's share menu (WhatsApp, SMS, email apps).
 - **Inviting staff by email, later** (the developer, 2026-10-30): next to the code, the owner can type an email address and the coach server emails the code with a link. It comes with the account and Forgot password reuse, which bring the coach product's own Resend sender (`TECHNICAL_DECISIONS.md` §72).
-- **First setup**, right after signing up: the space's name and sport, its first age group and its first team. The season is picked from the date (July to June) and never asked for. One space per account for now.
+- **First setup**, right after signing up: the space's name and sport, its first age group and its first team. The season is picked from the date (July to June) and never asked for.
+- **One space of your own, staff in others** (the developer, 2026-10-30): an account owns one space at most, and can be staff on age groups in any number of other people's spaces, joined with codes. The app's home is one flat list of every age group they have, each naming its space, with creating an age group (their own space, set up on the first one) and joining with a code always available: as buttons when the list is empty, and from a side menu (☰).
 - **Plans** (pricing still to be decided), for the whole space, not per person:
 
     | Plan | Features | Age groups | Members |
@@ -301,6 +302,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [x] First setup (the space, its sport, the first age group and team, the season from the date), `CoachAccessPolicy` (owner and staff), and the age group, team, player and opponent routes (`TECHNICAL_DECISIONS.md` §72).
         - [x] The game routes, shared between both servers (`gameRoutes`, `:server:web`).
         - [x] Staff invites: a single-use code per age group, accepted after signing up; the owner withdraws codes and removes staff (`TECHNICAL_DECISIONS.md` §72).
+        - [x] One space of your own and staff in others: `GET /v1/spaces` lists each with your age groups there; a code can be used while owning a space, and a space set up while staff elsewhere (`TECHNICAL_DECISIONS.md` §72).
     - [ ] The coach app: sign-up, first setup (sport, age group, team), invites.
         - [ ] Later: staff invites by email, with the account and Forgot password reuse (the coach's Resend sender).
         - [/] Firebase (2026-10-30): the coach app registered in its own Firebase project, `squadify-for-coach` (`app/coachAndroidApp/google-services.json`, for the dev, staging and production ids). Crashlytics and pushes still to be wired.
