@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "952836787373",
+    "project_id": "squadify-for-coach",
+    "storage_bucket": "squadify-for-coach.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:952836787373:android:af0cfa1624a50388080a24",
+        "android_client_info": {
+          "package_name": "com.ricardofrango.squadify.coach"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBrGrf65yQQnS7xAveJny9KDVJwFqOu2No"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:952836787373:android:cc75507e17568723080a24",
+        "android_client_info": {
+          "package_name": "com.ricardofrango.squadify.coach.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBrGrf65yQQnS7xAveJny9KDVJwFqOu2No"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:952836787373:android:b5c6c9505871b8db080a24",
+        "android_client_info": {
+          "package_name": "com.ricardofrango.squadify.coach.stg"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBrGrf65yQQnS7xAveJny9KDVJwFqOu2No"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
