@@ -3,7 +3,6 @@ package com.ricardofrango.squadify.presentation.routes
 import com.ricardofrango.squadify.domain.usecase.AddClubMembersUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubHomeUseCase
-import com.ricardofrango.squadify.domain.usecase.GetClubMatchesUpdatesUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubMembersUseCase
 import com.ricardofrango.squadify.domain.usecase.GetClubMembersOverviewUseCase
 import com.ricardofrango.squadify.domain.usecase.ManageClubInviteUseCase
@@ -63,7 +62,6 @@ fun Route.clubRoutes() {
     val removeClubMemberUseCase by inject<RemoveClubMemberUseCase>()
     val manageClubInviteUseCase by inject<ManageClubInviteUseCase>()
     val updateClubUseCase by inject<UpdateClubUseCase>()
-    val getClubMatchesUpdatesUseCase by inject<GetClubMatchesUpdatesUseCase>()
     val getClubPermissionsUseCase by inject<GetClubPermissionsUseCase>()
     val updateClubPermissionsUseCase by inject<UpdateClubPermissionsUseCase>()
     val uploadClubLogoUseCase by inject<UploadClubLogoUseCase>()
@@ -261,25 +259,5 @@ fun Route.clubRoutes() {
         }
     }
 
-    // WebSocket route with token-query-param auth (outside the main authenticate block), mirroring
-    // matchRoutes()'s /matches/{matchId}/live -- browser WebSockets can't set an Authorization header.
-    route("/clubs/{clubId}/matches/live") {
-        webSocket {
-            val clubId = call.parameters["clubId"] ?: return@webSocket
-
-            try {
-                val currentUserId = call.request.queryParameters["token"]
-                    ?.run { JwtConfig.verifier.verify(this).subject }
-                    ?: run {
-                        close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Unauthorized"))
-                        return@webSocket
-                    }
-
-                getClubMatchesUpdatesUseCase(currentUserId, clubId)
-                    .collect(::sendSerialized)
-            } catch (e: Exception) {
-                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Forbidden or Not Found"))
-            }
-        }
-    }
+    // The club's live Matches tab WebSocket is a shared game route (gameRoutes, :server:web).
 }

@@ -290,7 +290,8 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [ ] Railway: the coach service and database on staging, then production.
         - [x] The structure use cases (age groups, teams, players, opponents) in `:server:core`, on the `AccessPolicy` (`TECHNICAL_DECISIONS.md` §72).
         - [x] First setup (the space, its sport, the first age group and team, the season from the date), `CoachAccessPolicy` (owner and staff), and the age group, team, player and opponent routes (`TECHNICAL_DECISIONS.md` §72).
-        - [ ] The game routes, shared between both servers.
+        - [x] The game routes, shared between both servers (`gameRoutes`, `:server:web`).
+        - [ ] Staff invites: the owner adds staff to the space's age groups.
     - [ ] The coach app: sign-up, first setup (sport, age group, team), invites.
     - [ ] Plans stored and enforced on the server, set by a platform admin at first.
     - [ ] Payments (RevenueCat) and ads on the Free plan (AdMob).

@@ -34,6 +34,7 @@ dependencies {
     testImplementation(testFixtures(project(":server:data")))
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.ktor.client.content.negotiation)
+    testImplementation(libs.ktor.client.websockets)
     testImplementation(libs.ktor.server.serialization.kotlinx.json)
     testImplementation(libs.kotlin.testJunit)
     testImplementation(libs.mockk)

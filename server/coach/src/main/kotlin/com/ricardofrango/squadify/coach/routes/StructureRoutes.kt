@@ -56,7 +56,8 @@ import org.koin.ktor.ext.inject
 /**
  * Age groups, teams, players and opponents: the shared use cases on the coach's policy, at the clubs
  * server's paths, with its requests and responses, so the apps call both the same way. Only the
- * season differs: creating age groups without one uses the current season (CoachSeasons).
+ * season differs: creating age groups without one uses the current season (CoachSeasons). The games
+ * and stats are the shared gameRoutes (:server:web).
  */
 fun Route.structureRoutes() {
     authenticate("auth-jwt") {
