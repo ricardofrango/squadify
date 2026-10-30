@@ -3,6 +3,8 @@ This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop (JVM
 * [/app/iosApp](./app/iosApp/iosApp) contains an iOS application. Even if you’re sharing your UI with Compose Multiplatform,
   you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
 
+* [/app/clubs](./app/clubs/src) is Squadify for Clubs: its navigation, Koin setup, iOS entry and the screens only clubs have (TECHNICAL_DECISIONS.md §72). Every clubs entry point (Android, iOS, web, desktop) starts it.
+
 * [/app/shared](./app/shared/src) is for code that will be shared across your Compose Multiplatform applications.
   It contains several subfolders:
   - [commonMain](./app/shared/src/commonMain/kotlin) is for code that’s common for all targets.

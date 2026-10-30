@@ -10,8 +10,6 @@ import com.ricardofrango.squadify.domain.service.PushTokenProvider
 import com.ricardofrango.squadify.domain.service.SessionEventBus
 import com.ricardofrango.squadify.domain.usecase.*
 import com.ricardofrango.squadify.presentation.ui.account.AccountViewModel
-import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubDetailsViewModel
-import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubPlayersViewModel
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentDetailsViewModel
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentFormViewModel
 import com.ricardofrango.squadify.presentation.ui.opponents.OpponentsViewModel
@@ -22,9 +20,6 @@ import com.ricardofrango.squadify.presentation.ui.training.ExerciseLibraryViewMo
 import com.ricardofrango.squadify.presentation.ui.training.RatePlayersViewModel
 import com.ricardofrango.squadify.presentation.ui.training.PlanEditViewModel
 import com.ricardofrango.squadify.presentation.ui.training.TrainingPlansViewModel
-import com.ricardofrango.squadify.presentation.ui.editclub.EditClubViewModel
-import com.ricardofrango.squadify.presentation.ui.clubmember.ClubMemberDetailsViewModel
-import com.ricardofrango.squadify.presentation.ui.createseason.CreateSeasonViewModel
 import com.ricardofrango.squadify.presentation.ui.createagegroups.CreateAgeGroupsViewModel
 import com.ricardofrango.squadify.presentation.ui.createteams.CreateTeamsViewModel
 import com.ricardofrango.squadify.presentation.ui.editteam.EditTeamViewModel
@@ -39,11 +34,8 @@ import com.ricardofrango.squadify.presentation.ui.matchdetails.MatchDetailsViewM
 import com.ricardofrango.squadify.presentation.ui.matchreport.MatchReportViewModel
 import com.ricardofrango.squadify.presentation.ui.matchrecord.MatchRecordViewModel
 import com.ricardofrango.squadify.presentation.ui.livematch.LiveMatchViewModel
-import com.ricardofrango.squadify.presentation.ui.addstafftoagegroup.AddStaffToAgeGroupViewModel
-import com.ricardofrango.squadify.presentation.ui.createstaff.CreateStaffViewModel
 import com.ricardofrango.squadify.presentation.ui.playerdetails.PlayerDetailsViewModel
 import com.ricardofrango.squadify.presentation.ui.editplayer.EditPlayerViewModel
-import com.ricardofrango.squadify.presentation.ui.dashboard.DashboardViewModel
 import com.ricardofrango.squadify.presentation.ui.theme.ClubThemeStore
 import com.ricardofrango.squadify.presentation.ui.login.LoginViewModel
 import com.ricardofrango.squadify.presentation.ui.forgotpassword.ForgotPasswordViewModel
@@ -68,6 +60,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.dsl.viewModelOf
 import org.koin.core.context.startKoin
+import org.koin.core.module.Module
 import org.koin.core.qualifier.named
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
@@ -253,7 +246,6 @@ val presentationModule = module {
     viewModelOf(::ChangeEmailViewModel)
     viewModelOf(::RegisterViewModel)
     viewModelOf(::SplashViewModel)
-    viewModelOf(::DashboardViewModel)
     viewModelOf(::AccountViewModel)
     viewModelOf(::OpponentsViewModel)
     viewModelOf(::OpponentFormViewModel)
@@ -265,11 +257,6 @@ val presentationModule = module {
     viewModelOf(::SessionEditViewModel)
     viewModelOf(::ExerciseLibraryViewModel)
     viewModelOf(::RatePlayersViewModel)
-    viewModelOf(::ClubDetailsViewModel)
-    viewModelOf(::ClubPlayersViewModel)
-    viewModelOf(::EditClubViewModel)
-    viewModelOf(::ClubMemberDetailsViewModel)
-    viewModelOf(::CreateSeasonViewModel)
     viewModelOf(::CreateAgeGroupsViewModel)
     viewModelOf(::CreateTeamsViewModel)
     viewModelOf(::EditTeamViewModel)
@@ -284,13 +271,14 @@ val presentationModule = module {
     viewModelOf(::MatchReportViewModel)
     viewModelOf(::MatchRecordViewModel)
     viewModelOf(::LiveMatchViewModel)
-    viewModelOf(::AddStaffToAgeGroupViewModel)
-    viewModelOf(::CreateStaffViewModel)
     viewModelOf(::PlayerDetailsViewModel)
     viewModelOf(::EditPlayerViewModel)
 }
 
 /**
+ * Starts Koin with the shared modules plus [appModules], an app's own (the clubs app's `clubsModule`).
+ * Each app's entry calls it through its own `initKoin` (TECHNICAL_DECISIONS §72).
+ *
  * [appConfig] is provided by each platform's own entry point (Android's SquadifyApplication, Desktop's
  * main(), the web client's main()), constructed from whatever mechanism that platform uses to select an
  * environment (Android product flavors, a Gradle property for Desktop/Web) -- see
@@ -300,18 +288,21 @@ val presentationModule = module {
  * with a real, Firebase-backed implementation for now (see the push-notifications section of
  * TECHNICAL_DECISIONS.md); every other platform needs no change at all to pick up the default.
  */
-fun initKoin(
+fun startSquadifyKoin(
     appConfig: AppConfig,
     pushTokenProvider: PushTokenProvider = NoOpPushTokenProvider,
+    appModules: List<Module> = emptyList(),
     appDeclaration: KoinAppDeclaration = {}
 ) =
     startKoin {
         appDeclaration()
         modules(
-            module {
-                single<AppConfig> { appConfig }
-                single<PushTokenProvider> { pushTokenProvider }
-            },
-            dataModule, domainModule, presentationModule
+            listOf(
+                module {
+                    single<AppConfig> { appConfig }
+                    single<PushTokenProvider> { pushTokenProvider }
+                },
+                dataModule, domainModule, presentationModule
+            ) + appModules
         )
     }

@@ -53,7 +53,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(project(":app:shared"))
+            implementation(project(":app:clubs"))
 
             implementation(libs.compose.ui)
         }

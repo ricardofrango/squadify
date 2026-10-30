@@ -56,7 +56,7 @@ fun ClubTheme.toPalette(): ClubPalette {
 // white text needs (ClubThemeRules.MIN_CONTRAST). Mixes towards white in small steps until it's there.
 private const val MIN_LUMINANCE_ON_DARK = 0.13
 
-internal fun liftedForDark(rgb: Int): Int {
+fun liftedForDark(rgb: Int): Int {
     var mixed = rgb
     var step = 0
     while (ClubThemeRules.luminance(mixed) < MIN_LUMINANCE_ON_DARK && step < 20) {

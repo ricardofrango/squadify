@@ -12,12 +12,13 @@ on:
     branches: [develop]
     # Only Android/shared-KMP changes actually affect what this workflow builds and distributes --
     # without this, a server-only or web-only push still rebuilds and redistributes an unchanged APK
-    # to every tester. Keep in sync with what app/androidApp's build actually depends on: app/shared
+    # to every tester. Keep in sync with what app/androidApp's build actually depends on: app/clubs, app/shared
     # and core (KMP modules it consumes), the version catalog/wrapper/root build files, and this
     # workflow file itself (so an edit to the filter/steps takes effect on the same push).
     paths:
       - "app/androidApp/**"
       - "app/shared/**"
+      - "app/clubs/**"
       - "core/**"
       - "gradle/libs.versions.toml"
       - "gradle/wrapper/**"
