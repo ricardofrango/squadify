@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.di
 
 import com.ricardofrango.squadify.domain.config.AppConfig
+import com.ricardofrango.squadify.domain.config.AppFeatures
 import com.ricardofrango.squadify.domain.service.NoOpPushTokenProvider
 import com.ricardofrango.squadify.domain.service.PushTokenProvider
 import com.ricardofrango.squadify.presentation.navigation.ClubsSignedInHome
@@ -20,6 +21,8 @@ import org.koin.dsl.module
 /** The clubs app's own screens: the club list, the club's home and settings, members, seasons, staff. */
 val clubsModule = module {
     single<SignedInHome> { ClubsSignedInHome(get(), get()) }
+    // The clubs app has everything the shared screens offer.
+    single { AppFeatures(training = true, seasons = true, photos = true, clubMembers = true) }
     viewModelOf(::DashboardViewModel)
     viewModelOf(::ClubDetailsViewModel)
     viewModelOf(::ClubPlayersViewModel)

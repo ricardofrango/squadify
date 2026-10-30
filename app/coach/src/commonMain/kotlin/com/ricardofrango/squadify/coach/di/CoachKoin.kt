@@ -9,6 +9,7 @@ import com.ricardofrango.squadify.coach.presentation.ui.home.CoachHomeViewModel
 import com.ricardofrango.squadify.coach.presentation.ui.spacesetup.SpaceSetupViewModel
 import com.ricardofrango.squadify.di.startSquadifyKoin
 import com.ricardofrango.squadify.domain.config.AppConfig
+import com.ricardofrango.squadify.domain.config.AppFeatures
 import com.ricardofrango.squadify.domain.service.NoOpPushTokenProvider
 import com.ricardofrango.squadify.domain.service.PushTokenProvider
 import com.ricardofrango.squadify.presentation.navigation.SignedInHome
@@ -22,6 +23,10 @@ val coachModule = module {
     factory { GetSpaceUseCase(get()) }
     factory { SetUpSpaceUseCase(get()) }
     single<SignedInHome> { CoachSignedInHome(get()) }
+    // The developer, 2026-10-30: no training (REQUIREMENTS §5c); seasons are automatic; staff join with
+    // invite codes, not from club members; no photos or logos until the coach server's image storage
+    // is configured.
+    single { AppFeatures(training = false, seasons = false, photos = false, clubMembers = false) }
     viewModelOf(::SpaceSetupViewModel)
     viewModelOf(::CoachHomeViewModel)
 }

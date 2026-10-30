@@ -108,6 +108,7 @@ fun EditPlayerScreen(
             onWeightChange = { value -> viewModel.updateForm { it.copy(weightKg = value) } },
             onEmergencyContactChange = { value -> viewModel.updateForm { it.copy(emergencyContact = value) } },
             onSaveClick = { viewModel.onSaveClicked(playerId) },
+            showPhoto = viewModel.showsPhoto,
             onPhotoPicked = { bytes -> viewModel.onPhotoPicked(playerId, bytes, onPhotoChanged) },
             onRemovePhoto = { viewModel.onRemovePhoto(playerId, onPhotoChanged) }
         )
@@ -143,6 +144,8 @@ private fun EditPlayerContent(
     onWeightChange: (Int?) -> Unit,
     onEmergencyContactChange: (String) -> Unit,
     onSaveClick: () -> Unit,
+    // False without the server's image storage (the coach app, for now).
+    showPhoto: Boolean = true,
     onPhotoPicked: (ByteArray) -> Unit = {},
     onRemovePhoto: () -> Unit = {}
 ) {
@@ -196,6 +199,7 @@ private fun EditPlayerContent(
                     onWeightChange = onWeightChange,
                     onEmergencyContactChange = onEmergencyContactChange,
                     onSaveClick = onSaveClick,
+                    showPhoto = showPhoto,
                     onPhotoPicked = onPhotoPicked,
                     onRemovePhoto = onRemovePhoto
                 )
@@ -221,6 +225,7 @@ private fun EditPlayerForm(
     onWeightChange: (Int?) -> Unit,
     onEmergencyContactChange: (String) -> Unit,
     onSaveClick: () -> Unit,
+    showPhoto: Boolean,
     onPhotoPicked: (ByteArray) -> Unit,
     onRemovePhoto: () -> Unit
 ) {
@@ -236,7 +241,7 @@ private fun EditPlayerForm(
                 .screenContentPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            PlayerPhotoHeader(state, onPhotoPicked, onRemovePhoto)
+            if (showPhoto) PlayerPhotoHeader(state, onPhotoPicked, onRemovePhoto)
 
             if (state.optionalFieldsNeverSet) {
                 OptionalFieldsBanner()

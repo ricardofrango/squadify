@@ -1,6 +1,11 @@
 package com.ricardofrango.squadify.coach.presentation.ui.home
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,6 +46,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.coach.generated.resources.Res
+import squadify.app.coach.generated.resources.coach_home_add_age_group
 import squadify.app.coach.generated.resources.coach_home_age_groups
 import squadify.app.coach.generated.resources.coach_home_born
 import squadify.app.coach.generated.resources.coach_home_no_age_groups
@@ -54,15 +60,29 @@ import squadify.app.shared.generated.resources.Res as SharedRes
 
 /**
  * The coach app's home: the space (its name and sport, never called a club) and the age groups the
- * coach sees, all of them for the owner and their own for staff. The root of the back stack.
+ * coach sees, all of them for the owner and their own for staff, each opening Age Group Details. The
+ * owner can add age groups. The root of the back stack.
  */
 @Composable
 fun CoachHomeScreen(
     onNavigateToSetup: () -> Unit,
     onSignedOut: () -> Unit,
+    onOpenAgeGroup: (ageGroupId: String) -> Unit,
+    // The owner only: Create age groups, in the space's sport.
+    onCreateAgeGroups: (spaceId: String, spaceName: String, sport: SportType) -> Unit,
+    // Set when a screen opened from here changed something (an age group created or edited).
+    refresh: Boolean = false,
+    onRefreshed: () -> Unit = {},
     viewModel: CoachHomeViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(refresh) {
+        if (refresh) {
+            onRefreshed()
+            viewModel.load()
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.navigationEvent.collect { event ->
@@ -73,11 +93,23 @@ fun CoachHomeScreen(
         }
     }
 
-    CoachHomeContent(uiState = uiState, onRetry = viewModel::load, onSignOut = viewModel::onSignOutClicked)
+    CoachHomeContent(
+        uiState = uiState,
+        onRetry = viewModel::load,
+        onSignOut = viewModel::onSignOutClicked,
+        onOpenAgeGroup = onOpenAgeGroup,
+        onCreateAgeGroups = { space -> onCreateAgeGroups(space.id, space.name, space.sport) }
+    )
 }
 
 @Composable
-private fun CoachHomeContent(uiState: CoachHomeUiState, onRetry: () -> Unit, onSignOut: () -> Unit) {
+private fun CoachHomeContent(
+    uiState: CoachHomeUiState,
+    onRetry: () -> Unit,
+    onSignOut: () -> Unit,
+    onOpenAgeGroup: (String) -> Unit = {},
+    onCreateAgeGroups: (Club) -> Unit = {}
+) {
     val space = (uiState as? CoachHomeUiState.Loaded)?.space?.space
     Scaffold(
         containerColor = ScreenBackground,
@@ -105,7 +137,7 @@ private fun CoachHomeContent(uiState: CoachHomeUiState, onRetry: () -> Unit, onS
                 }
             }
 
-            is CoachHomeUiState.Loaded -> if (uiState.ageGroups.isEmpty()) {
+            is CoachHomeUiState.Loaded -> if (uiState.ageGroups.isEmpty() && !uiState.space.isOwner) {
                 CenteredMessage(stringResource(Res.string.coach_home_no_age_groups), Modifier.padding(paddingValues))
             } else {
                 LazyColumn(
@@ -120,7 +152,21 @@ private fun CoachHomeContent(uiState: CoachHomeUiState, onRetry: () -> Unit, onS
                             color = DeepCarbon.copy(alpha = 0.5f)
                         )
                     }
-                    items(uiState.ageGroups, key = { it.id }) { ageGroup -> AgeGroupRow(ageGroup) }
+                    items(uiState.ageGroups, key = { it.id }) { ageGroup -> AgeGroupRow(ageGroup) { onOpenAgeGroup(ageGroup.id) } }
+                    // Only the owner creates age groups (REQUIREMENTS §5c).
+                    if (uiState.space.isOwner) {
+                        item {
+                            OutlinedButton(
+                                onClick = { onCreateAgeGroups(uiState.space.space) },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(18.dp),
+                                border = BorderStroke(1.dp, PitchGreen.copy(alpha = 0.4f)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = PitchGreen)
+                            ) {
+                                Text(stringResource(Res.string.coach_home_add_age_group))
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -128,8 +174,8 @@ private fun CoachHomeContent(uiState: CoachHomeUiState, onRetry: () -> Unit, onS
 }
 
 @Composable
-private fun AgeGroupRow(ageGroup: AgeGroup) {
-    SectionCard(spacing = 2.dp) {
+private fun AgeGroupRow(ageGroup: AgeGroup, onClick: () -> Unit) {
+    SectionCard(spacing = 2.dp, onClick = onClick) {
         Text(ageGroup.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
         Text(stringResource(Res.string.coach_home_born, bornYears(ageGroup)), style = MaterialTheme.typography.bodySmall, color = CarbonGray)
     }

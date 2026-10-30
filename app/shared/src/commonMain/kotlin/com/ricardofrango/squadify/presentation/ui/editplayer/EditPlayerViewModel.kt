@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.editplayer
 
+import com.ricardofrango.squadify.domain.config.AppFeatures
+
 import com.ricardofrango.squadify.domain.usecase.DeletePlayerPhotoUseCase
 import com.ricardofrango.squadify.domain.usecase.UploadPlayerPhotoUseCase
 import com.ricardofrango.squadify.presentation.PhotoChanger
@@ -26,8 +28,12 @@ class EditPlayerViewModel(
     private val getPlayerDetailsUseCase: GetPlayerDetailsUseCase,
     private val updatePlayerUseCase: UpdatePlayerUseCase,
     private val uploadPlayerPhotoUseCase: UploadPlayerPhotoUseCase,
-    private val deletePlayerPhotoUseCase: DeletePlayerPhotoUseCase
+    private val deletePlayerPhotoUseCase: DeletePlayerPhotoUseCase,
+    features: AppFeatures
 ) : ViewModel() {
+
+    // Without the server's image storage (the coach app, for now), no photo on the form.
+    val showsPhoto: Boolean = features.photos
 
     private val _state = MutableStateFlow<EditPlayerUiState>(EditPlayerUiState.Loading)
     val state: StateFlow<EditPlayerUiState> = _state.asStateFlow()

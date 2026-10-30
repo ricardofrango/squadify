@@ -126,6 +126,7 @@ fun AgeGroupDetailsScreen(
 
         AgeGroupDetailsContent(
             uiState = uiState,
+            showTraining = viewModel.showsTraining,
             recordState = recordState,
             plansState = plansState,
             sessionsState = sessionsState,
@@ -184,13 +185,14 @@ private val AgeGroupTab.label
         AgeGroupTab.MEMBERS -> Res.string.team_tab_players
     }
 
-private val Tabs = AgeGroupTab.entries.map { DetailTab(it.icon, it.label) }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AgeGroupDetailsContent(
     uiState: AgeGroupDetailsUiState,
     recordState: AgeGroupRecordUiState,
+    // False in the coach app: no Training tab.
+    showTraining: Boolean = true,
     plansState: AgeGroupPlansUiState = AgeGroupPlansUiState.Loading,
     sessionsState: AgeGroupSessionsUiState = AgeGroupSessionsUiState.Loading,
     fullStats: com.ricardofrango.squadify.model.FullStatsData? = null,
@@ -230,18 +232,21 @@ private fun AgeGroupDetailsContent(
 ) {
     val details = (uiState as? AgeGroupDetailsUiState.Idle)?.details
     // Each tab keeps its own scroll; tapping the active tab scrolls it to the top (33f).
+    val tabs = remember(showTraining) { AgeGroupTab.entries.filter { showTraining || it != AgeGroupTab.TRAINING } }
+    val tabItems = remember(tabs) { tabs.map { DetailTab(it.icon, it.label) } }
     val listStates = AgeGroupTab.entries.associateWith { rememberLazyListState() }
     val scope = rememberCoroutineScope()
     val selectTab: (AgeGroupTab) -> Unit = { t ->
         if (t == tab) scope.launch { listStates.getValue(t).animateScrollToItem(0) } else onTabSelected(t)
     }
-    val selectIndex: (Int) -> Unit = { selectTab(AgeGroupTab.entries[it]) }
+    val selectIndex: (Int) -> Unit = { selectTab(tabs[it]) }
+    val tabIndex = tabs.indexOf(tab).coerceAtLeast(0)
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = isLandscapeLayout
         val rail = useNavigationRail()
         Row(Modifier.fillMaxSize()) {
-            if (rail && details != null) DetailRail(Tabs, tab.ordinal, selectIndex)
+            if (rail && details != null) DetailRail(tabItems, tabIndex, selectIndex)
             Scaffold(
                 modifier = Modifier.weight(1f),
                 containerColor = ScreenBackground,
@@ -257,7 +262,7 @@ private fun AgeGroupDetailsContent(
                         if (details != null) AgeGroupStrip(details, selectTab)
                     }
                 },
-                bottomBar = { if (!rail && details != null) DetailBottomBar(Tabs, tab.ordinal, selectIndex) }
+                bottomBar = { if (!rail && details != null) DetailBottomBar(tabItems, tabIndex, selectIndex) }
             ) { paddingValues ->
                 val boxModifier = Modifier.fillMaxSize().padding(paddingValues)
                 when (uiState) {

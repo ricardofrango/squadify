@@ -7,6 +7,9 @@ sealed class CreateAgeGroupsUiState {
     data object Loading : CreateAgeGroupsUiState()
 
     data class Idle(
+        // False where the server picks the season (the coach app): no picker, [seasons] is only that
+        // season (SeasonDateDefaults.automaticSeason), and the request carries none.
+        val pickSeason: Boolean = true,
         // The club's seasons, for the picker -- age groups belong to exactly one season and the user
         // needs to see (and be able to change) which one they're adding to, not have it guessed
         // silently.
@@ -32,7 +35,8 @@ sealed class CreateAgeGroupsUiState {
         // minDate/maxDate on the season screen). In-batch duplicates across this screen's own rows are
         // prevented the same way, by excluding sibling rows' picks too.
         val usedBirthYears: Set<Int>
-            get() = ageGroups.filter { it.seasonId == selectedSeasonId }
+            // Without a picker the season's id isn't known here, so the server's 409 marks a clash.
+            get() = ageGroups.filter { pickSeason && it.seasonId == selectedSeasonId }
                 .flatMap { it.endYear..it.startYear }
                 .toSet()
     }

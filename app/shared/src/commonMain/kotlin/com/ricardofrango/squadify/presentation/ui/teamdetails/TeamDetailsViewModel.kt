@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.domain.config.AppFeatures
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.GetFullStatsUseCase
@@ -21,7 +23,8 @@ class TeamDetailsViewModel(
     private val getTeamDetailsUseCase: GetTeamDetailsUseCase,
     private val getTeamSeasonRecordUseCase: GetTeamSeasonRecordUseCase,
     private val getFullStatsUseCase: GetFullStatsUseCase,
-    private val preferences: UiPreferencesRepository
+    private val preferences: UiPreferencesRepository,
+    private val features: AppFeatures
 ) : ViewModel() {
 
     // Always opens on Matches -- the most common reason to open a team. (Design 32f remembered the
@@ -56,7 +59,9 @@ class TeamDetailsViewModel(
         viewModelScope.launch {
             _state.update { TeamDetailsUiState.Loading }
             try {
-                _state.update { TeamDetailsUiState.Idle(getTeamDetailsUseCase(teamId)) }
+                val details = getTeamDetailsUseCase(teamId)
+                // Without club members (the coach app), a staff chip opens no member's page.
+                _state.update { TeamDetailsUiState.Idle(if (features.clubMembers) details else details.copy(canViewMembers = false)) }
             } catch (e: Exception) {
                 // Per AI_GUIDELINES "No Raw Exception Messages in UI" -- never surface e.message.
                 val message = errorMessage(e, Res.string.msg_failed_to_load_team)

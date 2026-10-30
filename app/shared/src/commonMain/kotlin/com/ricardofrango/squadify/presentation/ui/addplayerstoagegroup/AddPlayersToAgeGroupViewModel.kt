@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.addplayerstoagegroup
 
+import com.ricardofrango.squadify.domain.config.AppFeatures
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.AddPlayersToAgeGroupUseCase
@@ -28,7 +30,8 @@ class AddPlayersToAgeGroupViewModel(
     private val getAgeGroupsUseCase: GetAgeGroupsUseCase,
     private val getSeasonsUseCase: GetSeasonsUseCase,
     private val getEligiblePlayersForAgeGroupUseCase: GetEligiblePlayersForAgeGroupUseCase,
-    private val addPlayersToAgeGroupUseCase: AddPlayersToAgeGroupUseCase
+    private val addPlayersToAgeGroupUseCase: AddPlayersToAgeGroupUseCase,
+    private val features: AppFeatures
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<AddPlayersToAgeGroupUiState>(AddPlayersToAgeGroupUiState.Loading)
@@ -44,7 +47,8 @@ class AddPlayersToAgeGroupViewModel(
         if (_state.value is AddPlayersToAgeGroupUiState.Idle) return
 
         viewModelScope.launch {
-            val seasons = try {
+            // Only for the age groups' season names; the coach app has no seasons to list.
+            val seasons = if (!features.seasons) emptyList() else try {
                 getSeasonsUseCase(clubId)
             } catch (e: Exception) {
                 emptyList()

@@ -74,4 +74,17 @@ class SeasonDateDefaultsTest {
 
         assertEquals("2026", name)
     }
+
+    // The season the coach server picks when none is sent: shown on Create age groups, never sent.
+    @Test
+    fun theAutomaticSeasonIsTheEuropeanOneRunningToday() {
+        val autumn = SeasonDateDefaults.automaticSeason("space-1", LocalDate(2026, 10, 30))
+        assertEquals("26/27", autumn.name)
+        assertEquals(LocalDate(2026, 7, 1), autumn.startDate)
+        assertEquals(LocalDate(2027, 6, 30), autumn.endDate)
+        assertEquals(SeasonDateDefaults.AUTOMATIC_SEASON_ID, autumn.id)
+
+        // Before July it's still the season that started the year before.
+        assertEquals("25/26", SeasonDateDefaults.automaticSeason("space-1", LocalDate(2026, 6, 30)).name)
+    }
 }

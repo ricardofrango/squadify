@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
+import com.ricardofrango.squadify.domain.config.AppFeatures
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.data.remote.ApiException
@@ -128,8 +130,12 @@ class OpponentFormViewModel(
     private val createOpponentUseCase: CreateOpponentUseCase,
     private val updateOpponentUseCase: UpdateOpponentUseCase,
     private val uploadOpponentLogoUseCase: UploadOpponentLogoUseCase,
-    private val deleteOpponentLogoUseCase: DeleteOpponentLogoUseCase
+    private val deleteOpponentLogoUseCase: DeleteOpponentLogoUseCase,
+    features: AppFeatures
 ) : ViewModel() {
+
+    // Without the server's image storage (the coach app, for now), no logo on the form.
+    val showsLogo: Boolean = features.photos
 
     private val _state = MutableStateFlow(OpponentFormUiState())
     val state: StateFlow<OpponentFormUiState> = _state.asStateFlow()
