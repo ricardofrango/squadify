@@ -39,3 +39,19 @@ dependencies {
     testImplementation(libs.kotlin.testJunit)
     testImplementation(libs.mockk)
 }
+
+// The tests start the whole server, which signs up accounts and sets up spaces: on their own database,
+// created when missing, never the dev one (`squadify_coach_dev`), and dropped once they've run.
+val testDatabase = "squadify_coach_test"
+
+val dropTestDatabase by tasks.registering(JavaExec::class) {
+    description = "Drops the coach tests' database ($testDatabase)."
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass = "com.ricardofrango.squadify.coach.DropTestDatabaseKt"
+    environment("DATABASE_NAME", testDatabase)
+}
+
+tasks.test {
+    environment("DATABASE_NAME", testDatabase)
+    finalizedBy(dropTestDatabase)
+}
