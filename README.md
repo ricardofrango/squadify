@@ -5,7 +5,7 @@ This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop (JVM
 
 * [/app/clubs](./app/clubs/src) is Squadify for Clubs: its navigation, Koin setup, iOS entry and the screens only clubs have (TECHNICAL_DECISIONS.md §72). Every clubs entry point (Android, iOS, web, desktop) starts it.
 
-* [/app/coach](./app/coach/src) is Squadify for Coaches: its navigation, Koin setup, strings and the screens only the coach app has (the first setup, the space's home). [/app/coachAndroidApp](./app/coachAndroidApp) is its Android app.
+* [/app/coach](./app/coach/src) is Squadify for Coaches: its navigation, Koin setup, strings and the screens only the coach app has (the home with every age group, setting up their own space, joining with a code, inviting staff). [/app/coachAndroidApp](./app/coachAndroidApp) is its Android app.
 
 * [/app/shared](./app/shared/src) is for code that will be shared across your Compose Multiplatform applications.
   It contains several subfolders:

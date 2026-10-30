@@ -213,6 +213,10 @@ fun ScreenRegistry.sharedScreens(navigator: AppNavigator) {
             onNavigateToAddStaff = { clubId, clubName, ageGroupId ->
                 navigator.navigate(Screen.AddStaffToAgeGroup(clubId, clubName, ageGroupId))
             },
+            // The coach app's owner; its screen is the coach app's own.
+            onNavigateToInviteStaff = { ageGroupId, ageGroupName, spaceName ->
+                navigator.navigate(Screen.InviteStaff(ageGroupId, ageGroupName, spaceName))
+            },
             onNavigateToCreateTeams = { clubId, clubName, sport ->
                 navigator.navigate(Screen.CreateTeams(clubId, clubName, sport.name))
             },

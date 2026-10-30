@@ -78,6 +78,8 @@ fun AgeGroupDetailsScreen(
     // A staff row opens Member details (design 35) -- coordinators only, who can read it.
     onNavigateToMember: (clubId: String, userId: String) -> Unit = { _, _ -> },
     onNavigateToEditAgeGroup: (ageGroupId: String) -> Unit = {},
+    // The coach app's owner, from ⋮: the age group's invite codes.
+    onNavigateToInviteStaff: (ageGroupId: String, ageGroupName: String, spaceName: String) -> Unit = { _, _, _ -> },
     // Training plans (design 40): open or edit the season / a month / a week of this age group.
     onNavigateToSeasonPlan: (ageGroupId: String, edit: Boolean) -> Unit = { _, _ -> },
     onNavigateToMonthPlan: (ageGroupId: String, month: LocalDate, edit: Boolean) -> Unit = { _, _, _ -> },
@@ -122,6 +124,17 @@ fun AgeGroupDetailsScreen(
                 )
             }
         }
+        val staffRemovedText = Res.string.msg_staff_removed
+        LaunchedEffect(viewModel) {
+            viewModel.staffRemoval.collect { result ->
+                snackbarHostState.showSnackbar(
+                    when (result) {
+                        is StaffRemovalResult.Removed -> getString(staffRemovedText, result.name, result.ageGroupName)
+                        is StaffRemovalResult.Failed -> result.message
+                    }
+                )
+            }
+        }
         LaunchedEffect(refreshOnReturn) { if (refreshOnReturn) viewModel.load(ageGroupId, forceReload = true) }
 
         AgeGroupDetailsContent(
@@ -162,7 +175,9 @@ fun AgeGroupDetailsScreen(
             onCreateMatch = { d -> onNavigateToCreateMatch(d.ageGroup.id) },
             onStaffClick = { d, userId -> onNavigateToMember(d.ageGroup.clubId, userId) },
             onEditAgeGroup = { d -> onNavigateToEditAgeGroup(d.ageGroup.id) },
-            onRemovePlayer = { playerId -> viewModel.removePlayer(ageGroupId, playerId) }
+            onRemovePlayer = { playerId -> viewModel.removePlayer(ageGroupId, playerId) },
+            onInviteStaff = { d -> onNavigateToInviteStaff(d.ageGroup.id, d.ageGroup.name, d.club.name) },
+            onRemoveStaff = { userId -> viewModel.removeStaff(ageGroupId, userId) }
         )
     }
 }
@@ -228,9 +243,12 @@ private fun AgeGroupDetailsContent(
     onCreateMatch: (AgeGroupDetails) -> Unit,
     onStaffClick: (AgeGroupDetails, String) -> Unit = { _, _ -> },
     onEditAgeGroup: (AgeGroupDetails) -> Unit = {},
-    onRemovePlayer: (playerId: String) -> Unit = {}
+    onRemovePlayer: (playerId: String) -> Unit = {},
+    onInviteStaff: (AgeGroupDetails) -> Unit = {},
+    onRemoveStaff: (userId: String) -> Unit = {}
 ) {
     val details = (uiState as? AgeGroupDetailsUiState.Idle)?.details
+    val invitesStaff = (uiState as? AgeGroupDetailsUiState.Idle)?.invitesStaff == true
     // Each tab keeps its own scroll; tapping the active tab scrolls it to the top (33f).
     val tabs = remember(showTraining) { AgeGroupTab.entries.filter { showTraining || it != AgeGroupTab.TRAINING } }
     val tabItems = remember(tabs) { tabs.map { DetailTab(it.icon, it.label) } }
@@ -257,7 +275,7 @@ private fun AgeGroupDetailsContent(
                             title = details?.ageGroup?.name ?: stringResource(Res.string.tab_age_groups),
                             subtitle = details?.let { stringResource(Res.string.ag_born, bornLabel(it.ageGroup), it.season.name) },
                             onNavigateBack = onNavigateBack,
-                            actions = { if (details != null) OverflowMenu(details, onAddPlayers, onAddStaff, onCreateTeam, onCreateMatch, onEditAgeGroup) }
+                            actions = { if (details != null) OverflowMenu(details, invitesStaff, onAddPlayers, onAddStaff, onCreateTeam, onCreateMatch, onEditAgeGroup, onInviteStaff) }
                         )
                         if (details != null) AgeGroupStrip(details, selectTab)
                     }
@@ -324,7 +342,8 @@ private fun AgeGroupDetailsContent(
                                 onAddPlayers = { onAddPlayers(d) }, onOpenPlayer = onPlayerClick,
                                 onOpenStaff = if (d.canAddStaff) { userId -> onStaffClick(d, userId) } else null,
                                 // The same permission as adding players to the pool.
-                                onRemovePlayer = if (d.canAssignPlayersToAgeGroup) onRemovePlayer else null
+                                onRemovePlayer = if (d.canAssignPlayersToAgeGroup) onRemovePlayer else null,
+                                onRemoveStaff = if (uiState.invitesStaff) onRemoveStaff else null
                             )
                         }
                     }
@@ -338,14 +357,17 @@ private fun AgeGroupDetailsContent(
 @Composable
 private fun OverflowMenu(
     details: AgeGroupDetails,
+    // The coach app's owner: Invite staff, to the age group's invite codes.
+    invitesStaff: Boolean,
     onAddPlayers: (AgeGroupDetails) -> Unit,
     onAddStaff: (AgeGroupDetails) -> Unit,
     onCreateTeam: (AgeGroupDetails) -> Unit,
     onCreateMatch: (AgeGroupDetails) -> Unit,
-    onEditAgeGroup: (AgeGroupDetails) -> Unit
+    onEditAgeGroup: (AgeGroupDetails) -> Unit,
+    onInviteStaff: (AgeGroupDetails) -> Unit
 ) {
     val canScheduleFromMenu = details.canManageMatch && details.teams.isNotEmpty()
-    if (!(details.canAssignPlayersToAgeGroup || details.canAddStaff || details.canCreateTeam || canScheduleFromMenu || details.canEditAgeGroup)) return
+    if (!(details.canAssignPlayersToAgeGroup || details.canAddStaff || invitesStaff || details.canCreateTeam || canScheduleFromMenu || details.canEditAgeGroup)) return
     var open by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { open = true }) {
@@ -357,6 +379,9 @@ private fun OverflowMenu(
             }
             if (details.canAddStaff) {
                 DropdownMenuItem(text = { Text(stringResource(Res.string.label_add_staff_to_age_group), color = DeepCarbon) }, onClick = { open = false; onAddStaff(details) })
+            }
+            if (invitesStaff) {
+                DropdownMenuItem(text = { Text(stringResource(Res.string.label_invite_staff), color = DeepCarbon) }, onClick = { open = false; onInviteStaff(details) })
             }
             if (details.canCreateTeam) {
                 DropdownMenuItem(text = { Text(stringResource(Res.string.label_create_team), color = DeepCarbon) }, onClick = { open = false; onCreateTeam(details) })

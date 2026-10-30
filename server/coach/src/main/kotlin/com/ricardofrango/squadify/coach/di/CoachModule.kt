@@ -14,7 +14,6 @@ import com.ricardofrango.squadify.coach.domain.CreateStaffInviteUseCase
 import com.ricardofrango.squadify.coach.domain.GetStaffInvitesUseCase
 import com.ricardofrango.squadify.coach.domain.RemoveStaffUseCase
 import com.ricardofrango.squadify.coach.domain.RevokeStaffInviteUseCase
-import com.ricardofrango.squadify.coach.domain.GetSpaceUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
 import com.ricardofrango.squadify.coach.domain.SetUpSpaceUseCase
 import com.ricardofrango.squadify.data.repository.ExposedAgeGroupRepository
@@ -96,7 +95,6 @@ val coachModule = module {
     factory<AccessPolicy> { CoachAccessPolicy(get(), get(), get(), get()) }
     factory { CoachSeasons(get()) }
     factory { SetUpSpaceUseCase(get(), get(), get(), get(), get()) }
-    factory { GetSpaceUseCase(get(), get()) }
     factory { GetSpacesUseCase(get(), get(), get()) }
 
     // Staff: invite codes for an age group, and taking someone off one.

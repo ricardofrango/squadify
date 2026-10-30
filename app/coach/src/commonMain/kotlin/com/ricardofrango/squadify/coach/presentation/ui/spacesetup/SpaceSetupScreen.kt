@@ -12,13 +12,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -61,7 +59,6 @@ import squadify.app.coach.generated.resources.space_setup_sport
 import squadify.app.coach.generated.resources.space_setup_team_name
 import squadify.app.coach.generated.resources.space_setup_team_name_supporting
 import squadify.app.coach.generated.resources.space_setup_title
-import squadify.app.shared.generated.resources.btn_logout
 import squadify.app.shared.generated.resources.label_age_group_name_field
 import squadify.app.shared.generated.resources.label_age_group_section
 import squadify.app.shared.generated.resources.label_age_group_span_type
@@ -77,15 +74,14 @@ import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.shared.generated.resources.Res as SharedRes
 
 /**
- * The first setup (REQUIREMENTS §5c), right after signing up: the space's name and sport, its first
- * age group and its first team, in one form and one request. The season is the one running today,
- * shown but never asked for. It's the root of the back stack, so there's no back arrow; signing out is
- * the way out.
+ * Setting up the coach's own space (REQUIREMENTS §5c), from the home's first "Create age group": the
+ * space's name and sport, its first age group and its first team, in one form and one request. The
+ * season is the one running today, shown but never asked for.
  */
 @Composable
 fun SpaceSetupScreen(
     onSetUp: () -> Unit,
-    onSignedOut: () -> Unit,
+    onNavigateBack: () -> Unit,
     viewModel: SpaceSetupViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
@@ -94,7 +90,6 @@ fun SpaceSetupScreen(
         viewModel.navigationEvent.collect { event ->
             when (event) {
                 SpaceSetupNavigationEvent.NavigateToHome -> onSetUp()
-                SpaceSetupNavigationEvent.NavigateToLogin -> onSignedOut()
             }
         }
     }
@@ -105,7 +100,7 @@ fun SpaceSetupScreen(
         seasonEndYear = viewModel.seasonEndYear,
         onFormChanged = viewModel::onFormChanged,
         onCreate = viewModel::onCreateClicked,
-        onSignOut = viewModel::onSignOutClicked
+        onNavigateBack = onNavigateBack
     )
 }
 
@@ -116,7 +111,7 @@ private fun SpaceSetupContent(
     seasonEndYear: Int,
     onFormChanged: (SpaceSetupForm) -> Unit,
     onCreate: () -> Unit,
-    onSignOut: () -> Unit
+    onNavigateBack: () -> Unit
 ) {
     val form = uiState.form
     val enabled = !uiState.isSubmitting
@@ -128,12 +123,7 @@ private fun SpaceSetupContent(
         topBar = {
             SquadifyTopBar(
                 title = stringResource(Res.string.space_setup_title),
-                showBackButton = false,
-                actions = {
-                    TextButton(onClick = onSignOut, enabled = enabled) {
-                        Text(stringResource(SharedRes.string.btn_logout), color = Color.White)
-                    }
-                }
+                onNavigateBack = onNavigateBack
             )
         },
         bottomBar = {
@@ -288,7 +278,7 @@ private fun SpaceSetupPreview() {
             seasonEndYear = 2027,
             onFormChanged = {},
             onCreate = {},
-            onSignOut = {}
+            onNavigateBack = {}
         )
     }
 }
@@ -303,7 +293,7 @@ private fun SpaceSetupLandscapePreview() {
             seasonEndYear = 2027,
             onFormChanged = {},
             onCreate = {},
-            onSignOut = {}
+            onNavigateBack = {}
         )
     }
 }
@@ -318,7 +308,7 @@ private fun SpaceSetupFailedPreview() {
             seasonEndYear = 2027,
             onFormChanged = {},
             onCreate = {},
-            onSignOut = {}
+            onNavigateBack = {}
         )
     }
 }

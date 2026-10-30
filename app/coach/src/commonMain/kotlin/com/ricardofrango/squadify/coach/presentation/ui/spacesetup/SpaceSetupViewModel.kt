@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.coach.domain.SetUpSpaceUseCase
 import com.ricardofrango.squadify.data.remote.ApiException
 import com.ricardofrango.squadify.domain.AgeGroupDefaults
-import com.ricardofrango.squadify.domain.usecase.LogoutUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -20,8 +19,7 @@ import kotlinx.datetime.todayIn
 import kotlin.time.Clock
 
 class SpaceSetupViewModel(
-    private val setUpSpaceUseCase: SetUpSpaceUseCase,
-    private val logoutUseCase: LogoutUseCase
+    private val setUpSpaceUseCase: SetUpSpaceUseCase
 ) : ViewModel() {
     val today: LocalDate = Clock.System.todayIn(TimeZone.currentSystemDefault())
 
@@ -47,7 +45,7 @@ class SpaceSetupViewModel(
                 setUpSpaceUseCase(request)
                 _navigationEvent.emit(SpaceSetupNavigationEvent.NavigateToHome)
             } catch (e: ApiException) {
-                // 409: this account already has a space (set up on another device); open it.
+                // 409: this account already owns a space (set up on another device); the home shows it.
                 if (e.statusCode == 409) {
                     _navigationEvent.emit(SpaceSetupNavigationEvent.NavigateToHome)
                 } else {
@@ -56,13 +54,6 @@ class SpaceSetupViewModel(
             } catch (e: Exception) {
                 _state.update { it.copy(isSubmitting = false, failed = true) }
             }
-        }
-    }
-
-    fun onSignOutClicked() {
-        viewModelScope.launch {
-            logoutUseCase()
-            _navigationEvent.emit(SpaceSetupNavigationEvent.NavigateToLogin)
         }
     }
 }

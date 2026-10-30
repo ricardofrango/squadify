@@ -42,8 +42,8 @@ sealed class Screen {
     @SerialName("account")
     data object Account : Screen()
 
-    // Squadify for Coaches (TECHNICAL_DECISIONS §72): the coach app's home, its space, and the space's
-    // first setup, right after signing up. Declared here with every other route so the back stack can
+    // Squadify for Coaches (TECHNICAL_DECISIONS §72): the coach app's home (every age group the coach
+    // has), setting up their own space, joining with a code, and inviting staff. Declared here with every other route so the back stack can
     // be saved and restored; their screens are in :app:coach.
     @Serializable
     @SerialName("space")
@@ -52,6 +52,16 @@ sealed class Screen {
     @Serializable
     @SerialName("space-setup")
     data object SpaceSetup : Screen()
+
+    // Joining someone's age group as staff with the code they shared.
+    @Serializable
+    @SerialName("join")
+    data object JoinWithCode : Screen()
+
+    // The owner's invite codes for one age group: create, share, withdraw. Opened from Age Group Details.
+    @Serializable
+    @SerialName("invite-staff")
+    data class InviteStaff(val ageGroupId: String, val ageGroupName: String, val spaceName: String) : Screen()
 
     // isRootClub is true only when this is the single club a user with just one club is bounced to
     // straight from Dashboard (see DashboardViewModel.NavigateToOnlyClub) -- Dashboard is popped off

@@ -1,12 +1,16 @@
 package com.ricardofrango.squadify.coach.data
 
 import com.ricardofrango.squadify.coach.domain.SpaceRepository
+import com.ricardofrango.squadify.coach.domain.StaffInviteRepository
 import com.ricardofrango.squadify.data.remote.handleResponse
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
+import com.ricardofrango.squadify.model.SpaceAgeGroups
 import com.ricardofrango.squadify.model.SpaceSetup
+import com.ricardofrango.squadify.model.StaffInvite
 import io.ktor.client.HttpClient
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -18,12 +22,31 @@ class SpaceRepositoryImpl(
     private val appConfig: AppConfig
 ) : SpaceRepository {
 
-    override suspend fun getSpace(): CoachSpace =
-        httpClient.get("${appConfig.baseUrl}/space").handleResponse()
+    override suspend fun getSpaces(): List<SpaceAgeGroups> =
+        httpClient.get("${appConfig.baseUrl}/spaces").handleResponse()
 
     override suspend fun setUpSpace(request: SetUpSpaceRequest): SpaceSetup =
         httpClient.post("${appConfig.baseUrl}/space") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.handleResponse()
+
+    override suspend fun acceptInvite(code: String): CoachSpace =
+        httpClient.post("${appConfig.baseUrl}/invites/$code/accept").handleResponse()
+}
+
+class StaffInviteRepositoryImpl(
+    private val httpClient: HttpClient,
+    private val appConfig: AppConfig
+) : StaffInviteRepository {
+
+    override suspend fun getInvites(ageGroupId: String): List<StaffInvite> =
+        httpClient.get("${appConfig.baseUrl}/age-groups/$ageGroupId/invites").handleResponse()
+
+    override suspend fun createInvite(ageGroupId: String): StaffInvite =
+        httpClient.post("${appConfig.baseUrl}/age-groups/$ageGroupId/invites").handleResponse()
+
+    override suspend fun revokeInvite(ageGroupId: String, code: String) {
+        httpClient.delete("${appConfig.baseUrl}/age-groups/$ageGroupId/invites/$code").handleResponse<Unit>()
+    }
 }

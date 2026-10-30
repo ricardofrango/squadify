@@ -15,4 +15,6 @@ interface AgeGroupRepository {
     suspend fun getAgeGroupFullStats(ageGroupId: String): com.ricardofrango.squadify.model.FullStatsData
     suspend fun getAgeGroupStaff(ageGroupId: String): List<AgeGroupStaffMember>
     suspend fun addStaffToAgeGroup(ageGroupId: String, request: AddStaffToAgeGroupRequest)
+    // The coach server only, for now (TECHNICAL_DECISIONS §72): the owner takes someone off the age group.
+    suspend fun removeStaffFromAgeGroup(ageGroupId: String, userId: String)
 }

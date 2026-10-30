@@ -592,9 +592,12 @@ internal fun AgeGroupMembersTab(
     // Null for readers who can't open Member details (below coordinator): the rows stay inert.
     onOpenStaff: ((String) -> Unit)? = null,
     // Null without ASSIGN_PLAYERS_TO_AGE_GROUP: no ✕ on the player rows.
-    onRemovePlayer: ((String) -> Unit)? = null
+    onRemovePlayer: ((String) -> Unit)? = null,
+    // The coach app's owner: a delete button on each staff row, after a confirmation.
+    onRemoveStaff: ((String) -> Unit)? = null
 ) {
     var confirmRemove by remember { mutableStateOf<Player?>(null) }
+    var confirmRemoveStaff by remember { mutableStateOf<AgeGroupStaffMember?>(null) }
     val members = (recordState as? AgeGroupRecordUiState.Loaded)?.record?.memberSeasons()
     val teamsById = remember(details.teams) { details.teams.associateBy { it.id } }
     val players = remember(details.players, searchQuery) {
@@ -650,6 +653,16 @@ internal fun AgeGroupMembersTab(
                             }
                             if (onOpenStaff != null) {
                                 Icon(painterResource(Res.drawable.ic_chevron_right), contentDescription = null, tint = DeepCarbon.copy(alpha = 0.3f), modifier = Modifier.size(20.dp))
+                            }
+                            if (onRemoveStaff != null) {
+                                IconButton(onClick = { confirmRemoveStaff = member }, modifier = Modifier.padding(start = 4.dp).size(36.dp)) {
+                                    Icon(
+                                        painterResource(Res.drawable.ic_delete),
+                                        stringResource(Res.string.cd_remove_staff, "${member.firstName} ${member.lastName}"),
+                                        tint = AlertRed,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -720,6 +733,23 @@ internal fun AgeGroupMembersTab(
                 }
             }
         }
+    }
+    confirmRemoveStaff?.let { member ->
+        AlertDialog(
+            onDismissRequest = { confirmRemoveStaff = null },
+            title = { Text(stringResource(Res.string.title_remove_staff, "${member.firstName} ${member.lastName}", details.ageGroup.name)) },
+            text = { Text(stringResource(Res.string.msg_remove_staff)) },
+            confirmButton = {
+                TextButton(onClick = { confirmRemoveStaff = null; onRemoveStaff?.invoke(member.userId) }) {
+                    Text(stringResource(Res.string.btn_remove), color = AlertRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRemoveStaff = null }) {
+                    Text(stringResource(Res.string.btn_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        )
     }
     confirmRemove?.let { player ->
         AlertDialog(
