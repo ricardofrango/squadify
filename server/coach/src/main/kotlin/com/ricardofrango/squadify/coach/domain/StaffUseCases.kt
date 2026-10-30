@@ -100,7 +100,7 @@ class RevokeStaffInviteUseCase(
 
 /**
  * Someone signed in uses a code: they join the space (if not in it yet) and become staff on the
- * code's age group. One space per account for now, so a member of another space is refused.
+ * code's age group. Being in other spaces, their own included, doesn't matter.
  */
 class AcceptStaffInviteUseCase(
     private val invites: StaffInviteRepository,
@@ -117,9 +117,8 @@ class AcceptStaffInviteUseCase(
         val ageGroup = ageGroupRepository.ageGroupOrNotFound(invite.ageGroupId)
         val spaceId = ageGroup.clubId
 
-        val memberships = clubRepository.getMemberships(userId)
-        if (memberships.any { it.first.id != spaceId }) throw ConflictException("You already belong to another space")
-        val role = memberships.firstOrNull()?.second
+        val membership = clubRepository.getMemberships(userId).firstOrNull { it.first.id == spaceId }
+        val role = membership?.second
         if (role == ClubRole.CLUB_ADMIN) throw ConflictException("You own this space, so you're already on every age group")
         if (ageGroupRepository.getUserRoleInAgeGroup(userId, ageGroup.id) != null) throw ConflictException("You're already staff on ${ageGroup.name}")
 
@@ -128,7 +127,7 @@ class AcceptStaffInviteUseCase(
         // Single-use: a second, simultaneous use loses here and rolls back.
         if (!invites.markAccepted(invite.id, userId, now)) throw ConflictException("This invite code has already been used")
 
-        val space = memberships.firstOrNull()?.first ?: clubRepository.getClubById(spaceId) ?: throw NotFoundException("Space not found")
+        val space = membership?.first ?: clubRepository.getClubById(spaceId) ?: throw NotFoundException("Space not found")
         CoachSpace(space, isOwner = false)
     }
 }

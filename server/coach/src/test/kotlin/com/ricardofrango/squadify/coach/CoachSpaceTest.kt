@@ -53,7 +53,7 @@ class CoachSpaceTest {
         assertEquals(7, setup.team.teamSize)
         val spaceId = setup.space.id
 
-        // One space per account for now.
+        // One space of their own.
         assertEquals(
             HttpStatusCode.Conflict,
             api.post("/v1/space") { json(owner, SetUpSpaceRequest("Again", SportType.FOOTBALL, AgeGroupItemRequest("Sub-10", 2017, 2017), "A")) }.status

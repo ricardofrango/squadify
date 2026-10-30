@@ -2793,8 +2793,8 @@ The plan's limits (stats from Basic, age groups and members per age group, the o
 
 ```mermaid
 graph TD
-    A[Start: userId, name, sport, first age group, team name and size] --> B{Already a member of a space?}
-    B -- Yes --> C(["Throw ConflictException: one space per account"])
+    A[Start: userId, name, sport, first age group, team name and size] --> B{Already owns a space?}
+    B -- Yes --> C(["Throw ConflictException: one space of their own"])
     B -- No --> V{name, age group name and team name not blank; startYear >= endYear; team sizes in the sport's?}
     V -- No --> VE(["Throw ValidationException"])
     V -- Yes --> S[Create the space: a clubs row, ACTIVE, with the sport]
@@ -2805,7 +2805,11 @@ graph TD
     T --> Z(["Return SpaceSetup: space, season, age group, team"])
 ```
 
-All in one transaction, so a refused setup creates nothing. `GET /v1/space` (`GetSpaceUseCase`) returns the coach's space from `ClubRepository.getMemberships` (`club_members` only): the one they own, else the first they were added to, with `isOwner`; 404 before the first setup.
+All in one transaction, so a refused setup creates nothing. Being staff in other spaces doesn't count.
+
+`GET /v1/spaces` (`GetSpacesUseCase`) returns every space the coach is in from `ClubRepository.getMemberships`, their own first, each as `SpaceAgeGroups` with `isOwner` and their age groups there: all of their own space's, only the ones with a staff row in the others. An empty list before they set up or join one.
+
+`GET /v1/space` (`GetSpaceUseCase`) returns the coach's space from `ClubRepository.getMemberships` (`club_members` only): the one they own, else the first they were added to, with `isOwner`; 404 before the first setup. It goes once the app uses `/v1/spaces`.
 
 ### 13.3 Games on the coach server
 
@@ -2826,7 +2830,7 @@ graph TD
     U -- Yes --> C1(["Throw ConflictException"])
     U -- No --> E{Expired?}
     E -- Yes --> V(["Throw ValidationException"])
-    E -- No --> M{"Member of another space, the owner, or already staff on it?"}
+    E -- No --> M{"The owner of this space, or already staff on the age group?"}
     M -- Yes --> C2(["Throw ConflictException"])
     M -- No --> J[Join the space as MEMBER if not in it; staff row COACH on the age group]
     J --> K{Mark the code used, only if still unused}
@@ -2834,7 +2838,7 @@ graph TD
     K -- marked --> Z(["Return CoachSpace, isOwner = false"])
 ```
 
-Removing (`DELETE /age-groups/{id}/staff/{userId}`, the owner only): the owner can't be removed; otherwise the staff row goes, and the space membership too when it was their last age group of the space. Withdrawing (`DELETE /age-groups/{id}/invites/{code}`) deletes a code that hasn't been used.
+Other spaces don't matter: an owner of one space, or staff in another, can use a code. Removing (`DELETE /age-groups/{id}/staff/{userId}`, the owner only): the owner can't be removed; otherwise the staff row goes, and the space membership too when it was their last age group of the space. Withdrawing (`DELETE /age-groups/{id}/invites/{code}`) deletes a code that hasn't been used.
 
 **The coach database's own table**, beyond the shared ones (§12): `staff_invites` (`id`, `code` unique, `age_group_id` → `age_groups` ON DELETE CASCADE, `created_by` → `users`, `created_at`, `expires_at`, `accepted_by` → `users` nullable, `accepted_at` nullable), from `V2__staff_invites.sql`.
 
