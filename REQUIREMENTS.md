@@ -307,3 +307,4 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [ ] Store requirements (§5c): account deletion in the app, Google's UMP consent form before ads, a privacy policy and data-safety form.
         - [ ] Production: the coach server, its database and the push credentials on Railway production.
     - [ ] Later: moving an age group from the coach app to a club.
+- [ ] **Server integration tests for Squadify for Clubs** (the developer, 2026-10-30; `TECHNICAL_DECISIONS.md` §72): as on the coach server, tests that start the clubs server on its own test database (`squadify_test`, dropped after the run) and call its endpoints for the main flows: sign-up and invites, a club's structure, a game from scheduling to stats, the live feeds. `ApplicationTest` and `CorsTest` move onto it too, off `squadify_dev`.
