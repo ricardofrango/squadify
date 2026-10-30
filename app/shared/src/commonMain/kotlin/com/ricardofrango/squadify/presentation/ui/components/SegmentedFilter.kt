@@ -178,7 +178,7 @@ private fun FillOrScrollRow(modifier: Modifier, content: @Composable () -> Unit)
 private const val FilterAnimationMillis = 250
 
 /** "Official" → "Offic.", the "." saying it's cut; a label of 5 letters or fewer stays whole ("All", "Todos"). */
-internal fun shortFilterLabel(label: String): String = if (label.length <= ShortLabelLength) label else label.take(ShortLabelLength) + "."
+fun shortFilterLabel(label: String): String = if (label.length <= ShortLabelLength) label else label.take(ShortLabelLength) + "."
 
 private const val ShortLabelLength = 5
 

@@ -47,7 +47,7 @@ kotlin {
     }
 }
 dependencies {
-    implementation(project(":app:shared"))
+    implementation(project(":app:clubs"))
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.ktx)

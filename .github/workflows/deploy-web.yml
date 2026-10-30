@@ -20,6 +20,7 @@ on:
     paths:
       - "app/webApp/**"
       - "app/shared/**"
+      - "app/clubs/**"
       - "core/**"
       - "common/**"
       - "gradle/libs.versions.toml"

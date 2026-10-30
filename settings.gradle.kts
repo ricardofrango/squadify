@@ -32,6 +32,7 @@ plugins {
 }
 
 include(":app:androidApp")
+include(":app:clubs")
 include(":app:desktopApp")
 include(":app:shared")
 include(":app:webApp")

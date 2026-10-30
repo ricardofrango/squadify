@@ -23,7 +23,7 @@ import kotlin.reflect.KClass
 val LocalNavTransitionSettled = compositionLocalOf<State<Boolean>> { mutableStateOf(true) }
 
 /** NavEntry metadata: this entry is the splash screen, which the app leaves with a fade, not a slide. */
-internal const val SPLASH_ENTRY = "squadify.splash"
+const val SPLASH_ENTRY = "squadify.splash"
 
 /** Each screen type's content, for NavDisplay's entryProvider (AppNavigation's `screens { }`). */
 class ScreenRegistry @PublishedApi internal constructor() {

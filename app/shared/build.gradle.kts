@@ -10,15 +10,9 @@ plugins {
 }
 
 kotlin {
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "Shared"
-            isStatic = true
-        }
-    }
+    // The iOS framework is built by each app's module (:app:clubs today), not by this shared one.
+    iosArm64()
+    iosSimulatorArm64()
     
     jvm()
     
@@ -131,4 +125,11 @@ kotlin {
 
 dependencies {
     androidRuntimeClasspath(libs.compose.uiTooling)
+}
+
+// The apps' modules (:app:clubs, later :app:coach) use these strings and images too, so the generated
+// Res class is public; its package stays the one every import already uses.
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "squadify.app.shared.generated.resources"
 }
