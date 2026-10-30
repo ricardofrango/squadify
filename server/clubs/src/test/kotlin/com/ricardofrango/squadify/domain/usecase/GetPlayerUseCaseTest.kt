@@ -54,7 +54,8 @@ class GetPlayerUseCaseTest {
     )
     private val useCase = GetPlayerUseCase(
         playerRepository, matchEventRepository, matchRepository, opponentRepository, ageGroupRepository,
-        seasonRepository, ClubAccessPolicy(checkUserPermissionUseCase), transactionManager
+        seasonRepository, ClubAccessPolicy(checkUserPermissionUseCase),
+        ClubPlayerContacts(playerRepository, userRepository, mockk(), mockk()), transactionManager
     )
 
     private val clubId = "club-1"

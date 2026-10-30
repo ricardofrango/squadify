@@ -31,6 +31,7 @@ class GetPlayerUseCase(
     private val ageGroupRepository: AgeGroupRepository,
     private val seasonRepository: SeasonRepository,
     private val accessPolicy: AccessPolicy,
+    private val playerContacts: PlayerContacts,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, playerId: String): PlayerProfile = transactionManager.runInTransaction {
@@ -70,7 +71,7 @@ class GetPlayerUseCase(
             goals = goals,
             assists = assists,
             timesCalledUp = matchRepository.countCallUpsByPlayer(playerId).toInt(),
-            guardiansLinked = playerRepository.countGuardiansByPlayer(playerId).toInt(),
+            guardiansLinked = playerContacts.guardiansLinked(playerId),
             recentEvents = recentEvents,
             canEditPlayer = canEditPlayer
         )

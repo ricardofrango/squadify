@@ -29,6 +29,11 @@ data class ClubMemberAccount(
 interface ClubRepository {
     suspend fun getAllClubs(): List<Club>
     suspend fun getClubsByUser(userId: String): List<Club>
+    /**
+     * The clubs [userId] is a member of (`club_members` only, unlike [getClubsByUser], which adds a
+     * parent's clubs), with their role, oldest club first. The coach server's spaces.
+     */
+    suspend fun getMemberships(userId: String): List<Pair<Club, ClubRole>>
     suspend fun createClub(club: Club): Club
     suspend fun getClubById(id: String): Club?
     suspend fun updateClub(club: Club): Boolean

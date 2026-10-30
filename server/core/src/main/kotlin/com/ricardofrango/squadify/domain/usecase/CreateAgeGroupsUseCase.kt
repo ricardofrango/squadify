@@ -21,6 +21,7 @@ class CreateAgeGroupsUseCase(
     suspend operator fun invoke(userId: String, request: CreateAgeGroupsRequest): List<AgeGroup> = transactionManager.runInTransaction {
         accessPolicy.requireCreateAgeGroups(userId, request.clubId, "Only admins or coordinators can create age groups")
 
+        val seasonId = request.seasonId ?: throw ValidationException("A season is required")
         if (request.items.isEmpty()) {
             throw ValidationException("At least one age group must be provided")
         }
@@ -29,7 +30,7 @@ class CreateAgeGroupsUseCase(
             ?: throw NotFoundException("Club not found")
 
         // Get existing age groups for this club and season to check for duplicates
-        val existingAgeGroups = ageGroupRepository.findByClubAndSeason(request.clubId, request.seasonId)
+        val existingAgeGroups = ageGroupRepository.findByClubAndSeason(request.clubId, seasonId)
         // Grows as items are accepted, so two items in this same request sharing a year are caught
         // too -- not just a clash with an age group already in the database. Any shared birth year
         // collides, not only an identical span (2011 vs 2011-2010 overlaps on 2011).
@@ -59,7 +60,7 @@ class CreateAgeGroupsUseCase(
                 id = Uuid.random().toString(),
                 clubId = request.clubId,
                 name = item.name,
-                seasonId = request.seasonId,
+                seasonId = seasonId,
                 startYear = item.startYear,
                 endYear = item.endYear,
                 teamSize = item.teamSize
