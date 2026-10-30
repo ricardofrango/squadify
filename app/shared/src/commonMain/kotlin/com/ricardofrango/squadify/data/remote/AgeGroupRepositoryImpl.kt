@@ -48,6 +48,10 @@ class AgeGroupRepositoryImpl(
         }.handleResponse<Unit>()
     }
 
+    override suspend fun removeStaffFromAgeGroup(ageGroupId: String, userId: String) {
+        httpClient.delete("${appConfig.baseUrl}/age-groups/$ageGroupId/staff/$userId").handleResponse<Unit>()
+    }
+
     override suspend fun updateAgeGroup(ageGroupId: String, request: UpdateAgeGroupRequest) {
         httpClient.patch("${appConfig.baseUrl}/age-groups/$ageGroupId") {
             contentType(ContentType.Application.Json)

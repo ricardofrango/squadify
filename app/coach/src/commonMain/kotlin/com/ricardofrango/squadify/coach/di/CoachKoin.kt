@@ -1,11 +1,19 @@
 package com.ricardofrango.squadify.coach.di
 
 import com.ricardofrango.squadify.coach.data.SpaceRepositoryImpl
-import com.ricardofrango.squadify.coach.domain.GetSpaceUseCase
+import com.ricardofrango.squadify.coach.data.StaffInviteRepositoryImpl
+import com.ricardofrango.squadify.coach.domain.CreateStaffInviteUseCase
+import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
+import com.ricardofrango.squadify.coach.domain.GetStaffInvitesUseCase
+import com.ricardofrango.squadify.coach.domain.JoinWithCodeUseCase
+import com.ricardofrango.squadify.coach.domain.RevokeStaffInviteUseCase
 import com.ricardofrango.squadify.coach.domain.SetUpSpaceUseCase
 import com.ricardofrango.squadify.coach.domain.SpaceRepository
+import com.ricardofrango.squadify.coach.domain.StaffInviteRepository
 import com.ricardofrango.squadify.coach.presentation.navigation.CoachSignedInHome
 import com.ricardofrango.squadify.coach.presentation.ui.home.CoachHomeViewModel
+import com.ricardofrango.squadify.coach.presentation.ui.invite.InviteStaffViewModel
+import com.ricardofrango.squadify.coach.presentation.ui.join.JoinWithCodeViewModel
 import com.ricardofrango.squadify.coach.presentation.ui.spacesetup.SpaceSetupViewModel
 import com.ricardofrango.squadify.di.startSquadifyKoin
 import com.ricardofrango.squadify.domain.config.AppConfig
@@ -17,18 +25,25 @@ import org.koin.compose.viewmodel.dsl.viewModelOf
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
 
-/** The coach app's own pieces: the space, its first setup and home, and where sign-in leads. */
+/** The coach app's own pieces: the spaces, the home, joining with a code, invites, and where sign-in leads. */
 val coachModule = module {
     single<SpaceRepository> { SpaceRepositoryImpl(get(), get()) }
-    factory { GetSpaceUseCase(get()) }
+    single<StaffInviteRepository> { StaffInviteRepositoryImpl(get(), get()) }
+    factory { GetSpacesUseCase(get()) }
     factory { SetUpSpaceUseCase(get()) }
-    single<SignedInHome> { CoachSignedInHome(get()) }
+    factory { JoinWithCodeUseCase(get()) }
+    factory { GetStaffInvitesUseCase(get()) }
+    factory { CreateStaffInviteUseCase(get()) }
+    factory { RevokeStaffInviteUseCase(get()) }
+    single<SignedInHome> { CoachSignedInHome }
     // The developer, 2026-10-30: no training (REQUIREMENTS §5c); seasons are automatic; staff join with
-    // invite codes, not from club members; no photos or logos until the coach server's image storage
+    // invite codes, not from club members (the owner invites and removes them in Age Group Details); no photos or logos until the coach server's image storage
     // is configured.
     single { AppFeatures(training = false, seasons = false, photos = false, clubMembers = false) }
     viewModelOf(::SpaceSetupViewModel)
     viewModelOf(::CoachHomeViewModel)
+    viewModelOf(::JoinWithCodeViewModel)
+    viewModelOf(::InviteStaffViewModel)
 }
 
 /**

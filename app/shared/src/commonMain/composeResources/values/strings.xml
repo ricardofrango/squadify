@@ -177,6 +177,7 @@
     <string name="title_add_players_to_age_group">Add players</string>
     <string name="label_add_players_to_age_group">Add players</string>
     <string name="label_add_staff_to_age_group">Add staff</string>
+    <string name="label_invite_staff">Invite staff</string>
     <string name="label_search_players">Search players</string>
     <string name="btn_add_new_player">New player</string>
     <string name="label_players_selected">%1$d selected</string>
@@ -1335,6 +1336,12 @@
     <string name="btn_remove">Remove</string>
     <string name="msg_player_removed_age_group">%1$s removed from %2$s</string>
     <string name="msg_remove_player_failed">Couldn't remove the player. Try again.</string>
+    <!-- The coach app's owner takes someone off an age group's staff. -->
+    <string name="cd_remove_staff">Remove %1$s from the staff</string>
+    <string name="title_remove_staff">Remove %1$s from %2$s?</string>
+    <string name="msg_remove_staff">They stop seeing this age group. If it was their last one in your space, they leave it.</string>
+    <string name="msg_staff_removed">%1$s removed from %2$s</string>
+    <string name="msg_remove_staff_failed">Couldn't remove them. Try again.</string>
     <string name="cd_disable_player">Disable %1$s</string>
     <string name="title_disable_player">Disable %1$s?</string>
     <string name="msg_disable_player">They stay in their age groups and their data and match history stay, but they leave the call-ups of matches that haven't started and can't be called up while disabled. They show as disabled.</string>

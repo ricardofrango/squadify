@@ -39,6 +39,8 @@ fun SquadifyTopBar(
     showBackButton: Boolean = true,
     onNavigateBack: () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
+    // Without a back button: an icon in its place, e.g. the coach home's ☰.
+    leadingIcon: (@Composable () -> Unit)? = null,
 ) {
     val titleContent = @Composable {
         Column(horizontalAlignment = if (showBackButton) Alignment.Start else Alignment.CenterHorizontally) {
@@ -72,6 +74,8 @@ fun SquadifyTopBar(
                     tint = Color.White
                 )
             }
+        } else if (leadingIcon != null) {
+            leadingIcon()
         }
     }
 

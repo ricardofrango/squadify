@@ -2809,8 +2809,6 @@ All in one transaction, so a refused setup creates nothing. Being staff in other
 
 `GET /v1/spaces` (`GetSpacesUseCase`) returns every space the coach is in from `ClubRepository.getMemberships`, their own first, each as `SpaceAgeGroups` with `isOwner` and their age groups there: all of their own space's, only the ones with a staff row in the others. An empty list before they set up or join one.
 
-`GET /v1/space` (`GetSpaceUseCase`) returns the coach's space from `ClubRepository.getMemberships` (`club_members` only): the one they own, else the first they were added to, with `isOwner`; 404 before the first setup. It goes once the app uses `/v1/spaces`.
-
 ### 13.3 Games on the coach server
 
 The games are the shared `gameRoutes` (`:server:web`), the same use cases and paths as on the clubs server (§7–§8), behind `CoachAccessPolicy` (§13.1): the owner in every age group, staff in their own. Full stats has no trainings to count. The WebSockets accept only the coach server's own tokens.

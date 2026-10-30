@@ -5,7 +5,6 @@ import com.ricardofrango.squadify.model.AddPlayersToAgeGroupRequest
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.AgeGroupDetails
 import com.ricardofrango.squadify.model.AgeGroupItemRequest
-import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.CreateAgeGroupsRequest
 import com.ricardofrango.squadify.model.CreateOpponentRequest
 import com.ricardofrango.squadify.model.CreatePlayer
@@ -13,6 +12,7 @@ import com.ricardofrango.squadify.model.CreatePlayersRequest
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.PlayerProfile
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
+import com.ricardofrango.squadify.model.SpaceAgeGroups
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.SportType
 import io.ktor.client.call.body
@@ -27,7 +27,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import org.junit.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 
@@ -41,7 +40,7 @@ class CoachSpaceTest {
         val api = jsonClient()
         val owner = api.signUp()
 
-        assertEquals(HttpStatusCode.NotFound, api.get("/v1/space") { bearerAuth(owner) }.status)
+        assertTrue(api.get("/v1/spaces") { bearerAuth(owner) }.body<List<SpaceAgeGroups>>().isEmpty())
 
         val setUp = api.post("/v1/space") {
             json(owner, SetUpSpaceRequest("Ana's team", SportType.FOOTBALL, AgeGroupItemRequest("Sub-12", 2015, 2015, teamSize = 7), "Sub-12 A"))
@@ -58,7 +57,7 @@ class CoachSpaceTest {
             HttpStatusCode.Conflict,
             api.post("/v1/space") { json(owner, SetUpSpaceRequest("Again", SportType.FOOTBALL, AgeGroupItemRequest("Sub-10", 2017, 2017), "A")) }.status
         )
-        assertTrue(api.get("/v1/space") { bearerAuth(owner) }.body<CoachSpace>().isOwner)
+        assertTrue(api.get("/v1/spaces") { bearerAuth(owner) }.body<List<SpaceAgeGroups>>().single().isOwner)
 
         // A second age group, with no season given: the current one.
         val created = api.post("/v1/age-groups") {
@@ -100,7 +99,7 @@ class CoachSpaceTest {
             HttpStatusCode.Forbidden,
             api.post("/v1/age-groups") { json(outsider, CreateAgeGroupsRequest(spaceId, items = listOf(AgeGroupItemRequest("Sub-16", 2011, 2011)))) }.status
         )
-        assertFalse(api.get("/v1/space") { bearerAuth(outsider) }.status == HttpStatusCode.OK)
+        assertTrue(api.get("/v1/spaces") { bearerAuth(outsider) }.body<List<SpaceAgeGroups>>().isEmpty())
     }
 
     @Test
@@ -112,6 +111,6 @@ class CoachSpaceTest {
             json(owner, SetUpSpaceRequest("Futsal", SportType.FUTSAL, AgeGroupItemRequest("Sub-12", 2015, 2015, teamSize = 7), "A"))
         }
         assertEquals(HttpStatusCode.BadRequest, refused.status)
-        assertEquals(HttpStatusCode.NotFound, api.get("/v1/space") { bearerAuth(owner) }.status)
+        assertTrue(api.get("/v1/spaces") { bearerAuth(owner) }.body<List<SpaceAgeGroups>>().isEmpty())
     }
 }

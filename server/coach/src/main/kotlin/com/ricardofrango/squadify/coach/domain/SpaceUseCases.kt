@@ -5,13 +5,11 @@ import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ConflictException
-import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ClubStatus
-import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
 import com.ricardofrango.squadify.model.SpaceSetup
@@ -103,22 +101,5 @@ class GetSpacesUseCase(
                     .filter { isOwner || ageGroupRepository.getUserRoleInAgeGroup(userId, it.id) != null }
                 SpaceAgeGroups(space, isOwner, ageGroups)
             }
-    }
-}
-
-/**
- * The space the coach belongs to: their own, or the first they were added to. 404 before the first setup.
- * The app before [GetSpacesUseCase]; it goes once the app lists every space.
- */
-class GetSpaceUseCase(
-    private val clubRepository: ClubRepository,
-    private val transactionManager: TransactionManager
-) {
-    suspend operator fun invoke(userId: String): CoachSpace = transactionManager.runInTransaction {
-        val memberships = clubRepository.getMemberships(userId)
-        val (space, role) = memberships.firstOrNull { it.second == ClubRole.CLUB_ADMIN }
-            ?: memberships.firstOrNull()
-            ?: throw NotFoundException("No space yet")
-        CoachSpace(space, isOwner = role == ClubRole.CLUB_ADMIN)
     }
 }

@@ -17,10 +17,47 @@
     <string name="btn_space_setup_creating">A criar…</string>
     <string name="msg_space_setup_failed">Não foi possível configurar. Verifica a ligação e tenta outra vez.</string>
 
-    <!-- The space's home -->
-    <string name="coach_home_age_groups">Escalões</string>
+    <string name="coach_app_name">Squadify Coach</string>
+
+    <!-- The home: every age group the coach has -->
+    <string name="coach_home_title">Os meus escalões</string>
+    <string name="cd_coach_menu">Menu</string>
     <string name="coach_home_add_age_group">+ Adicionar escalão</string>
-    <string name="coach_home_born">Nascidos em %1$s</string>
-    <string name="coach_home_no_age_groups">Ainda não estás em nenhum escalão.</string>
-    <string name="msg_coach_home_failed">Não foi possível carregar a tua equipa. Verifica a ligação e tenta outra vez.</string>
+    <string name="coach_home_create_age_group">Criar escalão</string>
+    <string name="coach_home_join">Entrar com um código</string>
+    <string name="coach_home_born">Nascidos em %1$s · %2$s</string>
+    <string name="coach_home_empty_title">Ainda não tens escalões</string>
+    <string name="coach_home_empty_body">Cria o teu primeiro escalão, ou entra num com o código que alguém te enviou.</string>
+    <string name="msg_coach_home_failed">Não foi possível carregar os teus escalões. Verifica a ligação e tenta outra vez.</string>
+
+    <!-- Joining with a code -->
+    <string name="join_title">Entrar com um código</string>
+    <string name="join_intro">Escreve o código que te enviaram. Entras nesse escalão como staff.</string>
+    <string name="join_code_label">Código</string>
+    <string name="join_code_placeholder">K7Q-4MZ</string>
+    <string name="btn_join">Entrar</string>
+    <string name="btn_joining">A entrar…</string>
+    <string name="msg_join_not_found">Esse código não existe. Confirma-o e tenta outra vez.</string>
+    <string name="msg_join_expired">Este código expirou. Pede um novo.</string>
+    <string name="msg_join_used">Este código já foi usado, ou já estás no escalão dele.</string>
+    <string name="msg_join_failed">Não foi possível entrar. Verifica a ligação e tenta outra vez.</string>
+
+    <!-- Inviting staff to an age group -->
+    <string name="invite_intro">Cria um código e envia-o a quem queres em %1$s. Essa pessoa regista-se no Squadify Coach e escreve-o. Cada código funciona uma vez, durante 7 dias.</string>
+    <string name="invite_waiting">Códigos por usar (%1$d)</string>
+    <string name="invite_none">Não há códigos por usar.</string>
+    <string name="invite_valid_until">Válido até %1$s</string>
+    <string name="invite_share_text">Foste convidado para o staff de %1$s (%2$s) no Squadify Coach. Instala a app, regista-te e escreve o código %3$s. Funciona uma vez, até %4$s.</string>
+    <string name="btn_invite_create">Criar código</string>
+    <string name="btn_invite_creating">A criar…</string>
+    <string name="btn_invite_share">Partilhar</string>
+    <string name="btn_invite_copy">Copiar</string>
+    <string name="btn_invite_withdraw">Retirar</string>
+    <string name="title_invite_withdraw">Retirar %1$s?</string>
+    <string name="msg_invite_withdraw">Ninguém o vai poder usar. Podes criar outro.</string>
+    <string name="msg_invite_copied">Código copiado</string>
+    <string name="msg_invite_withdrawn">Código retirado</string>
+    <string name="msg_invite_create_failed">Não foi possível criar um código. Tenta outra vez.</string>
+    <string name="msg_invite_withdraw_failed">Não foi possível retirar o código. Tenta outra vez.</string>
+    <string name="msg_invites_failed">Não foi possível carregar os códigos.</string>
 </resources>

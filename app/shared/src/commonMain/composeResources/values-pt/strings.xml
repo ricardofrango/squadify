@@ -175,6 +175,7 @@
     <string name="title_add_players_to_age_group">Adicionar jogadores</string>
     <string name="label_add_players_to_age_group">Adicionar jogadores</string>
     <string name="label_add_staff_to_age_group">Adicionar staff</string>
+    <string name="label_invite_staff">Convidar staff</string>
     <string name="label_search_players">Procurar jogadores</string>
     <string name="btn_add_new_player">Novo jogador</string>
     <string name="label_players_selected">%1$d selecionados</string>
@@ -1333,6 +1334,12 @@
     <string name="btn_remove">Remover</string>
     <string name="msg_player_removed_age_group">%1$s removido de %2$s</string>
     <string name="msg_remove_player_failed">Não foi possível remover o jogador. Tente novamente.</string>
+    <!-- The coach app's owner takes someone off an age group's staff. -->
+    <string name="cd_remove_staff">Remover %1$s do staff</string>
+    <string name="title_remove_staff">Remover %1$s de %2$s?</string>
+    <string name="msg_remove_staff">Deixa de ver este escalão. Se era o último no seu espaço, sai do espaço.</string>
+    <string name="msg_staff_removed">%1$s removido de %2$s</string>
+    <string name="msg_remove_staff_failed">Não foi possível remover. Tente novamente.</string>
     <string name="cd_disable_player">Desativar %1$s</string>
     <string name="title_disable_player">Desativar %1$s?</string>
     <string name="msg_disable_player">Continua nos seus escalões e os dados e o histórico de jogos ficam, mas sai das convocatórias dos jogos que ainda não começaram e não pode ser convocado enquanto estiver desativado. Aparece como desativado.</string>

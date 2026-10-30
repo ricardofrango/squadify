@@ -21,6 +21,8 @@ import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDe
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.ricardofrango.squadify.coach.presentation.ui.home.CoachHomeScreen
+import com.ricardofrango.squadify.coach.presentation.ui.invite.InviteStaffScreen
+import com.ricardofrango.squadify.coach.presentation.ui.join.JoinWithCodeScreen
 import com.ricardofrango.squadify.coach.presentation.ui.spacesetup.SpaceSetupScreen
 import com.ricardofrango.squadify.domain.service.SessionEventBus
 import com.ricardofrango.squadify.presentation.navigation.AppNavigator
@@ -31,6 +33,7 @@ import com.ricardofrango.squadify.presentation.navigation.ScreenRegistry
 import com.ricardofrango.squadify.presentation.navigation.rememberAppNavigator
 import com.ricardofrango.squadify.presentation.navigation.screens
 import com.ricardofrango.squadify.presentation.navigation.sharedScreens
+import com.ricardofrango.squadify.presentation.navigation.toRoute
 import com.ricardofrango.squadify.presentation.ui.login.LoginScreen
 import com.ricardofrango.squadify.presentation.ui.register.RegisterScreen
 import com.ricardofrango.squadify.presentation.ui.splash.SplashScreen
@@ -40,9 +43,9 @@ import org.koin.compose.koinInject
 private const val NAV_ANIM_MS = 300
 
 /**
- * The coach app's navigation (TECHNICAL_DECISIONS §72): sign-in, then straight to the coach's space,
- * or its first setup before there is one, and under it the screens both apps share. No club list, Club
- * settings, seasons or training.
+ * The coach app's navigation (TECHNICAL_DECISIONS §72): sign-in, then the coach's age groups, from where
+ * they set up their own space, join one with a code, and open the screens both apps share. No club list,
+ * Club settings, seasons or training.
  */
 @Composable
 fun CoachNavigation(navigator: AppNavigator = rememberAppNavigator()) {
@@ -119,10 +122,33 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
         )
     }
 
+    // Back to the home, which reloads: the new space's age group, or the one joined.
+    fun backToHomeChanged() {
+        navigator.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+        navigator.popBackStack()
+    }
+
     screen<Screen.SpaceSetup> {
         SpaceSetupScreen(
-            onSetUp = { openAsRoot(Screen.CoachHome) },
-            onSignedOut = { openAsRoot(Screen.Login) }
+            onSetUp = ::backToHomeChanged,
+            onNavigateBack = { navigator.popBackStack() }
+        )
+    }
+
+    screen<Screen.JoinWithCode> {
+        JoinWithCodeScreen(
+            onNavigateBack = { navigator.popBackStack() },
+            onJoined = ::backToHomeChanged
+        )
+    }
+
+    screen<Screen.InviteStaff> { entry ->
+        val screen: Screen.InviteStaff = entry.toRoute()
+        InviteStaffScreen(
+            ageGroupId = screen.ageGroupId,
+            ageGroupName = screen.ageGroupName,
+            spaceName = screen.spaceName,
+            onNavigateBack = { navigator.popBackStack() }
         )
     }
 
@@ -130,12 +156,13 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
         // Set by the screens opened from here (an age group created or edited, a team added...).
         val changed by entry.savedStateHandle.getStateFlow(KEY_CLUB_STRUCTURE_CHANGED, false).collectAsStateWithLifecycle()
         CoachHomeScreen(
-            onNavigateToSetup = { openAsRoot(Screen.SpaceSetup) },
             onSignedOut = { openAsRoot(Screen.Login) },
             onOpenAgeGroup = { ageGroupId -> navigator.navigate(Screen.AgeGroupDetails(ageGroupId)) },
             onCreateAgeGroups = { spaceId, spaceName, sport ->
                 navigator.navigate(Screen.CreateAgeGroups(spaceId, spaceName, sport.name))
             },
+            onSetUpSpace = { navigator.navigate(Screen.SpaceSetup) },
+            onJoinWithCode = { navigator.navigate(Screen.JoinWithCode) },
             refresh = changed,
             onRefreshed = { entry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false }
         )

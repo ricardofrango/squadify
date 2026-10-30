@@ -72,9 +72,9 @@ class CoachStaffTest {
         assertEquals(HttpStatusCode.OK, api.post("/v1/invites/${second.code}/accept") { bearerAuth(joao) }.status)
         val joaoId = api.get("/v1/age-groups/${sub14.id}/details") { bearerAuth(owner) }.body<AgeGroupDetails>().staff.single().userId
         assertEquals(HttpStatusCode.NoContent, api.delete("/v1/age-groups/${sub14.id}/staff/$joaoId") { bearerAuth(owner) }.status)
-        assertEquals(HttpStatusCode.OK, api.get("/v1/space") { bearerAuth(joao) }.status)
+        assertEquals(listOf(spaceId), api.get("/v1/spaces") { bearerAuth(joao) }.body<List<SpaceAgeGroups>>().map { it.space.id })
         assertEquals(HttpStatusCode.NoContent, api.delete("/v1/age-groups/${setup.ageGroup.id}/staff/$joaoId") { bearerAuth(owner) }.status)
-        assertEquals(HttpStatusCode.NotFound, api.get("/v1/space") { bearerAuth(joao) }.status)
+        assertTrue(api.get("/v1/spaces") { bearerAuth(joao) }.body<List<SpaceAgeGroups>>().isEmpty())
     }
 
     @Test

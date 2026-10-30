@@ -232,6 +232,7 @@ val domainModule = module {
     factory { GetClubMembersUseCase(get()) }
     factory { GetAgeGroupStaffUseCase(get()) }
     factory { AddStaffToAgeGroupUseCase(get()) }
+    factory { RemoveStaffFromAgeGroupUseCase(get()) }
     factory { AddClubMembersUseCase(get()) }
     factory { GetClubMembersOverviewUseCase(get()) }
     factory { UpdateClubMemberRoleUseCase(get()) }

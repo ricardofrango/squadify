@@ -7,7 +7,6 @@ data class SpaceSetupUiState(
 )
 
 sealed class SpaceSetupNavigationEvent {
-    // Set up (or it already was, on another device): the space's home.
+    // Set up (or it already was, on another device): back to the home, which reloads.
     data object NavigateToHome : SpaceSetupNavigationEvent()
-    data object NavigateToLogin : SpaceSetupNavigationEvent()
 }

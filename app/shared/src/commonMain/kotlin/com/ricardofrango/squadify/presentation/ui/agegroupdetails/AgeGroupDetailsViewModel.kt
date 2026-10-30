@@ -10,6 +10,7 @@ import com.ricardofrango.squadify.domain.usecase.GetAgeGroupSeasonRecordUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTrainingPlansUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTrainingSessionsUseCase
 import com.ricardofrango.squadify.domain.usecase.RemovePlayerFromAgeGroupUseCase
+import com.ricardofrango.squadify.domain.usecase.RemoveStaffFromAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.GetFullStatsUseCase
 import com.ricardofrango.squadify.model.FullStatsData
 import com.ricardofrango.squadify.data.remote.ApiException
@@ -27,6 +28,7 @@ import kotlinx.coroutines.launch
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_failed_to_load_age_group
 import squadify.app.shared.generated.resources.msg_remove_player_failed
+import squadify.app.shared.generated.resources.msg_remove_staff_failed
 
 class AgeGroupDetailsViewModel(
     private val getAgeGroupDetailsUseCase: GetAgeGroupDetailsUseCase,
@@ -35,6 +37,7 @@ class AgeGroupDetailsViewModel(
     private val getTrainingSessionsUseCase: GetTrainingSessionsUseCase,
     private val getFullStatsUseCase: GetFullStatsUseCase,
     private val removePlayerFromAgeGroupUseCase: RemovePlayerFromAgeGroupUseCase,
+    private val removeStaffFromAgeGroupUseCase: RemoveStaffFromAgeGroupUseCase,
     private val preferences: UiPreferencesRepository,
     private val features: AppFeatures
 ) : ViewModel() {
@@ -45,6 +48,10 @@ class AgeGroupDetailsViewModel(
     // One-off results of removing a player, for the snackbar.
     private val _playerRemoval = MutableSharedFlow<PlayerRemovalResult>()
     val playerRemoval: SharedFlow<PlayerRemovalResult> = _playerRemoval.asSharedFlow()
+
+    // One-off results of taking someone off the staff (the coach app's owner), for the snackbar.
+    private val _staffRemoval = MutableSharedFlow<StaffRemovalResult>()
+    val staffRemoval: SharedFlow<StaffRemovalResult> = _staffRemoval.asSharedFlow()
 
     // The Stats tab's leaders card, from the Full stats data (games and trainings); null until loaded or on failure.
     private val _fullStats = MutableStateFlow<FullStatsData?>(null)
@@ -87,9 +94,7 @@ class AgeGroupDetailsViewModel(
             _state.update { AgeGroupDetailsUiState.Loading }
             try {
                 val details = getAgeGroupDetailsUseCase(ageGroupId)
-                // Without club members (the coach app), staff join with an invite code, not from Add
-                // staff, and a staff name opens no member's page: both follow canAddStaff.
-                _state.update { AgeGroupDetailsUiState.Idle(if (features.clubMembers) details else details.copy(canAddStaff = false)) }
+                _state.update { details.idleFor(features) }
             } catch (e: Exception) {
                 val message = errorMessage(e, Res.string.msg_failed_to_load_age_group)
                 _state.update { AgeGroupDetailsUiState.Error(message) }
@@ -154,6 +159,24 @@ class AgeGroupDetailsViewModel(
                 _playerRemoval.emit(PlayerRemovalResult.Removed("${player.firstName} ${player.lastName}", details.ageGroup.name))
             } catch (e: Exception) {
                 _playerRemoval.emit(PlayerRemovalResult.Failed(errorMessage(e, Res.string.msg_remove_player_failed)))
+            }
+        }
+    }
+
+    /**
+     * Takes [userId] off this age group's staff (the coach app's owner). The list drops them at once; off
+     * their last age group, the server takes them out of the space too.
+     */
+    fun removeStaff(ageGroupId: String, userId: String) {
+        val details = (_state.value as? AgeGroupDetailsUiState.Idle)?.details ?: return
+        val member = details.staff.firstOrNull { it.userId == userId } ?: return
+        viewModelScope.launch {
+            try {
+                removeStaffFromAgeGroupUseCase(ageGroupId, userId)
+                _state.update { s -> (s as? AgeGroupDetailsUiState.Idle)?.let { it.copy(details = it.details.copy(staff = it.details.staff.filter { m -> m.userId != userId })) } ?: s }
+                _staffRemoval.emit(StaffRemovalResult.Removed("${member.firstName} ${member.lastName}", details.ageGroup.name))
+            } catch (e: Exception) {
+                _staffRemoval.emit(StaffRemovalResult.Failed(errorMessage(e, Res.string.msg_remove_staff_failed)))
             }
         }
     }
