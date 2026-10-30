@@ -1035,6 +1035,13 @@ form kept as a second candidate for any other invocation method. The env var sti
 both when set, since Railway (staging/production) has no reliable place to mount a file at all -- this
 fallback is local-dev-only convenience, not a replacement for the env var in deployed environments.
 
+**The fallback broke with the move to `server/clubs` (Phase 9, 2026-10-29) and now searches upward.**
+Gradle's working directory became `server/clubs`, so `../firebase-service-account.json` pointed at
+`server/` and local pushes were silently skipped (the developer noticed no notifications at all on the
+local server, 2026-10-30). The file is now looked for in the working directory and every folder above it
+(`findUpwards`, pinned by `FindUpwardsTest`), so moving the module again can't break it. Deployed
+servers are unaffected: they read the env var.
+
 ## 26. Push Notifications: Team Created
 
 A gap noticed only after the match/schedule pushes existed and got compared against: `CreateTeamUseCase`

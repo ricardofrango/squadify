@@ -197,22 +197,19 @@ object ServerConfig {
      *
      * Local dev falls back to reading `firebase-service-account.json` at the repo root (gitignored,
      * never committed -- same file/pattern `app/androidApp/build.gradle.kts` already uses for App
-     * Distribution's `keystoreProperties`) when the env var isn't set, so a plain `./gradlew :server:run`
-     * picks it up automatically instead of requiring it exported in every shell. Checked at two
-     * candidate paths, not just one: Gradle's `application`/`test` tasks default their JVM's working
-     * directory to the `server/` module folder, not the repo root, even when `./gradlew` itself was
-     * invoked from the root -- confirmed empirically (`File(".").absolutePath` prints `.../server`
-     * under `:server:run`/`:server:test`), so a bare repo-root-relative path silently never matches
-     * under the one launch method this is actually for. `../firebase-service-account.json` is what
-     * resolves there; the bare repo-root-relative form stays as a second candidate for any other way
-     * this might get invoked (e.g. running a packaged jar directly from the repo root).
+     * Distribution's `keystoreProperties`) when the env var isn't set, so a plain
+     * `./gradlew :server:clubs:run` picks it up without exporting it in every shell. Gradle runs the
+     * server from its module folder (`server/clubs`), not the repo root, so the file is looked for
+     * there and in every folder above it ([findUpwards]): a fixed `../` broke once, when the server
+     * moved one level down from `server/` (TECHNICAL_DECISIONS §25).
      */
     val firebaseServiceAccountJson: String = System.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")?.takeIf { it.isNotBlank() }
-        ?: listOf("../firebase-service-account.json", "firebase-service-account.json")
-            .asSequence()
-            .map { File(it) }
-            .firstOrNull { it.isFile }
+        ?: findUpwards(File("").absoluteFile, "firebase-service-account.json")
             ?.readText()
             ?.takeIf { it.isNotBlank() }
         ?: ""
 }
+
+/** [name] in [start] or the nearest folder above it, or null when no folder up to the root has it. */
+internal fun findUpwards(start: File, name: String): File? =
+    generateSequence(start) { it.parentFile }.map { File(it, name) }.firstOrNull { it.isFile }
