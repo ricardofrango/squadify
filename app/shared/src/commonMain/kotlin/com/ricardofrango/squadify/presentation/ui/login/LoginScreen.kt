@@ -49,7 +49,7 @@ import androidx.compose.ui.tooling.preview.Preview
 fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     onSignedIn: (home: Screen) -> Unit,
-    // Null where the server has no password reset (the coach app, for now): no "Forgot password?".
+    // Null for no "Forgot password?" link (where a server has no password reset).
     onNavigateToForgotPassword: ((email: String) -> Unit)?,
     // Set when coming back from Forgot password: the email is filled in and a confirmation shown.
     passwordResetEmail: String? = null,

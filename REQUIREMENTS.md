@@ -305,7 +305,8 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [x] The account on the coach server: profile, password, email change and Forgot password, shared with the clubs server (`accountRoutes`), with the coach's own emails (`TECHNICAL_DECISIONS.md` §72).
         - [x] One space of your own and staff in others: `GET /v1/spaces` lists each with your age groups there; a code can be used while owning a space, and a space set up while staff elsewhere (`TECHNICAL_DECISIONS.md` §72).
     - [x] The coach app: sign-up, first setup (sport, age group, team), invites: one list of every age group with a side menu, joining with a code, Invite staff (share, copy, withdraw) and removing staff (`TECHNICAL_DECISIONS.md` §72).
-        - [ ] Later: staff invites by email, with the account and Forgot password reuse (the coach's Resend sender).
+        - [x] The account (2026-10-30): Account (profile, email change, password, sign out; no photo until the image storage), Change email and Forgot password, the clubs app's screens, from the ☰ menu and Sign in (`TECHNICAL_DECISIONS.md` §72).
+        - [ ] Later: staff invites by email, with the coach's Resend sender (now in place).
         - [/] Firebase (2026-10-30): the coach app registered in its own Firebase project, `squadify-for-coach` (`app/coachAndroidApp/google-services.json`, for the dev, staging and production ids). Crashlytics and pushes still to be wired.
     - [ ] Plans stored and enforced on the server, set by a platform admin at first.
     - [ ] Payments (RevenueCat) and ads on the Free plan (AdMob).

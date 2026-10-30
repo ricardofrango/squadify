@@ -132,7 +132,8 @@ fun AccountScreen(
             onChangeEmailClick = onNavigateToChangeEmail,
             onLogoutClick = { viewModel.onLogoutClicked() },
             onPhotoPicked = viewModel::onPhotoPicked,
-            onRemovePhoto = viewModel::onRemovePhoto
+            onRemovePhoto = viewModel::onRemovePhoto,
+            showPhoto = viewModel.showsPhoto
         )
     }
 }
@@ -152,7 +153,9 @@ private fun AccountContent(
     onChangeEmailClick: (String) -> Unit = {},
     onLogoutClick: () -> Unit,
     onPhotoPicked: (ByteArray) -> Unit = {},
-    onRemovePhoto: () -> Unit = {}
+    onRemovePhoto: () -> Unit = {},
+    // False in the coach app until its server has image storage: initials only, no photo actions.
+    showPhoto: Boolean = true
 ) {
     val idle = uiState as? AccountUiState.Idle
 
@@ -210,7 +213,8 @@ private fun AccountContent(
                     onSaveProfileClick = onSaveProfileClick,
                     onLogoutClick = onLogoutClick,
                     onPhotoPicked = onPhotoPicked,
-                    onRemovePhoto = onRemovePhoto
+                    onRemovePhoto = onRemovePhoto,
+                    showPhoto = showPhoto
                 )
             }
         }
@@ -240,7 +244,8 @@ private fun AccountForm(
     onSaveProfileClick: () -> Unit,
     onLogoutClick: () -> Unit,
     onPhotoPicked: (ByteArray) -> Unit,
-    onRemovePhoto: () -> Unit
+    onRemovePhoto: () -> Unit,
+    showPhoto: Boolean
 ) {
     val form = state.form
     val passwordForm = state.passwordForm
@@ -253,7 +258,7 @@ private fun AccountForm(
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         SectionCard(spacing = 20.dp) {
-            ProfileHeader(state, onPhotoPicked, onRemovePhoto)
+            ProfileHeader(state, onPhotoPicked, onRemovePhoto, showPhoto)
 
             FormField(
                 value = form.firstName,
@@ -311,11 +316,11 @@ private fun AccountForm(
 }
 
 @Composable
-private fun ProfileHeader(state: AccountUiState.Idle, onPhotoPicked: (ByteArray) -> Unit, onRemovePhoto: () -> Unit) {
+private fun ProfileHeader(state: AccountUiState.Idle, onPhotoPicked: (ByteArray) -> Unit, onRemovePhoto: () -> Unit, showPhoto: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(contentAlignment = Alignment.Center) {
             PersonPhoto(
-                photoUrl = state.photo.url,
+                photoUrl = state.photo.url.takeIf { showPhoto },
                 initials = state.initials,
                 size = 56.dp,
                 background = PitchGreen.copy(alpha = 0.15f),
@@ -337,7 +342,7 @@ private fun ProfileHeader(state: AccountUiState.Idle, onPhotoPicked: (ByteArray)
                     color = DeepCarbon.copy(alpha = 0.5f)
                 )
             }
-            PhotoActions(state.photo, onPicked = onPhotoPicked, onRemove = onRemovePhoto)
+            if (showPhoto) PhotoActions(state.photo, onPicked = onPhotoPicked, onRemove = onRemovePhoto)
         }
     }
 }
@@ -670,3 +675,31 @@ private fun AccountScreenErrorPreview() {
         )
     }
 }
+
+// The coach app, before its server has image storage: initials, no photo actions.
+@Composable
+private fun AccountNoPhotoPreviewContent() {
+    SquadifyTheme {
+        AccountContent(
+            uiState = sampleIdle(),
+            onNavigateBack = {},
+            onRetry = {},
+            onFirstNameChange = {},
+            onLastNameChange = {},
+            onPhoneChange = {},
+            onSaveProfileClick = {},
+            onPasswordFormChange = {},
+            onChangePasswordClick = {},
+            onLogoutClick = {},
+            showPhoto = false
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun AccountScreenNoPhotoPreview() = AccountNoPhotoPreviewContent()
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun AccountScreenNoPhotoLandscapePreview() = AccountNoPhotoPreviewContent()
