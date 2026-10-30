@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Squadify for Coaches: the coach app's own text. Shared screens use app/shared's strings. -->
+
+    <!-- First setup -->
+    <string name="space_setup_title">Configura a tua equipa</string>
+    <string name="space_setup_intro">Fala-nos da equipa que treinas. Podes juntar mais escalões e equipas depois.</string>
+    <string name="space_setup_section_space">Clube ou equipa</string>
+    <string name="space_setup_name">Nome *</string>
+    <string name="space_setup_name_supporting">O nome do teu clube ou da tua equipa, como o queres ver.</string>
+    <string name="space_setup_sport">Modalidade</string>
+    <string name="space_setup_season">Época %1$s. Muda sozinha todos os anos em julho.</string>
+    <string name="space_setup_section_team">Primeira equipa</string>
+    <string name="space_setup_team_name">Nome da equipa</string>
+    <string name="space_setup_team_name_supporting">Se ficar vazio, é o nome do escalão.</string>
+    <string name="btn_space_setup_create">Criar</string>
+    <string name="btn_space_setup_creating">A criar…</string>
+    <string name="msg_space_setup_failed">Não foi possível configurar. Verifica a ligação e tenta outra vez.</string>
+
+    <!-- The space's home -->
+    <string name="coach_home_age_groups">Escalões</string>
+    <string name="coach_home_born">Nascidos em %1$s</string>
+    <string name="coach_home_no_age_groups">Ainda não estás em nenhum escalão.</string>
+    <string name="msg_coach_home_failed">Não foi possível carregar a tua equipa. Verifica a ligação e tenta outra vez.</string>
+</resources>

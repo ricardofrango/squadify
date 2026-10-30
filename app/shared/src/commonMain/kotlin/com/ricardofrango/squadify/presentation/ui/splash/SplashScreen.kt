@@ -30,8 +30,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun SplashScreen(
     deepLinkRoute: String?,
     onNavigateToLogin: () -> Unit,
-    onNavigateToDashboard: () -> Unit,
-    onNavigateToOnlyClub: (String) -> Unit,
+    onNavigateToHome: (Screen) -> Unit,
     onNavigateToDeepLink: (String) -> Unit,
     onNavigateToBackStack: (List<Screen>) -> Unit,
     viewModel: SplashViewModel = koinViewModel()
@@ -41,8 +40,7 @@ fun SplashScreen(
         viewModel.navigationEvent.collect { event ->
             when (event) {
                 SplashNavigationEvent.NavigateToLogin -> onNavigateToLogin()
-                SplashNavigationEvent.NavigateToDashboard -> onNavigateToDashboard()
-                is SplashNavigationEvent.NavigateToOnlyClub -> onNavigateToOnlyClub(event.clubId)
+                is SplashNavigationEvent.NavigateToHome -> onNavigateToHome(event.screen)
                 is SplashNavigationEvent.NavigateToDeepLink -> onNavigateToDeepLink(event.route)
                 is SplashNavigationEvent.NavigateToBackStack -> onNavigateToBackStack(event.screens)
             }

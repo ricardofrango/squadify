@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The window behind the splash screen, as in the clubs app. -->
+    <color name="window_background">#121212</color>
+    <!-- Squadify's green behind the mark, so the coach app's icon isn't the clubs app's. A stand-in
+         until the coach app has an icon of its own. -->
+    <color name="ic_launcher_background">#2E7D32</color>
+</resources>

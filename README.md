@@ -5,6 +5,8 @@ This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop (JVM
 
 * [/app/clubs](./app/clubs/src) is Squadify for Clubs: its navigation, Koin setup, iOS entry and the screens only clubs have (TECHNICAL_DECISIONS.md §72). Every clubs entry point (Android, iOS, web, desktop) starts it.
 
+* [/app/coach](./app/coach/src) is Squadify for Coaches: its navigation, Koin setup, strings and the screens only the coach app has (the first setup, the space's home). [/app/coachAndroidApp](./app/coachAndroidApp) is its Android app.
+
 * [/app/shared](./app/shared/src) is for code that will be shared across your Compose Multiplatform applications.
   It contains several subfolders:
   - [commonMain](./app/shared/src/commonMain/kotlin) is for code that’s common for all targets.
@@ -25,6 +27,7 @@ This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop (JVM
 Use the run configurations provided by the run widget in your IDE's toolbar. You can also use these commands and options:
 
 - Android app: `./gradlew :app:androidApp:assembleDebug`
+- Coach Android app (Squadify for Coaches): `./gradlew :app:coachAndroidApp:assembleDevDebug`, or its run configuration. The dev flavor talks to the coach server on this machine (port 8090), so start it first (below). It installs next to the clubs app.
 - Desktop app:
   - Hot reload: `./gradlew :app:desktopApp:hotRun --auto`
   - Standard run: `./gradlew :app:desktopApp:run`
@@ -43,6 +46,8 @@ Use the run configurations provided by the run widget in your IDE's toolbar. You
 Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
 
 - Android tests: `./gradlew :app:shared:testAndroidHostTest`
+- Coach app tests: `./gradlew :app:coach:testAndroidHostTest`
+- Clubs app tests: `./gradlew :app:clubs:jvmTest`
 - Desktop tests: `./gradlew :app:shared:jvmTest`
 - Server tests: `./gradlew :server:core:test :server:data:test :server:web:test :server:clubs:test :server:coach:test`
   - The coach server's tests run on their own database, `squadify_coach_test`, dropped when they finish, so `squadify_coach_dev` keeps only what you create.

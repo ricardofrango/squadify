@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.login
 
+import com.ricardofrango.squadify.presentation.navigation.Screen
+
 import com.ricardofrango.squadify.presentation.credentials.rememberCredentialStore
 import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import androidx.compose.ui.text.input.KeyboardType
@@ -46,9 +48,9 @@ import androidx.compose.ui.tooling.preview.Preview
 @Composable
 fun LoginScreen(
     onNavigateToRegister: () -> Unit,
-    onNavigateToDashboard: () -> Unit,
-    onNavigateToOnlyClub: (String) -> Unit,
-    onNavigateToForgotPassword: (email: String) -> Unit,
+    onSignedIn: (home: Screen) -> Unit,
+    // Null where the server has no password reset (the coach app, for now): no "Forgot password?".
+    onNavigateToForgotPassword: ((email: String) -> Unit)?,
     // Set when coming back from Forgot password: the email is filled in and a confirmation shown.
     passwordResetEmail: String? = null,
     viewModel: LoginViewModel = koinViewModel()
@@ -85,13 +87,9 @@ fun LoginScreen(
         viewModel.navigationEvent.collect { event ->
             when (event) {
                 // The "save password?" sheet first, so it isn't cut off by leaving this screen.
-                LoginNavigationEvent.NavigateToDashboard -> {
+                is LoginNavigationEvent.NavigateToHome -> {
                     offerToSavePassword()
-                    onNavigateToDashboard()
-                }
-                is LoginNavigationEvent.NavigateToOnlyClub -> {
-                    offerToSavePassword()
-                    onNavigateToOnlyClub(event.clubId)
+                    onSignedIn(event.screen)
                 }
             }
         }
@@ -107,7 +105,7 @@ fun LoginScreen(
         onPasswordChange = { password = it },
         onTogglePasswordVisible = { passwordVisible = !passwordVisible },
         onLogin = { viewModel.onLoginClicked(email, password) },
-        onForgotPassword = { onNavigateToForgotPassword(email) },
+        onForgotPassword = onNavigateToForgotPassword?.let { forgot -> { forgot(email) } },
         onRegister = onNavigateToRegister
     )
 }
@@ -124,7 +122,7 @@ private fun LoginContent(
     onPasswordChange: (String) -> Unit,
     onTogglePasswordVisible: () -> Unit,
     onLogin: () -> Unit,
-    onForgotPassword: () -> Unit,
+    onForgotPassword: (() -> Unit)?,
     onRegister: () -> Unit
 ) {
     val errorMessage = (uiState as? LoginUiState.Idle)?.error
@@ -280,19 +278,21 @@ private fun LoginContent(
                         )
                     )
     
-                    TextButton(
-                        onClick = onForgotPassword,
-                        modifier = Modifier.align(Alignment.End),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
-                        enabled = uiState !is LoginUiState.Loading
-                    ) {
-                        Text(
-                            text = stringResource(Res.string.msg_forgot_password),
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = CarbonGray,
-                                fontWeight = FontWeight.SemiBold
+                    if (onForgotPassword != null) {
+                        TextButton(
+                            onClick = onForgotPassword,
+                            modifier = Modifier.align(Alignment.End),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                            enabled = uiState !is LoginUiState.Loading
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.msg_forgot_password),
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = CarbonGray,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                             )
-                        )
+                        }
                     }
     
                     Spacer(modifier = Modifier.height(8.dp))
