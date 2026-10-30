@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.GameScope
+import com.ricardofrango.squadify.domain.access.allowed
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
@@ -7,10 +10,7 @@ import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
-import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.OpponentDetails
 
@@ -26,25 +26,15 @@ class GetOpponentDetailsUseCase(
     private val matchEventRepository: MatchEventRepository,
     private val teamRepository: TeamRepository,
     private val seasonRepository: SeasonRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, opponentId: String): OpponentDetails = transactionManager.runInTransaction {
         val opponent = opponentRepository.getOpponentById(opponentId) ?: throw NotFoundException("Opponent not found")
 
-        checkUserPermissionUseCase(userId, opponent.clubId, minClubRole = ClubRole.MEMBER)
+        accessPolicy.requireMember(userId, opponent.clubId)
 
-        val canEdit = try {
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = opponent.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                configurablePermission = ConfigurablePermission.EDIT_OPPONENT
-            )
-            true
-        } catch (e: ForbiddenException) {
-            false
-        }
+        val canEdit = allowed { accessPolicy.requireEditOpponent(userId, GameScope(opponent.clubId)) }
 
         val club = clubRepository.getClubById(opponent.clubId) ?: throw NotFoundException("Club not found")
         val matches = matchRepository.getMatchesByOpponent(opponentId)

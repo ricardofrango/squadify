@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.exception.ConflictException
@@ -48,7 +49,7 @@ class UpdateAgeGroupUseCaseTest {
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
     private val clubRepository = mockk<ClubRepository>()
-    private val useCase = UpdateAgeGroupUseCase(ageGroupRepository, checkUserPermissionUseCase, transactionManager, clubRepository, playerRepository)
+    private val useCase = UpdateAgeGroupUseCase(ageGroupRepository, ClubAccessPolicy(checkUserPermissionUseCase), transactionManager, clubRepository, playerRepository)
 
     private val clubId = "club-a"
     private val ageGroupId = "age-group-1"

@@ -1,17 +1,17 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.GameScope
+import com.ricardofrango.squadify.domain.access.allowed
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.OpponentList
 import com.ricardofrango.squadify.model.SearchText
-import com.ricardofrango.squadify.model.AgeGroupRole
 
 /**
  * The Opponents screen (design 38): the club's opponents by name and whether the caller may create one.
@@ -25,7 +25,7 @@ class GetOpponentListUseCase(
     private val opponentRepository: OpponentRepository,
     private val clubRepository: ClubRepository,
     private val ageGroupRepository: AgeGroupRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(
@@ -44,12 +44,7 @@ class GetOpponentListUseCase(
             }
         }
 
-        checkUserPermissionUseCase(
-            userId, clubId,
-            minClubRole = ClubRole.MEMBER,
-            minAgeGroupRole = AgeGroupRole.COACH,
-            ageGroupId = ageGroupId
-        )
+        accessPolicy.requireViewOpponents(userId, GameScope(clubId, ageGroupId = ageGroupId))
 
         val club = clubRepository.getClubById(clubId) ?: throw NotFoundException("Club not found")
         val key = search?.trim()?.let(SearchText::key)?.takeIf { it.isNotEmpty() }
@@ -67,18 +62,7 @@ class GetOpponentListUseCase(
         // A row on the page, unsearched, already answers it.
         val anyOpponents = (key == null && opponents.isNotEmpty()) || opponentRepository.hasOpponents(clubId)
 
-        val canCreate = try {
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                configurablePermission = ConfigurablePermission.CREATE_OPPONENT,
-                ageGroupId = ageGroupId
-            )
-            true
-        } catch (e: ForbiddenException) {
-            false
-        }
+        val canCreate = allowed { accessPolicy.requireCreateOpponent(userId, GameScope(clubId, ageGroupId = ageGroupId)) }
 
         OpponentList(
             clubName = club.name,

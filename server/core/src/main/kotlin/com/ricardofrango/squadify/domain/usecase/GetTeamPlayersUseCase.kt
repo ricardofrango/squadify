@@ -1,11 +1,11 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.scope
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.Player
 
 /**
@@ -14,20 +14,13 @@ import com.ricardofrango.squadify.model.Player
 class GetTeamPlayersUseCase(
     private val playerRepository: PlayerRepository,
     private val teamRepository: TeamRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, teamId: String): List<Player> = transactionManager.runInTransaction {
         val team = teamRepository.getTeamById(teamId) ?: throw NotFoundException("Team not found")
 
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = team.clubId,
-            minClubRole = ClubRole.MEMBER,
-            minAgeGroupRole = AgeGroupRole.STAFF,
-            teamId = teamId,
-            allowPlayerOrParentAccess = true
-        )
+        accessPolicy.requireViewGames(userId, team.scope)
 
         playerRepository.getPlayersByAgeGroup(team.ageGroupId)
     }

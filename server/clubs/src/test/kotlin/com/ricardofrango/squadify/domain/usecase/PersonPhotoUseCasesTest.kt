@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
@@ -166,7 +167,7 @@ class PersonPhotoUseCasesTest {
         player = player.copy(photoUrl = "/players/$playerId/photo/00000000-0000-0000-0000-000000000001.png")
         val updated = slot<Player>()
         coEvery { playerRepository.updatePlayer(capture(updated)) } returns true
-        UpdatePlayerUseCase(playerRepository, userRepository, mockk(relaxed = true), mockk(relaxed = true), ageGroupRepository, transactionManager, check)(
+        UpdatePlayerUseCase(playerRepository, ageGroupRepository, transactionManager, ClubAccessPolicy(check), ClubPlayerContacts(playerRepository, userRepository, mockk(relaxed = true), mockk(relaxed = true)))(
             coord, playerId, UpdatePlayerRequest(firstName = "Rui", photoUrl = "https://example.com/x.png")
         )
         assertEquals(player.photoUrl, updated.captured.photoUrl)

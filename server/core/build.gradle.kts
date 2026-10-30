@@ -1,7 +1,8 @@
-// The game code shared by the clubs server (:server) and, from Phase 9, the coach server
-// (TECHNICAL_DECISIONS §72): the game use cases, the repository and service interfaces they use, the
-// stats calculator, the exceptions and the AccessPolicy they ask. No Ktor, no Exposed, no club roles:
-// each server supplies the implementations (repositories, buses, push, its own AccessPolicy).
+// The code shared by the clubs server (:server:clubs) and the coach server (:server:coach)
+// (TECHNICAL_DECISIONS §72): the game and structure use cases, the repository and service interfaces
+// they use, the stats calculator, the sign-in code, the exceptions and the AccessPolicy they ask.
+// No Ktor, no Exposed, no club roles: each server supplies the implementations (repositories,
+// buses, push, player contacts, its own AccessPolicy).
 plugins {
     alias(libs.plugins.kotlinJvm)
 }

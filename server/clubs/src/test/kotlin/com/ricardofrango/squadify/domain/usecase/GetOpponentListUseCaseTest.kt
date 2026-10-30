@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
@@ -45,7 +46,7 @@ class GetOpponentListUseCaseTest {
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
     private val useCase = GetOpponentListUseCase(
-        opponentRepository, clubRepository, ageGroupRepository, checkUserPermissionUseCase, transactionManager
+        opponentRepository, clubRepository, ageGroupRepository, ClubAccessPolicy(checkUserPermissionUseCase), transactionManager
     )
 
     private val clubId = "club-1"

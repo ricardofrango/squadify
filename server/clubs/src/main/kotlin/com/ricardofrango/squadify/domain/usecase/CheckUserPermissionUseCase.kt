@@ -142,4 +142,17 @@ class CheckUserPermissionUseCase(
 
         throw ForbiddenException(errorMessage)
     }
+
+    /**
+     * The age groups of [clubId] [userId] sees in the club's lists, or null for all of them: club
+     * admins, coordinators and platform admins see every age group; anyone else those they're staff
+     * on or have a linked player in ([visibleAgeGroups]).
+     */
+    suspend fun visibleAgeGroupIds(userId: String, clubId: String): Set<String>? = transactionManager.runInTransaction {
+        val role = userRepository.getUserRoleInClub(userId, clubId)
+        val seesEverything = userRepository.findById(userId)?.isPlatformAdmin == true ||
+            role == ClubRole.CLUB_ADMIN ||
+            role == ClubRole.COORDINATOR
+        if (seesEverything) null else visibleAgeGroups(playerRepository, ageGroupRepository, userId, clubId).map { it.id }.toSet()
+    }
 }

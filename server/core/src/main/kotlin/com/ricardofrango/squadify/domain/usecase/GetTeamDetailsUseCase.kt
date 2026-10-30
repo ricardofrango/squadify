@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.GameScope
+import com.ricardofrango.squadify.domain.access.allowed
+import com.ricardofrango.squadify.domain.access.scope
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
@@ -9,25 +13,21 @@ import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
-import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
-import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.isNotPlayed
-import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.MatchOutcome
 import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.TeamDetails
 import com.ricardofrango.squadify.model.TeamMatchResult
-import com.ricardofrango.squadify.model.AgeGroupRole
 import kotlin.time.Clock
 
 /**
  * Everything attached to one team, for its detail screen. A team is a scheduling handle under an age
  * group, so this returns its fixtures ([TeamDetails.upcomingMatches] / [TeamDetails.recentResults])
  * plus a read-only view of the age group's pool size and staff. Readable by any club member (and a
- * linked player/parent of a player in the age-group pool); [TeamDetails.canManageMatch] is a
- * non-throwing probe of the same `ConfigurablePermission.MANAGE_MATCH` gate that scheduling a match
- * actually enforces (see `CreateMatchUseCase`).
+ * linked player/parent of a player in the age-group pool). Each `can*` flag is a non-throwing probe
+ * of the check its action enforces, e.g. [TeamDetails.canManageMatch] the one scheduling a match
+ * makes (see `CreateMatchUseCase`).
  */
 class GetTeamDetailsUseCase(
     private val teamRepository: TeamRepository,
@@ -38,21 +38,14 @@ class GetTeamDetailsUseCase(
     private val matchRepository: MatchRepository,
     private val matchEventRepository: MatchEventRepository,
     private val opponentRepository: OpponentRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, teamId: String): TeamDetails = transactionManager.runInTransaction {
         val team = teamRepository.getTeamById(teamId)
             ?: throw NotFoundException("Team not found")
 
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = team.clubId,
-            minClubRole = ClubRole.MEMBER,
-            minAgeGroupRole = AgeGroupRole.STAFF,
-            teamId = teamId,
-            allowPlayerOrParentAccess = true
-        )
+        accessPolicy.requireViewGames(userId, team.scope)
 
         val club = clubRepository.getClubById(team.clubId)
             ?: throw NotFoundException("Club not found")
@@ -61,54 +54,12 @@ class GetTeamDetailsUseCase(
         val season = seasonRepository.getSeasonById(team.seasonId)
             ?: throw NotFoundException("Season not found")
 
-        val canManageMatch = try {
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = team.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                configurablePermission = ConfigurablePermission.MANAGE_MATCH,
-                teamId = teamId
-            )
-            true
-        } catch (e: ForbiddenException) {
-            false
-        }
-
-        // Same gate as the members overview (coordinator+), so staff chips only link where Member details opens.
-        val canViewMembers = try {
-            checkUserPermissionUseCase(userId = userId, clubId = team.clubId, minClubRole = ClubRole.COORDINATOR)
-            true
-        } catch (e: ForbiddenException) {
-            false
-        }
-
-        // Mirrors UpdateTeamUseCase's gate, so "Edit team" only shows where saving would work.
-        val canEditTeam = try {
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = team.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                minAgeGroupRole = AgeGroupRole.COACH,
-                teamId = teamId
-            )
-            true
-        } catch (e: ForbiddenException) {
-            false
-        }
-
-        // Mirrors DeleteTeamUseCase's gate, so "Delete team" only shows where deleting would work.
-        val canDeleteTeam = try {
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = team.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                configurablePermission = ConfigurablePermission.CREATE_TEAM,
-                ageGroupId = team.ageGroupId
-            )
-            true
-        } catch (e: ForbiddenException) {
-            false
-        }
+        val canManageMatch = allowed { accessPolicy.requireManageMatch(userId, team.scope) }
+        // Staff chips only link where Member details opens.
+        val canViewMembers = allowed { accessPolicy.requireViewMembers(userId, team.clubId) }
+        // UpdateTeamUseCase's and DeleteTeamUseCase's checks, so each button only shows where it would work.
+        val canEditTeam = allowed { accessPolicy.requireEditTeam(userId, team.scope) }
+        val canDeleteTeam = allowed { accessPolicy.requireManageTeams(userId, GameScope(team.clubId, ageGroupId = team.ageGroupId)) }
 
         val now = Clock.System.now()
         val allMatches = matchRepository.getMatchesByTeam(teamId)

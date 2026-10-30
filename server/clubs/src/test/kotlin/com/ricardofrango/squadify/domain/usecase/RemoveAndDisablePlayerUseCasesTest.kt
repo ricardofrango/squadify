@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
@@ -48,10 +49,10 @@ class RemoveAndDisablePlayerUseCasesTest {
     private val clubPermissionRepository = mockk<ClubPermissionRepository>(relaxed = true)
     init { coEvery { clubPermissionRepository.getOverride(any(), any()) } returns null }
     private val check = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository)
-    private val remove = RemovePlayerFromAgeGroupUseCase(playerRepository, ageGroupRepository, teamRepository, matchRepository, check, transactionManager)
+    private val remove = RemovePlayerFromAgeGroupUseCase(playerRepository, ageGroupRepository, teamRepository, matchRepository, ClubAccessPolicy(check), transactionManager)
     private val disable = DisablePlayerUseCase(playerRepository, teamRepository, matchRepository, check, transactionManager)
     private val reactivate = ReactivatePlayerUseCase(playerRepository, check, transactionManager)
-    private val add = AddPlayersToAgeGroupUseCase(playerRepository, ageGroupRepository, check, transactionManager)
+    private val add = AddPlayersToAgeGroupUseCase(playerRepository, ageGroupRepository, ClubAccessPolicy(check), transactionManager)
 
     private val clubId = "club-1"
     private val ag = AgeGroup("ag-1", clubId, "Sub-15", "s-1", 2012, 2012)

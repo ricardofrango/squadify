@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.PlayerListFilter
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
@@ -44,7 +45,7 @@ class GetEligiblePlayersForAgeGroupUseCaseTest {
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
     private val useCase = GetEligiblePlayersForAgeGroupUseCase(
-        playerRepository, ageGroupRepository, checkUserPermissionUseCase, transactionManager
+        playerRepository, ageGroupRepository, ClubAccessPolicy(checkUserPermissionUseCase), transactionManager
     )
 
     @Test

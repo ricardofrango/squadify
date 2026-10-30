@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
@@ -184,7 +185,7 @@ class OpponentLogoUseCasesTest {
         coEvery { opponentRepository.getOpponentsByClub(clubId) } returns emptyList()
         val created = slot<Opponent>()
         coEvery { opponentRepository.createOpponent(capture(created)) } answers { created.captured }
-        CreateOpponentUseCase(opponentRepository, ageGroupRepository, check, transactionManager)(
+        CreateOpponentUseCase(opponentRepository, ageGroupRepository, ClubAccessPolicy(check), transactionManager)(
             coord, clubId, CreateOpponentRequest(name = "New FC", logoUrl = "https://example.com/x.png")
         )
         assertNull(created.captured.logoUrl)
@@ -192,7 +193,7 @@ class OpponentLogoUseCasesTest {
         opponent = opponent.copy(logoUrl = "/opponents/$opponentId/logo/00000000-0000-0000-0000-000000000001.png")
         val updated = slot<Opponent>()
         coEvery { opponentRepository.updateOpponent(capture(updated)) } returns true
-        UpdateOpponentUseCase(opponentRepository, ageGroupRepository, check, transactionManager)(
+        UpdateOpponentUseCase(opponentRepository, ageGroupRepository, ClubAccessPolicy(check), transactionManager)(
             coord, opponentId, UpdateOpponentRequest(logoUrl = "https://example.com/x.png")
         )
         assertEquals(opponent.logoUrl, updated.captured.logoUrl)

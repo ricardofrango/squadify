@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
@@ -43,7 +44,7 @@ class DeleteTeamUseCaseTest {
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
     private val clubMatchesBus = mockk<ClubMatchesBus>(relaxed = true)
-    private val useCase = DeleteTeamUseCase(teamRepository, matchRepository, checkUserPermissionUseCase, clubMatchesBus, transactionManager)
+    private val useCase = DeleteTeamUseCase(teamRepository, matchRepository, ClubAccessPolicy(checkUserPermissionUseCase), clubMatchesBus, transactionManager)
 
     private val clubId = "club-1"
     private val teamId = "t-1"

@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.GameScope
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.FcmTokenRepository
@@ -9,8 +11,6 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.PushLink
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.CreateTeamsRequest
 import com.ricardofrango.squadify.model.Team
 import kotlin.uuid.Uuid
@@ -18,7 +18,7 @@ import kotlin.uuid.Uuid
 /**
  * Batch counterpart of [CreateTeamUseCase]: creates every team in [CreateTeamsRequest.items] under
  * the one season/age group, inside a single transaction so the whole batch either lands or none of
- * it does (mirrors [CreateAgeGroupsUseCase]). Same `ConfigurablePermission.CREATE_TEAM` gate and same
+ * it does (mirrors [CreateAgeGroupsUseCase]). Same [AccessPolicy.requireManageTeams] check and same
  * age-group-belongs-to-club-and-season validation as the single-team case.
  */
 class CreateTeamsUseCase(
@@ -26,7 +26,7 @@ class CreateTeamsUseCase(
     private val ageGroupRepository: AgeGroupRepository,
     private val clubRepository: ClubRepository,
     private val fcmTokenRepository: FcmTokenRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val pushNotificationService: PushNotificationService,
     private val transactionManager: TransactionManager
 ) {
@@ -56,13 +56,10 @@ class CreateTeamsUseCase(
             }
             ageGroupName = ageGroup.name
 
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = request.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                configurablePermission = ConfigurablePermission.CREATE_TEAM,
-                ageGroupId = request.ageGroupId,
-                errorMessage = "Only admins, coordinators, or this age group's coaches can create teams"
+            accessPolicy.requireManageTeams(
+                userId,
+                GameScope(request.clubId, ageGroupId = request.ageGroupId),
+                "Only admins, coordinators, or this age group's coaches can create teams"
             )
 
             val club = clubRepository.getClubById(request.clubId)
