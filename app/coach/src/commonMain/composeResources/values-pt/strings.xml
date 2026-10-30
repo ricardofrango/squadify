@@ -25,6 +25,7 @@
     <string name="coach_home_add_age_group">+ Adicionar escalão</string>
     <string name="coach_home_create_age_group">Criar escalão</string>
     <string name="coach_home_join">Entrar com um código</string>
+    <string name="coach_menu_account">Conta</string>
     <string name="coach_home_born">Nascidos em %1$s · %2$s</string>
     <string name="coach_home_empty_title">Ainda não tens escalões</string>
     <string name="coach_home_empty_body">Cria o teu primeiro escalão, ou entra num com o código que alguém te enviou.</string>

@@ -27,6 +27,8 @@ import com.ricardofrango.squadify.coach.presentation.ui.spacesetup.SpaceSetupScr
 import com.ricardofrango.squadify.domain.service.SessionEventBus
 import com.ricardofrango.squadify.presentation.navigation.AppNavigator
 import com.ricardofrango.squadify.presentation.navigation.KEY_CLUB_STRUCTURE_CHANGED
+import com.ricardofrango.squadify.presentation.navigation.KEY_PASSWORD_RESET_EMAIL
+import com.ricardofrango.squadify.presentation.navigation.accountScreens
 import com.ricardofrango.squadify.presentation.navigation.SPLASH_ENTRY
 import com.ricardofrango.squadify.presentation.navigation.Screen
 import com.ricardofrango.squadify.presentation.navigation.ScreenRegistry
@@ -43,8 +45,9 @@ import org.koin.compose.koinInject
 private const val NAV_ANIM_MS = 300
 
 /**
- * The coach app's navigation (TECHNICAL_DECISIONS §72): sign-in, then the coach's age groups, from where
- * they set up their own space, join one with a code, and open the screens both apps share. No club list,
+ * The coach app's navigation (TECHNICAL_DECISIONS §72): sign-in (with Forgot password), then the coach's
+ * age groups, from where they set up their own space, join one with a code, open their account, and open
+ * the screens both apps share. No club list,
  * Club settings, seasons or training.
  */
 @Composable
@@ -106,12 +109,13 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
         )
     }
 
-    screen<Screen.Login> {
+    screen<Screen.Login> { entry ->
+        val passwordResetEmail by entry.savedStateHandle.getStateFlow<String?>(KEY_PASSWORD_RESET_EMAIL, null).collectAsStateWithLifecycle()
         LoginScreen(
+            passwordResetEmail = passwordResetEmail,
             onNavigateToRegister = { navigator.navigate(Screen.Register) },
             onSignedIn = ::openAsRoot,
-            // The coach server has no password reset yet.
-            onNavigateToForgotPassword = null
+            onNavigateToForgotPassword = { email -> navigator.navigate(Screen.ForgotPassword(email)) }
         )
     }
 
@@ -163,10 +167,14 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
             },
             onSetUpSpace = { navigator.navigate(Screen.SpaceSetup) },
             onJoinWithCode = { navigator.navigate(Screen.JoinWithCode) },
+            onOpenAccount = { navigator.navigate(Screen.Account) },
             refresh = changed,
             onRefreshed = { entry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false }
         )
     }
+
+    // Account, Change email and Forgot password, as in the clubs app (no photo: AppFeatures).
+    accountScreens(navigator)
 
     // The age group, team, player, opponent, match and stats screens, as in the clubs app. What the
     // coach app leaves out (training, seasons, photos, club members) is its AppFeatures (CoachKoin).

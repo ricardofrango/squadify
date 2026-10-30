@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.account
 
+import com.ricardofrango.squadify.domain.config.AppFeatures
 import squadify.app.shared.generated.resources.msg_password_change_wrong_password
 import org.jetbrains.compose.resources.getString
 import com.ricardofrango.squadify.presentation.ui.components.isWrongCurrentPassword
@@ -32,8 +33,12 @@ class AccountViewModel(
     private val changePasswordUseCase: ChangePasswordUseCase,
     private val logoutUseCase: LogoutUseCase,
     private val uploadUserAvatarUseCase: UploadUserAvatarUseCase,
-    private val deleteUserAvatarUseCase: DeleteUserAvatarUseCase
+    private val deleteUserAvatarUseCase: DeleteUserAvatarUseCase,
+    features: AppFeatures
 ) : ViewModel() {
+
+    // The coach app has no photos until its server's image storage: no photo or photo actions.
+    val showsPhoto: Boolean = features.photos
 
     private val _state = MutableStateFlow<AccountUiState>(AccountUiState.Loading)
     val state: StateFlow<AccountUiState> = _state.asStateFlow()

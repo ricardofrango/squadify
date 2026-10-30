@@ -26,13 +26,10 @@ import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDe
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import org.koin.compose.koinInject
-import com.ricardofrango.squadify.presentation.ui.changeemail.ChangeEmailScreen
-import com.ricardofrango.squadify.presentation.ui.forgotpassword.ForgotPasswordScreen
 import com.ricardofrango.squadify.presentation.ui.login.LoginScreen
 import com.ricardofrango.squadify.presentation.ui.register.RegisterScreen
 import com.ricardofrango.squadify.presentation.ui.splash.SplashScreen
 import com.ricardofrango.squadify.presentation.ui.dashboard.DashboardScreen
-import com.ricardofrango.squadify.presentation.ui.account.AccountScreen
 import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubDetailsScreen
 import com.ricardofrango.squadify.presentation.ui.editclub.EditClubScreen
 import com.ricardofrango.squadify.presentation.ui.clubdetails.ClubPlayersScreen
@@ -42,12 +39,6 @@ import com.ricardofrango.squadify.presentation.ui.addstafftoagegroup.AddStaffToA
 import com.ricardofrango.squadify.presentation.ui.createstaff.CreateStaffScreen
 import com.ricardofrango.squadify.presentation.ui.theme.ClubThemeStore
 import com.ricardofrango.squadify.model.TrainingPlanLevel
-
-// Forgot password -> Login: the email whose password was just reset (prefilled, with a confirmation).
-private const val KEY_PASSWORD_RESET_EMAIL = "passwordResetEmail"
-
-// Change email -> Account: the new address, shown with a confirmation.
-private const val KEY_EMAIL_CHANGED = "emailChanged"
 
 // Duration of the app-wide screen transition (see the NavHost below).
 private const val NAV_ANIM_MS = 300
@@ -176,32 +167,7 @@ private fun appScreens(navigator: AppNavigator, deepLinkRoute: String?): ScreenR
             )
         }
         
-        screen<Screen.ForgotPassword> { entry ->
-            val loginEntry = remember(entry) { navigator.previousBackStackEntry }
-            ForgotPasswordScreen(
-                initialEmail = entry.toRoute<Screen.ForgotPassword>().email,
-                onNavigateBack = { navigator.popBackStack() },
-                onPasswordReset = { email ->
-                    navigator.setIfAlive(loginEntry, KEY_PASSWORD_RESET_EMAIL, email)
-                    navigator.popBackStack()
-                }
-            )
-        }
 
-        screen<Screen.ChangeEmail> { entry ->
-            val accountEntry = remember(entry) { navigator.previousBackStackEntry }
-            ChangeEmailScreen(
-                currentEmail = entry.toRoute<Screen.ChangeEmail>().currentEmail.ifEmpty { null },
-                onNavigateBack = { navigator.popBackStack() },
-                onEmailChanged = { email ->
-                    navigator.setIfAlive(accountEntry, KEY_EMAIL_CHANGED, email)
-                    navigator.popBackStack()
-                },
-                onSignedOut = {
-                    navigator.navigate(Screen.Login) { popUpToRoot() }
-                }
-            )
-        }
 
         screen<Screen.Register> {
             RegisterScreen(
@@ -462,23 +428,9 @@ private fun appScreens(navigator: AppNavigator, deepLinkRoute: String?): ScreenR
             )
         }
 
-        screen<Screen.Account> { entry ->
-            val changedEmail by entry.savedStateHandle.getStateFlow<String?>(KEY_EMAIL_CHANGED, null).collectAsStateWithLifecycle()
-            AccountScreen(
-                changedEmail = changedEmail,
-                onNavigateToChangeEmail = { email -> navigator.navigate(Screen.ChangeEmail(email)) },
-                onNavigateBack = {
-                    navigator.popBackStack()
-                },
-                // Clear the whole back stack: a single-club user has no My clubs underneath, and a
-                // club left under Sign in would also draw it in that club's colours.
-                onNavigateToLogin = {
-                    navigator.navigate(Screen.Login) {
-                        popUpToRoot()
-                    }
-                }
-            )
-        }
+
+        // Account, Change email and Forgot password, as in the coach app (app/shared's AccountScreens.kt).
+        accountScreens(navigator)
 
         // Every screen both apps have (app/shared's SharedScreens.kt).
         sharedScreens(navigator)

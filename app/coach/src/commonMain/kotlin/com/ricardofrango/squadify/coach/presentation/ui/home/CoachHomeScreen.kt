@@ -73,11 +73,13 @@ import squadify.app.coach.generated.resources.coach_home_empty_body
 import squadify.app.coach.generated.resources.coach_home_empty_title
 import squadify.app.coach.generated.resources.coach_home_join
 import squadify.app.coach.generated.resources.coach_home_title
+import squadify.app.coach.generated.resources.coach_menu_account
 import squadify.app.coach.generated.resources.ic_join
 import squadify.app.coach.generated.resources.ic_menu
 import squadify.app.coach.generated.resources.msg_coach_home_failed
 import squadify.app.shared.generated.resources.btn_logout
 import squadify.app.shared.generated.resources.btn_retry
+import squadify.app.shared.generated.resources.ic_account
 import squadify.app.shared.generated.resources.ic_add
 import squadify.app.shared.generated.resources.ic_logout
 import kotlin.time.Instant
@@ -86,8 +88,8 @@ import squadify.app.shared.generated.resources.Res as SharedRes
 /**
  * The coach app's home (REQUIREMENTS §5c): one list of every age group the coach has, their own space's
  * and the ones they joined with a code, each naming its space and opening Age Group Details. Creating an
- * age group and joining one with a code are always there: in the ☰ side menu, and as buttons when the
- * list is empty. The root of the back stack.
+ * age group and joining one with a code are always there: in the ☰ side menu (with Account and Sign out),
+ * and as buttons when the list is empty. The root of the back stack.
  */
 @Composable
 fun CoachHomeScreen(
@@ -98,6 +100,7 @@ fun CoachHomeScreen(
     // No space of their own yet: it's set up with the first age group.
     onSetUpSpace: () -> Unit,
     onJoinWithCode: () -> Unit,
+    onOpenAccount: () -> Unit,
     // Set when a screen opened from here changed something (an age group created, a code used).
     refresh: Boolean = false,
     onRefreshed: () -> Unit = {},
@@ -131,7 +134,8 @@ fun CoachHomeScreen(
                 else -> onCreateAgeGroups(space.id, space.name, space.sport)
             }
         },
-        onJoinWithCode = onJoinWithCode
+        onJoinWithCode = onJoinWithCode,
+        onOpenAccount = onOpenAccount
     )
 }
 
@@ -143,6 +147,7 @@ private fun CoachHomeContent(
     onOpenAgeGroup: (String) -> Unit = {},
     onCreateAgeGroup: () -> Unit = {},
     onJoinWithCode: () -> Unit = {},
+    onOpenAccount: () -> Unit = {},
     drawerState: DrawerState = rememberDrawerState(DrawerValue.Closed)
 ) {
     val scope = rememberCoroutineScope()
@@ -161,6 +166,7 @@ private fun CoachHomeContent(
                 )
                 MenuItem(SharedRes.drawable.ic_add, stringResource(Res.string.coach_home_create_age_group), fromMenu(onCreateAgeGroup))
                 MenuItem(Res.drawable.ic_join, stringResource(Res.string.coach_home_join), fromMenu(onJoinWithCode))
+                MenuItem(SharedRes.drawable.ic_account, stringResource(Res.string.coach_menu_account), fromMenu(onOpenAccount))
                 MenuItem(SharedRes.drawable.ic_logout, stringResource(SharedRes.string.btn_logout), fromMenu(onSignOut))
             }
         }
