@@ -27,6 +27,7 @@ Generated from a read-through of all use cases on 2026-09-02. Per `AI_GUIDELINES
 10. [Cross-Cutting: The Invite System, End to End](#10-cross-cutting-the-invite-system-end-to-end)
 11. [State of the Art: Observed Gaps & Inconsistencies](#11-state-of-the-art-observed-gaps--inconsistencies)
 12. [Database Schema: Current State of the Art](#12-database-schema-current-state-of-the-art)
+13. [Squadify for Coaches: the Space and its Access](#13-squadify-for-coaches-the-space-and-its-access)
 
 ---
 
@@ -755,9 +756,11 @@ graph TD
 
 ```mermaid
 graph TD
-    A[Start: userId, clubId, seasonId, items list] --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    A[Start: userId, clubId, seasonId?, items list] --> B[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
     B -- denied --> F(["Throw ForbiddenException"])
-    B -- allowed --> C{items list empty?}
+    B -- allowed --> S{seasonId given?}
+    S -- No --> VS(["Throw ValidationException: a season is required"])
+    S -- Yes --> C{items list empty?}
     C -- Yes --> V(["Throw ValidationException"])
     C -- No --> D[Load existing age groups for this club + season]
     D --> D2[Load club — for its sport's allowed team sizes]
@@ -776,6 +779,8 @@ graph TD
     K -- No --> I[Batch insert all AgeGroups]
     I --> Z(["Return created AgeGroups"])
 ```
+
+`seasonId` is optional in the request only for the coach server, which fills in the current season before calling this use case (§13.3); on the clubs server a request without one is refused.
 
 Every clashing item is reported, not only the first. The 409's `ErrorResponse.rows` lists them (0-based, in request order), so Create age groups marks each of those rows in red and names them in its message. Within the batch, the later of two items sharing a year is the one reported. The other row checks (blank name, inverted range, invalid team size) still stop at the first, and the screen prevents them before submitting.
 
@@ -2749,3 +2754,60 @@ erDiagram
 - [ ] No `onDelete` cascade/set-null strategy outside the team → match chain (cascaded since `V21`) — every other FK relies on the DB's default no-action behavior (see §12.2).
 - [x] The Flyway/`SchemaUtils` mismatch: **fixed**, since Flyway is now the real migration mechanism (§12.4, `TECHNICAL_DECISIONS.md` §34). There are still no down/rollback scripts, as Flyway Community only supports forward migrations.
 - [ ] `AgeGroups.start_year`/`end_year` each have a `.default(0)` that has no real-world meaning and is never actually relied upon for a normal insert (`CreateAgeGroupsUseCase` always supplies explicit values) — the default exists only as the "not yet migrated" sentinel the one-off `birth_year` backfill above checks for.
+
+---
+
+## 13. Squadify for Coaches: the Space and its Access
+
+The coach server (`server/coach`, TECHNICAL_DECISIONS §72) runs the shared structure use cases (§4–§6, from `:server:core`) on its own database, with its own `AccessPolicy`. A coach's space is a `clubs` row; its owner is the `CLUB_ADMIN` member, staff are the other members, each on the age groups they're staff of (`age_group_staff`).
+
+### 13.1 `CoachAccessPolicy`
+
+```mermaid
+graph TD
+    A[Start: userId, scope: space, team?, age group?] --> U{Account exists and ACTIVE?}
+    U -- No --> F0(["Throw ForbiddenException"])
+    U -- Yes --> M{Member of the space?}
+    M -- No --> F1(["Throw ForbiddenException"])
+    M -- "Yes, the owner (CLUB_ADMIN)" --> OK(["Allowed: everything, every age group"])
+    M -- Yes, staff --> K{Owner-only action? create age groups, manage staff}
+    K -- Yes --> F2(["Throw ForbiddenException: only the owner"])
+    K -- No --> AG{Age group in scope? given, or the team's}
+    AG -- "No (the whole space: opponents, players, lists)" --> OK2(["Allowed"])
+    AG -- team not found --> F3(["Throw ForbiddenException"])
+    AG -- Yes --> S{Age group in this space AND a staff row on it?}
+    S -- No --> F4(["Throw ForbiddenException"])
+    S -- Yes --> OK3(["Allowed"])
+```
+
+| `AccessPolicy` | Owner | Staff |
+|---|---|---|
+| `requireMember`, `requireViewClub`, `requireViewMembers` | yes | yes |
+| `visibleAgeGroupIds` | all (null) | the age groups they're staff on |
+| `requireCreateAgeGroups`, `requireManageStaff` | yes | no |
+| Every other check (games, ratings, editing age groups, teams, players, the pool, opponents) | yes | in their own age groups; with no age group in scope, yes |
+
+The plan's limits (stats from Basic, age groups and members per age group, the owner counting as one of the three on Basic) aren't enforced yet.
+
+### 13.2 First setup (`SetUpSpaceUseCase`, `POST /v1/space`)
+
+```mermaid
+graph TD
+    A[Start: userId, name, sport, first age group, team name and size] --> B{Already a member of a space?}
+    B -- Yes --> C(["Throw ConflictException: one space per account"])
+    B -- No --> V{name, age group name and team name not blank; startYear >= endYear; team sizes in the sport's?}
+    V -- No --> VE(["Throw ValidationException"])
+    V -- Yes --> S[Create the space: a clubs row, ACTIVE, with the sport]
+    S --> O[Add the coach as its owner: club_members CLUB_ADMIN]
+    O --> SE[The current season: CoachSeasons, §13.3]
+    SE --> AG[Create the age group in that season]
+    AG --> T["Create the team: its size, or the age group's"]
+    T --> Z(["Return SpaceSetup: space, season, age group, team"])
+```
+
+All in one transaction, so a refused setup creates nothing. `GET /v1/space` (`GetSpaceUseCase`) returns the coach's space from `ClubRepository.getMemberships` (`club_members` only): the one they own, else the first they were added to, with `isOwner`; 404 before the first setup.
+
+### 13.3 Automatic seasons (`CoachSeasons`)
+
+The season running today, July 1st to June 30th (`EUROPEAN_YEAR`): found by its type and dates, or created the first time, named "26/27". Used by the first setup and by `POST /v1/age-groups` without a `seasonId`, where the route checks `requireCreateAgeGroups` first, then fills in the season and calls `CreateAgeGroupsUseCase` (§4.3).
+

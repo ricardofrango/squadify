@@ -18,6 +18,9 @@ interface PlayerContacts {
     /** Once [player] is saved. A null [email] or [parents] leaves them as they are; a list replaces the parents. */
     suspend fun updated(player: Player, email: String?, parents: List<PlayerParentRequest>?)
 
+    /** How many parents' accounts are linked to the player, for their profile. */
+    suspend fun guardiansLinked(playerId: String): Int
+
     /** No player or parent accounts: an email given anyway is refused, so it's never silently dropped. */
     object None : PlayerContacts {
         override suspend fun created(clubId: String, players: List<Pair<Player, CreatePlayer>>) =
@@ -25,6 +28,8 @@ interface PlayerContacts {
 
         override suspend fun updated(player: Player, email: String?, parents: List<PlayerParentRequest>?) =
             refuse(email, parents.orEmpty())
+
+        override suspend fun guardiansLinked(playerId: String) = 0
 
         private fun refuse(email: String?, parents: List<PlayerParentRequest>) {
             if (email != null || parents.isNotEmpty()) {

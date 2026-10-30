@@ -60,6 +60,12 @@ class ExposedClubRepository : ClubRepository {
         }.map(::toClub)
     }
 
+    override suspend fun getMemberships(userId: String): List<Pair<Club, ClubRole>> =
+        (Clubs innerJoin ClubMembers).selectAll()
+            .where { ClubMembers.userId eq userId.toUuid() }
+            .orderBy(Clubs.createdAt to SortOrder.ASC)
+            .map { toClub(it) to it[ClubMembers.role] }
+
     override suspend fun createClub(club: Club): Club =
         Clubs.insert {
             it[id] = club.id.toUuid()

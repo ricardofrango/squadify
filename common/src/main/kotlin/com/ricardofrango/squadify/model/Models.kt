@@ -544,7 +544,9 @@ data class CreateSeasonRequest(
 @Serializable
 data class CreateAgeGroupsRequest(
     val clubId: String,
-    val seasonId: String,
+    // Required by the clubs server. The coach server, whose seasons are automatic, fills in the
+    // current one when it's left out (TECHNICAL_DECISIONS §72).
+    val seasonId: String? = null,
     val items: List<AgeGroupItemRequest>
 )
 

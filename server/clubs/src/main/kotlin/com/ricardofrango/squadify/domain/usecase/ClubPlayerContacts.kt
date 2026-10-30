@@ -101,6 +101,8 @@ class ClubPlayerContacts(
         }
     }
 
+    override suspend fun guardiansLinked(playerId: String): Int = playerRepository.countGuardiansByPlayer(playerId).toInt()
+
     override suspend fun updated(player: Player, email: String?, parents: List<PlayerParentRequest>?) {
         val playerId = player.id
 
