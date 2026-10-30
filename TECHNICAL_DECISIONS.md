@@ -3274,7 +3274,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
 **Accounts are not shared, for now.** Each server keeps its own users table, with the same login code from `:server:core`.
 - **Why not one login server for both:** it would be a third service to host, and if it went down both products would stop. It would also mean moving the clubs app's login (refresh, password reset, email change) onto it.
 - **What a shared login would give:** an easier move of an age group from a coach's space to a club later (REQUIREMENTS §5c), since the same person would already be known on both sides. That move isn't planned yet. When it is, choose between:
-    - a shared login: either a small login service whose signed tokens both servers verify with its public key, or Firebase Authentication (already in the project for Crashlytics; it can import the existing bcrypt hashes and provides Sign in with Apple, which the App Store requires alongside other social logins);
+    - a shared login: a small login service of our own, whose signed tokens both servers verify with its public key (the developer, 2026-10-30). Not Firebase Authentication: its accounts belong to one Firebase project, and each product has its own (below);
     - or, without one, a one-time transfer: the coach app gives a code, a club admin enters it in the clubs app, and the clubs server fetches the age group from the coach server, matching staff by email.
 
 **Hosting and deploys** (the developer, 2026-10-27):
@@ -3290,6 +3290,8 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
 
 **Shared services:**
 - **Push and Crashlytics:** the coach's own Firebase project, `squadify-for-coach` (the developer, 2026-10-30), not a second app in the clubs' project: Android registered, iOS still to add. The coach server sends with that project's credentials and only to tokens in its own database.
+    - **Why separate projects:** the same separation as the servers, databases and tokens. Each server's credentials reach only its own product's devices, a leaked key affects one product, and crashes, testers, access and quotas stay apart.
+    - **What it costs:** two of everything (server credentials on Railway, App Distribution testers, iOS registrations, consoles), no view across both products, and no shared login through Firebase Authentication. A later shared login is our own service (above).
 - **Email:** the same Resend domain (`squadify.pt`), with the coach product's own sender name and templates.
 - **Images** (the developer, 2026-10-30): the same storage as the clubs server (`ImageStorage`, S3 on Railway), configured on the coach-server service. Whether the coach's images get a folder of their own in it is still to decide.
 - **Account deletion:** the coach server needs an endpoint and the app a screen for it, because coaches sign up in the app (required by both stores). It deletes the user and, for an owner, the space with everything in it.
