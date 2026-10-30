@@ -108,7 +108,8 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
 - **No club and no roles.** Everything belongs to the coach's own space. The coach can invite other staff, and every member is either the owner or staff (below); there are no configurable permissions.
 - **The owner:** whoever created the space. Only they pay, create age groups, invite and remove members (the developer, 2026-10-30).
 - **Staff** manage everything in the age groups they're on (teams, players, matches, stats), and see the space's opponents and add to them, but don't create age groups. The owner has access to every age group of the space, by that rule alone, so a new age group needs nothing more.
-- **Inviting staff** (the developer, 2026-10-30): the owner creates an invite code for an age group and shares it (WhatsApp, SMS). Whoever enters it, signing up first if needed, joins that age group as staff. A code works once and expires after 7 days; the owner can withdraw it before. One person can be staff on several age groups, each with its own code. The owner can take someone off an age group; off their last one, they leave the space. No emails are sent.
+- **Inviting staff** (the developer, 2026-10-30): the owner creates an invite code for an age group and shares it (WhatsApp, SMS). Whoever enters it, signing up first if needed, joins that age group as staff. A code works once and expires after 7 days; the owner can withdraw it before. One person can be staff on several age groups, each with its own code. The owner can take someone off an age group; off their last one, they leave the space. No emails are sent for now; the code is shared from the phone's share menu (WhatsApp, SMS, email apps).
+- **Inviting staff by email, later** (the developer, 2026-10-30): next to the code, the owner can type an email address and the coach server emails the code with a link. It comes with the account and Forgot password reuse, which bring the coach product's own Resend sender (`TECHNICAL_DECISIONS.md` §72).
 - **First setup**, right after signing up: the space's name and sport, its first age group and its first team. The season is picked from the date (July to June) and never asked for. One space per account for now.
 - **Plans** (pricing still to be decided), for the whole space, not per person:
 
@@ -301,6 +302,8 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [x] The game routes, shared between both servers (`gameRoutes`, `:server:web`).
         - [x] Staff invites: a single-use code per age group, accepted after signing up; the owner withdraws codes and removes staff (`TECHNICAL_DECISIONS.md` §72).
     - [ ] The coach app: sign-up, first setup (sport, age group, team), invites.
+        - [ ] Later: staff invites by email, with the account and Forgot password reuse (the coach's Resend sender).
+        - [/] Firebase (2026-10-30): the coach app registered in its own Firebase project, `squadify-for-coach` (`app/coachAndroidApp/google-services.json`, for the dev, staging and production ids). Crashlytics and pushes still to be wired.
     - [ ] Plans stored and enforced on the server, set by a platform admin at first.
     - [ ] Payments (RevenueCat) and ads on the Free plan (AdMob).
     - [ ] **Launch readiness** (Android and iOS, needed before the coach app goes to the stores):

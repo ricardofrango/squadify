@@ -4,8 +4,8 @@ import java.net.NetworkInterface
 import java.util.Properties
 
 // Squadify for Coaches on Android (TECHNICAL_DECISIONS §72): starts :app:coach against the coach server.
-// Its own app id, so it installs next to the clubs app. No Firebase yet (Crashlytics, pushes): the coach
-// app isn't registered in the Firebase project, and the coach server sends no pushes.
+// Its own app id, so it installs next to the clubs app. Registered in its own Firebase project
+// (google-services.json), but Crashlytics and pushes aren't wired yet: the coach server sends no pushes.
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
