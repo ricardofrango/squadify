@@ -1,6 +1,10 @@
 package com.ricardofrango.squadify.coach.di
 
+import com.ricardofrango.squadify.coach.data.AccountDeletionRepository
 import com.ricardofrango.squadify.coach.data.CoachEmailService
+import com.ricardofrango.squadify.coach.data.ExposedAccountDeletionRepository
+import com.ricardofrango.squadify.coach.domain.DeleteAccountUseCase
+import com.ricardofrango.squadify.coach.domain.GetAccountDeletionSummaryUseCase
 import com.ricardofrango.squadify.data.repository.ExposedEmailChangeRepository
 import com.ricardofrango.squadify.data.repository.ExposedPasswordResetRepository
 import com.ricardofrango.squadify.domain.repository.EmailChangeRepository
@@ -118,6 +122,10 @@ val coachModule = module {
     factory { ResetPasswordUseCase(get(), get(), get()) }
     factory { RequestEmailChangeUseCase(get(), get(), get(), get(), get()) }
     factory { ConfirmEmailChangeUseCase(get(), get(), get(), get()) }
+    // Deleting the account, with the space they own (the stores require it).
+    single<AccountDeletionRepository> { ExposedAccountDeletionRepository() }
+    factory { GetAccountDeletionSummaryUseCase(get(), get()) }
+    factory { DeleteAccountUseCase(get(), get(), get()) }
 
     // Who may do what: the space's owner everywhere, its staff in their age groups.
     factory<AccessPolicy> { CoachAccessPolicy(get(), get(), get(), get()) }

@@ -50,6 +50,8 @@ fun ScreenRegistry.accountScreens(navigator: AppNavigator) {
         AccountScreen(
             changedEmail = changedEmail,
             onNavigateToChangeEmail = { email -> navigator.navigate(Screen.ChangeEmail(email)) },
+            // Only offered where AppFeatures.accountDeletion is on; that app registers the screen.
+            onNavigateToDeleteAccount = { navigator.navigate(Screen.DeleteAccount) },
             onNavigateBack = {
                 navigator.popBackStack()
             },

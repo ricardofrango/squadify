@@ -2842,6 +2842,23 @@ Other spaces don't matter: an owner of one space, or staff in another, can use a
 
 **The coach database's own table**, beyond the shared ones (§12): `staff_invites` (`id`, `code` unique, `age_group_id` → `age_groups` ON DELETE CASCADE, `created_by` → `users`, `created_at`, `expires_at`, `accepted_by` → `users` nullable, `accepted_at` nullable), from `V2__staff_invites.sql`.
 
+### 13.6 Deleting an account (`DeleteAccountUseCase`, `POST /v1/users/me/delete`)
+
+```mermaid
+graph TD
+    A[Signed in: the current password] --> G{CurrentPasswordGuard}
+    G -- wrong --> W(["400 AUTH_003; the third in a row signs them out, AUTH_004"])
+    G -- right --> O{Owns a space?}
+    O -- Yes --> S["Delete the space: matches (with call-ups, events, line-ups, stats, reports), teams, staff and pool rows, age groups (with invite codes), players, opponents, seasons, members, the space"]
+    O -- No --> R
+    S --> R[Reports they last edited in other spaces: that space's owner becomes the author]
+    R --> M[Their staff rows, memberships and used invite codes go]
+    M --> U[Their refresh and push tokens, reset and email change codes, then the user]
+    U --> Z(["204"])
+```
+
+All in one transaction, so a failure deletes nothing. `GET /v1/users/me/deletion` (`GetAccountDeletionSummaryUseCase`) returns what it would take: the owned space's name and its age groups, players, matches and other members (`AccountDeletionSummary`), or an empty summary. The coach server only, for now.
+
 ### 13.5 Automatic seasons (`CoachSeasons`)
 
 The season running today, July 1st to June 30th (`EUROPEAN_YEAR`): found by its type and dates, or created the first time, named "26/27". Used by the first setup and by `POST /v1/age-groups` without a `seasonId`, where the route checks `requireCreateAgeGroups` first, then fills in the season and calls `CreateAgeGroupsUseCase` (§4.3).

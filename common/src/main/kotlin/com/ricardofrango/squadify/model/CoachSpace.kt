@@ -60,3 +60,21 @@ data class CoachSpace(
     val space: Club,
     val isOwner: Boolean
 )
+
+/**
+ * What deleting the signed-in coach's account takes with it, for the warning (REQUIREMENTS §5c): their own
+ * space and what's in it, or null when they own none.
+ */
+@Serializable
+data class AccountDeletionSummary(
+    val ownSpaceName: String? = null,
+    val ageGroups: Int = 0,
+    val players: Int = 0,
+    val matches: Int = 0,
+    // Everyone else in the space, who loses access to it.
+    val staff: Int = 0
+)
+
+/** Deleting the account: the current password, as for every other account change. */
+@Serializable
+data class DeleteAccountRequest(val currentPassword: String)

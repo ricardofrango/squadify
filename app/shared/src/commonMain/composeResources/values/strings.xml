@@ -178,6 +178,7 @@
     <string name="label_add_players_to_age_group">Add players</string>
     <string name="label_add_staff_to_age_group">Add staff</string>
     <string name="label_invite_staff">Invite staff</string>
+    <string name="btn_delete_account">Delete account</string>
     <string name="label_search_players">Search players</string>
     <string name="btn_add_new_player">New player</string>
     <string name="label_players_selected">%1$d selected</string>

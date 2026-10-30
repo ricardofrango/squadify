@@ -20,6 +20,7 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import com.ricardofrango.squadify.coach.presentation.ui.deleteaccount.DeleteAccountScreen
 import com.ricardofrango.squadify.coach.presentation.ui.home.CoachHomeScreen
 import com.ricardofrango.squadify.coach.presentation.ui.invite.InviteStaffScreen
 import com.ricardofrango.squadify.coach.presentation.ui.join.JoinWithCodeScreen
@@ -175,6 +176,14 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
 
     // Account, Change email and Forgot password, as in the clubs app (no photo: AppFeatures).
     accountScreens(navigator)
+
+    // From Account: deleted at once, then signed out, back to Sign in.
+    screen<Screen.DeleteAccount> {
+        DeleteAccountScreen(
+            onNavigateBack = { navigator.popBackStack() },
+            onDeleted = { openAsRoot(Screen.Login) }
+        )
+    }
 
     // The age group, team, player, opponent, match and stats screens, as in the clubs app. What the
     // coach app leaves out (training, seasons, photos, club members) is its AppFeatures (CoachKoin).
