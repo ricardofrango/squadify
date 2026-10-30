@@ -2,7 +2,7 @@ package com.ricardofrango.squadify.presentation.routes
 
 import com.ricardofrango.squadify.domain.usecase.*
 import com.ricardofrango.squadify.model.*
-import com.ricardofrango.squadify.security.JwtConfig
+import com.ricardofrango.squadify.security.JwtTokens
 import com.ricardofrango.squadify.security.userId
 import io.ktor.http.*
 import io.ktor.server.auth.*
@@ -13,7 +13,14 @@ import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import org.koin.ktor.ext.inject
 
-fun Route.matchRoutes() {
+/**
+ * The game routes both servers serve, at the same paths with the same requests and responses
+ * (TECHNICAL_DECISIONS §72): matches, call-ups, the live game and its WebSockets, the record and
+ * report, the season records, full stats and a player's season stats. Each server mounts them with
+ * its own [tokens], which the WebSockets check (browser WebSockets can't send an Authorization
+ * header, so the token comes as a query parameter); everything else is behind `auth-jwt`.
+ */
+fun Route.gameRoutes(tokens: JwtTokens) {
     val createMatchUseCase by inject<CreateMatchUseCase>()
     val getMatchesUseCase by inject<GetMatchesUseCase>()
     val getMatchDetailsUseCase by inject<GetMatchDetailsUseCase>()
@@ -34,6 +41,11 @@ fun Route.matchRoutes() {
     val setMatchMinuteUseCase by inject<SetMatchMinuteUseCase>()
     val getMatchReportUseCase by inject<GetMatchReportUseCase>()
     val saveMatchReportUseCase by inject<SaveMatchReportUseCase>()
+    val getClubMatchesUpdatesUseCase by inject<GetClubMatchesUpdatesUseCase>()
+    val getTeamSeasonRecordUseCase by inject<GetTeamSeasonRecordUseCase>()
+    val getAgeGroupSeasonRecordUseCase by inject<GetAgeGroupSeasonRecordUseCase>()
+    val getFullStatsUseCase by inject<GetFullStatsUseCase>()
+    val getPlayerSeasonStatsUseCase by inject<GetPlayerSeasonStatsUseCase>()
 
     authenticate("auth-jwt") {
         route("/matches") {
@@ -254,6 +266,41 @@ fun Route.matchRoutes() {
                 }
             }
         }
+
+        // Finished matches + players' stats lines for the season record and leaders (design 31).
+        get("/teams/{teamId}/season-record") {
+            val teamId = call.parameters["teamId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+            val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+            call.respond(getTeamSeasonRecordUseCase(currentUserId, teamId))
+        }
+
+        // Every player's stats for the Full stats table: only those who played for this team.
+        get("/teams/{teamId}/full-stats") {
+            val teamId = call.parameters["teamId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+            val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+            call.respond(getFullStatsUseCase.team(currentUserId, teamId))
+        }
+
+        // Every team's season record + the pool, for the Stats and Members tabs (design 33).
+        get("/age-groups/{ageGroupId}/season-record") {
+            val ageGroupId = call.parameters["ageGroupId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+            val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+            call.respond(getAgeGroupSeasonRecordUseCase(currentUserId, ageGroupId))
+        }
+
+        // Every pool player's stats for the Full stats table.
+        get("/age-groups/{ageGroupId}/full-stats") {
+            val ageGroupId = call.parameters["ageGroupId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+            val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+            call.respond(getFullStatsUseCase.ageGroup(currentUserId, ageGroupId))
+        }
+
+        // Every season's per-match stats lines (design 30); totals are derived client-side.
+        get("/players/{playerId}/season-stats") {
+            val playerId = call.parameters["playerId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+            val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+            call.respond(getPlayerSeasonStatsUseCase(currentUserId, playerId))
+        }
     }
 
     // 2. WebSocket Route with specific Token handling (outside of main authenticate block)
@@ -265,13 +312,34 @@ fun Route.matchRoutes() {
             // We use a query parameter 'token' for authentication.
             try {
                 val currentUserId = call.request.queryParameters["token"]
-                    ?.run { JwtConfig.verifier.verify(this).subject }
+                    ?.run { tokens.verifier.verify(this).subject }
                     ?: run {
                         close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Unauthorized"))
                         return@webSocket
                     }
 
                 getLiveMatchUpdatesUseCase(currentUserId, matchId)
+                    .collect(::sendSerialized)
+            } catch (e: Exception) {
+                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Forbidden or Not Found"))
+            }
+        }
+    }
+
+    // The club-wide Matches tab's live updates (§28), with the same token-query-param auth.
+    route("/clubs/{clubId}/matches/live") {
+        webSocket {
+            val clubId = call.parameters["clubId"] ?: return@webSocket
+
+            try {
+                val currentUserId = call.request.queryParameters["token"]
+                    ?.run { tokens.verifier.verify(this).subject }
+                    ?: run {
+                        close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Unauthorized"))
+                        return@webSocket
+                    }
+
+                getClubMatchesUpdatesUseCase(currentUserId, clubId)
                     .collect(::sendSerialized)
             } catch (e: Exception) {
                 close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Forbidden or Not Found"))

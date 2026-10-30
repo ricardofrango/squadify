@@ -1,6 +1,7 @@
 // The Ktor setup both servers install (TECHNICAL_DECISIONS §72): JWT sign-in, JSON, WebSockets, the
-// errors' status codes and bodies, CORS and the server-time header. Kept out of :server:core, which has
-// no Ktor; each server calls installSquadifyApi with its own tokens and adds its own routes.
+// errors' status codes and bodies, CORS and the server-time header, and the game routes (gameRoutes).
+// Kept out of :server:core, which has no Ktor; each server calls installSquadifyApi with its own
+// tokens, mounts gameRoutes with them, and adds its own routes.
 plugins {
     alias(libs.plugins.kotlinJvm)
 }
@@ -17,4 +18,6 @@ dependencies {
     implementation(libs.ktor.server.serialization.kotlinx.json)
     implementation(libs.ktor.server.status.pages)
     implementation(libs.ktor.server.cors)
+    // The shared game routes take their use cases from each server's Koin container.
+    implementation(libs.koin.ktor)
 }

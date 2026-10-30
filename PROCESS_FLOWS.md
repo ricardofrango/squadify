@@ -78,7 +78,7 @@ Key behaviours baked into this one function: Platform Admins bypass everything (
 
 ### 1.1b `AccessPolicy` — the shared use cases' gate
 
-The game use cases (matches, call-ups, the live game, the record and report, match details, the live feeds and the stats) and the structure use cases (age groups, teams, players, the age-group pool and opponents) live in the shared `:server:core` module (`server/core`) and don't call `CheckUserPermissionUseCase` themselves: they ask an `AccessPolicy` by intent, so the coach server can share them with its own policy (`TECHNICAL_DECISIONS.md` §72). The clubs server's `ClubAccessPolicy` turns each into the §1.1 check below, so where a flowchart shows `CheckUserPermissionUseCase` for one of them, that's the check `ClubAccessPolicy` makes.
+The game use cases (matches and the club's list of them, call-ups, the live game, the record and report, match details, the live feeds and the stats) and the structure use cases (age groups, teams, players, the age-group pool and opponents) live in the shared `:server:core` module (`server/core`) and don't call `CheckUserPermissionUseCase` themselves: they ask an `AccessPolicy` by intent, so the coach server can share them with its own policy (`TECHNICAL_DECISIONS.md` §72). The clubs server's `ClubAccessPolicy` turns each into the §1.1 check below, so where a flowchart shows `CheckUserPermissionUseCase` for one of them, that's the check `ClubAccessPolicy` makes.
 
 | `AccessPolicy` | `CheckUserPermissionUseCase` call (clubs) |
 |---|---|
@@ -780,7 +780,7 @@ graph TD
     I --> Z(["Return created AgeGroups"])
 ```
 
-`seasonId` is optional in the request only for the coach server, which fills in the current season before calling this use case (§13.3); on the clubs server a request without one is refused.
+`seasonId` is optional in the request only for the coach server, which fills in the current season before calling this use case (§13.4); on the clubs server a request without one is refused.
 
 Every clashing item is reported, not only the first. The 409's `ErrorResponse.rows` lists them (0-based, in request order), so Create age groups marks each of those rows in red and names them in its message. Within the batch, the later of two items sharing a year is the one reported. The other row checks (blank name, inverted range, invalid team size) still stop at the first, and the screen prevents them before submitting.
 
@@ -2799,7 +2799,7 @@ graph TD
     V -- No --> VE(["Throw ValidationException"])
     V -- Yes --> S[Create the space: a clubs row, ACTIVE, with the sport]
     S --> O[Add the coach as its owner: club_members CLUB_ADMIN]
-    O --> SE[The current season: CoachSeasons, §13.3]
+    O --> SE[The current season: CoachSeasons, §13.4]
     SE --> AG[Create the age group in that season]
     AG --> T["Create the team: its size, or the age group's"]
     T --> Z(["Return SpaceSetup: space, season, age group, team"])
@@ -2807,7 +2807,11 @@ graph TD
 
 All in one transaction, so a refused setup creates nothing. `GET /v1/space` (`GetSpaceUseCase`) returns the coach's space from `ClubRepository.getMemberships` (`club_members` only): the one they own, else the first they were added to, with `isOwner`; 404 before the first setup.
 
-### 13.3 Automatic seasons (`CoachSeasons`)
+### 13.3 Games on the coach server
+
+The games are the shared `gameRoutes` (`:server:web`), the same use cases and paths as on the clubs server (§7–§8), behind `CoachAccessPolicy` (§13.1): the owner in every age group, staff in their own. Full stats has no trainings to count. The WebSockets accept only the coach server's own tokens.
+
+### 13.4 Automatic seasons (`CoachSeasons`)
 
 The season running today, July 1st to June 30th (`EUROPEAN_YEAR`): found by its type and dates, or created the first time, named "26/27". Used by the first setup and by `POST /v1/age-groups` without a `seasonId`, where the route checks `requireCreateAgeGroups` first, then fills in the season and calls `CreateAgeGroupsUseCase` (§4.3).
 

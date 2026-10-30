@@ -11,7 +11,7 @@ import com.ricardofrango.squadify.presentation.routes.seasonRoutes
 import com.ricardofrango.squadify.presentation.routes.ageGroupRoutes
 import com.ricardofrango.squadify.presentation.routes.playerRoutes
 import com.ricardofrango.squadify.presentation.routes.publicImageRoutes
-import com.ricardofrango.squadify.presentation.routes.matchRoutes
+import com.ricardofrango.squadify.presentation.routes.gameRoutes
 import com.ricardofrango.squadify.presentation.routes.opponentRoutes
 import com.ricardofrango.squadify.presentation.routes.trainingRoutes
 import com.ricardofrango.squadify.presentation.routes.fcmTokenRoutes
@@ -105,7 +105,7 @@ fun Application.module() {
             seasonRoutes()
             ageGroupRoutes()
             playerRoutes()
-            matchRoutes()
+            gameRoutes(JwtConfig)
             opponentRoutes()
             trainingRoutes()
             fcmTokenRoutes()

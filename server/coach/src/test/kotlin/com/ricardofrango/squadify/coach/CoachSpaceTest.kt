@@ -10,39 +10,26 @@ import com.ricardofrango.squadify.model.CreateAgeGroupsRequest
 import com.ricardofrango.squadify.model.CreateOpponentRequest
 import com.ricardofrango.squadify.model.CreatePlayer
 import com.ricardofrango.squadify.model.CreatePlayersRequest
-import com.ricardofrango.squadify.model.LoginRequest
-import com.ricardofrango.squadify.model.LoginResponse
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.PlayerProfile
-import com.ricardofrango.squadify.model.RegisterRequest
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.SportType
-import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
-import kotlinx.serialization.json.Json
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Clock
-import kotlin.uuid.Uuid
 
 // The coach's space end to end, on the coach database: the first setup, the season picked by itself,
 // the structure routes on the coach's policy, and someone from outside the space refused.
@@ -126,28 +113,5 @@ class CoachSpaceTest {
         }
         assertEquals(HttpStatusCode.BadRequest, refused.status)
         assertEquals(HttpStatusCode.NotFound, api.get("/v1/space") { bearerAuth(owner) }.status)
-    }
-
-    private fun ApplicationTestBuilder.jsonClient() = createClient {
-        install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
-    }
-
-    /** A new account; returns its access token. */
-    private suspend fun HttpClient.signUp(): String {
-        val email = "coach-${Uuid.random()}@test.com"
-        post("/v1/auth/register") {
-            contentType(ContentType.Application.Json)
-            setBody(RegisterRequest(email = email, password = "password1", firstName = "Ana", lastName = "Coach"))
-        }
-        return post("/v1/auth/login") {
-            contentType(ContentType.Application.Json)
-            setBody(LoginRequest(email, "password1"))
-        }.body<LoginResponse>().accessToken
-    }
-
-    private inline fun <reified T> HttpRequestBuilder.json(token: String, body: T) {
-        bearerAuth(token)
-        contentType(ContentType.Application.Json)
-        setBody(body)
     }
 }

@@ -4,6 +4,8 @@ import com.ricardofrango.squadify.coach.access.CoachAccessPolicy
 import com.ricardofrango.squadify.coach.config.CoachConfig
 import com.ricardofrango.squadify.coach.data.CoachDatabase
 import com.ricardofrango.squadify.coach.data.NoPushNotifications
+import com.ricardofrango.squadify.coach.data.NoTrainingRatings
+import com.ricardofrango.squadify.coach.data.NoTrainingSessions
 import com.ricardofrango.squadify.coach.domain.CoachSeasons
 import com.ricardofrango.squadify.coach.domain.GetSpaceUseCase
 import com.ricardofrango.squadify.coach.domain.SetUpSpaceUseCase
@@ -11,6 +13,8 @@ import com.ricardofrango.squadify.data.repository.ExposedAgeGroupRepository
 import com.ricardofrango.squadify.data.repository.ExposedClubRepository
 import com.ricardofrango.squadify.data.repository.ExposedFcmTokenRepository
 import com.ricardofrango.squadify.data.repository.ExposedMatchEventRepository
+import com.ricardofrango.squadify.data.repository.ExposedMatchPlayerStatsRepository
+import com.ricardofrango.squadify.data.repository.ExposedMatchReportRepository
 import com.ricardofrango.squadify.data.repository.ExposedMatchRepository
 import com.ricardofrango.squadify.data.repository.ExposedOpponentRepository
 import com.ricardofrango.squadify.data.repository.ExposedPlayerRepository
@@ -18,18 +22,24 @@ import com.ricardofrango.squadify.data.repository.ExposedSeasonRepository
 import com.ricardofrango.squadify.data.repository.ExposedTeamRepository
 import com.ricardofrango.squadify.data.repository.ExposedUserRepository
 import com.ricardofrango.squadify.data.service.KotlinFlowClubMatchesBus
+import com.ricardofrango.squadify.data.service.KotlinFlowMatchBus
 import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.FcmTokenRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
+import com.ricardofrango.squadify.domain.repository.MatchPlayerStatsRepository
+import com.ricardofrango.squadify.domain.repository.MatchReportRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
+import com.ricardofrango.squadify.domain.repository.TrainingRatingRepository
+import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
+import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.domain.usecase.*
@@ -54,9 +64,18 @@ val coachModule = module {
     single<MatchRepository> { ExposedMatchRepository() }
     single<MatchEventRepository> { ExposedMatchEventRepository() }
     single<FcmTokenRepository> { ExposedFcmTokenRepository() }
+    single<MatchPlayerStatsRepository> { ExposedMatchPlayerStatsRepository() }
+    single<MatchReportRepository> { ExposedMatchReportRepository() }
+    // No training in the coach product: full stats finds none.
+    single<TrainingSessionRepository> { NoTrainingSessions }
+    single<TrainingRatingRepository> { NoTrainingRatings }
 
+    // The live game's updates, to every device following a match or the space's matches.
+    single<LiveMatchBus> { KotlinFlowMatchBus() }
     single<ClubMatchesBus> { KotlinFlowClubMatchesBus() }
     single<PushNotificationService> { NoPushNotifications }
+    // Links in pushes (a scorer's photo); none until the coach server has pushes and a public URL.
+    single { PublicImageLinks(publicBaseUrl = null, secret = CoachConfig.jwtSecret) }
     // No player or parent accounts: emails given with a player are refused.
     single<PlayerContacts> { PlayerContacts.None }
 
@@ -96,4 +115,32 @@ val coachModule = module {
     factory { GetOpponentListUseCase(get(), get(), get(), get(), get()) }
     factory { GetOpponentDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { UpdateOpponentUseCase(get(), get(), get(), get()) }
+
+    // Matches, call-ups, the live game, the record and report, and stats: the shared use cases.
+    factory { GetAgeGroupSeasonRecordUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { GetTeamSeasonRecordUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { GetFullStatsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { GetPlayerSeasonStatsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { CreateMatchUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { GetMatchesUseCase(get(), get(), get(), get(), get()) }
+    factory { GetMatchDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { UpdateMatchUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { DeleteMatchUseCase(get(), get(), get(), get()) }
+    factory { GetMatchReportUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { SaveMatchReportUseCase(get(), get(), get(), get(), get()) }
+    factory { UpdateMatchStatusUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { StartMatchUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { SetMatchLineupUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { PauseMatchUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { ResumeMatchUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { SetMatchMinuteUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { ManageCallUpsUseCase(get(), get(), get(), get()) }
+    factory { NotifyMatchEventUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { AddMatchEventUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { SaveMatchRecordUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { DeleteMatchEventUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { GetMatchEventsUseCase(get(), get(), get(), get()) }
+    factory { GetMatchScoreUseCase(get(), get(), get(), get()) }
+    factory { GetLiveMatchUpdatesUseCase(get(), get(), get(), get()) }
+    factory { GetClubMatchesUpdatesUseCase(get(), get(), get()) }
 }
