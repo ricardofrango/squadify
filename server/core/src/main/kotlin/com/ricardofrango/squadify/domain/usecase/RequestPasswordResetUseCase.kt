@@ -73,4 +73,5 @@ class RequestPasswordResetUseCase(
 
 private val random = SecureRandom()
 
-internal fun randomResetCode(): String = random.nextInt(1_000_000).toString().padStart(6, '0')
+/** A 6-digit code, for password resets and email changes. */
+fun randomResetCode(): String = random.nextInt(1_000_000).toString().padStart(6, '0')

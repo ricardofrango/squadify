@@ -9,6 +9,7 @@ import com.ricardofrango.squadify.coach.routes.spaceRoutes
 import com.ricardofrango.squadify.coach.routes.staffRoutes
 import com.ricardofrango.squadify.coach.routes.structureRoutes
 import com.ricardofrango.squadify.installSquadifyApi
+import com.ricardofrango.squadify.presentation.routes.accountRoutes
 import com.ricardofrango.squadify.presentation.routes.gameRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopped
@@ -49,6 +50,7 @@ fun Application.module() {
         get("/") { call.respondText("Squadify for Coaches API is running") }
         route("/v1") {
             authRoutes()
+            accountRoutes()
             spaceRoutes()
             structureRoutes()
             staffRoutes()

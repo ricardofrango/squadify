@@ -28,6 +28,15 @@ object CoachConfig {
     /** Its own secret, never the clubs server's: a token from one product is refused by the other. */
     val jwtSecret: String = env("JWT_SECRET") ?: required("JWT_SECRET") ?: "dev-only-insecure-coach-secret-do-not-use-in-production"
 
+    /**
+     * Resend, for the account's emails (password reset and email change codes). Not required: without a
+     * key the server logs and skips each email, as the clubs server does.
+     */
+    val resendApiKey: String = env("RESEND_API_KEY") ?: ""
+
+    /** The sender: the clubs server's address with the name "Squadify Coach" (the developer, 2026-10-30). */
+    val emailFromAddress: String = env("RESEND_FROM_ADDRESS") ?: "Squadify Coach <onboarding@resend.dev>"
+
     private fun env(name: String) = System.getenv(name)?.takeIf { it.isNotBlank() }
 
     /** Null locally, so the caller's dev default applies; deployed, refuses to start. */
