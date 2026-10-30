@@ -3220,7 +3220,15 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
     - **`GetMatchesUseCase`** moved to `:server:core` on the `AccessPolicy`: a team's matches behind `requireViewGames`, the club's behind `requireViewClub`, narrowed by `visibleAgeGroupIds` (the same calls as before on the clubs server).
     - **The coach server's wiring:** the game use cases, the match stats and report repositories, the live bus, and no training (`NoTrainingSessions`, `NoTrainingRatings`: full stats finds none, and nothing writes one). `PublicImageLinks` has no public URL: there are no pushes yet.
     - **Tests:** `CoachGameTest` (a game scheduled, called up, kicked off, a goal, full time, then the list, the season record, full stats and season stats; an outsider refused) and `CoachLiveTest` (the owner gets the live update; a clubs-audience token and an outsider are closed out), the first WebSocket tests in the project.
-- **Next:** the coach's staff invites (the owner adds staff to age groups), the last coach-server step before its Railway service and database (staging).
+- **Staff invites, as built** (2026-10-30, the last coach-server step; the developer chose codes over emails):
+    - **A code per person and age group:** `POST /v1/age-groups/{id}/invites` (the owner, `requireManageStaff`) returns a `StaffInvite`: six characters from an alphabet without 0/O, 1/I/L, shown as "K7Q-4MZ", valid 7 days. `GET` lists the codes still waiting, `DELETE …/invites/{code}` withdraws one.
+    - **Using one:** `POST /v1/invites/{code}/accept`, signed in, typed in any case with or without the dash: the account joins the space (`club_members`, `MEMBER`) if it isn't in it, and becomes staff on the code's age group (`age_group_staff`, `COACH`). Refused when the code is unknown (404), used (409), expired (400), or the account owns the space, is already staff there, or belongs to another space (409: one space per account). Single-use is enforced by marking the code used in the same transaction, only if it wasn't already.
+    - **Taking someone off:** `DELETE /v1/age-groups/{id}/staff/{userId}` (the owner) removes the staff row; off their last age group of the space, the membership goes too. The owner can't be removed.
+    - **A table of the coach's own:** `staff_invites` (`V2__staff_invites.sql`, `coachOnlyTables`), its rows going with their age group. `CoachSchemaTest` now checks `sharedTables + coachOnlyTables`.
+    - **No email**, so the coach server still needs no email service.
+    - **Config:** `APP_ENV=staging` now counts as deployed like `production` (`CoachConfig.deployed`): the database host and password and `JWT_SECRET` are required, and the database is never created by the server.
+    - **Tests:** `CoachStaffTest` (a code shared, used in lower case without the dash, the staff seeing and managing only that age group, refused to invite or create age groups, the code refused a second time and for the owner, a second age group, removed from both and out of the space; a withdrawn code) and `StaffInvitesTest` (the code alphabet, typing it any way, an expired code).
+- **Next:** the coach server and its database on Railway staging (the developer creates them with this step's PR), then the app split.
 
 **The app split:**
 - **`app/shared`** keeps the screens, view models, use cases and the repositories both apps use.

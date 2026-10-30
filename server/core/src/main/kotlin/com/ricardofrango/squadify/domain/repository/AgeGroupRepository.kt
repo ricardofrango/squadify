@@ -20,5 +20,7 @@ interface AgeGroupRepository {
     suspend fun getAgeGroupStaff(ageGroupId: String): List<AgeGroupStaffMember>
     /** Drops [userId] from the staff of every age group of [clubId], in every season; returns how many rows went. */
     suspend fun removeStaffFromClub(clubId: String, userId: String): Int
+    /** Deletes [userId]'s staff row on [ageGroupId]; returns whether there was one. */
+    suspend fun removeStaffFromAgeGroup(ageGroupId: String, userId: String): Boolean
     suspend fun countCoachesByClub(clubId: String): Long
 }
