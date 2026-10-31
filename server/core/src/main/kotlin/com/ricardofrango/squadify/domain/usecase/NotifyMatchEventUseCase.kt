@@ -1,6 +1,5 @@
 package com.ricardofrango.squadify.domain.usecase
 
-import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.FcmTokenRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
@@ -8,6 +7,7 @@ import com.ricardofrango.squadify.domain.repository.OpponentRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.service.GoalPush
 import com.ricardofrango.squadify.domain.repository.TeamRepository
+import com.ricardofrango.squadify.domain.service.PushAudience
 import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.model.EventType
@@ -21,8 +21,8 @@ enum class MatchNotificationEvent {
 }
 
 /**
- * Best-effort push, to every member of the match's club (not just its own age group -- see the
- * developer's own note on this in the accompanying chat), for one of a match's notification-worthy
+ * Best-effort push, to whoever the server's [PushAudience] names for the match's age group (the clubs
+ * server: every member of the club; the coach server: the space's owner and that age group's staff), for one of a match's notification-worthy
  * moments: the schedule ones (a fixture created, rescheduled, or cancelled -- [SCHEDULED]/
  * [RESCHEDULED]/[CANCELLED]) and the live ones (kickoff, half-time, the second half restarting,
  * full-time, or a goal). Called by [CreateMatchUseCase], [UpdateMatchUseCase],
@@ -41,7 +41,7 @@ class NotifyMatchEventUseCase(
     private val matchEventRepository: MatchEventRepository,
     private val teamRepository: TeamRepository,
     private val opponentRepository: OpponentRepository,
-    private val clubRepository: ClubRepository,
+    private val pushAudience: PushAudience,
     private val fcmTokenRepository: FcmTokenRepository,
     private val pushNotificationService: PushNotificationService,
     private val transactionManager: TransactionManager,
@@ -66,7 +66,7 @@ class NotifyMatchEventUseCase(
                 val match = matchRepository.getMatchById(matchId) ?: return@runInTransaction null
                 val team = teamRepository.getTeamById(match.teamId) ?: return@runInTransaction null
                 val opponent = opponentRepository.getOpponentById(match.opponentId) ?: return@runInTransaction null
-                val memberIds = clubRepository.getClubMembers(match.clubId).map { it.userId }
+                val memberIds = pushAudience.forGames(match.clubId, team.ageGroupId)
                 val tokens = fcmTokenRepository.getTokensForUsers(memberIds).values.flatten()
                 if (tokens.isEmpty()) return@runInTransaction null
 

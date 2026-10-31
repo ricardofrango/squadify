@@ -11,6 +11,7 @@ import com.ricardofrango.squadify.coach.routes.staffRoutes
 import com.ricardofrango.squadify.coach.routes.structureRoutes
 import com.ricardofrango.squadify.installSquadifyApi
 import com.ricardofrango.squadify.presentation.routes.accountRoutes
+import com.ricardofrango.squadify.presentation.routes.fcmTokenRoutes
 import com.ricardofrango.squadify.presentation.routes.gameRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopped
@@ -53,6 +54,7 @@ fun Application.module() {
             authRoutes()
             accountRoutes()
             accountDeletionRoutes()
+            fcmTokenRoutes()
             spaceRoutes()
             structureRoutes()
             staffRoutes()

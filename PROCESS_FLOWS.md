@@ -1517,7 +1517,7 @@ graph TD
     TS -- "ok / not set" --> G["Create Match — status SCHEDULED, type = request.type (FRIENDLY / CHAMPIONSHIP / TOURNAMENT), halves = request.halves (default 2), teamSize = request.teamSize ?: team.teamSize ?: 11"]
     G --> H[Persist Match]
     H --> I["Transaction commits"]
-    I --> J["NotifyMatchEventUseCase(match.id, SCHEDULED) — best-effort push to every club member (§8.2b)"]
+    I --> J["NotifyMatchEventUseCase(match.id, SCHEDULED) — best-effort push to the age group's game audience, PushAudience.forGames (§8.2b)"]
     J --> Z(["Return created Match"])
 ```
 
@@ -1600,7 +1600,7 @@ graph TD
     RZ -- No --> J
     RL --> J["Transaction commits"]
     J --> K{"Did a schedule field change?"}
-    K -- Yes --> L["NotifyMatchEventUseCase(matchId, RESCHEDULED) — best-effort push to every club member (§8.2b)"]
+    K -- Yes --> L["NotifyMatchEventUseCase(matchId, RESCHEDULED) — best-effort push to the age group's game audience, PushAudience.forGames (§8.2b)"]
     K -- "No (notes/type-only edit)" --> Z
     L --> Z(["Return success"])
 ```
@@ -1646,7 +1646,10 @@ graph TD
     C -- allowed --> DA{"A player not already called up is disabled (players.active = false)?"}
     DA -- Yes --> V(["Throw ValidationException"])
     DA -- No --> D["Set call-ups for the match to exactly this playerIds list (repository owns diff/replace)"]
-    D --> Z(["Return success"])
+    D --> R{"SCHEDULED, at least the match's size, and different from what was saved?"}
+    R -- No --> Z(["Return success"])
+    R -- Yes --> P["After commit: sendCallUpReady to PushAudience.forCallUps (clubs: the age group's staff; coach: the owner and the age group's staff), except whoever saved it"]
+    P --> Z
 ```
 
 The same single write handles both adding and removing -- the client sends the full desired list (current call-ups minus/plus one player) and the repository diffs it against what's stored (§7.2's Exposed implementation). `MatchDetailsScreen`'s call-up editor is one list of every candidate (the call-up and the pool); a tap selects or unselects a player, changing the draft (`MatchDetailsViewModel.onAddToCallUp`/`onRemoveFromCallUp`), and "Save call-up" sends the list to this one endpoint (`TECHNICAL_DECISIONS.md` §62). A disabled player (§5.3b) can't be newly called up; one already in the list (e.g. a played match's) can stay.
@@ -1718,7 +1721,7 @@ graph TD
     H --> H2["Keep the starting arrangement in match_lineup_changes (minute 0, period 1): the starters' pitch slots, or autoArrangeSlots by position if nobody was placed"]
     H2 --> I["Publish LiveMatchUpdate(score, status=LIVE) via LiveMatchBus"]
     I --> J["Transaction commits"]
-    J --> K["NotifyMatchEventUseCase(matchId, KICKOFF) — best-effort push to every club member (§8.2b)"]
+    J --> K["NotifyMatchEventUseCase(matchId, KICKOFF) — best-effort push to the age group's game audience, PushAudience.forGames (§8.2b)"]
     K --> Z(["Return success"])
 ```
 
@@ -1778,7 +1781,7 @@ graph TD
     H --> H2["Publish ClubMatchesUpdate(score) via ClubMatchesBus for match.clubId (§8.5)"]
     H2 --> I["Transaction commits"]
     I --> J{"type == GOAL or OWN_GOAL?"}
-    J -- Yes --> K["NotifyMatchEventUseCase(matchId, GOAL) — best-effort push to every club member (§8.2b)"]
+    J -- Yes --> K["NotifyMatchEventUseCase(matchId, GOAL) — best-effort push to the age group's game audience, PushAudience.forGames (§8.2b)"]
     J -- No --> Z
     K --> Z(["Return created event"])
 ```
@@ -1940,8 +1943,8 @@ graph TD
     D -- not found --> X
     D -- found --> E[Fetch Opponent by match.opponentId]
     E -- not found --> X
-    E -- found --> F["Fetch every active ClubMember of match.clubId"]
-    F --> G["FcmTokenRepository.getTokensForUsers(memberIds), flatten to one token list"]
+    E -- found --> F["PushAudience.forGames(match.clubId, team.ageGroupId): clubs, every member of the club; coach, the owner and the age group's staff"]
+    F --> G["FcmTokenRepository.getTokensForUsers(those ids), flatten to one token list"]
     G -- empty --> X
     G -- non-empty --> H["Recalculate current score"]
     H --> I["Transaction closes"]
@@ -2838,7 +2841,7 @@ graph TD
     K -- marked --> Z(["Return CoachSpace, isOwner = false"])
 ```
 
-Other spaces don't matter: an owner of one space, or staff in another, can use a code. Removing (`DELETE /age-groups/{id}/staff/{userId}`, the owner only): the owner can't be removed; otherwise the staff row goes, and the space membership too when it was their last age group of the space. Withdrawing (`DELETE /age-groups/{id}/invites/{code}`) deletes a code that hasn't been used.
+Other spaces don't matter: an owner of one space, or staff in another, can use a code. After it's used, the space's owner gets a push (`sendStaffJoined`) naming who joined which age group. Removing (`DELETE /age-groups/{id}/staff/{userId}`, the owner only): the owner can't be removed; otherwise the staff row goes, and the space membership too when it was their last age group of the space. Withdrawing (`DELETE /age-groups/{id}/invites/{code}`) deletes a code that hasn't been used.
 
 **The coach database's own table**, beyond the shared ones (§12): `staff_invites` (`id`, `code` unique, `age_group_id` → `age_groups` ON DELETE CASCADE, `created_by` → `users`, `created_at`, `expires_at`, `accepted_by` → `users` nullable, `accepted_at` nullable), from `V2__staff_invites.sql`.
 

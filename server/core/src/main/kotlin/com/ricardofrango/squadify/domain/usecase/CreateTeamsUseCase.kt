@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.FcmTokenRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
+import com.ricardofrango.squadify.domain.service.PushAudience
 import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
@@ -28,7 +29,9 @@ class CreateTeamsUseCase(
     private val fcmTokenRepository: FcmTokenRepository,
     private val accessPolicy: AccessPolicy,
     private val pushNotificationService: PushNotificationService,
-    private val transactionManager: TransactionManager
+    private val transactionManager: TransactionManager,
+    // Who hears about the new teams: the age group's game audience.
+    private val pushAudience: PushAudience
 ) {
     suspend operator fun invoke(userId: String, request: CreateTeamsRequest): List<Team> {
         var ageGroupName = "your age group"
@@ -91,7 +94,7 @@ class CreateTeamsUseCase(
             // clubRepository/fcmTokenRepository have no ambient transaction of their own outside this
             // block -- fetched here, not after the transaction closes, even though only used for the
             // push sent below.
-            val memberIds = clubRepository.getClubMembers(request.clubId).map { it.userId }
+            val memberIds = pushAudience.forGames(request.clubId, request.ageGroupId)
             pushTokens = fcmTokenRepository.getTokensForUsers(memberIds).values.flatten()
 
             created

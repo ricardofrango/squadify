@@ -25,7 +25,16 @@ class PushLinkInbox {
 }
 
 /**
- * The screens to open for [link], bottom first: the club under the target, so the club's screen is
+ * The screen a push link points at, in both apps: a match opens Match details, a team Team details, an
+ * age group its details; a link to a club alone has none.
+ */
+fun pushLinkTarget(link: PushLink): Screen? =
+    link.matchId?.let(Screen::MatchDetails)
+        ?: link.teamId?.let(Screen::TeamDetails)
+        ?: link.ageGroupId?.let(Screen::AgeGroupDetails)
+
+/**
+ * The clubs app's screens to open for [link], bottom first: the club under the target, so the club's screen is
  * one step back (and the target is shown as part of that club). A single-club user's club is the root
  * ([onlyClubId]); anyone else gets My clubs under it.
  *
@@ -40,10 +49,7 @@ fun pushLinkBackStack(link: PushLink, onlyClubId: String?): List<Screen> {
     } else {
         listOf(Screen.Dashboard, Screen.ClubDetails(link.clubId))
     }
-    val target = link.matchId?.let(Screen::MatchDetails)
-        ?: link.teamId?.let(Screen::TeamDetails)
-        ?: link.ageGroupId?.let(Screen::AgeGroupDetails)
-    return club + listOfNotNull(target)
+    return club + listOfNotNull(pushLinkTarget(link))
 }
 
 /** Splash and the sign-in screens: a push link waits until the user is past them. */

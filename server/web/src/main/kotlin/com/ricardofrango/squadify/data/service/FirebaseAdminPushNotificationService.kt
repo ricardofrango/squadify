@@ -6,7 +6,6 @@ import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.AndroidConfig
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.MulticastMessage
-import com.ricardofrango.squadify.config.ServerConfig
 import com.ricardofrango.squadify.domain.service.GoalPush
 import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.model.MatchScore
@@ -18,10 +17,10 @@ import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 
 /**
- * Sends via the Firebase Admin SDK, reusing the same Firebase project (squadify-958d3) already
- * registered for Android (Crashlytics/App Distribution/FCM -- see TECHNICAL_DECISIONS.md §12 and the
- * push-notifications section). [FirebaseApp] is process-wide singleton state, so initialization is
- * guarded by [FirebaseApp.getApps] rather than relying solely on this class's own single-instance
+ * Sends via the Firebase Admin SDK, for both servers (TECHNICAL_DECISIONS §72), each with its own
+ * Firebase project's service account ([serviceAccountJson]): the clubs server's `squadify-958d3`, the
+ * coach server's `squadify-for-coach`. [FirebaseApp] is process-wide singleton state, so initialization
+ * is guarded by [FirebaseApp.getApps] rather than relying solely on this class's own single-instance
  * Koin registration.
  *
  * Sends no literal message text at all -- only a [PushMessage]: a string resource *key* and its
@@ -32,17 +31,19 @@ import java.io.ByteArrayInputStream
  */
 /**
  * [clubLogoUrl] gives the public address of a club's logo (or null), shown as the notification's image.
+ * Blank [serviceAccountJson]: nothing is sent, only logged.
  */
 class FirebaseAdminPushNotificationService(
+    private val serviceAccountJson: String,
     private val clubLogoUrl: suspend (clubId: String) -> String? = { null }
 ) : PushNotificationService {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     init {
-        if (FirebaseApp.getApps().isEmpty() && ServerConfig.firebaseServiceAccountJson.isNotBlank()) {
+        if (FirebaseApp.getApps().isEmpty() && serviceAccountJson.isNotBlank()) {
             try {
                 val credentials = GoogleCredentials.fromStream(
-                    ByteArrayInputStream(ServerConfig.firebaseServiceAccountJson.toByteArray())
+                    ByteArrayInputStream(serviceAccountJson.toByteArray())
                 )
                 FirebaseApp.initializeApp(FirebaseOptions.builder().setCredentials(credentials).build())
             } catch (e: Exception) {
@@ -99,9 +100,17 @@ class FirebaseAdminPushNotificationService(
         }
     }
 
+    override suspend fun sendCallUpReady(tokens: List<String>, link: PushLink, teamName: String, opponentName: String, players: Int) {
+        send(tokens, matchMessage(link, AGE_GROUP_CHANNEL, "push_call_up_ready", listOf(players.toString(), teamName, opponentName), teamName, opponentName))
+    }
+
+    override suspend fun sendStaffJoined(tokens: List<String>, link: PushLink, name: String, ageGroupName: String) {
+        send(tokens, PushMessage(link, AGE_GROUP_CHANNEL, "push_staff_joined", listOf(name, ageGroupName)))
+    }
+
     private suspend fun send(tokens: List<String>, message: PushMessage) {
         if (tokens.isEmpty()) return
-        if (ServerConfig.firebaseServiceAccountJson.isBlank() || FirebaseApp.getApps().isEmpty()) {
+        if (serviceAccountJson.isBlank() || FirebaseApp.getApps().isEmpty()) {
             logger.warn("FIREBASE_SERVICE_ACCOUNT_JSON not set -- skipping push to {} device(s) ({})", tokens.size, message.bodyKey)
             return
         }
@@ -142,7 +151,7 @@ class FirebaseAdminPushNotificationService(
         }
     }
 
-    internal companion object {
+    companion object {
         // Mirror SquadifyMessagingService's NOTIFICATION_CHANNEL_* constants on the Android client --
         // see TECHNICAL_DECISIONS.md's push-notifications section.
         const val INVITES_CHANNEL = "invites"

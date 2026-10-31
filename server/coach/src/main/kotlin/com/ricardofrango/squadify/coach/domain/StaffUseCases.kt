@@ -17,6 +17,11 @@ import com.ricardofrango.squadify.model.AgeGroupStaff
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.StaffInvite
+import com.ricardofrango.squadify.domain.repository.FcmTokenRepository
+import com.ricardofrango.squadify.domain.repository.UserRepository
+import com.ricardofrango.squadify.domain.service.PushNotificationService
+import com.ricardofrango.squadify.model.PushLink
+import org.slf4j.LoggerFactory
 import java.security.SecureRandom
 import kotlin.time.Clock
 import kotlin.time.Duration
@@ -100,16 +105,37 @@ class RevokeStaffInviteUseCase(
 
 /**
  * Someone signed in uses a code: they join the space (if not in it yet) and become staff on the
- * code's age group. Being in other spaces, their own included, doesn't matter.
+ * code's age group. Being in other spaces, their own included, doesn't matter. The space's owner is
+ * told who joined (a push, best effort, after the transaction).
  */
 class AcceptStaffInviteUseCase(
     private val invites: StaffInviteRepository,
     private val ageGroupRepository: AgeGroupRepository,
     private val clubRepository: ClubRepository,
     private val transactionManager: TransactionManager,
+    private val userRepository: UserRepository,
+    private val fcmTokenRepository: FcmTokenRepository,
+    private val pushNotificationService: PushNotificationService,
     private val clock: Clock = Clock.System
 ) {
-    suspend operator fun invoke(userId: String, typedCode: String): CoachSpace = transactionManager.runInTransaction {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
+    private class JoinedPush(val tokens: List<String>, val link: PushLink, val name: String, val ageGroupName: String)
+
+    suspend operator fun invoke(userId: String, typedCode: String): CoachSpace {
+        var push: JoinedPush? = null
+        val space = join(userId, typedCode) { push = it }
+        push?.let {
+            try {
+                pushNotificationService.sendStaffJoined(it.tokens, it.link, it.name, it.ageGroupName)
+            } catch (e: Exception) {
+                logger.error("Staff joined push failed", e)
+            }
+        }
+        return space
+    }
+
+    private suspend fun join(userId: String, typedCode: String, onJoined: (JoinedPush?) -> Unit): CoachSpace = transactionManager.runInTransaction {
         val invite = invites.findByCode(InviteCodes.normalize(typedCode)) ?: throw NotFoundException("Invite code not found")
         if (invite.acceptedBy != null) throw ConflictException("This invite code has already been used")
         val now = clock.now()
@@ -128,6 +154,13 @@ class AcceptStaffInviteUseCase(
         if (!invites.markAccepted(invite.id, userId, now)) throw ConflictException("This invite code has already been used")
 
         val space = membership?.first ?: clubRepository.getClubById(spaceId) ?: throw NotFoundException("Space not found")
+
+        val owners = clubRepository.getClubMembers(spaceId).filter { it.role == ClubRole.CLUB_ADMIN }.map { it.userId }
+        val tokens = fcmTokenRepository.getTokensForUsers(owners).values.flatten()
+        val joiner = userRepository.findById(userId)
+        if (tokens.isNotEmpty() && joiner != null) {
+            onJoined(JoinedPush(tokens, PushLink.ageGroup(spaceId, ageGroup.id), "${joiner.firstName} ${joiner.lastName}", ageGroup.name))
+        }
         CoachSpace(space, isOwner = false)
     }
 }

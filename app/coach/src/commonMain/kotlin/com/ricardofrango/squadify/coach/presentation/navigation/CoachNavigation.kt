@@ -41,6 +41,11 @@ import com.ricardofrango.squadify.presentation.ui.login.LoginScreen
 import com.ricardofrango.squadify.presentation.ui.register.RegisterScreen
 import com.ricardofrango.squadify.presentation.ui.splash.SplashScreen
 import org.koin.compose.koinInject
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import com.ricardofrango.squadify.presentation.navigation.PushLinkInbox
+import com.ricardofrango.squadify.presentation.navigation.isBeforeSignIn
 
 // Duration of the app-wide screen transition, as in the clubs app.
 private const val NAV_ANIM_MS = 300
@@ -60,6 +65,18 @@ fun CoachNavigation(navigator: AppNavigator = rememberAppNavigator()) {
         sessionEventBus.forceLogout.collect {
             navigator.navigate(Screen.Login) { popUpToRoot() }
         }
+    }
+
+    // A push notification tapped while the app is running (Android: CoachActivity.onNewIntent) opens
+    // here, or after Sign in if signed out; Splash opens the cold-start one itself (PushLinks.kt).
+    val pushLinkInbox = koinInject<PushLinkInbox>()
+    LaunchedEffect(navigator) {
+        combine(pushLinkInbox.link, snapshotFlow { navigator.currentBackStackEntry }.filterNotNull()) { link, entry -> link != null && !entry.screen.isBeforeSignIn() }
+            .collect { ready ->
+                if (!ready) return@collect
+                val link = pushLinkInbox.take() ?: return@collect
+                navigator.openBackStack(coachPushLinkBackStack(link))
+            }
     }
 
     val parentOwner = LocalViewModelStoreOwner.current ?: remember {
@@ -101,7 +118,7 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
 
     screen<Screen.Splash> {
         SplashScreen(
-            // No web app, so no shared links; no pushes yet, so no back stack to open.
+            // No web app, so no shared links. A tapped notification's back stack comes from CoachSignedInHome.
             deepLinkRoute = null,
             onNavigateToLogin = { openAsRoot(Screen.Login) },
             onNavigateToHome = ::openAsRoot,

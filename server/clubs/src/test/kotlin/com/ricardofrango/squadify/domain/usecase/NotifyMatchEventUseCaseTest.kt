@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.service.ClubPushAudience
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.FcmTokenRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
@@ -55,7 +56,7 @@ class NotifyMatchEventUseCaseTest {
         matchEventRepository,
         teamRepository,
         opponentRepository,
-        clubRepository,
+        ClubPushAudience(clubRepository, mockk()),
         fcmTokenRepository,
         pushNotificationService,
         transactionManager,

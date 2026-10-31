@@ -1,4 +1,6 @@
 <resources>
+    <!-- Notifications, for both apps (app/shared's Android code: SquadifyMessagingService and the
+         channels in PushNotifications). -->
     <string name="notification_channel_default_name">General</string>
     <string name="notification_channel_default_description">Anything that doesn\'t fit another category</string>
     <string name="notification_channel_live_matches_name">Live Matches</string>
@@ -26,4 +28,8 @@
     <string name="push_goal_scored">Goal! %1$s %2$s - %3$s %4$s</string>
     <string name="push_team_created_one">New team: %1$s has been added to %2$s</string>
     <string name="push_team_created_many">New teams added to %2$s: %1$s</string>
+    <!-- A call-up saved ready: "Call-up ready: 14 players for Sub-13 A vs Fontelas". -->
+    <string name="push_call_up_ready">Call-up ready: %1$s players for %2$s vs %3$s</string>
+    <!-- The coach app's owner: someone used their invite code. -->
+    <string name="push_staff_joined">%1$s joined %2$s as staff</string>
 </resources>

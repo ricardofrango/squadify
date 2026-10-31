@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.navigation
 
+import com.ricardofrango.squadify.model.PushLink
 import com.ricardofrango.squadify.domain.usecase.GetClubsUseCase
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.presentation.ui.theme.ClubThemeStore
@@ -20,6 +21,10 @@ class ClubsSignedInHome(
         }
         return clubsHome(clubs)
     }
+
+    // The club under the target, as before: a single-club user's club as the root, else My clubs too.
+    override fun pushLinkBackStack(link: PushLink, home: Screen): List<Screen> =
+        pushLinkBackStack(link, onlyClubId = (home as? Screen.ClubDetails)?.takeIf { it.isRootClub }?.clubId)
 }
 
 /**

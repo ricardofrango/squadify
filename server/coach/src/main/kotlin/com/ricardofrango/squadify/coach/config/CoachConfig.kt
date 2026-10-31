@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.coach.config
 
+import java.io.File
+
 /**
  * The coach server's settings, from its Railway service's environment (TECHNICAL_DECISIONS §72). Same
  * variable names as the clubs server, set on its own service: on staging and production
@@ -36,6 +38,19 @@ object CoachConfig {
 
     /** The sender: the clubs server's address with the name "Squadify Coach" (the developer, 2026-10-30). */
     val emailFromAddress: String = env("RESEND_FROM_ADDRESS") ?: "Squadify Coach <onboarding@resend.dev>"
+
+    /**
+     * The coach's own Firebase project's service account (`squadify-for-coach`), as raw JSON, for its
+     * pushes. Not required: without it each push is logged and skipped, as on the clubs server. Locally,
+     * `firebase-coach-service-account.json` (gitignored) in the repo root or any folder above the server's.
+     */
+    val firebaseServiceAccountJson: String = env("FIREBASE_SERVICE_ACCOUNT_JSON")
+        ?: generateSequence(File("").absoluteFile) { it.parentFile }
+            .map { File(it, "firebase-coach-service-account.json") }
+            .firstOrNull { it.isFile }
+            ?.readText()
+            ?.takeIf { it.isNotBlank() }
+        ?: ""
 
     private fun env(name: String) = System.getenv(name)?.takeIf { it.isNotBlank() }
 

@@ -1,4 +1,4 @@
-package com.ricardofrango.squadify.push_notifications
+package com.ricardofrango.squadify.push
 
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -19,8 +19,7 @@ import androidx.core.app.Person
 import androidx.core.graphics.drawable.IconCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import com.ricardofrango.squadify.MainActivity
-import com.ricardofrango.squadify.R
+import com.ricardofrango.squadify.app.shared.R
 import com.ricardofrango.squadify.domain.usecase.RegisterFcmTokenUseCase
 import com.ricardofrango.squadify.model.PushMessage
 import java.net.HttpURLConnection
@@ -34,14 +33,16 @@ import org.koin.core.component.inject
 import kotlin.random.Random
 
 /**
- * Android system entry point for FCM -- instantiated by the OS, not Koin, so dependencies come via
- * [org.koin.core.component.KoinComponent] rather than constructor injection (Koin is already started in
- * [com.ricardofrango.squadify.SquadifyApplication.onCreate] by the time this could ever fire).
+ * Android system entry point for FCM, for both apps (TECHNICAL_DECISIONS §72) -- instantiated by the OS,
+ * not Koin, so dependencies come via [org.koin.core.component.KoinComponent] rather than constructor
+ * injection (Koin is already started in the app's Application.onCreate by the time this could ever fire).
+ * What differs per app comes from [PushNotifications]: the activity that opens and the small icon; the
+ * title is the app's own name.
  *
  * Our pushes come as FCM data only ([PushMessage]), never a notification payload, so this always
  * draws them itself, open or not -- which is what lets a match's pushes be one chat-style notification
  * per match ([showMatchLine]). Each carries a [com.ricardofrango.squadify.model.PushLink], what tapping
- * it opens (the club, age group, team or match), passed on to [MainActivity] as intent extras.
+ * it opens (the club, age group, team or match), passed on to the app's activity ([PushNotifications.launchActivity]) as intent extras.
  *
  * The channel and the text come from the server: a string resource *key* (an entry in
  * [BODY_LOCALIZATION_KEYS], matching a resource in `res/values` / `res/values-pt`) and its ordered
@@ -86,8 +87,8 @@ class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
             showMatchLine(push, thread, matchId, body, picture)
         } else {
             val builder = NotificationCompat.Builder(this, push.channelId)
-                .setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle(getString(R.string.app_name))
+                .setSmallIcon(PushNotifications.smallIcon)
+                .setContentTitle(appName())
                 .setContentText(body)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(body))
                 .setAutoCancel(true)
@@ -110,7 +111,7 @@ class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
         val showing = getSystemService(NotificationManager::class.java)
             ?.activeNotifications?.firstOrNull { it.id == notificationId }?.notification
         val style = showing?.let { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }
-            ?: NotificationCompat.MessagingStyle(Person.Builder().setName(getString(R.string.app_name)).setKey("me").build())
+            ?: NotificationCompat.MessagingStyle(Person.Builder().setName(appName()).setKey("me").build())
         style.conversationTitle = getString(R.string.push_match_thread_title, thread.teamName, thread.opponentName)
         style.isGroupConversation = true
         // Some launchers draw a sender's picture as it comes, square, so a scorer's photo is cut to a
@@ -127,7 +128,7 @@ class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
         style.addMessage(NotificationCompat.MessagingStyle.Message(body, System.currentTimeMillis(), sender))
 
         val builder = NotificationCompat.Builder(this, push.channelId)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(PushNotifications.smallIcon)
             .setStyle(style)
             .setAutoCancel(true)
             .setContentIntent(openIntent(notificationId, push.toData()))
@@ -139,8 +140,8 @@ class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
         val notification = message.notification ?: return
         val body = resolveLocalized(notification.bodyLocalizationKey, notification.bodyLocalizationArgs) ?: notification.body ?: return
         val builder = NotificationCompat.Builder(this, notification.channelId ?: NOTIFICATION_CHANNEL_DEFAULT)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(notification.title ?: getString(R.string.app_name))
+            .setSmallIcon(PushNotifications.smallIcon)
+            .setContentTitle(notification.title ?: appName())
             .setContentText(body)
             .setAutoCancel(true)
             .setContentIntent(openIntent(Random.nextInt(), message.data))
@@ -149,15 +150,18 @@ class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
     }
 
     /**
-     * Opens the app where the push points: its data carries the PushLink (§58), which MainActivity reads
+     * Opens the app where the push points: its data carries the PushLink (§58), which the activity reads
      * back from these extras. [requestCode] keeps one notification's PendingIntent (and extras) its own.
      */
     private fun openIntent(requestCode: Int, data: Map<String, String>): PendingIntent {
-        val intent = Intent(this, MainActivity::class.java)
+        val intent = Intent(this, PushNotifications.launchActivity)
             .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         data.forEach { (key, value) -> intent.putExtra(key, value) }
         return PendingIntent.getActivity(this, requestCode, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
     }
+
+    /** The app's own name, as on its icon ("Squadify", "Squadify Coach Dev"). */
+    private fun appName(): String = applicationInfo.loadLabel(packageManager).toString()
 
     private fun notify(id: Int, builder: NotificationCompat.Builder) {
         // No buttons Android makes up from the text (it read an opponent's name as a place and offered
@@ -263,6 +267,8 @@ class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
             "push_goal_scored" to R.string.push_goal_scored,
             "push_team_created_one" to R.string.push_team_created_one,
             "push_team_created_many" to R.string.push_team_created_many,
+            "push_call_up_ready" to R.string.push_call_up_ready,
+            "push_staff_joined" to R.string.push_staff_joined,
         )
     }
 }

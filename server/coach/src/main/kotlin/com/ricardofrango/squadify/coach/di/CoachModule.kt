@@ -23,7 +23,11 @@ import com.ricardofrango.squadify.coach.config.CoachConfig
 import com.ricardofrango.squadify.coach.data.CoachDatabase
 import com.ricardofrango.squadify.coach.data.ExposedStaffInviteRepository
 import com.ricardofrango.squadify.coach.data.StaffInviteRepository
-import com.ricardofrango.squadify.coach.data.NoPushNotifications
+import com.ricardofrango.squadify.coach.access.CoachPushAudience
+import com.ricardofrango.squadify.data.service.FirebaseAdminPushNotificationService
+import com.ricardofrango.squadify.domain.service.PushAudience
+import com.ricardofrango.squadify.domain.usecase.RegisterFcmTokenUseCase
+import com.ricardofrango.squadify.domain.usecase.RemoveFcmTokenUseCase
 import com.ricardofrango.squadify.coach.data.NoTrainingRatings
 import com.ricardofrango.squadify.coach.data.NoTrainingSessions
 import com.ricardofrango.squadify.coach.domain.AcceptStaffInviteUseCase
@@ -98,8 +102,13 @@ val coachModule = module {
     // The live game's updates, to every device following a match or the space's matches.
     single<LiveMatchBus> { KotlinFlowMatchBus() }
     single<ClubMatchesBus> { KotlinFlowClubMatchesBus() }
-    single<PushNotificationService> { NoPushNotifications }
-    // Links in pushes (a scorer's photo); none until the coach server has pushes and a public URL.
+    // Pushes, through the coach's own Firebase project (squadify-for-coach), to the space's owner and the
+    // age group's staff. Its devices' tokens come through the shared fcmTokenRoutes.
+    single<PushNotificationService> { FirebaseAdminPushNotificationService(CoachConfig.firebaseServiceAccountJson) }
+    factory<PushAudience> { CoachPushAudience(get(), get()) }
+    factory { RegisterFcmTokenUseCase(get(), get()) }
+    factory { RemoveFcmTokenUseCase(get(), get()) }
+    // Links in pushes (a scorer's photo); none until the coach server has a public URL and image storage.
     single { PublicImageLinks(publicBaseUrl = null, secret = CoachConfig.jwtSecret) }
     // No player or parent accounts: emails given with a player are refused.
     single<PlayerContacts> { PlayerContacts.None }
@@ -138,12 +147,12 @@ val coachModule = module {
     factory { CreateStaffInviteUseCase(get(), get(), get(), get()) }
     factory { GetStaffInvitesUseCase(get(), get(), get(), get()) }
     factory { RevokeStaffInviteUseCase(get(), get(), get(), get()) }
-    factory { AcceptStaffInviteUseCase(get(), get(), get(), get()) }
+    factory { AcceptStaffInviteUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { RemoveStaffUseCase(get(), get(), get(), get()) }
 
     // Age groups, teams, players and opponents: the shared use cases.
-    factory { CreateTeamUseCase(get(), get(), get(), get(), get(), get(), get()) }
-    factory { CreateTeamsUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { CreateTeamUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { CreateTeamsUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetTeamPlayersUseCase(get(), get(), get(), get()) }
     factory { GetTeamDetailsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { UpdateTeamUseCase(get(), get(), get(), get()) }
@@ -185,7 +194,7 @@ val coachModule = module {
     factory { PauseMatchUseCase(get(), get(), get(), get(), get(), get()) }
     factory { ResumeMatchUseCase(get(), get(), get(), get(), get(), get()) }
     factory { SetMatchMinuteUseCase(get(), get(), get(), get(), get(), get()) }
-    factory { ManageCallUpsUseCase(get(), get(), get(), get()) }
+    factory { ManageCallUpsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { NotifyMatchEventUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { AddMatchEventUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { SaveMatchRecordUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }

@@ -773,8 +773,9 @@ token, but the local session is *always* cleared regardless of whether removal s
 `LogoutUseCase.invoke()` is `suspend`; its one call site, `AccountViewModel.onLogoutClicked()`, was
 already inside a `viewModelScope.launch { }`, so this needed no further change there.
 
-**Notification channels (API 26+).** Four `NotificationChannelCompat`s are created up front in
-`SquadifyApplication.onCreate` (`createNotificationChannels()`, using `NotificationManagerCompat` --
+**Notification channels (API 26+).** Four `NotificationChannelCompat`s are created up front (since
+2026-10-31 by `PushNotifications.configure`, in `app/shared`'s Android code, from each app's
+`Application.onCreate`; §72) (using `NotificationManagerCompat` --
 these handle the pre-O no-op internally, so unlike the raw platform `NotificationChannel`/
 `NotificationManager` APIs this needs no manual `Build.VERSION.SDK_INT` check): `live_matches`
 (`IMPORTANCE_HIGH` -- kickoff/goals/cards/full-time are time-sensitive enough to warrant a heads-up),
@@ -3301,7 +3302,17 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
     - **Outside the app** (Google Play): the store listing gives an email address for deletion requests, handled by hand. The address is still to be chosen (REQUIREMENTS, launch readiness).
     - **The clubs app** gets deletion later, with its own rules (the last admin of a club, parents' links, invites).
     - **Tests:** `CoachAccountDeletionTest` (on `squadify_coach_test`: a staff member who owns a space deletes their account, a wrong password first; their report stays under the owner and they're off the staff; the owner's summary counts what goes, then their space goes and its staff lose it), `DeleteAccountTest` (when Delete is offered) and `AppFeaturesTest` (only an app that turns it on).
-- **Next:** Crashlytics and pushes, the coach staging workflow, photos and logos (the image storage), staff invites by email (with the Resend sender now in place), and the coach app's iOS target (an Xcode target starting `:app:coach`, which already builds for iOS).
+- **Crashlytics and notifications, as built** (2026-10-31, the third step in order; the developer chose one PR, the age group's people as the audience, the game schedule, live game, "someone joined" and a new "call-up ready" for both apps, team created too, and the Android code moved to shared code):
+    - **Crashlytics:** the coach Android app applies the Google Services and Crashlytics plugins with its `google-services.json` (`squadify-for-coach`).
+    - **Shared on the servers, unchanged for the clubs server:** `FirebaseAdminPushNotificationService` moved to `:server:web`, taking each server's service account (`serviceAccountJson`); `RegisterFcmTokenUseCase`/`RemoveFcmTokenUseCase` to `:server:core`; `fcmTokenRoutes()` to `:server:web`, mounted by both.
+    - **Who gets what: `PushAudience`** (`:server:core`), per server. The clubs server's `ClubPushAudience`: games and new teams to the whole club (as before), a ready call-up only to the age group's staff. The coach server's `CoachPushAudience`: everything to the space's owner and that age group's staff, never to staff on its other age groups. `NotifyMatchEventUseCase`, `CreateTeamUseCase` and `CreateTeamsUseCase` ask it instead of listing the club's members.
+    - **Call-up ready, new on both servers** (`ManageCallUpsUseCase`, `sendCallUpReady`, key `push_call_up_ready`): a scheduled match's call-up saved with at least the match's size and different from what was saved, to the call-up audience except whoever saved it. In the match's notification thread; opens Match details. A failed lookup only skips the push, never the save.
+    - **Someone joined, coach only** (`AcceptStaffInviteUseCase`, `sendStaffJoined`, key `push_staff_joined`): the space's owner is told who joined which age group; opens Age Group Details.
+    - **The coach server's credentials:** `FIREBASE_SERVICE_ACCOUNT_JSON` on the coach-server service (the `squadify-for-coach` project's service account, set by the developer); locally `firebase-coach-service-account.json` in the repo root (gitignored). Without it, pushes are logged and skipped.
+    - **Android, shared** (`app/shared/src/androidMain`, package `com.ricardofrango.squadify.push`): `SquadifyMessagingService` (declared in `app/shared`'s manifest with `POST_NOTIFICATIONS`), `FirebasePushTokenProvider`, `PushNotifications` (`configure(context, launchActivity, smallIcon)`, the channels, `takePushLink`) and `RequestNotificationPermission`, moved from the clubs app unchanged apart from what each app passes in; the notification's title is the app's own name. The push and channel strings moved to `app/shared`'s Android resources (EN, PT). The clubs app calls them from `SquadifyApplication` and `MainActivity`; the coach app from `CoachApplication` and `CoachActivity` (now `singleTop`), with its own `ic_notification` (the clubs mark, a stand-in like its icon).
+    - **Where a tap lands, per app:** `SignedInHome.pushLinkBackStack(link, home)`. The target is shared (`pushLinkTarget`: Match, Team or Age Group Details); under it, the clubs app keeps its club (and My clubs), the coach app puts My age groups (`coachPushLinkBackStack`). Splash asks it on a cold start; each app's navigation opens a link tapped while running.
+    - **Tests:** `CallUpReadyPushTest` (ready, again with changes, not below the size, unchanged or after kickoff, never to who saved it, a failed lookup still saves), `CoachPushAudienceTest`, the sender's never-throw tests, and `CoachHomeTest` (the coach back stack).
+- **Next:** the coach staging workflow, photos and logos (the image storage), staff invites by email (with the Resend sender now in place), and the coach app's iOS target (an Xcode target starting `:app:coach`, which already builds for iOS).
 
 **Accounts are not shared, for now.** Each server keeps its own users table, with the same login code from `:server:core`.
 - **Why not one login server for both:** it would be a third service to host, and if it went down both products would stop. It would also mean moving the clubs app's login (refresh, password reset, email change) onto it.
@@ -3321,7 +3332,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
 - **Production:** `deploy-production.yml` deploys both servers on a release, like the web app (§13).
 
 **Shared services:**
-- **Push and Crashlytics:** the coach's own Firebase project, `squadify-for-coach` (the developer, 2026-10-30), not a second app in the clubs' project: Android registered, iOS still to add. The coach server sends with that project's credentials and only to tokens in its own database.
+- **Push and Crashlytics:** the coach's own Firebase project, `squadify-for-coach` (the developer, 2026-10-30), not a second app in the clubs' project: Android registered and wired (2026-10-31, above), iOS still to add. The coach server sends with that project's credentials and only to tokens in its own database.
     - **Why separate projects:** the same separation as the servers, databases and tokens. Each server's credentials reach only its own product's devices, a leaked key affects one product, and crashes, testers, access and quotas stay apart.
     - **What it costs:** two of everything (server credentials on Railway, App Distribution testers, iOS registrations, consoles), no view across both products, and no shared login through Firebase Authentication. A later shared login is our own service (above).
 - **Email:** the same Resend domain (`squadify.pt`), with the coach product's own sender name and templates.

@@ -1,4 +1,4 @@
-package com.ricardofrango.squadify.push_notifications
+package com.ricardofrango.squadify.push
 
 import com.google.firebase.messaging.FirebaseMessaging
 import com.ricardofrango.squadify.domain.service.PushTokenProvider

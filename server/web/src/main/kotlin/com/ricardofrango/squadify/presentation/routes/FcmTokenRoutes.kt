@@ -13,6 +13,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
 
+/** This device's push token, registered after sign-in and removed on sign-out: on both servers (TECHNICAL_DECISIONS §72). */
 fun Route.fcmTokenRoutes() {
     val registerFcmTokenUseCase by inject<RegisterFcmTokenUseCase>()
     val removeFcmTokenUseCase by inject<RemoveFcmTokenUseCase>()

@@ -7,7 +7,6 @@ import com.ricardofrango.squadify.domain.usecase.RegisterCurrentFcmTokenUseCase
 import com.ricardofrango.squadify.presentation.navigation.PushLinkInbox
 import com.ricardofrango.squadify.presentation.navigation.Screen
 import com.ricardofrango.squadify.presentation.navigation.SignedInHome
-import com.ricardofrango.squadify.presentation.navigation.pushLinkBackStack
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -56,12 +55,12 @@ class SplashViewModel(
                 // list, which would only redirect there itself after a visible flash. The clubs app's
                 // check also keeps the clubs' colours, for a screen opened from a push notification.
                 val home = signedInHome.screen()
-                // A tapped push notification opens its club and target instead (§56). Taken only here,
-                // with the session confirmed; signed out, it waits in the inbox until after Login.
+                // A tapped push notification opens its target instead, with the app's own screens under
+                // it (§56). Taken only here, with the session confirmed; signed out, it waits in the
+                // inbox until after Login.
                 val pushLink = pushLinkInbox.take()
                 if (pushLink != null) {
-                    val onlyClubId = (home as? Screen.ClubDetails)?.takeIf { it.isRootClub }?.clubId
-                    _navigationEvent.emit(SplashNavigationEvent.NavigateToBackStack(pushLinkBackStack(pushLink, onlyClubId)))
+                    _navigationEvent.emit(SplashNavigationEvent.NavigateToBackStack(signedInHome.pushLinkBackStack(pushLink, home)))
                     return@launch
                 }
                 _navigationEvent.emit(SplashNavigationEvent.NavigateToHome(home))
