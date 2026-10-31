@@ -62,6 +62,16 @@ interface PushNotificationService {
      * contract as [sendClubMembershipAdded].
      */
     suspend fun sendTeamCreated(tokens: List<String>, link: PushLink, teamNames: List<String>, ageGroupName: String, clubName: String)
+
+    /**
+     * A match's call-up was saved ready (at least the match's size), the first time or again with changes
+     * (the developer, 2026-10-31): "Call-up ready: 14 players for Sub-13 A vs Fontelas", in the match's
+     * notification. To the age group's call-up audience ([PushAudience.forCallUps]), not whoever saved it.
+     */
+    suspend fun sendCallUpReady(tokens: List<String>, link: PushLink, teamName: String, opponentName: String, players: Int)
+
+    /** The coach app's owner: someone used their invite code and joined [ageGroupName] as staff. */
+    suspend fun sendStaffJoined(tokens: List<String>, link: PushLink, name: String, ageGroupName: String)
 }
 
 /**

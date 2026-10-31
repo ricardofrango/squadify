@@ -42,7 +42,7 @@ class StaffInvitesTest {
             override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
         }
         val eightDaysLater = object : Clock { override fun now() = Instant.parse("2026-10-09T10:00:00Z") }
-        val accept = AcceptStaffInviteUseCase(invites, mockk<AgeGroupRepository>(), mockk<ClubRepository>(), transactionManager, eightDaysLater)
+        val accept = AcceptStaffInviteUseCase(invites, mockk<AgeGroupRepository>(), mockk<ClubRepository>(), transactionManager, mockk(), mockk(), mockk(), eightDaysLater)
 
         assertFailsWith<ValidationException> { runBlocking { accept("someone", "K7Q-4MZ") } }
     }

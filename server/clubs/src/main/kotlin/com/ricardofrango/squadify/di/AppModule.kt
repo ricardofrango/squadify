@@ -21,6 +21,8 @@ import com.ricardofrango.squadify.data.service.UnavailableImageStorage
 import com.ricardofrango.squadify.config.AppEnvironment
 import java.io.File
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
+import com.ricardofrango.squadify.domain.service.ClubPushAudience
+import com.ricardofrango.squadify.domain.service.PushAudience
 import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.domain.usecase.*
@@ -66,10 +68,12 @@ val appModule = module {
             else -> UnavailableImageStorage
         }
     }
+    // Who gets each push: the whole club for games and teams, the age group's staff for a ready call-up.
+    factory<PushAudience> { ClubPushAudience(get(), get()) }
     single<PushNotificationService> {
         val clubRepository = get<ClubRepository>()
         val transactionManager = get<TransactionManager>()
-        FirebaseAdminPushNotificationService(clubLogoUrl = { clubId ->
+        FirebaseAdminPushNotificationService(ServerConfig.firebaseServiceAccountJson, clubLogoUrl = { clubId ->
             val logoUrl = transactionManager.runInTransaction { clubRepository.getClubById(clubId)?.logoUrl }
             GetPublicClubLogoUseCase.publicUrl(ServerConfig.publicBaseUrl, clubId, logoUrl)
         })
@@ -131,8 +135,8 @@ val appModule = module {
     factory { DeleteUserAvatarUseCase(get(), get(), get()) }
     factory { GetUserAvatarUseCase(get(), get(), get()) }
 
-    factory { CreateTeamUseCase(get(), get(), get(), get(), get(), get(), get()) }
-    factory { CreateTeamsUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { CreateTeamUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { CreateTeamsUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { AddStaffToAgeGroupUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetAgeGroupStaffUseCase(get(), get(), get()) }
     factory { GetTeamPlayersUseCase(get(), get(), get(), get()) }
@@ -189,7 +193,7 @@ val appModule = module {
     factory { PauseMatchUseCase(get(), get(), get(), get(), get(), get()) }
     factory { ResumeMatchUseCase(get(), get(), get(), get(), get(), get()) }
     factory { SetMatchMinuteUseCase(get(), get(), get(), get(), get(), get()) }
-    factory { ManageCallUpsUseCase(get(), get(), get(), get()) }
+    factory { ManageCallUpsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { CreateOpponentUseCase(get(), get(), get(), get()) }
     factory { GetOpponentsUseCase(get(), get(), get(), get()) }
     factory { GetOpponentListUseCase(get(), get(), get(), get(), get()) }

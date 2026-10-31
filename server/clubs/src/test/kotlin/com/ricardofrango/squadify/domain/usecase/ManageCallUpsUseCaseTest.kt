@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.repository.FcmTokenRepository
+import com.ricardofrango.squadify.domain.repository.OpponentRepository
+import com.ricardofrango.squadify.domain.service.ClubPushAudience
+import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
@@ -38,6 +42,9 @@ class ManageCallUpsUseCaseTest {
     private val playerRepository = mockk<PlayerRepository>()
     private val ageGroupRepository = mockk<AgeGroupRepository>()
     private val userRepository = mockk<UserRepository>()
+    private val opponentRepository = mockk<OpponentRepository>()
+    private val fcmTokenRepository = mockk<FcmTokenRepository>()
+    private val pushNotificationService = mockk<PushNotificationService>(relaxed = true)
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
@@ -46,7 +53,10 @@ class ManageCallUpsUseCaseTest {
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
-    private val useCase = ManageCallUpsUseCase(matchRepository, transactionManager, ClubAccessPolicy(checkUserPermissionUseCase), playerRepository)
+    private val useCase = ManageCallUpsUseCase(
+        matchRepository, transactionManager, ClubAccessPolicy(checkUserPermissionUseCase), playerRepository,
+        teamRepository, opponentRepository, fcmTokenRepository, pushNotificationService, ClubPushAudience(mockk(), ageGroupRepository)
+    )
 
     private val clubId = "club-1"
     private val matchId = "m-1"

@@ -4,11 +4,13 @@ import java.net.NetworkInterface
 import java.util.Properties
 
 // Squadify for Coaches on Android (TECHNICAL_DECISIONS §72): starts :app:coach against the coach server.
-// Its own app id, so it installs next to the clubs app. Registered in its own Firebase project
-// (google-services.json), but Crashlytics and pushes aren't wired yet: the coach server sends no pushes.
+// Its own app id, so it installs next to the clubs app. Its own Firebase project, squadify-for-coach
+// (google-services.json): Crashlytics, and pushes from the coach server (app/shared's push code).
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.googleServices)
+    alias(libs.plugins.firebaseCrashlytics)
 }
 
 // Local-only, gitignored, as in the clubs app: the release keystore, else the debug one.
@@ -48,6 +50,11 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.compose.foundation)
     implementation(libs.koin.android)
+
+    // Firebase: Crashlytics, and Cloud Messaging for the device's push token (the BoM pins versions).
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.messaging)
 }
 
 // The same version as the clubs app (root gradle.properties' VERSION_NAME) until the coach app has

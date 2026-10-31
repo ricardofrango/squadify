@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.service.ClubPushAudience
 import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
@@ -58,7 +59,8 @@ class CreateTeamsUseCaseTest {
     init { coEvery { clubPermissionRepository.getOverride(any(), any()) } returns null }
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository)
     private val useCase = CreateTeamsUseCase(
-        teamRepository, ageGroupRepository, clubRepository, fcmTokenRepository, ClubAccessPolicy(checkUserPermissionUseCase), pushNotificationService, transactionManager
+        teamRepository, ageGroupRepository, clubRepository, fcmTokenRepository, ClubAccessPolicy(checkUserPermissionUseCase), pushNotificationService, transactionManager,
+        ClubPushAudience(clubRepository, ageGroupRepository)
     )
 
     private val clubIdA = "club-a"

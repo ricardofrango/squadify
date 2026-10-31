@@ -1,6 +1,8 @@
 package com.ricardofrango.squadify.coach
 
 import com.ricardofrango.squadify.coach.presentation.navigation.CoachSignedInHome
+import com.ricardofrango.squadify.coach.presentation.navigation.coachPushLinkBackStack
+import com.ricardofrango.squadify.model.PushLink
 import com.ricardofrango.squadify.coach.presentation.ui.home.CoachHomeUiState
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Club
@@ -65,5 +67,14 @@ class CoachHomeTest {
     @Test
     fun signingInAlwaysOpensTheHome() = runTest {
         assertEquals(Screen.CoachHome, CoachSignedInHome.screen())
+    }
+
+    @Test
+    fun aTappedNotificationOpensItsTargetOverMyAgeGroups() {
+        assertEquals(listOf(Screen.CoachHome, Screen.MatchDetails("m")), coachPushLinkBackStack(PushLink.match("s", "m")))
+        assertEquals(listOf(Screen.CoachHome, Screen.TeamDetails("t")), coachPushLinkBackStack(PushLink.team("s", "t")))
+        assertEquals(listOf(Screen.CoachHome, Screen.AgeGroupDetails("a")), coachPushLinkBackStack(PushLink.ageGroup("s", "a")))
+        // A link to a space alone (never sent by the coach server): just the home.
+        assertEquals(listOf(Screen.CoachHome), coachPushLinkBackStack(PushLink.club("s")))
     }
 }

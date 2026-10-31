@@ -9,14 +9,19 @@ import org.junit.Test
 import kotlin.test.assertEquals
 
 /**
- * FIREBASE_SERVICE_ACCOUNT_JSON is unset in this environment (and in CI), so
- * ServerConfig.firebaseServiceAccountJson is blank -- exercises the real "must never throw" contract
+ * No service account (as when FIREBASE_SERVICE_ACCOUNT_JSON is unset, in CI) -- exercises the real "must never throw" contract
  * from PushNotificationService's doc, not a mocked stand-in for it.
  */
 class FirebaseAdminPushNotificationServiceTest {
 
-    private val pushNotificationService = FirebaseAdminPushNotificationService()
+    private val pushNotificationService = FirebaseAdminPushNotificationService(serviceAccountJson = "")
     private val link = PushLink.club("club-1")
+
+    @Test
+    fun sendCallUpReadyAndStaffJoinedNeverThrowWithNoCredentialConfigured() = runBlocking {
+        pushNotificationService.sendCallUpReady(listOf("token-1"), PushLink.match("club-1", "m-1"), "Sub-13 A", "Fontelas", 14)
+        pushNotificationService.sendStaffJoined(listOf("token-1"), PushLink.ageGroup("club-1", "ag-1"), "Bruno Staff", "Sub-12")
+    }
 
     @Test
     fun sendClubMembershipAddedNeverThrowsWithNoCredentialConfigured() = runBlocking {

@@ -26,4 +26,6 @@
     <string name="push_goal_scored">Golo! %1$s %2$s - %3$s %4$s</string>
     <string name="push_team_created_one">Nova equipa: %1$s foi adicionada a %2$s</string>
     <string name="push_team_created_many">Novas equipas adicionadas a %2$s: %1$s</string>
+    <string name="push_call_up_ready">Convocatória pronta: %1$s jogadores para %2$s vs %3$s</string>
+    <string name="push_staff_joined">%1$s entrou em %2$s como staff</string>
 </resources>

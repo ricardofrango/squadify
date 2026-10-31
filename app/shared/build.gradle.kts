@@ -61,6 +61,11 @@ kotlin {
             // (CredentialStore.android.kt). play-services-auth is what serves it on Android 13 and below.
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.credentials.playServicesAuth)
+            // Push notifications for both apps (com.ricardofrango.squadify.push): receiving them, the
+            // device's token, and asking for the permission.
+            implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(libs.firebase.messaging)
+            implementation(libs.androidx.activity.compose)
         }
         iosMain.dependencies {
             // Ktor's HttpClient() picks its engine at runtime from whatever engine artifacts are
