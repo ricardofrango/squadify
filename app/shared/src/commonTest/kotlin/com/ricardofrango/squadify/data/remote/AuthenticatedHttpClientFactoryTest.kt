@@ -15,6 +15,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
@@ -26,6 +27,10 @@ import kotlin.test.assertTrue
  * Exercises the real Auth/bearer wiring end to end against a MockEngine, rather than trusting the
  * plugin config by inspection alone -- this is auth/session code, and this codebase had zero networking
  * test infrastructure before this file (see TECHNICAL_DECISIONS.md).
+ *
+ * Each test's force-logout collector starts on an [UnconfinedTestDispatcher] so it has subscribed
+ * before the request: the MockEngine answers on a real thread, and a `SharedFlow` emission with no
+ * subscriber yet is lost (seen on CI).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AuthenticatedHttpClientFactoryTest {
@@ -62,7 +67,7 @@ class AuthenticatedHttpClientFactoryTest {
         val session = InMemorySessionRepository()
         val bus = SessionEventBus()
         val forceLogouts = mutableListOf<Unit>()
-        val collector = async { bus.forceLogout.collect { forceLogouts.add(it) } }
+        val collector = async(UnconfinedTestDispatcher(testScheduler)) { bus.forceLogout.collect { forceLogouts.add(it) } }
 
         var callCount = 0
         val engine = MockEngine { request ->
@@ -86,7 +91,7 @@ class AuthenticatedHttpClientFactoryTest {
         val session = InMemorySessionRepository()
         val bus = SessionEventBus()
         val forceLogouts = mutableListOf<Unit>()
-        val collector = async { bus.forceLogout.collect { forceLogouts.add(it) } }
+        val collector = async(UnconfinedTestDispatcher(testScheduler)) { bus.forceLogout.collect { forceLogouts.add(it) } }
 
         var protectedCalls = 0
         val engine = MockEngine { request ->
@@ -131,7 +136,7 @@ class AuthenticatedHttpClientFactoryTest {
         val session = InMemorySessionRepository()
         val bus = SessionEventBus()
         val forceLogouts = mutableListOf<Unit>()
-        val collector = async { bus.forceLogout.collect { forceLogouts.add(it) } }
+        val collector = async(UnconfinedTestDispatcher(testScheduler)) { bus.forceLogout.collect { forceLogouts.add(it) } }
 
         val engine = MockEngine { request ->
             if (request.url.encodedPath == "/auth/refresh") {
@@ -156,7 +161,7 @@ class AuthenticatedHttpClientFactoryTest {
         val session = InMemorySessionRepository()
         val bus = SessionEventBus()
         val forceLogouts = mutableListOf<Unit>()
-        val collector = async { bus.forceLogout.collect { forceLogouts.add(it) } }
+        val collector = async(UnconfinedTestDispatcher(testScheduler)) { bus.forceLogout.collect { forceLogouts.add(it) } }
 
         val engine = MockEngine { request ->
             when (request.url.encodedPath) {
@@ -190,7 +195,7 @@ class AuthenticatedHttpClientFactoryTest {
         val session = InMemorySessionRepository(token = null, refreshToken = null)
         val bus = SessionEventBus()
         val forceLogouts = mutableListOf<Unit>()
-        val collector = async { bus.forceLogout.collect { forceLogouts.add(it) } }
+        val collector = async(UnconfinedTestDispatcher(testScheduler)) { bus.forceLogout.collect { forceLogouts.add(it) } }
 
         val engine = MockEngine { request ->
             assertEquals(null, request.headers[HttpHeaders.Authorization])
