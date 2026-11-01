@@ -1,3 +1,4 @@
+import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.net.Inet4Address
 import java.net.NetworkInterface
@@ -5,12 +6,14 @@ import java.util.Properties
 
 // Squadify for Coaches on Android (TECHNICAL_DECISIONS §72): starts :app:coach against the coach server.
 // Its own app id, so it installs next to the clubs app. Its own Firebase project, squadify-for-coach
-// (google-services.json): Crashlytics, and pushes from the coach server (app/shared's push code).
+// (google-services.json): Crashlytics, pushes from the coach server (app/shared's push code), and
+// staging builds to testers through App Distribution (deploy-staging-coach.yml).
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.googleServices)
     alias(libs.plugins.firebaseCrashlytics)
+    alias(libs.plugins.firebaseAppDistribution)
 }
 
 // Local-only, gitignored, as in the clubs app: the release keystore, else the debug one.
@@ -92,7 +95,7 @@ android {
             dimension = "environment"
             applicationIdSuffix = ".stg"
             // The coach-server service's Railway domain on staging.
-            buildConfigField("String", "BASE_URL", "\"https://COACH_STAGING_DOMAIN/v1\"")
+            buildConfigField("String", "BASE_URL", "\"https://squadify-for-coach-staging.up.railway.app/v1\"")
             resValue("string", "app_name", "Squadify Coach Stg")
             versionNameSuffix = "-stg.${ciBuildNumber ?: "local"}"
         }
@@ -122,6 +125,12 @@ android {
                 signingConfigs.getByName("debug")
             }
             isMinifyEnabled = false
+            firebaseAppDistribution {
+                // The squadify-for-coach service account, gitignored at the repo root; CI writes it
+                // from the FIREBASE_COACH_SERVICE_ACCOUNT_JSON secret.
+                serviceCredentialsFile = rootProject.file("firebase-coach-service-account.json").path
+                groups = "squadify-coach-testers"
+            }
         }
     }
     compileOptions {
