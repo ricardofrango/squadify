@@ -309,7 +309,8 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [x] The account (2026-10-30): Account (profile, email change, password, sign out; no photo until the image storage), Change email and Forgot password, the clubs app's screens, from the ☰ menu and Sign in (`TECHNICAL_DECISIONS.md` §72).
         - [ ] Later: staff invites by email, with the coach's Resend sender (now in place).
         - [x] Firebase (2026-10-30/31): the coach app in its own Firebase project, `squadify-for-coach` (`app/coachAndroidApp/google-services.json`), with Crashlytics and notifications: game schedule, live game, teams created and a ready call-up to the space's owner and that age group's staff, and the owner told when someone joins with a code (`TECHNICAL_DECISIONS.md` §72).
-        - [ ] The coach server's `FIREBASE_SERVICE_ACCOUNT_JSON` on Railway (staging, then production), set by the developer.
+        - [/] The coach server's `FIREBASE_SERVICE_ACCOUNT_JSON` on Railway (staging, then production), set by the developer: staging done (2026-10-31).
+        - [x] Staging builds (2026-11-01): on every change to the coach app on `develop`, `deploy-staging-coach.yml` sends the `staging` flavor (against coach-server on Railway staging) to the `squadify-coach-testers` group through Firebase App Distribution (`TECHNICAL_DECISIONS.md` §72).
     - [ ] Plans stored and enforced on the server, set by a platform admin at first.
     - [ ] Payments (RevenueCat) and ads on the Free plan (AdMob).
     - [ ] **Launch readiness** (Android and iOS, needed before the coach app goes to the stores):

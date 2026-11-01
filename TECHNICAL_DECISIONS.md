@@ -3328,7 +3328,12 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
 
   A change to the shared code (`common`, `:server:core`, a shared migration) redeploys both servers; a change only to one server's module redeploys only that one.
 - **Migrations:** each server runs its own Flyway migrations on start, against its own database. A change to the shared game tables therefore comes with a migration in each server's folder, in the same PR, and the schema test above fails the build if one is missing.
-- **Coach app on staging:** Android builds go to Firebase App Distribution like the clubs app's (§17), from their own workflow, with the same kind of paths filter: `app/shared`, the coach app modules, `common`.
+- **Coach app on staging** (2026-11-01): Android builds go to Firebase App Distribution like the clubs app's (§17), from their own workflow, `.github/workflows/deploy-staging-coach.yml`, so a change to one app never sends a new build of the other to testers.
+    - **When:** a push to `develop` touching what the coach Android app is built from: `app/coachAndroidApp`, `app/coach`, `app/shared`, `core`, the version catalog, wrapper and root build files, or the workflow itself (`common` isn't in it: no app module depends on it).
+    - **Steps:** the app tests (`:app:shared:testAndroidHostTest`, `:app:coach:testAndroidHostTest`) as a gate, then `:app:coachAndroidApp:assembleStagingRelease` and `appDistributionUploadStagingRelease` with the run number as `versionCode` (`-stg.<n>`, as in §30).
+    - **Credentials:** the `squadify-for-coach` service account, the same key as the coach server's (`firebase-coach-service-account.json` at the repo root, gitignored), from the GitHub secret `FIREBASE_COACH_SERVICE_ACCOUNT_JSON`. It needs the *Firebase App Distribution Admin* role. The release keystore is the clubs app's (the same two secrets).
+    - **Testers:** the `squadify-coach-testers` group in the `squadify-for-coach` project.
+    - **Server:** the staging flavor talks to `https://squadify-for-coach-staging.up.railway.app/v1`, the coach-server service on Railway staging.
 - **Production:** `deploy-production.yml` deploys both servers on a release, like the web app (§13).
 
 **Shared services:**
