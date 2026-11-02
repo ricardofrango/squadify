@@ -7,6 +7,7 @@ import com.ricardofrango.squadify.coach.domain.GetStaffInvitesUseCase
 import com.ricardofrango.squadify.coach.domain.InviteEmail
 import com.ricardofrango.squadify.coach.domain.RevokeStaffInviteUseCase
 import com.ricardofrango.squadify.data.remote.ApiException
+import com.ricardofrango.squadify.data.remote.isNotInPlan
 import com.ricardofrango.squadify.model.StaffInvite
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +35,7 @@ sealed class InviteStaffUiState {
 }
 
 /** One-off messages, for the snackbar. */
-enum class InviteStaffMessage { CREATE_FAILED, EMAIL_SENT, EMAIL_NOT_SENT, SEND_FAILED, WITHDRAWN, WITHDRAW_FAILED }
+enum class InviteStaffMessage { CREATE_FAILED, NO_ROOM_ON_PLAN, EMAIL_SENT, EMAIL_NOT_SENT, SEND_FAILED, WITHDRAWN, WITHDRAW_FAILED }
 
 class InviteStaffViewModel(
     private val getStaffInvitesUseCase: GetStaffInvitesUseCase,
@@ -68,7 +69,7 @@ class InviteStaffViewModel(
                 _state.update { s -> (s as? InviteStaffUiState.Loaded)?.let { it.copy(invites = listOf(invite) + it.invites, isCreating = false) } ?: s }
             } catch (e: Exception) {
                 _state.update { s -> (s as? InviteStaffUiState.Loaded)?.copy(isCreating = false) ?: s }
-                _messages.emit(InviteStaffMessage.CREATE_FAILED)
+                _messages.emit(if (e.isNotInPlan) InviteStaffMessage.NO_ROOM_ON_PLAN else InviteStaffMessage.CREATE_FAILED)
             }
         }
     }
@@ -94,7 +95,13 @@ class InviteStaffViewModel(
             } catch (e: Exception) {
                 _state.update { s -> (s as? InviteStaffUiState.Loaded)?.copy(isSending = false) ?: s }
                 // A 400: the email didn't go (or today's limit is reached); no code was kept.
-                _messages.emit(if ((e as? ApiException)?.statusCode == 400) InviteStaffMessage.EMAIL_NOT_SENT else InviteStaffMessage.SEND_FAILED)
+                _messages.emit(
+                    when {
+                        e.isNotInPlan -> InviteStaffMessage.NO_ROOM_ON_PLAN
+                        (e as? ApiException)?.statusCode == 400 -> InviteStaffMessage.EMAIL_NOT_SENT
+                        else -> InviteStaffMessage.SEND_FAILED
+                    }
+                )
             }
         }
     }

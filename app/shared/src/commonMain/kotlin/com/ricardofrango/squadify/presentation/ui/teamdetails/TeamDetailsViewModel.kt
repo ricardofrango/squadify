@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.data.remote.isNotInPlan
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -142,7 +143,7 @@ class TeamDetailsViewModel(
             try {
                 _record.update { TeamRecordUiState.Loaded(getTeamSeasonRecordUseCase(teamId), filter) }
             } catch (e: Exception) {
-                _record.update { TeamRecordUiState.Error }
+                _record.update { if (e.isNotInPlan) TeamRecordUiState.NotInPlan else TeamRecordUiState.Error }
                 return@launch
             }
             // Team leaders' ranking counts trainings too, so it comes from the Full stats data. The

@@ -33,5 +33,7 @@ class JoinCodeTest {
         assertEquals(JoinCode.Refusal.USED_OR_ALREADY_ON, JoinCode.refusal(409))
         assertEquals(JoinCode.Refusal.OTHER, JoinCode.refusal(500))
         assertEquals(JoinCode.Refusal.OTHER, JoinCode.refusal(null))
+        // The age group has no room on its space's plan (a 403 the server marks as such).
+        assertEquals(JoinCode.Refusal.NO_ROOM_ON_PLAN, JoinCode.refusal(403, notInPlan = true))
     }
 }

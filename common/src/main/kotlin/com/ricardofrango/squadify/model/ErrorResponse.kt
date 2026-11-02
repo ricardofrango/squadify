@@ -10,3 +10,6 @@ data class ErrorResponse(
     // age groups whose birth years clash -- so a screen can mark every one at once.
     val rows: List<Int>? = null
 )
+
+/** [ErrorResponse.code] of a 403 for something not on the space's plan (the coach server, REQUIREMENTS §5c). */
+const val PLAN_LIMIT_CODE = "PLAN_001"

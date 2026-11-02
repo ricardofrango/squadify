@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.data.remote.isNotInPlan
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.CancellationException
@@ -175,7 +176,7 @@ class AgeGroupDetailsViewModel(
             try {
                 _record.update { AgeGroupRecordUiState.Loaded(getAgeGroupSeasonRecordUseCase(ageGroupId), filter) }
             } catch (e: Exception) {
-                _record.update { AgeGroupRecordUiState.Error }
+                _record.update { if (e.isNotInPlan) AgeGroupRecordUiState.NotInPlan else AgeGroupRecordUiState.Error }
             }
         }
     }

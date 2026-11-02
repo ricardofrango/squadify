@@ -14,6 +14,8 @@ import squadify.app.shared.generated.resources.btn_cancel
 import squadify.app.shared.generated.resources.btn_remove
 import squadify.app.shared.generated.resources.cd_remove_from_age_group
 import squadify.app.shared.generated.resources.msg_remove_player_age_group
+import squadify.app.shared.generated.resources.stats_not_in_plan_body
+import squadify.app.shared.generated.resources.stats_not_in_plan_title
 import squadify.app.shared.generated.resources.title_remove_player_age_group
 import com.ricardofrango.squadify.model.Player
 import androidx.compose.material3.Icon
@@ -218,6 +220,11 @@ private fun LazyListScope.statsItems(
             recordState is AgeGroupRecordUiState.Error -> item {
                 StatsCard(contentPadding = 16.dp) {
                     StatsMessage(stringResource(Res.string.stats_load_failed_title), stringResource(Res.string.ag_stats_failed_body), onRetry = onRetry)
+                }
+            }
+            recordState is AgeGroupRecordUiState.NotInPlan -> item {
+                StatsCard(contentPadding = 16.dp) {
+                    StatsMessage(stringResource(Res.string.stats_not_in_plan_title), stringResource(Res.string.stats_not_in_plan_body))
                 }
             }
             recordState is AgeGroupRecordUiState.Loaded -> {

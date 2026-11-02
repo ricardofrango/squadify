@@ -86,6 +86,7 @@ import squadify.app.coach.generated.resources.msg_invite_copied
 import squadify.app.coach.generated.resources.msg_invite_create_failed
 import squadify.app.coach.generated.resources.msg_invite_email_not_sent
 import squadify.app.coach.generated.resources.msg_invite_email_sent
+import squadify.app.coach.generated.resources.msg_invite_no_room
 import squadify.app.coach.generated.resources.msg_invite_send_failed
 import squadify.app.coach.generated.resources.msg_invite_withdraw_failed
 import squadify.app.coach.generated.resources.msg_invite_withdrawn
@@ -122,6 +123,7 @@ fun InviteStaffScreen(
                 getString(
                     when (message) {
                         InviteStaffMessage.CREATE_FAILED -> Res.string.msg_invite_create_failed
+                        InviteStaffMessage.NO_ROOM_ON_PLAN -> Res.string.msg_invite_no_room
                         InviteStaffMessage.EMAIL_SENT -> Res.string.msg_invite_email_sent
                         InviteStaffMessage.EMAIL_NOT_SENT -> Res.string.msg_invite_email_not_sent
                         InviteStaffMessage.SEND_FAILED -> Res.string.msg_invite_send_failed

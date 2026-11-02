@@ -106,6 +106,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import squadify.app.shared.generated.resources.stats_not_in_plan_body
+import squadify.app.shared.generated.resources.stats_not_in_plan_title
 
 /**
  * Full stats: every player's stats in one table, for a team (only the players who played for it) or a
@@ -196,6 +198,12 @@ private fun FullStatsContent(
                 action = stringResource(Res.string.btn_retry) to onRetry,
                 filledAction = true,
                 error = true
+            )
+            FullStatsUiState.NotInPlan -> CenteredMessage(
+                modifier,
+                title = stringResource(Res.string.stats_not_in_plan_title),
+                body = stringResource(Res.string.stats_not_in_plan_body),
+                action = null
             )
             is FullStatsUiState.Loaded -> BoxWithConstraints(modifier) {
                 // The side panel is only for a phone lying down, where the filters on top would leave the
@@ -706,7 +714,7 @@ private fun ExplainSheet(onDismiss: () -> Unit) {
 // ---- States ----
 
 @Composable
-private fun CenteredMessage(modifier: Modifier, title: String, body: String, action: Pair<String, () -> Unit>, filledAction: Boolean = false, error: Boolean = false) {
+private fun CenteredMessage(modifier: Modifier, title: String, body: String, action: Pair<String, () -> Unit>?, filledAction: Boolean = false, error: Boolean = false) {
     Column(modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         val tint = if (error) AlertRed else PitchGreen
         Box(Modifier.size(56.dp).background(tint.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
@@ -717,6 +725,7 @@ private fun CenteredMessage(modifier: Modifier, title: String, body: String, act
         Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, textAlign = TextAlign.Center)
         Spacer(Modifier.height(4.dp))
         Text(body, style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.7f), textAlign = TextAlign.Center, modifier = Modifier.widthIn(max = 300.dp))
+        if (action == null) return@Column
         Spacer(Modifier.height(14.dp))
         if (filledAction) {
             Button(onClick = action.second, shape = RoundedCornerShape(20.dp), colors = ButtonDefaults.buttonColors(containerColor = ClubChrome, contentColor = Color.White)) { Text(action.first) }
@@ -839,3 +848,7 @@ private fun FullStatsLoadingPreview() = PreviewFullStats(FullStatsUiState.Loadin
 @Preview
 @Composable
 private fun FullStatsErrorPreview() = PreviewFullStats(FullStatsUiState.Error)
+
+@Preview
+@Composable
+private fun FullStatsNotInPlanPreview() = PreviewFullStats(FullStatsUiState.NotInPlan)

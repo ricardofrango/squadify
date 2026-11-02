@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.exception
 
+import com.ricardofrango.squadify.model.PLAN_LIMIT_CODE
+
 open class SquadifyException(
     override val message: String,
     val code: String
@@ -28,8 +30,6 @@ class ValidationException(message: String) :
  * an error. The clubs server never throws it. */
 class PlanLimitException(message: String) :
     SquadifyException(message, PLAN_LIMIT_CODE)
-
-const val PLAN_LIMIT_CODE = "PLAN_001"
 
 /** A path/body value that should be a UUID (an entity id) isn't one -- e.g. a stale client holding a
  * deleted resource's id, a typo'd URL, or a malformed request. Distinct from [ValidationException] so

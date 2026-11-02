@@ -25,6 +25,7 @@
     <string name="coach_home_add_age_group">+ Add age group</string>
     <string name="coach_home_create_age_group">Create age group</string>
     <string name="coach_home_join">Join with a code</string>
+    <string name="coach_home_locked">Locked on the %1$s plan, kept until the plan allows it</string>
     <string name="coach_menu_account">Account</string>
     <string name="coach_home_born">Born %1$s · %2$s</string>
     <string name="coach_home_empty_title">No age groups yet</string>
@@ -41,6 +42,7 @@
     <string name="msg_join_not_found">There's no such code. Check it and try again.</string>
     <string name="msg_join_expired">This code has expired. Ask for a new one.</string>
     <string name="msg_join_used">This code was already used, or you're already on its age group.</string>
+    <string name="msg_join_no_room">This age group has no room for you on its plan. Ask its owner.</string>
     <string name="msg_join_failed">Couldn't join. Check your connection and try again.</string>
 
     <!-- Inviting staff to an age group -->
@@ -59,6 +61,7 @@
     <string name="msg_invite_copied">Code copied</string>
     <string name="msg_invite_withdrawn">Code withdrawn</string>
     <string name="msg_invite_create_failed">Couldn't create a code. Try again.</string>
+    <string name="msg_invite_no_room">Your plan has no room for more staff on this age group.</string>
     <string name="msg_invite_withdraw_failed">Couldn't withdraw the code. Try again.</string>
     <string name="msg_invites_failed">Couldn't load the codes.</string>
     <string name="invite_email_title">Send a code by email</string>

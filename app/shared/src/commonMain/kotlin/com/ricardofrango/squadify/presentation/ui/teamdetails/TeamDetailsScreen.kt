@@ -69,6 +69,8 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Instant
+import squadify.app.shared.generated.resources.stats_not_in_plan_body
+import squadify.app.shared.generated.resources.stats_not_in_plan_title
 
 private val CardShape = RoundedCornerShape(16.dp)
 
@@ -461,6 +463,12 @@ private fun PlayersTab(
                 }
             }
 
+            TeamRecordUiState.NotInPlan -> item {
+                StatsCard(contentPadding = 16.dp) {
+                    StatsMessage(stringResource(Res.string.stats_not_in_plan_title), stringResource(Res.string.stats_not_in_plan_body))
+                }
+            }
+
             is TeamRecordUiState.Loaded -> {
                 val record = recordState.record
                 if (record.matches.isEmpty()) {
@@ -651,6 +659,11 @@ private fun TeamDetailsPlayersMemberPreview() =
 @Composable
 private fun TeamDetailsPlayersErrorPreview() =
     TeamPreview(sampleDetails(populated = true, canManage = true), TeamRecordUiState.Error, TeamTab.PLAYERS)
+
+@Preview
+@Composable
+private fun TeamDetailsPlayersNotInPlanPreview() =
+    TeamPreview(sampleDetails(populated = true, canManage = true), TeamRecordUiState.NotInPlan, TeamTab.PLAYERS)
 
 @Preview
 @Composable

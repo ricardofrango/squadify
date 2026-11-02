@@ -71,6 +71,8 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.*
+import squadify.app.shared.generated.resources.stats_not_in_plan_body
+import squadify.app.shared.generated.resources.stats_not_in_plan_title
 
 private val DayMonth = LocalDate.Format { day(Padding.NONE); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED) }
 
@@ -108,6 +110,11 @@ internal fun PlayerSeasonStatsCard(
                 stringResource(Res.string.stats_load_failed_body),
                 onRetry = onRetry
             )
+        }
+
+        SeasonStatsUiState.NotInPlan -> StatsCard(contentPadding = 16.dp) {
+            StatsHeading(title, Modifier.padding(bottom = 12.dp))
+            StatsMessage(stringResource(Res.string.stats_not_in_plan_title), stringResource(Res.string.stats_not_in_plan_body))
         }
 
         is SeasonStatsUiState.Loaded -> {

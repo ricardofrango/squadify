@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createagegroups
 
+import com.ricardofrango.squadify.data.remote.isNotInPlan
 import com.ricardofrango.squadify.domain.SeasonDateDefaults
 import com.ricardofrango.squadify.domain.config.AppFeatures
 import kotlinx.datetime.TimeZone
@@ -18,6 +19,7 @@ import com.ricardofrango.squadify.presentation.errorMessage
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.msg_age_group_conflict
 import squadify.app.shared.generated.resources.msg_age_group_conflict_rows
+import squadify.app.shared.generated.resources.msg_age_groups_not_in_plan
 import squadify.app.shared.generated.resources.msg_create_age_groups_failed
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -106,6 +108,8 @@ class CreateAgeGroupsViewModel(
                 val message = when {
                     rows.isNotEmpty() -> getString(Res.string.msg_age_group_conflict_rows, rows.joinToString(", ") { (it + 1).toString() })
                     e is ApiException && e.statusCode == 409 -> getString(Res.string.msg_age_group_conflict)
+                    // The coach app's plans: no room for more age groups this season.
+                    e.isNotInPlan -> getString(Res.string.msg_age_groups_not_in_plan)
                     else -> errorMessage(e, Res.string.msg_create_age_groups_failed)
                 }
                 _state.update { current.copy(isSubmitting = false, error = message, conflictRows = rows.toSet()) }

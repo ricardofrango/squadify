@@ -25,6 +25,7 @@
     <string name="coach_home_add_age_group">+ Adicionar escalão</string>
     <string name="coach_home_create_age_group">Criar escalão</string>
     <string name="coach_home_join">Entrar com um código</string>
+    <string name="coach_home_locked">Bloqueado no plano %1$s, guardado até o plano o permitir</string>
     <string name="coach_menu_account">Conta</string>
     <string name="coach_home_born">Nascidos em %1$s · %2$s</string>
     <string name="coach_home_empty_title">Ainda não tens escalões</string>
@@ -41,6 +42,7 @@
     <string name="msg_join_not_found">Esse código não existe. Confirma-o e tenta outra vez.</string>
     <string name="msg_join_expired">Este código expirou. Pede um novo.</string>
     <string name="msg_join_used">Este código já foi usado, ou já estás no escalão dele.</string>
+    <string name="msg_join_no_room">Este escalão não tem lugar para ti no plano. Fala com o dono.</string>
     <string name="msg_join_failed">Não foi possível entrar. Verifica a ligação e tenta outra vez.</string>
 
     <!-- Inviting staff to an age group -->
@@ -59,6 +61,7 @@
     <string name="msg_invite_copied">Código copiado</string>
     <string name="msg_invite_withdrawn">Código retirado</string>
     <string name="msg_invite_create_failed">Não foi possível criar um código. Tenta outra vez.</string>
+    <string name="msg_invite_no_room">O teu plano não tem lugar para mais staff neste escalão.</string>
     <string name="msg_invite_withdraw_failed">Não foi possível retirar o código. Tenta outra vez.</string>
     <string name="msg_invites_failed">Não foi possível carregar os códigos.</string>
     <string name="invite_email_title">Enviar um código por email</string>

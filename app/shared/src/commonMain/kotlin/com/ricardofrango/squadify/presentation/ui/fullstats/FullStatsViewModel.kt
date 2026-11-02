@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.ui.fullstats
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ricardofrango.squadify.data.remote.isNotInPlan
 import com.ricardofrango.squadify.domain.repository.UiPreferencesRepository
 import com.ricardofrango.squadify.domain.usecase.GetFullStatsUseCase
 import com.ricardofrango.squadify.model.FullStatsColumn
@@ -45,6 +46,8 @@ internal fun Set<FullStatsColumn>.toStored(): String = sortedBy { it.ordinal }.j
 sealed class FullStatsUiState {
     data object Loading : FullStatsUiState()
     data object Error : FullStatsUiState()
+    // Not on the space's plan (the coach app's Free plan).
+    data object NotInPlan : FullStatsUiState()
 
     data class Loaded(
         val data: FullStatsData,
@@ -108,7 +111,7 @@ class FullStatsViewModel(
                         today = Clock.System.todayIn(TimeZone.currentSystemDefault())
                     )
                 } catch (e: Exception) {
-                    previous ?: FullStatsUiState.Error
+                    if (e.isNotInPlan) FullStatsUiState.NotInPlan else previous ?: FullStatsUiState.Error
                 }
             }
         }

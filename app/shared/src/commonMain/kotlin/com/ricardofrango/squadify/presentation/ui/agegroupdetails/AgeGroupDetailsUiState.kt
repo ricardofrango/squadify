@@ -63,5 +63,7 @@ sealed class AgeGroupSessionsUiState {
 sealed class AgeGroupRecordUiState {
     data object Loading : AgeGroupRecordUiState()
     data object Error : AgeGroupRecordUiState()
+    // Not on the space's plan (the coach app's Free plan).
+    data object NotInPlan : AgeGroupRecordUiState()
     data class Loaded(val record: AgeGroupSeasonRecord, val filter: StatsFilter = StatsFilter.ALL) : AgeGroupRecordUiState()
 }

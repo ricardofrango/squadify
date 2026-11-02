@@ -8,6 +8,7 @@ import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubStatus
 import com.ricardofrango.squadify.model.SpaceAgeGroups
+import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.presentation.navigation.Screen
 import kotlinx.coroutines.test.runTest
@@ -28,6 +29,20 @@ class CoachHomeTest {
 
     private val mine = space("mine", "Fontelas FC")
     private val anas = space("anas", "Ana's team")
+
+    @Test
+    fun anAgeGroupOverThePlanIsListedLocked() {
+        val state = CoachHomeUiState.Loaded.of(
+            listOf(
+                SpaceAgeGroups(
+                    mine, isOwner = true, ageGroups = listOf(ageGroup("sub11", "mine", 2016), ageGroup("sub13", "mine", 2014)),
+                    plan = SpacePlan.FREE, lockedAgeGroupIds = listOf("sub13")
+                )
+            )
+        )
+        assertEquals(listOf("sub11" to false, "sub13" to true), state.ageGroups.map { it.ageGroup.id to it.locked })
+        assertTrue(state.ageGroups.all { it.plan == SpacePlan.FREE })
+    }
 
     @Test
     fun theOwnSpacesAgeGroupsComeFirstEachYoungestFirst() {
