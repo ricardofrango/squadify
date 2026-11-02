@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
 import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
@@ -69,8 +70,6 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.*
 import kotlin.math.roundToInt
-import squadify.app.shared.generated.resources.stats_not_in_plan_body
-import squadify.app.shared.generated.resources.stats_not_in_plan_title
 
 // A finished match on Match Details (TECHNICAL_DECISIONS.md §66): tabs in the bottom bar instead of
 // the call-up. The staff (the report's readers) get General (the report and the details), Stats (each
@@ -157,7 +156,7 @@ private fun StatsTab(state: MatchDetailsUiState.Idle, modifier: Modifier) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item { SectionHeader(stringResource(Res.string.md_players), first = true) }
             if (!details.statsInPlan) {
-                item { StatsMessage(stringResource(Res.string.stats_not_in_plan_title), stringResource(Res.string.stats_not_in_plan_body)) }
+                item { StatsNotInPlanMessage() }
             } else if (rows.isEmpty()) {
                 item { Text(stringResource(Res.string.md_no_stats), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
             } else {

@@ -4,11 +4,23 @@ import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.CreateStaffInviteRequest
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
+import com.ricardofrango.squadify.model.SpacePlan
+import kotlinx.coroutines.flow.MutableStateFlow
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.StaffInvite
 
-class GetSpacesUseCase(private val spaceRepository: SpaceRepository) {
-    suspend operator fun invoke(): List<SpaceAgeGroups> = spaceRepository.getSpaces()
+/** Every space the coach is in; each load also keeps [OwnSpacePlan] up to date. */
+class GetSpacesUseCase(private val spaceRepository: SpaceRepository, private val ownSpacePlan: OwnSpacePlan) {
+    suspend operator fun invoke(): List<SpaceAgeGroups> =
+        spaceRepository.getSpaces().also { spaces -> ownSpacePlan.plan.value = spaces.firstOrNull { it.isOwner }?.plan }
+}
+
+/**
+ * The plan of the space the coach owns, as last loaded (null: they own none, or nothing loaded yet). It
+ * decides whether a "not in your plan" message offers See plans: only to the owner of a Free space.
+ */
+class OwnSpacePlan {
+    val plan = MutableStateFlow<SpacePlan?>(null)
 }
 
 class SetUpSpaceUseCase(private val spaceRepository: SpaceRepository) {

@@ -115,6 +115,9 @@ class CoachPlansTest {
         // Down to Free: the first age group stays, the owner alone on it.
         api.setPlan(spaceId, SpacePlan.FREE)
         assertEquals(setOf(sub14, sub16), spaces(owner).lockedAgeGroupIds.toSet())
+        // The Plan card's count is every age group this season, locked ones included; staff get none.
+        assertEquals(3, spaces(owner).ageGroupsThisSeason)
+        assertEquals(0, spaces(first).ageGroupsThisSeason)
         assertEquals(HttpStatusCode.OK, details(owner, sub12).status)
         assertTrue(details(owner, sub14).isPlanLimit())
         assertTrue(details(first, sub12).isPlanLimit())

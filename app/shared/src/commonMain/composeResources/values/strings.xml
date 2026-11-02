@@ -650,6 +650,8 @@
     <string name="stats_load_failed_body">Check your connection and try again.</string>
     <string name="stats_not_in_plan_title">Stats come with Basic</string>
     <string name="stats_not_in_plan_body">On the Free plan you have the live game, the calendar and the history. The Basic and Pro plans add the stats.</string>
+    <string name="stats_not_in_plan_ask_owner">The space owner can change the plan to unlock the stats.</string>
+    <string name="btn_see_plans">See plans</string>
     <string name="stats_season">Season</string>
     <string name="stats_close">Close</string>
     <string name="record_season_record">Season record</string>

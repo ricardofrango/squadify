@@ -648,6 +648,8 @@
     <string name="stats_load_failed_body">Verifique a ligação e tente novamente.</string>
     <string name="stats_not_in_plan_title">As estatísticas vêm com o plano Basic</string>
     <string name="stats_not_in_plan_body">No plano Free tem o jogo em direto, o calendário e o histórico. Os planos Basic e Pro juntam as estatísticas.</string>
+    <string name="stats_not_in_plan_ask_owner">O dono do espaço pode mudar o plano para desbloquear as estatísticas.</string>
+    <string name="btn_see_plans">Ver planos</string>
     <string name="stats_season">Época</string>
     <string name="stats_close">Fechar</string>
     <string name="record_season_record">Época</string>

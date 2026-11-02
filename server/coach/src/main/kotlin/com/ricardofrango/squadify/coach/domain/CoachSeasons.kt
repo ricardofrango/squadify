@@ -19,10 +19,9 @@ class CoachSeasons(
     private val today: () -> LocalDate = { Clock.System.todayIn(TimeZone.UTC) }
 ) {
     /** The space's season running today. Call inside a transaction. */
-    suspend fun current(clubId: String): Season {
-        val (start, end) = datesAround(today())
-        return seasonRepository.findByDetails(clubId, SeasonType.EUROPEAN_YEAR, start, end)
-            ?: seasonRepository.createSeason(
+    suspend fun current(clubId: String): Season =
+        currentOrNull(clubId) ?: datesAround(today()).let { (start, end) ->
+            seasonRepository.createSeason(
                 Season(
                     id = Uuid.random().toString(),
                     clubId = clubId,
@@ -33,6 +32,12 @@ class CoachSeasons(
                     active = true
                 )
             )
+        }
+
+    /** The space's season running today, if it has one yet (none before its first age group of the season). */
+    suspend fun currentOrNull(clubId: String): Season? {
+        val (start, end) = datesAround(today())
+        return seasonRepository.findByDetails(clubId, SeasonType.EUROPEAN_YEAR, start, end)
     }
 
     companion object {

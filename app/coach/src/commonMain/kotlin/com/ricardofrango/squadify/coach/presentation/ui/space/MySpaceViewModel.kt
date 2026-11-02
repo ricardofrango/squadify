@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
 import com.ricardofrango.squadify.domain.usecase.DeleteClubLogoUseCase
 import com.ricardofrango.squadify.domain.usecase.UploadClubLogoUseCase
 import com.ricardofrango.squadify.model.Club
+import com.ricardofrango.squadify.model.SpacePlan
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -22,16 +23,21 @@ sealed class MySpaceUiState {
     data object Loading : MySpaceUiState()
     data object Failed : MySpaceUiState()
 
-    /** The owner's space; [isUpdatingLogo] while a logo is being saved or removed. */
+    /**
+     * The owner's space, with its [plan] and [ageGroupsThisSeason] for the Plan card; [isUpdatingLogo]
+     * while a logo is being saved or removed.
+     */
     data class Loaded(
         val space: Club,
+        val plan: SpacePlan = SpacePlan.FREE,
+        val ageGroupsThisSeason: Int = 0,
         val isUpdatingLogo: Boolean = false,
         val logoProblem: LogoProblem? = null
     ) : MySpaceUiState()
 }
 
 /**
- * The owner's own space (the ☰ menu's My space): its logo, saved straight away as in the clubs app's
+ * The owner's own space (the ☰ menu's My space): its plan, and its logo, saved straight away as in the clubs app's
  * Club settings. A space is a club on the coach server, so the logo is the club's (`/clubs/{id}/logo`).
  */
 class MySpaceViewModel(
@@ -54,7 +60,7 @@ class MySpaceViewModel(
         viewModelScope.launch {
             _state.value = MySpaceUiState.Loading
             _state.value = try {
-                getSpacesUseCase().firstOrNull { it.isOwner }?.let { MySpaceUiState.Loaded(it.space) } ?: MySpaceUiState.Failed
+                getSpacesUseCase().firstOrNull { it.isOwner }?.let { MySpaceUiState.Loaded(it.space, it.plan, it.ageGroupsThisSeason) } ?: MySpaceUiState.Failed
             } catch (e: Exception) {
                 MySpaceUiState.Failed
             }

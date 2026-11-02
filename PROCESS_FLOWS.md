@@ -2833,7 +2833,7 @@ graph TD
 
 All in one transaction, so a refused setup creates nothing. Being staff in other spaces doesn't count.
 
-`GET /v1/spaces` (`GetSpacesUseCase`) returns every space the coach is in from `ClubRepository.getMemberships`, their own first, each as `SpaceAgeGroups` with `isOwner` and their age groups there: all of their own space's, only the ones with a staff row in the others. An empty list before they set up or join one.
+`GET /v1/spaces` (`GetSpacesUseCase`) returns every space the coach is in from `ClubRepository.getMemberships`, their own first, each as `SpaceAgeGroups` with `isOwner` and their age groups there: all of their own space's, only the ones with a staff row in the others, the space's `plan` and the ones it locks (`lockedAgeGroupIds`), and for their own space `ageGroupsThisSeason` (its age groups in today's season, from `CoachSeasons.currentOrNull`, which creates none; 0 for staff). An empty list before they set up or join one.
 
 ### 13.3 Games on the coach server
 

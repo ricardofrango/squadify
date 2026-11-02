@@ -202,7 +202,7 @@ val coachModule = module {
     factory<AccessPolicy> { CoachAccessPolicy(get(), get(), get(), get(), get()) }
     factory { CoachSeasons(get()) }
     factory { SetUpSpaceUseCase(get(), get(), get(), get(), get()) }
-    factory { GetSpacesUseCase(get(), get(), get(), get()) }
+    factory { GetSpacesUseCase(get(), get(), get(), get(), get()) }
 
     // Staff: invite codes for an age group, and taking someone off one.
     single<StaffInviteRepository> { ExposedStaffInviteRepository() }

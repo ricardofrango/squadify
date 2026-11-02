@@ -109,4 +109,30 @@
     <string name="my_space_title">O meu clube ou equipa</string>
     <string name="my_space_logo_intro">O teu logótipo aparece nos teus escalões, nos teus jogos, no jogo ao vivo e nas notificações.</string>
     <string name="msg_my_space_failed">Não foi possível carregar o teu clube ou equipa. Verifica a ligação e tenta outra vez.</string>
+    <!-- Plans: My Space's Plan card and the Plans screen (REQUIREMENTS §5c) -->
+    <string name="plan_card_title">Plano</string>
+    <string name="plan_card_this_season">Esta época</string>
+    <string name="plan_age_groups_of">Escalões: %1$d de %2$d</string>
+    <string name="plan_age_groups_no_limit">Escalões: %1$d</string>
+    <string name="plan_people_just_you">Pessoas por escalão: só tu</string>
+    <string name="plan_people_up_to">Pessoas por escalão: até %1$d, incluindo tu</string>
+    <string name="plan_people_no_limit">Pessoas por escalão: sem limite</string>
+    <string name="btn_see_plans_row">Ver planos</string>
+    <string name="plans_title">Planos</string>
+    <string name="plans_your_plan">O teu plano</string>
+    <string name="plans_intro_free">Incluído em todos os espaços</string>
+    <string name="plans_intro_basic">Tudo o que está no Free, mais:</string>
+    <string name="plans_intro_pro">Tudo o que está no Basic, mais:</string>
+    <string name="plans_free_live_game">Gravação de jogos ao vivo</string>
+    <string name="plans_free_calendar">Calendário</string>
+    <string name="plans_free_history">Histórico de jogos</string>
+    <string name="plans_free_age_groups">1 escalão por época</string>
+    <string name="plans_free_people">Só tu</string>
+    <string name="plans_basic_stats">Estatísticas: escalão, equipa, jogador, estatísticas completas e de jogo</string>
+    <string name="plans_basic_live_scores">Resultados ao vivo no separador Jogos do escalão</string>
+    <string name="plans_basic_age_groups">3 escalões por época</string>
+    <string name="plans_basic_people">Até 3 pessoas por escalão, incluindo tu</string>
+    <string name="plans_pro_training">Treino (em breve)</string>
+    <string name="plans_pro_age_groups">Sem limite de escalões</string>
+    <string name="plans_pro_people">Sem limite de pessoas por escalão</string>
 </resources>

@@ -25,6 +25,10 @@ import com.ricardofrango.squadify.coach.presentation.ui.home.CoachHomeScreen
 import com.ricardofrango.squadify.coach.presentation.ui.invite.InviteStaffScreen
 import com.ricardofrango.squadify.coach.presentation.ui.join.JoinWithCodeScreen
 import com.ricardofrango.squadify.coach.presentation.ui.space.MySpaceScreen
+import com.ricardofrango.squadify.coach.presentation.ui.plans.PlansScreen
+import com.ricardofrango.squadify.coach.domain.OwnSpacePlan
+import com.ricardofrango.squadify.model.SpacePlan
+import com.ricardofrango.squadify.presentation.ui.components.LocalSeePlans
 import com.ricardofrango.squadify.coach.presentation.ui.spacesetup.SpaceSetupScreen
 import com.ricardofrango.squadify.domain.service.SessionEventBus
 import com.ricardofrango.squadify.presentation.navigation.AppNavigator
@@ -96,7 +100,14 @@ fun CoachNavigation(navigator: AppNavigator = rememberAppNavigator()) {
             slideOutHorizontally(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { it }
     val fade: ContentTransform = fadeIn(tween(NAV_ANIM_MS)) togetherWith fadeOut(tween(NAV_ANIM_MS))
 
-    CompositionLocalProvider(LocalViewModelStoreOwner provides parentOwner) {
+    // A "not in your plan" message offers See plans to the owner of a Free space (the only plan that
+    // locks stats); staff are told the owner can change it.
+    val ownPlan by koinInject<OwnSpacePlan>().plan.collectAsStateWithLifecycle()
+    val seePlans: (() -> Unit)? = if (ownPlan == SpacePlan.FREE) {
+        { navigator.navigate(Screen.Plans(SpacePlan.FREE.name)) }
+    } else null
+
+    CompositionLocalProvider(LocalViewModelStoreOwner provides parentOwner, LocalSeePlans provides seePlans) {
         NavDisplay(
             backStack = navigator.backStack,
             onBack = { navigator.popBackStack() },
@@ -169,7 +180,16 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
     screen<Screen.MySpace> {
         MySpaceScreen(
             onNavigateBack = { navigator.popBackStack() },
-            onLogoChanged = { navigator.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true) }
+            onLogoChanged = { navigator.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true) },
+            onSeePlans = { plan -> navigator.navigate(Screen.Plans(plan.name)) }
+        )
+    }
+
+    screen<Screen.Plans> { entry ->
+        val screen: Screen.Plans = entry.toRoute()
+        PlansScreen(
+            plan = SpacePlan.entries.firstOrNull { it.name == screen.plan } ?: SpacePlan.FREE,
+            onNavigateBack = { navigator.popBackStack() }
         )
     }
 

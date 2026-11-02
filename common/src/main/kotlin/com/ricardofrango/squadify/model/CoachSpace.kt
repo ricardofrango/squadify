@@ -61,6 +61,22 @@ data class CreateStaffInviteRequest(val email: String? = null, val language: Str
 @Serializable
 enum class SpacePlan { FREE, BASIC, PRO }
 
+/** Age groups a season on this plan; null: no limit. The coach server enforces it, the app shows it. */
+val SpacePlan.ageGroupLimit: Int?
+    get() = when (this) {
+        SpacePlan.FREE -> 1
+        SpacePlan.BASIC -> 3
+        SpacePlan.PRO -> null
+    }
+
+/** People on one age group on this plan, the owner included; null: no limit. */
+val SpacePlan.peoplePerAgeGroupLimit: Int?
+    get() = when (this) {
+        SpacePlan.FREE -> 1
+        SpacePlan.BASIC -> 3
+        SpacePlan.PRO -> null
+    }
+
 /** A space in the platform admin's list (`GET /v1/admin/spaces`, the coach server): its owner and plan. */
 @Serializable
 data class AdminSpace(val id: String, val name: String, val ownerEmail: String?, val plan: SpacePlan)
@@ -81,7 +97,10 @@ data class SpaceAgeGroups(
     val plan: SpacePlan = SpacePlan.FREE,
     // Of [ageGroups], the ones the plan locks for this coach: over the space's limit, or with them over
     // the age group's people limit. Listed, but not opened.
-    val lockedAgeGroupIds: List<String> = emptyList()
+    val lockedAgeGroupIds: List<String> = emptyList(),
+    // The owner's: how many age groups the space has this season, against the plan's limit (My Space's
+    // Plan card). 0 for staff.
+    val ageGroupsThisSeason: Int = 0
 )
 
 /** A space the signed-in coach belongs to, and whether they own it. */

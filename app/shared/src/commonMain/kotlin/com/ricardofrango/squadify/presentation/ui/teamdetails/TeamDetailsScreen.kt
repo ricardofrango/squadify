@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import androidx.compose.runtime.remember
 import org.jetbrains.compose.resources.getString
 import squadify.app.shared.generated.resources.msg_refresh_failed
@@ -69,8 +70,6 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Instant
-import squadify.app.shared.generated.resources.stats_not_in_plan_body
-import squadify.app.shared.generated.resources.stats_not_in_plan_title
 
 private val CardShape = RoundedCornerShape(16.dp)
 
@@ -465,7 +464,7 @@ private fun PlayersTab(
 
             TeamRecordUiState.NotInPlan -> item {
                 StatsCard(contentPadding = 16.dp) {
-                    StatsMessage(stringResource(Res.string.stats_not_in_plan_title), stringResource(Res.string.stats_not_in_plan_body))
+                    StatsNotInPlanMessage()
                 }
             }
 

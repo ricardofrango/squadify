@@ -109,4 +109,30 @@
     <string name="my_space_title">My club or team</string>
     <string name="my_space_logo_intro">Your logo shows on your age groups, your games, the live game and notifications.</string>
     <string name="msg_my_space_failed">Couldn't load your club or team. Check your connection and try again.</string>
+    <!-- Plans: My Space's Plan card and the Plans screen (REQUIREMENTS §5c) -->
+    <string name="plan_card_title">Plan</string>
+    <string name="plan_card_this_season">This season</string>
+    <string name="plan_age_groups_of">Age groups: %1$d of %2$d</string>
+    <string name="plan_age_groups_no_limit">Age groups: %1$d</string>
+    <string name="plan_people_just_you">People per age group: just you</string>
+    <string name="plan_people_up_to">People per age group: up to %1$d, you included</string>
+    <string name="plan_people_no_limit">People per age group: no limit</string>
+    <string name="btn_see_plans_row">See plans</string>
+    <string name="plans_title">Plans</string>
+    <string name="plans_your_plan">Your plan</string>
+    <string name="plans_intro_free">Included in every space</string>
+    <string name="plans_intro_basic">Everything in Free, plus:</string>
+    <string name="plans_intro_pro">Everything in Basic, plus:</string>
+    <string name="plans_free_live_game">Live game recording</string>
+    <string name="plans_free_calendar">Calendar</string>
+    <string name="plans_free_history">Match history</string>
+    <string name="plans_free_age_groups">1 age group a season</string>
+    <string name="plans_free_people">Only you</string>
+    <string name="plans_basic_stats">Stats: age group, team, player, full stats and match stats</string>
+    <string name="plans_basic_live_scores">Live scores in the age group's Matches tab</string>
+    <string name="plans_basic_age_groups">3 age groups a season</string>
+    <string name="plans_basic_people">Up to 3 people per age group, you included</string>
+    <string name="plans_pro_training">Training (coming soon)</string>
+    <string name="plans_pro_age_groups">No limit on age groups</string>
+    <string name="plans_pro_people">No limit on people per age group</string>
 </resources>

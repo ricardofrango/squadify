@@ -1,6 +1,27 @@
 package com.ricardofrango.squadify.coach.presentation.ui.space
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.Color
+import com.ricardofrango.squadify.coach.presentation.ui.home.displayName
+import com.ricardofrango.squadify.model.SpacePlan
+import com.ricardofrango.squadify.model.ageGroupLimit
+import com.ricardofrango.squadify.model.peoplePerAgeGroupLimit
+import com.ricardofrango.squadify.presentation.ui.theme.AmberText
+import com.ricardofrango.squadify.presentation.ui.theme.DeepGreen
+import com.ricardofrango.squadify.presentation.ui.theme.SectionBorderColor
+import squadify.app.coach.generated.resources.btn_see_plans_row
+import squadify.app.coach.generated.resources.plan_age_groups_no_limit
+import squadify.app.coach.generated.resources.plan_age_groups_of
+import squadify.app.coach.generated.resources.plan_card_this_season
+import squadify.app.coach.generated.resources.plan_card_title
+import squadify.app.coach.generated.resources.plan_people_just_you
+import squadify.app.coach.generated.resources.plan_people_no_limit
+import squadify.app.coach.generated.resources.plan_people_up_to
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -71,11 +92,13 @@ import squadify.app.shared.generated.resources.Res as SharedRes
 /**
  * The owner's own space, from the ☰ menu: its name and sport, and its logo with "Add logo" / "Change
  * logo" and "Remove", saved straight away. [onLogoChanged] runs each time it changes, so Home reloads.
+ * Under it, the Plan card: the plan, this season's age groups against its limit, and See plans.
  */
 @Composable
 fun MySpaceScreen(
     onNavigateBack: () -> Unit,
     onLogoChanged: () -> Unit,
+    onSeePlans: (SpacePlan) -> Unit,
     viewModel: MySpaceViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
@@ -85,6 +108,7 @@ fun MySpaceScreen(
         onLogoPicked = viewModel::onLogoPicked,
         onRemoveLogo = viewModel::onRemoveLogo,
         onRetry = viewModel::load,
+        onSeePlans = onSeePlans,
         onNavigateBack = onNavigateBack
     )
 }
@@ -95,6 +119,7 @@ private fun MySpaceContent(
     onLogoPicked: (ByteArray) -> Unit,
     onRemoveLogo: () -> Unit,
     onRetry: () -> Unit,
+    onSeePlans: (SpacePlan) -> Unit,
     onNavigateBack: () -> Unit
 ) {
     Scaffold(
@@ -126,6 +151,7 @@ private fun MySpaceContent(
             ) {
                 SectionCard { SpaceLogoHeader(uiState, onLogoPicked, onRemoveLogo) }
                 Text(stringResource(Res.string.my_space_logo_intro), style = MaterialTheme.typography.bodySmall, color = CarbonGray)
+                PlanCard(uiState.plan, uiState.ageGroupsThisSeason, onSeePlans = { onSeePlans(uiState.plan) })
             }
         }
     }
@@ -186,6 +212,71 @@ private fun SpaceLogoHeader(state: MySpaceUiState.Loaded, onLogoPicked: (ByteArr
     }
 }
 
+/**
+ * The space's plan as a badge, this season's age groups against its limit (in amber once it's reached)
+ * and how many people an age group can have, then See plans.
+ */
+@Composable
+private fun PlanCard(plan: SpacePlan, ageGroupsThisSeason: Int, onSeePlans: () -> Unit) {
+    SectionCard(contentPadding = PaddingValues(0.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(Res.string.plan_card_title),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = DeepCarbon,
+                    modifier = Modifier.weight(1f)
+                )
+                val (badge, onBadge) = when (plan) {
+                    SpacePlan.FREE -> CarbonGray.copy(alpha = 0.08f) to CarbonGray
+                    SpacePlan.BASIC -> PitchGreen.copy(alpha = 0.12f) to DeepGreen
+                    SpacePlan.PRO -> PitchGreen to Color.White
+                }
+                Surface(shape = RoundedCornerShape(13.dp), color = badge) {
+                    Text(
+                        plan.displayName,
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = onBadge,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    )
+                }
+            }
+            Text(stringResource(Res.string.plan_card_this_season), style = MaterialTheme.typography.bodySmall, color = CarbonGray.copy(alpha = 0.7f))
+            val ageGroupLimit = plan.ageGroupLimit
+            val full = ageGroupLimit != null && ageGroupsThisSeason >= ageGroupLimit
+            Text(
+                if (ageGroupLimit == null) stringResource(Res.string.plan_age_groups_no_limit, ageGroupsThisSeason)
+                else stringResource(Res.string.plan_age_groups_of, ageGroupsThisSeason, ageGroupLimit),
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (full) FontWeight.Medium else FontWeight.Normal),
+                color = if (full) AmberText else DeepCarbon
+            )
+            val people = plan.peoplePerAgeGroupLimit
+            Text(
+                when {
+                    people == null -> stringResource(Res.string.plan_people_no_limit)
+                    people <= 1 -> stringResource(Res.string.plan_people_just_you)
+                    else -> stringResource(Res.string.plan_people_up_to, people)
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = DeepCarbon
+            )
+        }
+        HorizontalDivider(color = SectionBorderColor)
+        Row(
+            Modifier.fillMaxWidth().clickable(onClick = onSeePlans).heightIn(min = 48.dp).padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                stringResource(Res.string.btn_see_plans_row),
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                color = PitchGreen,
+                modifier = Modifier.weight(1f)
+            )
+            Text("›", style = MaterialTheme.typography.titleLarge, color = CarbonGray.copy(alpha = 0.5f))
+        }
+    }
+}
+
 /** A space's logo, or its short name / first letter until it has one, as on the clubs app's My clubs. */
 @Composable
 fun SpaceLogo(space: Club, size: Dp) {
@@ -205,7 +296,7 @@ private val previewSpace = Club(id = "space-1", name = "Fontelas FC", status = C
 @Composable
 private fun MySpacePreview() {
     SquadifyTheme {
-        MySpaceContent(MySpaceUiState.Loaded(previewSpace), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onNavigateBack = {})
+        MySpaceContent(MySpaceUiState.Loaded(previewSpace, ageGroupsThisSeason = 1), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
     }
 }
 
@@ -213,7 +304,15 @@ private fun MySpacePreview() {
 @Composable
 private fun MySpaceLandscapePreview() {
     SquadifyTheme {
-        MySpaceContent(MySpaceUiState.Loaded(previewSpace), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onNavigateBack = {})
+        MySpaceContent(MySpaceUiState.Loaded(previewSpace), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+    }
+}
+
+@Preview
+@Composable
+private fun MySpaceBasicPreview() {
+    SquadifyTheme {
+        MySpaceContent(MySpaceUiState.Loaded(previewSpace, SpacePlan.BASIC, ageGroupsThisSeason = 2), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
     }
 }
 
@@ -221,7 +320,7 @@ private fun MySpaceLandscapePreview() {
 @Composable
 private fun MySpaceProblemPreview() {
     SquadifyTheme {
-        MySpaceContent(MySpaceUiState.Loaded(previewSpace, logoProblem = LogoProblem.TOO_BIG), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onNavigateBack = {})
+        MySpaceContent(MySpaceUiState.Loaded(previewSpace, logoProblem = LogoProblem.TOO_BIG), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
     }
 }
 
@@ -229,6 +328,6 @@ private fun MySpaceProblemPreview() {
 @Composable
 private fun MySpaceFailedPreview() {
     SquadifyTheme {
-        MySpaceContent(MySpaceUiState.Failed, onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onNavigateBack = {})
+        MySpaceContent(MySpaceUiState.Failed, onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
     }
 }

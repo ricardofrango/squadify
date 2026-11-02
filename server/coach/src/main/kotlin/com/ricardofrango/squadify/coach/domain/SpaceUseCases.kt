@@ -86,13 +86,14 @@ class SetUpSpaceUseCase(
 /**
  * Every space the coach is in, their own first, each with the age groups they have there: all of their
  * own space's, and the ones they're staff on in the others, with the space's plan and which of them it
- * locks. Empty before they set up or join one.
+ * locks, and for their own how many age groups it has this season. Empty before they set up or join one.
  */
 class GetSpacesUseCase(
     private val clubRepository: ClubRepository,
     private val ageGroupRepository: AgeGroupRepository,
     private val transactionManager: TransactionManager,
-    private val plans: CoachPlans
+    private val plans: CoachPlans,
+    private val coachSeasons: CoachSeasons
 ) {
     suspend operator fun invoke(userId: String): List<SpaceAgeGroups> = transactionManager.runInTransaction {
         clubRepository.getMemberships(userId)
@@ -104,7 +105,8 @@ class GetSpacesUseCase(
                 val plan = plans.planOf(space.id)
                 val lockedAgeGroups = plans.lockedAgeGroups(space.id, plan)
                 val locked = ageGroups.filter { it.id in lockedAgeGroups || (!isOwner && userId in plans.lockedStaff(it.id, plan)) }
-                SpaceAgeGroups(space, isOwner, ageGroups, plan, locked.map { it.id })
+                val thisSeason = if (isOwner) coachSeasons.currentOrNull(space.id)?.let { season -> ageGroups.count { it.seasonId == season.id } } ?: 0 else 0
+                SpaceAgeGroups(space, isOwner, ageGroups, plan, locked.map { it.id }, thisSeason)
             }
     }
 }

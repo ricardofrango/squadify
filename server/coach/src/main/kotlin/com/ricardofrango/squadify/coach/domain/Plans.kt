@@ -3,22 +3,16 @@ package com.ricardofrango.squadify.coach.domain
 import com.ricardofrango.squadify.coach.data.SpacePlanRepository
 import com.ricardofrango.squadify.exception.PlanLimitException
 import com.ricardofrango.squadify.model.SpacePlan
+import com.ricardofrango.squadify.model.ageGroupLimit
+import com.ricardofrango.squadify.model.peoplePerAgeGroupLimit
 
-/** What each plan allows (REQUIREMENTS §5c). Pro's training comes with training on the coach server. */
+/** What each plan allows (REQUIREMENTS §5c), the limits from `common`. Pro's training comes with training on the coach server. */
 object PlanLimits {
     /** Age groups a season; null: no limit. */
-    fun ageGroups(plan: SpacePlan): Int? = when (plan) {
-        SpacePlan.FREE -> 1
-        SpacePlan.BASIC -> 3
-        SpacePlan.PRO -> null
-    }
+    fun ageGroups(plan: SpacePlan): Int? = plan.ageGroupLimit
 
     /** People on one age group, the owner included; null: no limit. */
-    fun peoplePerAgeGroup(plan: SpacePlan): Int? = when (plan) {
-        SpacePlan.FREE -> 1
-        SpacePlan.BASIC -> 3
-        SpacePlan.PRO -> null
-    }
+    fun peoplePerAgeGroup(plan: SpacePlan): Int? = plan.peoplePerAgeGroupLimit
 
     fun stats(plan: SpacePlan): Boolean = plan != SpacePlan.FREE
 }
