@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import squadify.app.shared.generated.resources.msg_refresh_failed
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.ricardofrango.squadify.presentation.ui.components.useNavigationRail
 import com.ricardofrango.squadify.presentation.ui.components.SectionBorder
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
@@ -250,15 +254,29 @@ private fun ClubDetailsTabContent(
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         when (selectedTab) {
-            CLUB_TAB_HOME -> HomeTab(
-                home = state.home,
-                onRetry = { actions.loadClubDetails(clubId, forceReload = true) },
-                onNavigateToAgeGroup = onNavigateToAgeGroup,
-                onNavigateToMatch = onNavigateToMatch,
-                clubLogoUrl = state.details?.club?.logoUrl,
-                onEditPlan = onNavigateToEditPlan,
-                onRateSession = onNavigateToRateSession
-            )
+            CLUB_TAB_HOME -> Box(Modifier.fillMaxSize()) {
+                // Pull-to-refresh: the tab stays under the small indicator; a failure is a snackbar.
+                val snackbarHostState = remember { SnackbarHostState() }
+                val refreshFailedText = stringResource(Res.string.msg_refresh_failed)
+                LaunchedEffect(state.homeRefreshFailed) {
+                    if (state.homeRefreshFailed) {
+                        actions.onHomeRefreshFailedShown()
+                        snackbarHostState.showSnackbar(refreshFailedText)
+                    }
+                }
+                PullToRefreshBox(isRefreshing = state.isRefreshingHome, onRefresh = { actions.refreshHome(clubId) }, modifier = Modifier.fillMaxSize()) {
+                    HomeTab(
+                        home = state.home,
+                        onRetry = { actions.loadClubDetails(clubId, forceReload = true) },
+                        onNavigateToAgeGroup = onNavigateToAgeGroup,
+                        onNavigateToMatch = onNavigateToMatch,
+                        clubLogoUrl = state.details?.club?.logoUrl,
+                        onEditPlan = onNavigateToEditPlan,
+                        onRateSession = onNavigateToRateSession
+                    )
+                }
+                SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
+            }
 
             CLUB_TAB_TEAMS -> {
                 TeamFilterSection(state = state, actions = actions)
@@ -993,6 +1011,8 @@ private object PreviewClubDetailsActions : ClubDetailsActions {
     override fun connectToClubMatchesUpdates(clubId: String) {}
     override fun disconnectFromClubMatchesUpdates() {}
     override fun refreshMatches(clubId: String) {}
+    override fun refreshHome(clubId: String) {}
+    override fun onHomeRefreshFailedShown() {}
     override fun loadMoreMatches() {}
 }
 

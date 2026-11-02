@@ -35,6 +35,9 @@ import kotlinx.coroutines.launch
  */
 interface ClubDetailsActions {
     fun loadClubDetails(clubId: String, forceReload: Boolean = false)
+    // Pull-to-refresh on Home, and the failure message once it's been shown.
+    fun refreshHome(clubId: String)
+    fun onHomeRefreshFailedShown()
     fun loadMoreAccount()
     fun logout(onLoggedOut: () -> Unit)
     fun onTabSelected(index: Int)
@@ -169,6 +172,29 @@ class ClubDetailsViewModel(
             }
         }
     }
+
+    /**
+     * Pull-to-refresh on Home: its figures, Next up and Needs you again, with the tab left as it is
+     * (no full-screen spinner). A failure keeps what's shown and says so once.
+     */
+    override fun refreshHome(clubId: String) {
+        val current = _state.value as? ClubDetailsUiState.Idle ?: return
+        if (current.isRefreshingHome) return
+        viewModelScope.launch {
+            _state.update { (it as? ClubDetailsUiState.Idle)?.copy(isRefreshingHome = true, homeRefreshFailed = false) ?: it }
+            try {
+                val home = getClubHomeUseCase(clubId)
+                _state.update { (it as? ClubDetailsUiState.Idle)?.copy(home = home, isRefreshingHome = false) ?: it }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { (it as? ClubDetailsUiState.Idle)?.copy(isRefreshingHome = false, homeRefreshFailed = true) ?: it }
+            }
+        }
+    }
+
+    override fun onHomeRefreshFailedShown() =
+        _state.update { (it as? ClubDetailsUiState.Idle)?.copy(homeRefreshFailed = false) ?: it }
 
     // Where the Matches tab is in its lists for the current filters, and the page load under way.
     private var matchesCursor: MatchesCursor? = null
