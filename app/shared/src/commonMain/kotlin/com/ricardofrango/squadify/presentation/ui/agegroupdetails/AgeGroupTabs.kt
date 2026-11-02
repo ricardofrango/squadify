@@ -603,7 +603,9 @@ internal fun AgeGroupMembersTab(
     // Null without ASSIGN_PLAYERS_TO_AGE_GROUP: no ✕ on the player rows.
     onRemovePlayer: ((String) -> Unit)? = null,
     // The coach app's owner: a delete button on each staff row, after a confirmation.
-    onRemoveStaff: ((String) -> Unit)? = null
+    onRemoveStaff: ((String) -> Unit)? = null,
+    // The coach app's owner, who brings staff in with invite codes (canAddStaff is off there).
+    invitesStaff: Boolean = false
 ) {
     var confirmRemove by remember { mutableStateOf<Player?>(null) }
     var confirmRemoveStaff by remember { mutableStateOf<AgeGroupStaffMember?>(null) }
@@ -621,7 +623,7 @@ internal fun AgeGroupMembersTab(
     val disabledCount = details.players.count { !it.active }
     // The coach app's owner, with no room for more staff on the space's plan: why, and See plans.
     val ownPlan = ownPlanFor(details.club.id)
-    val noRoomOnPlan = details.canAddStaff && ownPlan != null && !ownPlan.hasRoomForStaff(details.staff.size)
+    val noRoomOnPlan = (details.canAddStaff || invitesStaff) && ownPlan != null && !ownPlan.hasRoomForStaff(details.staff.size)
 
     LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         // ---- Staff ----

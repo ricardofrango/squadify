@@ -189,7 +189,7 @@ private fun InviteStaffContent(
         },
         bottomBar = {
             val loaded = uiState as? InviteStaffUiState.Loaded
-            if (loaded != null) {
+            if (loaded != null && loaded.fullOnPlan == null) {
                 PinnedBottomBar {
                     PrimaryLoadingButton(
                         text = Res.string.btn_invite_create,
@@ -219,10 +219,12 @@ private fun InviteStaffContent(
                 contentPadding = ScreenPadding.Values,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                item { FormIntro(stringResource(Res.string.invite_intro, ageGroupName)) }
+                // No room on the plan: only the plan's box, until it changes.
                 uiState.fullOnPlan?.let { plan ->
                     item { CompositionLocalProvider(LocalSeePlans provides { onSeePlans(plan) }) { StaffNotInPlanNotice(plan) } }
+                    return@LazyColumn
                 }
+                item { FormIntro(stringResource(Res.string.invite_intro, ageGroupName)) }
                 item { EmailInviteCard(uiState, onEmailChange, onSend) }
                 item {
                     Text(
@@ -276,7 +278,7 @@ private fun EmailInviteCard(state: InviteStaffUiState.Loaded, onEmailChange: (St
             value = state.email,
             onValueChange = onEmailChange,
             label = stringResource(Res.string.label_invite_email),
-            enabled = !state.isSending && state.fullOnPlan == null,
+            enabled = !state.isSending,
             keyboardType = KeyboardType.Email,
             isError = state.isEmailInvalid,
             supporting = stringResource(if (state.isEmailInvalid) Res.string.error_invite_email_invalid else Res.string.invite_email_hint),

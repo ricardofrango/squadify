@@ -360,7 +360,8 @@ private fun AgeGroupDetailsContent(
                                     onOpenStaff = if (d.canAddStaff) { userId -> onStaffClick(d, userId) } else null,
                                     // The same permission as adding players to the pool.
                                     onRemovePlayer = if (d.canAssignPlayersToAgeGroup) onRemovePlayer else null,
-                                    onRemoveStaff = if (uiState.invitesStaff) onRemoveStaff else null
+                                    onRemoveStaff = if (uiState.invitesStaff) onRemoveStaff else null,
+                                    invitesStaff = uiState.invitesStaff
                                 )
                             }
                         }
