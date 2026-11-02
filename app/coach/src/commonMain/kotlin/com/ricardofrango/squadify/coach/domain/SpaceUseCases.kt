@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.coach.domain
 
 import com.ricardofrango.squadify.model.CoachSpace
+import com.ricardofrango.squadify.model.CreateStaffInviteRequest
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
 import com.ricardofrango.squadify.model.SpaceSetup
@@ -22,8 +23,10 @@ class GetStaffInvitesUseCase(private val staffInviteRepository: StaffInviteRepos
     suspend operator fun invoke(ageGroupId: String): List<StaffInvite> = staffInviteRepository.getInvites(ageGroupId)
 }
 
+/** A code to share by hand, or with an [email] also sent there, in [language] (the app's, "en" or "pt"). */
 class CreateStaffInviteUseCase(private val staffInviteRepository: StaffInviteRepository) {
-    suspend operator fun invoke(ageGroupId: String): StaffInvite = staffInviteRepository.createInvite(ageGroupId)
+    suspend operator fun invoke(ageGroupId: String, email: String? = null, language: String? = null): StaffInvite =
+        staffInviteRepository.createInvite(ageGroupId, CreateStaffInviteRequest(email?.trim(), language))
 }
 
 class RevokeStaffInviteUseCase(private val staffInviteRepository: StaffInviteRepository) {

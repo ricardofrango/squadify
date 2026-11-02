@@ -55,5 +55,7 @@ tasks.test {
     environment("DATABASE_NAME", testDatabase)
     // Their images, on disk under build/ rather than the dev server's uploads/.
     environment("LOCAL_IMAGE_DIR", layout.buildDirectory.dir("test-uploads").get().asFile.path)
+    // No emails from the tests, even with a key in the shell: an emailed invite then fails to send.
+    environment("RESEND_API_KEY", "")
     finalizedBy(dropTestDatabase)
 }

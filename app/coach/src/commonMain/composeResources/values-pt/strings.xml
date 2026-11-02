@@ -61,6 +61,16 @@
     <string name="msg_invite_create_failed">Não foi possível criar um código. Tenta outra vez.</string>
     <string name="msg_invite_withdraw_failed">Não foi possível retirar o código. Tenta outra vez.</string>
     <string name="msg_invites_failed">Não foi possível carregar os códigos.</string>
+    <string name="invite_email_title">Enviar um código por email</string>
+    <string name="label_invite_email">Endereço de email</string>
+    <string name="invite_email_hint">Recebe um código novo e como entrar com ele.</string>
+    <string name="btn_invite_send">Enviar</string>
+    <string name="btn_invite_sending">A enviar…</string>
+    <string name="error_invite_email_invalid">Este endereço de email não é válido.</string>
+    <string name="invite_sent_to">Enviado para %1$s</string>
+    <string name="msg_invite_email_sent">Código enviado por email</string>
+    <string name="msg_invite_email_not_sent">Não foi possível enviar o email. Tenta mais tarde, ou cria um código e partilha-o.</string>
+    <string name="msg_invite_send_failed">Não foi possível enviar o convite. Tenta outra vez.</string>
 
     <!-- Deleting the account -->
     <string name="delete_account_title">Eliminar conta</string>

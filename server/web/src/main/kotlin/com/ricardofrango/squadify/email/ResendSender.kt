@@ -21,16 +21,17 @@ import org.slf4j.LoggerFactory
  * ("Squadify <…>", "Squadify Coach <…>") and writes its own texts.
  *
  * Never throws: an email is a best-effort notice, so a missing key only logs and skips, and a failed
- * send is logged.
+ * send is logged. Returns whether Resend took it, for a caller that tells the user (a coach's emailed
+ * invite); the others ignore it.
  */
 class ResendSender(private val apiKey: String, private val fromAddress: String) {
     private val logger = LoggerFactory.getLogger(javaClass)
     private val client = HttpClient(CIO)
 
-    suspend fun send(to: String, subject: String, html: String) {
+    suspend fun send(to: String, subject: String, html: String): Boolean {
         if (apiKey.isBlank()) {
             logger.warn("RESEND_API_KEY not set -- skipping email to {} ({})", to, subject)
-            return
+            return false
         }
         try {
             val body = buildJsonObject {
@@ -46,9 +47,12 @@ class ResendSender(private val apiKey: String, private val fromAddress: String) 
             }
             if (!response.status.isSuccess()) {
                 logger.error("Resend send to {} failed: {} {}", to, response.status, response.bodyAsText())
+                return false
             }
+            return true
         } catch (e: Exception) {
             logger.error("Resend send to {} threw", to, e)
+            return false
         }
     }
 }

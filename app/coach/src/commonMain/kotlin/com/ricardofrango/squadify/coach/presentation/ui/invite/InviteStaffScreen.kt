@@ -30,6 +30,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,6 +41,7 @@ import com.ricardofrango.squadify.coach.presentation.share.TextSharing
 import com.ricardofrango.squadify.coach.presentation.share.rememberTextSharing
 import com.ricardofrango.squadify.model.StaffInvite
 import com.ricardofrango.squadify.presentation.ui.components.FormIntro
+import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.PinnedBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
@@ -62,17 +66,27 @@ import squadify.app.coach.generated.resources.Res
 import squadify.app.coach.generated.resources.btn_invite_copy
 import squadify.app.coach.generated.resources.btn_invite_create
 import squadify.app.coach.generated.resources.btn_invite_creating
+import squadify.app.coach.generated.resources.btn_invite_send
+import squadify.app.coach.generated.resources.btn_invite_sending
 import squadify.app.coach.generated.resources.btn_invite_share
 import squadify.app.coach.generated.resources.btn_invite_withdraw
+import squadify.app.coach.generated.resources.error_invite_email_invalid
 import squadify.app.coach.generated.resources.ic_copy
 import squadify.app.coach.generated.resources.ic_share
+import squadify.app.coach.generated.resources.invite_email_hint
+import squadify.app.coach.generated.resources.invite_email_title
 import squadify.app.coach.generated.resources.invite_intro
 import squadify.app.coach.generated.resources.invite_none
+import squadify.app.coach.generated.resources.invite_sent_to
 import squadify.app.coach.generated.resources.invite_share_text
 import squadify.app.coach.generated.resources.invite_valid_until
 import squadify.app.coach.generated.resources.invite_waiting
+import squadify.app.coach.generated.resources.label_invite_email
 import squadify.app.coach.generated.resources.msg_invite_copied
 import squadify.app.coach.generated.resources.msg_invite_create_failed
+import squadify.app.coach.generated.resources.msg_invite_email_not_sent
+import squadify.app.coach.generated.resources.msg_invite_email_sent
+import squadify.app.coach.generated.resources.msg_invite_send_failed
 import squadify.app.coach.generated.resources.msg_invite_withdraw_failed
 import squadify.app.coach.generated.resources.msg_invite_withdrawn
 import squadify.app.coach.generated.resources.msg_invites_failed
@@ -86,8 +100,8 @@ import squadify.app.shared.generated.resources.Res as SharedRes
 
 /**
  * The owner's invite codes for one age group (REQUIREMENTS §5c), from Age Group Details' ⋮: create a code,
- * share it through the phone's share menu or copy it, and withdraw one not used yet. Whoever enters a code
- * in the app joins the age group as staff.
+ * share it through the phone's share menu or copy it, or have one emailed (in the app's language), and
+ * withdraw one not used yet. Whoever enters a code in the app joins the age group as staff.
  */
 @Composable
 fun InviteStaffScreen(
@@ -108,6 +122,9 @@ fun InviteStaffScreen(
                 getString(
                     when (message) {
                         InviteStaffMessage.CREATE_FAILED -> Res.string.msg_invite_create_failed
+                        InviteStaffMessage.EMAIL_SENT -> Res.string.msg_invite_email_sent
+                        InviteStaffMessage.EMAIL_NOT_SENT -> Res.string.msg_invite_email_not_sent
+                        InviteStaffMessage.SEND_FAILED -> Res.string.msg_invite_send_failed
                         InviteStaffMessage.WITHDRAWN -> Res.string.msg_invite_withdrawn
                         InviteStaffMessage.WITHDRAW_FAILED -> Res.string.msg_invite_withdraw_failed
                     }
@@ -127,6 +144,8 @@ fun InviteStaffScreen(
         sharing = sharing,
         onCopied = { copied++ },
         onCreate = { viewModel.onCreateClicked(ageGroupId) },
+        onEmailChange = viewModel::onEmailChanged,
+        onSend = { viewModel.onSendClicked(ageGroupId, Locale.current.language) },
         onWithdraw = { code -> viewModel.onWithdrawConfirmed(ageGroupId, code) },
         onRetry = { viewModel.load(ageGroupId) },
         onNavigateBack = onNavigateBack
@@ -142,6 +161,8 @@ private fun InviteStaffContent(
     sharing: TextSharing?,
     onCopied: () -> Unit,
     onCreate: () -> Unit,
+    onEmailChange: (String) -> Unit,
+    onSend: () -> Unit,
     onWithdraw: (code: String) -> Unit,
     onRetry: () -> Unit,
     onNavigateBack: () -> Unit
@@ -165,7 +186,8 @@ private fun InviteStaffContent(
                         text = Res.string.btn_invite_create,
                         submittingText = Res.string.btn_invite_creating,
                         isLoading = loaded.isCreating,
-                        onClick = onCreate
+                        onClick = onCreate,
+                        enabled = !loaded.isSending
                     )
                 }
             }
@@ -189,6 +211,7 @@ private fun InviteStaffContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item { FormIntro(stringResource(Res.string.invite_intro, ageGroupName)) }
+                item { EmailInviteCard(uiState, onEmailChange, onSend) }
                 item {
                     Text(
                         stringResource(Res.string.invite_waiting, uiState.invites.size).uppercase(),
@@ -234,6 +257,34 @@ private fun InviteStaffContent(
 }
 
 @Composable
+private fun EmailInviteCard(state: InviteStaffUiState.Loaded, onEmailChange: (String) -> Unit, onSend: () -> Unit) {
+    SectionCard(spacing = 8.dp) {
+        Text(stringResource(Res.string.invite_email_title), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
+        FormTextField(
+            value = state.email,
+            onValueChange = onEmailChange,
+            label = stringResource(Res.string.label_invite_email),
+            enabled = !state.isSending,
+            keyboardType = KeyboardType.Email,
+            isError = state.isEmailInvalid,
+            supporting = stringResource(if (state.isEmailInvalid) Res.string.error_invite_email_invalid else Res.string.invite_email_hint),
+            imeAction = ImeAction.Send,
+            onImeAction = onSend
+        )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+            if (state.isSending) CircularProgressIndicator(color = PitchGreen, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+            TextButton(onClick = onSend, enabled = state.canSend) {
+                Text(
+                    stringResource(if (state.isSending) Res.string.btn_invite_sending else Res.string.btn_invite_send),
+                    color = if (state.canSend) PitchGreen else CarbonGray,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun InviteCard(invite: StaffInvite, validUntil: String, onShare: () -> Unit, onCopy: () -> Unit, onWithdraw: () -> Unit) {
     SectionCard(spacing = 4.dp) {
         Text(
@@ -242,6 +293,7 @@ private fun InviteCard(invite: StaffInvite, validUntil: String, onShare: () -> U
             color = DeepCarbon
         )
         Text(stringResource(Res.string.invite_valid_until, validUntil), style = MaterialTheme.typography.bodySmall, color = CarbonGray)
+        invite.email?.let { Text(stringResource(Res.string.invite_sent_to, it), style = MaterialTheme.typography.bodySmall, color = CarbonGray) }
         Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             CardAction(Res.drawable.ic_share, stringResource(Res.string.btn_invite_share), PitchGreen, onShare)
             CardAction(Res.drawable.ic_copy, stringResource(Res.string.btn_invite_copy), PitchGreen, onCopy)
@@ -269,7 +321,7 @@ private fun dayMonth(instant: Instant): String {
 }
 
 private val previewInvites = listOf(
-    StaffInvite("K7Q-4MZ", "ag-1", "Sub 11", Instant.fromEpochMilliseconds(1_790_000_000_000), Instant.fromEpochMilliseconds(1_790_604_800_000)),
+    StaffInvite("K7Q-4MZ", "ag-1", "Sub 11", Instant.fromEpochMilliseconds(1_790_000_000_000), Instant.fromEpochMilliseconds(1_790_604_800_000), email = "joao@example.com"),
     StaffInvite("P3X-9HD", "ag-1", "Sub 11", Instant.fromEpochMilliseconds(1_789_900_000_000), Instant.fromEpochMilliseconds(1_790_504_800_000))
 )
 
@@ -278,7 +330,7 @@ private fun InvitePreview(state: InviteStaffUiState) {
     SquadifyTheme {
         InviteStaffContent(
             uiState = state, ageGroupName = "Sub 11", spaceName = "Fontelas FC", snackbarHostState = remember { SnackbarHostState() },
-            sharing = null, onCopied = {}, onCreate = {}, onWithdraw = {}, onRetry = {}, onNavigateBack = {}
+            sharing = null, onCopied = {}, onCreate = {}, onEmailChange = {}, onSend = {}, onWithdraw = {}, onRetry = {}, onNavigateBack = {}
         )
     }
 }
@@ -290,6 +342,10 @@ private fun InviteStaffPreview() = InvitePreview(InviteStaffUiState.Loaded(previ
 @Preview(widthDp = 900, heightDp = 480)
 @Composable
 private fun InviteStaffLandscapePreview() = InvitePreview(InviteStaffUiState.Loaded(previewInvites))
+
+@Preview
+@Composable
+private fun InviteStaffInvalidEmailPreview() = InvitePreview(InviteStaffUiState.Loaded(previewInvites, email = "joao@example", isEmailInvalid = true))
 
 @Preview
 @Composable

@@ -5,6 +5,7 @@ import com.ricardofrango.squadify.coach.data.CoachEmailService
 import com.ricardofrango.squadify.coach.data.ExposedAccountDeletionRepository
 import com.ricardofrango.squadify.coach.domain.DeleteAccountUseCase
 import com.ricardofrango.squadify.coach.domain.GetAccountDeletionSummaryUseCase
+import com.ricardofrango.squadify.coach.domain.StaffInviteMailer
 import com.ricardofrango.squadify.data.repository.ExposedEmailChangeRepository
 import com.ricardofrango.squadify.data.repository.ExposedPasswordResetRepository
 import com.ricardofrango.squadify.domain.repository.EmailChangeRepository
@@ -167,7 +168,9 @@ val coachModule = module {
 
     // The account (accountRoutes, shared with the clubs server): profile, password, email change and
     // Forgot password, with the coach's own emails. The profile photo is in imageRoutes.
-    single<EmailService> { CoachEmailService() }
+    single { CoachEmailService() }
+    single<EmailService> { get<CoachEmailService>() }
+    single<StaffInviteMailer> { get<CoachEmailService>() }
     single<PasswordResetRepository> { ExposedPasswordResetRepository() }
     single<EmailChangeRepository> { ExposedEmailChangeRepository() }
     factory { CurrentPasswordGuard(get(), get()) }
@@ -191,7 +194,7 @@ val coachModule = module {
 
     // Staff: invite codes for an age group, and taking someone off one.
     single<StaffInviteRepository> { ExposedStaffInviteRepository() }
-    factory { CreateStaffInviteUseCase(get(), get(), get(), get()) }
+    factory { CreateStaffInviteUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { GetStaffInvitesUseCase(get(), get(), get(), get()) }
     factory { RevokeStaffInviteUseCase(get(), get(), get(), get()) }
     factory { AcceptStaffInviteUseCase(get(), get(), get(), get(), get(), get(), get()) }

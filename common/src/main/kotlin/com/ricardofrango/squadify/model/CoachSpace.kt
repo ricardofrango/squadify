@@ -40,8 +40,17 @@ data class StaffInvite(
     val ageGroupId: String,
     val ageGroupName: String,
     val createdAt: Instant,
-    val expiresAt: Instant
+    val expiresAt: Instant,
+    // The address the code was emailed to; null when it was made to share by hand.
+    val email: String? = null
 )
+
+/**
+ * `POST /v1/age-groups/{id}/invites`: with no [email], a code to share by hand, as before; with one, the
+ * code is also emailed there, in [language] ("en" or "pt", the owner's app language; English otherwise).
+ */
+@Serializable
+data class CreateStaffInviteRequest(val email: String? = null, val language: String? = null)
 
 /**
  * One space the signed-in coach is in, with the age groups they have there: every one in the space they

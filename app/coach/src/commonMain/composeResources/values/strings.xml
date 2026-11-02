@@ -61,6 +61,16 @@
     <string name="msg_invite_create_failed">Couldn't create a code. Try again.</string>
     <string name="msg_invite_withdraw_failed">Couldn't withdraw the code. Try again.</string>
     <string name="msg_invites_failed">Couldn't load the codes.</string>
+    <string name="invite_email_title">Send a code by email</string>
+    <string name="label_invite_email">Email address</string>
+    <string name="invite_email_hint">They get a new code and how to join with it.</string>
+    <string name="btn_invite_send">Send</string>
+    <string name="btn_invite_sending">Sending…</string>
+    <string name="error_invite_email_invalid">That email address isn't valid.</string>
+    <string name="invite_sent_to">Sent to %1$s</string>
+    <string name="msg_invite_email_sent">Code sent by email</string>
+    <string name="msg_invite_email_not_sent">Couldn't send the email. Try again later, or create a code and share it.</string>
+    <string name="msg_invite_send_failed">Couldn't send the invite. Try again.</string>
 
     <!-- Deleting the account -->
     <string name="delete_account_title">Delete account</string>

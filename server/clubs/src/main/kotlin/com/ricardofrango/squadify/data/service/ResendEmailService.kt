@@ -88,5 +88,7 @@ class ResendEmailService : EmailService {
         )
     }
 
-    private suspend fun send(to: String, subject: String, html: String) = sender.send(to, subject, html)
+    private suspend fun send(to: String, subject: String, html: String) {
+        sender.send(to, subject, html)
+    }
 }

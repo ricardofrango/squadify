@@ -16,11 +16,13 @@ import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.AgeGroupStaff
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.CoachSpace
+import com.ricardofrango.squadify.model.CreateStaffInviteRequest
 import com.ricardofrango.squadify.model.StaffInvite
 import com.ricardofrango.squadify.domain.repository.FcmTokenRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.model.PushLink
+import kotlin.time.Instant
 import org.slf4j.LoggerFactory
 import java.security.SecureRandom
 import kotlin.time.Clock
@@ -47,30 +49,84 @@ object InviteCodes {
 }
 
 private fun StoredStaffInvite.toModel(ageGroup: AgeGroup) =
-    StaffInvite(InviteCodes.display(code), ageGroup.id, ageGroup.name, createdAt, expiresAt)
+    StaffInvite(InviteCodes.display(code), ageGroup.id, ageGroup.name, createdAt, expiresAt, email = sentTo)
 
 private suspend fun AgeGroupRepository.ageGroupOrNotFound(id: String) =
     getAgeGroupById(id) ?: throw NotFoundException("Age group not found")
 
-/** The owner creates a code for one age group, valid for [validity]. */
+/** What an emailed invite says: who invites, to which age group of which space, and the code. */
+data class StaffInviteEmail(
+    val ownerName: String,
+    val ageGroupName: String,
+    val spaceName: String,
+    val code: String,
+    val expiresAt: Instant,
+    // "pt" for Portuguese; anything else is English.
+    val language: String?
+)
+
+/** Sends an invite code by email (CoachEmailService); whether it went. */
+interface StaffInviteMailer {
+    suspend fun sendStaffInvite(to: String, email: StaffInviteEmail): Boolean
+}
+
+/**
+ * The owner creates a code for one age group, valid for [validity]. With an email address, the code is
+ * also emailed there, in the owner's app language, and shown with the address. At most
+ * [dailyEmails] a day per owner, so the app can't be used to send mail in bulk. If the email can't be
+ * sent, the code is withdrawn again and the owner is told (a 400).
+ */
 class CreateStaffInviteUseCase(
     private val invites: StaffInviteRepository,
     private val ageGroupRepository: AgeGroupRepository,
     private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager,
+    private val userRepository: UserRepository,
+    private val clubRepository: ClubRepository,
+    private val mailer: StaffInviteMailer,
     private val clock: Clock = Clock.System,
-    private val validity: Duration = 7.days
+    private val validity: Duration = 7.days,
+    private val dailyEmails: Int = DAILY_EMAILED_INVITES
 ) {
-    suspend operator fun invoke(userId: String, ageGroupId: String): StaffInvite = transactionManager.runInTransaction {
-        val ageGroup = ageGroupRepository.ageGroupOrNotFound(ageGroupId)
-        accessPolicy.requireManageStaff(userId, GameScope(ageGroup.clubId, ageGroupId = ageGroupId))
-        // 31^6 codes: a clash is rare, but never reuse one.
-        val code = generateSequence { InviteCodes.generate() }.take(10).firstOrNull { invites.findByCode(it) == null }
-            ?: throw ConflictException("Couldn't create an invite code, try again")
-        val now = clock.now()
-        val invite = StoredStaffInvite(newInviteId(), code, ageGroupId, userId, now, now + validity, acceptedBy = null)
-        invites.create(invite)
-        invite.toModel(ageGroup)
+    suspend operator fun invoke(userId: String, ageGroupId: String, request: CreateStaffInviteRequest = CreateStaffInviteRequest()): StaffInvite {
+        val email = request.email?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }
+        if (email != null && !EMAIL.matches(email)) throw ValidationException("That email address isn't valid")
+        val (invite, letter) = transactionManager.runInTransaction {
+            val ageGroup = ageGroupRepository.ageGroupOrNotFound(ageGroupId)
+            accessPolicy.requireManageStaff(userId, GameScope(ageGroup.clubId, ageGroupId = ageGroupId))
+            val now = clock.now()
+            if (email != null && invites.countEmailedSince(userId, now - 1.days) >= dailyEmails) {
+                throw ValidationException("Too many invites emailed today; share the code instead")
+            }
+            // 31^6 codes: a clash is rare, but never reuse one.
+            val code = generateSequence { InviteCodes.generate() }.take(10).firstOrNull { invites.findByCode(it) == null }
+                ?: throw ConflictException("Couldn't create an invite code, try again")
+            val stored = StoredStaffInvite(newInviteId(), code, ageGroupId, userId, now, now + validity, acceptedBy = null, sentTo = email)
+            invites.create(stored)
+            val letter = email?.let {
+                val owner = userRepository.findById(userId)
+                StaffInviteEmail(
+                    ownerName = owner?.let { o -> "${o.firstName} ${o.lastName}".trim() }.orEmpty(),
+                    ageGroupName = ageGroup.name,
+                    spaceName = clubRepository.getClubById(ageGroup.clubId)?.name.orEmpty(),
+                    code = InviteCodes.display(code),
+                    expiresAt = stored.expiresAt,
+                    language = request.language
+                )
+            }
+            stored.toModel(ageGroup) to letter
+        }
+        // Sent once the code is stored; a code whose email didn't go is withdrawn, not left unknown.
+        if (email != null && letter != null && !mailer.sendStaffInvite(email, letter)) {
+            transactionManager.runInTransaction { invites.revoke(ageGroupId, InviteCodes.normalize(invite.code)) }
+            throw ValidationException("Couldn't send the invite email")
+        }
+        return invite
+    }
+
+    companion object {
+        const val DAILY_EMAILED_INVITES = 20
+        private val EMAIL = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
     }
 }
 
