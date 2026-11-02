@@ -1,0 +1,9 @@
+TEAM_ID=
+
+PRODUCT_NAME=SquadifyCoach
+// The same as the Android app (com.ricardofrango.squadify.coach); Debug and Staging add .dev and .stg in
+// the target's settings, so all three install side by side, as on Android.
+PRODUCT_BUNDLE_IDENTIFIER=com.ricardofrango.squadify.coach
+
+CURRENT_PROJECT_VERSION=1
+MARKETING_VERSION=1.0

@@ -5,7 +5,7 @@ This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop (JVM
 
 * [/app/clubs](./app/clubs/src) is Squadify for Clubs: its navigation, Koin setup, iOS entry and the screens only clubs have (TECHNICAL_DECISIONS.md §72). Every clubs entry point (Android, iOS, web, desktop) starts it.
 
-* [/app/coach](./app/coach/src) is Squadify for Coaches: its navigation, Koin setup, strings and the screens only the coach app has (the home with every age group, setting up their own space, joining with a code, inviting staff). [/app/coachAndroidApp](./app/coachAndroidApp) is its Android app.
+* [/app/coach](./app/coach/src) is Squadify for Coaches: its navigation, Koin setup, strings and the screens only the coach app has (the home with every age group, setting up their own space, joining with a code, inviting staff). [/app/coachAndroidApp](./app/coachAndroidApp) is its Android app, [/app/coachIosApp](./app/coachIosApp) its iOS app.
 
 * [/app/shared](./app/shared/src) is for code that will be shared across your Compose Multiplatform applications.
   It contains several subfolders:
@@ -40,6 +40,7 @@ Use the run configurations provided by the run widget in your IDE's toolbar. You
   - Wasm target (faster, modern browsers): `./gradlew :app:webApp:wasmJsBrowserDevelopmentRun`
   - JS target (slower, supports older browsers): `./gradlew :app:webApp:jsBrowserDevelopmentRun`
 - iOS app: open the [/app/iosApp](./app/iosApp) directory in Xcode and run it from there.
+- Coach iOS app: open [/app/coachIosApp](./app/coachIosApp) in Xcode and run the `coachIosApp` scheme. Debug talks to the coach server on this machine (port 8090); pick the Staging configuration in the scheme for coach-server on Railway staging.
 
 ### Running tests
 
