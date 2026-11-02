@@ -652,6 +652,13 @@
     <string name="stats_not_in_plan_body">On the Free plan you have the live game, the calendar and the history. The Basic and Pro plans add the stats.</string>
     <string name="stats_not_in_plan_ask_owner">The space owner can change the plan to unlock the stats.</string>
     <string name="btn_see_plans">See plans</string>
+    <string name="staff_not_in_plan_free_title">Staff come with Basic</string>
+    <string name="staff_not_in_plan_free_body">On Free the age group is the owner's alone. Basic lets %1$d more people join each age group, and Pro has no limit.</string>
+    <string name="staff_not_in_plan_full_title">This age group is full on %1$s</string>
+    <string name="staff_not_in_plan_full_body">%1$s has up to %2$d people per age group, the owner included. Pro has no limit.</string>
+    <string name="age_groups_not_in_plan_title">No more age groups this season on %1$s</string>
+    <string name="age_groups_not_in_plan_free_body">Free has 1 age group a season. Basic has %1$d and Pro has no limit.</string>
+    <string name="age_groups_not_in_plan_body">%1$s has %2$d age groups a season. Pro has no limit.</string>
     <string name="stats_season">Season</string>
     <string name="stats_close">Close</string>
     <string name="record_season_record">Season record</string>

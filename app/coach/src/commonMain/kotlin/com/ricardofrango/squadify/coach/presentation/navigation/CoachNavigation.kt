@@ -28,6 +28,7 @@ import com.ricardofrango.squadify.coach.presentation.ui.space.MySpaceScreen
 import com.ricardofrango.squadify.coach.presentation.ui.plans.PlansScreen
 import com.ricardofrango.squadify.coach.domain.OwnSpacePlan
 import com.ricardofrango.squadify.model.SpacePlan
+import com.ricardofrango.squadify.presentation.ui.components.LocalOwnSpace
 import com.ricardofrango.squadify.presentation.ui.components.LocalSeePlans
 import com.ricardofrango.squadify.coach.presentation.ui.spacesetup.SpaceSetupScreen
 import com.ricardofrango.squadify.domain.service.SessionEventBus
@@ -100,14 +101,16 @@ fun CoachNavigation(navigator: AppNavigator = rememberAppNavigator()) {
             slideOutHorizontally(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { it }
     val fade: ContentTransform = fadeIn(tween(NAV_ANIM_MS)) togetherWith fadeOut(tween(NAV_ANIM_MS))
 
-    // A "not in your plan" message offers See plans to the owner of a Free space (the only plan that
-    // locks stats); staff are told the owner can change it.
-    val ownPlan by koinInject<OwnSpacePlan>().plan.collectAsStateWithLifecycle()
-    val seePlans: (() -> Unit)? = if (ownPlan == SpacePlan.FREE) {
-        { navigator.navigate(Screen.Plans(SpacePlan.FREE.name)) }
-    } else null
+    // The own space and its plan, for the shared screens' plan messages: the stats lock offers See plans to
+    // the owner of a Free space; the Members tab and Create age groups say when the plan has no room.
+    val ownSpace by koinInject<OwnSpacePlan>().space.collectAsStateWithLifecycle()
+    val seePlans: (() -> Unit)? = ownSpace?.let { own -> { navigator.navigate(Screen.Plans(own.plan.name)) } }
 
-    CompositionLocalProvider(LocalViewModelStoreOwner provides parentOwner, LocalSeePlans provides seePlans) {
+    CompositionLocalProvider(
+        LocalViewModelStoreOwner provides parentOwner,
+        LocalOwnSpace provides ownSpace,
+        LocalSeePlans provides seePlans
+    ) {
         NavDisplay(
             backStack = navigator.backStack,
             onBack = { navigator.popBackStack() },
@@ -199,6 +202,7 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
             ageGroupId = screen.ageGroupId,
             ageGroupName = screen.ageGroupName,
             spaceName = screen.spaceName,
+            onSeePlans = { plan -> navigator.navigate(Screen.Plans(plan.name)) },
             onNavigateBack = { navigator.popBackStack() }
         )
     }

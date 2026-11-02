@@ -77,6 +77,12 @@ val SpacePlan.peoplePerAgeGroupLimit: Int?
         SpacePlan.PRO -> null
     }
 
+/**
+ * Room on this plan for one more staff member on an age group that has [staffCount] (the owner, not
+ * among them, takes a place too).
+ */
+fun SpacePlan.hasRoomForStaff(staffCount: Int): Boolean = peoplePerAgeGroupLimit?.let { staffCount + 1 < it } ?: true
+
 /** A space in the platform admin's list (`GET /v1/admin/spaces`, the coach server): its owner and plan. */
 @Serializable
 data class AdminSpace(val id: String, val name: String, val ownerEmail: String?, val plan: SpacePlan)

@@ -21,7 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.ricardofrango.squadify.coach.presentation.ui.home.displayName
+import com.ricardofrango.squadify.presentation.ui.components.displayName
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.presentation.ui.components.SectionBorder
 import com.ricardofrango.squadify.presentation.ui.components.SectionShape

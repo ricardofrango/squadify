@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.Color
-import com.ricardofrango.squadify.coach.presentation.ui.home.displayName
+import com.ricardofrango.squadify.presentation.ui.components.displayName
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.ageGroupLimit
 import com.ricardofrango.squadify.model.peoplePerAgeGroupLimit

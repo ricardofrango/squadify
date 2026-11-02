@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.draw.alpha
 import com.ricardofrango.squadify.model.SpacePlan
+import com.ricardofrango.squadify.presentation.ui.components.displayName
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import squadify.app.coach.generated.resources.coach_home_locked
 import squadify.app.coach.generated.resources.coach_menu_my_space
@@ -304,9 +305,6 @@ private fun AgeGroupRow(row: HomeAgeGroup, onClick: (() -> Unit)?) {
         }
     }
 }
-
-/** The plan's name as sold: the same in every language. */
-internal val SpacePlan.displayName: String get() = name.lowercase().replaceFirstChar { it.uppercase() }
 
 /** "2015", or "2015–2016" for a two-year age group. */
 private fun bornYears(ageGroup: AgeGroup): String =

@@ -4,6 +4,7 @@ import com.ricardofrango.squadify.coach.data.SpacePlanRepository
 import com.ricardofrango.squadify.exception.PlanLimitException
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.ageGroupLimit
+import com.ricardofrango.squadify.model.hasRoomForStaff
 import com.ricardofrango.squadify.model.peoplePerAgeGroupLimit
 
 /** What each plan allows (REQUIREMENTS §5c), the limits from `common`. Pro's training comes with training on the coach server. */
@@ -42,8 +43,7 @@ class CoachPlans(private val plans: SpacePlanRepository) {
 
     /** Room for one more staff member on [ageGroupId]: for a new code, and when one is used. */
     suspend fun requireRoomForStaff(clubId: String, ageGroupId: String) {
-        val limit = PlanLimits.peoplePerAgeGroup(planOf(clubId)) ?: return
-        if (plans.staffInJoinOrder(ageGroupId).size + 1 >= limit) {
+        if (!planOf(clubId).hasRoomForStaff(plans.staffInJoinOrder(ageGroupId).size)) {
             throw PlanLimitException("The space's plan has no room for more staff on this age group")
         }
     }

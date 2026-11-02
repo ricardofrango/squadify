@@ -650,6 +650,13 @@
     <string name="stats_not_in_plan_body">No plano Free tem o jogo em direto, o calendário e o histórico. Os planos Basic e Pro juntam as estatísticas.</string>
     <string name="stats_not_in_plan_ask_owner">O dono do espaço pode mudar o plano para desbloquear as estatísticas.</string>
     <string name="btn_see_plans">Ver planos</string>
+    <string name="staff_not_in_plan_free_title">O staff vem com o plano Basic</string>
+    <string name="staff_not_in_plan_free_body">No plano Free o escalão é só do dono. O Basic deixa juntar mais %1$d pessoas a cada escalão e o Pro não tem limite.</string>
+    <string name="staff_not_in_plan_full_title">Este escalão está cheio no plano %1$s</string>
+    <string name="staff_not_in_plan_full_body">O %1$s tem até %2$d pessoas por escalão, incluindo o dono. O Pro não tem limite.</string>
+    <string name="age_groups_not_in_plan_title">Sem mais escalões nesta época no plano %1$s</string>
+    <string name="age_groups_not_in_plan_free_body">O Free tem 1 escalão por época. O Basic tem %1$d e o Pro não tem limite.</string>
+    <string name="age_groups_not_in_plan_body">O %1$s tem %2$d escalões por época. O Pro não tem limite.</string>
     <string name="stats_season">Época</string>
     <string name="stats_close">Fechar</string>
     <string name="record_season_record">Época</string>

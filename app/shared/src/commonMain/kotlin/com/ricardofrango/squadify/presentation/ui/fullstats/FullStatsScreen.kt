@@ -1,6 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.fullstats
 
-import com.ricardofrango.squadify.presentation.ui.components.LocalSeePlans
+import com.ricardofrango.squadify.presentation.ui.components.statsSeePlans
 import com.ricardofrango.squadify.presentation.ui.components.statsNotInPlanBody
 import com.ricardofrango.squadify.presentation.ui.components.squadifyDatePickerColors
 import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
@@ -205,7 +205,7 @@ private fun FullStatsContent(
                 modifier,
                 title = stringResource(Res.string.stats_not_in_plan_title),
                 body = statsNotInPlanBody(),
-                action = LocalSeePlans.current?.let { stringResource(Res.string.btn_see_plans) to it }
+                action = statsSeePlans()?.let { stringResource(Res.string.btn_see_plans) to it }
             )
             is FullStatsUiState.Loaded -> BoxWithConstraints(modifier) {
                 // The side panel is only for a phone lying down, where the filters on top would leave the

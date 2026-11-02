@@ -4,7 +4,7 @@ import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.CreateStaffInviteRequest
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
-import com.ricardofrango.squadify.model.SpacePlan
+import com.ricardofrango.squadify.domain.config.OwnSpace
 import kotlinx.coroutines.flow.MutableStateFlow
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.StaffInvite
@@ -12,15 +12,18 @@ import com.ricardofrango.squadify.model.StaffInvite
 /** Every space the coach is in; each load also keeps [OwnSpacePlan] up to date. */
 class GetSpacesUseCase(private val spaceRepository: SpaceRepository, private val ownSpacePlan: OwnSpacePlan) {
     suspend operator fun invoke(): List<SpaceAgeGroups> =
-        spaceRepository.getSpaces().also { spaces -> ownSpacePlan.plan.value = spaces.firstOrNull { it.isOwner }?.plan }
+        spaceRepository.getSpaces().also { spaces ->
+            ownSpacePlan.space.value = spaces.firstOrNull { it.isOwner }?.let { OwnSpace(it.space.id, it.plan, it.ageGroupsThisSeason) }
+        }
 }
 
 /**
- * The plan of the space the coach owns, as last loaded (null: they own none, or nothing loaded yet). It
- * decides whether a "not in your plan" message offers See plans: only to the owner of a Free space.
+ * The space the coach owns, its plan and this season's age groups, as last loaded (null: they own none,
+ * or nothing loaded yet). The shared screens' plan messages read it: See plans on a stats lock, the
+ * Members tab, Invite staff and Create age groups when the plan has no room.
  */
 class OwnSpacePlan {
-    val plan = MutableStateFlow<SpacePlan?>(null)
+    val space = MutableStateFlow<OwnSpace?>(null)
 }
 
 class SetUpSpaceUseCase(private val spaceRepository: SpaceRepository) {

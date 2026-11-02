@@ -45,6 +45,10 @@ import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.PinnedBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
+import com.ricardofrango.squadify.presentation.ui.components.LocalSeePlans
+import com.ricardofrango.squadify.presentation.ui.components.StaffNotInPlanNotice
+import com.ricardofrango.squadify.model.SpacePlan
+import androidx.compose.runtime.CompositionLocalProvider
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
@@ -109,6 +113,7 @@ fun InviteStaffScreen(
     ageGroupId: String,
     ageGroupName: String,
     spaceName: String,
+    onSeePlans: (SpacePlan) -> Unit,
     onNavigateBack: () -> Unit,
     viewModel: InviteStaffViewModel = koinViewModel()
 ) {
@@ -150,6 +155,7 @@ fun InviteStaffScreen(
         onSend = { viewModel.onSendClicked(ageGroupId, Locale.current.language) },
         onWithdraw = { code -> viewModel.onWithdrawConfirmed(ageGroupId, code) },
         onRetry = { viewModel.load(ageGroupId) },
+        onSeePlans = onSeePlans,
         onNavigateBack = onNavigateBack
     )
 }
@@ -167,6 +173,7 @@ private fun InviteStaffContent(
     onSend: () -> Unit,
     onWithdraw: (code: String) -> Unit,
     onRetry: () -> Unit,
+    onSeePlans: (SpacePlan) -> Unit,
     onNavigateBack: () -> Unit
 ) {
     var confirmWithdraw by remember { mutableStateOf<StaffInvite?>(null) }
@@ -189,7 +196,7 @@ private fun InviteStaffContent(
                         submittingText = Res.string.btn_invite_creating,
                         isLoading = loaded.isCreating,
                         onClick = onCreate,
-                        enabled = !loaded.isSending
+                        enabled = !loaded.isSending && loaded.fullOnPlan == null
                     )
                 }
             }
@@ -213,6 +220,9 @@ private fun InviteStaffContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item { FormIntro(stringResource(Res.string.invite_intro, ageGroupName)) }
+                uiState.fullOnPlan?.let { plan ->
+                    item { CompositionLocalProvider(LocalSeePlans provides { onSeePlans(plan) }) { StaffNotInPlanNotice(plan) } }
+                }
                 item { EmailInviteCard(uiState, onEmailChange, onSend) }
                 item {
                     Text(
@@ -266,7 +276,7 @@ private fun EmailInviteCard(state: InviteStaffUiState.Loaded, onEmailChange: (St
             value = state.email,
             onValueChange = onEmailChange,
             label = stringResource(Res.string.label_invite_email),
-            enabled = !state.isSending,
+            enabled = !state.isSending && state.fullOnPlan == null,
             keyboardType = KeyboardType.Email,
             isError = state.isEmailInvalid,
             supporting = stringResource(if (state.isEmailInvalid) Res.string.error_invite_email_invalid else Res.string.invite_email_hint),
@@ -332,7 +342,7 @@ private fun InvitePreview(state: InviteStaffUiState) {
     SquadifyTheme {
         InviteStaffContent(
             uiState = state, ageGroupName = "Sub 11", spaceName = "Fontelas FC", snackbarHostState = remember { SnackbarHostState() },
-            sharing = null, onCopied = {}, onCreate = {}, onEmailChange = {}, onSend = {}, onWithdraw = {}, onRetry = {}, onNavigateBack = {}
+            sharing = null, onCopied = {}, onCreate = {}, onEmailChange = {}, onSend = {}, onWithdraw = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {}
         )
     }
 }
@@ -352,3 +362,11 @@ private fun InviteStaffInvalidEmailPreview() = InvitePreview(InviteStaffUiState.
 @Preview
 @Composable
 private fun InviteStaffEmptyPreview() = InvitePreview(InviteStaffUiState.Loaded(emptyList()))
+
+@Preview
+@Composable
+private fun InviteStaffFullOnFreePreview() = InvitePreview(InviteStaffUiState.Loaded(emptyList(), fullOnPlan = SpacePlan.FREE))
+
+@Preview
+@Composable
+private fun InviteStaffFullOnBasicPreview() = InvitePreview(InviteStaffUiState.Loaded(previewInvites, fullOnPlan = SpacePlan.BASIC))

@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.presentation.ui.createagegroups
 
+import com.ricardofrango.squadify.model.SpacePlan
+import com.ricardofrango.squadify.presentation.ui.components.AgeGroupsNotInPlanNotice
+import com.ricardofrango.squadify.presentation.ui.components.ageGroupsLeftOnPlan
+import com.ricardofrango.squadify.presentation.ui.components.ownPlanFor
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
@@ -136,6 +140,8 @@ fun CreateAgeGroupsScreen(
             clubName = clubName,
             today = today,
             rows = rows,
+            ownPlan = ownPlanFor(clubId),
+            ageGroupsLeft = ageGroupsLeftOnPlan(clubId),
             teamSizeOptions = sport.teamSizes,
             onNavigateBack = onNavigateBack,
             onSeasonSelected = { seasonId ->
@@ -226,6 +232,10 @@ private fun CreateAgeGroupsContent(
     today: LocalDate,
     rows: List<AgeGroupRow>,
     teamSizeOptions: List<Int>,
+    // The coach app's own space: its plan and the age groups it has left this season. Null in the clubs
+    // app and with no limit. None left: the form gives way to the plan's box; a few left: rows up to that.
+    ownPlan: SpacePlan? = null,
+    ageGroupsLeft: Int? = null,
     onNavigateBack: () -> Unit,
     onSeasonSelected: (seasonId: String) -> Unit,
     onRowSpanTypeSelected: (rowKey: Int, spanType: AgeGroupSpanType) -> Unit,
@@ -274,6 +284,17 @@ private fun CreateAgeGroupsContent(
                         color = DeepCarbon.copy(alpha = 0.6f),
                         textAlign = TextAlign.Center
                     )
+                }
+            } else if (ownPlan != null && ageGroupsLeft == 0) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .background(ScreenBackground)
+                        .readableWidth()
+                        .screenContentPadding()
+                ) {
+                    AgeGroupsNotInPlanNotice(ownPlan)
                 }
             } else {
                 val seasonEndYear = uiState.selectedSeason?.endDate?.year
@@ -336,6 +357,7 @@ private fun CreateAgeGroupsContent(
 
                     OutlinedButton(
                         onClick = onAddRow,
+                        enabled = ageGroupsLeft == null || rows.size < ageGroupsLeft,
                         modifier = Modifier.fillMaxWidth(),
                         shape = FormRoundedShape,
                         border = BorderStroke(1.dp, PitchGreen.copy(alpha = 0.4f)),
@@ -814,6 +836,33 @@ private fun CreateAgeGroupsContentSubmittingPreview() {
             today = today,
             rows = listOf(AgeGroupRow(key = 0, startYear = 2015, endYear = 2015, teamSize = 11)),
             teamSizeOptions = listOf(4, 5, 7, 9, 11),
+            onNavigateBack = {},
+            onSeasonSelected = {},
+            onRowSpanTypeSelected = { _, _ -> },
+            onRowStartYearSelected = { _, _ -> },
+            onRowEndYearSelected = { _, _ -> },
+            onRowNameChanged = { _, _ -> },
+            onRowTeamSizeSelected = { _, _ -> },
+            onAddRow = {},
+            onRemoveRow = {},
+            onCreateClick = {}
+        )
+    }
+}
+
+// The coach app on Free with its one age group this season: the plan's box instead of the form.
+@Preview
+@Composable
+private fun CreateAgeGroupsNoneLeftOnPlanPreview() {
+    SquadifyTheme {
+        CreateAgeGroupsContent(
+            uiState = CreateAgeGroupsUiState.Idle(seasons = listOf(previewSeason("s1", "26/27", 2026)), selectedSeasonId = "s1"),
+            clubName = "Fontelas FC",
+            today = LocalDate(2026, 9, 4),
+            rows = listOf(AgeGroupRow(key = 0, teamSize = 11)),
+            teamSizeOptions = listOf(4, 5, 7, 9, 11),
+            ownPlan = SpacePlan.FREE,
+            ageGroupsLeft = 0,
             onNavigateBack = {},
             onSeasonSelected = {},
             onRowSpanTypeSelected = { _, _ -> },
