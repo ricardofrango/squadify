@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.coach.domain.CreateStaffInviteUseCase
 import com.ricardofrango.squadify.coach.domain.GetStaffInvitesUseCase
+import com.ricardofrango.squadify.coach.domain.InviteEmail
 import com.ricardofrango.squadify.coach.domain.RevokeStaffInviteUseCase
+import com.ricardofrango.squadify.data.remote.ApiException
 import com.ricardofrango.squadify.model.StaffInvite
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,12 +21,20 @@ sealed class InviteStaffUiState {
     data object Loading : InviteStaffUiState()
     data object Failed : InviteStaffUiState()
 
-    /** The codes still waiting, the newest first. */
-    data class Loaded(val invites: List<StaffInvite>, val isCreating: Boolean = false) : InviteStaffUiState()
+    /** The codes still waiting, the newest first, and the address typed to email one. */
+    data class Loaded(
+        val invites: List<StaffInvite>,
+        val isCreating: Boolean = false,
+        val email: String = "",
+        val isSending: Boolean = false,
+        val isEmailInvalid: Boolean = false
+    ) : InviteStaffUiState() {
+        val canSend: Boolean get() = email.isNotBlank() && !isSending && !isCreating
+    }
 }
 
 /** One-off messages, for the snackbar. */
-enum class InviteStaffMessage { CREATE_FAILED, WITHDRAWN, WITHDRAW_FAILED }
+enum class InviteStaffMessage { CREATE_FAILED, EMAIL_SENT, EMAIL_NOT_SENT, SEND_FAILED, WITHDRAWN, WITHDRAW_FAILED }
 
 class InviteStaffViewModel(
     private val getStaffInvitesUseCase: GetStaffInvitesUseCase,
@@ -50,15 +60,41 @@ class InviteStaffViewModel(
 
     fun onCreateClicked(ageGroupId: String) {
         val loaded = _state.value as? InviteStaffUiState.Loaded ?: return
-        if (loaded.isCreating) return
+        if (loaded.isCreating || loaded.isSending) return
         viewModelScope.launch {
             _state.value = loaded.copy(isCreating = true)
             try {
                 val invite = createStaffInviteUseCase(ageGroupId)
-                _state.update { s -> (s as? InviteStaffUiState.Loaded)?.let { InviteStaffUiState.Loaded(listOf(invite) + it.invites) } ?: s }
+                _state.update { s -> (s as? InviteStaffUiState.Loaded)?.let { it.copy(invites = listOf(invite) + it.invites, isCreating = false) } ?: s }
             } catch (e: Exception) {
                 _state.update { s -> (s as? InviteStaffUiState.Loaded)?.copy(isCreating = false) ?: s }
                 _messages.emit(InviteStaffMessage.CREATE_FAILED)
+            }
+        }
+    }
+
+    fun onEmailChanged(email: String) {
+        _state.update { s -> (s as? InviteStaffUiState.Loaded)?.copy(email = email, isEmailInvalid = false) ?: s }
+    }
+
+    /** Emails a new code to the typed address, in [language] (the app's). */
+    fun onSendClicked(ageGroupId: String, language: String) {
+        val loaded = _state.value as? InviteStaffUiState.Loaded ?: return
+        if (!loaded.canSend) return
+        if (!InviteEmail.isValid(loaded.email)) {
+            _state.value = loaded.copy(isEmailInvalid = true)
+            return
+        }
+        viewModelScope.launch {
+            _state.value = loaded.copy(isSending = true)
+            try {
+                val invite = createStaffInviteUseCase(ageGroupId, loaded.email, language)
+                _state.update { s -> (s as? InviteStaffUiState.Loaded)?.let { it.copy(invites = listOf(invite) + it.invites, email = "", isSending = false) } ?: s }
+                _messages.emit(InviteStaffMessage.EMAIL_SENT)
+            } catch (e: Exception) {
+                _state.update { s -> (s as? InviteStaffUiState.Loaded)?.copy(isSending = false) ?: s }
+                // A 400: the email didn't go (or today's limit is reached); no code was kept.
+                _messages.emit(if ((e as? ApiException)?.statusCode == 400) InviteStaffMessage.EMAIL_NOT_SENT else InviteStaffMessage.SEND_FAILED)
             }
         }
     }

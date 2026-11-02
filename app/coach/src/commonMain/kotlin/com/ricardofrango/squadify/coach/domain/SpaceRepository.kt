@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.coach.domain
 
 import com.ricardofrango.squadify.model.CoachSpace
+import com.ricardofrango.squadify.model.CreateStaffInviteRequest
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
 import com.ricardofrango.squadify.model.SpaceSetup
@@ -21,6 +22,7 @@ interface SpaceRepository {
 /** The owner's invite codes for an age group (`/v1/age-groups/{id}/invites`). */
 interface StaffInviteRepository {
     suspend fun getInvites(ageGroupId: String): List<StaffInvite>
-    suspend fun createInvite(ageGroupId: String): StaffInvite
+    // With an email in the request, the code is also emailed there.
+    suspend fun createInvite(ageGroupId: String, request: CreateStaffInviteRequest = CreateStaffInviteRequest()): StaffInvite
     suspend fun revokeInvite(ageGroupId: String, code: String)
 }

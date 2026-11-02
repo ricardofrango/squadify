@@ -5,6 +5,7 @@ import com.ricardofrango.squadify.coach.domain.StaffInviteRepository
 import com.ricardofrango.squadify.data.remote.handleResponse
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.model.CoachSpace
+import com.ricardofrango.squadify.model.CreateStaffInviteRequest
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
 import com.ricardofrango.squadify.model.SpaceSetup
@@ -43,8 +44,11 @@ class StaffInviteRepositoryImpl(
     override suspend fun getInvites(ageGroupId: String): List<StaffInvite> =
         httpClient.get("${appConfig.baseUrl}/age-groups/$ageGroupId/invites").handleResponse()
 
-    override suspend fun createInvite(ageGroupId: String): StaffInvite =
-        httpClient.post("${appConfig.baseUrl}/age-groups/$ageGroupId/invites").handleResponse()
+    override suspend fun createInvite(ageGroupId: String, request: CreateStaffInviteRequest): StaffInvite =
+        httpClient.post("${appConfig.baseUrl}/age-groups/$ageGroupId/invites") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.handleResponse()
 
     override suspend fun revokeInvite(ageGroupId: String, code: String) {
         httpClient.delete("${appConfig.baseUrl}/age-groups/$ageGroupId/invites/$code").handleResponse<Unit>()
