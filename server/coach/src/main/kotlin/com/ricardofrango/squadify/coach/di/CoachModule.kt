@@ -25,6 +25,11 @@ import com.ricardofrango.squadify.coach.data.ExposedStaffInviteRepository
 import com.ricardofrango.squadify.coach.data.StaffInviteRepository
 import com.ricardofrango.squadify.coach.access.CoachPushAudience
 import com.ricardofrango.squadify.data.service.FirebaseAdminPushNotificationService
+import com.ricardofrango.squadify.data.service.LocalImageStorage
+import com.ricardofrango.squadify.data.service.S3ImageStorage
+import com.ricardofrango.squadify.data.service.UnavailableImageStorage
+import com.ricardofrango.squadify.domain.service.ImageStorage
+import com.ricardofrango.squadify.domain.service.PrefixedImageStorage
 import com.ricardofrango.squadify.domain.service.PushAudience
 import com.ricardofrango.squadify.domain.usecase.RegisterFcmTokenUseCase
 import com.ricardofrango.squadify.domain.usecase.RemoveFcmTokenUseCase
@@ -71,6 +76,7 @@ import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.PushNotificationService
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import java.io.File
 import com.ricardofrango.squadify.domain.usecase.*
 import com.ricardofrango.squadify.security.JwtTokens
 import org.koin.dsl.module
@@ -104,12 +110,53 @@ val coachModule = module {
     single<ClubMatchesBus> { KotlinFlowClubMatchesBus() }
     // Pushes, through the coach's own Firebase project (squadify-for-coach), to the space's owner and the
     // age group's staff. Its devices' tokens come through the shared fcmTokenRoutes.
-    single<PushNotificationService> { FirebaseAdminPushNotificationService(CoachConfig.firebaseServiceAccountJson) }
+    // Its picture is the space's logo, as on the clubs server.
+    single<PushNotificationService> {
+        val clubRepository = get<ClubRepository>()
+        val transactionManager = get<TransactionManager>()
+        FirebaseAdminPushNotificationService(CoachConfig.firebaseServiceAccountJson, clubLogoUrl = { spaceId ->
+            val logoUrl = transactionManager.runInTransaction { clubRepository.getClubById(spaceId)?.logoUrl }
+            GetPublicClubLogoUseCase.publicUrl(CoachConfig.publicBaseUrl, spaceId, logoUrl)
+        })
+    }
     factory<PushAudience> { CoachPushAudience(get(), get()) }
     factory { RegisterFcmTokenUseCase(get(), get()) }
     factory { RemoveFcmTokenUseCase(get(), get()) }
-    // Links in pushes (a scorer's photo); none until the coach server has a public URL and image storage.
-    single { PublicImageLinks(publicBaseUrl = null, secret = CoachConfig.jwtSecret) }
+    // Images (TECHNICAL_DECISIONS §57, §72): the clubs server's bucket under `coach/`, the disk locally,
+    // none deployed without a bucket. The space's logo (a space is a club), opponents' logos, players'
+    // photos and the account's own photo, through the shared use cases and imageRoutes.
+    single<ImageStorage> {
+        val bucket = CoachConfig.storageBucket
+        PrefixedImageStorage(
+            when {
+                bucket != null -> S3ImageStorage(
+                    bucket, CoachConfig.storageEndpoint, CoachConfig.storageRegion,
+                    CoachConfig.storageAccessKeyId, CoachConfig.storageSecretAccessKey
+                )
+                !CoachConfig.deployed -> LocalImageStorage(File(CoachConfig.localImageDir))
+                else -> UnavailableImageStorage
+            },
+            prefix = "coach/"
+        )
+    }
+    factory { UploadClubLogoUseCase(get(), get(), get(), get()) }
+    factory { DeleteClubLogoUseCase(get(), get(), get(), get()) }
+    factory { GetClubLogoUseCase(get(), get(), get(), get()) }
+    factory { UploadOpponentLogoUseCase(get(), get(), get(), get(), get()) }
+    factory { DeleteOpponentLogoUseCase(get(), get(), get(), get(), get()) }
+    factory { GetOpponentLogoUseCase(get(), get(), get(), get()) }
+    factory { UploadPlayerPhotoUseCase(get(), get(), get(), get()) }
+    factory { DeletePlayerPhotoUseCase(get(), get(), get(), get()) }
+    factory { GetPlayerPhotoUseCase(get(), get(), get(), get()) }
+    factory { UploadUserAvatarUseCase(get(), get(), get()) }
+    factory { DeleteUserAvatarUseCase(get(), get(), get()) }
+    factory { GetUserAvatarUseCase(get(), get(), get()) }
+    // Pictures in pushes, served without signing in (publicImageRoutes): the space's and opponents'
+    // current logos, and a scorer's photo behind a signed, expiring link.
+    single { PublicImageLinks(CoachConfig.publicBaseUrl, CoachConfig.jwtSecret) }
+    factory { GetPublicClubLogoUseCase(get(), get(), get()) }
+    factory { GetPublicOpponentLogoUseCase(get(), get(), get()) }
+    factory { GetPublicPlayerPhotoUseCase(get(), get(), get(), get()) }
     // No player or parent accounts: emails given with a player are refused.
     single<PlayerContacts> { PlayerContacts.None }
 
@@ -119,7 +166,7 @@ val coachModule = module {
     factory { RefreshTokenUseCase(get(), get(), CoachTokens) }
 
     // The account (accountRoutes, shared with the clubs server): profile, password, email change and
-    // Forgot password, with the coach's own emails. No profile photo until its image storage.
+    // Forgot password, with the coach's own emails. The profile photo is in imageRoutes.
     single<EmailService> { CoachEmailService() }
     single<PasswordResetRepository> { ExposedPasswordResetRepository() }
     single<EmailChangeRepository> { ExposedEmailChangeRepository() }
@@ -134,7 +181,7 @@ val coachModule = module {
     // Deleting the account, with the space they own (the stores require it).
     single<AccountDeletionRepository> { ExposedAccountDeletionRepository() }
     factory { GetAccountDeletionSummaryUseCase(get(), get()) }
-    factory { DeleteAccountUseCase(get(), get(), get()) }
+    factory { DeleteAccountUseCase(get(), get(), get(), get()) }
 
     // Who may do what: the space's owner everywhere, its staff in their age groups.
     factory<AccessPolicy> { CoachAccessPolicy(get(), get(), get(), get()) }

@@ -528,11 +528,13 @@ graph TD
 
 `PUT /clubs/{clubId}/logo` (raw PNG or JPEG body, at most 5 MB) → `LogoResponse(logoUrl)`; `DELETE /clubs/{clubId}/logo` (204); `GET /clubs/{clubId}/logo/{imageId}.png` (the image, `Cache-Control: private, max-age=31536000, immutable`). Storage key `clubs/{clubId}/logo/{imageId}.png`; `clubs.logo_url` holds the same path under the API. See `TECHNICAL_DECISIONS.md` §57.
 
+**Both servers** (`:server:core`, routes in `:server:web`'s `imageRoutes`): on the coach server a space is a club, so this is the space's logo. Every image flow here and in §2.7b, §5.2b and §6.5 asks the server's `AccessPolicy`; the coach server's storage keys start with `coach/` (`PrefixedImageStorage`), the paths under the API don't.
+
 ```mermaid
 graph TD
     A[Start: userId, clubId, image bytes] --> B[Fetch Club by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    B -- found --> C["AccessPolicy.requireEditClub — clubs: minClubRole=COORDINATOR; coach: the space's owner"]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> S{Image storage available?}
     S -- No --> V0(["Throw ValidationException: uploads aren't set up"])
@@ -546,7 +548,7 @@ graph TD
     U --> Z(["Return the new logoUrl"])
 ```
 
-The old file is deleted **before** the new one is stored, so files never pile up, and every upload gets a new id, so a cached logo can never be stale. If storing the new one fails, the club is left with no logo rather than a link to a deleted file. Delete: same gate; removes the file and clears `logo_url`. Get: anyone who can see the club (`minClubRole=MEMBER`, `allowPlayerOrParentAccess`, like §3.3), and only the club's **current** image id; an old id is a 404.
+The old file is deleted **before** the new one is stored, so files never pile up, and every upload gets a new id, so a cached logo can never be stale. If storing the new one fails, the club is left with no logo rather than a link to a deleted file. Delete: same gate; removes the file and clears `logo_url`. Get: anyone who can see the club (`requireViewClub`: on the clubs server `minClubRole=MEMBER`, `allowPlayerOrParentAccess`, like §3.3; on the coach server the space's members), and only the club's **current** image id; an old id is a 404.
 
 **Public logo, for push notifications** (`GetPublicClubLogoUseCase`): `GET /v1/public/clubs/{clubId}/logo/{imageId}.png`, the one image route with no sign-in. Android downloads a notification's image itself. Club not found, or `imageId` isn't its current one → 404; otherwise the bytes (`Cache-Control: public, immutable`). Every push of a club with a logo carries this address as its image, when the server knows its public URL (`PUBLIC_BASE_URL` / `RAILWAY_PUBLIC_DOMAIN`, or locally the machine's LAN address). See `TECHNICAL_DECISIONS.md` §57.
 
@@ -1235,7 +1237,7 @@ reloads on return, same cascade pattern as the other create/edit screens (`AppNa
 graph TD
     A[Start: userId, playerId, image bytes] --> B[Fetch Player by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C["CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=EDIT_PLAYER, ageGroupId = the player's age group"]
+    B -- found --> C["AccessPolicy.requireEditPlayer, ageGroupId = the player's age group — clubs: COORDINATOR or EDIT_PLAYER; coach: the owner, or that age group's staff"]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> S{Image storage available?}
     S -- No --> V0(["Throw ValidationException: uploads aren't set up"])
@@ -1249,7 +1251,7 @@ graph TD
     U --> Z(["Return the new photoUrl"])
 ```
 
-The gate is Edit player's (`PlayerProfile.canEdit`): the player's own age group comes from the server, so the app sends none. Delete: same gate; removes the file and clears `photo_url`. Get: the club's members (`minClubRole=MEMBER`, like the player's profile, §5.1b; players are usually minors, so not every family in the club), and only the **current** image id. `CreatePlayer.photoUrl` and `UpdatePlayerRequest.photoUrl` are ignored, and saving the player never touches `photo_url`.
+The gate is Edit player's (`PlayerProfile.canEdit`): the player's own age group comes from the server, so the app sends none. Delete: same gate; removes the file and clears `photo_url`. Get: the club's members (`requireMember`: `minClubRole=MEMBER`, like the player's profile, §5.1b; players are usually minors, so not every family in the club), and only the **current** image id. `CreatePlayer.photoUrl` and `UpdatePlayerRequest.photoUrl` are ignored, and saving the player never touches `photo_url`.
 
 ### 5.3 Add Players to Age Group (`AddPlayersToAgeGroupUseCase`) — with age eligibility
 
@@ -1476,7 +1478,7 @@ graph TD
     AGF -- not found --> N2(["Throw NotFoundException"])
     AGF -- found, wrong club --> FB(["Throw ForbiddenException"])
     AGF -- found, right club --> C
-    AG -- No --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=EDIT_OPPONENT, ageGroupId]
+    AG -- No --> C["AccessPolicy.requireEditOpponent, ageGroupId — clubs: COORDINATOR or EDIT_OPPONENT; coach: the owner, or that age group's staff"]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> S{Image storage available?}
     S -- No --> V0(["Throw ValidationException: uploads aren't set up"])
@@ -1490,7 +1492,7 @@ graph TD
     U --> Z(["Return the new logoUrl"])
 ```
 
-The same rules as the club logo (§3.4c), behind Edit opponent's gate (§6.2): `EDIT_OPPONENT`, with `ageGroupId` letting that age group's coaches in. Delete: same gate; removes the file and clears `logo_url`. Get: anyone who can see the opponent's club (`minClubRole=MEMBER`, `allowPlayerOrParentAccess`), and only the **current** image id.
+The same rules as the club logo (§3.4c), behind Edit opponent's gate (§6.2): `EDIT_OPPONENT`, with `ageGroupId` letting that age group's coaches in. Delete: same gate; removes the file and clears `logo_url`. Get: anyone who can see the opponent's club (`requireViewClub`), and only the **current** image id.
 
 In the app the logo is part of the Create / Edit opponent form and is saved with it, after the other fields: on create, the opponent is created first and the logo uploaded to it (with the form's `ageGroupId`). If the logo fails, the opponent stays saved and the form carries on as an edit of it, so trying again only redoes the logo.
 
@@ -2857,10 +2859,11 @@ graph TD
     S --> R[Reports they last edited in other spaces: that space's owner becomes the author]
     R --> M[Their staff rows, memberships and used invite codes go]
     M --> U[Their refresh and push tokens, reset and email change codes, then the user]
-    U --> Z(["204"])
+    U --> I["After the commit: delete the images' files (their photo; the space's logo, players' photos, opponents' logos). One that fails is logged and left"]
+    I --> Z(["204"])
 ```
 
-All in one transaction, so a failure deletes nothing. `GET /v1/users/me/deletion` (`GetAccountDeletionSummaryUseCase`) returns what it would take: the owned space's name and its age groups, players, matches and other members (`AccountDeletionSummary`), or an empty summary. The coach server only, for now.
+All in one transaction, so a failure deletes nothing; the files go only once the rows are gone. `GET /v1/users/me/deletion` (`GetAccountDeletionSummaryUseCase`) returns what it would take: the owned space's name and its age groups, players, matches and other members (`AccountDeletionSummary`), or an empty summary. The coach server only, for now.
 
 ### 13.5 Automatic seasons (`CoachSeasons`)
 

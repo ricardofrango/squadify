@@ -1,30 +1,27 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.service.ImageStorage
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.Club
-import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.util.LogoImage
 import kotlin.uuid.Uuid
 
-private suspend fun loadClubAsCoordinator(
+// A coach's space is a club on the coach server, so its logo is this one (`/clubs/{spaceId}/logo/…`).
+
+/** The club, if [userId] may change its details: coordinators and admins, or a space's owner. */
+private suspend fun loadClubForEdit(
     clubRepository: ClubRepository,
-    checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    accessPolicy: AccessPolicy,
     transactionManager: TransactionManager,
     userId: String,
     clubId: String
 ): Club = transactionManager.runInTransaction {
     val club = clubRepository.getClubById(clubId) ?: throw NotFoundException("Club not found")
-    // The same gate as editing the club's details.
-    checkUserPermissionUseCase(
-        userId = userId,
-        clubId = clubId,
-        minClubRole = ClubRole.COORDINATOR,
-        errorMessage = "Only club admins or coordinators can change the club's logo"
-    )
+    accessPolicy.requireEditClub(userId, clubId, "Only club admins or coordinators can change the club's logo")
     club
 }
 
@@ -36,13 +33,13 @@ private suspend fun loadClubAsCoordinator(
  */
 class UploadClubLogoUseCase(
     private val clubRepository: ClubRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager,
     private val imageStorage: ImageStorage
 ) {
     /** Returns the new `logo_url`. */
     suspend operator fun invoke(userId: String, clubId: String, bytes: ByteArray): String {
-        val club = loadClubAsCoordinator(clubRepository, checkUserPermissionUseCase, transactionManager, userId, clubId)
+        val club = loadClubForEdit(clubRepository, accessPolicy, transactionManager, userId, clubId)
         if (!imageStorage.isAvailable) throw ValidationException("Image uploads aren't set up on this server yet")
         val png = LogoImage.toPng(bytes)
 
@@ -64,12 +61,12 @@ class UploadClubLogoUseCase(
 /** Removes the club's logo: the file goes, and the club shows its initials again. */
 class DeleteClubLogoUseCase(
     private val clubRepository: ClubRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager,
     private val imageStorage: ImageStorage
 ) {
     suspend operator fun invoke(userId: String, clubId: String) {
-        val club = loadClubAsCoordinator(clubRepository, checkUserPermissionUseCase, transactionManager, userId, clubId)
+        val club = loadClubForEdit(clubRepository, accessPolicy, transactionManager, userId, clubId)
         val logoUrl = club.logoUrl ?: return
         ClubLogos.keyOf(clubId, logoUrl)?.let { imageStorage.delete(it) }
         transactionManager.runInTransaction { clubRepository.updateLogoUrl(clubId, null) }
@@ -78,23 +75,17 @@ class DeleteClubLogoUseCase(
 
 /**
  * The logo's bytes, for anyone who can see the club (members, and players' families, like the club's
- * details). Only the club's current image id is served, so an old link stops working once replaced.
+ * details; a space's owner and staff). Only the club's current image id is served, so an old link stops working once replaced.
  */
 class GetClubLogoUseCase(
     private val clubRepository: ClubRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager,
     private val imageStorage: ImageStorage
 ) {
     suspend operator fun invoke(userId: String, clubId: String, imageId: String): ByteArray {
         val club = transactionManager.runInTransaction {
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = clubId,
-                minClubRole = ClubRole.MEMBER,
-                allowPlayerOrParentAccess = true,
-                errorMessage = "You do not have access to this club"
-            )
+            accessPolicy.requireViewClub(userId, clubId)
             clubRepository.getClubById(clubId) ?: throw NotFoundException("Club not found")
         }
         if (club.logoUrl != ClubLogos.url(clubId, imageId)) throw NotFoundException("Logo not found")

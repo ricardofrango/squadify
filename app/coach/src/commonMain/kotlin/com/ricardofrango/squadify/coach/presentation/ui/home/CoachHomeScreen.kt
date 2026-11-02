@@ -5,6 +5,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import squadify.app.coach.generated.resources.coach_menu_my_space
+import squadify.app.coach.generated.resources.ic_space
+import com.ricardofrango.squadify.coach.presentation.ui.space.SpaceLogo
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -101,6 +106,8 @@ fun CoachHomeScreen(
     onSetUpSpace: () -> Unit,
     onJoinWithCode: () -> Unit,
     onOpenAccount: () -> Unit,
+    // The owner's own space (its logo).
+    onOpenMySpace: () -> Unit = {},
     // Set when a screen opened from here changed something (an age group created, a code used).
     refresh: Boolean = false,
     onRefreshed: () -> Unit = {},
@@ -135,7 +142,8 @@ fun CoachHomeScreen(
             }
         },
         onJoinWithCode = onJoinWithCode,
-        onOpenAccount = onOpenAccount
+        onOpenAccount = onOpenAccount,
+        onOpenMySpace = onOpenMySpace
     )
 }
 
@@ -148,6 +156,7 @@ private fun CoachHomeContent(
     onCreateAgeGroup: () -> Unit = {},
     onJoinWithCode: () -> Unit = {},
     onOpenAccount: () -> Unit = {},
+    onOpenMySpace: () -> Unit = {},
     drawerState: DrawerState = rememberDrawerState(DrawerValue.Closed)
 ) {
     val scope = rememberCoroutineScope()
@@ -166,6 +175,10 @@ private fun CoachHomeContent(
                 )
                 MenuItem(SharedRes.drawable.ic_add, stringResource(Res.string.coach_home_create_age_group), fromMenu(onCreateAgeGroup))
                 MenuItem(Res.drawable.ic_join, stringResource(Res.string.coach_home_join), fromMenu(onJoinWithCode))
+                // Only once they own a space.
+                if ((uiState as? CoachHomeUiState.Loaded)?.ownSpace != null) {
+                    MenuItem(Res.drawable.ic_space, stringResource(Res.string.coach_menu_my_space), fromMenu(onOpenMySpace))
+                }
                 MenuItem(SharedRes.drawable.ic_account, stringResource(Res.string.coach_menu_account), fromMenu(onOpenAccount))
                 MenuItem(SharedRes.drawable.ic_logout, stringResource(SharedRes.string.btn_logout), fromMenu(onSignOut))
             }
@@ -261,17 +274,24 @@ private fun JoinButton(onClick: () -> Unit) {
     }
 }
 
+// Each row starts with its space's logo (or initials), so staff in several spaces tell them apart.
 @Composable
 private fun AgeGroupRow(row: HomeAgeGroup, onClick: () -> Unit) {
-    SectionCard(spacing = 2.dp, onClick = onClick) {
-        Text(row.ageGroup.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
-        Text(
-            stringResource(Res.string.coach_home_born, bornYears(row.ageGroup), row.spaceName),
-            style = MaterialTheme.typography.bodySmall,
-            color = CarbonGray,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+    SectionCard(onClick = onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SpaceLogo(row.space, size = 44.dp)
+            Spacer(Modifier.width(14.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(row.ageGroup.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon)
+                Text(
+                    stringResource(Res.string.coach_home_born, bornYears(row.ageGroup), row.spaceName),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = CarbonGray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
     }
 }
 
@@ -335,6 +355,14 @@ private fun CoachHomeEmptyPreview() {
 private fun CoachHomeEmptyLandscapePreview() {
     SquadifyTheme {
         CoachHomeContent(CoachHomeUiState.Loaded.of(emptyList()), onRetry = {}, onSignOut = {})
+    }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun CoachHomeMenuLandscapePreview() {
+    SquadifyTheme {
+        CoachHomeContent(CoachHomeUiState.Loaded.of(previewSpaces), onRetry = {}, onSignOut = {}, drawerState = rememberDrawerState(DrawerValue.Open))
     }
 }
 

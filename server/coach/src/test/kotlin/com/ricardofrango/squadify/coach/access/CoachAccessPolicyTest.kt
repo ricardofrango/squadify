@@ -64,6 +64,7 @@ class CoachAccessPolicyTest {
         assertTrue(allowed { policy.requireSeeRatings("owner", GameScope(space, teamId = "sub-12-a")) })
         assertTrue(allowed { policy.requireCreateAgeGroups("owner", space) })
         assertTrue(allowed { policy.requireManageStaff("owner", scope) })
+        assertTrue(allowed { policy.requireEditClub("owner", space) })
         assertNull(policy.visibleAgeGroupIds("owner", space))
     }
 
@@ -80,8 +81,9 @@ class CoachAccessPolicyTest {
     }
 
     @Test
-    fun onlyTheOwnerCreatesAgeGroupsAndManagesStaff() = runBlocking {
+    fun onlyTheOwnerCreatesAgeGroupsManagesStaffAndChangesTheSpace() = runBlocking {
         assertFalse(allowed { policy.requireCreateAgeGroups("staff", space) })
+        assertFalse(allowed { policy.requireEditClub("staff", space) })
         assertFalse(allowed { policy.requireManageStaff("staff", GameScope(space, ageGroupId = sub14.id)) })
     }
 

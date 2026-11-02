@@ -3,7 +3,7 @@ package com.ricardofrango.squadify
 import com.ricardofrango.squadify.data.database.DatabaseFactory
 import com.ricardofrango.squadify.di.appModule
 import com.ricardofrango.squadify.presentation.routes.authRoutes
-import com.ricardofrango.squadify.presentation.routes.userRoutes
+import com.ricardofrango.squadify.presentation.routes.imageRoutes
 import com.ricardofrango.squadify.presentation.routes.accountRoutes
 import com.ricardofrango.squadify.presentation.routes.clubRoutes
 import com.ricardofrango.squadify.presentation.routes.dashboardRoutes
@@ -99,7 +99,7 @@ fun Application.module() {
         }
         route("/v1") {
             authRoutes()
-            userRoutes()
+            imageRoutes()
             accountRoutes()
             clubRoutes()
             dashboardRoutes()

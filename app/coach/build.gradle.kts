@@ -58,6 +58,8 @@ kotlin {
             implementation(libs.ktor.client.core)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)
+            // The image picker, for My club or team's logo.
+            implementation(libs.filekit.dialogs.compose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

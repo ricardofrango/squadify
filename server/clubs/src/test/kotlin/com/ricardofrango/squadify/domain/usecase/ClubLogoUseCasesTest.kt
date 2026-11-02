@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
@@ -70,7 +71,7 @@ class ClubLogoUseCasesTest {
 
     private val png: ByteArray = ByteArrayOutputStream().use { ImageIO.write(BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB), "png", it); it.toByteArray() }
 
-    private fun upload(storage: ImageStorage) = UploadClubLogoUseCase(clubRepository, check, transactionManager, storage)
+    private fun upload(storage: ImageStorage) = UploadClubLogoUseCase(clubRepository, ClubAccessPolicy(check), transactionManager, storage)
 
     @Test
     fun replacingALogoDeletesTheOldFileFirstThenStoresTheNewOneUnderANewId() = runBlocking {
@@ -115,7 +116,7 @@ class ClubLogoUseCasesTest {
     fun onlyCoordinatorsAndAdminsChangeIt() = runBlocking<Unit> {
         val storage = FakeStorage()
         assertFailsWith<ForbiddenException> { upload(storage)(user("member", ClubRole.MEMBER), clubId, png) }
-        assertFailsWith<ForbiddenException> { DeleteClubLogoUseCase(clubRepository, check, transactionManager, storage)(user("member2", ClubRole.MEMBER), clubId) }
+        assertFailsWith<ForbiddenException> { DeleteClubLogoUseCase(clubRepository, ClubAccessPolicy(check), transactionManager, storage)(user("member2", ClubRole.MEMBER), clubId) }
         assertTrue(storage.log.isEmpty())
     }
 
@@ -130,7 +131,7 @@ class ClubLogoUseCasesTest {
         val coord = user("coord", ClubRole.COORDINATOR)
         upload(storage)(coord, clubId, png)
 
-        DeleteClubLogoUseCase(clubRepository, check, transactionManager, storage)(coord, clubId)
+        DeleteClubLogoUseCase(clubRepository, ClubAccessPolicy(check), transactionManager, storage)(coord, clubId)
 
         assertTrue(storage.files.isEmpty())
         assertNull(club.logoUrl)
@@ -142,7 +143,7 @@ class ClubLogoUseCasesTest {
         val coord = user("coord", ClubRole.COORDINATOR)
         val old = upload(storage)(coord, clubId, png).substringAfterLast('/').removeSuffix(".png")
         val current = upload(storage)(coord, clubId, png).substringAfterLast('/').removeSuffix(".png")
-        val get = GetClubLogoUseCase(clubRepository, check, transactionManager, storage)
+        val get = GetClubLogoUseCase(clubRepository, ClubAccessPolicy(check), transactionManager, storage)
         val member = user("member", ClubRole.MEMBER)
 
         assertContentEquals(storage.files.values.single(), get(member, clubId, current))

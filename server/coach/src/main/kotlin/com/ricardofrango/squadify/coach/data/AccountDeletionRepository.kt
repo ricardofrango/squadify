@@ -17,6 +17,10 @@ import com.ricardofrango.squadify.data.database.Seasons
 import com.ricardofrango.squadify.data.database.Teams
 import com.ricardofrango.squadify.data.database.Users
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.domain.usecase.ClubLogos
+import com.ricardofrango.squadify.domain.usecase.OpponentLogos
+import com.ricardofrango.squadify.domain.usecase.PlayerPhotos
+import com.ricardofrango.squadify.domain.usecase.UserAvatars
 import com.ricardofrango.squadify.util.toUuid
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
@@ -42,9 +46,11 @@ interface AccountDeletionRepository {
     /**
      * Deletes [userId]'s own space with everything in it, takes them out of every other space, makes
      * each other space's owner the author of the match reports they last edited there, and deletes the
-     * account with its tokens and codes.
+     * account with its tokens and codes. Returns the storage keys of the images that went with them
+     * (their photo, and their space's logo, players' photos and opponents' logos), for the files to be
+     * deleted once the rows are.
      */
-    suspend fun delete(userId: String)
+    suspend fun delete(userId: String): List<String>
 }
 
 class ExposedAccountDeletionRepository : AccountDeletionRepository {
@@ -66,9 +72,13 @@ class ExposedAccountDeletionRepository : AccountDeletionRepository {
         )
     }
 
-    override suspend fun delete(userId: String) {
+    override suspend fun delete(userId: String): List<String> {
         val user = userId.toUuid()
-        ownSpaceId(user)?.let(::deleteSpace)
+        val images = mutableListOf<String>()
+        Users.selectAll().where { Users.id eq user }.forEach { row ->
+            row[Users.avatarUrl]?.let { UserAvatars.keyOf(userId, it) }?.let(images::add)
+        }
+        ownSpaceId(user)?.let { images += deleteSpace(it) }
 
         // Their reports in other spaces stay, with that space's owner as the author.
         val reports = (MatchReports innerJoin Matches).selectAll().where { MatchReports.updatedBy eq user }
@@ -89,10 +99,21 @@ class ExposedAccountDeletionRepository : AccountDeletionRepository {
         PasswordResetCodes.deleteWhere { PasswordResetCodes.userId eq user }
         EmailChangeCodes.deleteWhere { EmailChangeCodes.userId eq user }
         Users.deleteWhere { Users.id eq user }
+        return images
     }
 
-    /** The space and everything in it. A match takes its call-ups, events, line-ups, stats and report with it. */
-    private fun deleteSpace(spaceId: Uuid) {
+    /**
+     * The space and everything in it. A match takes its call-ups, events, line-ups, stats and report with
+     * it. Returns the storage keys of its images.
+     */
+    private fun deleteSpace(spaceId: Uuid): List<String> {
+        val space = spaceId.toString()
+        val images = Clubs.selectAll().where { Clubs.id eq spaceId }
+            .mapNotNull { row -> row[Clubs.logoUrl]?.let { ClubLogos.keyOf(space, it) } } +
+            Players.selectAll().where { Players.clubId eq spaceId }
+                .mapNotNull { row -> row[Players.photoUrl]?.let { PlayerPhotos.keyOf(row[Players.id].toString(), it) } } +
+            Opponents.selectAll().where { Opponents.clubId eq spaceId }
+                .mapNotNull { row -> row[Opponents.logoUrl]?.let { OpponentLogos.keyOf(row[Opponents.id].toString(), it) } }
         val ageGroupIds = AgeGroups.selectAll().where { AgeGroups.clubId eq spaceId }.map { it[AgeGroups.id] }
         Matches.deleteWhere { Matches.clubId eq spaceId }
         Teams.deleteWhere { Teams.clubId eq spaceId }
@@ -105,5 +126,6 @@ class ExposedAccountDeletionRepository : AccountDeletionRepository {
         Seasons.deleteWhere { Seasons.clubId eq spaceId }
         ClubMembers.deleteWhere { ClubMembers.clubId eq spaceId }
         Clubs.deleteWhere { Clubs.id eq spaceId }
+        return images
     }
 }
