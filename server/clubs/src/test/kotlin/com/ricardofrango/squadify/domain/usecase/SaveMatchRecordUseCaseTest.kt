@@ -141,7 +141,7 @@ class SaveMatchRecordUseCaseTest {
         assertEquals(1, byPlayer.getValue("ana").assists)
         assertEquals(listOf(52, 30, 22, 0), listOf("ana", "bia", "caro", "duda").map { byPlayer.getValue(it).minutesPlayed })
         assertEquals(8, byPlayer.getValue("ana").rating)
-        coVerify(exactly = 0) { notify(any(), any(), any()) }
+        coVerify(exactly = 0) { notify(any(), any(), any(), any()) }
     }
 
     @Test
@@ -241,7 +241,7 @@ class SaveMatchRecordUseCaseTest {
         assertEquals(listOf(50, 25, 25, 0), listOf("ana", "bia", "caro", "duda").map { byPlayer.getValue(it).minutesPlayed })
         assertEquals(1, byPlayer.getValue("bia").goals)
         assertEquals(1, byPlayer.getValue("duda").redCards)
-        coVerify(exactly = 1) { notify(matchId, MatchNotificationEvent.FULL_TIME, null) }
+        coVerify(exactly = 1) { notify(matchId, MatchNotificationEvent.FULL_TIME, null, any()) }
         coVerify { clubMatchesBus.publish(clubId, ClubMatchesUpdate(match = saved)) }
     }
 
@@ -282,7 +282,7 @@ class SaveMatchRecordUseCaseTest {
         val ana = lines.captured.single { it.playerId == "ana" }
         assertEquals(40, ana.minutesPlayed)
         assertEquals(7, ana.rating)
-        coVerify(exactly = 0) { notify(any(), any(), any()) }
+        coVerify(exactly = 0) { notify(any(), any(), any(), any()) }
     }
 
     @Test

@@ -116,7 +116,7 @@ class UpdateMatchStatusUseCase(
 
         // Sent after the transaction commits -- a failed/slow push must never roll back the status change.
         if (success) {
-            notificationEvent?.let { notifyMatchEventUseCase(matchId, it) }
+            notificationEvent?.let { notifyMatchEventUseCase(matchId, it, causedBy = userId) }
             updatedMatch?.let { clubMatchesBus.publish(it.clubId, ClubMatchesUpdate(match = it)) }
         }
         return success

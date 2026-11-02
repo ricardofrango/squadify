@@ -59,14 +59,17 @@ class NotifyMatchEventUseCase(
         val goal: GoalPush
     )
 
-    /** [goal]: the goal (or own goal) behind a [MatchNotificationEvent.GOAL]. */
-    suspend operator fun invoke(matchId: String, event: MatchNotificationEvent, goal: MatchEvent? = null) {
+    /**
+     * [goal]: the goal (or own goal) behind a [MatchNotificationEvent.GOAL]. [causedBy]: who did it (scheduled
+     * the game, scored, blew the whistle), who isn't told about it.
+     */
+    suspend operator fun invoke(matchId: String, event: MatchNotificationEvent, goal: MatchEvent? = null, causedBy: String? = null) {
         try {
             val context = transactionManager.runInTransaction {
                 val match = matchRepository.getMatchById(matchId) ?: return@runInTransaction null
                 val team = teamRepository.getTeamById(match.teamId) ?: return@runInTransaction null
                 val opponent = opponentRepository.getOpponentById(match.opponentId) ?: return@runInTransaction null
-                val memberIds = pushAudience.forGames(match.clubId, team.ageGroupId)
+                val memberIds = pushAudience.forGames(match.clubId, team.ageGroupId).filter { it != causedBy }
                 val tokens = fcmTokenRepository.getTokensForUsers(memberIds).values.flatten()
                 if (tokens.isEmpty()) return@runInTransaction null
 

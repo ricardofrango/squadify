@@ -124,7 +124,7 @@ class UpdateMatchUseCase(
         // Sent after the transaction commits -- a failed/slow push must never roll back the update.
         if (success) {
             if (scheduleChanged) {
-                notifyMatchEventUseCase(matchId, MatchNotificationEvent.RESCHEDULED)
+                notifyMatchEventUseCase(matchId, MatchNotificationEvent.RESCHEDULED, causedBy = userId)
             }
             updated?.let { clubMatchesBus.publish(it.clubId, ClubMatchesUpdate(match = it)) }
             // Anyone placing the starters sees the new pitch at once.

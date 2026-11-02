@@ -81,7 +81,8 @@ class CreateTeamUseCase(
 
             val created = teamRepository.createTeam(team)
 
-            val memberIds = pushAudience.forGames(request.clubId, request.ageGroupId)
+            // Not to whoever created them.
+            val memberIds = pushAudience.forGames(request.clubId, request.ageGroupId).filter { it != userId }
             pushTokens = fcmTokenRepository.getTokensForUsers(memberIds).values.flatten()
 
             created

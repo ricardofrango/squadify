@@ -100,7 +100,7 @@ class StartMatchUseCase(
 
         // Sent after the transaction commits -- a failed/slow push must never roll back kickoff.
         if (success) {
-            notifyMatchEventUseCase(matchId, MatchNotificationEvent.KICKOFF)
+            notifyMatchEventUseCase(matchId, MatchNotificationEvent.KICKOFF, causedBy = userId)
             updatedMatch?.let { clubMatchesBus.publish(it.clubId, ClubMatchesUpdate(match = it)) }
         }
         return success

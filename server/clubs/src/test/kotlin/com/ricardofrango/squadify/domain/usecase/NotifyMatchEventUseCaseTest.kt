@@ -92,6 +92,17 @@ class NotifyMatchEventUseCaseTest {
     }
 
     @Test
+    fun whoeverCausedItIsntTold() = runBlocking {
+        stubHappyPath(listOf("token-1"))
+        coEvery { fcmTokenRepository.getTokensForUsers(emptyList()) } returns emptyMap()
+
+        // u1, the only member with a device, scored: nobody else to tell.
+        useCase(matchId, MatchNotificationEvent.GOAL, causedBy = "u1")
+
+        coVerify(exactly = 0) { pushNotificationService.sendGoalScored(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
     fun goalPushesWithTheCurrentScore() = runBlocking {
         stubHappyPath(listOf("token-1"))
 

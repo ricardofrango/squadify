@@ -150,7 +150,7 @@ class SaveMatchRecordUseCase(
 
         // After the commit, as every push: one "final result" when a game not followed live is entered.
         if (firstEntry) {
-            notifyMatchEventUseCase(matchId, MatchNotificationEvent.FULL_TIME)
+            notifyMatchEventUseCase(matchId, MatchNotificationEvent.FULL_TIME, causedBy = userId)
             clubMatchesBus.publish(saved.clubId, ClubMatchesUpdate(match = saved))
         } else {
             clubMatchesBus.publish(saved.clubId, ClubMatchesUpdate(score = score))

@@ -90,7 +90,7 @@ class UpdateMatchStatusUseCaseTest {
 
         assert(result)
         coVerify(exactly = 1) { matchRepository.markSecondHalfStarted(matchId, any()) }
-        coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.SECOND_HALF_STARTED) }
+        coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.SECOND_HALF_STARTED, causedBy = any()) }
     }
 
     @Test
@@ -111,7 +111,7 @@ class UpdateMatchStatusUseCaseTest {
 
         assert(result)
         coVerify { matchRepository.markFirstHalfEnded(matchId, 47) }
-        coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.HALF_TIME) }
+        coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.HALF_TIME, causedBy = any()) }
         coVerify(exactly = 0) { matchRepository.markSecondHalfStarted(any(), any()) }
     }
 
@@ -129,7 +129,7 @@ class UpdateMatchStatusUseCaseTest {
         }
         coVerify(exactly = 0) { matchRepository.updateMatchStatus(any(), any()) }
         coVerify(exactly = 0) { matchRepository.markSecondHalfStarted(any(), any()) }
-        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any(), any(), any()) }
     }
 
     @Test
@@ -191,7 +191,7 @@ class UpdateMatchStatusUseCaseTest {
         val result = useCase(coach.id, matchId, MatchStatus.FINISHED)
 
         assert(result)
-        coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.FULL_TIME) }
+        coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.FULL_TIME, causedBy = any()) }
         coVerify { clubMatchesBus.publish(clubId, com.ricardofrango.squadify.model.ClubMatchesUpdate(match = liveMatch.copy(status = MatchStatus.FINISHED, fullTimeMinute = 0))) }
     }
 
@@ -207,7 +207,7 @@ class UpdateMatchStatusUseCaseTest {
         val result = useCase(coach.id, matchId, MatchStatus.CANCELLED)
 
         assert(result)
-        coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.CANCELLED) }
+        coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.CANCELLED, causedBy = any()) }
     }
 
     private fun stubFullTime(callUps: List<MatchCallUpWithPlayer> = emptyList(), events: List<MatchEvent> = emptyList()) {

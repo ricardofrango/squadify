@@ -94,7 +94,8 @@ class CreateTeamsUseCase(
             // clubRepository/fcmTokenRepository have no ambient transaction of their own outside this
             // block -- fetched here, not after the transaction closes, even though only used for the
             // push sent below.
-            val memberIds = pushAudience.forGames(request.clubId, request.ageGroupId)
+            // Not to whoever created them.
+            val memberIds = pushAudience.forGames(request.clubId, request.ageGroupId).filter { it != userId }
             pushTokens = fcmTokenRepository.getTokensForUsers(memberIds).values.flatten()
 
             created
