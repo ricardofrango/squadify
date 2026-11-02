@@ -224,11 +224,7 @@ private fun LazyListScope.statsItems(
                     StatsMessage(stringResource(Res.string.stats_load_failed_title), stringResource(Res.string.ag_stats_failed_body), onRetry = onRetry)
                 }
             }
-            recordState is AgeGroupRecordUiState.NotInPlan -> item {
-                StatsCard(contentPadding = 16.dp) {
-                    StatsNotInPlanMessage()
-                }
-            }
+            recordState is AgeGroupRecordUiState.NotInPlan -> item { StatsNotInPlanMessage() }
             recordState is AgeGroupRecordUiState.Loaded -> {
                 val record = recordState.record
                 if (record.teams.all { it.matches.isEmpty() }) {

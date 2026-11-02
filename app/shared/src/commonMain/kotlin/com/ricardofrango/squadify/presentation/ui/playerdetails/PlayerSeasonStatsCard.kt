@@ -111,10 +111,7 @@ internal fun PlayerSeasonStatsCard(
             )
         }
 
-        SeasonStatsUiState.NotInPlan -> StatsCard(contentPadding = 16.dp) {
-            StatsHeading(title, Modifier.padding(bottom = 12.dp))
-            StatsNotInPlanMessage()
-        }
+        SeasonStatsUiState.NotInPlan -> StatsNotInPlanMessage()
 
         is SeasonStatsUiState.Loaded -> {
             val season = state.selectedSeason

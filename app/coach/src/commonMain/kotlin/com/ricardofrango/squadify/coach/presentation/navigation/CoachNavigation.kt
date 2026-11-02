@@ -101,10 +101,11 @@ fun CoachNavigation(navigator: AppNavigator = rememberAppNavigator()) {
             slideOutHorizontally(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { it }
     val fade: ContentTransform = fadeIn(tween(NAV_ANIM_MS)) togetherWith fadeOut(tween(NAV_ANIM_MS))
 
-    // The own space and its plan, for the shared screens' plan messages: the stats lock offers See plans to
-    // the owner of a Free space; the Members tab and Create age groups say when the plan has no room.
+    // The own space and its plan, for the shared screens' plan boxes (the stats locks, and the Members tab,
+    // Invite staff and Create age groups when the plan has no room), each with See plans.
     val ownSpace by koinInject<OwnSpacePlan>().space.collectAsStateWithLifecycle()
-    val seePlans: (() -> Unit)? = ownSpace?.let { own -> { navigator.navigate(Screen.Plans(own.plan.name)) } }
+    // Everyone gets See plans; with no space of their own, Plans marks none as theirs.
+    val seePlans: () -> Unit = { navigator.navigate(Screen.Plans(ownSpace?.plan?.name.orEmpty())) }
 
     CompositionLocalProvider(
         LocalViewModelStoreOwner provides parentOwner,
@@ -191,7 +192,7 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
     screen<Screen.Plans> { entry ->
         val screen: Screen.Plans = entry.toRoute()
         PlansScreen(
-            plan = SpacePlan.entries.firstOrNull { it.name == screen.plan } ?: SpacePlan.FREE,
+            plan = SpacePlan.entries.firstOrNull { it.name == screen.plan },
             onNavigateBack = { navigator.popBackStack() }
         )
     }

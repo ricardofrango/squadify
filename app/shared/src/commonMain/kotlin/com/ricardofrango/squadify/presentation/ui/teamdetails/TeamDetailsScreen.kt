@@ -462,11 +462,7 @@ private fun PlayersTab(
                 }
             }
 
-            TeamRecordUiState.NotInPlan -> item {
-                StatsCard(contentPadding = 16.dp) {
-                    StatsNotInPlanMessage()
-                }
-            }
+            TeamRecordUiState.NotInPlan -> item { StatsNotInPlanMessage() }
 
             is TeamRecordUiState.Loaded -> {
                 val record = recordState.record

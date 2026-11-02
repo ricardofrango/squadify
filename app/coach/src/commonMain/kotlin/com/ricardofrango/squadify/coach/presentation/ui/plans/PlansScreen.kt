@@ -77,11 +77,11 @@ private val planCards = listOf(
 
 /**
  * The three plans, each listing what it adds to the one before, with the space's own [plan] outlined and
- * tagged "Your plan" (REQUIREMENTS §5c). Only to read: no prices and no buying until payments, a platform
+ * tagged "Your plan" (none for a coach without a space of their own) (REQUIREMENTS §5c). Only to read: no prices and no buying until payments, a platform
  * admin sets the plan.
  */
 @Composable
-fun PlansScreen(plan: SpacePlan, onNavigateBack: () -> Unit) {
+fun PlansScreen(plan: SpacePlan?, onNavigateBack: () -> Unit) {
     Scaffold(
         containerColor = ScreenBackground,
         topBar = { SquadifyTopBar(title = stringResource(Res.string.plans_title), onNavigateBack = onNavigateBack) }
