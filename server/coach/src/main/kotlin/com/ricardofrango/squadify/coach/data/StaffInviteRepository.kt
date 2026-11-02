@@ -5,6 +5,8 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greater
+import org.jetbrains.exposed.v1.core.greaterEq
+import org.jetbrains.exposed.v1.core.isNotNull
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -21,12 +23,16 @@ data class StoredStaffInvite(
     val createdBy: String,
     val createdAt: Instant,
     val expiresAt: Instant,
-    val acceptedBy: String?
+    val acceptedBy: String?,
+    // The address it was emailed to; null when shared by hand.
+    val sentTo: String? = null
 )
 
 /** The coach server's staff invites. Called inside the use cases' transactions. */
 interface StaffInviteRepository {
     suspend fun create(invite: StoredStaffInvite)
+    /** How many codes [userId] has emailed since [since], for the daily limit. */
+    suspend fun countEmailedSince(userId: String, since: Instant): Long
     suspend fun findByCode(code: String): StoredStaffInvite?
     /** Not used yet and not expired at [now], newest first. */
     suspend fun pending(ageGroupId: String, now: Instant): List<StoredStaffInvite>
@@ -44,8 +50,14 @@ class ExposedStaffInviteRepository : StaffInviteRepository {
             it[createdBy] = invite.createdBy.toUuid()
             it[createdAt] = invite.createdAt
             it[expiresAt] = invite.expiresAt
+            it[sentTo] = invite.sentTo
         }
     }
+
+    override suspend fun countEmailedSince(userId: String, since: Instant): Long =
+        StaffInvites.selectAll()
+            .where { (StaffInvites.createdBy eq userId.toUuid()) and StaffInvites.sentTo.isNotNull() and (StaffInvites.createdAt greaterEq since) }
+            .count()
 
     override suspend fun findByCode(code: String): StoredStaffInvite? =
         StaffInvites.selectAll().where { StaffInvites.code eq code }.map(::toInvite).singleOrNull()
@@ -74,7 +86,8 @@ class ExposedStaffInviteRepository : StaffInviteRepository {
         createdBy = row[StaffInvites.createdBy].toString(),
         createdAt = row[StaffInvites.createdAt],
         expiresAt = row[StaffInvites.expiresAt],
-        acceptedBy = row[StaffInvites.acceptedBy]?.toString()
+        acceptedBy = row[StaffInvites.acceptedBy]?.toString(),
+        sentTo = row[StaffInvites.sentTo]
     )
 }
 

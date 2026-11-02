@@ -5,9 +5,11 @@ import com.ricardofrango.squadify.coach.domain.CreateStaffInviteUseCase
 import com.ricardofrango.squadify.coach.domain.GetStaffInvitesUseCase
 import com.ricardofrango.squadify.coach.domain.RemoveStaffUseCase
 import com.ricardofrango.squadify.coach.domain.RevokeStaffInviteUseCase
+import com.ricardofrango.squadify.model.CreateStaffInviteRequest
 import com.ricardofrango.squadify.security.userId
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
+import io.ktor.server.request.receiveNullable
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
@@ -38,7 +40,9 @@ fun Route.staffRoutes() {
                 post {
                     val ageGroupId = call.parameters["ageGroupId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
                     val userId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                    call.respond(HttpStatusCode.Created, createInvite(userId, ageGroupId))
+                    // No body: a code to share by hand. With an email: also sent there.
+                    val request = runCatching { call.receiveNullable<CreateStaffInviteRequest>() }.getOrNull() ?: CreateStaffInviteRequest()
+                    call.respond(HttpStatusCode.Created, createInvite(userId, ageGroupId, request))
                 }
                 delete("/{code}") {
                     val ageGroupId = call.parameters["ageGroupId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)

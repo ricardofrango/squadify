@@ -20,6 +20,8 @@ object StaffInvites : Table("staff_invites") {
     val expiresAt = timestamp("expires_at")
     val acceptedBy = uuid("accepted_by").references(Users.id).nullable()
     val acceptedAt = timestamp("accepted_at").nullable()
+    // The address the code was emailed to, if it was (V3).
+    val sentTo = varchar("sent_to", 255).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

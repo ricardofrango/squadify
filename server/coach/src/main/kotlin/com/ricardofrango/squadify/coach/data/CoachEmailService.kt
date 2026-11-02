@@ -1,8 +1,12 @@
 package com.ricardofrango.squadify.coach.data
 
 import com.ricardofrango.squadify.coach.config.CoachConfig
+import com.ricardofrango.squadify.coach.domain.StaffInviteEmail
+import com.ricardofrango.squadify.coach.domain.StaffInviteMailer
 import com.ricardofrango.squadify.domain.service.EmailService
 import com.ricardofrango.squadify.email.ResendSender
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.slf4j.LoggerFactory
 
 /**
@@ -12,11 +16,12 @@ import org.slf4j.LoggerFactory
  * readiness).
  *
  * The coach product has no clubs and adds staff with codes, so the club and age-group emails are never
- * asked for here; they only log.
+ * asked for here; they only log. A code can be emailed ([sendStaffInvite]), in the owner's app language
+ * (English or Portuguese): the first coach email that isn't English only.
  */
 class CoachEmailService(
     private val sender: ResendSender = ResendSender(CoachConfig.resendApiKey, CoachConfig.emailFromAddress)
-) : EmailService {
+) : EmailService, StaffInviteMailer {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     override suspend fun sendClubInvite(to: String, clubName: String) = notInTheCoachProduct("club invite")
@@ -64,7 +69,48 @@ class CoachEmailService(
         )
     }
 
+    override suspend fun sendStaffInvite(to: String, email: StaffInviteEmail): Boolean {
+        val (subject, html) = staffInviteText(email)
+        return sender.send(to = to, subject = subject, html = html)
+    }
+
     private fun notInTheCoachProduct(what: String) {
         logger.warn("A {} email was asked for on the coach server, which has none; not sent", what)
     }
 }
+
+/** An emailed invite's subject and body: Portuguese for "pt", English otherwise. Names are escaped in the body (the subject is plain text). */
+internal fun staffInviteText(email: StaffInviteEmail): Pair<String, String> {
+    val owner = email.ownerName.escapeHtml()
+    val ageGroup = email.ageGroupName.escapeHtml()
+    val space = email.spaceName.escapeHtml()
+    val until = email.expiresAt.toLocalDateTime(TimeZone.of("Europe/Lisbon")).date
+    val codeBlock = """<p style="font-size:28px;font-weight:bold;letter-spacing:6px">${email.code}</p>"""
+    return if (email.language?.lowercase()?.startsWith("pt") == true) {
+        val date = "${until.day} de ${PT_MONTHS[until.month.ordinal]}"
+        "${email.ownerName} convidou-te para o ${email.ageGroupName} no Squadify Coach" to """
+            <p>Olá,</p>
+            <p><strong>$owner</strong> convidou-te para fazeres parte da equipa técnica do <strong>$ageGroup</strong> ($space) no Squadify Coach.</p>
+            <p>O teu código:</p>
+            $codeBlock
+            <p>Instala a app Squadify Coach, cria a tua conta (ou entra) e, no menu ☰, escolhe <strong>Entrar com um código</strong>. O código é válido até $date e só pode ser usado uma vez.</p>
+            <p>Se não estavas à espera deste convite, podes ignorar este email.</p>
+        """.trimIndent()
+    } else {
+        val date = "${until.day} ${EN_MONTHS[until.month.ordinal]}"
+        "${email.ownerName} invited you to ${email.ageGroupName} on Squadify Coach" to """
+            <p>Hi,</p>
+            <p><strong>$owner</strong> invited you to join the staff of <strong>$ageGroup</strong> ($space) on Squadify Coach.</p>
+            <p>Your code:</p>
+            $codeBlock
+            <p>Install the Squadify Coach app, create your account (or sign in) and, in the ☰ menu, choose <strong>Join with a code</strong>. The code is valid until $date and can be used once.</p>
+            <p>If you weren't expecting this invite, you can ignore this email.</p>
+        """.trimIndent()
+    }
+}
+
+private val EN_MONTHS = listOf("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+private val PT_MONTHS = listOf("janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro")
+
+private fun String.escapeHtml(): String =
+    replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")

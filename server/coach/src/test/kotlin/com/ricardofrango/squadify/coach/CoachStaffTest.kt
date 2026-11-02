@@ -4,6 +4,7 @@ import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.AgeGroupDetails
 import com.ricardofrango.squadify.model.AgeGroupItemRequest
 import com.ricardofrango.squadify.model.CoachSpace
+import com.ricardofrango.squadify.model.CreateStaffInviteRequest
 import com.ricardofrango.squadify.model.CreateAgeGroupsRequest
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
@@ -89,6 +90,26 @@ class CoachStaffTest {
 
         assertEquals(HttpStatusCode.NoContent, api.delete("/v1/age-groups/${setup.ageGroup.id}/invites/${invite.code}") { bearerAuth(owner) }.status)
         assertEquals(HttpStatusCode.NotFound, api.post("/v1/invites/${invite.code}/accept") { bearerAuth(api.signUp()) }.status)
+    }
+
+    @Test
+    fun anEmailedCodeNeedsAValidAddressAndIsWithdrawnIfTheEmailDoesntGo() = testApplication {
+        application { module() }
+        val api = jsonClient()
+        val owner = api.signUp()
+        val setup = api.post("/v1/space") {
+            json(owner, SetUpSpaceRequest("Ana's team", SportType.FOOTBALL, AgeGroupItemRequest("Sub-12", 2015, 2015), "Sub-12 A"))
+        }.body<SpaceSetup>()
+        val invites = "/v1/age-groups/${setup.ageGroup.id}/invites"
+
+        assertEquals(HttpStatusCode.BadRequest, api.post(invites) { json(owner, CreateStaffInviteRequest("not-an-email")) }.status)
+        // The tests have no Resend key, so the email can't go: refused, and no code left behind.
+        assertEquals(HttpStatusCode.BadRequest, api.post(invites) { json(owner, CreateStaffInviteRequest("joao@example.com", "pt")) }.status)
+        assertTrue(api.get(invites) { bearerAuth(owner) }.body<List<StaffInvite>>().isEmpty())
+        // An empty address is a code to share by hand.
+        val shared = api.post(invites) { json(owner, CreateStaffInviteRequest("  ")) }
+        assertEquals(HttpStatusCode.Created, shared.status)
+        assertEquals(null, shared.body<StaffInvite>().email)
     }
 
     @Test

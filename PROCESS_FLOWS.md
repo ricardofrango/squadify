@@ -2826,8 +2826,16 @@ The games are the shared `gameRoutes` (`:server:web`), the same use cases and pa
 graph TD
     O[Owner: POST /age-groups/id/invites] --> P{requireManageStaff: the owner?}
     P -- No --> F(["Throw ForbiddenException"])
-    P -- Yes --> C[New code, 6 unambiguous characters, never reused; expires in 7 days]
+    P -- Yes --> EM{An email address in the request?}
+    EM -- No --> C[New code, 6 unambiguous characters, never reused; expires in 7 days]
     C --> R(["Return StaffInvite: K7Q-4MZ"])
+    EM -- Yes --> EV{"A valid address, and fewer than 20 emailed by the owner in 24 hours?"}
+    EV -- No --> EX(["Throw ValidationException"])
+    EV -- Yes --> EC[New code as above, stored with sent_to]
+    EC --> ES{"After commit: CoachEmailService.sendStaffInvite, EN or PT"}
+    ES -- Resend took it --> ER(["Return StaffInvite with email"])
+    ES -- Not sent --> EW[Withdraw the code]
+    EW --> EX2(["Throw ValidationException"])
     A[Signed in: POST /invites/code/accept] --> N[Normalize: upper case, letters and digits]
     N --> Q{Code found?}
     Q -- No --> NF(["Throw NotFoundException"])
@@ -2845,7 +2853,7 @@ graph TD
 
 Other spaces don't matter: an owner of one space, or staff in another, can use a code. After it's used, the space's owner gets a push (`sendStaffJoined`) naming who joined which age group. Removing (`DELETE /age-groups/{id}/staff/{userId}`, the owner only): the owner can't be removed; otherwise the staff row goes, and the space membership too when it was their last age group of the space. Withdrawing (`DELETE /age-groups/{id}/invites/{code}`) deletes a code that hasn't been used.
 
-**The coach database's own table**, beyond the shared ones (§12): `staff_invites` (`id`, `code` unique, `age_group_id` → `age_groups` ON DELETE CASCADE, `created_by` → `users`, `created_at`, `expires_at`, `accepted_by` → `users` nullable, `accepted_at` nullable), from `V2__staff_invites.sql`.
+**The coach database's own table**, beyond the shared ones (§12): `staff_invites` (`id`, `code` unique, `age_group_id` → `age_groups` ON DELETE CASCADE, `created_by` → `users`, `created_at`, `expires_at`, `accepted_by` → `users` nullable, `accepted_at` nullable, `sent_to` nullable: the address a code was emailed to), from `V2__staff_invites.sql` and `V3__staff_invite_email.sql`.
 
 ### 13.6 Deleting an account (`DeleteAccountUseCase`, `POST /v1/users/me/delete`)
 
