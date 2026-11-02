@@ -1,5 +1,12 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.getString
+import squadify.app.shared.generated.resources.msg_refresh_failed
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.ricardofrango.squadify.presentation.ui.components.isWide
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.background
@@ -128,9 +135,18 @@ fun OpponentDetailsScreen(
         val state = viewModel.state.collectSettledState()
         LaunchedEffect(opponentId) { viewModel.load(opponentId) }
         LaunchedEffect(refresh) { if (refresh) viewModel.load(opponentId, force = true) }
+        val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+        val snackbarHostState = remember { SnackbarHostState() }
+        val refreshFailedText = Res.string.msg_refresh_failed
+        LaunchedEffect(viewModel) {
+            viewModel.refreshFailed.collect { snackbarHostState.showSnackbar(getString(refreshFailedText)) }
+        }
 
         OpponentDetailsContent(
             state = state,
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh(opponentId) },
+            snackbarHostState = snackbarHostState,
             onNavigateBack = onNavigateBack,
             onEdit = onEdit,
             onRetry = { viewModel.load(opponentId, force = true) },
@@ -140,6 +156,7 @@ fun OpponentDetailsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun OpponentDetailsContent(
     state: OpponentDetailsUiState,
@@ -147,11 +164,16 @@ private fun OpponentDetailsContent(
     onRetry: () -> Unit,
     onSeasonSelected: (String) -> Unit,
     onOpenMatch: (String) -> Unit,
-    onEdit: () -> Unit = {}
+    onEdit: () -> Unit = {},
+    // Pull-to-refresh: the content stays under the small indicator.
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
     val details = (state as? OpponentDetailsUiState.Idle)?.details
     Scaffold(
         containerColor = ScreenBackground,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             SquadifyTopBar(
                 title = details?.opponent?.name ?: stringResource(Res.string.title_opponent),
@@ -182,7 +204,7 @@ private fun OpponentDetailsContent(
                 Spacer(Modifier.height(16.dp))
                 Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)) { Text(stringResource(Res.string.btn_retry)) }
             }
-            is OpponentDetailsUiState.Idle -> BoxWithConstraints(modifier) {
+            is OpponentDetailsUiState.Idle -> PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = modifier) { BoxWithConstraints(Modifier.fillMaxSize()) {
                 val d = state.details
                 if (isWide) {
                     Row(Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -210,7 +232,7 @@ private fun OpponentDetailsContent(
                         NotesCard(d.opponent)
                     }
                 }
-            }
+            } }
         }
     }
 }
