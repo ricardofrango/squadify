@@ -1557,4 +1557,6 @@
     <string name="msg_home_matches_not_played">%1$d matches without a result</string>
     <string name="home_not_played_due">Due %1$s · %2$s</string>
     <string name="home_not_played_oldest">Oldest due %1$s · %2$s</string>
+    <!-- The live game's socket is down and reopening (LiveMatchScreen) -->
+    <string name="msg_live_reconnecting">Reconnecting… the score may be behind</string>
 </resources>

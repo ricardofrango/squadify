@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.livematch
 
+import squadify.app.shared.generated.resources.msg_live_reconnecting
+import androidx.lifecycle.compose.LifecycleStartEffect
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.components.homeFirst
 import com.ricardofrango.squadify.model.ourSideFirst
@@ -121,6 +123,11 @@ fun LiveMatchScreen(
         val uiState = viewModel.state.collectSettledState()
 
         LaunchedEffect(matchId) { viewModel.load(matchId) }
+        // The live socket only while the app is on screen; on return it reopens and catches up.
+        LifecycleStartEffect(viewModel) {
+            viewModel.onForeground()
+            onStopOrDispose { viewModel.onBackground() }
+        }
 
         // Insets are handled by hand below (ConsoleHeader's statusBarsPadding, the bottom action bars'
         // navigationBarsPadding) since the header/bottom bar are plain content, not Scaffold's topBar/
@@ -144,6 +151,16 @@ fun LiveMatchScreen(
                 }
             }
         }
+    }
+}
+
+/** The live socket is down and reopening: what's shown may be behind until it's back. */
+@Composable
+private fun ReconnectingLine(modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+        CircularProgressIndicator(Modifier.size(12.dp), color = Color.White.copy(alpha = 0.7f), strokeWidth = 1.5.dp)
+        Spacer(Modifier.width(8.dp))
+        Text(stringResource(Res.string.msg_live_reconnecting), color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -735,6 +752,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
                 }
                 Column(Modifier.width(260.dp).fillMaxHeight().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     ScoreboardColumn(home, away, clock)
+                    if (state.reconnecting) ReconnectingLine(Modifier.fillMaxWidth())
                     actionBar(Modifier.fillMaxWidth(), true)
                 }
             }
@@ -742,6 +760,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
             // No app bar: the scoreboard sits at the top (system back leaves the screen).
             Column(Modifier.fillMaxSize().statusBarsPadding().padding(top = 8.dp)) {
                 ScoreboardCard(home, away, clock, Modifier.padding(horizontal = ScreenPadding.Horizontal))
+                if (state.reconnecting) ReconnectingLine(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 4.dp))
                 tabs(Modifier.padding(horizontal = ScreenPadding.Horizontal).padding(top = 2.dp))
                 Box(Modifier.weight(1f).fillMaxWidth().padding(top = 6.dp)) { tabContent(false) }
                 actionBar(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp), false)
@@ -1403,6 +1422,31 @@ private fun LiveMatchConsolePreview() {
             MatchEvent("e2", "m1", EventType.RED_CARD, 20, playerId = "p6", createdAt = Instant.fromEpochMilliseconds(2), period = 1)
         )
         IdleBody(LiveMatchUiState.Idle(details = previewLiveDetails(match), events = events, score = MatchScore("m1", 1, 0)), PreviewLiveMatchActions, {}, { _, _ -> })
+    }
+}
+
+/** The live socket dropped: "Reconnecting…" under the scoreboard until it's back. */
+@Preview
+@Composable
+private fun LiveMatchReconnectingPreview() {
+    val match = Match(
+        id = "m1", clubId = "c1", teamId = "t1", opponentId = "o1", dateTime = Instant.fromEpochMilliseconds(0),
+        status = MatchStatus.LIVE, halfLengthMinutes = 30, kickoffAt = Instant.fromEpochMilliseconds(0)
+    )
+    SquadifyTheme {
+        IdleBody(LiveMatchUiState.Idle(details = previewLiveDetails(match), score = MatchScore("m1", 1, 0), reconnecting = true), PreviewLiveMatchActions, {}, { _, _ -> })
+    }
+}
+
+@Preview(widthDp = 900, heightDp = 480)
+@Composable
+private fun LiveMatchReconnectingLandscapePreview() {
+    val match = Match(
+        id = "m1", clubId = "c1", teamId = "t1", opponentId = "o1", dateTime = Instant.fromEpochMilliseconds(0),
+        status = MatchStatus.LIVE, halfLengthMinutes = 30, kickoffAt = Instant.fromEpochMilliseconds(0)
+    )
+    SquadifyTheme {
+        IdleBody(LiveMatchUiState.Idle(details = previewLiveDetails(match), score = MatchScore("m1", 1, 0), reconnecting = true), PreviewLiveMatchActions, {}, { _, _ -> })
     }
 }
 

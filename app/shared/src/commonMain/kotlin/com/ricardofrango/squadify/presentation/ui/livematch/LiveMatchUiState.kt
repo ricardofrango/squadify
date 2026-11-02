@@ -35,7 +35,9 @@ sealed class LiveMatchUiState {
         val error: String? = null,
         val flash: LiveFlash? = null,
         // The pitch as it was when the screen opened: before kickoff, Save is off until it differs.
-        val openedLineup: MatchLineup? = null
+        val openedLineup: MatchLineup? = null,
+        // The live socket is down and being reopened: what's shown may be behind.
+        val reconnecting: Boolean = false
     ) : LiveMatchUiState() {
         val lineupChanged: Boolean get() = openedLineup != null && details.storedLineup() != openedLineup
     }

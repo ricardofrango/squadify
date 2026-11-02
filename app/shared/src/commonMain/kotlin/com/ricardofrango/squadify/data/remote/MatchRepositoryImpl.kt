@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.data.remote
 
+import com.ricardofrango.squadify.domain.service.SocketEvent
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.SessionRepository
@@ -141,26 +142,29 @@ class MatchRepositoryImpl(
         httpClient.delete("${appConfig.baseUrl}/matches/$matchId/events/$eventId").handleResponse<Unit>()
     }
 
-    override fun observeLiveMatch(matchId: String): Flow<LiveMatchUpdate> = channelFlow {
+    override fun observeLiveMatch(matchId: String): Flow<SocketEvent<LiveMatchUpdate>> = channelFlow {
         // Browser WebSockets can't send an Authorization header, so the token travels as a query
-        // param instead -- mirrors the server's `/matches/{matchId}/live` route.
+        // param instead -- mirrors the server's `/matches/{matchId}/live` route. Read on every
+        // (re)connect, so a reconnect uses the token the last REST call refreshed.
         val token = sessionRepository.getToken()
         val wsUrl = appConfig.baseUrl.replaceFirst("http", "ws")
         httpClient.webSocket("$wsUrl/matches/$matchId/live?token=$token") {
+            this@channelFlow.send(SocketEvent.Open)
             while (isActive) {
                 val update = receiveDeserialized<LiveMatchUpdate>()
-                this@channelFlow.send(update)
+                this@channelFlow.send(SocketEvent.Message(update))
             }
         }
     }
 
-    override fun observeClubMatches(clubId: String): Flow<ClubMatchesUpdate> = channelFlow {
+    override fun observeClubMatches(clubId: String): Flow<SocketEvent<ClubMatchesUpdate>> = channelFlow {
         val token = sessionRepository.getToken()
         val wsUrl = appConfig.baseUrl.replaceFirst("http", "ws")
         httpClient.webSocket("$wsUrl/clubs/$clubId/matches/live?token=$token") {
+            this@channelFlow.send(SocketEvent.Open)
             while (isActive) {
                 val update = receiveDeserialized<ClubMatchesUpdate>()
-                this@channelFlow.send(update)
+                this@channelFlow.send(SocketEvent.Message(update))
             }
         }
     }
