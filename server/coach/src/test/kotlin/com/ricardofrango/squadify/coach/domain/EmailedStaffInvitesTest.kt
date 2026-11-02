@@ -59,7 +59,7 @@ class EmailedStaffInvitesTest {
         }
         val clock = object : Clock { override fun now() = now }
         return CreateStaffInviteUseCase(
-            invites, ageGroups, mockk<AccessPolicy>(relaxed = true), transactionManager, users, clubs, mailer, clock, dailyEmails = dailyEmails
+            invites, ageGroups, mockk<AccessPolicy>(relaxed = true), transactionManager, users, clubs, mailer, mockk<CoachPlans>(relaxed = true), clock, dailyEmails = dailyEmails
         )
     }
 

@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.domain.access
 
 import com.ricardofrango.squadify.exception.ForbiddenException
+import com.ricardofrango.squadify.exception.PlanLimitException
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.Team
 
@@ -94,15 +95,27 @@ interface AccessPolicy {
     /** Edits an opponent. */
     suspend fun requireEditOpponent(userId: String, scope: GameScope, errorMessage: String = DEFAULT_MESSAGE)
 
+    /**
+     * The club's plan includes stats: season records, team leaders, player season stats, full stats and
+     * a match's player lines. Only the coach server has plans (Basic and Pro); the clubs server always
+     * allows. Asked after the read check of the screen's own data. Throws [PlanLimitException].
+     */
+    suspend fun requireStatsInPlan(clubId: String) {}
+
+    /** The club's plan has room for [count] more age groups in [seasonId] (the coach server's plans). */
+    suspend fun requireRoomForAgeGroups(clubId: String, seasonId: String, count: Int) {}
+
     companion object {
         const val DEFAULT_MESSAGE = "Insufficient permissions to perform this action"
     }
 }
 
-/** A `require*` check as a yes/no, for the flags a screen shows. */
+/** A `require*` check as a yes/no, for the flags a screen shows. Not on the plan is a no too. */
 suspend fun allowed(check: suspend () -> Unit): Boolean = try {
     check()
     true
 } catch (e: ForbiddenException) {
+    false
+} catch (e: PlanLimitException) {
     false
 }

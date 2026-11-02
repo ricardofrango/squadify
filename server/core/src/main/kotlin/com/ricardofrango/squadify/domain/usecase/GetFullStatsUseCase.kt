@@ -59,6 +59,7 @@ class GetFullStatsUseCase(
     suspend fun team(userId: String, teamId: String): FullStatsData = transactionManager.runInTransaction {
         val team = teamRepository.getTeamById(teamId) ?: throw NotFoundException("Team not found")
         accessPolicy.requireViewGames(userId, team.scope)
+        accessPolicy.requireStatsInPlan(team.clubId)
         val ageGroup = ageGroupRepository.getAgeGroupById(team.ageGroupId) ?: throw NotFoundException("Age group not found")
         build(userId, ageGroup)
     }
@@ -66,6 +67,7 @@ class GetFullStatsUseCase(
     suspend fun ageGroup(userId: String, ageGroupId: String): FullStatsData = transactionManager.runInTransaction {
         val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId) ?: throw NotFoundException("Age group not found")
         accessPolicy.requireViewGames(userId, GameScope(ageGroup.clubId, ageGroupId = ageGroupId))
+        accessPolicy.requireStatsInPlan(ageGroup.clubId)
         build(userId, ageGroup)
     }
 

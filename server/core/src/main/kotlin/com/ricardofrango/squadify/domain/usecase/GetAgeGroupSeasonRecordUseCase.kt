@@ -40,6 +40,7 @@ class GetAgeGroupSeasonRecordUseCase(
         val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId) ?: throw NotFoundException("Age group not found")
 
         accessPolicy.requireViewGames(userId, GameScope(ageGroup.clubId, ageGroupId = ageGroupId))
+        accessPolicy.requireStatsInPlan(ageGroup.clubId)
 
         val canSeeRatings = try {
             accessPolicy.requireSeeRatings(userId, GameScope(ageGroup.clubId, ageGroupId = ageGroupId))

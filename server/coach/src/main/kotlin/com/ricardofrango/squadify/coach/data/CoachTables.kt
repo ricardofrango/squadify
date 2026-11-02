@@ -1,6 +1,8 @@
 package com.ricardofrango.squadify.coach.data
 
 import com.ricardofrango.squadify.data.database.AgeGroups
+import com.ricardofrango.squadify.data.database.Clubs
+import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.data.database.Users
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.Table
@@ -26,5 +28,17 @@ object StaffInvites : Table("staff_invites") {
     override val primaryKey = PrimaryKey(id)
 }
 
+/**
+ * A space's plan (REQUIREMENTS §5c), set by a platform admin until payments. A space with no row is on
+ * [SpacePlan.FREE]. Goes with its space.
+ */
+object SpacePlans : Table("space_plans") {
+    val clubId = uuid("club_id").references(Clubs.id, onDelete = ReferenceOption.CASCADE)
+    val plan = enumerationByName("plan", 20, SpacePlan::class)
+    val updatedAt = timestamp("updated_at")
+
+    override val primaryKey = PrimaryKey(clubId)
+}
+
 /** The coach database's own tables, beyond the shared ones (`sharedTables`). */
-val coachOnlyTables: List<Table> = listOf(StaffInvites)
+val coachOnlyTables: List<Table> = listOf(StaffInvites, SpacePlans)

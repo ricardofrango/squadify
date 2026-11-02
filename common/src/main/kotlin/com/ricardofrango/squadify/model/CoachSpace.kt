@@ -53,6 +53,23 @@ data class StaffInvite(
 data class CreateStaffInviteRequest(val email: String? = null, val language: String? = null)
 
 /**
+ * A space's plan (REQUIREMENTS §5c), for the whole space. Free: one age group, the owner alone, no stats
+ * and no live scores in the match lists. Basic: up to 3 age groups and 3 people on each, the owner
+ * included, with stats and live scores. Pro: no limits, and training (coming). Going down a plan deletes
+ * nothing: the first age groups created and the first staff to join stay, the others are locked.
+ */
+@Serializable
+enum class SpacePlan { FREE, BASIC, PRO }
+
+/** A space in the platform admin's list (`GET /v1/admin/spaces`, the coach server): its owner and plan. */
+@Serializable
+data class AdminSpace(val id: String, val name: String, val ownerEmail: String?, val plan: SpacePlan)
+
+/** `PUT /v1/admin/spaces/{id}/plan`: a platform admin sets a space's plan, until payments. */
+@Serializable
+data class SetSpacePlanRequest(val plan: SpacePlan)
+
+/**
  * One space the signed-in coach is in, with the age groups they have there: every one in the space they
  * own, the ones they're staff on in someone else's (REQUIREMENTS §5c).
  */
@@ -60,7 +77,11 @@ data class CreateStaffInviteRequest(val email: String? = null, val language: Str
 data class SpaceAgeGroups(
     val space: Club,
     val isOwner: Boolean,
-    val ageGroups: List<AgeGroup>
+    val ageGroups: List<AgeGroup>,
+    val plan: SpacePlan = SpacePlan.FREE,
+    // Of [ageGroups], the ones the plan locks for this coach: over the space's limit, or with them over
+    // the age group's people limit. Listed, but not opened.
+    val lockedAgeGroupIds: List<String> = emptyList()
 )
 
 /** A space the signed-in coach belongs to, and whether they own it. */

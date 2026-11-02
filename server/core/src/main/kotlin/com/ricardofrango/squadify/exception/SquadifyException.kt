@@ -23,6 +23,14 @@ class TooManyPasswordAttemptsException(message: String = "Too many wrong passwor
 class ValidationException(message: String) :
     SquadifyException(message, "VAL_001")
 
+/** Not on the space's plan (the coach server, REQUIREMENTS §5c): stats on Free, an age group or a member
+ * over the plan's limit. A 403 the app tells apart by its code, to show what the plan allows rather than
+ * an error. The clubs server never throws it. */
+class PlanLimitException(message: String) :
+    SquadifyException(message, PLAN_LIMIT_CODE)
+
+const val PLAN_LIMIT_CODE = "PLAN_001"
+
 /** A path/body value that should be a UUID (an entity id) isn't one -- e.g. a stale client holding a
  * deleted resource's id, a typo'd URL, or a malformed request. Distinct from [ValidationException] so
  * callers of `String.toUuid()` (see `server/.../util/UuidParsing.kt`) get a specific, known exception

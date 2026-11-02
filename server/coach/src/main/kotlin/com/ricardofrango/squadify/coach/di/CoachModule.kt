@@ -3,8 +3,14 @@ package com.ricardofrango.squadify.coach.di
 import com.ricardofrango.squadify.coach.data.AccountDeletionRepository
 import com.ricardofrango.squadify.coach.data.CoachEmailService
 import com.ricardofrango.squadify.coach.data.ExposedAccountDeletionRepository
+import com.ricardofrango.squadify.coach.data.ExposedSpacePlanRepository
+import com.ricardofrango.squadify.coach.data.SpacePlanRepository
+import com.ricardofrango.squadify.coach.domain.CoachPlans
 import com.ricardofrango.squadify.coach.domain.DeleteAccountUseCase
 import com.ricardofrango.squadify.coach.domain.GetAccountDeletionSummaryUseCase
+import com.ricardofrango.squadify.coach.domain.GetAdminSpacesUseCase
+import com.ricardofrango.squadify.coach.domain.PlatformAdmins
+import com.ricardofrango.squadify.coach.domain.SetSpacePlanUseCase
 import com.ricardofrango.squadify.coach.domain.StaffInviteMailer
 import com.ricardofrango.squadify.data.repository.ExposedEmailChangeRepository
 import com.ricardofrango.squadify.data.repository.ExposedPasswordResetRepository
@@ -187,17 +193,23 @@ val coachModule = module {
     factory { DeleteAccountUseCase(get(), get(), get(), get()) }
 
     // Who may do what: the space's owner everywhere, its staff in their age groups.
-    factory<AccessPolicy> { CoachAccessPolicy(get(), get(), get(), get()) }
+    // Plans (REQUIREMENTS §5c): what each space's plan allows and locks, and the admin who sets them.
+    single<SpacePlanRepository> { ExposedSpacePlanRepository() }
+    factory { CoachPlans(get()) }
+    factory { PlatformAdmins(get(), CoachConfig.platformAdminEmails) }
+    factory { GetAdminSpacesUseCase(get(), get(), get()) }
+    factory { SetSpacePlanUseCase(get(), get(), get(), get()) }
+    factory<AccessPolicy> { CoachAccessPolicy(get(), get(), get(), get(), get()) }
     factory { CoachSeasons(get()) }
     factory { SetUpSpaceUseCase(get(), get(), get(), get(), get()) }
-    factory { GetSpacesUseCase(get(), get(), get()) }
+    factory { GetSpacesUseCase(get(), get(), get(), get()) }
 
     // Staff: invite codes for an age group, and taking someone off one.
     single<StaffInviteRepository> { ExposedStaffInviteRepository() }
-    factory { CreateStaffInviteUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { CreateStaffInviteUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { GetStaffInvitesUseCase(get(), get(), get(), get()) }
     factory { RevokeStaffInviteUseCase(get(), get(), get(), get()) }
-    factory { AcceptStaffInviteUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { AcceptStaffInviteUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { RemoveStaffUseCase(get(), get(), get(), get()) }
 
     // Age groups, teams, players and opponents: the shared use cases.

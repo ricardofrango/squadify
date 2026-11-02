@@ -40,6 +40,14 @@ object CoachConfig {
     val emailFromAddress: String = env("RESEND_FROM_ADDRESS") ?: "Squadify Coach <onboarding@resend.dev>"
 
     /**
+     * Accounts that are platform admins (they set a space's plan, REQUIREMENTS §5c), besides any marked
+     * so in the database: their emails, comma-separated. None by default.
+     */
+    val platformAdminEmails: Set<String> = env("PLATFORM_ADMIN_EMAILS")
+        ?.split(',')?.map { it.trim().lowercase() }?.filter { it.isNotEmpty() }?.toSet()
+        .orEmpty()
+
+    /**
      * The coach's own Firebase project's service account (`squadify-for-coach`), as raw JSON, for its
      * pushes. Not required: without it each push is logged and skipped, as on the clubs server. Locally,
      * `firebase-coach-service-account.json` (gitignored) in the repo root or any folder above the server's.

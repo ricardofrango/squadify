@@ -1216,7 +1216,10 @@ data class MatchDetails(
     val lineupChanges: List<MatchLineupChange> = emptyList(),
     // The a-side counts the club's sport is played with (SportType.teamSizes), for changing the
     // match's own team size; empty from a server that predates it.
-    val teamSizeOptions: List<Int> = emptyList()
+    val teamSizeOptions: List<Int> = emptyList(),
+    // The Stats tab's players' lines are on the club's plan: false only on the coach server's Free plan
+    // (REQUIREMENTS §5c), where the tab says what the plan allows instead.
+    val statsInPlan: Boolean = true
 )
 
 @Serializable

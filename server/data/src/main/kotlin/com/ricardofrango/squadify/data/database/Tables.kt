@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.data.database
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import com.ricardofrango.squadify.model.*
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.datetime.CurrentTimestamp
 import org.jetbrains.exposed.v1.datetime.timestamp
 import org.jetbrains.exposed.v1.datetime.date
 import org.jetbrains.exposed.v1.datetime.time
@@ -134,6 +135,9 @@ object AgeGroups : Table("age_groups") {
     val startYear = integer("start_year").default(0)
     val endYear = integer("end_year").default(0)
     val teamSize = integer("team_size").nullable()
+    // When it was created, set by the database. On the coach server the first ones created stay in use
+    // when a space goes down a plan (REQUIREMENTS §5c); older rows have the migration's time.
+    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
 
     override val primaryKey = PrimaryKey(id)
 

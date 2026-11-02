@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.coach.access
 
+import com.ricardofrango.squadify.coach.data.SpacePlanRepository
+import com.ricardofrango.squadify.coach.domain.CoachPlans
 import com.ricardofrango.squadify.domain.access.GameScope
 import com.ricardofrango.squadify.domain.access.allowed
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
@@ -9,6 +11,7 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
@@ -32,7 +35,11 @@ class CoachAccessPolicyTest {
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
-    private val policy = CoachAccessPolicy(users, ageGroups, teams, transactionManager)
+    // Pro: nothing locked by the plan (PlansTest covers the plans).
+    private val plans = mockk<SpacePlanRepository> {
+        coEvery { planOf(any()) } returns SpacePlan.PRO
+    }
+    private val policy = CoachAccessPolicy(users, ageGroups, teams, transactionManager, CoachPlans(plans))
 
     private val space = "space-1"
     private val sub12 = ageGroup("sub-12", space)
