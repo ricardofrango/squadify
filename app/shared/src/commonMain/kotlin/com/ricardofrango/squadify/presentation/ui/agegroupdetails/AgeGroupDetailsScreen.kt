@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.OnReturnToApp
 import com.ricardofrango.squadify.presentation.ui.components.useNavigationRail
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
@@ -136,6 +137,8 @@ fun AgeGroupDetailsScreen(
             }
         }
         LaunchedEffect(refreshOnReturn) { if (refreshOnReturn) viewModel.load(ageGroupId, forceReload = true) }
+        // Its match lists have no live socket: refreshed when the app or this screen is shown again.
+        OnReturnToApp { viewModel.refreshMatches(ageGroupId) }
 
         AgeGroupDetailsContent(
             uiState = uiState,

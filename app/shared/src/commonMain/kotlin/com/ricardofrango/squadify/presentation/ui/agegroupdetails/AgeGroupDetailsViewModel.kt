@@ -102,6 +102,28 @@ class AgeGroupDetailsViewModel(
         }
     }
 
+    /**
+     * The match lists again, quietly (no spinner), on return to the app: they have no live socket, so a
+     * game that started or finished meanwhile shows. A failure keeps what's shown.
+     */
+    fun refreshMatches(ageGroupId: String) {
+        if (_state.value !is AgeGroupDetailsUiState.Idle) return
+        viewModelScope.launch {
+            val fresh = runCatching { getAgeGroupDetailsUseCase(ageGroupId) }.getOrNull() ?: return@launch
+            _state.update { state ->
+                (state as? AgeGroupDetailsUiState.Idle)?.copy(
+                    details = state.details.copy(
+                        notPlayedMatches = fresh.notPlayedMatches,
+                        upcomingMatches = fresh.upcomingMatches,
+                        upcomingMatchScores = fresh.upcomingMatchScores,
+                        recentResults = fresh.recentResults,
+                        opponents = fresh.opponents
+                    )
+                ) ?: state
+            }
+        }
+    }
+
     fun loadRecord(ageGroupId: String) {
         val filter = (_record.value as? AgeGroupRecordUiState.Loaded)?.filter ?: StatsFilter.ALL
         viewModelScope.launch {
