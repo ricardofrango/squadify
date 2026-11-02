@@ -70,6 +70,28 @@ class TeamDetailsViewModel(
         }
     }
 
+    /**
+     * The match lists again, quietly (no spinner), on return to the app: they have no live socket, so a
+     * game that started or finished meanwhile shows. A failure keeps what's shown.
+     */
+    fun refreshMatches(teamId: String) {
+        if (_state.value !is TeamDetailsUiState.Idle) return
+        viewModelScope.launch {
+            val fresh = runCatching { getTeamDetailsUseCase(teamId) }.getOrNull() ?: return@launch
+            _state.update { state ->
+                (state as? TeamDetailsUiState.Idle)?.copy(
+                    details = state.details.copy(
+                        notPlayedMatches = fresh.notPlayedMatches,
+                        upcomingMatches = fresh.upcomingMatches,
+                        upcomingMatchScores = fresh.upcomingMatchScores,
+                        recentResults = fresh.recentResults,
+                        opponents = fresh.opponents
+                    )
+                ) ?: state
+            }
+        }
+    }
+
     fun loadRecord(teamId: String) {
         val filter = (_record.value as? TeamRecordUiState.Loaded)?.filter ?: StatsFilter.ALL
         viewModelScope.launch {
