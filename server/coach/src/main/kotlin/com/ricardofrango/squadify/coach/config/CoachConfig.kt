@@ -53,9 +53,9 @@ object CoachConfig {
         ?: ""
 
     /**
-     * Images (TECHNICAL_DECISIONS §57, §72): the clubs server's Railway Storage Bucket, its keys under
-     * `coach/`. The same variables as the clubs server, mapped on this service from the bucket's
-     * reference variables (`STORAGE_BUCKET=${{Bucket.BUCKET}}` and so on). Without a bucket, images go
+     * Images (TECHNICAL_DECISIONS §57, §72): the coach server's own Railway Storage Bucket (never the
+     * clubs server's), its keys under `coach/`. The same variables as the clubs server, mapped on this
+     * service from its bucket's reference variables (`STORAGE_BUCKET=${{Bucket.BUCKET}}` and so on). Without a bucket, images go
      * on disk under [localImageDir] locally, and deployed uploads are refused (a container's disk is
      * wiped on every deploy).
      */

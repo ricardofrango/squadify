@@ -18,8 +18,8 @@ interface ImageStorage {
 }
 
 /**
- * [storage] with every key under [prefix] (e.g. `coach/`), so two servers can share one bucket without
- * their files mixing. Only the storage key changes: the image's path under the API stays the same.
+ * [storage] with every key under [prefix] (e.g. `coach/`), so a server's files stay labelled as its own
+ * wherever they're stored. Only the storage key changes: the image's path under the API stays the same.
  */
 class PrefixedImageStorage(private val storage: ImageStorage, private val prefix: String) : ImageStorage {
     override val isAvailable: Boolean get() = storage.isAvailable

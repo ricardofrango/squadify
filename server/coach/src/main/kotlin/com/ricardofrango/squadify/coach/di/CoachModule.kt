@@ -122,7 +122,7 @@ val coachModule = module {
     factory<PushAudience> { CoachPushAudience(get(), get()) }
     factory { RegisterFcmTokenUseCase(get(), get()) }
     factory { RemoveFcmTokenUseCase(get(), get()) }
-    // Images (TECHNICAL_DECISIONS §57, §72): the clubs server's bucket under `coach/`, the disk locally,
+    // Images (TECHNICAL_DECISIONS §57, §72): its own bucket, keys under `coach/`, the disk locally,
     // none deployed without a bucket. The space's logo (a space is a club), opponents' logos, players'
     // photos and the account's own photo, through the shared use cases and imageRoutes.
     single<ImageStorage> {
