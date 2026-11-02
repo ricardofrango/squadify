@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import kotlinx.coroutines.CancellationException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.DeleteMatchUseCase
@@ -37,6 +38,40 @@ class MatchDetailsViewModel(
     val navEvent: SharedFlow<MatchDetailsNavEvent> = _navEvent.asSharedFlow()
 
     private var matchId: String = ""
+
+    // Pull-to-refresh: the screen stays while it reloads; a failure is a one-off message.
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+    private val _refreshFailed = MutableSharedFlow<Unit>()
+    val refreshFailed: SharedFlow<Unit> = _refreshFailed.asSharedFlow()
+
+    /**
+     * Pull-to-refresh: the match again with the screen left as it is (and a call-up being picked kept,
+     * as on return). If it has kicked off meanwhile, on to the live game. A failure keeps what's shown.
+     */
+    fun refresh() {
+        if (_state.value !is MatchDetailsUiState.Idle || _isRefreshing.value) return
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                val details = getMatchDetailsUseCase(matchId)
+                if (details.match.status == MatchStatus.LIVE || details.match.status == MatchStatus.HALF_TIME) {
+                    _navEvent.emit(MatchDetailsNavEvent.RedirectToLiveMatch(matchId))
+                } else {
+                    _state.update { current ->
+                        val previous = current as? MatchDetailsUiState.Idle ?: return@update current
+                        MatchDetailsUiState.Idle(details = details, sort = previous.sort).keepingDraftOf(previous)
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _refreshFailed.emit(Unit)
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
 
     fun load(matchId: String, forceReload: Boolean = false) {
         this.matchId = matchId

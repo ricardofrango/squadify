@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.livematch
 
+import com.ricardofrango.squadify.model.LiveMatchUpdate
+import com.ricardofrango.squadify.domain.service.LiveFeedEvent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.AddMatchEventUseCase
@@ -46,10 +48,13 @@ import kotlin.time.Duration
  * branching on `details.match.status`.
  *
  * Every mutating action here updates local state from its own REST response immediately (so the
- * user driving the action never waits on the WebSocket), while [observeLiveMatchUseCase] is a second,
- * best-effort listener that folds in changes made elsewhere (another coach's phone, the club office).
- * A dropped socket is not retried -- see PROCESS_FLOWS.md's live match console notes -- REST calls
- * keep working regardless, just without cross-device echo until the screen is reopened.
+ * user driving the action never waits on the WebSocket), while [observeLiveMatchUseCase] is a second
+ * listener that folds in changes made elsewhere (another coach's phone, the club office, the person
+ * running the game while this phone only watches). The socket reopens itself when it drops (see
+ * `keepConnected`), and each time it's back the match, events and score are reloaded, since whatever
+ * was sent meanwhile was missed ([reloadAfterReconnect]); [LiveMatchUiState.Idle.reconnecting] shows
+ * while it's down. The screen closes it while the app is in the background and reopens it on return
+ * ([onBackground], [onForeground]). REST calls keep working regardless.
  *
  * Quick actions in a row stay in step (a de-sync seen in a real game, 2026-10-24: a swap made before
  * the previous one's reply came back started moving the wrong players):
@@ -112,7 +117,11 @@ class LiveMatchViewModel(
     val state: StateFlow<LiveMatchUiState> = _state.asStateFlow()
 
     private var matchId: String = ""
-    private var subscribed = false
+    // The live socket, while it's wanted (the game has started) and the app is in the foreground.
+    private var feedJob: Job? = null
+    private var wantsFeed = false
+    // Set when the socket drops or the app goes to the background: the next Connected reloads.
+    private var missedUpdates = false
 
     // The arrangement still to send, the running save loop, and the slots of the last one sent until
     // the socket echoes them back. All touched on the main thread only (viewModelScope).
@@ -163,44 +172,94 @@ class LiveMatchViewModel(
     }
 
     private fun subscribeToLiveUpdates() {
-        if (subscribed) return
-        subscribed = true
-        viewModelScope.launch {
-            try {
-                observeLiveMatchUseCase(matchId).collect { update ->
-                    // A lineup other than the one we last sent, while ours is pending or unechoed, is an
-                    // older echo: applying it would put the pitch back to a previous arrangement. The
-                    // socket delivers in order, so once ours comes back nothing older can follow.
-                    val lineupSlots = update.lineup?.slots
-                    val staleLineup = lineupSlots != null && (desiredLineup != null || (awaitingEcho != null && lineupSlots != awaitingEcho))
-                    if (lineupSlots != null && lineupSlots == awaitingEcho) awaitingEcho = null
-                    _state.update { state ->
-                        if (state !is LiveMatchUiState.Idle) return@update state
-                        var next = state.copy(score = update.score)
-                        update.deletedEventId?.let { id ->
-                            next = next.copy(events = next.events.filterNot { it.id == id })
+        wantsFeed = true
+        if (feedJob?.isActive == true) return
+        feedJob = viewModelScope.launch {
+            observeLiveMatchUseCase(matchId).collect { event ->
+                when (event) {
+                    LiveFeedEvent.Connected -> {
+                        setReconnecting(false)
+                        if (missedUpdates) {
+                            missedUpdates = false
+                            reloadAfterReconnect()
                         }
-                        update.event?.let { event ->
-                            if (next.events.none { it.id == event.id }) {
-                                next = next.copy(events = (next.events + event).sortedBy { it.minute })
-                            }
-                        }
-                        update.match?.let { match ->
-                            val formation = if (staleLineup) next.details.match.formation else match.formation
-                            next = next.copy(details = next.details.copy(match = match.copy(formation = formation)))
-                        }
-                        update.lineup?.takeIf { !staleLineup }?.let { lineup ->
-                            next = next.copy(details = next.details.withLineup(lineup))
-                        }
-                        next
                     }
+                    LiveFeedEvent.Disconnected -> {
+                        missedUpdates = true
+                        setReconnecting(true)
+                    }
+                    is LiveFeedEvent.Update -> applyUpdate(event.value)
                 }
-            } catch (e: Exception) {
-                // Socket dropped -- the REST-driven actions below keep working; see class doc.
-            } finally {
-                subscribed = false
             }
         }
+    }
+
+    private fun applyUpdate(update: LiveMatchUpdate) {
+        // A lineup other than the one we last sent, while ours is pending or unechoed, is an
+        // older echo: applying it would put the pitch back to a previous arrangement. The
+        // socket delivers in order, so once ours comes back nothing older can follow.
+        val lineupSlots = update.lineup?.slots
+        val staleLineup = lineupSlots != null && (desiredLineup != null || (awaitingEcho != null && lineupSlots != awaitingEcho))
+        if (lineupSlots != null && lineupSlots == awaitingEcho) awaitingEcho = null
+        _state.update { state ->
+            if (state !is LiveMatchUiState.Idle) return@update state
+            var next = state.copy(score = update.score)
+            update.deletedEventId?.let { id ->
+                next = next.copy(events = next.events.filterNot { it.id == id })
+            }
+            update.event?.let { event ->
+                if (next.events.none { it.id == event.id }) {
+                    next = next.copy(events = (next.events + event).sortedBy { it.minute })
+                }
+            }
+            update.match?.let { match ->
+                val formation = if (staleLineup) next.details.match.formation else match.formation
+                next = next.copy(details = next.details.copy(match = match.copy(formation = formation)))
+            }
+            update.lineup?.takeIf { !staleLineup }?.let { lineup ->
+                next = next.copy(details = next.details.withLineup(lineup))
+            }
+            next
+        }
+    }
+
+    private fun setReconnecting(reconnecting: Boolean) =
+        _state.update { (it as? LiveMatchUiState.Idle)?.copy(reconnecting = reconnecting) ?: it }
+
+    /**
+     * The match, events and score as the server has them, after the socket was down: what changed
+     * meanwhile never reached this phone. Waits for this phone's own actions and lineup saves, so it
+     * never undoes one, and takes the server's pitch (which has them). A failure keeps what's shown.
+     */
+    private fun reloadAfterReconnect() {
+        viewModelScope.launch {
+            submitMutex.withLock {
+                lineupJob?.join()
+                if (desiredLineup != null) return@withLock
+                try {
+                    val details = fetchDetails()
+                    val events = getMatchEventsUseCase(matchId)
+                    val score = getMatchScoreUseCase(matchId)
+                    // Our last lineup's echo may have been missed too; the server's pitch has it.
+                    awaitingEcho = null
+                    _state.update { (it as? LiveMatchUiState.Idle)?.copy(details = details, events = events, score = score) ?: it }
+                } catch (e: Exception) {
+                    // Still connected: later updates keep coming, and the next reconnect reloads again.
+                }
+            }
+        }
+    }
+
+    /** The app went to the background: the socket closes, and what's missed is reloaded on return. */
+    fun onBackground() {
+        feedJob?.cancel()
+        feedJob = null
+        if (wantsFeed) missedUpdates = true
+    }
+
+    /** Back in the foreground: the socket reopens (and, once open, reloads what was missed). */
+    fun onForeground() {
+        if (wantsFeed) subscribeToLiveUpdates()
     }
 
     override fun onTabSelected(tab: LiveMatchTab) {

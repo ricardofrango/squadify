@@ -1,5 +1,11 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import androidx.compose.runtime.remember
+import org.jetbrains.compose.resources.getString
+import squadify.app.shared.generated.resources.msg_refresh_failed
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.theme.OnChromeAccent
@@ -92,6 +98,12 @@ fun PlayerDetailsScreen(
         LaunchedEffect(refreshOnReturn) {
             if (refreshOnReturn) viewModel.loadPlayerDetails(playerId)
         }
+        val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+        val snackbarHostState = remember { SnackbarHostState() }
+        val refreshFailedText = Res.string.msg_refresh_failed
+        LaunchedEffect(viewModel) {
+            viewModel.refreshFailed.collect { snackbarHostState.showSnackbar(getString(refreshFailedText)) }
+        }
 
         PlayerDetailsContent(
             uiState = uiState,
@@ -103,7 +115,10 @@ fun PlayerDetailsScreen(
             onEditPlayer = { onEditPlayer(playerId) },
             onSeasonSelected = viewModel::onSeasonSelected,
             onFilterSelected = viewModel::onFilterSelected,
-            onOpenMatch = onOpenMatch
+            onOpenMatch = onOpenMatch,
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh(playerId) },
+            snackbarHostState = snackbarHostState
         )
     }
 }
@@ -120,12 +135,17 @@ private fun PlayerDetailsContent(
     onEditPlayer: () -> Unit,
     onSeasonSelected: (String) -> Unit,
     onFilterSelected: (StatsFilter) -> Unit,
-    onOpenMatch: (String) -> Unit
+    onOpenMatch: (String) -> Unit,
+    // Pull-to-refresh: the content stays under the small indicator.
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
     val profile = (uiState as? PlayerDetailsUiState.Idle)?.profile
 
     Scaffold(
         containerColor = ScreenBackground,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column(Modifier.background(ClubChrome)) {
                 SquadifyTopBar(
@@ -169,16 +189,18 @@ private fun PlayerDetailsContent(
                     Spacer(Modifier.height(16.dp))
                     Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
                 }
-            is PlayerDetailsUiState.Idle -> PlayerBody(
-                profile = uiState.profile,
-                statsState = statsState,
-                training = training,
-                modifier = boxModifier,
-                onRetryStats = onRetryStats,
-                onSeasonSelected = onSeasonSelected,
-                onFilterSelected = onFilterSelected,
-                onOpenMatch = onOpenMatch
-            )
+            is PlayerDetailsUiState.Idle -> PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = boxModifier) {
+                PlayerBody(
+                    profile = uiState.profile,
+                    statsState = statsState,
+                    training = training,
+                    modifier = Modifier.fillMaxSize(),
+                    onRetryStats = onRetryStats,
+                    onSeasonSelected = onSeasonSelected,
+                    onFilterSelected = onFilterSelected,
+                    onOpenMatch = onOpenMatch
+                )
+            }
         }
     }
 }

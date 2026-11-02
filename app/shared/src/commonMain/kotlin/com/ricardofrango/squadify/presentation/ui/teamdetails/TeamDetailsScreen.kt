@@ -1,5 +1,12 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import androidx.compose.runtime.remember
+import org.jetbrains.compose.resources.getString
+import squadify.app.shared.generated.resources.msg_refresh_failed
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import com.ricardofrango.squadify.presentation.ui.components.OnReturnToApp
 import com.ricardofrango.squadify.presentation.ui.components.useNavigationRail
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
@@ -101,6 +108,14 @@ fun TeamDetailsScreen(
 
         LaunchedEffect(teamId) { viewModel.load(teamId) }
         LaunchedEffect(refreshOnReturn) { if (refreshOnReturn) viewModel.load(teamId, forceReload = true) }
+        // Its match lists have no live socket: refreshed when the app or this screen is shown again.
+        OnReturnToApp { viewModel.refreshMatches(teamId) }
+        val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+        val snackbarHostState = remember { SnackbarHostState() }
+        val refreshFailedText = Res.string.msg_refresh_failed
+        LaunchedEffect(viewModel) {
+            viewModel.refreshFailed.collect { snackbarHostState.showSnackbar(getString(refreshFailedText)) }
+        }
 
         TeamDetailsContent(
             uiState = uiState,
@@ -111,6 +126,9 @@ fun TeamDetailsScreen(
             onSquadSortSelected = viewModel::onSquadSortSelected,
             onNavigateBack = onNavigateBack,
             onRetry = { viewModel.load(teamId, forceReload = true) },
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh(teamId) },
+            snackbarHostState = snackbarHostState,
             onRetryRecord = { viewModel.loadRecord(teamId) },
             onFilterSelected = viewModel::onFilterSelected,
             onNavigateToAgeGroup = onNavigateToAgeGroup,
@@ -135,6 +153,10 @@ private fun TeamDetailsContent(
     onSquadSortSelected: (SquadSort) -> Unit,
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
+    // Pull-to-refresh: the content stays under the small indicator.
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     onRetryRecord: () -> Unit,
     onFilterSelected: (StatsFilter) -> Unit,
     onNavigateToAgeGroup: (String) -> Unit,
@@ -161,6 +183,7 @@ private fun TeamDetailsContent(
             Scaffold(
                 modifier = Modifier.weight(1f),
                 containerColor = ScreenBackground,
+                snackbarHost = { SnackbarHost(snackbarHostState) },
                 topBar = {
                     Column(Modifier.background(ClubChrome)) {
                         SquadifyTopBar(
@@ -232,54 +255,56 @@ private fun TeamDetailsContent(
                             stringResource(Res.string.team_first_match_hint, dateLabel(it.dateTime), opponentName(opponentsById, it.opponentId))
                         }
                         val padding = ScreenPadding.Values
-                        val listModifier = boxModifier
-                        when (tab) {
-                            TeamTab.STATS -> LazyColumn(listModifier, state = listStates.getValue(TeamTab.STATS), contentPadding = padding, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                item(key = "record") {
-                                    TeamRecordCard(
-                                        state = recordState,
-                                        teamName = d.team.name,
-                                        nextHint = nextHint,
-                                        onViewNext = next?.let { { onMatchClick(it.id) } },
-                                        onRetry = onRetryRecord,
-                                        onFilterSelected = onFilterSelected,
-                                        onOpenMatch = onMatchClick
-                                    )
-                                }
-                                val loaded = recordState as? TeamRecordUiState.Loaded
-                                if (loaded != null && loaded.hasLeaders()) {
-                                    item(key = "leaders") {
-                                        TeamLeadersCard(loaded, onSeeAll = onOpenFullStats) { playerId -> onNavigateToPlayer(playerId, loaded.record.seasonId, loaded.filter) }
+                        val listModifier = Modifier.fillMaxSize()
+                        PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = boxModifier) {
+                            when (tab) {
+                                TeamTab.STATS -> LazyColumn(listModifier, state = listStates.getValue(TeamTab.STATS), contentPadding = padding, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    item(key = "record") {
+                                        TeamRecordCard(
+                                            state = recordState,
+                                            teamName = d.team.name,
+                                            nextHint = nextHint,
+                                            onViewNext = next?.let { { onMatchClick(it.id) } },
+                                            onRetry = onRetryRecord,
+                                            onFilterSelected = onFilterSelected,
+                                            onOpenMatch = onMatchClick
+                                        )
+                                    }
+                                    val loaded = recordState as? TeamRecordUiState.Loaded
+                                    if (loaded != null && loaded.hasLeaders()) {
+                                        item(key = "leaders") {
+                                            TeamLeadersCard(loaded, onSeeAll = onOpenFullStats) { playerId -> onNavigateToPlayer(playerId, loaded.record.seasonId, loaded.filter) }
+                                        }
                                     }
                                 }
+    
+                                TeamTab.MATCHES -> MatchesTab(
+                                    details = d,
+                                    opponentsById = opponentsById,
+                                    listState = listStates.getValue(TeamTab.MATCHES),
+                                    padding = padding,
+                                    modifier = listModifier,
+                                    onScheduleMatch = onScheduleMatch,
+                                    onMatchClick = onMatchClick
+                                )
+    
+                                TeamTab.PLAYERS -> PlayersTab(
+                                    details = d,
+                                    recordState = recordState,
+                                    squadSort = squadSort,
+                                    nextHint = nextHint,
+                                    onViewNext = next?.let { { onMatchClick(it.id) } },
+                                    listState = listStates.getValue(TeamTab.PLAYERS),
+                                    padding = padding,
+                                    modifier = listModifier,
+                                    onFilterSelected = onFilterSelected,
+                                    onSquadSortSelected = onSquadSortSelected,
+                                    onRetry = onRetryRecord,
+                                    onOpenPlayer = { playerId, seasonId, filter -> onNavigateToPlayer(playerId, seasonId, filter) },
+                                    onViewPool = { onNavigateToAgeGroup(d.ageGroup.id) },
+                                    onOpenStaff = if (d.canViewMembers) { userId -> onNavigateToMember(d.team.clubId, userId) } else null
+                                )
                             }
-
-                            TeamTab.MATCHES -> MatchesTab(
-                                details = d,
-                                opponentsById = opponentsById,
-                                listState = listStates.getValue(TeamTab.MATCHES),
-                                padding = padding,
-                                modifier = listModifier,
-                                onScheduleMatch = onScheduleMatch,
-                                onMatchClick = onMatchClick
-                            )
-
-                            TeamTab.PLAYERS -> PlayersTab(
-                                details = d,
-                                recordState = recordState,
-                                squadSort = squadSort,
-                                nextHint = nextHint,
-                                onViewNext = next?.let { { onMatchClick(it.id) } },
-                                listState = listStates.getValue(TeamTab.PLAYERS),
-                                padding = padding,
-                                modifier = listModifier,
-                                onFilterSelected = onFilterSelected,
-                                onSquadSortSelected = onSquadSortSelected,
-                                onRetry = onRetryRecord,
-                                onOpenPlayer = { playerId, seasonId, filter -> onNavigateToPlayer(playerId, seasonId, filter) },
-                                onViewPool = { onNavigateToAgeGroup(d.ageGroup.id) },
-                                onOpenStaff = if (d.canViewMembers) { userId -> onNavigateToMember(d.team.clubId, userId) } else null
-                            )
                         }
                     }
                 }

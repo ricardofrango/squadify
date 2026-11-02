@@ -24,6 +24,9 @@ sealed class ClubDetailsUiState {
         // The Home tab's aggregate. Loaded alongside `details`; null while loading or if it failed
         // (the Home tab then shows its own light empty/error state).
         val home: ClubHome? = null,
+        // Pull-to-refresh on Home: the tab stays while it reloads; a failure is said once.
+        val isRefreshingHome: Boolean = false,
+        val homeRefreshFailed: Boolean = false,
         val filteredTeams: List<Team> = emptyList(),
         val selectedTab: Int = CLUB_TAB_HOME,
         // Available Filter Options (Contextual)

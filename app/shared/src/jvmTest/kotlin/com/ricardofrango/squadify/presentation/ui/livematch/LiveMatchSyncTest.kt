@@ -1,5 +1,13 @@
 package com.ricardofrango.squadify.presentation.ui.livematch
 
+import kotlin.test.assertTrue
+import kotlin.test.assertFalse
+import kotlin.time.Duration.Companion.seconds
+import java.io.IOException
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flow
+import com.ricardofrango.squadify.domain.service.SocketEvent
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.usecase.AddMatchEventUseCase
 import com.ricardofrango.squadify.domain.usecase.DeleteMatchEventUseCase
@@ -50,7 +58,8 @@ import kotlin.time.Instant
 /**
  * The live console's quick actions in a row (the de-sync seen in a real game, 2026-10-24): a swap
  * or substitution made before the previous one's reply came back must not move the wrong players.
- * The fake server holds each reply until the test releases it.
+ * The fake server holds each reply until the test releases it. Also the live socket dropping, or the
+ * app going to the background, while a phone only watches: it reconnects and catches up.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class LiveMatchSyncTest {
@@ -65,6 +74,12 @@ class LiveMatchSyncTest {
 
     private class FakeServer(var details: MatchDetails) : MatchRepository {
         val socket = MutableSharedFlow<LiveMatchUpdate>()
+        // Emitting drops the open socket, as a lost connection would.
+        val drop = MutableSharedFlow<Unit>()
+        var connections = 0
+        // What another phone did meanwhile, as the server has it.
+        var events = emptyList<MatchEvent>()
+        var score = MatchScore("m1", 0, 0)
         val lineupsSent = mutableListOf<Map<Int, String>>()
         val eventsSent = mutableListOf<Pair<EventType, String?>>()
         // A reply is held while its gate is set; the test completes it (or fails it).
@@ -73,8 +88,8 @@ class LiveMatchSyncTest {
         private var nextEventId = 0
 
         override suspend fun getMatchDetails(matchId: String) = details
-        override suspend fun getMatchEvents(matchId: String) = emptyList<MatchEvent>()
-        override suspend fun getMatchScore(matchId: String) = MatchScore(matchId, 0, 0)
+        override suspend fun getMatchEvents(matchId: String) = events
+        override suspend fun getMatchScore(matchId: String) = score
         override suspend fun setLineup(matchId: String, request: SetMatchLineupRequest): MatchLineup {
             lineupsSent += request.slots
             lineupGate?.await()
@@ -86,7 +101,11 @@ class LiveMatchSyncTest {
             eventGate?.await()
             return MatchEvent("e${nextEventId++}", matchId, request.type, request.minute, request.playerId, createdAt = Instant.fromEpochMilliseconds(nextEventId.toLong()))
         }
-        override fun observeLiveMatch(matchId: String): Flow<LiveMatchUpdate> = socket
+        override fun observeLiveMatch(matchId: String): Flow<SocketEvent<LiveMatchUpdate>> = flow {
+            connections++
+            emit(SocketEvent.Open)
+            merge(socket.map { SocketEvent.Message(it) }, drop.map { throw IOException("connection lost") }).collect { emit(it) }
+        }
 
         override suspend fun createMatch(request: CreateMatchRequest): Match = error("unused")
         override suspend fun getMatchesPage(clubId: String, status: MatchListStatus, seasonId: String?, ageGroupId: String?, teamId: String?, offset: Int, limit: Int): MatchesPage = error("unused")
@@ -102,7 +121,7 @@ class LiveMatchSyncTest {
         override suspend fun saveMatchReport(matchId: String, request: SaveMatchReportRequest): MatchReport = error("unused")
         override suspend fun saveMatchRecord(matchId: String, request: com.ricardofrango.squadify.model.SaveMatchRecordRequest): Match = error("unused")
         override suspend fun deleteMatchEvent(matchId: String, eventId: String) = error("unused")
-        override fun observeClubMatches(clubId: String): Flow<ClubMatchesUpdate> = error("unused")
+        override fun observeClubMatches(clubId: String): Flow<SocketEvent<ClubMatchesUpdate>> = error("unused")
     }
 
     private val server = FakeServer(start)
@@ -112,7 +131,10 @@ class LiveMatchSyncTest {
         AddMatchEventUseCase(server), DeleteMatchEventUseCase(server), ObserveLiveMatchUseCase(server), SetMatchLineupUseCase(server)
     )
 
-    @BeforeTest fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
+    // The view model's own dispatcher: its clock moves only when a test advances it (the reconnect waits).
+    private val main = UnconfinedTestDispatcher()
+
+    @BeforeTest fun setUp() = Dispatchers.setMain(main)
     @AfterTest fun tearDown() = Dispatchers.resetMain()
 
     private val idle get() = viewModel.state.value as LiveMatchUiState.Idle
@@ -259,5 +281,62 @@ class LiveMatchSyncTest {
         // The server only has the first swap, and that's what the pitch shows now. (The error line's
         // text comes from compose resources, which a JVM unit test can't load.)
         assertEquals(first, shown)
+    }
+
+    private val goalElsewhere = MatchEvent("e-other", "m1", EventType.GOAL, 12, "p3", createdAt = Instant.fromEpochMilliseconds(1))
+
+    @Test
+    fun aDroppedSocketReconnectsAndCatchesUpOnWhatItMissed() = runTest {
+        viewModel.load("m1")
+        assertEquals(1, server.connections)
+        assertFalse(idle.reconnecting)
+
+        // The socket drops; meanwhile the person running the game scores.
+        server.drop.emit(Unit)
+        assertTrue(idle.reconnecting)
+        server.events = listOf(goalElsewhere)
+        server.score = MatchScore("m1", 1, 0)
+
+        // A second later it's back, and the goal it missed is shown.
+        main.scheduler.advanceTimeBy(1.seconds)
+        main.scheduler.runCurrent()
+        assertEquals(2, server.connections)
+        assertFalse(idle.reconnecting)
+        assertEquals(listOf("e-other"), idle.events.map { it.id })
+        assertEquals(1, idle.score.ourScore)
+
+        // And it keeps following the game.
+        server.socket.emit(LiveMatchUpdate(score = MatchScore("m1", 2, 0)))
+        assertEquals(2, idle.score.ourScore)
+    }
+
+    @Test
+    fun theSocketClosesInTheBackgroundAndCatchesUpOnReturn() = runTest {
+        viewModel.load("m1")
+        viewModel.onBackground()
+        server.events = listOf(goalElsewhere)
+        server.score = MatchScore("m1", 1, 0)
+
+        viewModel.onForeground()
+        assertEquals(2, server.connections)
+        assertEquals(listOf("e-other"), idle.events.map { it.id })
+        assertEquals(1, idle.score.ourScore)
+    }
+
+    @Test
+    fun aCatchUpWaitsForALineupSaveAndDoesNotUndoIt() = runTest {
+        viewModel.load("m1")
+        server.lineupGate = CompletableDeferred()
+        val swapped = swap(1, 2)
+        server.drop.emit(Unit)
+        main.scheduler.advanceTimeBy(1.seconds)
+        main.scheduler.runCurrent()
+
+        // Reconnected while the save is on its way: the pitch stays as the coach left it, and once
+        // the save is in, the catch-up takes the server's pitch, which has it.
+        assertEquals(swapped, shown)
+        server.lineupGate!!.complete(Unit)
+        assertEquals(swapped, shown)
+        assertEquals(swapped, server.details.storedSlots())
     }
 }

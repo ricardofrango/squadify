@@ -1,5 +1,11 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.CancellationException
 import com.ricardofrango.squadify.domain.config.AppFeatures
 
 import androidx.lifecycle.ViewModel
@@ -49,6 +55,12 @@ class TeamDetailsViewModel(
     private val _state = MutableStateFlow<TeamDetailsUiState>(TeamDetailsUiState.Loading)
     val state: StateFlow<TeamDetailsUiState> = _state.asStateFlow()
 
+    // Pull-to-refresh: the screen stays while it reloads; a failure is a one-off message.
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+    private val _refreshFailed = MutableSharedFlow<Unit>()
+    val refreshFailed: SharedFlow<Unit> = _refreshFailed.asSharedFlow()
+
     private val _record = MutableStateFlow<TeamRecordUiState>(TeamRecordUiState.Loading)
     val record: StateFlow<TeamRecordUiState> = _record.asStateFlow()
 
@@ -66,6 +78,59 @@ class TeamDetailsViewModel(
                 // Per AI_GUIDELINES "No Raw Exception Messages in UI" -- never surface e.message.
                 val message = errorMessage(e, Res.string.msg_failed_to_load_team)
                 _state.update { TeamDetailsUiState.Error(message) }
+            }
+        }
+    }
+
+    /**
+     * Pull-to-refresh: everything again with the screen left as it is (no full-screen spinner, no card
+     * spinner). A failure keeps what's shown and says so once.
+     */
+    fun refresh(teamId: String) {
+        if (_state.value !is TeamDetailsUiState.Idle || _isRefreshing.value) return
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                coroutineScope {
+                    val record = async { runCatching { getTeamSeasonRecordUseCase(teamId) }.getOrNull() }
+                    val fullStats = async { runCatching { getFullStatsUseCase.team(teamId) }.getOrNull() }
+                    val fresh = getTeamDetailsUseCase(teamId)
+                    _state.update {
+                        if (it is TeamDetailsUiState.Idle) TeamDetailsUiState.Idle(if (features.clubMembers) fresh else fresh.copy(canViewMembers = false)) else it
+                    }
+                    record.await()?.let { r ->
+                        val previous = _record.value as? TeamRecordUiState.Loaded
+                        _record.update { TeamRecordUiState.Loaded(r, previous?.filter ?: StatsFilter.ALL, fullStats = fullStats.await() ?: previous?.fullStats) }
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _refreshFailed.emit(Unit)
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
+
+    /**
+     * The match lists again, quietly (no spinner), on return to the app: they have no live socket, so a
+     * game that started or finished meanwhile shows. A failure keeps what's shown.
+     */
+    fun refreshMatches(teamId: String) {
+        if (_state.value !is TeamDetailsUiState.Idle) return
+        viewModelScope.launch {
+            val fresh = runCatching { getTeamDetailsUseCase(teamId) }.getOrNull() ?: return@launch
+            _state.update { state ->
+                (state as? TeamDetailsUiState.Idle)?.copy(
+                    details = state.details.copy(
+                        notPlayedMatches = fresh.notPlayedMatches,
+                        upcomingMatches = fresh.upcomingMatches,
+                        upcomingMatchScores = fresh.upcomingMatchScores,
+                        recentResults = fresh.recentResults,
+                        opponents = fresh.opponents
+                    )
+                ) ?: state
             }
         }
     }

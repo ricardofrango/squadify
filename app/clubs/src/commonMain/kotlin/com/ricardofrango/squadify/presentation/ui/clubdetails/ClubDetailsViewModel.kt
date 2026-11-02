@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.model.ClubMatchesUpdate
+import com.ricardofrango.squadify.domain.service.LiveFeedEvent
 import com.ricardofrango.squadify.presentation.ui.theme.ClubThemeStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,6 +35,9 @@ import kotlinx.coroutines.launch
  */
 interface ClubDetailsActions {
     fun loadClubDetails(clubId: String, forceReload: Boolean = false)
+    // Pull-to-refresh on Home, and the failure message once it's been shown.
+    fun refreshHome(clubId: String)
+    fun onHomeRefreshFailedShown()
     fun loadMoreAccount()
     fun logout(onLoggedOut: () -> Unit)
     fun onTabSelected(index: Int)
@@ -168,6 +173,29 @@ class ClubDetailsViewModel(
         }
     }
 
+    /**
+     * Pull-to-refresh on Home: its figures, Next up and Needs you again, with the tab left as it is
+     * (no full-screen spinner). A failure keeps what's shown and says so once.
+     */
+    override fun refreshHome(clubId: String) {
+        val current = _state.value as? ClubDetailsUiState.Idle ?: return
+        if (current.isRefreshingHome) return
+        viewModelScope.launch {
+            _state.update { (it as? ClubDetailsUiState.Idle)?.copy(isRefreshingHome = true, homeRefreshFailed = false) ?: it }
+            try {
+                val home = getClubHomeUseCase(clubId)
+                _state.update { (it as? ClubDetailsUiState.Idle)?.copy(home = home, isRefreshingHome = false) ?: it }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { (it as? ClubDetailsUiState.Idle)?.copy(isRefreshingHome = false, homeRefreshFailed = true) ?: it }
+            }
+        }
+    }
+
+    override fun onHomeRefreshFailedShown() =
+        _state.update { (it as? ClubDetailsUiState.Idle)?.copy(homeRefreshFailed = false) ?: it }
+
     // Where the Matches tab is in its lists for the current filters, and the page load under way.
     private var matchesCursor: MatchesCursor? = null
     private var matchesJob: Job? = null
@@ -283,34 +311,40 @@ class ClubDetailsViewModel(
     override fun connectToClubMatchesUpdates(clubId: String) {
         disconnectFromClubMatchesUpdates()
         clubMatchesJob = viewModelScope.launch {
-            try {
-                observeClubMatchesUseCase(clubId).collect { update ->
-                    val deletedMatchId = update.deletedMatchId
-                    val updatedMatch = update.match
-                    val updatedScore = update.score
-                    _state.update { state ->
-                        if (state !is ClubDetailsUiState.Idle) return@update state
-                        when {
-                            deletedMatchId != null -> state.copy(matches = state.matches.filterNot { it.id == deletedMatchId })
-                            updatedMatch != null -> {
-                                val updatedMatches = if (state.matches.any { it.id == updatedMatch.id }) {
-                                    state.matches.map { if (it.id == updatedMatch.id) updatedMatch else it }
-                                } else {
-                                    state.matches + updatedMatch
-                                }
-                                state.copy(matches = updatedMatches)
-                            }
-                            updatedScore != null -> state.copy(matchScores = state.matchScores + (updatedScore.matchId to updatedScore))
-                            else -> state
-                        }
+            // The socket reopens itself when it drops (e.g. the app backgrounded and the OS tore the
+            // connection down); once it's back the list reloads, since what changed meanwhile was missed.
+            var missedUpdates = false
+            observeClubMatchesUseCase(clubId).collect { event ->
+                when (event) {
+                    LiveFeedEvent.Connected -> if (missedUpdates) {
+                        missedUpdates = false
+                        refreshMatches(clubId)
                     }
+                    LiveFeedEvent.Disconnected -> missedUpdates = true
+                    is LiveFeedEvent.Update -> applyClubMatchesUpdate(event.value)
                 }
-            } catch (e: Exception) {
-                // Socket dropped (e.g. the app backgrounded and the OS tore down the connection --
-                // SocketException: Software caused connection abort) -- must be caught here, not left to
-                // propagate: an uncaught exception in a plain launch{} coroutine crashes the whole app,
-                // not just this screen. REST (refreshMatches) keeps working regardless; mirrors
-                // LiveMatchViewModel.subscribeToLiveUpdates' same catch for the same reason.
+            }
+        }
+    }
+
+    private fun applyClubMatchesUpdate(update: ClubMatchesUpdate) {
+        val deletedMatchId = update.deletedMatchId
+        val updatedMatch = update.match
+        val updatedScore = update.score
+        _state.update { state ->
+            if (state !is ClubDetailsUiState.Idle) return@update state
+            when {
+                deletedMatchId != null -> state.copy(matches = state.matches.filterNot { it.id == deletedMatchId })
+                updatedMatch != null -> {
+                    val updatedMatches = if (state.matches.any { it.id == updatedMatch.id }) {
+                        state.matches.map { if (it.id == updatedMatch.id) updatedMatch else it }
+                    } else {
+                        state.matches + updatedMatch
+                    }
+                    state.copy(matches = updatedMatches)
+                }
+                updatedScore != null -> state.copy(matchScores = state.matchScores + (updatedScore.matchId to updatedScore))
+                else -> state
             }
         }
     }

@@ -1555,4 +1555,8 @@
     <string name="msg_home_matches_not_played">%1$d jogos sem resultado</string>
     <string name="home_not_played_due">Marcado para %1$s · %2$s</string>
     <string name="home_not_played_oldest">O mais antigo: %1$s · %2$s</string>
+    <!-- O socket do jogo ao vivo caiu e está a ligar outra vez (LiveMatchScreen) -->
+    <string name="msg_live_reconnecting">A ligar outra vez… o resultado pode estar atrasado</string>
+    <!-- Um puxar para atualizar que falhou: o que estava no ecrã fica -->
+    <string name="msg_refresh_failed">Não foi possível atualizar. Verifica a ligação e tenta outra vez.</string>
 </resources>

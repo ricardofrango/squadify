@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import androidx.lifecycle.compose.LifecycleStartEffect
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
 import com.ricardofrango.squadify.presentation.ui.theme.IsClubThemed
@@ -24,7 +25,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -73,16 +73,19 @@ fun MatchesTab(
 ) {
     val details = state.details ?: return
 
-    // Live-updates the fixture list for as long as this tab is on screen: connects when this
-    // composable enters composition (tab selected, or returning from a match's own detail screen,
-    // which disposed this same composable while it was open) and disconnects when it leaves (a
-    // different tab selected, or navigating to a match). A REST refresh runs alongside the
-    // (re)connect so a stale list is corrected immediately rather than waiting for the next socket
-    // event, since the socket only pushes -- it carries no backlog for whatever changed while away.
-    DisposableEffect(details.club.id) {
+    // Live-updates the fixture list for as long as this tab is on screen with the app in the
+    // foreground: connects when this composable enters composition (tab selected, or returning from a
+    // match's own detail screen, which disposed this same composable while it was open) or the app
+    // comes back from the background, and disconnects when it leaves (a different tab selected,
+    // navigating to a match) or the app goes to the background, where the phone would drop the
+    // socket anyway. A REST refresh runs alongside the (re)connect so a stale list is corrected
+    // immediately rather than waiting for the next socket event, since the socket only pushes -- it
+    // carries no backlog for whatever changed while away. A drop while on screen reconnects by itself
+    // (TECHNICAL_DECISIONS §75).
+    LifecycleStartEffect(details.club.id) {
         actions.refreshMatches(details.club.id)
         actions.connectToClubMatchesUpdates(details.club.id)
-        onDispose { actions.disconnectFromClubMatchesUpdates() }
+        onStopOrDispose { actions.disconnectFromClubMatchesUpdates() }
     }
 
     // The club has no fixtures at all -- the full empty state, no filter row.

@@ -1,5 +1,13 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import org.jetbrains.compose.resources.getString
+import squadify.app.shared.generated.resources.msg_refresh_failed
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.ricardofrango.squadify.presentation.ui.components.useNavigationRail
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.venueLocation
@@ -122,6 +130,12 @@ fun MatchDetailsScreen(
 
         LaunchedEffect(matchId) { viewModel.load(matchId) }
         LaunchedEffect(refreshOnReturn) { if (refreshOnReturn) viewModel.load(matchId, forceReload = true) }
+        val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+        val snackbarHostState = remember { SnackbarHostState() }
+        val refreshFailedText = Res.string.msg_refresh_failed
+        LaunchedEffect(viewModel) {
+            viewModel.refreshFailed.collect { snackbarHostState.showSnackbar(getString(refreshFailedText)) }
+        }
         LaunchedEffect(viewModel.navEvent) {
             viewModel.navEvent.collect { event ->
                 when (event) {
@@ -136,6 +150,9 @@ fun MatchDetailsScreen(
             uiState = uiState,
             onNavigateBack = onNavigateBack,
             onRetry = { viewModel.load(matchId, forceReload = true) },
+            isRefreshing = isRefreshing,
+            onRefresh = viewModel::refresh,
+            snackbarHostState = snackbarHostState,
             onSortSelected = viewModel::onSortSelected,
             onAddToCallUp = viewModel::onAddToCallUp,
             onRemoveFromCallUp = viewModel::onRemoveFromCallUp,
@@ -155,6 +172,10 @@ private fun MatchDetailsContent(
     uiState: MatchDetailsUiState,
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
+    // Pull-to-refresh: the content stays under the small indicator.
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     onSortSelected: (CallUpSort) -> Unit,
     onAddToCallUp: (Player) -> Unit,
     onRemoveFromCallUp: (Player) -> Unit,
@@ -190,6 +211,7 @@ private fun MatchDetailsContent(
     Scaffold(
         modifier = Modifier.weight(1f),
         containerColor = ScreenBackground,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column(Modifier.background(ClubChrome)) {
                 // The teams and the score are the band below; the bar says when and what kind of game.
@@ -256,14 +278,16 @@ private fun MatchDetailsContent(
                 }
 
             // Played: the record of the game instead of the call-up.
-            is MatchDetailsUiState.Idle -> if (finished) FinishedMatchBody(uiState, selectedTab, boxModifier, onOpenReport) else MatchBody(
-                state = uiState,
-                modifier = boxModifier,
-                onSortSelected = onSortSelected,
-                onAddToCallUp = onAddToCallUp,
-                onRemoveFromCallUp = onRemoveFromCallUp,
-                onEditMatch = onEditMatch
-            )
+            is MatchDetailsUiState.Idle -> PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = boxModifier) {
+                if (finished) FinishedMatchBody(uiState, selectedTab, Modifier.fillMaxSize(), onOpenReport) else MatchBody(
+                    state = uiState,
+                    modifier = Modifier.fillMaxSize(),
+                    onSortSelected = onSortSelected,
+                    onAddToCallUp = onAddToCallUp,
+                    onRemoveFromCallUp = onRemoveFromCallUp,
+                    onEditMatch = onEditMatch
+                )
+            }
         }
     }
     }
