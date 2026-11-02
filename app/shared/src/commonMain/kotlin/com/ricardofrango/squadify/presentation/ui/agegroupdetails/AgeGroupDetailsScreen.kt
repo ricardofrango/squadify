@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import squadify.app.shared.generated.resources.msg_refresh_failed
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.ricardofrango.squadify.presentation.ui.components.OnReturnToApp
 import com.ricardofrango.squadify.presentation.ui.components.useNavigationRail
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
@@ -139,6 +141,11 @@ fun AgeGroupDetailsScreen(
         LaunchedEffect(refreshOnReturn) { if (refreshOnReturn) viewModel.load(ageGroupId, forceReload = true) }
         // Its match lists have no live socket: refreshed when the app or this screen is shown again.
         OnReturnToApp { viewModel.refreshMatches(ageGroupId) }
+        val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+        val refreshFailedText = Res.string.msg_refresh_failed
+        LaunchedEffect(viewModel) {
+            viewModel.refreshFailed.collect { snackbarHostState.showSnackbar(getString(refreshFailedText)) }
+        }
 
         AgeGroupDetailsContent(
             uiState = uiState,
@@ -159,6 +166,8 @@ fun AgeGroupDetailsScreen(
             onSearchChange = { searchQuery = it },
             onNavigateBack = onNavigateBack,
             onRetry = { viewModel.load(ageGroupId, forceReload = true) },
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh(ageGroupId) },
             onRetryRecord = { viewModel.loadRecord(ageGroupId) },
             onRetryPlans = { viewModel.loadPlans(ageGroupId) },
             onRetrySessions = { viewModel.loadSessions(ageGroupId) },
@@ -227,6 +236,9 @@ private fun AgeGroupDetailsContent(
     onSearchChange: (String) -> Unit,
     onNavigateBack: () -> Unit,
     onRetry: () -> Unit,
+    // Pull-to-refresh: the content stays under the small indicator.
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
     onRetryRecord: () -> Unit,
     onRetryPlans: () -> Unit = {},
     onRetrySessions: () -> Unit = {},
@@ -311,43 +323,46 @@ private fun AgeGroupDetailsContent(
                             )
                         }
                         val padding = ScreenPadding.Values
-                        when (tab) {
-                            AgeGroupTab.STATS -> AgeGroupStatsTab(
-                                details = d, recordState = recordState, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,
-                                nextHint = nextHint, onViewNext = next?.let { { onMatchClick(it.id) } }, sideBySide = landscape,
-                                onGoToTeams = { onTabSelected(AgeGroupTab.TEAMS) }, onRetry = onRetryRecord,
-                                onFilterSelected = onFilterSelected, onOpenPlayer = onPlayerClick, onOpenMatch = onMatchClick,
-                                fullStats = fullStats,
-                                onOpenFullStats = onOpenFullStats
-                            )
-                            AgeGroupTab.TEAMS -> AgeGroupTeamsTab(
-                                details = d, recordState = recordState, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,
-                                nextLabel = { m -> "${dateLabel(m.dateTime)} vs ${opponentsById[m.opponentId]?.let { o -> o.shortName ?: o.name } ?: "—"}" },
-                                onCreateTeam = { onCreateTeam(d) }, onOpenTeam = onTeamClick
-                            )
-                            AgeGroupTab.MATCHES -> AgeGroupMatchesTab(
-                                details = d, teamFilter = matchesTeamId, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,
-                                onTeamFilter = onMatchesTeamSelected, onSchedule = { onCreateMatch(d) }, onOpenMatch = onMatchClick
-                            )
-                            AgeGroupTab.TRAINING -> AgeGroupTrainingTab(
-                                plansState = plansState, listState = listStates.getValue(tab), padding = padding, modifier = boxModifier,
-                                sessionsState = sessionsState, poolSize = d.players.size,
-                                calendar = sessionsCalendar, onCalendar = onSessionsCalendar,
-                                onRetrySessions = onRetrySessions, onCreateSessions = onCreateSessions, onAddSession = onAddSession, onOpenSession = onOpenSession,
-                                onRetry = onRetryPlans,
-                                onOpenSeason = { onSeasonPlan(false) }, onEditSeason = { onSeasonPlan(true) },
-                                onOpenMonth = { onMonthPlan(it, false) }, onEditMonth = { onMonthPlan(it, true) },
-                                onOpenWeek = { onWeekPlan(it, false) }, onEditWeek = { onWeekPlan(it, true) }
-                            )
-                            AgeGroupTab.MEMBERS -> AgeGroupMembersTab(
-                                details = d, recordState = recordState, searchQuery = searchQuery, listState = listStates.getValue(tab), padding = padding,
-                                modifier = boxModifier, onSearchChange = onSearchChange, onAddStaff = { onAddStaff(d) },
-                                onAddPlayers = { onAddPlayers(d) }, onOpenPlayer = onPlayerClick,
-                                onOpenStaff = if (d.canAddStaff) { userId -> onStaffClick(d, userId) } else null,
-                                // The same permission as adding players to the pool.
-                                onRemovePlayer = if (d.canAssignPlayersToAgeGroup) onRemovePlayer else null,
-                                onRemoveStaff = if (uiState.invitesStaff) onRemoveStaff else null
-                            )
+                        PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = boxModifier) {
+                            val tabModifier = Modifier.fillMaxSize()
+                            when (tab) {
+                                AgeGroupTab.STATS -> AgeGroupStatsTab(
+                                    details = d, recordState = recordState, listState = listStates.getValue(tab), padding = padding, modifier = tabModifier,
+                                    nextHint = nextHint, onViewNext = next?.let { { onMatchClick(it.id) } }, sideBySide = landscape,
+                                    onGoToTeams = { onTabSelected(AgeGroupTab.TEAMS) }, onRetry = onRetryRecord,
+                                    onFilterSelected = onFilterSelected, onOpenPlayer = onPlayerClick, onOpenMatch = onMatchClick,
+                                    fullStats = fullStats,
+                                    onOpenFullStats = onOpenFullStats
+                                )
+                                AgeGroupTab.TEAMS -> AgeGroupTeamsTab(
+                                    details = d, recordState = recordState, listState = listStates.getValue(tab), padding = padding, modifier = tabModifier,
+                                    nextLabel = { m -> "${dateLabel(m.dateTime)} vs ${opponentsById[m.opponentId]?.let { o -> o.shortName ?: o.name } ?: "—"}" },
+                                    onCreateTeam = { onCreateTeam(d) }, onOpenTeam = onTeamClick
+                                )
+                                AgeGroupTab.MATCHES -> AgeGroupMatchesTab(
+                                    details = d, teamFilter = matchesTeamId, listState = listStates.getValue(tab), padding = padding, modifier = tabModifier,
+                                    onTeamFilter = onMatchesTeamSelected, onSchedule = { onCreateMatch(d) }, onOpenMatch = onMatchClick
+                                )
+                                AgeGroupTab.TRAINING -> AgeGroupTrainingTab(
+                                    plansState = plansState, listState = listStates.getValue(tab), padding = padding, modifier = tabModifier,
+                                    sessionsState = sessionsState, poolSize = d.players.size,
+                                    calendar = sessionsCalendar, onCalendar = onSessionsCalendar,
+                                    onRetrySessions = onRetrySessions, onCreateSessions = onCreateSessions, onAddSession = onAddSession, onOpenSession = onOpenSession,
+                                    onRetry = onRetryPlans,
+                                    onOpenSeason = { onSeasonPlan(false) }, onEditSeason = { onSeasonPlan(true) },
+                                    onOpenMonth = { onMonthPlan(it, false) }, onEditMonth = { onMonthPlan(it, true) },
+                                    onOpenWeek = { onWeekPlan(it, false) }, onEditWeek = { onWeekPlan(it, true) }
+                                )
+                                AgeGroupTab.MEMBERS -> AgeGroupMembersTab(
+                                    details = d, recordState = recordState, searchQuery = searchQuery, listState = listStates.getValue(tab), padding = padding,
+                                    modifier = tabModifier, onSearchChange = onSearchChange, onAddStaff = { onAddStaff(d) },
+                                    onAddPlayers = { onAddPlayers(d) }, onOpenPlayer = onPlayerClick,
+                                    onOpenStaff = if (d.canAddStaff) { userId -> onStaffClick(d, userId) } else null,
+                                    // The same permission as adding players to the pool.
+                                    onRemovePlayer = if (d.canAssignPlayersToAgeGroup) onRemovePlayer else null,
+                                    onRemoveStaff = if (uiState.invitesStaff) onRemoveStaff else null
+                                )
+                            }
                         }
                     }
                 }

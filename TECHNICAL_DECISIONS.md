@@ -3404,3 +3404,10 @@ The developer, 2026-11-02: watching a live game on one phone while someone else 
 - **One server copy:** live updates go through each server's in-memory bus, so they reach the watchers connected to the same copy. Each Railway service runs one; more replicas would need a shared bus (e.g. Postgres `LISTEN/NOTIFY`).
 - **Tests:** `LiveFeedTest` (the waits, starting over after a connection that held, an open socket kept), and `LiveMatchSyncTest` (a dropped socket reconnects and shows the goal it missed, the background and return, a catch-up that waits for a lineup save and keeps it).
 
+## 76. Pull to Refresh on Screens Without a Socket
+
+The developer, 2026-11-02: the screens that show games but have no live socket (§75) get pull-to-refresh rather than sockets. The pattern is My clubs' (`DashboardScreen`): `PullToRefreshBox` around the loaded content only. A pull reloads with the content left on screen under the small indicator, never the full-screen spinner (that's for a cold start or a retry after an error). A failed refresh keeps what's shown and says "Couldn't refresh. Check your connection and try again." once (`msg_refresh_failed`, a snackbar).
+
+- **Each view model:** `isRefreshing` (a `StateFlow`), `refreshFailed` (a one-off), and `refresh(id)`, which reloads without passing through `Loading`.
+- **Age Group Details** (both apps): the details (every tab's lists), the season record and full stats fetched quietly (their cards don't flash a spinner), and plans and sessions through their own loaders, which keep their content while reloading.
+

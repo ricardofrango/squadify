@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.CancellationException
 import com.ricardofrango.squadify.domain.config.AppFeatures
 
 import com.ricardofrango.squadify.domain.repository.UiPreferencesRepository
@@ -66,6 +69,12 @@ class AgeGroupDetailsViewModel(
     private val _sessions = MutableStateFlow<AgeGroupSessionsUiState>(AgeGroupSessionsUiState.Loading)
     val sessions: StateFlow<AgeGroupSessionsUiState> = _sessions.asStateFlow()
 
+    // Pull-to-refresh: the screen stays while it reloads; a failure is a one-off message.
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+    private val _refreshFailed = MutableSharedFlow<Unit>()
+    val refreshFailed: SharedFlow<Unit> = _refreshFailed.asSharedFlow()
+
     private val _record = MutableStateFlow<AgeGroupRecordUiState>(AgeGroupRecordUiState.Loading)
     val record: StateFlow<AgeGroupRecordUiState> = _record.asStateFlow()
 
@@ -98,6 +107,41 @@ class AgeGroupDetailsViewModel(
             } catch (e: Exception) {
                 val message = errorMessage(e, Res.string.msg_failed_to_load_age_group)
                 _state.update { AgeGroupDetailsUiState.Error(message) }
+            }
+        }
+    }
+
+    /**
+     * Pull-to-refresh: everything again with the screen left as it is (no full-screen spinner, no card
+     * spinners). A failure keeps what's shown and says so once.
+     */
+    fun refresh(ageGroupId: String) {
+        if (_state.value !is AgeGroupDetailsUiState.Idle || _isRefreshing.value) return
+        // These two keep their content while they reload.
+        if (features.training) {
+            loadPlans(ageGroupId)
+            loadSessions(ageGroupId)
+        }
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                coroutineScope {
+                    val record = async { runCatching { getAgeGroupSeasonRecordUseCase(ageGroupId) }.getOrNull() }
+                    val stats = async { runCatching { getFullStatsUseCase.ageGroup(ageGroupId) }.getOrNull() }
+                    val fresh = getAgeGroupDetailsUseCase(ageGroupId)
+                    _state.update { if (it is AgeGroupDetailsUiState.Idle) fresh.idleFor(features) else it }
+                    record.await()?.let { r ->
+                        val filter = (_record.value as? AgeGroupRecordUiState.Loaded)?.filter ?: StatsFilter.ALL
+                        _record.update { AgeGroupRecordUiState.Loaded(r, filter) }
+                    }
+                    stats.await()?.let { _fullStats.value = it }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _refreshFailed.emit(Unit)
+            } finally {
+                _isRefreshing.value = false
             }
         }
     }
