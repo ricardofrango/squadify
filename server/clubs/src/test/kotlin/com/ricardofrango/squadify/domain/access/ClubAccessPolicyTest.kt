@@ -80,10 +80,12 @@ class ClubAccessPolicyTest {
         policy.requireCreateAgeGroups("u1", "c1", "a")
         policy.requireEditAgeGroup("u1", ageGroup, "e")
         policy.requireManageStaff("u1", ageGroup, "s")
+        policy.requireEditClub("u1", "c1", "l")
         coVerify { check("u1", "c1", ClubRole.COORDINATOR, null, null, null, null, false, AccessPolicy.DEFAULT_MESSAGE) }
         coVerify { check("u1", "c1", ClubRole.COORDINATOR, null, null, null, null, false, "a") }
         coVerify { check("u1", "c1", ClubRole.COORDINATOR, null, null, null, null, false, "e") }
         coVerify { check("u1", "c1", ClubRole.COORDINATOR, null, null, null, null, false, "s") }
+        coVerify { check("u1", "c1", ClubRole.COORDINATOR, null, null, null, null, false, "l") }
     }
 
     @Test

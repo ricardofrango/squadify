@@ -24,6 +24,7 @@ import com.ricardofrango.squadify.coach.presentation.ui.deleteaccount.DeleteAcco
 import com.ricardofrango.squadify.coach.presentation.ui.home.CoachHomeScreen
 import com.ricardofrango.squadify.coach.presentation.ui.invite.InviteStaffScreen
 import com.ricardofrango.squadify.coach.presentation.ui.join.JoinWithCodeScreen
+import com.ricardofrango.squadify.coach.presentation.ui.space.MySpaceScreen
 import com.ricardofrango.squadify.coach.presentation.ui.spacesetup.SpaceSetupScreen
 import com.ricardofrango.squadify.domain.service.SessionEventBus
 import com.ricardofrango.squadify.presentation.navigation.AppNavigator
@@ -164,6 +165,14 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
         )
     }
 
+    // The owner's own space: a new logo reloads Home's rows.
+    screen<Screen.MySpace> {
+        MySpaceScreen(
+            onNavigateBack = { navigator.popBackStack() },
+            onLogoChanged = { navigator.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true) }
+        )
+    }
+
     screen<Screen.InviteStaff> { entry ->
         val screen: Screen.InviteStaff = entry.toRoute()
         InviteStaffScreen(
@@ -186,12 +195,13 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
             onSetUpSpace = { navigator.navigate(Screen.SpaceSetup) },
             onJoinWithCode = { navigator.navigate(Screen.JoinWithCode) },
             onOpenAccount = { navigator.navigate(Screen.Account) },
+            onOpenMySpace = { navigator.navigate(Screen.MySpace) },
             refresh = changed,
             onRefreshed = { entry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false }
         )
     }
 
-    // Account, Change email and Forgot password, as in the clubs app (no photo: AppFeatures).
+    // Account, Change email and Forgot password, as in the clubs app, with the photo.
     accountScreens(navigator)
 
     // From Account: deleted at once, then signed out, back to Sign in.
@@ -203,6 +213,6 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
     }
 
     // The age group, team, player, opponent, match and stats screens, as in the clubs app. What the
-    // coach app leaves out (training, seasons, photos, club members) is its AppFeatures (CoachKoin).
+    // coach app leaves out (training, seasons, club members) is its AppFeatures (CoachKoin).
     sharedScreens(navigator)
 }

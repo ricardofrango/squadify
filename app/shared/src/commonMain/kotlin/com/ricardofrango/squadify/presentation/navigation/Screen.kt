@@ -63,6 +63,11 @@ sealed class Screen {
     @SerialName("join")
     data object JoinWithCode : Screen()
 
+    // The owner's own space: its logo (the coach app's ☰ menu).
+    @Serializable
+    @SerialName("my-space")
+    data object MySpace : Screen()
+
     // The owner's invite codes for one age group: create, share, withdraw. Opened from Age Group Details.
     @Serializable
     @SerialName("invite-staff")

@@ -45,6 +45,9 @@ class ClubAccessPolicy(private val checkUserPermission: CheckUserPermissionUseCa
         errorMessage = errorMessage
     )
 
+    override suspend fun requireEditClub(userId: String, clubId: String, errorMessage: String) =
+        checkUserPermission(userId = userId, clubId = clubId, minClubRole = ClubRole.COORDINATOR, errorMessage = errorMessage)
+
     override suspend fun requireViewClub(userId: String, clubId: String) =
         checkUserPermission(userId, clubId, minClubRole = ClubRole.MEMBER, allowPlayerOrParentAccess = true)
 

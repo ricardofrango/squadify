@@ -17,7 +17,7 @@ import com.ricardofrango.squadify.model.UserStatus
  *   group of the space, by this rule rather than by staff rows, so a new age group needs nothing more;
  * - **staff** (any other member of the space) may do everything in the age groups they're staff on
  *   (`age_group_staff`), and see and add what belongs to the whole space (opponents, players);
- * - only the owner creates age groups and manages staff.
+ * - only the owner creates age groups, manages staff and changes the space's own details (its logo).
  *
  * The plan's limits (stats from Basic, the number of age groups and of members) come with the plans.
  */
@@ -42,6 +42,9 @@ class CoachAccessPolicy(
 
     // Everyone in the coach app is staff, so ratings go with the age group.
     override suspend fun requireSeeRatings(userId: String, scope: GameScope, errorMessage: String) = inAgeGroup(userId, scope, errorMessage)
+
+    // The space's own details (its logo): the owner's.
+    override suspend fun requireEditClub(userId: String, clubId: String, errorMessage: String) = owner(userId, clubId, errorMessage)
 
     override suspend fun requireViewClub(userId: String, clubId: String) = requireMember(userId, clubId)
 

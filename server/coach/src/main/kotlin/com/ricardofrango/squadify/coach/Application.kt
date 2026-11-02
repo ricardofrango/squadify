@@ -13,6 +13,8 @@ import com.ricardofrango.squadify.installSquadifyApi
 import com.ricardofrango.squadify.presentation.routes.accountRoutes
 import com.ricardofrango.squadify.presentation.routes.fcmTokenRoutes
 import com.ricardofrango.squadify.presentation.routes.gameRoutes
+import com.ricardofrango.squadify.presentation.routes.imageRoutes
+import com.ricardofrango.squadify.presentation.routes.publicImageRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.engine.embeddedServer
@@ -58,6 +60,8 @@ fun Application.module() {
             spaceRoutes()
             structureRoutes()
             staffRoutes()
+            imageRoutes()
+            publicImageRoutes()
             gameRoutes(CoachTokens)
         }
     }

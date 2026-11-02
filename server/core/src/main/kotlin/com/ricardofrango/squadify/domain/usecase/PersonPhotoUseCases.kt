@@ -1,13 +1,13 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.GameScope
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.ImageStorage
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.util.LogoImage
 import kotlin.uuid.Uuid
@@ -44,24 +44,20 @@ private suspend fun replacePhoto(
 
 /**
  * The player, if [userId] may change their photo: the same gate as editing the player
- * (`EDIT_PLAYER`, for the player's own age group's staff as far as the club allows), like
- * `PlayerProfile.canEdit`.
+ * (`requireEditPlayer`, with the player's own age group), like `PlayerProfile.canEdit`.
  */
 private suspend fun loadPlayerForEdit(
     playerRepository: PlayerRepository,
-    checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    accessPolicy: AccessPolicy,
     transactionManager: TransactionManager,
     userId: String,
     playerId: String
 ): Player = transactionManager.runInTransaction {
     val player = playerRepository.getPlayerById(playerId) ?: throw NotFoundException("Player not found")
-    checkUserPermissionUseCase(
-        userId = userId,
-        clubId = player.clubId,
-        minClubRole = ClubRole.COORDINATOR,
-        configurablePermission = ConfigurablePermission.EDIT_PLAYER,
-        ageGroupId = playerRepository.getAgeGroupIdsByPlayer(playerId).firstOrNull(),
-        errorMessage = "Insufficient permissions to change this player's photo"
+    accessPolicy.requireEditPlayer(
+        userId,
+        GameScope(player.clubId, ageGroupId = playerRepository.getAgeGroupIdsByPlayer(playerId).firstOrNull()),
+        "Insufficient permissions to change this player's photo"
     )
     player
 }
@@ -69,12 +65,12 @@ private suspend fun loadPlayerForEdit(
 /** Uploads or replaces a player's photo; returns the new `photo_url`. */
 class UploadPlayerPhotoUseCase(
     private val playerRepository: PlayerRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager,
     private val imageStorage: ImageStorage
 ) {
     suspend operator fun invoke(userId: String, playerId: String, bytes: ByteArray): String {
-        val player = loadPlayerForEdit(playerRepository, checkUserPermissionUseCase, transactionManager, userId, playerId)
+        val player = loadPlayerForEdit(playerRepository, accessPolicy, transactionManager, userId, playerId)
         return replacePhoto(imageStorage, PlayerPhotos, playerId, player.photoUrl, bytes) { url ->
             transactionManager.runInTransaction { playerRepository.updatePhotoUrl(playerId, url) }
         }
@@ -84,12 +80,12 @@ class UploadPlayerPhotoUseCase(
 /** Removes a player's photo: the file goes, and the player shows their initials again. */
 class DeletePlayerPhotoUseCase(
     private val playerRepository: PlayerRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager,
     private val imageStorage: ImageStorage
 ) {
     suspend operator fun invoke(userId: String, playerId: String) {
-        val player = loadPlayerForEdit(playerRepository, checkUserPermissionUseCase, transactionManager, userId, playerId)
+        val player = loadPlayerForEdit(playerRepository, accessPolicy, transactionManager, userId, playerId)
         val photoUrl = player.photoUrl ?: return
         PlayerPhotos.keyOf(playerId, photoUrl)?.let { imageStorage.delete(it) }
         transactionManager.runInTransaction { playerRepository.updatePhotoUrl(playerId, null) }
@@ -97,19 +93,19 @@ class DeletePlayerPhotoUseCase(
 }
 
 /**
- * The photo's bytes, for the club's members: the same as who can open the player's profile (a
- * player is usually a minor, so not every family in the club). Only the current image id is served.
+ * The photo's bytes, for the club's members (a space's owner and staff): the same as who can open the
+ * player's profile (a player is usually a minor, so not every family in the club). Only the current image id is served.
  */
 class GetPlayerPhotoUseCase(
     private val playerRepository: PlayerRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager,
     private val imageStorage: ImageStorage
 ) {
     suspend operator fun invoke(userId: String, playerId: String, imageId: String): ByteArray {
         val player = transactionManager.runInTransaction {
             val player = playerRepository.getPlayerById(playerId) ?: throw NotFoundException("Photo not found")
-            checkUserPermissionUseCase(userId, player.clubId, minClubRole = ClubRole.MEMBER)
+            accessPolicy.requireMember(userId, player.clubId)
             player
         }
         if (player.photoUrl != PlayerPhotos.url(playerId, imageId)) throw NotFoundException("Photo not found")

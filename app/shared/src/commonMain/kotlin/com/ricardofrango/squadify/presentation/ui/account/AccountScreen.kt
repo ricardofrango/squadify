@@ -157,7 +157,7 @@ private fun AccountContent(
     onLogoutClick: () -> Unit,
     onPhotoPicked: (ByteArray) -> Unit = {},
     onRemovePhoto: () -> Unit = {},
-    // False in the coach app until its server has image storage: initials only, no photo actions.
+    // False hides the photo: initials only, no photo actions (AppFeatures.photos).
     showPhoto: Boolean = true,
     // Null: no "Delete account" (the clubs app, for now).
     onDeleteAccountClick: (() -> Unit)? = null
@@ -689,7 +689,7 @@ private fun AccountScreenErrorPreview() {
     }
 }
 
-// The coach app, before its server has image storage: initials, no photo actions.
+// Without photos (AppFeatures.photos off): initials, no photo actions.
 @Composable
 private fun AccountNoPhotoPreviewContent() {
     SquadifyTheme {

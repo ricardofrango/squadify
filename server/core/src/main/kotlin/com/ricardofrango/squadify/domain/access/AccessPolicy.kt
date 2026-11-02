@@ -43,6 +43,9 @@ interface AccessPolicy {
     /** Reads the match report and players' ratings. */
     suspend fun requireSeeRatings(userId: String, scope: GameScope, errorMessage: String = DEFAULT_MESSAGE)
 
+    /** Changes the club's own details, such as its logo. */
+    suspend fun requireEditClub(userId: String, clubId: String, errorMessage: String = DEFAULT_MESSAGE)
+
     /** Sees the club's lists: its age groups, teams and players, narrowed by [visibleAgeGroupIds]. */
     suspend fun requireViewClub(userId: String, clubId: String)
 

@@ -19,6 +19,7 @@ import com.ricardofrango.squadify.coach.presentation.navigation.CoachSignedInHom
 import com.ricardofrango.squadify.coach.presentation.ui.home.CoachHomeViewModel
 import com.ricardofrango.squadify.coach.presentation.ui.invite.InviteStaffViewModel
 import com.ricardofrango.squadify.coach.presentation.ui.join.JoinWithCodeViewModel
+import com.ricardofrango.squadify.coach.presentation.ui.space.MySpaceViewModel
 import com.ricardofrango.squadify.coach.presentation.ui.spacesetup.SpaceSetupViewModel
 import com.ricardofrango.squadify.di.startSquadifyKoin
 import com.ricardofrango.squadify.domain.config.AppConfig
@@ -45,15 +46,16 @@ val coachModule = module {
     factory { RevokeStaffInviteUseCase(get()) }
     single<SignedInHome> { CoachSignedInHome }
     // The developer, 2026-10-30: no training (REQUIREMENTS §5c); seasons are automatic; staff join with
-    // invite codes, not from club members (the owner invites and removes them in Age Group Details); no photos or logos until the coach server's image storage
-    // is configured.
+    // invite codes, not from club members (the owner invites and removes them in Age Group Details).
+    // Photos and logos (2026-11-02): the coach server's image storage.
     // Account deletion: the stores require it for an app where people sign up.
-    single { AppFeatures(training = false, seasons = false, photos = false, clubMembers = false, accountDeletion = true) }
+    single { AppFeatures(training = false, seasons = false, photos = true, clubMembers = false, accountDeletion = true) }
     viewModelOf(::SpaceSetupViewModel)
     viewModelOf(::CoachHomeViewModel)
     viewModelOf(::JoinWithCodeViewModel)
     viewModelOf(::InviteStaffViewModel)
     viewModelOf(::DeleteAccountViewModel)
+    viewModelOf(::MySpaceViewModel)
 }
 
 /**

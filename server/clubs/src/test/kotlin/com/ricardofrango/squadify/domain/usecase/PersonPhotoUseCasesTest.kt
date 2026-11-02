@@ -87,7 +87,7 @@ class PersonPhotoUseCasesTest {
 
     private val png: ByteArray = ByteArrayOutputStream().use { ImageIO.write(BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB), "png", it); it.toByteArray() }
 
-    private fun uploadPhoto(storage: ImageStorage) = UploadPlayerPhotoUseCase(playerRepository, check, transactionManager, storage)
+    private fun uploadPhoto(storage: ImageStorage) = UploadPlayerPhotoUseCase(playerRepository, ClubAccessPolicy(check), transactionManager, storage)
     private fun uploadAvatar(storage: ImageStorage) = UploadUserAvatarUseCase(userRepository, transactionManager, storage)
 
     @Test
@@ -115,7 +115,7 @@ class PersonPhotoUseCasesTest {
         val member = user("member", ClubRole.MEMBER)
         storage.log.clear()
         assertFailsWith<ForbiddenException> { uploadPhoto(storage)(member, playerId, png) }
-        assertFailsWith<ForbiddenException> { DeletePlayerPhotoUseCase(playerRepository, check, transactionManager, storage)(member, playerId) }
+        assertFailsWith<ForbiddenException> { DeletePlayerPhotoUseCase(playerRepository, ClubAccessPolicy(check), transactionManager, storage)(member, playerId) }
         assertTrue(storage.log.isEmpty())
     }
 
@@ -143,7 +143,7 @@ class PersonPhotoUseCasesTest {
         val coord = user("coord", ClubRole.COORDINATOR)
         val old = uploadPhoto(storage)(coord, playerId, png).substringAfterLast('/').removeSuffix(".png")
         val current = uploadPhoto(storage)(coord, playerId, png).substringAfterLast('/').removeSuffix(".png")
-        val get = GetPlayerPhotoUseCase(playerRepository, check, transactionManager, storage)
+        val get = GetPlayerPhotoUseCase(playerRepository, ClubAccessPolicy(check), transactionManager, storage)
         val member = user("member", ClubRole.MEMBER)
 
         assertContentEquals(storage.files.values.single(), get(member, playerId, current))
@@ -156,7 +156,7 @@ class PersonPhotoUseCasesTest {
         val storage = FakeStorage()
         val coord = user("coord", ClubRole.COORDINATOR)
         uploadPhoto(storage)(coord, playerId, png)
-        DeletePlayerPhotoUseCase(playerRepository, check, transactionManager, storage)(coord, playerId)
+        DeletePlayerPhotoUseCase(playerRepository, ClubAccessPolicy(check), transactionManager, storage)(coord, playerId)
         assertTrue(storage.files.isEmpty())
         assertNull(player.photoUrl)
     }

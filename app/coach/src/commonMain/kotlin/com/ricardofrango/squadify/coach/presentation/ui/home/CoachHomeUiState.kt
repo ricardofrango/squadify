@@ -4,8 +4,10 @@ import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.SpaceAgeGroups
 
-/** One row of the home's list: an age group and the space it's in. */
-data class HomeAgeGroup(val ageGroup: AgeGroup, val spaceName: String, val isOwner: Boolean)
+/** One row of the home's list: an age group and the space it's in, shown with the space's logo. */
+data class HomeAgeGroup(val ageGroup: AgeGroup, val space: Club, val isOwner: Boolean) {
+    val spaceName: String get() = space.name
+}
 
 /**
  * The coach's age groups as one list (REQUIREMENTS §5c): their own space's first, then the ones they're
@@ -13,7 +15,7 @@ data class HomeAgeGroup(val ageGroup: AgeGroup, val spaceName: String, val isOwn
  */
 fun homeAgeGroups(spaces: List<SpaceAgeGroups>): List<HomeAgeGroup> =
     spaces.sortedByDescending { it.isOwner }.flatMap { space ->
-        space.ageGroups.sortedByDescending { it.endYear }.map { HomeAgeGroup(it, space.space.name, space.isOwner) }
+        space.ageGroups.sortedByDescending { it.endYear }.map { HomeAgeGroup(it, space.space, space.isOwner) }
     }
 
 sealed class CoachHomeUiState {

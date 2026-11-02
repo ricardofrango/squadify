@@ -52,6 +52,41 @@ object CoachConfig {
             ?.takeIf { it.isNotBlank() }
         ?: ""
 
+    /**
+     * Images (TECHNICAL_DECISIONS §57, §72): the coach server's own Railway Storage Bucket (never the
+     * clubs server's), its keys under `coach/`. The same variables as the clubs server, mapped on this
+     * service from its bucket's reference variables (`STORAGE_BUCKET=${{Bucket.BUCKET}}` and so on). Without a bucket, images go
+     * on disk under [localImageDir] locally, and deployed uploads are refused (a container's disk is
+     * wiped on every deploy).
+     */
+    val storageBucket: String? = env("STORAGE_BUCKET")
+    val storageEndpoint: String = env("STORAGE_ENDPOINT") ?: "https://storage.railway.app"
+    val storageRegion: String = env("STORAGE_REGION") ?: "auto"
+    val storageAccessKeyId: String = env("STORAGE_ACCESS_KEY_ID") ?: ""
+    val storageSecretAccessKey: String = env("STORAGE_SECRET_ACCESS_KEY") ?: ""
+
+    /** Where images are kept locally without a bucket (relative to where the server runs). */
+    val localImageDir: String = env("LOCAL_IMAGE_DIR") ?: "uploads"
+
+    /**
+     * This server's own address (no trailing slash), for a push's picture (the space's logo, an
+     * opponent's, a scorer's photo), which the phone downloads without signing in: `PUBLIC_BASE_URL`,
+     * else Railway's `RAILWAY_PUBLIC_DOMAIN` over https, else locally this machine's LAN address (the
+     * dev app's devHost), as on the clubs server.
+     */
+    val publicBaseUrl: String? = env("PUBLIC_BASE_URL")?.trim()?.trimEnd('/')
+        ?: env("RAILWAY_PUBLIC_DOMAIN")?.trim()?.let { "https://$it" }
+        ?: lanAddress()?.takeIf { !deployed }?.let { "http://$it:$port" }
+
+    private fun lanAddress(): String? = runCatching {
+        java.net.NetworkInterface.getNetworkInterfaces().asSequence()
+            .filter { it.isUp && !it.isLoopback && !it.isVirtual }
+            .flatMap { it.inetAddresses.asSequence() }
+            .filterIsInstance<java.net.Inet4Address>()
+            .firstOrNull { it.isSiteLocalAddress }
+            ?.hostAddress
+    }.getOrNull()
+
     private fun env(name: String) = System.getenv(name)?.takeIf { it.isNotBlank() }
 
     /** Null locally, so the caller's dev default applies; deployed, refuses to start. */

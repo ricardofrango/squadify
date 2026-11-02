@@ -53,5 +53,7 @@ val dropTestDatabase by tasks.registering(JavaExec::class) {
 
 tasks.test {
     environment("DATABASE_NAME", testDatabase)
+    // Their images, on disk under build/ rather than the dev server's uploads/.
+    environment("LOCAL_IMAGE_DIR", layout.buildDirectory.dir("test-uploads").get().asFile.path)
     finalizedBy(dropTestDatabase)
 }

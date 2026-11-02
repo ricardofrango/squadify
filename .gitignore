@@ -25,3 +25,6 @@ firebase-coach-service-account.json
 server/clubs/uploads/
 keystore/keystore.properties
 keystore/squadify-keystore.jks
+
+# Images stored on disk by the coach server in development (LocalImageStorage)
+server/coach/uploads/

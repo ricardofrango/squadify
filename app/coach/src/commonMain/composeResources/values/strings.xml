@@ -90,4 +90,10 @@
     <string name="msg_delete_account_wrong_password">Wrong password.</string>
     <string name="msg_delete_account_failed">Couldn't delete your account. Check your connection and try again.</string>
     <string name="msg_delete_account_load_failed">Couldn't load your account.</string>
+
+    <!-- My club or team: the owner's own space, its logo -->
+    <string name="coach_menu_my_space">My club or team</string>
+    <string name="my_space_title">My club or team</string>
+    <string name="my_space_logo_intro">Your logo shows on your age groups, your games, the live game and notifications.</string>
+    <string name="msg_my_space_failed">Couldn't load your club or team. Check your connection and try again.</string>
 </resources>

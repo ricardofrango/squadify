@@ -84,8 +84,8 @@ class OpponentLogoUseCasesTest {
 
     private val png: ByteArray = ByteArrayOutputStream().use { ImageIO.write(BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB), "png", it); it.toByteArray() }
 
-    private fun upload(storage: ImageStorage) = UploadOpponentLogoUseCase(opponentRepository, ageGroupRepository, check, transactionManager, storage)
-    private fun delete(storage: ImageStorage) = DeleteOpponentLogoUseCase(opponentRepository, ageGroupRepository, check, transactionManager, storage)
+    private fun upload(storage: ImageStorage) = UploadOpponentLogoUseCase(opponentRepository, ageGroupRepository, ClubAccessPolicy(check), transactionManager, storage)
+    private fun delete(storage: ImageStorage) = DeleteOpponentLogoUseCase(opponentRepository, ageGroupRepository, ClubAccessPolicy(check), transactionManager, storage)
 
     @Test
     fun replacingALogoDeletesTheOldFileFirstThenStoresTheNewOneUnderANewId() = runBlocking {
@@ -171,7 +171,7 @@ class OpponentLogoUseCasesTest {
         val coord = user("coord", ClubRole.COORDINATOR)
         val old = upload(storage)(coord, opponentId, null, png).substringAfterLast('/').removeSuffix(".png")
         val current = upload(storage)(coord, opponentId, null, png).substringAfterLast('/').removeSuffix(".png")
-        val get = GetOpponentLogoUseCase(opponentRepository, check, transactionManager, storage)
+        val get = GetOpponentLogoUseCase(opponentRepository, ClubAccessPolicy(check), transactionManager, storage)
         val member = user("member", ClubRole.MEMBER)
 
         assertContentEquals(storage.files.values.single(), get(member, opponentId, current))

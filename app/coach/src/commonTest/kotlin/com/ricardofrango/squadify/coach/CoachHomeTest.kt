@@ -39,6 +39,8 @@ class CoachHomeTest {
         )
         assertEquals(listOf("sub11", "sub13", "ana-sub9"), state.ageGroups.map { it.ageGroup.id })
         assertEquals(listOf("Fontelas FC", "Fontelas FC", "Ana's team"), state.ageGroups.map { it.spaceName })
+        // Each row has its space, for the logo before it.
+        assertEquals(listOf(mine, mine, anas), state.ageGroups.map { it.space })
         assertEquals(mine, state.ownSpace)
     }
 
