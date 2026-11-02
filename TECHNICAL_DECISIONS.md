@@ -3410,4 +3410,4 @@ The developer, 2026-11-02: the screens that show games but have no live socket (
 
 - **Each view model:** `isRefreshing` (a `StateFlow`), `refreshFailed` (a one-off), and `refresh(id)`, which reloads without passing through `Loading`.
 - **Age Group Details** (both apps): the details (every tab's lists), the season record and full stats fetched quietly (their cards don't flash a spinner), and plans and sessions through their own loaders, which keep their content while reloading.
-
+- **Team Details** (both apps): the details, and the season record with its full stats (Team leaders) fetched quietly. It gained a snackbar for the refresh error.
