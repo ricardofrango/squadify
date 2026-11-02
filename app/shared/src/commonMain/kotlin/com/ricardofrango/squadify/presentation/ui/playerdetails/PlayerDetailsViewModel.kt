@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.CancellationException
 import com.ricardofrango.squadify.domain.config.AppFeatures
 
 import com.ricardofrango.squadify.domain.usecase.TrainingStatsUseCase
@@ -68,6 +71,46 @@ class PlayerDetailsViewModel(
                 }
             } catch (e: Exception) {
                 _stats.update { SeasonStatsUiState.Error }
+            }
+        }
+    }
+
+    // Pull-to-refresh: the screen stays while it reloads; a failure is a one-off message.
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+    private val _refreshFailed = MutableSharedFlow<Unit>()
+    val refreshFailed: SharedFlow<Unit> = _refreshFailed.asSharedFlow()
+
+    /**
+     * Pull-to-refresh: the profile, the season stats (keeping the season and filter on screen) and the
+     * training, with the screen left as it is (no full-screen or card spinner). A failure keeps what's
+     * shown and says so once.
+     */
+    fun refresh(playerId: String) {
+        if (_state.value !is PlayerDetailsUiState.Idle || _isRefreshing.value) return
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                coroutineScope {
+                    val stats = async { runCatching { getPlayerSeasonStatsUseCase(playerId) }.getOrNull() }
+                    val training = if (features.training) async { runCatching { trainingStatsUseCase.player(playerId).seasons }.getOrNull() } else null
+                    val profile = getPlayerDetailsUseCase(playerId)
+                    _state.update { if (it is PlayerDetailsUiState.Idle) PlayerDetailsUiState.Idle(profile = profile) else it }
+                    stats.await()?.let { fresh ->
+                        _stats.update { current ->
+                            val previous = current as? SeasonStatsUiState.Loaded
+                            val seasonId = previous?.selectedSeasonId?.takeIf { id -> fresh.seasons.any { it.seasonId == id } } ?: fresh.currentSeasonId
+                            SeasonStatsUiState.Loaded(fresh, seasonId, previous?.filter ?: StatsFilter.ALL)
+                        }
+                    }
+                    training?.await()?.let { _training.value = it }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _refreshFailed.emit(Unit)
+            } finally {
+                _isRefreshing.value = false
             }
         }
     }
