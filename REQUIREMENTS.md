@@ -114,15 +114,22 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
 - **One space of your own, staff in others** (the developer, 2026-10-30): an account owns one space at most, and can be staff on age groups in any number of other people's spaces, joined with codes. The app's home is one flat list of every age group they have, each naming its space, with creating an age group (their own space, set up on the first one) and joining with a code always available: as buttons when the list is empty, and from a side menu (☰).
 - **Plans** (pricing still to be decided), for the whole space, not per person:
 
-    | Plan | Features | Age groups | Members |
+    | Plan | Features | Age groups (a season) | Members |
     |---|---|---|---|
-    | **Free**, with ads | Live game, calendar, history | 1 | 1 (the owner) |
-    | **Basic** | + stats | Up to 3 | Up to 3 per age group, the owner included |
-    | **Pro** | + staff following the game live | No limit | No limit |
+    | **Free**, with ads | Live game (recording it), calendar, history | 1 | 1 (the owner) |
+    | **Basic** | + stats, + following live (live scores in the match lists, watching a game someone else records, game notifications) | Up to 3 | Up to 3 per age group, the owner included |
+    | **Pro** | + training: sessions, exercises, player evaluations, training stats, and the year, month and week plans, as in the clubs app | No limit | No limit |
+
+    - **Plans and features** (the developer, 2026-11-02): Free is a coach alone, so it has nothing to follow live and nobody to notify. Following live moved from Pro to Basic, the first plan with staff, and Pro gets training, as built for the clubs app (coming: the coach server has no training yet).
+    - **Stats** are the season records and team leaders, a team's squad (games and minutes), player season stats, Full stats and a played match's Stats tab. A match itself (its events, timeline and report) and the head-to-head with an opponent are history, on Free.
+    - **Live scores in the match lists:** the coach app has none yet (only the clubs app's Matches tab follows games live); when it does, they're on Basic and up.
+    - **Notifications never go to whoever caused them** (the developer, 2026-11-02, both apps): whoever schedules a game, scores or creates a team isn't told about it. On Free that leaves nobody to tell.
+    - **A space's plan** is set by a platform admin until payments (RevenueCat). A new space is on Free.
 
 - **Going down a plan** (payments stopped, or a change of plan): nothing is deleted, and stats keep being calculated, so going back up brings everything back.
     - **Members over the limit:** the first ones added to each age group keep access (on Basic, the owner and the first two staff; only the owner on Free). The others lose access until the plan allows them again.
-    - **Age groups over the limit:** the first ones created stay in use (three on Basic, one on Free). The others are kept but locked until the plan allows them again.
+    - **Age groups over the limit:** in each season, the first ones created stay in use (three on Basic, one on Free). The others are kept but locked, for the owner too, until the plan allows them again.
+    - **Staff over the limit:** "the first ones added" are the first to join the age group with a code (a second time counts from the second).
 - **Store requirements:** coaches sign up in the app, so the app must let them delete their account (App Store and Google Play rules). Ads on Free need the EU consent form first (Google's UMP). Each app has its own privacy policy and data-safety form.
 - **Moving to a club:** not for now. Later, possibly moving one age group (nothing more) from the coach app to a club.
 
@@ -313,7 +320,8 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [/] The coach server's `FIREBASE_SERVICE_ACCOUNT_JSON` on Railway (staging, then production), set by the developer: staging done (2026-10-31).
         - [x] Photos and logos (2026-11-02): the account's photo, players' photos, opponents' logos and the space's logo (set by the owner in My club or team, shown on My age groups' rows, games, the live game and pushes), in the coach server's own bucket (keys under `coach/`), deleted with the account (`TECHNICAL_DECISIONS.md` §72).
         - [x] Staging builds (2026-11-01): on every change to the coach app on `develop`, `deploy-staging-coach.yml` sends the `staging` flavor (against coach-server on Railway staging) to the `squadify-coach-testers` group through Firebase App Distribution (`TECHNICAL_DECISIONS.md` §72).
-    - [ ] Plans stored and enforced on the server, set by a platform admin at first.
+    - [x] Plans stored and enforced on the server, set by a platform admin at first (2026-11-02): Free, Basic and Pro, their limits and stats, locks when going down, and pushes never to whoever caused them (`TECHNICAL_DECISIONS.md` §72).
+    - [ ] Training on Pro: the clubs app's training (sessions, exercises, evaluations, training stats, plans) on the coach server, with its use cases moved to `:server:core` behind the `AccessPolicy` (the developer, 2026-11-02).
     - [ ] Payments (RevenueCat) and ads on the Free plan (AdMob).
     - [ ] **Launch readiness** (Android and iOS, needed before the coach app goes to the stores):
         - [ ] R8 full mode (`isMinifyEnabled = true` with the right keep rules) and a Baseline Profile for the release build (`TECHNICAL_DECISIONS.md` §11.7, §11.8).
