@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 // Squadify for Coaches (TECHNICAL_DECISIONS §72): the coach app on top of :app:shared. Its own top-level
 // navigation (CoachNavigation), Koin assembly (initCoachKoin), strings, and the screens only the coach
 // app has: the space's first setup and its home. Android and iOS only; the Android app is
-// :app:coachAndroidApp.
+// :app:coachAndroidApp, the iOS app app/coachIosApp.
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidMultiplatformLibrary)
@@ -13,8 +13,16 @@ plugins {
 }
 
 kotlin {
-    iosArm64()
-    iosSimulatorArm64()
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach { iosTarget ->
+        // The framework the coach iOS app (app/coachIosApp) imports: `import Coach`.
+        iosTarget.binaries.framework {
+            baseName = "Coach"
+            isStatic = true
+        }
+    }
 
     android {
         namespace = "com.ricardofrango.squadify.app.coach"

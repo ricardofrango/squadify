@@ -288,11 +288,12 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [x] The `:server:core` module, with the game use cases, the repository and service interfaces, the stats and the exceptions moved into it (`TECHNICAL_DECISIONS.md` §72).
         - [x] The shared tables and every Exposed repository in `:server:data`, with a schema test per server (`TECHNICAL_DECISIONS.md` §72). The coach database reuses the clubs' tables: a space is a club, its members club members.
         - [x] The login code (tokens, sign-up, sign-in, refresh) and the Ktor setup, shared (`:server:core`, `:server:web`).
-    - [/] The app split: shared screens and view models, plus a clubs module and a coach module (Koin setup, repositories, navigation, name, icon). A second Android app and a second iOS target.
+    - [x] The app split: shared screens and view models, plus a clubs module and a coach module (Koin setup, repositories, navigation, name, icon). A second Android app and a second iOS target.
         - [x] The clubs app in its own module, `:app:clubs`: its navigation, Koin, iOS entry and clubs-only screens, unchanged for users (`TECHNICAL_DECISIONS.md` §72).
         - [x] The coach module and its Android app (name, icon, the coach server), with the first setup.
             - [x] `:app:coach` and `:app:coachAndroidApp`: sign up, sign in, the first setup and the space's home with its age groups (`TECHNICAL_DECISIONS.md` §72).
             - [x] The shared screens under the space (age group, team, players, opponents, matches, the live game, the record and report, stats), with training, season pickers, photos and club members left out (`TECHNICAL_DECISIONS.md` §72).
+            - [x] The coach iOS app (2026-11-02): `app/coachIosApp`, its own Xcode project on `:app:coach`, with Debug, Staging and Release like the Android flavours; no Firebase on iOS yet (`TECHNICAL_DECISIONS.md` §72).
             - [x] The account, reused from the clubs app (the developer, 2026-10-30): the Account screen (profile, photo, change email, change password, sign out) and Forgot password, with the account endpoints shared between both servers, emails through Resend with the coach product's own sender, and the photo in the same image storage (`TECHNICAL_DECISIONS.md` §72).
     - [/] The coach server: its own database, migrations, users, spaces and members, deployed as its own Railway service and database, on staging and production. A change on `develop` that affects both servers (shared code or shared tables) deploys both to staging.
         - [x] `server/coach`: its own database and migrations (the shared tables), accounts (sign-up, sign-in, refresh), schema test, Dockerfile (`TECHNICAL_DECISIONS.md` §72).
