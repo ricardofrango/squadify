@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
@@ -71,7 +72,7 @@ class TrainingSessionUseCasesTest {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
     private val clubPermissionRepository = mockk<ClubPermissionRepository>(relaxed = true)
-    private val check = CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository)
+    private val check = ClubAccessPolicy(CheckUserPermissionUseCase(userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository))
     private val repo = FakeSessions()
     private val create = CreateTrainingSessionsUseCase(ageGroupRepository, clubRepository, repo, check, transactionManager)
     private val save = SaveTrainingSessionUseCase(ageGroupRepository, repo, check, transactionManager)

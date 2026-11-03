@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.TrainingExerciseRepository
 import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
@@ -22,24 +23,28 @@ class TrainingExercisesUseCase(
     private val ageGroupRepository: AgeGroupRepository,
     private val trainingSessionRepository: TrainingSessionRepository,
     private val trainingExerciseRepository: TrainingExerciseRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend fun library(userId: String, ageGroupId: String): List<TrainingExercise> = transactionManager.runInTransaction {
         val ageGroup = ageGroup(ageGroupId)
-        checkUserPermissionUseCase.requireRateTraining(userId, ageGroup)
+        accessPolicy.requireRateTraining(userId, ageGroup.scope, RATE_TRAINING_MESSAGE)
+        accessPolicy.requireTrainingInPlan(ageGroup.clubId)
         trainingExerciseRepository.getByAgeGroup(ageGroupId).sortedWith(compareByDescending<TrainingExercise> { it.usedCount }.thenBy { it.name.lowercase() })
     }
 
     suspend fun create(userId: String, ageGroupId: String, request: SaveExerciseRequest): TrainingExercise = transactionManager.runInTransaction {
         val ageGroup = ageGroup(ageGroupId)
-        checkUserPermissionUseCase.requireManageTraining(userId, ageGroup)
+        accessPolicy.requireManageTraining(userId, ageGroup.scope, MANAGE_TRAINING_MESSAGE)
+        accessPolicy.requireTrainingInPlan(ageGroup.clubId)
         trainingExerciseRepository.create(validated(request).copy(id = Uuid.random().toString(), ageGroupId = ageGroupId))
     }
 
     suspend fun update(userId: String, exerciseId: String, request: SaveExerciseRequest): TrainingExercise = transactionManager.runInTransaction {
         val existing = trainingExerciseRepository.getById(exerciseId) ?: throw NotFoundException("Exercise not found")
-        checkUserPermissionUseCase.requireManageTraining(userId, ageGroup(existing.ageGroupId))
+        val ageGroup = ageGroup(existing.ageGroupId)
+        accessPolicy.requireManageTraining(userId, ageGroup.scope, MANAGE_TRAINING_MESSAGE)
+        accessPolicy.requireTrainingInPlan(ageGroup.clubId)
         val updated = validated(request).copy(id = existing.id, ageGroupId = existing.ageGroupId, usedCount = existing.usedCount)
         trainingExerciseRepository.update(updated)
         updated
@@ -48,7 +53,8 @@ class TrainingExercisesUseCase(
     suspend fun setForSession(userId: String, sessionId: String, exerciseIds: List<String>): List<TrainingExercise> = transactionManager.runInTransaction {
         val stored = trainingSessionRepository.getById(sessionId) ?: throw NotFoundException("Training session not found")
         val ageGroup = ageGroup(stored.session.ageGroupId)
-        checkUserPermissionUseCase.requireManageTraining(userId, ageGroup)
+        accessPolicy.requireManageTraining(userId, ageGroup.scope, MANAGE_TRAINING_MESSAGE)
+        accessPolicy.requireTrainingInPlan(ageGroup.clubId)
         if (stored.session.cancelled) throw ValidationException("A cancelled session can't be changed")
         if (exerciseIds.toSet().size != exerciseIds.size) throw ValidationException("An exercise can be in a session only once")
         val library = trainingExerciseRepository.getByAgeGroup(ageGroup.id).map { it.id }.toSet()

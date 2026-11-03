@@ -11,7 +11,7 @@ import com.ricardofrango.squadify.model.SpacePlan
  * Every plan and what it allows (REQUIREMENTS §5c), decided here only: its name, its features (with
  * how the app lists them, in English and Portuguese) and its limits. The app gets them from `GET
  * /v1/plans` and shows them as they come, so adding or changing a plan here needs no new app. A space
- * on a plan that's no longer here counts as [FREE]. Pro's training comes with training on the coach server.
+ * on a plan that's no longer here counts as [FREE].
  */
 object PlanLimits {
     val FREE = SpacePlan("FREE")
@@ -25,7 +25,7 @@ object PlanLimits {
         PlanFeature.HISTORY to ("Match history" to "Histórico de jogos"),
         PlanFeature.STATS to ("Stats: age group, team, player, full stats and match stats" to "Estatísticas: escalão, equipa, jogador, estatísticas completas e de jogo"),
         PlanFeature.FOLLOWING_LIVE to ("Live game results and notifications" to "Resultados e notificações dos jogos ao vivo"),
-        PlanFeature.TRAINING to ("Training (coming soon)" to "Treino (em breve)")
+        PlanFeature.TRAINING to ("Training: sessions, exercises, player ratings, training stats and plans" to "Treino: sessões, exercícios, avaliação dos jogadores, estatísticas de treino e planeamento")
     )
 
     private class Plan(val plan: SpacePlan, val name: String, val features: List<String>, val ageGroups: Int?, val people: Int?)
@@ -69,6 +69,9 @@ object PlanLimits {
     fun hasRoomForStaff(plan: SpacePlan, staffCount: Int): Boolean = peoplePerAgeGroup(plan)?.let { staffCount + 1 < it } ?: true
 
     fun stats(plan: SpacePlan): Boolean = PlanFeature.STATS in planFor(plan).features
+
+    /** Training: sessions, exercises, ratings, training stats and plans. */
+    fun training(plan: SpacePlan): Boolean = PlanFeature.TRAINING in planFor(plan).features
 
     /** Following games live: live scores in the match lists, the live sockets and the live moments' notifications. */
     fun live(plan: SpacePlan): Boolean = PlanFeature.FOLLOWING_LIVE in planFor(plan).features

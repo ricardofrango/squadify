@@ -14,6 +14,7 @@ import com.ricardofrango.squadify.installSquadifyApi
 import com.ricardofrango.squadify.presentation.routes.accountRoutes
 import com.ricardofrango.squadify.presentation.routes.fcmTokenRoutes
 import com.ricardofrango.squadify.presentation.routes.gameRoutes
+import com.ricardofrango.squadify.presentation.routes.trainingRoutes
 import com.ricardofrango.squadify.presentation.routes.imageRoutes
 import com.ricardofrango.squadify.presentation.routes.publicImageRoutes
 import io.ktor.server.application.Application
@@ -65,6 +66,7 @@ fun Application.module() {
             imageRoutes()
             publicImageRoutes()
             gameRoutes(CoachTokens)
+            trainingRoutes()
         }
     }
 }

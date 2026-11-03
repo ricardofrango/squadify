@@ -16,8 +16,8 @@ val Match.scope: GameScope get() = GameScope(clubId, teamId = teamId)
 val Team.scope: GameScope get() = GameScope(clubId, teamId = id)
 
 /**
- * Who may do what with games (matches, call-ups, the live game, the record and report, and stats) and
- * with the structure they're played in (age groups, teams, players and opponents). The use cases ask
+ * Who may do what with games (matches, call-ups, the live game, the record and report, and stats), with
+ * the structure they're played in (age groups, teams, players and opponents) and with training. The use cases ask
  * this instead of checking club roles themselves, so they can be shared by the clubs server and the
  * coach server (TECHNICAL_DECISIONS §72), each providing its own policy:
  * the clubs server its roles and configurable permissions ([ClubAccessPolicy]), the coach server its
@@ -95,6 +95,25 @@ interface AccessPolicy {
 
     /** Edits an opponent. */
     suspend fun requireEditOpponent(userId: String, scope: GameScope, errorMessage: String = DEFAULT_MESSAGE)
+
+    /** Sees an age group's training sessions (on the clubs server its players and parents too). */
+    suspend fun requireViewTraining(userId: String, scope: GameScope)
+
+    /** Sees an age group's training plans (season, month, week): staff only, never players or parents. */
+    suspend fun requireViewTrainingPlans(userId: String, scope: GameScope)
+
+    /** Creates, edits, cancels and deletes an age group's sessions, plans and exercises. */
+    suspend fun requireManageTraining(userId: String, scope: GameScope, errorMessage: String = DEFAULT_MESSAGE)
+
+    /** Rates players after a session, and sees the ratings, the exercise library and training stats. */
+    suspend fun requireRateTraining(userId: String, scope: GameScope, errorMessage: String = DEFAULT_MESSAGE)
+
+    /**
+     * The club's plan includes training (sessions, exercises, ratings, training stats and plans): Pro on
+     * the coach server. Asked after the screen's own access check. The clubs server always allows.
+     * Throws [PlanLimitException].
+     */
+    suspend fun requireTrainingInPlan(clubId: String) {}
 
     /**
      * The club's plan includes stats: season records, team leaders, player season stats, full stats and

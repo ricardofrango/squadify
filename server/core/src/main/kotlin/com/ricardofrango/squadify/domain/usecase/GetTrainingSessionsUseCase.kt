@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.access.allowed
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
@@ -9,8 +10,6 @@ import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.TrainingRating
 import com.ricardofrango.squadify.model.TrainingSession
 import com.ricardofrango.squadify.model.TrainingSessions
@@ -28,22 +27,17 @@ class GetTrainingSessionsUseCase(
     private val trainingSessionRepository: TrainingSessionRepository,
     private val trainingRatingRepository: TrainingRatingRepository,
     private val userRepository: UserRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, ageGroupId: String): TrainingSessions = transactionManager.runInTransaction {
         val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId) ?: throw NotFoundException("Age group not found")
-        checkUserPermissionUseCase(
-            userId, ageGroup.clubId,
-            minClubRole = ClubRole.MEMBER,
-            minAgeGroupRole = AgeGroupRole.STAFF,
-            ageGroupId = ageGroupId,
-            allowPlayerOrParentAccess = true
-        )
+        accessPolicy.requireViewTraining(userId, ageGroup.scope)
+        accessPolicy.requireTrainingInPlan(ageGroup.clubId)
         val club = clubRepository.getClubById(ageGroup.clubId) ?: throw NotFoundException("Club not found")
         val season = seasonRepository.getSeasonById(ageGroup.seasonId) ?: throw NotFoundException("Season not found")
-        val canEdit = allowed { checkUserPermissionUseCase.requireManageTraining(userId, ageGroup) }
-        val canRate = allowed { checkUserPermissionUseCase.requireRateTraining(userId, ageGroup) }
+        val canEdit = allowed { accessPolicy.requireManageTraining(userId, ageGroup.scope) }
+        val canRate = allowed { accessPolicy.requireRateTraining(userId, ageGroup.scope) }
 
         val stored = trainingSessionRepository.getByAgeGroup(ageGroupId)
         val counts = trainingSessionRepository.contentCounts(stored.map { it.session.id })

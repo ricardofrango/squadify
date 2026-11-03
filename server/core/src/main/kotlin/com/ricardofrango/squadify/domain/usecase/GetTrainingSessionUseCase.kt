@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.access.allowed
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
@@ -12,8 +13,6 @@ import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.TrainingPlanLevel
 import com.ricardofrango.squadify.model.TrainingSessionDetails
 import com.ricardofrango.squadify.model.monthStartOf
@@ -34,21 +33,16 @@ class GetTrainingSessionUseCase(
     private val trainingExerciseRepository: TrainingExerciseRepository,
     private val trainingRatingRepository: TrainingRatingRepository,
     private val userRepository: UserRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, sessionId: String): TrainingSessionDetails = transactionManager.runInTransaction {
         val stored = trainingSessionRepository.getById(sessionId) ?: throw NotFoundException("Training session not found")
         val ageGroup = ageGroupRepository.getAgeGroupById(stored.session.ageGroupId) ?: throw NotFoundException("Age group not found")
-        checkUserPermissionUseCase(
-            userId, ageGroup.clubId,
-            minClubRole = ClubRole.MEMBER,
-            minAgeGroupRole = AgeGroupRole.STAFF,
-            ageGroupId = ageGroup.id,
-            allowPlayerOrParentAccess = true
-        )
-        val canEdit = allowed { checkUserPermissionUseCase.requireManageTraining(userId, ageGroup) }
-        val canRate = allowed { checkUserPermissionUseCase.requireRateTraining(userId, ageGroup) }
+        accessPolicy.requireViewTraining(userId, ageGroup.scope)
+        accessPolicy.requireTrainingInPlan(ageGroup.clubId)
+        val canEdit = allowed { accessPolicy.requireManageTraining(userId, ageGroup.scope) }
+        val canRate = allowed { accessPolicy.requireRateTraining(userId, ageGroup.scope) }
         val plans = if (canRate) trainingPlanRepository.getByAgeGroup(ageGroup.id) else emptyList()
         val date = stored.session.date
         val counts = trainingSessionRepository.contentCounts(listOf(sessionId))[sessionId]

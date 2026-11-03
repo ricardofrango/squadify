@@ -1,15 +1,13 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.allowed
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.TrainingPlanRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
-import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.ConfigurablePermission
-import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.TrainingPlans
 
 /**
@@ -22,31 +20,16 @@ class GetTrainingPlansUseCase(
     private val seasonRepository: SeasonRepository,
     private val clubRepository: ClubRepository,
     private val trainingPlanRepository: TrainingPlanRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, ageGroupId: String): TrainingPlans = transactionManager.runInTransaction {
         val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId) ?: throw NotFoundException("Age group not found")
 
-        checkUserPermissionUseCase(
-            userId, ageGroup.clubId,
-            minClubRole = ClubRole.MEMBER,
-            minAgeGroupRole = AgeGroupRole.STAFF,
-            ageGroupId = ageGroupId
-        )
+        accessPolicy.requireViewTrainingPlans(userId, ageGroup.scope)
+        accessPolicy.requireTrainingInPlan(ageGroup.clubId)
 
-        val canEdit = try {
-            checkUserPermissionUseCase(
-                userId = userId,
-                clubId = ageGroup.clubId,
-                minClubRole = ClubRole.COORDINATOR,
-                configurablePermission = ConfigurablePermission.MANAGE_TRAINING,
-                ageGroupId = ageGroupId
-            )
-            true
-        } catch (e: ForbiddenException) {
-            false
-        }
+        val canEdit = allowed { accessPolicy.requireManageTraining(userId, ageGroup.scope) }
 
         TrainingPlans(
             ageGroup = ageGroup,

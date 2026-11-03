@@ -51,11 +51,12 @@ val coachModule = module {
     factory { CreateStaffInviteUseCase(get()) }
     factory { RevokeStaffInviteUseCase(get()) }
     single<SignedInHome> { CoachSignedInHome }
-    // The developer, 2026-10-30: no training (REQUIREMENTS §5c); seasons are automatic; staff join with
+    // Training (2026-11-03): on Pro, decided by the coach server; below it the Training tab shows the plan's box.
+    // The developer, 2026-10-30: seasons are automatic; staff join with
     // invite codes, not from club members (the owner invites and removes them in Age Group Details).
     // Photos and logos (2026-11-02): the coach server's image storage.
     // Account deletion: the stores require it for an app where people sign up.
-    single { AppFeatures(training = false, seasons = false, photos = true, clubMembers = false, accountDeletion = true) }
+    single { AppFeatures(training = true, seasons = false, photos = true, clubMembers = false, accountDeletion = true) }
     viewModelOf(::SpaceSetupViewModel)
     viewModelOf(::CoachHomeViewModel)
     viewModelOf(::JoinWithCodeViewModel)

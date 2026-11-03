@@ -23,7 +23,7 @@ import com.ricardofrango.squadify.model.UserStatus
  * - only the owner creates age groups, manages staff and changes the space's own details (its logo);
  * - the space's plan ([CoachPlans], REQUIREMENTS §5c) locks what's over its limits, for the owner too:
  *   an age group after the first ones created in its season, and staff after the first to join an age
- *   group; stats are on Basic and Pro, and following games live on Pro. Those refusals are [PlanLimitException]s.
+ *   group; stats are on Basic and Pro, and following games live and training on Pro. Those refusals are [PlanLimitException]s.
  */
 class CoachAccessPolicy(
     private val userRepository: UserRepository,
@@ -93,6 +93,19 @@ class CoachAccessPolicy(
     override suspend fun requireCreateOpponent(userId: String, scope: GameScope, errorMessage: String) = inAgeGroup(userId, scope, errorMessage)
 
     override suspend fun requireEditOpponent(userId: String, scope: GameScope, errorMessage: String) = inAgeGroup(userId, scope, errorMessage)
+
+    // Training: everyone is staff, so it all goes with the age group, like the games.
+    override suspend fun requireViewTraining(userId: String, scope: GameScope) = inAgeGroup(userId, scope, AccessPolicy.DEFAULT_MESSAGE)
+
+    override suspend fun requireViewTrainingPlans(userId: String, scope: GameScope) = inAgeGroup(userId, scope, AccessPolicy.DEFAULT_MESSAGE)
+
+    override suspend fun requireManageTraining(userId: String, scope: GameScope, errorMessage: String) = inAgeGroup(userId, scope, errorMessage)
+
+    override suspend fun requireRateTraining(userId: String, scope: GameScope, errorMessage: String) = inAgeGroup(userId, scope, errorMessage)
+
+    override suspend fun requireTrainingInPlan(clubId: String) = transactionManager.runInTransaction {
+        if (!PlanLimits.training(plans.planOf(clubId))) throw PlanLimitException("Training is on the Pro plan")
+    }
 
     override suspend fun requireStatsInPlan(clubId: String) = transactionManager.runInTransaction {
         if (!PlanLimits.stats(plans.planOf(clubId))) throw PlanLimitException("Stats are on the Basic and Pro plans")

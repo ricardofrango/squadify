@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
@@ -29,7 +30,7 @@ class CreateTrainingSessionsUseCase(
     private val ageGroupRepository: AgeGroupRepository,
     private val clubRepository: ClubRepository,
     private val trainingSessionRepository: TrainingSessionRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend fun preview(userId: String, ageGroupId: String, request: CreateTrainingSessionsRequest): TrainingSessionsPreview =
@@ -52,7 +53,8 @@ class CreateTrainingSessionsUseCase(
 
     private suspend fun buildPreview(userId: String, ageGroupId: String, request: CreateTrainingSessionsRequest): TrainingSessionsPreview {
         val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId) ?: throw NotFoundException("Age group not found")
-        checkUserPermissionUseCase.requireManageTraining(userId, ageGroup)
+        accessPolicy.requireManageTraining(userId, ageGroup.scope, MANAGE_TRAINING_MESSAGE)
+        accessPolicy.requireTrainingInPlan(ageGroup.clubId)
         val club = clubRepository.getClubById(ageGroup.clubId) ?: throw NotFoundException("Club not found")
 
         if (request.slots.isEmpty()) throw ValidationException("Add at least one training day")

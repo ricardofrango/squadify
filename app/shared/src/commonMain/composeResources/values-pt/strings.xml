@@ -652,6 +652,10 @@
     <string name="staff_not_in_plan_alone_title">O staff vem com o plano %1$s</string>
     <string name="staff_not_in_plan_alone_body">No plano %1$s o escalão é só do dono.</string>
     <string name="stats_not_in_plan_ask_owner">O dono do espaço pode mudar o plano para desbloquear as estatísticas.</string>
+    <string name="training_not_in_plan_title">O treino vem com o plano %1$s</string>
+    <string name="training_not_in_plan_title_any">O treino não está neste plano</string>
+    <string name="training_not_in_plan_body">O seu plano %1$s não inclui o treino.</string>
+    <string name="training_not_in_plan_ask_owner">O dono do espaço pode mudar o plano para desbloquear o treino.</string>
     <string name="btn_see_plans">Ver planos</string>
     <string name="staff_not_in_plan_full_title">Este escalão está cheio no plano %1$s</string>
     <string name="plan_people_sentence">O %1$s tem até %2$d pessoas por escalão, incluindo o dono.</string>

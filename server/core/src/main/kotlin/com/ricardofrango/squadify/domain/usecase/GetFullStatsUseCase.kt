@@ -100,7 +100,8 @@ class GetFullStatsUseCase(
                 rating = s.rating?.takeIf { s.matchId in completedReports }
             )
         }
-        val trainings = if (!canSeeRatings) emptyList() else {
+        // Trainings only on a plan with training (Pro on the coach server).
+        val trainings = if (!canSeeRatings || !allowed { accessPolicy.requireTrainingInPlan(ageGroup.clubId) }) emptyList() else {
             val sessions = trainingSessionRepository.getByAgeGroup(ageGroup.id).map { it.session }.filter { it.ratingsOpen(now()) }
             val ratings = trainingRatingRepository.getForSessions(sessions.map { it.id })
             sessions.map { FullStatsTraining(it.id, it.date, ratings[it.id].orEmpty().filter { r -> r.playerId in poolIds }) }

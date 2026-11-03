@@ -8,15 +8,12 @@ import com.ricardofrango.squadify.domain.usecase.GetAgeGroupDetailsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupStaffUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetEligiblePlayersForAgeGroupUseCase
-import com.ricardofrango.squadify.domain.usecase.GetTrainingPlansUseCase
-import com.ricardofrango.squadify.domain.usecase.SaveTrainingPlanUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateAgeGroupUseCase
 import com.ricardofrango.squadify.model.AddPlayersToAgeGroupRequest
 import com.ricardofrango.squadify.model.AddStaffToAgeGroupRequest
 import com.ricardofrango.squadify.model.CreateAgeGroupsRequest
 import com.ricardofrango.squadify.model.ErrorResponse
 import com.ricardofrango.squadify.model.Paging
-import com.ricardofrango.squadify.model.SaveTrainingPlanRequest
 import com.ricardofrango.squadify.model.UpdateAgeGroupRequest
 import com.ricardofrango.squadify.security.userId
 import io.ktor.http.HttpStatusCode
@@ -42,8 +39,6 @@ fun Route.ageGroupRoutes() {
     val addStaffToAgeGroupUseCase by inject<AddStaffToAgeGroupUseCase>()
     val getAgeGroupStaffUseCase by inject<GetAgeGroupStaffUseCase>()
     val getAgeGroupDetailsUseCase by inject<GetAgeGroupDetailsUseCase>()
-    val getTrainingPlansUseCase by inject<GetTrainingPlansUseCase>()
-    val saveTrainingPlanUseCase by inject<SaveTrainingPlanUseCase>()
 
     authenticate("auth-jwt") {
         route("/age-groups") {
@@ -133,21 +128,6 @@ fun Route.ageGroupRoutes() {
                     val currentUserId = call.userId ?: return@delete call.respond(HttpStatusCode.Unauthorized)
                     removePlayerFromAgeGroupUseCase(currentUserId, ageGroupId, playerId)
                     call.respond(HttpStatusCode.NoContent)
-                }
-            }
-
-            // Training plans (design 40): the season, month and week plans of the age group.
-            route("/{ageGroupId}/training-plans") {
-                get {
-                    val ageGroupId = call.parameters["ageGroupId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
-                    val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
-                    call.respond(getTrainingPlansUseCase(currentUserId, ageGroupId))
-                }
-                put {
-                    val ageGroupId = call.parameters["ageGroupId"] ?: return@put call.respond(HttpStatusCode.BadRequest)
-                    val currentUserId = call.userId ?: return@put call.respond(HttpStatusCode.Unauthorized)
-                    val request = call.receive<SaveTrainingPlanRequest>()
-                    call.respond(saveTrainingPlanUseCase(currentUserId, ageGroupId, request))
                 }
             }
 

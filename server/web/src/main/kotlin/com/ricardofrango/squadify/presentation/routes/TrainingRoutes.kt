@@ -3,11 +3,14 @@ package com.ricardofrango.squadify.presentation.routes
 import com.ricardofrango.squadify.domain.usecase.ChangeTrainingSessionUseCase
 import com.ricardofrango.squadify.domain.usecase.CreateTrainingSessionsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTrainingSessionUseCase
+import com.ricardofrango.squadify.domain.usecase.GetTrainingPlansUseCase
 import com.ricardofrango.squadify.domain.usecase.GetTrainingSessionsUseCase
+import com.ricardofrango.squadify.domain.usecase.SaveTrainingPlanUseCase
 import com.ricardofrango.squadify.domain.usecase.SaveTrainingSessionUseCase
 import com.ricardofrango.squadify.domain.usecase.TrainingExercisesUseCase
 import com.ricardofrango.squadify.domain.usecase.TrainingRatingsUseCase
 import com.ricardofrango.squadify.domain.usecase.TrainingStatsUseCase
+import com.ricardofrango.squadify.model.SaveTrainingPlanRequest
 import com.ricardofrango.squadify.model.SaveTrainingRatingsRequest
 import com.ricardofrango.squadify.model.SaveExerciseRequest
 import com.ricardofrango.squadify.model.SetSessionExercisesRequest
@@ -27,7 +30,10 @@ import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 
-/** Training sessions (design 39): an age group's sessions, bulk creation, and one session's changes. */
+/**
+ * Training (design 39, 40), on both servers (TECHNICAL_DECISIONS §72): an age group's sessions, bulk
+ * creation, one session's changes, exercises, ratings, training stats and plans.
+ */
 fun Route.trainingRoutes() {
     val getSessions by inject<GetTrainingSessionsUseCase>()
     val createSessions by inject<CreateTrainingSessionsUseCase>()
@@ -37,6 +43,8 @@ fun Route.trainingRoutes() {
     val exercises by inject<TrainingExercisesUseCase>()
     val ratings by inject<TrainingRatingsUseCase>()
     val stats by inject<TrainingStatsUseCase>()
+    val getPlans by inject<GetTrainingPlansUseCase>()
+    val savePlan by inject<SaveTrainingPlanUseCase>()
 
     authenticate("auth-jwt") {
         route("/age-groups/{ageGroupId}/training-sessions") {
@@ -60,6 +68,20 @@ fun Route.trainingRoutes() {
                 val ageGroupId = call.parameters["ageGroupId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
                 val userId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                 call.respond(HttpStatusCode.Created, createSessions.create(userId, ageGroupId, call.receive<CreateTrainingSessionsRequest>()))
+            }
+        }
+
+        // Training plans (design 40): the season, month and week plans of the age group.
+        route("/age-groups/{ageGroupId}/training-plans") {
+            get {
+                val ageGroupId = call.parameters["ageGroupId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
+                val userId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                call.respond(getPlans(userId, ageGroupId))
+            }
+            put {
+                val ageGroupId = call.parameters["ageGroupId"] ?: return@put call.respond(HttpStatusCode.BadRequest)
+                val userId = call.userId ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                call.respond(savePlan(userId, ageGroupId, call.receive<SaveTrainingPlanRequest>()))
             }
         }
 

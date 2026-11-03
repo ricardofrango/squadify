@@ -1,5 +1,10 @@
 package com.ricardofrango.squadify.coach.data
 
+import com.ricardofrango.squadify.data.database.TrainingExercisesTable
+import com.ricardofrango.squadify.data.database.TrainingSessionExercisesTable
+import com.ricardofrango.squadify.data.database.TrainingSessionsTable
+import com.ricardofrango.squadify.data.database.TrainingRatingsTable
+import com.ricardofrango.squadify.data.database.TrainingPlansTable
 import com.ricardofrango.squadify.data.database.AgeGroupPlayers
 import com.ricardofrango.squadify.data.database.AgeGroupStaff
 import com.ricardofrango.squadify.data.database.AgeGroups
@@ -89,6 +94,27 @@ class ExposedAccountDeletionRepository : AccountDeletionRepository {
             MatchReports.update({ MatchReports.id inList reportIds }) { it[updatedBy] = owner }
         }
 
+        // Their training in other spaces stays too: plans and ratings with that space's owner as the
+        // author; a session they cancelled with no one named.
+        val ownerOfAgeGroup = { ageGroupId: Uuid ->
+            val spaceId = AgeGroups.selectAll().where { AgeGroups.id eq ageGroupId }.single()[AgeGroups.clubId]
+            ClubMembers.selectAll().where { (ClubMembers.clubId eq spaceId) and (ClubMembers.role eq ClubRole.CLUB_ADMIN) }
+                .map { it[ClubMembers.userId] }.single()
+        }
+        TrainingPlansTable.selectAll().where { TrainingPlansTable.updatedBy eq user }
+            .map { it[TrainingPlansTable.id] to it[TrainingPlansTable.ageGroupId] }
+            .forEach { (planId, ageGroupId) ->
+                TrainingPlansTable.update({ TrainingPlansTable.id eq planId }) { it[updatedBy] = ownerOfAgeGroup(ageGroupId) }
+            }
+        (TrainingRatingsTable innerJoin TrainingSessionsTable).selectAll().where { TrainingRatingsTable.updatedBy eq user }
+            .map { Triple(it[TrainingRatingsTable.sessionId], it[TrainingRatingsTable.playerId], it[TrainingSessionsTable.ageGroupId]) }
+            .forEach { (sessionId, playerId, ageGroupId) ->
+                TrainingRatingsTable.update({ (TrainingRatingsTable.sessionId eq sessionId) and (TrainingRatingsTable.playerId eq playerId) }) {
+                    it[updatedBy] = ownerOfAgeGroup(ageGroupId)
+                }
+            }
+        TrainingSessionsTable.update({ TrainingSessionsTable.cancelledBy eq user }) { it[cancelledBy] = null }
+
         // Out of every other space, and the codes they used (spent already).
         AgeGroupStaff.deleteWhere { AgeGroupStaff.userId eq user }
         ClubMembers.deleteWhere { ClubMembers.userId eq user }
@@ -103,7 +129,7 @@ class ExposedAccountDeletionRepository : AccountDeletionRepository {
     }
 
     /**
-     * The space and everything in it. A match takes its call-ups, events, line-ups, stats and report with
+     * The space and everything in it, its training included. A match takes its call-ups, events, line-ups, stats and report with
      * it. Returns the storage keys of its images.
      */
     private fun deleteSpace(spaceId: Uuid): List<String> {
@@ -119,6 +145,13 @@ class ExposedAccountDeletionRepository : AccountDeletionRepository {
         Teams.deleteWhere { Teams.clubId eq spaceId }
         AgeGroupStaff.deleteWhere { AgeGroupStaff.ageGroupId inList ageGroupIds }
         AgeGroupPlayers.deleteWhere { AgeGroupPlayers.ageGroupId inList ageGroupIds }
+        // Training: ratings and each session's exercises, then sessions, exercises and plans.
+        val sessionIds = TrainingSessionsTable.selectAll().where { TrainingSessionsTable.ageGroupId inList ageGroupIds }.map { it[TrainingSessionsTable.id] }
+        TrainingRatingsTable.deleteWhere { TrainingRatingsTable.sessionId inList sessionIds }
+        TrainingSessionExercisesTable.deleteWhere { TrainingSessionExercisesTable.sessionId inList sessionIds }
+        TrainingSessionsTable.deleteWhere { TrainingSessionsTable.ageGroupId inList ageGroupIds }
+        TrainingExercisesTable.deleteWhere { TrainingExercisesTable.ageGroupId inList ageGroupIds }
+        TrainingPlansTable.deleteWhere { TrainingPlansTable.ageGroupId inList ageGroupIds }
         // Its invite codes go with their age groups (ON DELETE CASCADE).
         AgeGroups.deleteWhere { AgeGroups.clubId eq spaceId }
         Players.deleteWhere { Players.clubId eq spaceId }
