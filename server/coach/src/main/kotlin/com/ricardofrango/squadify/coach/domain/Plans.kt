@@ -82,6 +82,9 @@ object PlanLimits {
 class CoachPlans(private val plans: SpacePlanRepository) {
     suspend fun planOf(clubId: String): SpacePlan = plans.planOf(clubId)
 
+    /** The plan the space's owner asked for and hasn't got yet; null: none. */
+    suspend fun requestedPlan(clubId: String): SpacePlan? = plans.requestedPlan(clubId)
+
     /** The space's age groups over the plan's limit. */
     suspend fun lockedAgeGroups(clubId: String, plan: SpacePlan): Set<String> {
         val limit = PlanLimits.ageGroups(plan) ?: return emptySet()

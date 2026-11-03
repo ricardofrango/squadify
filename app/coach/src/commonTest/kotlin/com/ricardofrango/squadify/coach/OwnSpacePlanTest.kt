@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.coach
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
 import com.ricardofrango.squadify.coach.domain.LoadPlansUseCase
 import com.ricardofrango.squadify.coach.domain.OwnSpacePlan
+import com.ricardofrango.squadify.coach.domain.RequestPlanUseCase
 import com.ricardofrango.squadify.coach.domain.SpaceRepository
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.domain.config.OwnSpace
@@ -20,6 +21,9 @@ import com.ricardofrango.squadify.model.SportType
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.test.assertNull
 import kotlin.time.Instant
 
@@ -34,8 +38,18 @@ class OwnSpacePlanTest {
             listOf(PlanDetails(SpacePlan("FREE"), "Free", listOf(PlanFeatureLine(PlanFeature.LIVE_GAME, "Live game recording")), 1, 1)),
             currentPlan = SpacePlan("FREE")
         )
-        override suspend fun getSpaces() = spaces
+        override suspend fun getSpaces() = spaces.also { spacesLoaded++ }
         override suspend fun getPlans() = plans ?: error("offline")
+        var requestFails = false
+        // A local server sets the plan; a deployed one records the request.
+        var setAtOnce = false
+        var spacesLoaded = 0
+        override suspend fun requestPlan(plan: SpacePlan): PlansResponse {
+            if (requestFails) error("offline")
+            val now = plans!!.let { if (setAtOnce) it.copy(currentPlan = plan, requestedPlan = null) else it.copy(requestedPlan = plan) }
+            plans = now
+            return now
+        }
         override suspend fun setUpSpace(request: SetUpSpaceRequest): SpaceSetup = error("not used")
         override suspend fun acceptInvite(code: String): CoachSpace = error("not used")
     }
@@ -66,5 +80,33 @@ class OwnSpacePlanTest {
         repository.spaces = listOf(SpaceAgeGroups(space("anas"), isOwner = false, ageGroups = emptyList(), plan = SpacePlan("FREE")))
         getSpaces()
         assertNull(ownPlan.space.value)
+    }
+
+    @Test
+    fun aPlanAskedForShowsAsTheServerAnswers() = runTest {
+        val ownPlan = OwnSpacePlan()
+        val repository = Spaces(emptyList())
+        val loadPlans = LoadPlansUseCase(repository, ownPlan)
+        loadPlans()
+        val requestPlan = RequestPlanUseCase(repository, ownPlan, GetSpacesUseCase(repository, ownPlan, loadPlans))
+
+        // Not sent: nothing changes.
+        repository.requestFails = true
+        assertFailsWith<IllegalStateException> { requestPlan(SpacePlan("PRO")) }
+        assertNull(ownPlan.plans.value?.requestedPlan)
+
+        // Deployed: asked for, the plan the same, the spaces not loaded again.
+        repository.requestFails = false
+        assertFalse(requestPlan(SpacePlan("PRO")))
+        assertEquals(SpacePlan("PRO"), ownPlan.plans.value?.requestedPlan)
+        assertEquals(SpacePlan("FREE"), ownPlan.plans.value?.currentPlan)
+        assertEquals(0, repository.spacesLoaded)
+
+        // Locally: set at once, and the spaces loaded again for the new plan's limits.
+        repository.setAtOnce = true
+        assertTrue(requestPlan(SpacePlan("BASIC")))
+        assertEquals(SpacePlan("BASIC"), ownPlan.plans.value?.currentPlan)
+        assertNull(ownPlan.plans.value?.requestedPlan)
+        assertEquals(1, repository.spacesLoaded)
     }
 }

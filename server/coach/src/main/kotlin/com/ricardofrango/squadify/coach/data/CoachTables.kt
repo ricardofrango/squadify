@@ -41,5 +41,18 @@ object SpacePlans : Table("space_plans") {
     override val primaryKey = PrimaryKey(clubId)
 }
 
+/**
+ * The plan a space's owner asked for (REQUIREMENTS §5c), until a platform admin sets it, which deletes
+ * the row; one a space, the latest. Goes with its space and with the one who asked.
+ */
+object PlanRequests : Table("plan_requests") {
+    val clubId = uuid("club_id").references(Clubs.id, onDelete = ReferenceOption.CASCADE)
+    val plan = varchar("plan", 20)
+    val requestedBy = uuid("requested_by").references(Users.id, onDelete = ReferenceOption.CASCADE)
+    val requestedAt = timestamp("requested_at")
+
+    override val primaryKey = PrimaryKey(clubId)
+}
+
 /** The coach database's own tables, beyond the shared ones (`sharedTables`). */
-val coachOnlyTables: List<Table> = listOf(StaffInvites, SpacePlans)
+val coachOnlyTables: List<Table> = listOf(StaffInvites, SpacePlans, PlanRequests)

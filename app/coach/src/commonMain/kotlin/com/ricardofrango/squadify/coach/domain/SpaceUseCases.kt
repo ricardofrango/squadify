@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.coach.domain
 import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.CreateStaffInviteRequest
 import com.ricardofrango.squadify.model.PlansResponse
+import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
 import com.ricardofrango.squadify.domain.config.OwnSpace
@@ -38,6 +39,33 @@ class GetSpacesUseCase(
 class LoadPlansUseCase(private val spaceRepository: SpaceRepository, private val ownSpacePlan: OwnSpacePlan) {
     suspend operator fun invoke() {
         ownSpacePlan.plans.value = spaceRepository.getPlans()
+    }
+}
+
+/**
+ * Asks the coach server for [plan] for the space the coach owns, until payments: a local server sets it at
+ * once, a deployed one waits for a platform admin. The plans it sends back replace the ones loaded, and the
+ * spaces are loaded again (best effort) for the plan's limits elsewhere. Whether the plan itself changed.
+ */
+class RequestPlanUseCase(
+    private val spaceRepository: SpaceRepository,
+    private val ownSpacePlan: OwnSpacePlan,
+    private val getSpacesUseCase: GetSpacesUseCase
+) {
+    suspend operator fun invoke(plan: SpacePlan): Boolean {
+        val before = ownSpacePlan.plans.value?.currentPlan
+        val plans = spaceRepository.requestPlan(plan)
+        ownSpacePlan.plans.value = plans
+        val changed = plans.currentPlan != before
+        if (changed) {
+            try {
+                getSpacesUseCase()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+            }
+        }
+        return changed
     }
 }
 

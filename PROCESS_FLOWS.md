@@ -2848,7 +2848,25 @@ All in one transaction, so a refused setup creates nothing. Being staff in other
 
 `GET /v1/spaces` (`GetSpacesUseCase`) returns every space the coach is in from `ClubRepository.getMemberships`, their own first, each as `SpaceAgeGroups` with `isOwner` and their age groups there: all of their own space's, only the ones with a staff row in the others, the space's `plan` and the ones it locks (`lockedAgeGroupIds`), and for their own space `ageGroupsThisSeason` (its age groups in today's season, from `CoachSeasons.currentOrNull`, which creates none; 0 for staff) and `ageGroupsLeft` (the plan's age groups a season less those, none below 0; null with no limit, and for staff). An empty list before they set up or join one.
 
-`GET /v1/plans?language=` (`GetPlansUseCase`) returns `PlansResponse`: every plan from `PlanLimits`, cheapest first, with its name, features (their lines in Portuguese for "pt", English otherwise) and limits, and `currentPlan`, the plan of the space the coach owns (`ClubRepository.getMemberships`, the CLUB_ADMIN one; null without one). The coach server's `GET /v1/age-groups/{id}/details` is `GetAgeGroupDetailsUseCase` (§4.4b) plus `staffFullOnPlan` (`CoachPlans.staffFullOn`: the space's plan when the age group has no room for more staff, else null).
+`GET /v1/plans?language=` (`GetPlansUseCase`) returns `PlansResponse`: every plan from `PlanLimits`, cheapest first, with its name, features (their lines in Portuguese for "pt", English otherwise) and limits, `currentPlan`, the plan of the space the coach owns (`ClubRepository.getMemberships`, the CLUB_ADMIN one; null without one), and `requestedPlan`, the plan its owner asked for (`plan_requests`; null: none). The coach server's `GET /v1/age-groups/{id}/details` is `GetAgeGroupDetailsUseCase` (§4.4b) plus `staffFullOnPlan` (`CoachPlans.staffFullOn`: the space's plan when the age group has no room for more staff, else null).
+
+`POST /v1/plans/request?language=` (`RequestPlanUseCase`), the owner asking for a plan until payments, set at once on a local server:
+
+```mermaid
+graph TD
+    A[Start: userId, plan] --> B{"Owns a space? (getMemberships, CLUB_ADMIN)"}
+    B -- No --> F(["Throw ForbiddenException, 403"])
+    B -- Yes --> C{"plan in PlanLimits, and not the space's own?"}
+    C -- No --> V(["Throw ValidationException, 400"])
+    C -- Yes --> L{"A local server? (atOnce: not CoachConfig.deployed)"}
+    L -- Yes --> S["Set the plan: space_plans upsert, any request deleted"]
+    L -- No --> R["Upsert plan_requests: the space, plan, requested_by, requested_at (replaces an earlier one)"]
+    R --> M["After the transaction: email each PLATFORM_ADMIN_EMAILS address (a failed email doesn't undo it)"]
+    S --> Z(["PlansResponse in ?language=: the plans, currentPlan, requestedPlan"])
+    M --> Z
+```
+
+A platform admin's `PUT /v1/admin/spaces/{id}/plan` (`SetSpacePlanUseCase`) deletes the space's request with setting its plan; `GET /v1/admin/spaces` lists each space's `requestedPlan`.
 
 ### 13.3 Games on the coach server
 
@@ -2891,7 +2909,7 @@ graph TD
 
 Other spaces don't matter: an owner of one space, or staff in another, can use a code. After it's used, the space's owner gets a push (`sendStaffJoined`) naming who joined which age group. Removing (`DELETE /age-groups/{id}/staff/{userId}`, the owner only): the owner can't be removed; otherwise the staff row goes, and the space membership too when it was their last age group of the space. Withdrawing (`DELETE /age-groups/{id}/invites/{code}`) deletes a code that hasn't been used.
 
-**The coach database's own tables**, beyond the shared ones (§12): `space_plans` (`club_id` PK → `clubs` ON DELETE CASCADE, `plan` varchar 20, a `SpacePlan` id from `PlanLimits`, `updated_at`; from `V4__plans.sql`; no row is FREE), and `staff_invites` (`id`, `code` unique, `age_group_id` → `age_groups` ON DELETE CASCADE, `created_by` → `users`, `created_at`, `expires_at`, `accepted_by` → `users` nullable, `accepted_at` nullable, `sent_to` nullable: the address a code was emailed to), from `V2__staff_invites.sql` and `V3__staff_invite_email.sql`.
+**The coach database's own tables**, beyond the shared ones (§12): `space_plans` (`club_id` PK → `clubs` ON DELETE CASCADE, `plan` varchar 20, a `SpacePlan` id from `PlanLimits`, `updated_at`; from `V4__plans.sql`; no row is FREE), `plan_requests` (`club_id` PK → `clubs` ON DELETE CASCADE, `plan` varchar 20, `requested_by` → `users` ON DELETE CASCADE, `requested_at`; from `V5__plan_requests.sql`; deleted when the plan is set), and `staff_invites` (`id`, `code` unique, `age_group_id` → `age_groups` ON DELETE CASCADE, `created_by` → `users`, `created_at`, `expires_at`, `accepted_by` → `users` nullable, `accepted_at` nullable, `sent_to` nullable: the address a code was emailed to), from `V2__staff_invites.sql` and `V3__staff_invite_email.sql`.
 
 ### 13.6 Deleting an account (`DeleteAccountUseCase`, `POST /v1/users/me/delete`)
 

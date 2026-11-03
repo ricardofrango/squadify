@@ -33,6 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import com.ricardofrango.squadify.presentation.ui.components.LocalPlans
 import com.ricardofrango.squadify.coach.domain.LoadPlansUseCase
+import com.ricardofrango.squadify.coach.domain.RequestPlanUseCase
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.presentation.ui.components.LocalOwnSpace
 import com.ricardofrango.squadify.presentation.ui.components.LocalSeePlans
@@ -218,10 +219,26 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
                 }
             }
         }
+        val requestPlan = koinInject<RequestPlanUseCase>()
         PlansScreen(
             currentPlan = response?.currentPlan,
+            requestedPlan = response?.requestedPlan,
             plans = response?.plans.orEmpty(),
             onRetry = if (failed) ({ attempt++ }) else null,
+            // Only the owner of a space asks for a plan.
+            onRequestPlan = if (response?.currentPlan != null) { plan ->
+                try {
+                    // Set at once (a local server): Home lists the age groups the plan locks or frees.
+                    if (requestPlan(plan)) {
+                        navigator.backStack.firstOrNull { it.screen == Screen.CoachHome }?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    }
+                    true
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    false
+                }
+            } else null,
             onNavigateBack = { navigator.popBackStack() }
         )
     }
@@ -249,6 +266,7 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
             onJoinWithCode = { navigator.navigate(Screen.JoinWithCode) },
             onOpenAccount = { navigator.navigate(Screen.Account) },
             onOpenMySpace = { navigator.navigate(Screen.MySpace) },
+            onOpenPlans = { navigator.navigate(Screen.Plans) },
             refresh = changed,
             onRefreshed = { entry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false }
         )

@@ -24,6 +24,7 @@ import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.PlanFeature
 import com.ricardofrango.squadify.model.Player
+import com.ricardofrango.squadify.model.RequestPlanRequest
 import com.ricardofrango.squadify.model.SetSpacePlanRequest
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
@@ -251,5 +252,28 @@ class CoachPlansTest {
         val listed = api.get("/v1/admin/spaces") { bearerAuth(api.signUp(PLATFORM_ADMIN)) }.body<List<AdminSpace>>().single { it.id == spaceId }
         assertEquals(PlanLimits.PRO, listed.plan)
         assertTrue(listed.ownerEmail.orEmpty().endsWith("@test.com"))
+    }
+
+    @Test
+    fun locallyAPlanAskedForIsSetAtOnce() = testApplication {
+        application { module() }
+        val api = jsonClient()
+        val owner = api.signUp()
+        val spaceId = api.post("/v1/space") {
+            json(owner, SetUpSpaceRequest("Ana's team", SportType.FOOTBALL, AgeGroupItemRequest("Sub-12", 2015, 2015), "Sub-12 A"))
+        }.body<SpaceSetup>().space.id
+        suspend fun ask(token: String, plan: SpacePlan) = api.post("/v1/plans/request?language=pt") { json(token, RequestPlanRequest(plan)) }
+
+        // Only an owner, for one of the server's plans, other than theirs.
+        assertEquals(HttpStatusCode.Forbidden, ask(api.signUp(), PlanLimits.PRO).status)
+        assertEquals(HttpStatusCode.BadRequest, ask(owner, SpacePlan("GOLD")).status)
+        assertEquals(HttpStatusCode.BadRequest, ask(owner, PlanLimits.FREE).status)
+
+        // The tests' server isn't deployed: set there and then, and the plans come back as GET /v1/plans sends them.
+        val plans = ask(owner, PlanLimits.PRO).body<PlansResponse>()
+        assertEquals(PlanLimits.PRO, plans.currentPlan)
+        assertEquals(null, plans.requestedPlan)
+        assertEquals("Gravação de jogos ao vivo", plans.plans.first().features.first().text)
+        assertEquals(PlanLimits.PRO, api.get("/v1/spaces") { bearerAuth(owner) }.body<List<SpaceAgeGroups>>().single { it.space.id == spaceId }.plan)
     }
 }

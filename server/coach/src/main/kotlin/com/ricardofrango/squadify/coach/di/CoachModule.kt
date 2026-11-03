@@ -6,6 +6,8 @@ import com.ricardofrango.squadify.coach.data.ExposedAccountDeletionRepository
 import com.ricardofrango.squadify.coach.data.ExposedSpacePlanRepository
 import com.ricardofrango.squadify.coach.data.SpacePlanRepository
 import com.ricardofrango.squadify.coach.domain.CoachPlans
+import com.ricardofrango.squadify.coach.domain.PlanRequestMailer
+import com.ricardofrango.squadify.coach.domain.RequestPlanUseCase
 import com.ricardofrango.squadify.coach.domain.DeleteAccountUseCase
 import com.ricardofrango.squadify.coach.domain.GetAccountDeletionSummaryUseCase
 import com.ricardofrango.squadify.coach.domain.GetAdminSpacesUseCase
@@ -178,6 +180,7 @@ val coachModule = module {
     single { CoachEmailService() }
     single<EmailService> { get<CoachEmailService>() }
     single<StaffInviteMailer> { get<CoachEmailService>() }
+    single<PlanRequestMailer> { get<CoachEmailService>() }
     single<PasswordResetRepository> { ExposedPasswordResetRepository() }
     single<EmailChangeRepository> { ExposedEmailChangeRepository() }
     factory { CurrentPasswordGuard(get(), get()) }
@@ -205,6 +208,8 @@ val coachModule = module {
     factory { SetUpSpaceUseCase(get(), get(), get(), get(), get()) }
     factory { GetSpacesUseCase(get(), get(), get(), get(), get()) }
     factory { GetPlansUseCase(get(), get(), get()) }
+    // Locally a plan asked for is set at once; deployed, a platform admin sets it.
+    factory { RequestPlanUseCase(get(), get(), get(), get(), CoachConfig.platformAdminEmails, atOnce = !CoachConfig.deployed, transactionManager = get()) }
 
     // Staff: invite codes for an age group, and taking someone off one.
     single<StaffInviteRepository> { ExposedStaffInviteRepository() }
