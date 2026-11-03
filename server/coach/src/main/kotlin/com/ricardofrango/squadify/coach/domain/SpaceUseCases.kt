@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.coach.domain
 
 import com.ricardofrango.squadify.coach.data.SpacePlanRepository
+import com.ricardofrango.squadify.coach.data.StoreSubscriptionRepository
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
@@ -13,6 +14,7 @@ import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ClubStatus
+import com.ricardofrango.squadify.model.PlanChange
 import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
@@ -118,17 +120,36 @@ class GetSpacesUseCase(
 }
 
 /**
- * Every plan as the app shows it (`GET /v1/plans`, PlanLimits), its features in [language], and the plan
- * of the space the coach owns (null: they own none) with the one they asked for.
+ * Every plan as the app shows it (`GET /v1/plans`, PlanLimits), its features in [language] and its store
+ * products, the plan of the space the coach owns (null: they own none) with the one they asked for, how
+ * this server changes plans ([changeBy]), and a store subscription's lower plan coming at its renewal.
  */
 class GetPlansUseCase(
     private val clubRepository: ClubRepository,
     private val plans: CoachPlans,
+    private val subscriptions: StoreSubscriptionRepository,
+    private val changeBy: PlanChange,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, language: String?): PlansResponse = transactionManager.runInTransaction {
         val own = clubRepository.getMemberships(userId).firstOrNull { (_, role) -> role == ClubRole.CLUB_ADMIN }?.first
-        PlansResponse(PlanLimits.catalogue(language), own?.let { plans.planOf(it.id) }, own?.let { plans.requestedPlan(it.id) })
+        val ownPlan = own?.let { plans.planOf(it.id) }
+        val stored = own?.let { space -> subscriptions.forSpace(space.id).filter { it.entitled } }.orEmpty()
+        val pending = stored.firstOrNull { it.pendingPlan != null }
+        val period = stored.firstOrNull { it.plan == ownPlan }?.let { sub ->
+            PlanLimits.catalogue(null).flatMap { it.storeProducts }
+                .firstOrNull { it.googleProductId == sub.productId && it.googleBasePlanId == sub.basePlanId }?.period
+        }
+        PlansResponse(
+            PlanLimits.catalogue(language),
+            ownPlan,
+            own?.let { plans.requestedPlan(it.id) },
+            changeBy,
+            pending?.pendingPlan,
+            pending?.expiresAt,
+            period,
+            own?.let { userId }
+        )
     }
 }
 
@@ -187,7 +208,7 @@ class RequestPlanUseCase(
                     requestedPlan = plan
                 )
             }
-            PlansResponse(PlanLimits.catalogue(language), plans.planOf(space.id), plans.requestedPlan(space.id)) to email
+            PlansResponse(PlanLimits.catalogue(language), plans.planOf(space.id), plans.requestedPlan(space.id), changeBy = if (atOnce) PlanChange.INSTANT else PlanChange.REQUEST) to email
         }
         email?.let { adminEmails.forEach { to -> mailer.sendPlanRequest(to, it) } }
         return response

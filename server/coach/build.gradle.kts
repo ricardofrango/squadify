@@ -30,6 +30,10 @@ dependencies {
 
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
+    // Google Play's Developer API, for the subscriptions bought in the app: Ktor's client, signed in
+    // with the service account through Google's auth library (in firebase-admin, as on :server:web).
+    implementation(libs.ktor.client.cio)
+    implementation(libs.firebase.admin)
 
     testImplementation(testFixtures(project(":server:data")))
     testImplementation(libs.ktor.server.test.host)

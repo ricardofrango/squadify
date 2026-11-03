@@ -21,6 +21,8 @@ import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.MatchType
 import com.ricardofrango.squadify.model.MatchVenue
 import com.ricardofrango.squadify.model.Opponent
+import com.ricardofrango.squadify.model.GooglePurchaseRequest
+import com.ricardofrango.squadify.model.PlanChange
 import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.PlanFeature
 import com.ricardofrango.squadify.model.Player
@@ -216,6 +218,11 @@ class CoachPlansTest {
         assertEquals(listOf(1, 3, null), plans.map { it.peoplePerAgeGroupLimit })
         assertEquals(listOf(false, true, true), plans.map { it.has(PlanFeature.STATS) })
         assertEquals(listOf(false, false, true), plans.map { it.has(PlanFeature.FOLLOWING_LIVE) })
+        // Sold on Google Play: the paid plans each a subscription, monthly and yearly.
+        assertEquals(
+            listOf(emptyList(), listOf("coach_basic/monthly", "coach_basic/yearly"), listOf("coach_pro/monthly", "coach_pro/yearly")),
+            plans.map { p -> p.storeProducts.map { "${it.googleProductId}/${it.googleBasePlanId}" } }
+        )
         assertEquals(PlanLimits.FREE, response.currentPlan)
         assertEquals("Live game recording", plans.first().features.first().text)
         // In the app's language, Portuguese for "pt".
@@ -268,6 +275,12 @@ class CoachPlansTest {
         assertEquals(HttpStatusCode.Forbidden, ask(api.signUp(), PlanLimits.PRO).status)
         assertEquals(HttpStatusCode.BadRequest, ask(owner, SpacePlan("GOLD")).status)
         assertEquals(HttpStatusCode.BadRequest, ask(owner, PlanLimits.FREE).status)
+
+        // A local server changes plans at once, and checks no store purchases.
+        assertEquals(PlanChange.INSTANT, api.get("/v1/plans") { bearerAuth(owner) }.body<PlansResponse>().changeBy)
+        assertEquals(HttpStatusCode.BadRequest, api.post("/v1/plans/purchases/google") { json(owner, GooglePurchaseRequest("coach_pro", "token")) }.status)
+        // Without the secret, Google's notifications are refused.
+        assertEquals(HttpStatusCode.Forbidden, api.post("/v1/store/google/notifications?token=guess").status)
 
         // The tests' server isn't deployed: set there and then, and the plans come back as GET /v1/plans sends them.
         val plans = ask(owner, PlanLimits.PRO).body<PlansResponse>()

@@ -23,6 +23,9 @@ interface SpaceRepository {
      */
     suspend fun requestPlan(plan: SpacePlan): PlansResponse
 
+    /** A Google Play purchase, for the server to check with Google and set the plan from. Returns the plans after it. */
+    suspend fun verifyGooglePurchase(productId: String, purchaseToken: String): PlansResponse
+
     /** Their own space, with its first age group and team. 409 once they own one. */
     suspend fun setUpSpace(request: SetUpSpaceRequest): SpaceSetup
 

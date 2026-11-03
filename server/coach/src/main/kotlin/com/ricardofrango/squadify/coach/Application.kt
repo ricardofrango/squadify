@@ -8,6 +8,7 @@ import com.ricardofrango.squadify.coach.routes.accountDeletionRoutes
 import com.ricardofrango.squadify.coach.routes.adminRoutes
 import com.ricardofrango.squadify.coach.routes.authRoutes
 import com.ricardofrango.squadify.coach.routes.spaceRoutes
+import com.ricardofrango.squadify.coach.routes.storeRoutes
 import com.ricardofrango.squadify.coach.routes.staffRoutes
 import com.ricardofrango.squadify.coach.routes.structureRoutes
 import com.ricardofrango.squadify.installSquadifyApi
@@ -63,6 +64,7 @@ fun Application.module() {
             structureRoutes()
             staffRoutes()
             adminRoutes()
+            storeRoutes()
             imageRoutes()
             publicImageRoutes()
             gameRoutes(CoachTokens)

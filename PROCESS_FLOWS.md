@@ -2850,7 +2850,7 @@ All in one transaction, so a refused setup creates nothing. Being staff in other
 
 `GET /v1/spaces` (`GetSpacesUseCase`) returns every space the coach is in from `ClubRepository.getMemberships`, their own first, each as `SpaceAgeGroups` with `isOwner` and their age groups there: all of their own space's, only the ones with a staff row in the others, the space's `plan` and the ones it locks (`lockedAgeGroupIds`), and for their own space `ageGroupsThisSeason` (its age groups in today's season, from `CoachSeasons.currentOrNull`, which creates none; 0 for staff) and `ageGroupsLeft` (the plan's age groups a season less those, none below 0; null with no limit, and for staff). An empty list before they set up or join one.
 
-`GET /v1/plans?language=` (`GetPlansUseCase`) returns `PlansResponse`: every plan from `PlanLimits`, cheapest first, with its name, features (their lines in Portuguese for "pt", English otherwise) and limits, `currentPlan`, the plan of the space the coach owns (`ClubRepository.getMemberships`, the CLUB_ADMIN one; null without one), and `requestedPlan`, the plan its owner asked for (`plan_requests`; null: none). The coach server's `GET /v1/age-groups/{id}/details` is `GetAgeGroupDetailsUseCase` (§4.4b) plus `staffFullOnPlan` (`CoachPlans.staffFullOn`: the space's plan when the age group has no room for more staff, else null).
+`GET /v1/plans?language=` (`GetPlansUseCase`) returns `PlansResponse`: every plan from `PlanLimits`, cheapest first, with its name, features (their lines in Portuguese for "pt", English otherwise) and limits, `currentPlan`, the plan of the space the coach owns (`ClubRepository.getMemberships`, the CLUB_ADMIN one; null without one), `requestedPlan`, the plan its owner asked for (`plan_requests`; null: none), `changeBy` (`INSTANT` locally, `STORE` with Google's service account, else `REQUEST`), each paid plan's `storeProducts`, and from the space's entitled store subscriptions `currentPeriod`, `pendingPlan` and `pendingFrom`, with `storeAccountId` (the owner's user id) for the app to tag purchases with. The coach server's `GET /v1/age-groups/{id}/details` is `GetAgeGroupDetailsUseCase` (§4.4b) plus `staffFullOnPlan` (`CoachPlans.staffFullOn`: the space's plan when the age group has no room for more staff, else null).
 
 `POST /v1/plans/request?language=` (`RequestPlanUseCase`), the owner asking for a plan until payments, set at once on a local server:
 
@@ -2866,6 +2866,29 @@ graph TD
     R --> M["After the transaction: email each PLATFORM_ADMIN_EMAILS address (a failed email doesn't undo it)"]
     S --> Z(["PlansResponse in ?language=: the plans, currentPlan, requestedPlan"])
     M --> Z
+```
+
+`POST /v1/plans/purchases/google?language=` (`VerifyGooglePurchaseUseCase`), a Google Play purchase from the app, and `POST /v1/store/google/notifications?token=` (`HandleGoogleNotificationUseCase`), Google's notifications through Pub/Sub:
+
+```mermaid
+graph TD
+    A[Start: userId, productId, purchaseToken] --> B{"Owns a space?"}
+    B -- No --> F(["Throw ForbiddenException, 403"])
+    B -- Yes --> C{"productId one of the plans', and the server has Google's service account?"}
+    C -- No --> V(["Throw ValidationException, 400"])
+    C -- Yes --> G["Read the purchase from Google (purchases.subscriptionsv2)"]
+    G -- unknown --> V
+    G --> O{"Its obfuscated account id is the caller's?"}
+    O -- No --> F
+    O -- Yes --> E{"Test purchase off production, or real one on production / locally?"}
+    E -- No --> V
+    E -- Yes --> S["GoogleSubscriptions.apply: upsert store_subscriptions (entitled: active, cancelled until expiry, or grace period; pending plan from deferredItemReplacement); the linked purchase stops counting; space plan = highest entitled, else FREE"]
+    S --> K["Acknowledge with Google if not yet"]
+    K --> Z(["PlansResponse, as GET /v1/plans"])
+    N[Notification: token check, then the purchase token] --> NG["Read the purchase from Google"]
+    NG --> NS{"Stored already, or its buyer owns a space?"}
+    NS -- No --> NX(["Ignored, 204"])
+    NS -- Yes --> S
 ```
 
 A platform admin's `PUT /v1/admin/spaces/{id}/plan` (`SetSpacePlanUseCase`) deletes the space's request with setting its plan; `GET /v1/admin/spaces` lists each space's `requestedPlan`.
@@ -2911,7 +2934,7 @@ graph TD
 
 Other spaces don't matter: an owner of one space, or staff in another, can use a code. After it's used, the space's owner gets a push (`sendStaffJoined`) naming who joined which age group. Removing (`DELETE /age-groups/{id}/staff/{userId}`, the owner only): the owner can't be removed; otherwise the staff row goes, and the space membership too when it was their last age group of the space. Withdrawing (`DELETE /age-groups/{id}/invites/{code}`) deletes a code that hasn't been used.
 
-**The coach database's own tables**, beyond the shared ones (§12): `space_plans` (`club_id` PK → `clubs` ON DELETE CASCADE, `plan` varchar 20, a `SpacePlan` id from `PlanLimits`, `updated_at`; from `V4__plans.sql`; no row is FREE), `plan_requests` (`club_id` PK → `clubs` ON DELETE CASCADE, `plan` varchar 20, `requested_by` → `users` ON DELETE CASCADE, `requested_at`; from `V5__plan_requests.sql`; deleted when the plan is set), and `staff_invites` (`id`, `code` unique, `age_group_id` → `age_groups` ON DELETE CASCADE, `created_by` → `users`, `created_at`, `expires_at`, `accepted_by` → `users` nullable, `accepted_at` nullable, `sent_to` nullable: the address a code was emailed to), from `V2__staff_invites.sql` and `V3__staff_invite_email.sql`.
+**The coach database's own tables**, beyond the shared ones (§12): `space_plans` (`club_id` PK → `clubs` ON DELETE CASCADE, `plan` varchar 20, a `SpacePlan` id from `PlanLimits`, `updated_at`; from `V4__plans.sql`; no row is FREE), `plan_requests` (`club_id` PK → `clubs` ON DELETE CASCADE, `plan` varchar 20, `requested_by` → `users` ON DELETE CASCADE, `requested_at`; from `V5__plan_requests.sql`; deleted when the plan is set), `store_subscriptions` (`purchase_token` PK, `club_id` → `clubs` and `user_id` → `users`, both ON DELETE CASCADE, `store`, `product_id`, `base_plan_id`, `plan`, `entitled`, `expires_at`, `pending_plan`, `test`, `updated_at`; from `V7__store_subscriptions.sql`), and `staff_invites` (`id`, `code` unique, `age_group_id` → `age_groups` ON DELETE CASCADE, `created_by` → `users`, `created_at`, `expires_at`, `accepted_by` → `users` nullable, `accepted_at` nullable, `sent_to` nullable: the address a code was emailed to), from `V2__staff_invites.sql` and `V3__staff_invite_email.sql`.
 
 ### 13.6 Deleting an account (`DeleteAccountUseCase`, `POST /v1/users/me/delete`)
 

@@ -136,4 +136,10 @@
     <string name="btn_plans_subscribing">A enviar…</string>
     <string name="plans_request_failed">Não foi possível enviar o pedido. Tenta novamente.</string>
     <string name="plans_requested">Pediste o %1$s. Vamos entrar em contacto para o ativar.</string>
+    <string name="plans_monthly">Mensal</string>
+    <string name="plans_yearly">Anual</string>
+    <string name="plans_price_month">%1$s / mês</string>
+    <string name="plans_price_year">%1$s / ano</string>
+    <string name="plans_pending">%1$s até %2$s, depois %3$s.</string>
+    <string name="plans_purchase_failed">A compra não foi concluída. Tenta novamente.</string>
 </resources>

@@ -82,7 +82,9 @@ android {
         }
     }
 
-    // As in the clubs app: dev and staging have a suffix, so all three install side by side.
+    // Dev has a suffix, so it installs next to the others. Staging has the production package (the developer,
+    // 2026-11-03): Google Play's test purchases only work for the app registered in Play Console, so staging
+    // and production don't install side by side.
     flavorDimensions += "environment"
     productFlavors {
         create("dev") {
@@ -93,7 +95,6 @@ android {
         }
         create("staging") {
             dimension = "environment"
-            applicationIdSuffix = ".stg"
             // The coach-server service's Railway domain on staging.
             buildConfigField("String", "BASE_URL", "\"https://squadify-for-coach-staging.up.railway.app/v1\"")
             resValue("string", "app_name", "Squadify Coach Stg")

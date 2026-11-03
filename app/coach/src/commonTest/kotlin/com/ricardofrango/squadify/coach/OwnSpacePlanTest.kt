@@ -44,6 +44,7 @@ class OwnSpacePlanTest {
         // A local server sets the plan; a deployed one records the request.
         var setAtOnce = false
         var spacesLoaded = 0
+        override suspend fun verifyGooglePurchase(productId: String, purchaseToken: String): PlansResponse = error("not used")
         override suspend fun requestPlan(plan: SpacePlan): PlansResponse {
             if (requestFails) error("offline")
             val now = plans!!.let { if (setAtOnce) it.copy(currentPlan = plan, requestedPlan = null) else it.copy(requestedPlan = plan) }

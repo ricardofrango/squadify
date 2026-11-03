@@ -128,6 +128,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
     - **Notifications never go to whoever caused them** (the developer, 2026-11-02, both apps): whoever schedules a game, scores or creates a team isn't told about it. On Free that leaves nobody to tell.
     - **A space's plan** is set by a platform admin until payments (Google Play Billing and Apple In-App Purchase, directly). A new space is on Free.
     - **Asking for a plan** (the developer, 2026-11-03; a stopgap until in-app subscriptions): for the owner, the plan cards on Plans can be tapped to choose one, outlined in green; their own (tagged "Your plan") is chosen to start with, or the one they last asked for. The Subscribe button at the bottom stays off until they choose another plan, then reads "Subscribe to Pro". Locally (a server on the developer's machine) it changes the plan at once. On staging and production, until payments, it sends a request: the platform admins are emailed and the admin's list of spaces shows it, and Plans shows "You asked for Pro. We'll be in touch to set it up." above the button until a platform admin sets the plan. Asking again replaces the request. Staff with no space of their own can't choose and see no button.
+    - **Buying a plan** (2026-11-03, Google Play): when the coach server takes store purchases, Plans shows a Monthly / Yearly choice and each paid plan's price from Google Play, and Subscribe opens Google Play's payment sheet; the plan changes once the server has checked the purchase with Google. Choosing another period of the same plan is a change too. Going down shows "Pro until 31 Jan, then Basic." above the button. Free isn't bought: going back to Free is cancelling the subscription in Google Play. On iOS, until the App Store's turn, Subscribe asks for the plan as above.
     - **Changing plan, by environment** (the developer, 2026-11-03): on a local machine the plan changes at once; on staging, a payment sandbox that simulates real payments (Google Play's and Apple's test purchases); on production, real payments. Until payments are built, staging and production send the request above.
 
 - **Changing plan with payments** (the developer, 2026-11-03):
@@ -348,12 +349,16 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - **Our team's sheet:** tapping our team in the live game opens a new bottom sheet to add a corner won. Only corners go on it.
         - **The opponent's sheet:** tapping the opponent opens one to add a corner or a foul (the opponent has no players, so theirs are per team).
         - **Where they show:** in the match's stats, the timeline and the season stats; how shots and shots on goal are presented (e.g. counted together or apart) is to be discussed, probably in the game's stats.
-    - [ ] Payments (Google Play Billing and Apple In-App Purchase, directly, no RevenueCat) and ads on the Free plan (AdMob).
+    - [/] Payments (Google Play Billing and Apple In-App Purchase, directly, no RevenueCat) and ads on the Free plan (AdMob).
+        - [x] Google Play (2026-11-03): Basic and Pro, monthly and yearly, bought on Plans; the coach server checks each purchase with Google and follows its notifications; staging takes test purchases only, production real ones (`TECHNICAL_DECISIONS.md` §72). To set up in Play Console and Google Cloud before it works (§72, Payments, as built).
+        - [ ] Apple In-App Purchase (StoreKit, App Store Server Notifications); until then iOS asks for plans.
+        - [ ] Referrals (§5c).
+        - [ ] Ads on Free (AdMob, after the consent form).
     - [ ] **Plans: still open** (2026-11-03, after PR #188):
         - [x] Asking for a plan in the app (2026-11-03), the stopgap: tap a plan on Plans and Subscribe, the request emailed to the platform admins, who set it (§5c).
         - [x] Locally, choosing a plan changes it at once (2026-11-03).
-        - [ ] In-app subscriptions, before the public launch: App Store and Google Play products and prices, Play Billing and StoreKit in the app, the server checking each purchase and following renewals, cancellations and expiry from the stores' notifications. Staging on the stores' sandboxes (Google Play license testers and Apple sandbox accounts: test purchases, nothing charged), production on real payments. Choosing on Plans stays; it buys instead of asking.
-        - [ ] Going down waits for the end of the period paid (§5c, Changing plan with payments), with the plan coming shown on Plans.
+        - [/] In-app subscriptions, before the public launch: Google Play done (2026-11-03, above); the App Store to come. Staging on the stores' sandboxes (Google Play license testers and Apple sandbox accounts: test purchases, nothing charged), production on real payments. Choosing on Plans stays; it buys instead of asking.
+        - [x] Going down waits for the end of the period paid (§5c, Changing plan with payments), with the plan coming shown on Plans (Google Play, 2026-11-03).
         - [ ] Referrals (§5c): a code from the first successful payment, a free month a referral for monthly subscribers (up to 10), a free year for 10 referrals for yearly ones (once); the open questions there first.
         - [ ] Staging, once #188 is merged: set `PLATFORM_ADMIN_EMAILS` on coach-server, then raise the test spaces with the admin endpoint (every space starts on Free).
         - [x] The full-time notification (with the final score) counts as a live moment, so it only goes on Pro (confirmed by the developer, 2026-11-03).

@@ -25,15 +25,9 @@ import com.ricardofrango.squadify.coach.presentation.ui.home.CoachHomeScreen
 import com.ricardofrango.squadify.coach.presentation.ui.invite.InviteStaffScreen
 import com.ricardofrango.squadify.coach.presentation.ui.join.JoinWithCodeScreen
 import com.ricardofrango.squadify.coach.presentation.ui.space.MySpaceScreen
-import com.ricardofrango.squadify.coach.presentation.ui.plans.PlansScreen
+import com.ricardofrango.squadify.coach.presentation.ui.plans.PlansRoute
 import com.ricardofrango.squadify.coach.domain.OwnSpacePlan
-import kotlinx.coroutines.CancellationException
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import com.ricardofrango.squadify.presentation.ui.components.LocalPlans
-import com.ricardofrango.squadify.coach.domain.LoadPlansUseCase
-import com.ricardofrango.squadify.coach.domain.RequestPlanUseCase
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.presentation.ui.components.LocalOwnSpace
 import com.ricardofrango.squadify.presentation.ui.components.LocalSeePlans
@@ -201,44 +195,9 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
     }
 
     screen<Screen.Plans> {
-        val response by koinInject<OwnSpacePlan>().plans.collectAsStateWithLifecycle()
-        val loadPlans = koinInject<LoadPlansUseCase>()
-        // Loaded here too when they aren't yet (opened before Home, or the last load failed).
-        var attempt by remember { mutableIntStateOf(0) }
-        var failed by remember { mutableStateOf(false) }
-        LaunchedEffect(attempt) {
-            if (response == null) {
-                failed = false
-                failed = try {
-                    loadPlans()
-                    false
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    true
-                }
-            }
-        }
-        val requestPlan = koinInject<RequestPlanUseCase>()
-        PlansScreen(
-            currentPlan = response?.currentPlan,
-            requestedPlan = response?.requestedPlan,
-            plans = response?.plans.orEmpty(),
-            onRetry = if (failed) ({ attempt++ }) else null,
-            // Only the owner of a space asks for a plan.
-            onRequestPlan = if (response?.currentPlan != null) { plan ->
-                try {
-                    // Set at once (a local server): Home lists the age groups the plan locks or frees.
-                    if (requestPlan(plan)) {
-                        navigator.backStack.firstOrNull { it.screen == Screen.CoachHome }?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
-                    }
-                    true
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    false
-                }
-            } else null,
+        PlansRoute(
+            // Home lists the age groups the plan locks or frees.
+            onPlanChanged = { navigator.backStack.firstOrNull { it.screen == Screen.CoachHome }?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true) },
             onNavigateBack = { navigator.popBackStack() }
         )
     }

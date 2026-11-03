@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.data.remote.handleResponse
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.CreateStaffInviteRequest
+import com.ricardofrango.squadify.model.GooglePurchaseRequest
 import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.RequestPlanRequest
 import com.ricardofrango.squadify.model.SpacePlan
@@ -34,6 +35,13 @@ class SpaceRepositoryImpl(
     // The features come written by the server, in the app's language.
     override suspend fun getPlans(): PlansResponse =
         httpClient.get("${appConfig.baseUrl}/plans") { parameter("language", Locale.current.language) }.handleResponse()
+
+    override suspend fun verifyGooglePurchase(productId: String, purchaseToken: String): PlansResponse =
+        httpClient.post("${appConfig.baseUrl}/plans/purchases/google") {
+            parameter("language", Locale.current.language)
+            contentType(ContentType.Application.Json)
+            setBody(GooglePurchaseRequest(productId, purchaseToken))
+        }.handleResponse()
 
     override suspend fun requestPlan(plan: SpacePlan): PlansResponse =
         httpClient.post("${appConfig.baseUrl}/plans/request") {

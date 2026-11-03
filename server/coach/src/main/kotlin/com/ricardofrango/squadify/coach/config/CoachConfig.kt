@@ -48,6 +48,27 @@ object CoachConfig {
         .orEmpty()
 
     /**
+     * Google Play (TECHNICAL_DECISIONS §72, payments): the app's package, and a service account with
+     * access to it in Play Console (raw JSON), to check subscriptions bought in the app. Without the
+     * account the server can't check purchases, so the app asks for plans instead (`PlanChange.REQUEST`).
+     */
+    val googlePlayPackageName: String = env("GOOGLE_PLAY_PACKAGE_NAME") ?: "com.ricardofrango.squadify.coach"
+    val googlePlayServiceAccountJson: String = env("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON") ?: ""
+
+    /**
+     * The secret in the URL Google's Pub/Sub push subscription calls with the store's notifications
+     * (`/v1/store/google/notifications?token=`). Without it the endpoint refuses every call.
+     */
+    val googlePlayNotificationsToken: String = env("GOOGLE_PLAY_NOTIFICATIONS_TOKEN") ?: ""
+
+    /**
+     * Which purchases count: on staging only test ones (license testers, nothing charged), on production
+     * only real ones; locally both.
+     */
+    val acceptsTestPurchases: Boolean = !production
+    val acceptsRealPurchases: Boolean = !deployed || production
+
+    /**
      * The coach's own Firebase project's service account (`squadify-for-coach`), as raw JSON, for its
      * pushes. Not required: without it each push is logged and skipped, as on the clubs server. Locally,
      * `firebase-coach-service-account.json` (gitignored) in the repo root or any folder above the server's.
