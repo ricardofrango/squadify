@@ -35,12 +35,12 @@ class SpaceRepositoryImpl(
     override suspend fun getPlans(): PlansResponse =
         httpClient.get("${appConfig.baseUrl}/plans") { parameter("language", Locale.current.language) }.handleResponse()
 
-    override suspend fun requestPlan(plan: SpacePlan) {
+    override suspend fun requestPlan(plan: SpacePlan): PlansResponse =
         httpClient.post("${appConfig.baseUrl}/plans/request") {
+            parameter("language", Locale.current.language)
             contentType(ContentType.Application.Json)
             setBody(RequestPlanRequest(plan))
-        }.handleResponse<Unit>()
-    }
+        }.handleResponse()
 
     override suspend fun setUpSpace(request: SetUpSpaceRequest): SpaceSetup =
         httpClient.post("${appConfig.baseUrl}/space") {

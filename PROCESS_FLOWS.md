@@ -2850,7 +2850,7 @@ All in one transaction, so a refused setup creates nothing. Being staff in other
 
 `GET /v1/plans?language=` (`GetPlansUseCase`) returns `PlansResponse`: every plan from `PlanLimits`, cheapest first, with its name, features (their lines in Portuguese for "pt", English otherwise) and limits, `currentPlan`, the plan of the space the coach owns (`ClubRepository.getMemberships`, the CLUB_ADMIN one; null without one), and `requestedPlan`, the plan its owner asked for (`plan_requests`; null: none). The coach server's `GET /v1/age-groups/{id}/details` is `GetAgeGroupDetailsUseCase` (§4.4b) plus `staffFullOnPlan` (`CoachPlans.staffFullOn`: the space's plan when the age group has no room for more staff, else null).
 
-`POST /v1/plans/request` (`RequestPlanUseCase`), the owner asking for a plan until payments:
+`POST /v1/plans/request?language=` (`RequestPlanUseCase`), the owner asking for a plan until payments, set at once on a local server:
 
 ```mermaid
 graph TD
@@ -2858,9 +2858,12 @@ graph TD
     B -- No --> F(["Throw ForbiddenException, 403"])
     B -- Yes --> C{"plan in PlanLimits, and not the space's own?"}
     C -- No --> V(["Throw ValidationException, 400"])
-    C -- Yes --> R["Upsert plan_requests: the space, plan, requested_by, requested_at (replaces an earlier one)"]
+    C -- Yes --> L{"A local server? (atOnce: not CoachConfig.deployed)"}
+    L -- Yes --> S["Set the plan: space_plans upsert, any request deleted"]
+    L -- No --> R["Upsert plan_requests: the space, plan, requested_by, requested_at (replaces an earlier one)"]
     R --> M["After the transaction: email each PLATFORM_ADMIN_EMAILS address (a failed email doesn't undo it)"]
-    M --> Z(["204"])
+    S --> Z(["PlansResponse in ?language=: the plans, currentPlan, requestedPlan"])
+    M --> Z
 ```
 
 A platform admin's `PUT /v1/admin/spaces/{id}/plan` (`SetSpacePlanUseCase`) deletes the space's request with setting its plan; `GET /v1/admin/spaces` lists each space's `requestedPlan`.

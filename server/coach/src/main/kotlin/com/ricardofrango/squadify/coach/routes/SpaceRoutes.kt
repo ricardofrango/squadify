@@ -19,8 +19,8 @@ import org.koin.ktor.ext.inject
 /**
  * The coach's spaces: `/spaces` lists every one they're in with their age groups there; `POST /space`
  * sets up their own, with its first age group and team. `/plans?language=`: every plan with what it
- * has, for the app to show, and the coach's own plan; `POST /plans/request`: the owner asks for
- * another, until payments.
+ * has, for the app to show, and the coach's own plan; `POST /plans/request?language=`: the owner
+ * asks for another, until payments (set at once on a local server), and gets the plans back.
  */
 fun Route.spaceRoutes() {
     val setUpSpaceUseCase by inject<SetUpSpaceUseCase>()
@@ -39,8 +39,7 @@ fun Route.spaceRoutes() {
         }
         post("/plans/request") {
             val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-            requestPlanUseCase(currentUserId, call.receive<RequestPlanRequest>().plan)
-            call.respond(HttpStatusCode.NoContent)
+            call.respond(requestPlanUseCase(currentUserId, call.receive<RequestPlanRequest>().plan, call.request.queryParameters["language"]))
         }
         post("/space") {
             val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)

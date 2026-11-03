@@ -149,9 +149,11 @@ interface PlanRequestMailer {
 
 /**
  * The owner asks for another plan for their space (`POST /v1/plans/request`, REQUIREMENTS §5c), until
- * payments: it's recorded, in place of an earlier request, and [adminEmails] are emailed to set it with
- * the admin's `PUT /v1/admin/spaces/{id}/plan`. Only an owner asks, for a plan that exists and isn't
- * theirs already. The request stands if an email doesn't go: the admin's list shows it too.
+ * payments. Only an owner asks, for a plan that exists and isn't theirs already. With [atOnce] (on a
+ * local server, never deployed: CoachConfig.deployed) the plan is set there and then, to try the plans
+ * without an admin. Otherwise it's recorded, in place of an earlier request, and [adminEmails] are emailed
+ * to set it with the admin's `PUT /v1/admin/spaces/{id}/plan`; the request stands if an email doesn't go,
+ * since the admin's list shows it too. Returns the plans as `GET /v1/plans` does, in [language], after it.
  */
 class RequestPlanUseCase(
     private val clubRepository: ClubRepository,
@@ -159,27 +161,35 @@ class RequestPlanUseCase(
     private val plans: SpacePlanRepository,
     private val mailer: PlanRequestMailer,
     private val adminEmails: Set<String>,
+    private val atOnce: Boolean,
     private val transactionManager: TransactionManager,
     private val clock: Clock = Clock.System
 ) {
-    suspend operator fun invoke(userId: String, plan: SpacePlan) {
-        val email = transactionManager.runInTransaction {
+    suspend operator fun invoke(userId: String, plan: SpacePlan, language: String? = null): PlansResponse {
+        val (response, email) = transactionManager.runInTransaction {
             val space = clubRepository.getMemberships(userId).firstOrNull { (_, role) -> role == ClubRole.CLUB_ADMIN }?.first
                 ?: throw ForbiddenException("Only a space's owner can ask for a plan")
             if (!PlanLimits.exists(plan)) throw ValidationException("No such plan: ${plan.id}")
             val current = plans.planOf(space.id)
             if (plan == current) throw ValidationException("The space is already on this plan")
-            plans.requestPlan(space.id, plan, userId, clock.now())
-            val owner = userRepository.findById(userId)
-            PlanRequestEmail(
-                spaceId = space.id,
-                spaceName = space.name,
-                ownerName = owner?.let { "${it.firstName} ${it.lastName}".trim() }.orEmpty(),
-                ownerEmail = owner?.email.orEmpty(),
-                currentPlan = current,
-                requestedPlan = plan
-            )
+            val email = if (atOnce) {
+                plans.setPlan(space.id, plan, clock.now())
+                null
+            } else {
+                plans.requestPlan(space.id, plan, userId, clock.now())
+                val owner = userRepository.findById(userId)
+                PlanRequestEmail(
+                    spaceId = space.id,
+                    spaceName = space.name,
+                    ownerName = owner?.let { "${it.firstName} ${it.lastName}".trim() }.orEmpty(),
+                    ownerEmail = owner?.email.orEmpty(),
+                    currentPlan = current,
+                    requestedPlan = plan
+                )
+            }
+            PlansResponse(PlanLimits.catalogue(language), plans.planOf(space.id), plans.requestedPlan(space.id)) to email
         }
-        adminEmails.forEach { mailer.sendPlanRequest(it, email) }
+        email?.let { adminEmails.forEach { to -> mailer.sendPlanRequest(to, it) } }
+        return response
     }
 }

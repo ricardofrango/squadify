@@ -22,6 +22,8 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.test.assertNull
 import kotlin.time.Instant
 
@@ -36,13 +38,17 @@ class OwnSpacePlanTest {
             listOf(PlanDetails(SpacePlan("FREE"), "Free", listOf(PlanFeatureLine(PlanFeature.LIVE_GAME, "Live game recording")), 1, 1)),
             currentPlan = SpacePlan("FREE")
         )
-        override suspend fun getSpaces() = spaces
+        override suspend fun getSpaces() = spaces.also { spacesLoaded++ }
         override suspend fun getPlans() = plans ?: error("offline")
-        var requested: SpacePlan? = null
         var requestFails = false
-        override suspend fun requestPlan(plan: SpacePlan) {
+        // A local server sets the plan; a deployed one records the request.
+        var setAtOnce = false
+        var spacesLoaded = 0
+        override suspend fun requestPlan(plan: SpacePlan): PlansResponse {
             if (requestFails) error("offline")
-            requested = plan
+            val now = plans!!.let { if (setAtOnce) it.copy(currentPlan = plan, requestedPlan = null) else it.copy(requestedPlan = plan) }
+            plans = now
+            return now
         }
         override suspend fun setUpSpace(request: SetUpSpaceRequest): SpaceSetup = error("not used")
         override suspend fun acceptInvite(code: String): CoachSpace = error("not used")
@@ -77,21 +83,30 @@ class OwnSpacePlanTest {
     }
 
     @Test
-    fun aPlanAskedForShowsOnceTheServerHasIt() = runTest {
+    fun aPlanAskedForShowsAsTheServerAnswers() = runTest {
         val ownPlan = OwnSpacePlan()
         val repository = Spaces(emptyList())
-        LoadPlansUseCase(repository, ownPlan)()
-        val requestPlan = RequestPlanUseCase(repository, ownPlan)
+        val loadPlans = LoadPlansUseCase(repository, ownPlan)
+        loadPlans()
+        val requestPlan = RequestPlanUseCase(repository, ownPlan, GetSpacesUseCase(repository, ownPlan, loadPlans))
 
-        // Not sent: nothing shows as asked for.
+        // Not sent: nothing changes.
         repository.requestFails = true
         assertFailsWith<IllegalStateException> { requestPlan(SpacePlan("PRO")) }
         assertNull(ownPlan.plans.value?.requestedPlan)
 
+        // Deployed: asked for, the plan the same, the spaces not loaded again.
         repository.requestFails = false
-        requestPlan(SpacePlan("PRO"))
-        assertEquals(SpacePlan("PRO"), repository.requested)
+        assertFalse(requestPlan(SpacePlan("PRO")))
         assertEquals(SpacePlan("PRO"), ownPlan.plans.value?.requestedPlan)
         assertEquals(SpacePlan("FREE"), ownPlan.plans.value?.currentPlan)
+        assertEquals(0, repository.spacesLoaded)
+
+        // Locally: set at once, and the spaces loaded again for the new plan's limits.
+        repository.setAtOnce = true
+        assertTrue(requestPlan(SpacePlan("BASIC")))
+        assertEquals(SpacePlan("BASIC"), ownPlan.plans.value?.currentPlan)
+        assertNull(ownPlan.plans.value?.requestedPlan)
+        assertEquals(1, repository.spacesLoaded)
     }
 }

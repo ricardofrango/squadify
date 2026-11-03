@@ -9,7 +9,6 @@ import com.ricardofrango.squadify.model.SpaceAgeGroups
 import com.ricardofrango.squadify.domain.config.OwnSpace
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.update
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.StaffInvite
 
@@ -44,13 +43,29 @@ class LoadPlansUseCase(private val spaceRepository: SpaceRepository, private val
 }
 
 /**
- * Asks the coach server for [plan] for the space the coach owns, until payments: a platform admin sets
- * it. The plans already loaded then show it as asked for.
+ * Asks the coach server for [plan] for the space the coach owns, until payments: a local server sets it at
+ * once, a deployed one waits for a platform admin. The plans it sends back replace the ones loaded, and the
+ * spaces are loaded again (best effort) for the plan's limits elsewhere. Whether the plan itself changed.
  */
-class RequestPlanUseCase(private val spaceRepository: SpaceRepository, private val ownSpacePlan: OwnSpacePlan) {
-    suspend operator fun invoke(plan: SpacePlan) {
-        spaceRepository.requestPlan(plan)
-        ownSpacePlan.plans.update { it?.copy(requestedPlan = plan) }
+class RequestPlanUseCase(
+    private val spaceRepository: SpaceRepository,
+    private val ownSpacePlan: OwnSpacePlan,
+    private val getSpacesUseCase: GetSpacesUseCase
+) {
+    suspend operator fun invoke(plan: SpacePlan): Boolean {
+        val before = ownSpacePlan.plans.value?.currentPlan
+        val plans = spaceRepository.requestPlan(plan)
+        ownSpacePlan.plans.value = plans
+        val changed = plans.currentPlan != before
+        if (changed) {
+            try {
+                getSpacesUseCase()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+            }
+        }
+        return changed
     }
 }
 

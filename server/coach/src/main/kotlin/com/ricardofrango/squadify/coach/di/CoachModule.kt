@@ -208,7 +208,8 @@ val coachModule = module {
     factory { SetUpSpaceUseCase(get(), get(), get(), get(), get()) }
     factory { GetSpacesUseCase(get(), get(), get(), get(), get()) }
     factory { GetPlansUseCase(get(), get(), get()) }
-    factory { RequestPlanUseCase(get(), get(), get(), get(), CoachConfig.platformAdminEmails, get()) }
+    // Locally a plan asked for is set at once; deployed, a platform admin sets it.
+    factory { RequestPlanUseCase(get(), get(), get(), get(), CoachConfig.platformAdminEmails, atOnce = !CoachConfig.deployed, transactionManager = get()) }
 
     // Staff: invite codes for an age group, and taking someone off one.
     single<StaffInviteRepository> { ExposedStaffInviteRepository() }

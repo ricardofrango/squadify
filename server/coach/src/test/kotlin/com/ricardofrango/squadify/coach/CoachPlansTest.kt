@@ -255,34 +255,25 @@ class CoachPlansTest {
     }
 
     @Test
-    fun theOwnerAsksForAPlanAndAnAdminSetsIt() = testApplication {
+    fun locallyAPlanAskedForIsSetAtOnce() = testApplication {
         application { module() }
         val api = jsonClient()
         val owner = api.signUp()
         val spaceId = api.post("/v1/space") {
             json(owner, SetUpSpaceRequest("Ana's team", SportType.FOOTBALL, AgeGroupItemRequest("Sub-12", 2015, 2015), "Sub-12 A"))
         }.body<SpaceSetup>().space.id
-        suspend fun ask(token: String, plan: SpacePlan) = api.post("/v1/plans/request") { json(token, RequestPlanRequest(plan)) }.status
+        suspend fun ask(token: String, plan: SpacePlan) = api.post("/v1/plans/request?language=pt") { json(token, RequestPlanRequest(plan)) }
 
         // Only an owner, for one of the server's plans, other than theirs.
-        assertEquals(HttpStatusCode.Forbidden, ask(api.signUp(), PlanLimits.PRO))
-        assertEquals(HttpStatusCode.BadRequest, ask(owner, SpacePlan("GOLD")))
-        assertEquals(HttpStatusCode.BadRequest, ask(owner, PlanLimits.FREE))
-        assertEquals(null, api.get("/v1/plans") { bearerAuth(owner) }.body<PlansResponse>().requestedPlan)
+        assertEquals(HttpStatusCode.Forbidden, ask(api.signUp(), PlanLimits.PRO).status)
+        assertEquals(HttpStatusCode.BadRequest, ask(owner, SpacePlan("GOLD")).status)
+        assertEquals(HttpStatusCode.BadRequest, ask(owner, PlanLimits.FREE).status)
 
-        // The latest request stands, for the coach and the admin; nothing changes until it's set.
-        assertEquals(HttpStatusCode.NoContent, ask(owner, PlanLimits.BASIC))
-        assertEquals(HttpStatusCode.NoContent, ask(owner, PlanLimits.PRO))
-        val plans = api.get("/v1/plans") { bearerAuth(owner) }.body<PlansResponse>()
-        assertEquals(PlanLimits.FREE, plans.currentPlan)
-        assertEquals(PlanLimits.PRO, plans.requestedPlan)
-        val admin = api.signUp(PLATFORM_ADMIN)
-        assertEquals(PlanLimits.PRO, api.get("/v1/admin/spaces") { bearerAuth(admin) }.body<List<AdminSpace>>().single { it.id == spaceId }.requestedPlan)
-
-        // Setting the plan answers it.
-        api.setPlan(spaceId, PlanLimits.PRO)
-        val after = api.get("/v1/plans") { bearerAuth(owner) }.body<PlansResponse>()
-        assertEquals(PlanLimits.PRO, after.currentPlan)
-        assertEquals(null, after.requestedPlan)
+        // The tests' server isn't deployed: set there and then, and the plans come back as GET /v1/plans sends them.
+        val plans = ask(owner, PlanLimits.PRO).body<PlansResponse>()
+        assertEquals(PlanLimits.PRO, plans.currentPlan)
+        assertEquals(null, plans.requestedPlan)
+        assertEquals("Gravação de jogos ao vivo", plans.plans.first().features.first().text)
+        assertEquals(PlanLimits.PRO, api.get("/v1/spaces") { bearerAuth(owner) }.body<List<SpaceAgeGroups>>().single { it.space.id == spaceId }.plan)
     }
 }

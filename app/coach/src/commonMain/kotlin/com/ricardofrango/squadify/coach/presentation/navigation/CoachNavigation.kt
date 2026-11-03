@@ -228,7 +228,10 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
             // Only the owner of a space asks for a plan.
             onRequestPlan = if (response?.currentPlan != null) { plan ->
                 try {
-                    requestPlan(plan)
+                    // Set at once (a local server): Home lists the age groups the plan locks or frees.
+                    if (requestPlan(plan)) {
+                        navigator.backStack.firstOrNull { it.screen == Screen.CoachHome }?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true)
+                    }
                     true
                 } catch (e: CancellationException) {
                     throw e

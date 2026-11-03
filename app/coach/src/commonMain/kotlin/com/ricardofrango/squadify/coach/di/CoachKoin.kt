@@ -44,7 +44,7 @@ val coachModule = module {
     single { OwnSpacePlan() }
     factory { GetSpacesUseCase(get(), get(), get()) }
     factory { LoadPlansUseCase(get(), get()) }
-    factory { RequestPlanUseCase(get(), get()) }
+    factory { RequestPlanUseCase(get(), get(), get()) }
     factory { SetUpSpaceUseCase(get()) }
     factory { JoinWithCodeUseCase(get()) }
     factory { GetStaffInvitesUseCase(get()) }

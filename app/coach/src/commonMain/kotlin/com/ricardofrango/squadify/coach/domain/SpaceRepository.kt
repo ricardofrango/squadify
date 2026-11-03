@@ -17,8 +17,11 @@ interface SpaceRepository {
     /** Every plan, cheapest first, with what it has in the app's language, and the coach's own (the coach server's). */
     suspend fun getPlans(): PlansResponse
 
-    /** Asks for [plan] for the space they own, until payments; a platform admin sets it. */
-    suspend fun requestPlan(plan: SpacePlan)
+    /**
+     * Asks for [plan] for the space they own, until payments: set at once by a local server, by a platform
+     * admin otherwise. Returns the plans after it, as [getPlans].
+     */
+    suspend fun requestPlan(plan: SpacePlan): PlansResponse
 
     /** Their own space, with its first age group and team. 409 once they own one. */
     suspend fun setUpSpace(request: SetUpSpaceRequest): SpaceSetup
