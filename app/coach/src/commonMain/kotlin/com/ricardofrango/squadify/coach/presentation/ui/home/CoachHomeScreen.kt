@@ -12,6 +12,8 @@ import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import squadify.app.coach.generated.resources.coach_home_locked
 import squadify.app.coach.generated.resources.coach_menu_my_space
 import squadify.app.coach.generated.resources.ic_space
+import squadify.app.coach.generated.resources.ic_plans
+import squadify.app.coach.generated.resources.plans_title
 import com.ricardofrango.squadify.coach.presentation.ui.space.SpaceLogo
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Row
@@ -98,7 +100,7 @@ import squadify.app.shared.generated.resources.Res as SharedRes
 /**
  * The coach app's home (REQUIREMENTS §5c): one list of every age group the coach has, their own space's
  * and the ones they joined with a code, each naming its space and opening Age Group Details. Creating an
- * age group and joining one with a code are always there: in the ☰ side menu (with Account and Sign out),
+ * age group and joining one with a code are always there: in the ☰ side menu (with Account and Sign out, and for an owner My club or team and Plans),
  * and as buttons when the list is empty. The root of the back stack.
  */
 @Composable
@@ -113,6 +115,7 @@ fun CoachHomeScreen(
     onOpenAccount: () -> Unit,
     // The owner's own space (its logo).
     onOpenMySpace: () -> Unit = {},
+    onOpenPlans: () -> Unit = {},
     // Set when a screen opened from here changed something (an age group created, a code used).
     refresh: Boolean = false,
     onRefreshed: () -> Unit = {},
@@ -148,7 +151,8 @@ fun CoachHomeScreen(
         },
         onJoinWithCode = onJoinWithCode,
         onOpenAccount = onOpenAccount,
-        onOpenMySpace = onOpenMySpace
+        onOpenMySpace = onOpenMySpace,
+        onOpenPlans = onOpenPlans
     )
 }
 
@@ -162,6 +166,7 @@ private fun CoachHomeContent(
     onJoinWithCode: () -> Unit = {},
     onOpenAccount: () -> Unit = {},
     onOpenMySpace: () -> Unit = {},
+    onOpenPlans: () -> Unit = {},
     drawerState: DrawerState = rememberDrawerState(DrawerValue.Closed)
 ) {
     val scope = rememberCoroutineScope()
@@ -180,9 +185,10 @@ private fun CoachHomeContent(
                 )
                 MenuItem(SharedRes.drawable.ic_add, stringResource(Res.string.coach_home_create_age_group), fromMenu(onCreateAgeGroup))
                 MenuItem(Res.drawable.ic_join, stringResource(Res.string.coach_home_join), fromMenu(onJoinWithCode))
-                // Only once they own a space.
+                // Only once they own a space: their space and its plan.
                 if ((uiState as? CoachHomeUiState.Loaded)?.ownSpace != null) {
                     MenuItem(Res.drawable.ic_space, stringResource(Res.string.coach_menu_my_space), fromMenu(onOpenMySpace))
+                    MenuItem(Res.drawable.ic_plans, stringResource(Res.string.plans_title), fromMenu(onOpenPlans))
                 }
                 MenuItem(SharedRes.drawable.ic_account, stringResource(Res.string.coach_menu_account), fromMenu(onOpenAccount))
                 MenuItem(SharedRes.drawable.ic_logout, stringResource(SharedRes.string.btn_logout), fromMenu(onSignOut))

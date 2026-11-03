@@ -263,6 +263,7 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
             onJoinWithCode = { navigator.navigate(Screen.JoinWithCode) },
             onOpenAccount = { navigator.navigate(Screen.Account) },
             onOpenMySpace = { navigator.navigate(Screen.MySpace) },
+            onOpenPlans = { navigator.navigate(Screen.Plans) },
             refresh = changed,
             onRefreshed = { entry.savedStateHandle[KEY_CLUB_STRUCTURE_CHANGED] = false }
         )
