@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.access
 
+import com.ricardofrango.squadify.coach.domain.PlanLimits
 import com.ricardofrango.squadify.coach.data.SpacePlanRepository
 import com.ricardofrango.squadify.coach.domain.CoachPlans
 import com.ricardofrango.squadify.domain.access.GameScope
@@ -11,7 +12,6 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.Team
 import com.ricardofrango.squadify.model.User
 import com.ricardofrango.squadify.model.UserStatus
@@ -37,7 +37,7 @@ class CoachAccessPolicyTest {
     }
     // Pro: nothing locked by the plan (PlansTest covers the plans).
     private val plans = mockk<SpacePlanRepository> {
-        coEvery { planOf(any()) } returns SpacePlan.PRO
+        coEvery { planOf(any()) } returns PlanLimits.PRO
     }
     private val policy = CoachAccessPolicy(users, ageGroups, teams, transactionManager, CoachPlans(plans))
 

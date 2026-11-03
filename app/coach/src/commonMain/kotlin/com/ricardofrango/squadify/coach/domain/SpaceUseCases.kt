@@ -2,7 +2,7 @@ package com.ricardofrango.squadify.coach.domain
 
 import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.CreateStaffInviteRequest
-import com.ricardofrango.squadify.model.PlanDetails
+import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
 import com.ricardofrango.squadify.domain.config.OwnSpace
@@ -31,7 +31,10 @@ class GetSpacesUseCase(
         }
 }
 
-/** Every plan with what it has, as the coach server decides it, into [OwnSpacePlan.plans]. */
+/**
+ * Every plan with what it has and the coach's own, as the coach server decides them, into
+ * [OwnSpacePlan.plans]; the features written in the app's language.
+ */
 class LoadPlansUseCase(private val spaceRepository: SpaceRepository, private val ownSpacePlan: OwnSpacePlan) {
     suspend operator fun invoke() {
         ownSpacePlan.plans.value = spaceRepository.getPlans()
@@ -40,13 +43,13 @@ class LoadPlansUseCase(private val spaceRepository: SpaceRepository, private val
 
 /**
  * The space the coach owns, its plan and this season's age groups, as last loaded (null: they own none,
- * or nothing loaded yet), and every plan as the server sends them ([plans], empty until loaded). The
+ * or nothing loaded yet), and every plan as the server sends them, with the coach's own ([plans], null until loaded). The
  * shared screens' plan messages read them: See plans on a stats lock, the Members tab, Invite staff and
  * Create age groups when the plan has no room, and the Plans screen.
  */
 class OwnSpacePlan {
     val space = MutableStateFlow<OwnSpace?>(null)
-    val plans = MutableStateFlow<List<PlanDetails>>(emptyList())
+    val plans = MutableStateFlow<PlansResponse?>(null)
 }
 
 class SetUpSpaceUseCase(private val spaceRepository: SpaceRepository) {

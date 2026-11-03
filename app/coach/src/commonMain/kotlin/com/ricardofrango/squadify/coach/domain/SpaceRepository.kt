@@ -2,7 +2,7 @@ package com.ricardofrango.squadify.coach.domain
 
 import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.CreateStaffInviteRequest
-import com.ricardofrango.squadify.model.PlanDetails
+import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
 import com.ricardofrango.squadify.model.SpaceSetup
@@ -13,8 +13,8 @@ interface SpaceRepository {
     /** Every space the coach is in, their own first, with their age groups there; empty before any. */
     suspend fun getSpaces(): List<SpaceAgeGroups>
 
-    /** Every plan, cheapest first, with what it has (the coach server's). */
-    suspend fun getPlans(): List<PlanDetails>
+    /** Every plan, cheapest first, with what it has in the app's language, and the coach's own (the coach server's). */
+    suspend fun getPlans(): PlansResponse
 
     /** Their own space, with its first age group and team. 409 once they own one. */
     suspend fun setUpSpace(request: SetUpSpaceRequest): SpaceSetup

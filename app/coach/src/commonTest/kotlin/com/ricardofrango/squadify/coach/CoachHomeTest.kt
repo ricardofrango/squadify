@@ -36,20 +36,20 @@ class CoachHomeTest {
             listOf(
                 SpaceAgeGroups(
                     mine, isOwner = true, ageGroups = listOf(ageGroup("sub11", "mine", 2016), ageGroup("sub13", "mine", 2014)),
-                    plan = SpacePlan.FREE, lockedAgeGroupIds = listOf("sub13")
+                    plan = SpacePlan("FREE"), lockedAgeGroupIds = listOf("sub13")
                 )
             )
         )
         assertEquals(listOf("sub11" to false, "sub13" to true), state.ageGroups.map { it.ageGroup.id to it.locked })
-        assertTrue(state.ageGroups.all { it.plan == SpacePlan.FREE })
+        assertTrue(state.ageGroups.all { it.plan == SpacePlan("FREE") })
     }
 
     @Test
     fun theOwnSpacesAgeGroupsComeFirstEachYoungestFirst() {
         val state = CoachHomeUiState.Loaded.of(
             listOf(
-                SpaceAgeGroups(anas, isOwner = false, ageGroups = listOf(ageGroup("ana-sub9", "anas", 2018))),
-                SpaceAgeGroups(mine, isOwner = true, ageGroups = listOf(ageGroup("sub13", "mine", 2014), ageGroup("sub11", "mine", 2016)))
+                SpaceAgeGroups(anas, isOwner = false, plan = SpacePlan("FREE"), ageGroups = listOf(ageGroup("ana-sub9", "anas", 2018))),
+                SpaceAgeGroups(mine, isOwner = true, plan = SpacePlan("FREE"), ageGroups = listOf(ageGroup("sub13", "mine", 2014), ageGroup("sub11", "mine", 2016)))
             )
         )
         assertEquals(listOf("sub11", "sub13", "ana-sub9"), state.ageGroups.map { it.ageGroup.id })
@@ -62,7 +62,7 @@ class CoachHomeTest {
     @Test
     fun staffOnlyHaveNoSpaceToAddTo() {
         // Create age group then sets up their own space first.
-        val state = CoachHomeUiState.Loaded.of(listOf(SpaceAgeGroups(anas, isOwner = false, ageGroups = listOf(ageGroup("ana-sub9", "anas", 2018)))))
+        val state = CoachHomeUiState.Loaded.of(listOf(SpaceAgeGroups(anas, isOwner = false, plan = SpacePlan("FREE"), ageGroups = listOf(ageGroup("ana-sub9", "anas", 2018)))))
         assertNull(state.ownSpace)
         assertEquals(1, state.ageGroups.size)
     }
@@ -76,7 +76,7 @@ class CoachHomeTest {
 
     @Test
     fun anOwnSpaceWithNoAgeGroupsLeftIsStillWhereNewOnesGo() {
-        val state = CoachHomeUiState.Loaded.of(listOf(SpaceAgeGroups(mine, isOwner = true, ageGroups = emptyList())))
+        val state = CoachHomeUiState.Loaded.of(listOf(SpaceAgeGroups(mine, isOwner = true, plan = SpacePlan("FREE"), ageGroups = emptyList())))
         assertTrue(state.ageGroups.isEmpty())
         assertEquals(mine, state.ownSpace)
     }

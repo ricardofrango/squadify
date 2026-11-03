@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach
 
+import com.ricardofrango.squadify.coach.domain.PlanLimits
 import com.ricardofrango.squadify.coach.config.CoachConfig
 import com.ricardofrango.squadify.model.AgeGroupItemRequest
 import com.ricardofrango.squadify.model.CreateMatchRequest
@@ -12,7 +13,6 @@ import com.ricardofrango.squadify.model.MatchVenue
 import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.PLAN_LIMIT_CODE
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
-import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.UpdateMatchStatusRequest
@@ -45,7 +45,7 @@ class CoachLiveTest {
         val api = jsonClient()
         val owner = api.signUp()
         val match = scheduleMatch(owner)
-        api.setPlan(match.clubId, SpacePlan.PRO)
+        api.setPlan(match.clubId, PlanLimits.PRO)
         val sockets = socketClient()
 
         sockets.webSocket("/v1/matches/${match.id}/live?token=$owner") {
@@ -84,7 +84,7 @@ class CoachLiveTest {
         val match = scheduleMatch(owner)
         val sockets = socketClient()
 
-        for (plan in listOf(SpacePlan.FREE, SpacePlan.BASIC)) {
+        for (plan in listOf(PlanLimits.FREE, PlanLimits.BASIC)) {
             api.setPlan(match.clubId, plan)
             for (path in listOf("/v1/matches/${match.id}/live", "/v1/clubs/${match.clubId}/matches/live")) {
                 sockets.webSocket("$path?token=$owner") {

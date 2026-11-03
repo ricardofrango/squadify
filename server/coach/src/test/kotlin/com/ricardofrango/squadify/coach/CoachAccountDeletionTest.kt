@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach
 
+import com.ricardofrango.squadify.coach.domain.PlanLimits
 import com.ricardofrango.squadify.model.AccountDeletionSummary
 import com.ricardofrango.squadify.model.AddPlayersToAgeGroupRequest
 import com.ricardofrango.squadify.model.AgeGroupItemRequest
@@ -19,7 +20,6 @@ import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.SaveMatchReportRequest
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
-import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.StaffInvite
@@ -58,7 +58,7 @@ class CoachAccountDeletionTest {
         }.body<SpaceSetup>()
         val spaceId = setup.space.id
         // More than one age group, staff or stats: on Pro.
-        api.setPlan(spaceId, SpacePlan.PRO)
+        api.setPlan(spaceId, PlanLimits.PRO)
         val ids = api.post("/v1/players") {
             json(ana, CreatePlayersRequest(spaceId, (1..4).map { CreatePlayer("Player", "$it", LocalDate(2015, 1, it)) }, ageGroupId = setup.ageGroup.id))
         }.body<List<Player>>().map { it.id }

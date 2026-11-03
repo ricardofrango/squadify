@@ -13,7 +13,7 @@ data class HomeAgeGroup(
     val ageGroup: AgeGroup,
     val space: Club,
     val isOwner: Boolean,
-    val plan: SpacePlan = SpacePlan.FREE,
+    val plan: SpacePlan,
     val locked: Boolean = false
 ) {
     val spaceName: String get() = space.name

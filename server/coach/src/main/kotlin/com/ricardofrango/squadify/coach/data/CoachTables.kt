@@ -30,11 +30,12 @@ object StaffInvites : Table("staff_invites") {
 
 /**
  * A space's plan (REQUIREMENTS §5c), set by a platform admin until payments. A space with no row is on
- * [SpacePlan.FREE]. Goes with its space.
+ * Free (PlanLimits.FREE). Goes with its space.
  */
 object SpacePlans : Table("space_plans") {
     val clubId = uuid("club_id").references(Clubs.id, onDelete = ReferenceOption.CASCADE)
-    val plan = enumerationByName("plan", 20, SpacePlan::class)
+    // The plan's id (PlanLimits), text so a new plan needs no migration.
+    val plan = varchar("plan", 20)
     val updatedAt = timestamp("updated_at")
 
     override val primaryKey = PrimaryKey(clubId)

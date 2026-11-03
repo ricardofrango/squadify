@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach
 
+import com.ricardofrango.squadify.coach.domain.PlanLimits
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.AgeGroupDetails
 import com.ricardofrango.squadify.model.AgeGroupItemRequest
@@ -8,7 +9,6 @@ import com.ricardofrango.squadify.model.CreateStaffInviteRequest
 import com.ricardofrango.squadify.model.CreateAgeGroupsRequest
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
-import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.StaffInvite
@@ -39,7 +39,7 @@ class CoachStaffTest {
         }.body<SpaceSetup>()
         val spaceId = setup.space.id
         // Staff and more than one age group: on Pro.
-        api.setPlan(spaceId, SpacePlan.PRO)
+        api.setPlan(spaceId, PlanLimits.PRO)
         val sub14 = api.post("/v1/age-groups") {
             json(owner, CreateAgeGroupsRequest(spaceId, items = listOf(AgeGroupItemRequest("Sub-14", 2013, 2013))))
         }.body<List<AgeGroup>>().single()
@@ -89,7 +89,7 @@ class CoachStaffTest {
         val setup = api.post("/v1/space") {
             json(owner, SetUpSpaceRequest("Ana's team", SportType.FOOTBALL, AgeGroupItemRequest("Sub-12", 2015, 2015), "Sub-12 A"))
         }.body<SpaceSetup>()
-        api.setPlan(setup.space.id, SpacePlan.PRO)
+        api.setPlan(setup.space.id, PlanLimits.PRO)
         val invite = api.post("/v1/age-groups/${setup.ageGroup.id}/invites") { bearerAuth(owner) }.body<StaffInvite>()
 
         assertEquals(HttpStatusCode.NoContent, api.delete("/v1/age-groups/${setup.ageGroup.id}/invites/${invite.code}") { bearerAuth(owner) }.status)
@@ -104,7 +104,7 @@ class CoachStaffTest {
         val setup = api.post("/v1/space") {
             json(owner, SetUpSpaceRequest("Ana's team", SportType.FOOTBALL, AgeGroupItemRequest("Sub-12", 2015, 2015), "Sub-12 A"))
         }.body<SpaceSetup>()
-        api.setPlan(setup.space.id, SpacePlan.PRO)
+        api.setPlan(setup.space.id, PlanLimits.PRO)
         val invites = "/v1/age-groups/${setup.ageGroup.id}/invites"
 
         assertEquals(HttpStatusCode.BadRequest, api.post(invites) { json(owner, CreateStaffInviteRequest("not-an-email")) }.status)
@@ -128,7 +128,7 @@ class CoachStaffTest {
 
         val ana = api.signUp()
         val anas = setUp(ana, "Ana's team", "Sub-12").body<SpaceSetup>()
-        api.setPlan(anas.space.id, SpacePlan.PRO)
+        api.setPlan(anas.space.id, PlanLimits.PRO)
         val sub14 = api.post("/v1/age-groups") {
             json(ana, CreateAgeGroupsRequest(anas.space.id, items = listOf(AgeGroupItemRequest("Sub-14", 2013, 2013))))
         }.body<List<AgeGroup>>().single()

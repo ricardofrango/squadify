@@ -99,7 +99,7 @@ import squadify.app.shared.generated.resources.Res as SharedRes
 fun MySpaceScreen(
     onNavigateBack: () -> Unit,
     onLogoChanged: () -> Unit,
-    onSeePlans: (SpacePlan) -> Unit,
+    onSeePlans: () -> Unit,
     viewModel: MySpaceViewModel = koinViewModel()
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
@@ -120,7 +120,7 @@ private fun MySpaceContent(
     onLogoPicked: (ByteArray) -> Unit,
     onRemoveLogo: () -> Unit,
     onRetry: () -> Unit,
-    onSeePlans: (SpacePlan) -> Unit,
+    onSeePlans: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
     Scaffold(
@@ -152,7 +152,7 @@ private fun MySpaceContent(
             ) {
                 SectionCard { SpaceLogoHeader(uiState, onLogoPicked, onRemoveLogo) }
                 Text(stringResource(Res.string.my_space_logo_intro), style = MaterialTheme.typography.bodySmall, color = CarbonGray)
-                PlanCard(uiState.plan, uiState.ageGroupsThisSeason, onSeePlans = { onSeePlans(uiState.plan) })
+                PlanCard(uiState.plan, uiState.ageGroupsThisSeason, onSeePlans = onSeePlans)
             }
         }
     }
@@ -219,6 +219,7 @@ private fun SpaceLogoHeader(state: MySpaceUiState.Loaded, onLogoPicked: (ByteArr
  */
 @Composable
 private fun PlanCard(plan: SpacePlan, ageGroupsThisSeason: Int, onSeePlans: () -> Unit) {
+    val plans = LocalPlans.current
     SectionCard(contentPadding = PaddingValues(0.dp)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -228,14 +229,15 @@ private fun PlanCard(plan: SpacePlan, ageGroupsThisSeason: Int, onSeePlans: () -
                     color = DeepCarbon,
                     modifier = Modifier.weight(1f)
                 )
-                val (badge, onBadge) = when (plan) {
-                    SpacePlan.FREE -> CarbonGray.copy(alpha = 0.08f) to CarbonGray
-                    SpacePlan.BASIC -> PitchGreen.copy(alpha = 0.12f) to DeepGreen
-                    SpacePlan.PRO -> PitchGreen to Color.White
+                // The plan's place among the server's plans: the cheapest grey, the top one solid green.
+                val (badge, onBadge) = when (plans.indexOfFirst { it.plan == plan }) {
+                    -1, 0 -> CarbonGray.copy(alpha = 0.08f) to CarbonGray
+                    plans.lastIndex -> PitchGreen to Color.White
+                    else -> PitchGreen.copy(alpha = 0.12f) to DeepGreen
                 }
                 Surface(shape = RoundedCornerShape(13.dp), color = badge) {
                     Text(
-                        plan.displayName,
+                        plan.displayName(),
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = onBadge,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
@@ -244,7 +246,7 @@ private fun PlanCard(plan: SpacePlan, ageGroupsThisSeason: Int, onSeePlans: () -
             }
             Text(stringResource(Res.string.plan_card_this_season), style = MaterialTheme.typography.bodySmall, color = CarbonGray.copy(alpha = 0.7f))
             // The limits as the server sends them; until they load, the count alone.
-            val details = LocalPlans.current.firstOrNull { it.plan == plan }
+            val details = plans.firstOrNull { it.plan == plan }
             val ageGroupLimit = details?.ageGroupLimit
             val full = ageGroupLimit != null && ageGroupsThisSeason >= ageGroupLimit
             Text(
@@ -302,7 +304,7 @@ private val previewSpace = Club(id = "space-1", name = "Fontelas FC", status = C
 private fun MySpacePreview() {
     SquadifyTheme {
         CompositionLocalProvider(LocalPlans provides previewPlans) {
-            MySpaceContent(MySpaceUiState.Loaded(previewSpace, ageGroupsThisSeason = 1), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+            MySpaceContent(MySpaceUiState.Loaded(previewSpace, SpacePlan("FREE"), ageGroupsThisSeason = 1), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
         }
     }
 }
@@ -312,7 +314,7 @@ private fun MySpacePreview() {
 private fun MySpaceLandscapePreview() {
     SquadifyTheme {
         CompositionLocalProvider(LocalPlans provides previewPlans) {
-            MySpaceContent(MySpaceUiState.Loaded(previewSpace), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+            MySpaceContent(MySpaceUiState.Loaded(previewSpace, SpacePlan("FREE")), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
         }
     }
 }
@@ -322,7 +324,7 @@ private fun MySpaceLandscapePreview() {
 private fun MySpaceBasicPreview() {
     SquadifyTheme {
         CompositionLocalProvider(LocalPlans provides previewPlans) {
-            MySpaceContent(MySpaceUiState.Loaded(previewSpace, SpacePlan.BASIC, ageGroupsThisSeason = 2), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+            MySpaceContent(MySpaceUiState.Loaded(previewSpace, SpacePlan("BASIC"), ageGroupsThisSeason = 2), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
         }
     }
 }
@@ -332,7 +334,7 @@ private fun MySpaceBasicPreview() {
 private fun MySpaceProblemPreview() {
     SquadifyTheme {
         CompositionLocalProvider(LocalPlans provides previewPlans) {
-            MySpaceContent(MySpaceUiState.Loaded(previewSpace, logoProblem = LogoProblem.TOO_BIG), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+            MySpaceContent(MySpaceUiState.Loaded(previewSpace, SpacePlan("FREE"), logoProblem = LogoProblem.TOO_BIG), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
         }
     }
 }

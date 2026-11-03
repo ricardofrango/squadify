@@ -865,7 +865,7 @@ private fun CreateAgeGroupsNoneLeftOnPlanPreview() {
                 today = LocalDate(2026, 9, 4),
                 rows = listOf(AgeGroupRow(key = 0, teamSize = 11)),
                 teamSizeOptions = listOf(4, 5, 7, 9, 11),
-                ownPlan = SpacePlan.FREE,
+                ownPlan = SpacePlan("FREE"),
                 ageGroupsLeft = 0,
                 onNavigateBack = {},
                 onSeasonSelected = {},

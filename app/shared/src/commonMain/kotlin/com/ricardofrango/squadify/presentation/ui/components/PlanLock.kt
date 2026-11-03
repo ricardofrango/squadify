@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.domain.config.OwnSpace
 import com.ricardofrango.squadify.model.PlanDetails
 import com.ricardofrango.squadify.model.PlanFeature
+import com.ricardofrango.squadify.model.PlanFeatureLine
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -63,8 +64,10 @@ fun ownPlanFor(spaceId: String): SpacePlan? = LocalOwnSpace.current?.takeIf { it
 /** Opens the coach app's Plans screen, set by the coach app for everyone. Null in the clubs app. */
 val LocalSeePlans = compositionLocalOf<(() -> Unit)?> { null }
 
-/** The plan's name as sold: the same in every language. */
-val SpacePlan.displayName: String get() = name.lowercase().replaceFirstChar { it.uppercase() }
+/** The plan's name as the server sends it (the same in every language); its id until the plans load. */
+@Composable
+fun SpacePlan.displayName(): String =
+    LocalPlans.current.firstOrNull { it.plan == this }?.name ?: id.lowercase().replaceFirstChar { it.uppercase() }
 
 /**
  * A plan's limit (REQUIREMENTS §5c), the same box everywhere: white with the sections' grey outline, a
@@ -104,7 +107,7 @@ private fun roomOnOtherPlans(plan: SpacePlan, limitOf: (PlanDetails) -> Int?, se
     val own = plans.getOrNull(index)?.let(limitOf) ?: return ""
     return plans.drop(index + 1)
         .filter { other -> limitOf(other)?.let { it > own } ?: true }
-        .map { other -> limitOf(other)?.let { sentence(other, it) } ?: stringResource(Res.string.plan_no_limit_sentence, other.plan.displayName) }
+        .map { other -> limitOf(other)?.let { sentence(other, it) } ?: stringResource(Res.string.plan_no_limit_sentence, other.name) }
         .joinToString(" ")
 }
 
@@ -117,12 +120,12 @@ private fun sentences(vararg parts: String) = parts.filter { it.isNotEmpty() }.j
 @Composable
 fun StatsNotInPlanMessage(modifier: Modifier = Modifier) {
     val plans = LocalPlans.current
-    val withStats = plans.firstOrNull { PlanFeature.STATS in it.features }
+    val withStats = plans.firstOrNull { it.has(PlanFeature.STATS) }
     val own = LocalOwnSpace.current?.plan?.let { plan -> plans.firstOrNull { it.plan == plan } }
     PlanLimitBox(
-        if (withStats != null) stringResource(Res.string.stats_not_in_plan_title, withStats.plan.displayName)
+        if (withStats != null) stringResource(Res.string.stats_not_in_plan_title, withStats.name)
         else stringResource(Res.string.stats_not_in_plan_title_any),
-        if (own != null && PlanFeature.STATS !in own.features) stringResource(Res.string.stats_not_in_plan_body, own.plan.displayName)
+        if (own != null && !own.has(PlanFeature.STATS)) stringResource(Res.string.stats_not_in_plan_body, own.name)
         else stringResource(Res.string.stats_not_in_plan_ask_owner),
         modifier
     )
@@ -137,20 +140,20 @@ fun StaffNotInPlanNotice(plan: SpacePlan, modifier: Modifier = Modifier) {
     val plans = LocalPlans.current
     val limit = plans.firstOrNull { it.plan == plan }?.peoplePerAgeGroupLimit
     val more = roomOnOtherPlans(plan, { it.peoplePerAgeGroupLimit }) { other, people ->
-        stringResource(Res.string.plan_people_sentence, other.plan.displayName, people)
+        stringResource(Res.string.plan_people_sentence, other.name, people)
     }
     val next = plans.dropWhile { it.plan != plan }.drop(1).firstOrNull { other -> other.peoplePerAgeGroupLimit?.let { limit != null && it > limit } ?: true }
     if (limit == 1) {
         PlanLimitBox(
-            if (next != null) stringResource(Res.string.staff_not_in_plan_alone_title, next.plan.displayName)
-            else stringResource(Res.string.staff_not_in_plan_full_title, plan.displayName),
-            sentences(stringResource(Res.string.staff_not_in_plan_alone_body, plan.displayName), more),
+            if (next != null) stringResource(Res.string.staff_not_in_plan_alone_title, next.name)
+            else stringResource(Res.string.staff_not_in_plan_full_title, plan.displayName()),
+            sentences(stringResource(Res.string.staff_not_in_plan_alone_body, plan.displayName()), more),
             modifier
         )
     } else {
         PlanLimitBox(
-            stringResource(Res.string.staff_not_in_plan_full_title, plan.displayName),
-            sentences(limit?.let { stringResource(Res.string.plan_people_sentence, plan.displayName, it) }.orEmpty(), more),
+            stringResource(Res.string.staff_not_in_plan_full_title, plan.displayName()),
+            sentences(limit?.let { stringResource(Res.string.plan_people_sentence, plan.displayName(), it) }.orEmpty(), more),
             modifier
         )
     }
@@ -164,12 +167,12 @@ fun ageGroupsLeftOnPlan(spaceId: String): Int? = LocalOwnSpace.current?.takeIf {
 @Composable
 fun AgeGroupsNotInPlanNotice(plan: SpacePlan, modifier: Modifier = Modifier) {
     val ageGroupSentence: @Composable (PlanDetails, Int) -> String = { details, count ->
-        if (count == 1) stringResource(Res.string.plan_one_age_group_sentence, details.plan.displayName)
-        else stringResource(Res.string.plan_age_groups_sentence, details.plan.displayName, count)
+        if (count == 1) stringResource(Res.string.plan_one_age_group_sentence, details.name)
+        else stringResource(Res.string.plan_age_groups_sentence, details.name, count)
     }
     val own = LocalPlans.current.firstOrNull { it.plan == plan }
     PlanLimitBox(
-        stringResource(Res.string.age_groups_not_in_plan_title, plan.displayName),
+        stringResource(Res.string.age_groups_not_in_plan_title, plan.displayName()),
         sentences(
             own?.ageGroupLimit?.let { ageGroupSentence(own, it) }.orEmpty(),
             roomOnOtherPlans(plan, { it.ageGroupLimit }, ageGroupSentence)
@@ -179,21 +182,32 @@ fun AgeGroupsNotInPlanNotice(plan: SpacePlan, modifier: Modifier = Modifier) {
 }
 
 /** The server's plans for the previews: one person and one age group, three of each, no limits. */
-val previewPlans = listOf(
-    PlanDetails(SpacePlan.FREE, listOf(PlanFeature.LIVE_GAME, PlanFeature.CALENDAR, PlanFeature.HISTORY), 1, 1),
-    PlanDetails(SpacePlan.BASIC, listOf(PlanFeature.LIVE_GAME, PlanFeature.CALENDAR, PlanFeature.HISTORY, PlanFeature.STATS), 3, 3),
-    PlanDetails(SpacePlan.PRO, listOf(PlanFeature.LIVE_GAME, PlanFeature.CALENDAR, PlanFeature.HISTORY, PlanFeature.STATS, PlanFeature.FOLLOWING_LIVE, PlanFeature.TRAINING))
-)
+val previewPlans: List<PlanDetails> = run {
+    val free = listOf(
+        PlanFeatureLine(PlanFeature.LIVE_GAME, "Live game recording"),
+        PlanFeatureLine(PlanFeature.CALENDAR, "Calendar"),
+        PlanFeatureLine(PlanFeature.HISTORY, "Match history")
+    )
+    val basic = free + PlanFeatureLine(PlanFeature.STATS, "Stats: age group, team, player, full stats and match stats")
+    listOf(
+        PlanDetails(SpacePlan("FREE"), "Free", free, 1, 1),
+        PlanDetails(SpacePlan("BASIC"), "Basic", basic, 3, 3),
+        PlanDetails(
+            SpacePlan("PRO"), "Pro",
+            basic + PlanFeatureLine(PlanFeature.FOLLOWING_LIVE, "Live game results and notifications") + PlanFeatureLine(PlanFeature.TRAINING, "Training (coming soon)")
+        )
+    )
+}
 
 @Preview
 @Composable
 private fun PlanLimitBoxPreview() {
     SquadifyTheme {
-        CompositionLocalProvider(LocalSeePlans provides {}, LocalPlans provides previewPlans, LocalOwnSpace provides OwnSpace("s", SpacePlan.FREE, 1, 0)) {
+        CompositionLocalProvider(LocalSeePlans provides {}, LocalPlans provides previewPlans, LocalOwnSpace provides OwnSpace("s", SpacePlan("FREE"), 1, 0)) {
             Column(Modifier.background(ScreenBackground).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatsNotInPlanMessage()
-                StaffNotInPlanNotice(SpacePlan.FREE)
-                AgeGroupsNotInPlanNotice(SpacePlan.BASIC)
+                StaffNotInPlanNotice(SpacePlan("FREE"))
+                AgeGroupsNotInPlanNotice(SpacePlan("BASIC"))
             }
         }
     }

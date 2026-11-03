@@ -29,7 +29,7 @@ sealed class MySpaceUiState {
      */
     data class Loaded(
         val space: Club,
-        val plan: SpacePlan = SpacePlan.FREE,
+        val plan: SpacePlan,
         val ageGroupsThisSeason: Int = 0,
         val isUpdatingLogo: Boolean = false,
         val logoProblem: LogoProblem? = null

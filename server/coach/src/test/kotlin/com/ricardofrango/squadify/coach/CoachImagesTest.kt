@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach
 
+import com.ricardofrango.squadify.coach.domain.PlanLimits
 import com.ricardofrango.squadify.model.AddPlayersToAgeGroupRequest
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.AgeGroupItemRequest
@@ -14,7 +15,6 @@ import com.ricardofrango.squadify.model.PhotoResponse
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
-import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.StaffInvite
@@ -70,7 +70,7 @@ class CoachImagesTest {
         }.body<SpaceSetup>()
         val spaceId = setup.space.id
         // More than one age group, staff or stats: on Pro.
-        api.setPlan(spaceId, SpacePlan.PRO)
+        api.setPlan(spaceId, PlanLimits.PRO)
         val sub14 = api.post("/v1/age-groups") {
             json(ana, CreateAgeGroupsRequest(spaceId, items = listOf(AgeGroupItemRequest("Sub-14", 2013, 2013))))
         }.body<List<AgeGroup>>().single()

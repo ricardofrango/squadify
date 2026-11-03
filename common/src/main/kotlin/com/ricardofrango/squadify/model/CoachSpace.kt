@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.model
 
 import kotlinx.serialization.Serializable
+import kotlin.jvm.JvmInline
 import kotlin.time.Instant
 
 // Squadify for Coaches (REQUIREMENTS §5c, TECHNICAL_DECISIONS §72): a coach's space is a club row the
@@ -53,30 +54,44 @@ data class StaffInvite(
 data class CreateStaffInviteRequest(val email: String? = null, val language: String? = null)
 
 /**
- * A space's plan (REQUIREMENTS §5c), for the whole space. Free: one age group, the owner alone, no stats.
- * Basic: up to 3 age groups and 3 people on each, the owner included, with stats. Pro: no limits,
- * following games live, and training (coming). Going down a plan deletes nothing: the first age groups
- * created and the first staff to join stay, the others are locked. What each plan allows is the coach
- * server's to decide (CoachAccessPolicy).
+ * A space's plan (REQUIREMENTS §5c), for the whole space, by its id ("FREE", "BASIC", "PRO" today; sent
+ * as the bare string). Not a fixed list: the coach server decides which plans there are and what each
+ * has (`GET /v1/plans`), so a plan can be added or changed without a new app. Going down a plan deletes
+ * nothing: the first age groups created and the first staff to join stay, the others are locked.
  */
 @Serializable
-enum class SpacePlan { FREE, BASIC, PRO }
+@JvmInline
+value class SpacePlan(val id: String)
 
 /**
- * What a plan has (`GET /v1/plans`, the coach server), as the coach server decides it: the app shows it
- * and never decides a plan rule itself, so the plans can change without a new app. [features] are every
- * feature the plan has ([PlanFeature]'s keys; an app skips one it doesn't know). The limits: null, no limit.
+ * A plan as the coach server decides it (`GET /v1/plans`): its [name] (the same in every language),
+ * every feature it has ([features], each a [PlanFeatureLine] in the language asked for) and its limits
+ * (null: no limit). The app shows it as it comes and decides no plan rule itself.
  */
 @Serializable
 data class PlanDetails(
     val plan: SpacePlan,
-    val features: List<String>,
+    val name: String,
+    val features: List<PlanFeatureLine>,
     val ageGroupLimit: Int? = null,
     // The owner included.
     val peoplePerAgeGroupLimit: Int? = null
-)
+) {
+    fun has(feature: String): Boolean = features.any { it.key == feature }
+}
 
-/** The keys of [PlanDetails.features]. Strings, not an enum, so an older app reads a plan with a new one. */
+/** One feature of a plan: its key ([PlanFeature]) and how the Plans screen lists it, written by the server. */
+@Serializable
+data class PlanFeatureLine(val key: String, val text: String)
+
+/** `GET /v1/plans`: every plan, cheapest first, and the plan of the space the coach owns (null: they own none). */
+@Serializable
+data class PlansResponse(val plans: List<PlanDetails>, val currentPlan: SpacePlan? = null)
+
+/**
+ * The keys of [PlanFeatureLine]. Strings, not an enum, so an older app reads a plan with a feature it
+ * doesn't know (and lists it, from its text). The app only asks about [STATS], for the stats lock's wording.
+ */
 object PlanFeature {
     const val LIVE_GAME = "LIVE_GAME"
     const val CALENDAR = "CALENDAR"
@@ -105,7 +120,7 @@ data class SpaceAgeGroups(
     val space: Club,
     val isOwner: Boolean,
     val ageGroups: List<AgeGroup>,
-    val plan: SpacePlan = SpacePlan.FREE,
+    val plan: SpacePlan,
     // Of [ageGroups], the ones the plan locks for this coach: over the space's limit, or with them over
     // the age group's people limit. Listed, but not opened.
     val lockedAgeGroupIds: List<String> = emptyList(),

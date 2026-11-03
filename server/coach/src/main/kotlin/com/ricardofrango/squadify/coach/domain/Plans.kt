@@ -4,38 +4,74 @@ import com.ricardofrango.squadify.coach.data.SpacePlanRepository
 import com.ricardofrango.squadify.exception.PlanLimitException
 import com.ricardofrango.squadify.model.PlanDetails
 import com.ricardofrango.squadify.model.PlanFeature
+import com.ricardofrango.squadify.model.PlanFeatureLine
 import com.ricardofrango.squadify.model.SpacePlan
 
-/** What each plan allows (REQUIREMENTS §5c), decided here only. Pro's training comes with training on the coach server. */
+/**
+ * Every plan and what it allows (REQUIREMENTS §5c), decided here only: its name, its features (with
+ * how the app lists them, in English and Portuguese) and its limits. The app gets them from `GET
+ * /v1/plans` and shows them as they come, so adding or changing a plan here needs no new app. A space
+ * on a plan that's no longer here counts as [FREE]. Pro's training comes with training on the coach server.
+ */
 object PlanLimits {
-    private val free = listOf(PlanFeature.LIVE_GAME, PlanFeature.CALENDAR, PlanFeature.HISTORY)
-    private val basic = free + PlanFeature.STATS
+    val FREE = SpacePlan("FREE")
+    val BASIC = SpacePlan("BASIC")
+    val PRO = SpacePlan("PRO")
 
-    /**
-     * Every plan, cheapest first, with all it has: the only place a plan's features and limits are
-     * decided. The app gets it from `GET /v1/plans` and shows it, so changing a plan here needs no new app.
-     */
-    val catalogue = listOf(
-        PlanDetails(SpacePlan.FREE, free, ageGroupLimit = 1, peoplePerAgeGroupLimit = 1),
-        PlanDetails(SpacePlan.BASIC, basic, ageGroupLimit = 3, peoplePerAgeGroupLimit = 3),
-        PlanDetails(SpacePlan.PRO, basic + PlanFeature.FOLLOWING_LIVE + PlanFeature.TRAINING)
+    /** A feature's line on the Plans screen: English, Portuguese. */
+    private val featureTexts = mapOf(
+        PlanFeature.LIVE_GAME to ("Live game recording" to "Gravação de jogos ao vivo"),
+        PlanFeature.CALENDAR to ("Calendar" to "Calendário"),
+        PlanFeature.HISTORY to ("Match history" to "Histórico de jogos"),
+        PlanFeature.STATS to ("Stats: age group, team, player, full stats and match stats" to "Estatísticas: escalão, equipa, jogador, estatísticas completas e de jogo"),
+        PlanFeature.FOLLOWING_LIVE to ("Live game results and notifications" to "Resultados e notificações dos jogos ao vivo"),
+        PlanFeature.TRAINING to ("Training (coming soon)" to "Treino (em breve)")
     )
 
-    fun of(plan: SpacePlan): PlanDetails = catalogue.first { it.plan == plan }
+    private class Plan(val plan: SpacePlan, val name: String, val features: List<String>, val ageGroups: Int?, val people: Int?)
+
+    private val freeFeatures = listOf(PlanFeature.LIVE_GAME, PlanFeature.CALENDAR, PlanFeature.HISTORY)
+    private val basicFeatures = freeFeatures + PlanFeature.STATS
+
+    /** Cheapest first, each with all it has. */
+    private val plans = listOf(
+        Plan(FREE, "Free", freeFeatures, ageGroups = 1, people = 1),
+        Plan(BASIC, "Basic", basicFeatures, ageGroups = 3, people = 3),
+        Plan(PRO, "Pro", basicFeatures + PlanFeature.FOLLOWING_LIVE + PlanFeature.TRAINING, ageGroups = null, people = null)
+    )
+
+    private fun planFor(plan: SpacePlan): Plan = plans.firstOrNull { it.plan == plan } ?: plans.first { it.plan == FREE }
+
+    /** Whether [plan] is one of the plans, for the admin who sets it. */
+    fun exists(plan: SpacePlan): Boolean = plans.any { it.plan == plan }
+
+    /** Every plan for the app, its features in [language] ("pt" for Portuguese; anything else is English). */
+    fun catalogue(language: String?): List<PlanDetails> {
+        val portuguese = language?.lowercase()?.startsWith("pt") == true
+        return plans.map { plan ->
+            PlanDetails(
+                plan.plan,
+                plan.name,
+                plan.features.map { key -> PlanFeatureLine(key, featureTexts.getValue(key).let { if (portuguese) it.second else it.first }) },
+                plan.ageGroups,
+                plan.people
+            )
+        }
+    }
 
     /** Age groups a season; null: no limit. */
-    fun ageGroups(plan: SpacePlan): Int? = of(plan).ageGroupLimit
+    fun ageGroups(plan: SpacePlan): Int? = planFor(plan).ageGroups
 
     /** People on one age group, the owner included; null: no limit. */
-    fun peoplePerAgeGroup(plan: SpacePlan): Int? = of(plan).peoplePerAgeGroupLimit
+    fun peoplePerAgeGroup(plan: SpacePlan): Int? = planFor(plan).people
 
     /** Room for one more staff member on an age group with [staffCount] (the owner, not among them, takes a place too). */
     fun hasRoomForStaff(plan: SpacePlan, staffCount: Int): Boolean = peoplePerAgeGroup(plan)?.let { staffCount + 1 < it } ?: true
 
-    fun stats(plan: SpacePlan): Boolean = PlanFeature.STATS in of(plan).features
+    fun stats(plan: SpacePlan): Boolean = PlanFeature.STATS in planFor(plan).features
 
     /** Following games live: live scores in the match lists, the live sockets and the live moments' notifications. */
-    fun live(plan: SpacePlan): Boolean = PlanFeature.FOLLOWING_LIVE in of(plan).features
+    fun live(plan: SpacePlan): Boolean = PlanFeature.FOLLOWING_LIVE in planFor(plan).features
 }
 
 /**

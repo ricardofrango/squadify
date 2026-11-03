@@ -122,12 +122,6 @@
     <string name="plans_your_plan">O teu plano</string>
     <string name="plans_intro_first">Incluído em todos os espaços</string>
     <string name="plans_intro_more">Tudo o que está no %1$s, mais:</string>
-    <string name="plans_feature_live_game">Gravação de jogos ao vivo</string>
-    <string name="plans_feature_calendar">Calendário</string>
-    <string name="plans_feature_history">Histórico de jogos</string>
-    <string name="plans_feature_stats">Estatísticas: escalão, equipa, jogador, estatísticas completas e de jogo</string>
-    <string name="plans_feature_following_live">Resultados e notificações dos jogos ao vivo</string>
-    <string name="plans_feature_training">Treino (em breve)</string>
     <string name="plans_age_groups_one">1 escalão por época</string>
     <string name="plans_age_groups_up_to">%1$d escalões por época</string>
     <string name="plans_age_groups_no_limit">Sem limite de escalões</string>

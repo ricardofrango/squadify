@@ -122,12 +122,6 @@
     <string name="plans_your_plan">Your plan</string>
     <string name="plans_intro_first">Included in every space</string>
     <string name="plans_intro_more">Everything in %1$s, plus:</string>
-    <string name="plans_feature_live_game">Live game recording</string>
-    <string name="plans_feature_calendar">Calendar</string>
-    <string name="plans_feature_history">Match history</string>
-    <string name="plans_feature_stats">Stats: age group, team, player, full stats and match stats</string>
-    <string name="plans_feature_following_live">Live game results and notifications</string>
-    <string name="plans_feature_training">Training (coming soon)</string>
     <string name="plans_age_groups_one">1 age group a season</string>
     <string name="plans_age_groups_up_to">%1$d age groups a season</string>
     <string name="plans_age_groups_no_limit">No limit on age groups</string>

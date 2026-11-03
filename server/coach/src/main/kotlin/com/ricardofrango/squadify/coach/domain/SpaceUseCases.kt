@@ -10,6 +10,7 @@ import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.ClubStatus
+import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
 import com.ricardofrango.squadify.model.SpaceSetup
@@ -109,5 +110,20 @@ class GetSpacesUseCase(
                 val left = if (isOwner) PlanLimits.ageGroups(plan)?.let { (it - thisSeason).coerceAtLeast(0) } else null
                 SpaceAgeGroups(space, isOwner, ageGroups, plan, locked.map { it.id }, thisSeason, left)
             }
+    }
+}
+
+/**
+ * Every plan as the app shows it (`GET /v1/plans`, PlanLimits), its features in [language], and the plan
+ * of the space the coach owns (null: they own none).
+ */
+class GetPlansUseCase(
+    private val clubRepository: ClubRepository,
+    private val plans: CoachPlans,
+    private val transactionManager: TransactionManager
+) {
+    suspend operator fun invoke(userId: String, language: String?): PlansResponse = transactionManager.runInTransaction {
+        val own = clubRepository.getMemberships(userId).firstOrNull { (_, role) -> role == ClubRole.CLUB_ADMIN }?.first
+        PlansResponse(PlanLimits.catalogue(language), own?.let { plans.planOf(it.id) })
     }
 }

@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.data.database.ClubMembers
 import com.ricardofrango.squadify.data.database.Clubs
 import com.ricardofrango.squadify.data.database.Users
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.coach.domain.PlanLimits
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.util.toUuid
 import org.jetbrains.exposed.v1.core.SortOrder
@@ -25,7 +26,7 @@ data class SpaceSummary(val id: String, val name: String, val ownerEmail: String
  * age group was created and when each staff member joined. Called inside the callers' transactions.
  */
 interface SpacePlanRepository {
-    /** [SpacePlan.FREE] for a space with no plan set. */
+    /** Free ([PlanLimits.FREE]) for a space with no plan set. */
     suspend fun planOf(clubId: String): SpacePlan
     suspend fun setPlan(clubId: String, plan: SpacePlan, at: Instant)
     /** The space's age groups as (id, season id), the first created first. */
@@ -38,12 +39,12 @@ interface SpacePlanRepository {
 
 class ExposedSpacePlanRepository : SpacePlanRepository {
     override suspend fun planOf(clubId: String): SpacePlan =
-        SpacePlans.selectAll().where { SpacePlans.clubId eq clubId.toUuid() }.singleOrNull()?.get(SpacePlans.plan) ?: SpacePlan.FREE
+        SpacePlans.selectAll().where { SpacePlans.clubId eq clubId.toUuid() }.singleOrNull()?.let { SpacePlan(it[SpacePlans.plan]) } ?: PlanLimits.FREE
 
     override suspend fun setPlan(clubId: String, plan: SpacePlan, at: Instant) {
         SpacePlans.upsert {
             it[SpacePlans.clubId] = clubId.toUuid()
-            it[SpacePlans.plan] = plan
+            it[SpacePlans.plan] = plan.id
             it[updatedAt] = at
         }
     }
@@ -67,13 +68,13 @@ class ExposedSpacePlanRepository : SpacePlanRepository {
     }
 
     override suspend fun spaces(): List<SpaceSummary> {
-        val plans = SpacePlans.selectAll().associate { it[SpacePlans.clubId].toString() to it[SpacePlans.plan] }
+        val plans = SpacePlans.selectAll().associate { it[SpacePlans.clubId].toString() to SpacePlan(it[SpacePlans.plan]) }
         val owners = (ClubMembers innerJoin Users).select(ClubMembers.clubId, Users.email)
             .where { ClubMembers.role eq ClubRole.CLUB_ADMIN }
             .associate { it[ClubMembers.clubId].toString() to it[Users.email] }
         return Clubs.select(Clubs.id, Clubs.name).orderBy(Clubs.name to SortOrder.ASC).map {
             val id = it[Clubs.id].toString()
-            SpaceSummary(id, it[Clubs.name], owners[id], plans[id] ?: SpacePlan.FREE)
+            SpaceSummary(id, it[Clubs.name], owners[id], plans[id] ?: PlanLimits.FREE)
         }
     }
 }

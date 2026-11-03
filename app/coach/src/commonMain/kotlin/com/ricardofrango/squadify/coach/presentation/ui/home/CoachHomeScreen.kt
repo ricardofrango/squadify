@@ -299,7 +299,7 @@ private fun AgeGroupRow(row: HomeAgeGroup, onClick: (() -> Unit)?) {
                     overflow = TextOverflow.Ellipsis
                 )
                 if (row.locked) {
-                    Text(stringResource(Res.string.coach_home_locked, row.plan.displayName), style = MaterialTheme.typography.bodySmall, color = AlertRed)
+                    Text(stringResource(Res.string.coach_home_locked, row.plan.displayName()), style = MaterialTheme.typography.bodySmall, color = AlertRed)
                 }
             }
         }
@@ -325,14 +325,14 @@ private fun previewClub(id: String, name: String) =
 
 private val previewSpaces = listOf(
     SpaceAgeGroups(
-        previewClub("space-1", "Fontelas FC"), isOwner = true,
+        previewClub("space-1", "Fontelas FC"), isOwner = true, plan = SpacePlan("BASIC"),
         ageGroups = listOf(
             AgeGroup(id = "ag-1", clubId = "space-1", name = "Sub 11", seasonId = "s1", startYear = 2016, endYear = 2016, teamSize = 7),
             AgeGroup(id = "ag-2", clubId = "space-1", name = "Sub 13", seasonId = "s1", startYear = 2015, endYear = 2014, teamSize = 9)
         )
     ),
     SpaceAgeGroups(
-        previewClub("space-2", "Ana's team"), isOwner = false,
+        previewClub("space-2", "Ana's team"), isOwner = false, plan = SpacePlan("FREE"),
         ageGroups = listOf(AgeGroup(id = "ag-3", clubId = "space-2", name = "Sub 9", seasonId = "s2", startYear = 2018, endYear = 2018, teamSize = 5)),
         // Over Ana's plan for this coach: locked.
         lockedAgeGroupIds = listOf("ag-3")

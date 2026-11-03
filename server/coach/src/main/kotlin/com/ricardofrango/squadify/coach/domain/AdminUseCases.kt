@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AdminSpace
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.UserStatus
@@ -46,6 +47,7 @@ class SetSpacePlanUseCase(
     suspend operator fun invoke(userId: String, spaceId: String, plan: SpacePlan) = transactionManager.runInTransaction {
         admins.require(userId)
         clubRepository.getClubById(spaceId) ?: throw NotFoundException("Space not found")
+        if (!PlanLimits.exists(plan)) throw ValidationException("No such plan: ${plan.id}")
         plans.setPlan(spaceId, plan, clock.now())
     }
 }

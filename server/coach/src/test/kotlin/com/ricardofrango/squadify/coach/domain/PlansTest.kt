@@ -2,7 +2,6 @@ package com.ricardofrango.squadify.coach.domain
 
 import com.ricardofrango.squadify.coach.data.SpacePlanRepository
 import com.ricardofrango.squadify.exception.PlanLimitException
-import com.ricardofrango.squadify.model.SpacePlan
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
@@ -22,23 +21,23 @@ class PlansTest {
         coEvery { repository.ageGroupsInCreationOrder("s") } returns
             listOf("a1" to "25/26", "b1" to "26/27", "a2" to "25/26", "b2" to "26/27", "a3" to "25/26", "a4" to "25/26")
 
-        assertEquals(setOf("a2", "a3", "a4", "b2"), plans.lockedAgeGroups("s", SpacePlan.FREE))
-        assertEquals(setOf("a4"), plans.lockedAgeGroups("s", SpacePlan.BASIC))
-        assertTrue(plans.lockedAgeGroups("s", SpacePlan.PRO).isEmpty())
+        assertEquals(setOf("a2", "a3", "a4", "b2"), plans.lockedAgeGroups("s", PlanLimits.FREE))
+        assertEquals(setOf("a4"), plans.lockedAgeGroups("s", PlanLimits.BASIC))
+        assertTrue(plans.lockedAgeGroups("s", PlanLimits.PRO).isEmpty())
     }
 
     @Test
     fun theFirstStaffToJoinStayWithTheOwnerTakingAPlace() = runBlocking {
         coEvery { repository.staffInJoinOrder("ag") } returns listOf("u1", "u2", "u3")
 
-        assertEquals(setOf("u1", "u2", "u3"), plans.lockedStaff("ag", SpacePlan.FREE))
-        assertEquals(setOf("u3"), plans.lockedStaff("ag", SpacePlan.BASIC))
-        assertTrue(plans.lockedStaff("ag", SpacePlan.PRO).isEmpty())
+        assertEquals(setOf("u1", "u2", "u3"), plans.lockedStaff("ag", PlanLimits.FREE))
+        assertEquals(setOf("u3"), plans.lockedStaff("ag", PlanLimits.BASIC))
+        assertTrue(plans.lockedStaff("ag", PlanLimits.PRO).isEmpty())
     }
 
     @Test
     fun aFullAgeGroupHasNoRoomForAnotherCode() = runBlocking {
-        coEvery { repository.planOf("s") } returns SpacePlan.BASIC
+        coEvery { repository.planOf("s") } returns PlanLimits.BASIC
         coEvery { repository.staffInJoinOrder("ag") } returns listOf("u1")
         plans.requireRoomForStaff("s", "ag")
 

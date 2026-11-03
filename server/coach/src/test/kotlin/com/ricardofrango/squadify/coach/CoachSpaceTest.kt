@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach
 
+import com.ricardofrango.squadify.coach.domain.PlanLimits
 import com.ricardofrango.squadify.coach.domain.CoachSeasons
 import com.ricardofrango.squadify.model.AddPlayersToAgeGroupRequest
 import com.ricardofrango.squadify.model.AgeGroup
@@ -13,7 +14,6 @@ import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.PlayerProfile
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
-import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.SportType
 import io.ktor.client.call.body
@@ -53,7 +53,7 @@ class CoachSpaceTest {
         assertEquals(7, setup.team.teamSize)
         val spaceId = setup.space.id
         // More than one age group: on Pro.
-        api.setPlan(spaceId, SpacePlan.PRO)
+        api.setPlan(spaceId, PlanLimits.PRO)
 
         // One space of their own.
         assertEquals(

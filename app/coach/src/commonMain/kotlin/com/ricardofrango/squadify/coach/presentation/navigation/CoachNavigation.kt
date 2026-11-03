@@ -112,14 +112,14 @@ fun CoachNavigation(navigator: AppNavigator = rememberAppNavigator()) {
     val ownSpacePlan = koinInject<OwnSpacePlan>()
     val ownSpace by ownSpacePlan.space.collectAsStateWithLifecycle()
     // Every plan as the server sends them, for the boxes' wording (loaded with the spaces, and by Plans).
-    val plans by ownSpacePlan.plans.collectAsStateWithLifecycle()
+    val plansResponse by ownSpacePlan.plans.collectAsStateWithLifecycle()
     // Everyone gets See plans; with no space of their own, Plans marks none as theirs.
-    val seePlans: () -> Unit = { navigator.navigate(Screen.Plans(ownSpace?.plan?.name.orEmpty())) }
+    val seePlans: () -> Unit = { navigator.navigate(Screen.Plans) }
 
     CompositionLocalProvider(
         LocalViewModelStoreOwner provides parentOwner,
         LocalOwnSpace provides ownSpace,
-        LocalPlans provides plans,
+        LocalPlans provides plansResponse?.plans.orEmpty(),
         LocalSeePlans provides seePlans
     ) {
         NavDisplay(
@@ -195,19 +195,18 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
         MySpaceScreen(
             onNavigateBack = { navigator.popBackStack() },
             onLogoChanged = { navigator.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true) },
-            onSeePlans = { plan -> navigator.navigate(Screen.Plans(plan.name)) }
+            onSeePlans = { navigator.navigate(Screen.Plans) }
         )
     }
 
-    screen<Screen.Plans> { entry ->
-        val screen: Screen.Plans = entry.toRoute()
-        val plans = LocalPlans.current
+    screen<Screen.Plans> {
+        val response by koinInject<OwnSpacePlan>().plans.collectAsStateWithLifecycle()
         val loadPlans = koinInject<LoadPlansUseCase>()
         // Loaded here too when they aren't yet (opened before Home, or the last load failed).
         var attempt by remember { mutableIntStateOf(0) }
         var failed by remember { mutableStateOf(false) }
         LaunchedEffect(attempt) {
-            if (plans.isEmpty()) {
+            if (response == null) {
                 failed = false
                 failed = try {
                     loadPlans()
@@ -220,8 +219,8 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
             }
         }
         PlansScreen(
-            plan = SpacePlan.entries.firstOrNull { it.name == screen.plan },
-            plans = plans,
+            currentPlan = response?.currentPlan,
+            plans = response?.plans.orEmpty(),
             onRetry = if (failed) ({ attempt++ }) else null,
             onNavigateBack = { navigator.popBackStack() }
         )
@@ -233,7 +232,6 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
             ageGroupId = screen.ageGroupId,
             ageGroupName = screen.ageGroupName,
             spaceName = screen.spaceName,
-            onSeePlans = { plan -> navigator.navigate(Screen.Plans(plan.name)) },
             onNavigateBack = { navigator.popBackStack() }
         )
     }
