@@ -129,4 +129,9 @@
     <string name="plans_people_up_to">Up to %1$d people per age group, you included</string>
     <string name="plans_people_no_limit">No limit on people per age group</string>
     <string name="plans_load_failed">Couldn't load the plans.</string>
+    <string name="btn_plans_subscribe">Subscribe</string>
+    <string name="btn_plans_subscribe_to">Subscribe to %1$s</string>
+    <string name="btn_plans_subscribing">Sending…</string>
+    <string name="plans_request_failed">Couldn't send your request. Try again.</string>
+    <string name="plans_requested">You asked for %1$s. We'll be in touch to set it up.</string>
 </resources>

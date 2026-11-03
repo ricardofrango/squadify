@@ -1,10 +1,13 @@
 package com.ricardofrango.squadify.coach.domain
 
+import com.ricardofrango.squadify.coach.data.SpacePlanRepository
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
+import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.ConflictException
+import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Club
@@ -13,6 +16,7 @@ import com.ricardofrango.squadify.model.ClubStatus
 import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
+import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.Team
 import kotlin.time.Clock
@@ -115,7 +119,7 @@ class GetSpacesUseCase(
 
 /**
  * Every plan as the app shows it (`GET /v1/plans`, PlanLimits), its features in [language], and the plan
- * of the space the coach owns (null: they own none).
+ * of the space the coach owns (null: they own none) with the one they asked for.
  */
 class GetPlansUseCase(
     private val clubRepository: ClubRepository,
@@ -124,6 +128,58 @@ class GetPlansUseCase(
 ) {
     suspend operator fun invoke(userId: String, language: String?): PlansResponse = transactionManager.runInTransaction {
         val own = clubRepository.getMemberships(userId).firstOrNull { (_, role) -> role == ClubRole.CLUB_ADMIN }?.first
-        PlansResponse(PlanLimits.catalogue(language), own?.let { plans.planOf(it.id) })
+        PlansResponse(PlanLimits.catalogue(language), own?.let { plans.planOf(it.id) }, own?.let { plans.requestedPlan(it.id) })
+    }
+}
+
+/** What the platform admins are emailed when an owner asks for a plan. */
+data class PlanRequestEmail(
+    val spaceId: String,
+    val spaceName: String,
+    val ownerName: String,
+    val ownerEmail: String,
+    val currentPlan: SpacePlan,
+    val requestedPlan: SpacePlan
+)
+
+/** Tells a platform admin about a plan request by email (CoachEmailService); whether it went. */
+interface PlanRequestMailer {
+    suspend fun sendPlanRequest(to: String, email: PlanRequestEmail): Boolean
+}
+
+/**
+ * The owner asks for another plan for their space (`POST /v1/plans/request`, REQUIREMENTS §5c), until
+ * payments: it's recorded, in place of an earlier request, and [adminEmails] are emailed to set it with
+ * the admin's `PUT /v1/admin/spaces/{id}/plan`. Only an owner asks, for a plan that exists and isn't
+ * theirs already. The request stands if an email doesn't go: the admin's list shows it too.
+ */
+class RequestPlanUseCase(
+    private val clubRepository: ClubRepository,
+    private val userRepository: UserRepository,
+    private val plans: SpacePlanRepository,
+    private val mailer: PlanRequestMailer,
+    private val adminEmails: Set<String>,
+    private val transactionManager: TransactionManager,
+    private val clock: Clock = Clock.System
+) {
+    suspend operator fun invoke(userId: String, plan: SpacePlan) {
+        val email = transactionManager.runInTransaction {
+            val space = clubRepository.getMemberships(userId).firstOrNull { (_, role) -> role == ClubRole.CLUB_ADMIN }?.first
+                ?: throw ForbiddenException("Only a space's owner can ask for a plan")
+            if (!PlanLimits.exists(plan)) throw ValidationException("No such plan: ${plan.id}")
+            val current = plans.planOf(space.id)
+            if (plan == current) throw ValidationException("The space is already on this plan")
+            plans.requestPlan(space.id, plan, userId, clock.now())
+            val owner = userRepository.findById(userId)
+            PlanRequestEmail(
+                spaceId = space.id,
+                spaceName = space.name,
+                ownerName = owner?.let { "${it.firstName} ${it.lastName}".trim() }.orEmpty(),
+                ownerEmail = owner?.email.orEmpty(),
+                currentPlan = current,
+                requestedPlan = plan
+            )
+        }
+        adminEmails.forEach { mailer.sendPlanRequest(it, email) }
     }
 }

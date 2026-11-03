@@ -24,6 +24,7 @@ import com.ricardofrango.squadify.model.Opponent
 import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.PlanFeature
 import com.ricardofrango.squadify.model.Player
+import com.ricardofrango.squadify.model.RequestPlanRequest
 import com.ricardofrango.squadify.model.SetSpacePlanRequest
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
@@ -251,5 +252,37 @@ class CoachPlansTest {
         val listed = api.get("/v1/admin/spaces") { bearerAuth(api.signUp(PLATFORM_ADMIN)) }.body<List<AdminSpace>>().single { it.id == spaceId }
         assertEquals(PlanLimits.PRO, listed.plan)
         assertTrue(listed.ownerEmail.orEmpty().endsWith("@test.com"))
+    }
+
+    @Test
+    fun theOwnerAsksForAPlanAndAnAdminSetsIt() = testApplication {
+        application { module() }
+        val api = jsonClient()
+        val owner = api.signUp()
+        val spaceId = api.post("/v1/space") {
+            json(owner, SetUpSpaceRequest("Ana's team", SportType.FOOTBALL, AgeGroupItemRequest("Sub-12", 2015, 2015), "Sub-12 A"))
+        }.body<SpaceSetup>().space.id
+        suspend fun ask(token: String, plan: SpacePlan) = api.post("/v1/plans/request") { json(token, RequestPlanRequest(plan)) }.status
+
+        // Only an owner, for one of the server's plans, other than theirs.
+        assertEquals(HttpStatusCode.Forbidden, ask(api.signUp(), PlanLimits.PRO))
+        assertEquals(HttpStatusCode.BadRequest, ask(owner, SpacePlan("GOLD")))
+        assertEquals(HttpStatusCode.BadRequest, ask(owner, PlanLimits.FREE))
+        assertEquals(null, api.get("/v1/plans") { bearerAuth(owner) }.body<PlansResponse>().requestedPlan)
+
+        // The latest request stands, for the coach and the admin; nothing changes until it's set.
+        assertEquals(HttpStatusCode.NoContent, ask(owner, PlanLimits.BASIC))
+        assertEquals(HttpStatusCode.NoContent, ask(owner, PlanLimits.PRO))
+        val plans = api.get("/v1/plans") { bearerAuth(owner) }.body<PlansResponse>()
+        assertEquals(PlanLimits.FREE, plans.currentPlan)
+        assertEquals(PlanLimits.PRO, plans.requestedPlan)
+        val admin = api.signUp(PLATFORM_ADMIN)
+        assertEquals(PlanLimits.PRO, api.get("/v1/admin/spaces") { bearerAuth(admin) }.body<List<AdminSpace>>().single { it.id == spaceId }.requestedPlan)
+
+        // Setting the plan answers it.
+        api.setPlan(spaceId, PlanLimits.PRO)
+        val after = api.get("/v1/plans") { bearerAuth(owner) }.body<PlansResponse>()
+        assertEquals(PlanLimits.PRO, after.currentPlan)
+        assertEquals(null, after.requestedPlan)
     }
 }

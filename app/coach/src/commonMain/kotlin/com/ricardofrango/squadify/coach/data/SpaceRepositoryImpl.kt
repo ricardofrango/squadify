@@ -7,6 +7,8 @@ import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.CreateStaffInviteRequest
 import com.ricardofrango.squadify.model.PlansResponse
+import com.ricardofrango.squadify.model.RequestPlanRequest
+import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
 import com.ricardofrango.squadify.model.SpaceSetup
@@ -32,6 +34,13 @@ class SpaceRepositoryImpl(
     // The features come written by the server, in the app's language.
     override suspend fun getPlans(): PlansResponse =
         httpClient.get("${appConfig.baseUrl}/plans") { parameter("language", Locale.current.language) }.handleResponse()
+
+    override suspend fun requestPlan(plan: SpacePlan) {
+        httpClient.post("${appConfig.baseUrl}/plans/request") {
+            contentType(ContentType.Application.Json)
+            setBody(RequestPlanRequest(plan))
+        }.handleResponse<Unit>()
+    }
 
     override suspend fun setUpSpace(request: SetUpSpaceRequest): SpaceSetup =
         httpClient.post("${appConfig.baseUrl}/space") {

@@ -84,9 +84,19 @@ data class PlanDetails(
 @Serializable
 data class PlanFeatureLine(val key: String, val text: String)
 
-/** `GET /v1/plans`: every plan, cheapest first, and the plan of the space the coach owns (null: they own none). */
+/**
+ * `GET /v1/plans`: every plan, cheapest first, the plan of the space the coach owns (null: they own none)
+ * and the plan they asked for and haven't got yet ([requestedPlan], null: none).
+ */
 @Serializable
-data class PlansResponse(val plans: List<PlanDetails>, val currentPlan: SpacePlan? = null)
+data class PlansResponse(val plans: List<PlanDetails>, val currentPlan: SpacePlan? = null, val requestedPlan: SpacePlan? = null)
+
+/**
+ * `POST /v1/plans/request`: the owner asks for another plan for their space, until payments. A platform
+ * admin is told and sets it; the request stays until then.
+ */
+@Serializable
+data class RequestPlanRequest(val plan: SpacePlan)
 
 /**
  * The keys of [PlanFeatureLine]. Strings, not an enum, so an older app reads a plan with a feature it
@@ -103,9 +113,12 @@ object PlanFeature {
     const val TRAINING = "TRAINING"
 }
 
-/** A space in the platform admin's list (`GET /v1/admin/spaces`, the coach server): its owner and plan. */
+/**
+ * A space in the platform admin's list (`GET /v1/admin/spaces`, the coach server): its owner, its plan
+ * and the plan its owner asked for (null: none).
+ */
 @Serializable
-data class AdminSpace(val id: String, val name: String, val ownerEmail: String?, val plan: SpacePlan)
+data class AdminSpace(val id: String, val name: String, val ownerEmail: String?, val plan: SpacePlan, val requestedPlan: SpacePlan? = null)
 
 /** `PUT /v1/admin/spaces/{id}/plan`: a platform admin sets a space's plan, until payments. */
 @Serializable

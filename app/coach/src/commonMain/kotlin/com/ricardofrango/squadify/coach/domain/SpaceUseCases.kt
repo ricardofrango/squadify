@@ -3,11 +3,13 @@ package com.ricardofrango.squadify.coach.domain
 import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.CreateStaffInviteRequest
 import com.ricardofrango.squadify.model.PlansResponse
+import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
 import com.ricardofrango.squadify.domain.config.OwnSpace
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.StaffInvite
 
@@ -38,6 +40,17 @@ class GetSpacesUseCase(
 class LoadPlansUseCase(private val spaceRepository: SpaceRepository, private val ownSpacePlan: OwnSpacePlan) {
     suspend operator fun invoke() {
         ownSpacePlan.plans.value = spaceRepository.getPlans()
+    }
+}
+
+/**
+ * Asks the coach server for [plan] for the space the coach owns, until payments: a platform admin sets
+ * it. The plans already loaded then show it as asked for.
+ */
+class RequestPlanUseCase(private val spaceRepository: SpaceRepository, private val ownSpacePlan: OwnSpacePlan) {
+    suspend operator fun invoke(plan: SpacePlan) {
+        spaceRepository.requestPlan(plan)
+        ownSpacePlan.plans.update { it?.copy(requestedPlan = plan) }
     }
 }
 

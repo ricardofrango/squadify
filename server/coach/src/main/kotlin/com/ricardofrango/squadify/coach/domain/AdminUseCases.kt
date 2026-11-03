@@ -24,7 +24,7 @@ class PlatformAdmins(private val userRepository: UserRepository, private val adm
     }
 }
 
-/** Every space with its owner's email and its plan, for the platform admin. */
+/** Every space with its owner's email, its plan and the plan its owner asked for, for the platform admin. */
 class GetAdminSpacesUseCase(
     private val admins: PlatformAdmins,
     private val plans: SpacePlanRepository,
@@ -32,11 +32,14 @@ class GetAdminSpacesUseCase(
 ) {
     suspend operator fun invoke(userId: String): List<AdminSpace> = transactionManager.runInTransaction {
         admins.require(userId)
-        plans.spaces().map { AdminSpace(it.id, it.name, it.ownerEmail, it.plan) }
+        plans.spaces().map { AdminSpace(it.id, it.name, it.ownerEmail, it.plan, it.requestedPlan) }
     }
 }
 
-/** A platform admin sets a space's plan (REQUIREMENTS §5c); what's over the new plan's limits is locked, not deleted. */
+/**
+ * A platform admin sets a space's plan (REQUIREMENTS §5c), which answers its owner's request for one;
+ * what's over the new plan's limits is locked, not deleted.
+ */
 class SetSpacePlanUseCase(
     private val admins: PlatformAdmins,
     private val plans: SpacePlanRepository,

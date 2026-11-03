@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.coach
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
 import com.ricardofrango.squadify.coach.domain.LoadPlansUseCase
 import com.ricardofrango.squadify.coach.domain.OwnSpacePlan
+import com.ricardofrango.squadify.coach.domain.RequestPlanUseCase
 import com.ricardofrango.squadify.coach.domain.SpaceRepository
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.domain.config.OwnSpace
@@ -20,6 +21,7 @@ import com.ricardofrango.squadify.model.SportType
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.time.Instant
 
@@ -36,6 +38,12 @@ class OwnSpacePlanTest {
         )
         override suspend fun getSpaces() = spaces
         override suspend fun getPlans() = plans ?: error("offline")
+        var requested: SpacePlan? = null
+        var requestFails = false
+        override suspend fun requestPlan(plan: SpacePlan) {
+            if (requestFails) error("offline")
+            requested = plan
+        }
         override suspend fun setUpSpace(request: SetUpSpaceRequest): SpaceSetup = error("not used")
         override suspend fun acceptInvite(code: String): CoachSpace = error("not used")
     }
@@ -66,5 +74,24 @@ class OwnSpacePlanTest {
         repository.spaces = listOf(SpaceAgeGroups(space("anas"), isOwner = false, ageGroups = emptyList(), plan = SpacePlan("FREE")))
         getSpaces()
         assertNull(ownPlan.space.value)
+    }
+
+    @Test
+    fun aPlanAskedForShowsOnceTheServerHasIt() = runTest {
+        val ownPlan = OwnSpacePlan()
+        val repository = Spaces(emptyList())
+        LoadPlansUseCase(repository, ownPlan)()
+        val requestPlan = RequestPlanUseCase(repository, ownPlan)
+
+        // Not sent: nothing shows as asked for.
+        repository.requestFails = true
+        assertFailsWith<IllegalStateException> { requestPlan(SpacePlan("PRO")) }
+        assertNull(ownPlan.plans.value?.requestedPlan)
+
+        repository.requestFails = false
+        requestPlan(SpacePlan("PRO"))
+        assertEquals(SpacePlan("PRO"), repository.requested)
+        assertEquals(SpacePlan("PRO"), ownPlan.plans.value?.requestedPlan)
+        assertEquals(SpacePlan("FREE"), ownPlan.plans.value?.currentPlan)
     }
 }

@@ -1,6 +1,8 @@
 package com.ricardofrango.squadify.coach.data
 
 import com.ricardofrango.squadify.coach.config.CoachConfig
+import com.ricardofrango.squadify.coach.domain.PlanRequestEmail
+import com.ricardofrango.squadify.coach.domain.PlanRequestMailer
 import com.ricardofrango.squadify.coach.domain.StaffInviteEmail
 import com.ricardofrango.squadify.coach.domain.StaffInviteMailer
 import com.ricardofrango.squadify.domain.service.EmailService
@@ -17,11 +19,12 @@ import org.slf4j.LoggerFactory
  *
  * The coach product has no clubs and adds staff with codes, so the club and age-group emails are never
  * asked for here; they only log. A code can be emailed ([sendStaffInvite]), in the owner's app language
- * (English or Portuguese): the first coach email that isn't English only.
+ * (English or Portuguese): the first coach email that isn't English only. A plan request goes to the
+ * platform admins ([sendPlanRequest]), in English.
  */
 class CoachEmailService(
     private val sender: ResendSender = ResendSender(CoachConfig.resendApiKey, CoachConfig.emailFromAddress)
-) : EmailService, StaffInviteMailer {
+) : EmailService, StaffInviteMailer, PlanRequestMailer {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     override suspend fun sendClubInvite(to: String, clubName: String) = notInTheCoachProduct("club invite")
@@ -72,6 +75,18 @@ class CoachEmailService(
     override suspend fun sendStaffInvite(to: String, email: StaffInviteEmail): Boolean {
         val (subject, html) = staffInviteText(email)
         return sender.send(to = to, subject = subject, html = html)
+    }
+
+    override suspend fun sendPlanRequest(to: String, email: PlanRequestEmail): Boolean {
+        val owner = "${email.ownerName} (${email.ownerEmail})".escapeHtml()
+        return sender.send(
+            to = to,
+            subject = "Plan request: ${email.spaceName} wants ${email.requestedPlan.id}",
+            html = """
+                <p>$owner asked for <strong>${email.requestedPlan.id}</strong> for their space <strong>${email.spaceName.escapeHtml()}</strong>, now on ${email.currentPlan.id}.</p>
+                <p>To set it: <code>PUT /v1/admin/spaces/${email.spaceId}/plan</code> with <code>{"plan": "${email.requestedPlan.id}"}</code>.</p>
+            """.trimIndent()
+        )
     }
 
     private fun notInTheCoachProduct(what: String) {
