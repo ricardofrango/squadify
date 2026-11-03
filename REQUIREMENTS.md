@@ -132,12 +132,15 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
 
 - **Changing plan with payments** (the developer, 2026-11-03):
     - **Going down waits for the end of what's paid.** The coach keeps the plan they paid for until the end of the period, and the lower plan starts, and is first charged, on the next renewal. Paid Pro on 1 January and moved to Basic on 10 January: Pro until 31 January, Basic charged and in use from 1 February. The same for a yearly subscription: the higher plan until the year paid for ends. Until then Plans shows the plan they have and the one coming, with its date.
-    - **Going up:** not decided yet (to confirm: at once, with the stores charging the difference for the rest of the period, or also at the next renewal).
-- **Referrals** (the developer, 2026-11-03): every subscriber has a referral code to share, and a new coach can enter one when they subscribe. A referral counts when the new coach subscribes to any paid plan (Basic or Pro) with the code.
-    - **Monthly subscribers:** each referral gives the referrer a free month.
-    - **Yearly subscribers:** 10 referrals are needed for the reward.
-    - The referred coach's plan doesn't matter, nor the referrer's: any paid plan on either side.
-    - **To confirm:** the yearly reward (a free year, or a free month, for the 10); whether the count starts again after each reward; whether a referral still counts if the new coach cancels or is refunded within their first period (it's suggested to count it only once their first payment is kept, after the stores' refund window); whether a Free coach can refer (no subscription to extend); how the app shows the code and the count; one code a person, and a coach can't use their own (or one of their own accounts).
+    - **Going up:** the difference is never charged (the developer, 2026-11-03): the higher plan's price is charged from the next renewal. To confirm: whether the higher plan is in use at once (free until the renewal) or only from the renewal.
+- **Referrals** (the developer, 2026-11-03):
+    - **Who has a code:** a subscriber, from their first successful payment. Free coaches have none.
+    - **Using one:** a new coach enters the code when they subscribe. Any paid plan counts, on either side (Basic or Pro).
+    - **When it counts:** at the new coach's first successful payment. One who cancels before it doesn't count.
+    - **Monthly subscribers:** a free month for each referral, up to 10 free months.
+    - **Yearly subscribers:** a free year once 10 referrals count, once.
+    - **The limit is for good:** 10 free months, or one free year. The count doesn't start again after a reward, and referrals beyond it give nothing more.
+    - **To confirm:** how the app shows the code and the count; one code a person, and a coach can't use their own (or one of their own accounts); a subscriber who changes between monthly and yearly with referrals already counted.
 - **Going down a plan** (payments stopped, or a change of plan): nothing is deleted, and stats keep being calculated, so going back up brings everything back.
     - **Members over the limit:** the first ones added to each age group keep access (on Basic, the owner and the first two staff; only the owner on Free). The others lose access until the plan allows them again.
     - **Age groups over the limit:** in each season, the first ones created stay in use (three on Basic, one on Free). The others are kept but locked, for the owner too, until the plan allows them again.
@@ -343,7 +346,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [x] Locally, choosing a plan changes it at once (2026-11-03).
         - [ ] In-app subscriptions, before the public launch: App Store and Google Play products and prices, Play Billing and StoreKit in the app, the server checking each purchase and following renewals, cancellations and expiry from the stores' notifications. Staging on the stores' sandboxes (Google Play license testers and Apple sandbox accounts: test purchases, nothing charged), production on real payments. Choosing on Plans stays; it buys instead of asking.
         - [ ] Going down waits for the end of the period paid (§5c, Changing plan with payments), with the plan coming shown on Plans.
-        - [ ] Referrals (§5c): a code for each subscriber, a free month a referral for monthly subscribers, 10 referrals for yearly ones; the open questions there first.
+        - [ ] Referrals (§5c): a code from the first successful payment, a free month a referral for monthly subscribers (up to 10), a free year for 10 referrals for yearly ones (once); the open questions there first.
         - [ ] Staging, once #188 is merged: set `PLATFORM_ADMIN_EMAILS` on coach-server, then raise the test spaces with the admin endpoint (every space starts on Free).
         - [x] The full-time notification (with the final score) counts as a live moment, so it only goes on Pro (confirmed by the developer, 2026-11-03).
         - [x] Below Pro, a game in progress is listed as not started, so it can show as the age group's or team's next match (confirmed by the developer, 2026-11-03).
