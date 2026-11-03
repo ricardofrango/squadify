@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.PersonPlaceholder
@@ -99,6 +100,8 @@ internal fun TeamRecordCard(
                 onRetry = onRetry
             )
         }
+
+        TeamRecordUiState.NotInPlan -> StatsNotInPlanMessage()
 
         is TeamRecordUiState.Loaded -> {
             val record = state.record

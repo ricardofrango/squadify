@@ -42,6 +42,7 @@ class GetPlayerSeasonStatsUseCase(
     suspend operator fun invoke(userId: String, playerId: String): PlayerSeasonStats = transactionManager.runInTransaction {
         val player = playerRepository.getPlayerById(playerId) ?: throw NotFoundException("Player not found")
         accessPolicy.requireMember(userId, player.clubId)
+        accessPolicy.requireStatsInPlan(player.clubId)
 
         val matchesById = matchRepository.getMatchesByClub(player.clubId).associateBy { it.id }
         val teamsById = teamRepository.getTeamsByClub(player.clubId).associateBy { it.id }

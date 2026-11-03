@@ -103,7 +103,7 @@ class UpdateMatchUseCaseTest {
         assertEquals("old", saved.captured.notes) // untouched
         assertEquals(match.venue, saved.captured.venue) // untouched
         assertEquals("opp-1", saved.captured.opponentId) // untouched
-        coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.RESCHEDULED) }
+        coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.RESCHEDULED, causedBy = any()) }
         coVerify { clubMatchesBus.publish(clubId, com.ricardofrango.squadify.model.ClubMatchesUpdate(match = saved.captured)) }
     }
 
@@ -120,7 +120,7 @@ class UpdateMatchUseCaseTest {
 
         useCase(coach.id, matchId, UpdateMatchRequest(notes = "new notes"))
 
-        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any(), any(), any()) }
     }
 
     @Test
@@ -137,7 +137,7 @@ class UpdateMatchUseCaseTest {
         assertFailsWith<ForbiddenException> {
             useCase(coach.id, matchId, UpdateMatchRequest(opponentId = "opp-other"))
         }
-        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any(), any(), any()) }
     }
 
     @Test
@@ -173,7 +173,7 @@ class UpdateMatchUseCaseTest {
 
         assertEquals(MatchType.TOURNAMENT, updated.captured.type)
         // The type isn't a schedule change (opponent/date/location), so no push goes out.
-        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any(), any(), any()) }
     }
 
     @Test
@@ -192,7 +192,7 @@ class UpdateMatchUseCaseTest {
             }
         }
         coVerify(exactly = 0) { matchRepository.updateMatch(any()) }
-        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any(), any(), any()) }
     }
 
     private fun asCoach(m: Match): Unit = runBlocking {

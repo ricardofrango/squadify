@@ -188,6 +188,9 @@ class LiveMatchViewModel(
                         missedUpdates = true
                         setReconnecting(true)
                     }
+                    // Not following live on the space's plan: whoever records still sees their own
+                    // changes, which never wait on the socket.
+                    LiveFeedEvent.NotInPlan -> setReconnecting(false)
                     is LiveFeedEvent.Update -> applyUpdate(event.value)
                 }
             }

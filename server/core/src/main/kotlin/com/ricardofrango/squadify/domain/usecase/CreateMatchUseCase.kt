@@ -70,7 +70,7 @@ class CreateMatchUseCase(
         }
 
         // Sent after the transaction commits -- a failed/slow push must never roll back the match.
-        notifyMatchEventUseCase(created.id, MatchNotificationEvent.SCHEDULED)
+        notifyMatchEventUseCase(created.id, MatchNotificationEvent.SCHEDULED, causedBy = userId)
         clubMatchesBus.publish(created.clubId, ClubMatchesUpdate(match = created))
 
         return created

@@ -98,7 +98,7 @@ class AddMatchEventUseCase(
 
         // Sent after the transaction commits -- a failed/slow push must never roll back the event.
         if (savedEvent.type == EventType.GOAL || savedEvent.type == EventType.OWN_GOAL) {
-            notifyMatchEventUseCase(matchId, MatchNotificationEvent.GOAL, savedEvent)
+            notifyMatchEventUseCase(matchId, MatchNotificationEvent.GOAL, savedEvent, causedBy = userId)
         }
 
         return savedEvent

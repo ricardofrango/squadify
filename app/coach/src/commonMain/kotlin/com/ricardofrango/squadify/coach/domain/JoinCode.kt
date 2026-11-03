@@ -14,9 +14,10 @@ object JoinCode {
     fun isComplete(typed: String): Boolean = normalize(typed).length == LENGTH
 
     /** Why a code was refused, from the server's answer. */
-    enum class Refusal { NOT_FOUND, EXPIRED, USED_OR_ALREADY_ON, OTHER }
+    enum class Refusal { NOT_FOUND, EXPIRED, USED_OR_ALREADY_ON, NO_ROOM_ON_PLAN, OTHER }
 
-    fun refusal(statusCode: Int?): Refusal = when (statusCode) {
+    /** [notInPlan]: the age group has no room for one more person on its space's plan. */
+    fun refusal(statusCode: Int?, notInPlan: Boolean = false): Refusal = if (notInPlan) Refusal.NO_ROOM_ON_PLAN else when (statusCode) {
         404 -> Refusal.NOT_FOUND
         400 -> Refusal.EXPIRED
         // Used already, or the coach owns the space or is already staff on the age group.

@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.data.remote
 
 import com.ricardofrango.squadify.model.ErrorResponse
+import com.ricardofrango.squadify.model.PLAN_LIMIT_CODE
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.call.*
 import io.ktor.client.plugins.HttpResponseValidator
@@ -23,6 +24,9 @@ class ApiException(
     // For a batch request: which items the error is about (ErrorResponse.rows).
     val rows: List<Int>? = null
 ) : Exception(message)
+
+/** The server refused it as not on the space's plan (the coach server's Free plan, REQUIREMENTS §5c). */
+val Throwable.isNotInPlan: Boolean get() = this is ApiException && statusCode == 403 && code == PLAN_LIMIT_CODE
 
 suspend inline fun <reified T> HttpResponse.handleResponse(): T {
     if (status.isSuccess()) {

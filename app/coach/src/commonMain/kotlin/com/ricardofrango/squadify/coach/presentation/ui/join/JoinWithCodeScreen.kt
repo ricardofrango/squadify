@@ -38,6 +38,7 @@ import squadify.app.coach.generated.resources.join_intro
 import squadify.app.coach.generated.resources.join_title
 import squadify.app.coach.generated.resources.msg_join_expired
 import squadify.app.coach.generated.resources.msg_join_failed
+import squadify.app.coach.generated.resources.msg_join_no_room
 import squadify.app.coach.generated.resources.msg_join_not_found
 import squadify.app.coach.generated.resources.msg_join_used
 
@@ -72,6 +73,7 @@ private fun JoinWithCodeContent(
                 JoinCode.Refusal.NOT_FOUND -> Res.string.msg_join_not_found
                 JoinCode.Refusal.EXPIRED -> Res.string.msg_join_expired
                 JoinCode.Refusal.USED_OR_ALREADY_ON -> Res.string.msg_join_used
+                JoinCode.Refusal.NO_ROOM_ON_PLAN -> Res.string.msg_join_no_room
                 JoinCode.Refusal.OTHER -> Res.string.msg_join_failed
             }
         )

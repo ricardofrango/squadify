@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.coach.presentation.ui.invite
 
+import com.ricardofrango.squadify.presentation.ui.components.previewPlans
+import com.ricardofrango.squadify.presentation.ui.components.LocalPlans
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -45,6 +47,9 @@ import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.PinnedBottomBar
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
+import com.ricardofrango.squadify.presentation.ui.components.StaffNotInPlanNotice
+import com.ricardofrango.squadify.model.SpacePlan
+import androidx.compose.runtime.CompositionLocalProvider
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
@@ -86,6 +91,7 @@ import squadify.app.coach.generated.resources.msg_invite_copied
 import squadify.app.coach.generated.resources.msg_invite_create_failed
 import squadify.app.coach.generated.resources.msg_invite_email_not_sent
 import squadify.app.coach.generated.resources.msg_invite_email_sent
+import squadify.app.coach.generated.resources.msg_invite_no_room
 import squadify.app.coach.generated.resources.msg_invite_send_failed
 import squadify.app.coach.generated.resources.msg_invite_withdraw_failed
 import squadify.app.coach.generated.resources.msg_invite_withdrawn
@@ -122,6 +128,7 @@ fun InviteStaffScreen(
                 getString(
                     when (message) {
                         InviteStaffMessage.CREATE_FAILED -> Res.string.msg_invite_create_failed
+                        InviteStaffMessage.NO_ROOM_ON_PLAN -> Res.string.msg_invite_no_room
                         InviteStaffMessage.EMAIL_SENT -> Res.string.msg_invite_email_sent
                         InviteStaffMessage.EMAIL_NOT_SENT -> Res.string.msg_invite_email_not_sent
                         InviteStaffMessage.SEND_FAILED -> Res.string.msg_invite_send_failed
@@ -180,14 +187,14 @@ private fun InviteStaffContent(
         },
         bottomBar = {
             val loaded = uiState as? InviteStaffUiState.Loaded
-            if (loaded != null) {
+            if (loaded != null && loaded.fullOnPlan == null) {
                 PinnedBottomBar {
                     PrimaryLoadingButton(
                         text = Res.string.btn_invite_create,
                         submittingText = Res.string.btn_invite_creating,
                         isLoading = loaded.isCreating,
                         onClick = onCreate,
-                        enabled = !loaded.isSending
+                        enabled = !loaded.isSending && loaded.fullOnPlan == null
                     )
                 }
             }
@@ -210,6 +217,11 @@ private fun InviteStaffContent(
                 contentPadding = ScreenPadding.Values,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // No room on the plan: only the plan's box, until it changes.
+                uiState.fullOnPlan?.let { plan ->
+                    item { StaffNotInPlanNotice(plan) }
+                    return@LazyColumn
+                }
                 item { FormIntro(stringResource(Res.string.invite_intro, ageGroupName)) }
                 item { EmailInviteCard(uiState, onEmailChange, onSend) }
                 item {
@@ -328,10 +340,12 @@ private val previewInvites = listOf(
 @Composable
 private fun InvitePreview(state: InviteStaffUiState) {
     SquadifyTheme {
-        InviteStaffContent(
-            uiState = state, ageGroupName = "Sub 11", spaceName = "Fontelas FC", snackbarHostState = remember { SnackbarHostState() },
-            sharing = null, onCopied = {}, onCreate = {}, onEmailChange = {}, onSend = {}, onWithdraw = {}, onRetry = {}, onNavigateBack = {}
-        )
+        CompositionLocalProvider(LocalPlans provides previewPlans) {
+            InviteStaffContent(
+                uiState = state, ageGroupName = "Sub 11", spaceName = "Fontelas FC", snackbarHostState = remember { SnackbarHostState() },
+                sharing = null, onCopied = {}, onCreate = {}, onEmailChange = {}, onSend = {}, onWithdraw = {}, onRetry = {}, onNavigateBack = {}
+            )
+        }
     }
 }
 
@@ -350,3 +364,11 @@ private fun InviteStaffInvalidEmailPreview() = InvitePreview(InviteStaffUiState.
 @Preview
 @Composable
 private fun InviteStaffEmptyPreview() = InvitePreview(InviteStaffUiState.Loaded(emptyList()))
+
+@Preview
+@Composable
+private fun InviteStaffFullOnFreePreview() = InvitePreview(InviteStaffUiState.Loaded(emptyList(), fullOnPlan = SpacePlan("FREE")))
+
+@Preview
+@Composable
+private fun InviteStaffFullOnBasicPreview() = InvitePreview(InviteStaffUiState.Loaded(previewInvites, fullOnPlan = SpacePlan("BASIC")))

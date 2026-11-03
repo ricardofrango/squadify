@@ -48,6 +48,7 @@ class GetTeamSeasonRecordUseCase(
         val team = teamRepository.getTeamById(teamId) ?: throw NotFoundException("Team not found")
 
         accessPolicy.requireViewGames(userId, GameScope(team.clubId, teamId = teamId))
+        accessPolicy.requireStatsInPlan(team.clubId)
 
         val canSeeRatings = try {
             accessPolicy.requireSeeRatings(userId, GameScope(team.clubId, teamId = teamId))

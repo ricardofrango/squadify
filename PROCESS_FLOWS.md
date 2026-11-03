@@ -838,7 +838,11 @@ graph TD
     C -- allowed --> D[Fetch club + season]
     D --> E[teams = club teams filtered to this age group]
     E --> G["notPlayedMatches = each team's matches still SCHEDULED 2 hours or more past kickoff (Match.isNotPlayed), newest first; upcomingMatches = the other SCHEDULED ones, or currently LIVE/HALF_TIME, sorted by dateTime"]
-    G --> G2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
+    G --> GL{"accessPolicy.requireLiveInPlan(clubId)? (coach server: Pro; clubs server: always)"}
+    GL -- No --> GN["upcomingMatchScores = empty; LIVE/HALF_TIME entries sent as before kickoff (Match.asNotStarted)"]
+    GL -- Yes --> G2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
+    GN -.-> G3
+    GN --> H
     G2 -.-> G3["recentResults = each team's FINISHED matches, newest first, with scores (Matches tab)"]
     G2 --> H["canAddStaff = non-throwing probe: minClubRole=COORDINATOR only (no team-role path)"]
     H --> H1["canCreateTeam = non-throwing probe of configurablePermission=CREATE_TEAM on ageGroupId"]
@@ -982,9 +986,12 @@ graph TD
     D --> G["canManageMatch = non-throwing probe of configurablePermission=MANAGE_MATCH on teamId"]
     G --> H[matches = matchRepository.getMatchesByTeam]
     H --> I["notPlayedMatches = SCHEDULED 2 hours or more past kickoff (Match.isNotPlayed), newest first; upcomingMatches = the other SCHEDULED ones, OR currently LIVE/HALF_TIME, sorted ascending"]
-    I --> I2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
+    I --> IL{"accessPolicy.requireLiveInPlan(clubId)? (coach server: Pro; clubs server: always)"}
+    IL -- No --> IN["upcomingMatchScores = empty; LIVE/HALF_TIME entries sent as before kickoff (Match.asNotStarted)"]
+    IL -- Yes --> I2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
     H --> J["recentResults = FINISHED, newest first, each paired with its scoreline from matchEventRepository.getScoreByMatch → WIN/DRAW/LOSS"]
     I2 --> K[siblingTeamNames = other teams in the same age group]
+    IN --> K
     J --> K
     K --> Z(["Return TeamDetails: team, club, ageGroup, season, poolSize, siblingTeamNames, staff, notPlayedMatches, upcomingMatches, upcomingMatchScores, recentResults, opponents, canManageMatch, canViewMembers, canEditTeam"])
 ```
@@ -1945,7 +1952,9 @@ graph TD
     D -- not found --> X
     D -- found --> E[Fetch Opponent by match.opponentId]
     E -- not found --> X
-    E -- found --> F["PushAudience.forGames(match.clubId, team.ageGroupId): clubs, every member of the club; coach, the owner and the age group's staff"]
+    E -- found --> EL{"A live moment (KICKOFF/HALF_TIME/SECOND_HALF_STARTED/FULL_TIME/GOAL) and accessPolicy.requireLiveInPlan(match.clubId) refuses? (coach server: below Pro)"}
+    EL -- Yes --> X
+    EL -- No --> F["PushAudience.forGames(match.clubId, team.ageGroupId): clubs, every member of the club; coach, the owner and the age group's staff; never causedBy, who triggered it"]
     F --> G["FcmTokenRepository.getTokensForUsers(those ids), flatten to one token list"]
     G -- empty --> X
     G -- non-empty --> H["Recalculate current score"]
@@ -2053,7 +2062,9 @@ graph TD
     B -- not found --> N(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D[Subscribe to LiveMatchBus Flow for matchId]
+    C -- allowed --> CL{"accessPolicy.requireLiveInPlan(match.clubId)? (coach server: Pro; clubs server: always)"}
+    CL -- No --> CP(["Throw PlanLimitException — the route closes the socket with reason PLAN_001, and the app stops retrying"])
+    CL -- Yes --> D[Subscribe to LiveMatchBus Flow for matchId]
     D --> Z(["Return reactive Flow of LiveMatchUpdate — bridged to a WebSocket session"])
 ```
 
@@ -2090,7 +2101,9 @@ The running clock (shown as `MM:SS`) is `elapsedMatchSeconds(match, now)` -- in 
 graph TD
     A[Start: userId, clubId] --> B[CheckUserPermissionUseCase — minClubRole=MEMBER]
     B -- denied --> F(["Throw ForbiddenException"])
-    B -- allowed --> D[Subscribe to ClubMatchesBus Flow for clubId]
+    B -- allowed --> BL{"accessPolicy.requireLiveInPlan(clubId)? (coach server: Pro; clubs server: always)"}
+    BL -- No --> BP(["Throw PlanLimitException — the route closes the socket with reason PLAN_001"])
+    BL -- Yes --> D[Subscribe to ClubMatchesBus Flow for clubId]
     D --> Z(["Return reactive Flow of ClubMatchesUpdate — bridged to a WebSocket session"])
 ```
 
@@ -2525,6 +2538,7 @@ erDiagram
         integer start_year "default 0 — younger/more recent birth year; == end_year for single-year groups"
         integer end_year "default 0 — older birth year; eligibility is always checked against this"
         integer team_size "nullable — default a-side count for this age group's teams"
+        timestamp created_at "default CURRENT_TIMESTAMP — the coach server's plan keeps the first created"
     }
     TEAMS {
         uuid id PK
@@ -2746,6 +2760,7 @@ erDiagram
 | `TrainingPlanLevel` | `SEASON`, `MONTH`, `WEEK` | `training_plans.level` |
 | `TrainingIntensity` | `LOW`, `MEDIUM`, `HIGH` | `training_plans.intensity` (weeks only) |
 | `PlayerPosition` | `GOALKEEPER`, `DEFENDER`, `MIDFIELD`, `WINGER`, `STRIKER` | `players.position` (nullable) |
+| `SpacePlan` | a plan's id, not a fixed list: `FREE`, `BASIC`, `PRO` today (`PlanLimits`) | `space_plans.plan` (the coach database only) |
 
 `AgeGroupRole` is now `COACH`/`STAFF` only — the unused `PARENT`/`PLAYER` values were removed when coaches/staff moved from teams to age groups (`age_group_staff`). Players and family members are modelled entirely through `age_group_players` / `user_players` and never appear in a staff table. The enum keeps the name `AgeGroupRole` for now; `CheckUserPermissionUseCase`'s `minAgeGroupRole` parameter is interpreted as the minimum age-group staff role.
 
@@ -2776,7 +2791,7 @@ graph TD
     U -- No --> F0(["Throw ForbiddenException"])
     U -- Yes --> M{Member of the space?}
     M -- No --> F1(["Throw ForbiddenException"])
-    M -- "Yes, the owner (CLUB_ADMIN)" --> OK(["Allowed: everything, every age group"])
+    M -- "Yes, the owner (CLUB_ADMIN)" --> OK(["Allowed: everything, every age group, unless the plan locks it (below)"])
     M -- Yes, staff --> K{Owner-only action? create age groups, manage staff}
     K -- Yes --> F2(["Throw ForbiddenException: only the owner"])
     K -- No --> AG{Age group in scope? given, or the team's}
@@ -2784,7 +2799,9 @@ graph TD
     AG -- team not found --> F3(["Throw ForbiddenException"])
     AG -- Yes --> S{Age group in this space AND a staff row on it?}
     S -- No --> F4(["Throw ForbiddenException"])
-    S -- Yes --> OK3(["Allowed"])
+    S -- Yes --> PL{"Locked by the space's plan? the age group, or this staff member on it"}
+    PL -- Yes --> F5(["Throw PlanLimitException: 403 PLAN_001"])
+    PL -- No --> OK3(["Allowed"])
 ```
 
 | `AccessPolicy` | Owner | Staff |
@@ -2794,7 +2811,22 @@ graph TD
 | `requireCreateAgeGroups`, `requireManageStaff` | yes | no |
 | Every other check (games, ratings, editing age groups, teams, players, the pool, opponents) | yes | in their own age groups; with no age group in scope, yes |
 
-The plan's limits (stats from Basic, age groups and members per age group, the owner counting as one of the three on Basic) aren't enforced yet.
+**The plan** (`space_plans`, FREE when unset; `CoachPlans`, `PlanLimits`, REQUIREMENTS §5c), on top of the table above, for the owner too:
+
+```mermaid
+graph TD
+    P[The space's plan: FREE, BASIC or PRO] --> L1["Age groups a season: 1, 3, no limit; in each season the first created by created_at stay, the others are locked"]
+    P --> L2["People on an age group, the owner included: 1, 3, no limit; staff in the order they used their code, the later ones locked"]
+    P --> L3["Stats (requireStatsInPlan): Basic and Pro"]
+    L1 --> C1["A locked age group: every check on it refused, left out of visibleAgeGroupIds, listed in GET /v1/spaces' lockedAgeGroupIds"]
+    L2 --> C2["Locked staff: refused on that age group; a new code, or using one, refused while it's full"]
+    L3 --> C3["Season records, Full stats, player season stats refused on Free; MatchDetails.statsInPlan false"]
+    C1 --> E(["Refusals: PlanLimitException, 403 PLAN_001"])
+    C2 --> E
+    C3 --> E
+```
+
+Creating age groups asks `requireRoomForAgeGroups(clubId, seasonId, count)`: refused when the season's age groups plus the new ones go over the limit. A platform admin (`is_platform_admin`, or an email in `PLATFORM_ADMIN_EMAILS`) lists the spaces (`GET /v1/admin/spaces`) and sets a plan (`PUT /v1/admin/spaces/{id}/plan`); nothing is deleted when it goes down. The clubs server's `ClubAccessPolicy` keeps `AccessPolicy`'s do-nothing defaults for the plan checks.
 
 ### 13.2 First setup (`SetUpSpaceUseCase`, `POST /v1/space`)
 
@@ -2814,7 +2846,9 @@ graph TD
 
 All in one transaction, so a refused setup creates nothing. Being staff in other spaces doesn't count.
 
-`GET /v1/spaces` (`GetSpacesUseCase`) returns every space the coach is in from `ClubRepository.getMemberships`, their own first, each as `SpaceAgeGroups` with `isOwner` and their age groups there: all of their own space's, only the ones with a staff row in the others. An empty list before they set up or join one.
+`GET /v1/spaces` (`GetSpacesUseCase`) returns every space the coach is in from `ClubRepository.getMemberships`, their own first, each as `SpaceAgeGroups` with `isOwner` and their age groups there: all of their own space's, only the ones with a staff row in the others, the space's `plan` and the ones it locks (`lockedAgeGroupIds`), and for their own space `ageGroupsThisSeason` (its age groups in today's season, from `CoachSeasons.currentOrNull`, which creates none; 0 for staff) and `ageGroupsLeft` (the plan's age groups a season less those, none below 0; null with no limit, and for staff). An empty list before they set up or join one.
+
+`GET /v1/plans?language=` (`GetPlansUseCase`) returns `PlansResponse`: every plan from `PlanLimits`, cheapest first, with its name, features (their lines in Portuguese for "pt", English otherwise) and limits, and `currentPlan`, the plan of the space the coach owns (`ClubRepository.getMemberships`, the CLUB_ADMIN one; null without one). The coach server's `GET /v1/age-groups/{id}/details` is `GetAgeGroupDetailsUseCase` (§4.4b) plus `staffFullOnPlan` (`CoachPlans.staffFullOn`: the space's plan when the age group has no room for more staff, else null).
 
 ### 13.3 Games on the coach server
 
@@ -2826,7 +2860,9 @@ The games are the shared `gameRoutes` (`:server:web`), the same use cases and pa
 graph TD
     O[Owner: POST /age-groups/id/invites] --> P{requireManageStaff: the owner?}
     P -- No --> F(["Throw ForbiddenException"])
-    P -- Yes --> EM{An email address in the request?}
+    P -- Yes --> RO{"Room on the space's plan for one more person on the age group?"}
+    RO -- No --> PL(["Throw PlanLimitException"])
+    RO -- Yes --> EM{An email address in the request?}
     EM -- No --> C[New code, 6 unambiguous characters, never reused; expires in 7 days]
     C --> R(["Return StaffInvite: K7Q-4MZ"])
     EM -- Yes --> EV{"A valid address, and fewer than 20 emailed by the owner in 24 hours?"}
@@ -2845,7 +2881,9 @@ graph TD
     E -- Yes --> V(["Throw ValidationException"])
     E -- No --> M{"The owner of this space, or already staff on the age group?"}
     M -- Yes --> C2(["Throw ConflictException"])
-    M -- No --> J[Join the space as MEMBER if not in it; staff row COACH on the age group]
+    M -- No --> RM{"Room on the space's plan for one more person on the age group?"}
+    RM -- No --> PLX(["Throw PlanLimitException: the code stays unused"])
+    RM -- Yes --> J[Join the space as MEMBER if not in it; staff row COACH on the age group]
     J --> K{Mark the code used, only if still unused}
     K -- lost a race --> C3(["Throw ConflictException: rolls back"])
     K -- marked --> Z(["Return CoachSpace, isOwner = false"])
@@ -2853,7 +2891,7 @@ graph TD
 
 Other spaces don't matter: an owner of one space, or staff in another, can use a code. After it's used, the space's owner gets a push (`sendStaffJoined`) naming who joined which age group. Removing (`DELETE /age-groups/{id}/staff/{userId}`, the owner only): the owner can't be removed; otherwise the staff row goes, and the space membership too when it was their last age group of the space. Withdrawing (`DELETE /age-groups/{id}/invites/{code}`) deletes a code that hasn't been used.
 
-**The coach database's own table**, beyond the shared ones (§12): `staff_invites` (`id`, `code` unique, `age_group_id` → `age_groups` ON DELETE CASCADE, `created_by` → `users`, `created_at`, `expires_at`, `accepted_by` → `users` nullable, `accepted_at` nullable, `sent_to` nullable: the address a code was emailed to), from `V2__staff_invites.sql` and `V3__staff_invite_email.sql`.
+**The coach database's own tables**, beyond the shared ones (§12): `space_plans` (`club_id` PK → `clubs` ON DELETE CASCADE, `plan` varchar 20, a `SpacePlan` id from `PlanLimits`, `updated_at`; from `V4__plans.sql`; no row is FREE), and `staff_invites` (`id`, `code` unique, `age_group_id` → `age_groups` ON DELETE CASCADE, `created_by` → `users`, `created_at`, `expires_at`, `accepted_by` → `users` nullable, `accepted_at` nullable, `sent_to` nullable: the address a code was emailed to), from `V2__staff_invites.sql` and `V3__staff_invite_email.sql`.
 
 ### 13.6 Deleting an account (`DeleteAccountUseCase`, `POST /v1/users/me/delete`)
 

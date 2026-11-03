@@ -19,6 +19,8 @@ sealed class TeamDetailsUiState {
 sealed class TeamRecordUiState {
     data object Loading : TeamRecordUiState()
     data object Error : TeamRecordUiState()
+    // Not on the space's plan (the coach app's Free plan).
+    data object NotInPlan : TeamRecordUiState()
     data class Loaded(
         val record: TeamSeasonRecord,
         val filter: StatsFilter = StatsFilter.ALL,

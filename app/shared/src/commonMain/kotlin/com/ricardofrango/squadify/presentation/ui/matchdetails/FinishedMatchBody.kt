@@ -1,6 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
+import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.runtime.CompositionLocalProvider
 import com.ricardofrango.squadify.presentation.ui.livematch.LocalPitchOnLight
@@ -153,7 +155,9 @@ private fun StatsTab(state: MatchDetailsUiState.Idle, modifier: Modifier) {
     Box(modifier) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item { SectionHeader(stringResource(Res.string.md_players), first = true) }
-            if (rows.isEmpty()) {
+            if (!details.statsInPlan) {
+                item { StatsNotInPlanMessage() }
+            } else if (rows.isEmpty()) {
                 item { Text(stringResource(Res.string.md_no_stats), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
             } else {
                 item { StatsTable(rows, sort, onSort = { sort = it }, onLongPress = showColumnName) }

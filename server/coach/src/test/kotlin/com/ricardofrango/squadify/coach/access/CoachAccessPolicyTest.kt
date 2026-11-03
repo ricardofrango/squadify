@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.coach.access
 
+import com.ricardofrango.squadify.coach.domain.PlanLimits
+import com.ricardofrango.squadify.coach.data.SpacePlanRepository
+import com.ricardofrango.squadify.coach.domain.CoachPlans
 import com.ricardofrango.squadify.domain.access.GameScope
 import com.ricardofrango.squadify.domain.access.allowed
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
@@ -32,7 +35,11 @@ class CoachAccessPolicyTest {
     private val transactionManager = object : TransactionManager {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
-    private val policy = CoachAccessPolicy(users, ageGroups, teams, transactionManager)
+    // Pro: nothing locked by the plan (PlansTest covers the plans).
+    private val plans = mockk<SpacePlanRepository> {
+        coEvery { planOf(any()) } returns PlanLimits.PRO
+    }
+    private val policy = CoachAccessPolicy(users, ageGroups, teams, transactionManager, CoachPlans(plans))
 
     private val space = "space-1"
     private val sub12 = ageGroup("sub-12", space)

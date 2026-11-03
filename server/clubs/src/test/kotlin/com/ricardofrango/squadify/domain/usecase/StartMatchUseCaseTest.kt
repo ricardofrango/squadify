@@ -105,7 +105,7 @@ class StartMatchUseCaseTest {
         coVerify { matchRepository.startMatch(matchId, starting, 30, "2-3-1") }
         // Nobody placed on the pitch (an app from before the pitch view): the starters still fill it.
         coVerify { matchRepository.addLineupChange(matchId, match { it.slots.values.toSet() == starting.toSet() && it.slots.keys == (0 until 7).toSet() }) }
-        coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.KICKOFF) }
+        coVerify { notifyMatchEventUseCase(matchId, MatchNotificationEvent.KICKOFF, causedBy = any()) }
         coVerify { clubMatchesBus.publish(clubId, com.ricardofrango.squadify.model.ClubMatchesUpdate(match = match)) }
     }
 
@@ -120,7 +120,7 @@ class StartMatchUseCaseTest {
         assertFailsWith<ValidationException> {
             useCase(coach.id, matchId, StartMatchRequest(calledUpIds.take(5), 30))
         }
-        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any(), any(), any()) }
     }
 
     @Test

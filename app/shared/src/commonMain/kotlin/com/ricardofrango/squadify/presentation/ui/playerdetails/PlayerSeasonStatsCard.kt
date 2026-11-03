@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import com.ricardofrango.squadify.model.ourSideFirst
 import com.ricardofrango.squadify.presentation.ui.components.emptyStatsRes
 import androidx.compose.foundation.BorderStroke
@@ -109,6 +110,8 @@ internal fun PlayerSeasonStatsCard(
                 onRetry = onRetry
             )
         }
+
+        SeasonStatsUiState.NotInPlan -> StatsNotInPlanMessage()
 
         is SeasonStatsUiState.Loaded -> {
             val season = state.selectedSeason

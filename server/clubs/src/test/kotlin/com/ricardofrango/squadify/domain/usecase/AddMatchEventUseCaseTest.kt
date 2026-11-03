@@ -72,7 +72,7 @@ class AddMatchEventUseCaseTest {
         assertFailsWith<NotFoundException> {
             useCase("anyone", "no-such-match", CreateMatchEventRequest(type = EventType.GOAL, minute = 10))
         }
-        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any(), any(), any()) }
     }
 
     @Test
@@ -90,7 +90,7 @@ class AddMatchEventUseCaseTest {
         useCase(coach.id, "m-1", CreateMatchEventRequest(type = EventType.GOAL, minute = 23))
 
         // The goal itself goes with the push (here unattributed: no scorer to name).
-        coVerify { notifyMatchEventUseCase("m-1", MatchNotificationEvent.GOAL, match { it.type == EventType.GOAL && it.minute == 23 && it.playerId == null }) }
+        coVerify { notifyMatchEventUseCase("m-1", MatchNotificationEvent.GOAL, match { it.type == EventType.GOAL && it.minute == 23 && it.playerId == null }, any()) }
         coVerify { clubMatchesBus.publish("club-1", ClubMatchesUpdate(score = MatchScore("m-1", 1, 0))) }
     }
 
@@ -108,7 +108,7 @@ class AddMatchEventUseCaseTest {
 
         useCase(coach.id, "m-1", CreateMatchEventRequest(type = EventType.OWN_GOAL, minute = 40))
 
-        coVerify { notifyMatchEventUseCase("m-1", MatchNotificationEvent.GOAL, match { it.type == EventType.OWN_GOAL }) }
+        coVerify { notifyMatchEventUseCase("m-1", MatchNotificationEvent.GOAL, match { it.type == EventType.OWN_GOAL }, any()) }
     }
 
     @Test
@@ -125,7 +125,7 @@ class AddMatchEventUseCaseTest {
 
         useCase(coach.id, "m-1", CreateMatchEventRequest(type = EventType.YELLOW_CARD, minute = 12))
 
-        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any(), any(), any()) }
     }
 
     @Test

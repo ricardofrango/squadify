@@ -3,9 +3,19 @@ package com.ricardofrango.squadify.coach.presentation.ui.home
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.model.SpaceAgeGroups
+import com.ricardofrango.squadify.model.SpacePlan
 
-/** One row of the home's list: an age group and the space it's in, shown with the space's logo. */
-data class HomeAgeGroup(val ageGroup: AgeGroup, val space: Club, val isOwner: Boolean) {
+/**
+ * One row of the home's list: an age group and the space it's in, shown with the space's logo. [locked]:
+ * over the space's [plan] for this coach (REQUIREMENTS §5c), listed but not opened.
+ */
+data class HomeAgeGroup(
+    val ageGroup: AgeGroup,
+    val space: Club,
+    val isOwner: Boolean,
+    val plan: SpacePlan,
+    val locked: Boolean = false
+) {
     val spaceName: String get() = space.name
 }
 
@@ -15,7 +25,9 @@ data class HomeAgeGroup(val ageGroup: AgeGroup, val space: Club, val isOwner: Bo
  */
 fun homeAgeGroups(spaces: List<SpaceAgeGroups>): List<HomeAgeGroup> =
     spaces.sortedByDescending { it.isOwner }.flatMap { space ->
-        space.ageGroups.sortedByDescending { it.endYear }.map { HomeAgeGroup(it, space.space, space.isOwner) }
+        space.ageGroups.sortedByDescending { it.endYear }.map {
+            HomeAgeGroup(it, space.space, space.isOwner, space.plan, locked = it.id in space.lockedAgeGroupIds)
+        }
     }
 
 sealed class CoachHomeUiState {

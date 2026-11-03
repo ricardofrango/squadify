@@ -68,6 +68,12 @@ sealed class Screen {
     @SerialName("my-space")
     data object MySpace : Screen()
 
+    // What each plan has, with the coach's own plan marked, both from the coach server: from My Space's
+    // Plan card and every plan box's See plans (the coach app).
+    @Serializable
+    @SerialName("plans")
+    data object Plans : Screen()
+
     // The owner's invite codes for one age group: create, share, withdraw. Opened from Age Group Details.
     @Serializable
     @SerialName("invite-staff")

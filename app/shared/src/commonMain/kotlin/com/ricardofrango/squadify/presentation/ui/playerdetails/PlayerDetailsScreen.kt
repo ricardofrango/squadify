@@ -483,6 +483,11 @@ private fun PlayerDetailsStatsErrorPreview() =
 
 @Preview
 @Composable
+private fun PlayerDetailsStatsNotInPlanPreview() =
+    PreviewContent(PlayerDetailsUiState.Idle(sampleProfile(withPosition = true)), SeasonStatsUiState.NotInPlan)
+
+@Preview
+@Composable
 private fun PlayerDetailsLoadingPreview() = PreviewContent(PlayerDetailsUiState.Loading, SeasonStatsUiState.Loading)
 
 @Preview

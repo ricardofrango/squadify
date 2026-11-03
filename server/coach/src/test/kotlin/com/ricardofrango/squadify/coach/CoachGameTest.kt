@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach
 
+import com.ricardofrango.squadify.coach.domain.PlanLimits
 import com.ricardofrango.squadify.model.AddPlayersToAgeGroupRequest
 import com.ricardofrango.squadify.model.AgeGroupItemRequest
 import com.ricardofrango.squadify.model.CreateMatchEventRequest
@@ -51,6 +52,8 @@ class CoachGameTest {
             json(owner, SetUpSpaceRequest("Ana's team", SportType.FOOTBALL, AgeGroupItemRequest("Sub-12", 2015, 2015, teamSize = 4), "Sub-12 A"))
         }.body<SpaceSetup>()
         val spaceId = setup.space.id
+        // More than one age group, staff or stats: on Pro.
+        api.setPlan(spaceId, PlanLimits.PRO)
         val players = api.post("/v1/players") {
             json(owner, CreatePlayersRequest(spaceId, (1..4).map { CreatePlayer("Player", "$it", LocalDate(2015, 1, it)) }, ageGroupId = setup.ageGroup.id))
         }.body<List<Player>>()

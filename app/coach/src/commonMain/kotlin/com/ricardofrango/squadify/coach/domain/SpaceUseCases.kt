@@ -2,13 +2,54 @@ package com.ricardofrango.squadify.coach.domain
 
 import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.CreateStaffInviteRequest
+import com.ricardofrango.squadify.model.PlansResponse
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
+import com.ricardofrango.squadify.domain.config.OwnSpace
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.StaffInvite
 
-class GetSpacesUseCase(private val spaceRepository: SpaceRepository) {
-    suspend operator fun invoke(): List<SpaceAgeGroups> = spaceRepository.getSpaces()
+/** Every space the coach is in; each load also keeps [OwnSpacePlan] up to date, the plans included. */
+class GetSpacesUseCase(
+    private val spaceRepository: SpaceRepository,
+    private val ownSpacePlan: OwnSpacePlan,
+    private val loadPlansUseCase: LoadPlansUseCase
+) {
+    suspend operator fun invoke(): List<SpaceAgeGroups> =
+        spaceRepository.getSpaces().also { spaces ->
+            ownSpacePlan.space.value = spaces.firstOrNull { it.isOwner }
+                ?.let { OwnSpace(it.space.id, it.plan, it.ageGroupsThisSeason, it.ageGroupsLeft) }
+            // Best effort: the last plans loaded stay when they can't be fetched now.
+            try {
+                loadPlansUseCase()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+            }
+        }
+}
+
+/**
+ * Every plan with what it has and the coach's own, as the coach server decides them, into
+ * [OwnSpacePlan.plans]; the features written in the app's language.
+ */
+class LoadPlansUseCase(private val spaceRepository: SpaceRepository, private val ownSpacePlan: OwnSpacePlan) {
+    suspend operator fun invoke() {
+        ownSpacePlan.plans.value = spaceRepository.getPlans()
+    }
+}
+
+/**
+ * The space the coach owns, its plan and this season's age groups, as last loaded (null: they own none,
+ * or nothing loaded yet), and every plan as the server sends them, with the coach's own ([plans], null until loaded). The
+ * shared screens' plan messages read them: See plans on a stats lock, the Members tab, Invite staff and
+ * Create age groups when the plan has no room, and the Plans screen.
+ */
+class OwnSpacePlan {
+    val space = MutableStateFlow<OwnSpace?>(null)
+    val plans = MutableStateFlow<PlansResponse?>(null)
 }
 
 class SetUpSpaceUseCase(private val spaceRepository: SpaceRepository) {

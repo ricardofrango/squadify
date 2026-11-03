@@ -15,6 +15,7 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.AgeGroupDetails
 import com.ricardofrango.squadify.model.MatchStatus
+import com.ricardofrango.squadify.model.asNotStarted
 import com.ricardofrango.squadify.model.isNotPlayed
 import com.ricardofrango.squadify.model.MatchOutcome
 import com.ricardofrango.squadify.model.TeamMatchResult
@@ -79,7 +80,9 @@ class GetAgeGroupDetailsUseCase(
                     }
                 )
             }
-        val upcomingMatchScores = upcomingMatches
+        // Without live scores on the plan, a live game is listed as not started, with no score.
+        val liveScores = allowed { accessPolicy.requireLiveInPlan(ageGroup.clubId) }
+        val upcomingMatchScores = if (!liveScores) emptyMap() else upcomingMatches
             .filter { it.status == MatchStatus.LIVE || it.status == MatchStatus.HALF_TIME }
             .associate { it.id to matchEventRepository.getScoreByMatch(it.id) }
 
@@ -92,7 +95,7 @@ class GetAgeGroupDetailsUseCase(
             staff = ageGroupRepository.getAgeGroupStaff(ageGroupId),
             teams = teams,
             notPlayedMatches = notPlayedMatches,
-            upcomingMatches = upcomingMatches,
+            upcomingMatches = if (liveScores) upcomingMatches else upcomingMatches.map { it.asNotStarted() },
             upcomingMatchScores = upcomingMatchScores,
             recentResults = recentResults,
             opponents = opponentRepository.getOpponentsByClub(ageGroup.clubId),

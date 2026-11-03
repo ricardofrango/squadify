@@ -87,4 +87,15 @@ class LiveFeedTest {
         assertEquals(1, opened)
         assertEquals(listOf<LiveFeedEvent<String>>(LiveFeedEvent.Connected), seen)
     }
+
+    @Test
+    fun aSocketRefusedForThePlanIsNotTriedAgain() = runTest {
+        var opened = 0
+        val seen = mutableListOf<LiveFeedEvent<String>>()
+        keepConnected<String>(timeSource = testTimeSource) {
+            flow { opened++; emit(SocketEvent.Open); emit(SocketEvent.NotInPlan) }
+        }.collect { seen += it }
+        assertEquals(1, opened)
+        assertEquals(listOf<LiveFeedEvent<String>>(LiveFeedEvent.Connected, LiveFeedEvent.NotInPlan), seen)
+    }
 }

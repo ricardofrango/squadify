@@ -150,6 +150,7 @@
     <string name="btn_creating_age_groups">A criar...</string>
     <string name="msg_age_groups_footer_helper">Todas as linhas são guardadas em conjunto — se uma falhar, nenhuma é guardada.</string>
     <string name="msg_create_age_groups_failed">Ocorreu um erro ao criar os escalões. Por favor, tente novamente.</string>
+    <string name="msg_age_groups_not_in_plan">O seu plano não tem lugar para mais escalões nesta época.</string>
     <string name="msg_age_group_conflict">Um destes anos de nascimento já tem um escalão nesta época.</string>
     <string name="label_team_size">Tamanho da equipa *</string>
     <string name="label_choose_team_size">Escolher</string>
@@ -645,6 +646,19 @@
     <string name="stats_pre_stats_option">jogado antes do registo de estatísticas</string>
     <string name="stats_load_failed_title">Não foi possível carregar as estatísticas</string>
     <string name="stats_load_failed_body">Verifique a ligação e tente novamente.</string>
+    <string name="stats_not_in_plan_title">As estatísticas vêm com o plano %1$s</string>
+    <string name="stats_not_in_plan_title_any">As estatísticas não estão neste plano</string>
+    <string name="stats_not_in_plan_body">O seu plano %1$s não inclui as estatísticas.</string>
+    <string name="staff_not_in_plan_alone_title">O staff vem com o plano %1$s</string>
+    <string name="staff_not_in_plan_alone_body">No plano %1$s o escalão é só do dono.</string>
+    <string name="stats_not_in_plan_ask_owner">O dono do espaço pode mudar o plano para desbloquear as estatísticas.</string>
+    <string name="btn_see_plans">Ver planos</string>
+    <string name="staff_not_in_plan_full_title">Este escalão está cheio no plano %1$s</string>
+    <string name="plan_people_sentence">O %1$s tem até %2$d pessoas por escalão, incluindo o dono.</string>
+    <string name="plan_no_limit_sentence">O %1$s não tem limite.</string>
+    <string name="age_groups_not_in_plan_title">Sem mais escalões nesta época no plano %1$s</string>
+    <string name="plan_one_age_group_sentence">O %1$s tem 1 escalão por época.</string>
+    <string name="plan_age_groups_sentence">O %1$s tem %2$d escalões por época.</string>
     <string name="stats_season">Época</string>
     <string name="stats_close">Fechar</string>
     <string name="record_season_record">Época</string>

@@ -25,6 +25,17 @@ import com.ricardofrango.squadify.coach.presentation.ui.home.CoachHomeScreen
 import com.ricardofrango.squadify.coach.presentation.ui.invite.InviteStaffScreen
 import com.ricardofrango.squadify.coach.presentation.ui.join.JoinWithCodeScreen
 import com.ricardofrango.squadify.coach.presentation.ui.space.MySpaceScreen
+import com.ricardofrango.squadify.coach.presentation.ui.plans.PlansScreen
+import com.ricardofrango.squadify.coach.domain.OwnSpacePlan
+import kotlinx.coroutines.CancellationException
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import com.ricardofrango.squadify.presentation.ui.components.LocalPlans
+import com.ricardofrango.squadify.coach.domain.LoadPlansUseCase
+import com.ricardofrango.squadify.model.SpacePlan
+import com.ricardofrango.squadify.presentation.ui.components.LocalOwnSpace
+import com.ricardofrango.squadify.presentation.ui.components.LocalSeePlans
 import com.ricardofrango.squadify.coach.presentation.ui.spacesetup.SpaceSetupScreen
 import com.ricardofrango.squadify.domain.service.SessionEventBus
 import com.ricardofrango.squadify.presentation.navigation.AppNavigator
@@ -96,7 +107,21 @@ fun CoachNavigation(navigator: AppNavigator = rememberAppNavigator()) {
             slideOutHorizontally(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { it }
     val fade: ContentTransform = fadeIn(tween(NAV_ANIM_MS)) togetherWith fadeOut(tween(NAV_ANIM_MS))
 
-    CompositionLocalProvider(LocalViewModelStoreOwner provides parentOwner) {
+    // The own space and its plan, for the shared screens' plan boxes (the stats locks, and the Members tab,
+    // Invite staff and Create age groups when the plan has no room), each with See plans.
+    val ownSpacePlan = koinInject<OwnSpacePlan>()
+    val ownSpace by ownSpacePlan.space.collectAsStateWithLifecycle()
+    // Every plan as the server sends them, for the boxes' wording (loaded with the spaces, and by Plans).
+    val plansResponse by ownSpacePlan.plans.collectAsStateWithLifecycle()
+    // Everyone gets See plans; with no space of their own, Plans marks none as theirs.
+    val seePlans: () -> Unit = { navigator.navigate(Screen.Plans) }
+
+    CompositionLocalProvider(
+        LocalViewModelStoreOwner provides parentOwner,
+        LocalOwnSpace provides ownSpace,
+        LocalPlans provides plansResponse?.plans.orEmpty(),
+        LocalSeePlans provides seePlans
+    ) {
         NavDisplay(
             backStack = navigator.backStack,
             onBack = { navigator.popBackStack() },
@@ -169,7 +194,35 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
     screen<Screen.MySpace> {
         MySpaceScreen(
             onNavigateBack = { navigator.popBackStack() },
-            onLogoChanged = { navigator.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true) }
+            onLogoChanged = { navigator.previousBackStackEntry?.savedStateHandle?.set(KEY_CLUB_STRUCTURE_CHANGED, true) },
+            onSeePlans = { navigator.navigate(Screen.Plans) }
+        )
+    }
+
+    screen<Screen.Plans> {
+        val response by koinInject<OwnSpacePlan>().plans.collectAsStateWithLifecycle()
+        val loadPlans = koinInject<LoadPlansUseCase>()
+        // Loaded here too when they aren't yet (opened before Home, or the last load failed).
+        var attempt by remember { mutableIntStateOf(0) }
+        var failed by remember { mutableStateOf(false) }
+        LaunchedEffect(attempt) {
+            if (response == null) {
+                failed = false
+                failed = try {
+                    loadPlans()
+                    false
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    true
+                }
+            }
+        }
+        PlansScreen(
+            currentPlan = response?.currentPlan,
+            plans = response?.plans.orEmpty(),
+            onRetry = if (failed) ({ attempt++ }) else null,
+            onNavigateBack = { navigator.popBackStack() }
         )
     }
 

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach
 
+import com.ricardofrango.squadify.coach.domain.PlanLimits
 import com.ricardofrango.squadify.coach.config.CoachConfig
 import com.ricardofrango.squadify.model.AgeGroupItemRequest
 import com.ricardofrango.squadify.model.CreateMatchRequest
@@ -10,6 +11,7 @@ import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.MatchType
 import com.ricardofrango.squadify.model.MatchVenue
 import com.ricardofrango.squadify.model.Opponent
+import com.ricardofrango.squadify.model.PLAN_LIMIT_CODE
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.SportType
@@ -32,8 +34,9 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.time.Clock
 
-// The live game's WebSocket, shared with the clubs server: the coach's own token follows the match;
-// a token from another audience (the clubs app's) and someone outside the space are closed out.
+// The live game's WebSocket, shared with the clubs server: the coach's own token follows the match on
+// Pro; below Pro, and for a token from another audience (the clubs app's) or someone outside the space,
+// it's closed.
 class CoachLiveTest {
 
     @Test
@@ -42,6 +45,7 @@ class CoachLiveTest {
         val api = jsonClient()
         val owner = api.signUp()
         val match = scheduleMatch(owner)
+        api.setPlan(match.clubId, PlanLimits.PRO)
         val sockets = socketClient()
 
         sockets.webSocket("/v1/matches/${match.id}/live?token=$owner") {
@@ -69,6 +73,24 @@ class CoachLiveTest {
         val outsider = api.signUp()
         sockets.webSocket("/v1/matches/${match.id}/live?token=$outsider") {
             assertEquals(CloseReason.Codes.VIOLATED_POLICY.code, withTimeout(5_000) { closeReason.await() }?.code)
+        }
+    }
+
+    @Test
+    fun belowProTheSocketsAreClosedForThePlan() = testApplication {
+        application { module() }
+        val api = jsonClient()
+        val owner = api.signUp()
+        val match = scheduleMatch(owner)
+        val sockets = socketClient()
+
+        for (plan in listOf(PlanLimits.FREE, PlanLimits.BASIC)) {
+            api.setPlan(match.clubId, plan)
+            for (path in listOf("/v1/matches/${match.id}/live", "/v1/clubs/${match.clubId}/matches/live")) {
+                sockets.webSocket("$path?token=$owner") {
+                    assertEquals(PLAN_LIMIT_CODE, withTimeout(5_000) { closeReason.await() }?.message, "$plan $path")
+                }
+            }
         }
     }
 

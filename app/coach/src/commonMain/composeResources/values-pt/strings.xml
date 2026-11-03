@@ -25,6 +25,7 @@
     <string name="coach_home_add_age_group">+ Adicionar escalão</string>
     <string name="coach_home_create_age_group">Criar escalão</string>
     <string name="coach_home_join">Entrar com um código</string>
+    <string name="coach_home_locked">Bloqueado no plano %1$s, guardado até o plano o permitir</string>
     <string name="coach_menu_account">Conta</string>
     <string name="coach_home_born">Nascidos em %1$s · %2$s</string>
     <string name="coach_home_empty_title">Ainda não tens escalões</string>
@@ -41,6 +42,7 @@
     <string name="msg_join_not_found">Esse código não existe. Confirma-o e tenta outra vez.</string>
     <string name="msg_join_expired">Este código expirou. Pede um novo.</string>
     <string name="msg_join_used">Este código já foi usado, ou já estás no escalão dele.</string>
+    <string name="msg_join_no_room">Este escalão não tem lugar para ti no plano. Fala com o dono.</string>
     <string name="msg_join_failed">Não foi possível entrar. Verifica a ligação e tenta outra vez.</string>
 
     <!-- Inviting staff to an age group -->
@@ -59,6 +61,7 @@
     <string name="msg_invite_copied">Código copiado</string>
     <string name="msg_invite_withdrawn">Código retirado</string>
     <string name="msg_invite_create_failed">Não foi possível criar um código. Tenta outra vez.</string>
+    <string name="msg_invite_no_room">O teu plano não tem lugar para mais staff neste escalão.</string>
     <string name="msg_invite_withdraw_failed">Não foi possível retirar o código. Tenta outra vez.</string>
     <string name="msg_invites_failed">Não foi possível carregar os códigos.</string>
     <string name="invite_email_title">Enviar um código por email</string>
@@ -106,4 +109,24 @@
     <string name="my_space_title">O meu clube ou equipa</string>
     <string name="my_space_logo_intro">O teu logótipo aparece nos teus escalões, nos teus jogos, no jogo ao vivo e nas notificações.</string>
     <string name="msg_my_space_failed">Não foi possível carregar o teu clube ou equipa. Verifica a ligação e tenta outra vez.</string>
+    <!-- Plans: My Space's Plan card and the Plans screen (REQUIREMENTS §5c) -->
+    <string name="plan_card_title">Plano</string>
+    <string name="plan_card_this_season">Esta época</string>
+    <string name="plan_age_groups_of">Escalões: %1$d de %2$d</string>
+    <string name="plan_age_groups_no_limit">Escalões: %1$d</string>
+    <string name="plan_people_just_you">Pessoas por escalão: só tu</string>
+    <string name="plan_people_up_to">Pessoas por escalão: até %1$d, incluindo tu</string>
+    <string name="plan_people_no_limit">Pessoas por escalão: sem limite</string>
+    <string name="btn_see_plans_row">Ver planos</string>
+    <string name="plans_title">Planos</string>
+    <string name="plans_your_plan">O teu plano</string>
+    <string name="plans_intro_first">Incluído em todos os espaços</string>
+    <string name="plans_intro_more">Tudo o que está no %1$s, mais:</string>
+    <string name="plans_age_groups_one">1 escalão por época</string>
+    <string name="plans_age_groups_up_to">%1$d escalões por época</string>
+    <string name="plans_age_groups_no_limit">Sem limite de escalões</string>
+    <string name="plans_people_only_you">Só tu</string>
+    <string name="plans_people_up_to">Até %1$d pessoas por escalão, incluindo tu</string>
+    <string name="plans_people_no_limit">Sem limite de pessoas por escalão</string>
+    <string name="plans_load_failed">Não foi possível carregar os planos.</string>
 </resources>

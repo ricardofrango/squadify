@@ -7,7 +7,13 @@ import com.ricardofrango.squadify.coach.domain.GetStaffInvitesUseCase
 import com.ricardofrango.squadify.coach.domain.InviteEmail
 import com.ricardofrango.squadify.coach.domain.RevokeStaffInviteUseCase
 import com.ricardofrango.squadify.data.remote.ApiException
+import com.ricardofrango.squadify.data.remote.isNotInPlan
+import com.ricardofrango.squadify.domain.usecase.GetAgeGroupDetailsUseCase
+import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.StaffInvite
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -21,23 +27,28 @@ sealed class InviteStaffUiState {
     data object Loading : InviteStaffUiState()
     data object Failed : InviteStaffUiState()
 
-    /** The codes still waiting, the newest first, and the address typed to email one. */
+    /**
+     * The codes still waiting, the newest first, and the address typed to email one. [fullOnPlan]: the
+     * space's plan when the age group has no room for more staff on it (no new code until it changes).
+     */
     data class Loaded(
         val invites: List<StaffInvite>,
+        val fullOnPlan: SpacePlan? = null,
         val isCreating: Boolean = false,
         val email: String = "",
         val isSending: Boolean = false,
         val isEmailInvalid: Boolean = false
     ) : InviteStaffUiState() {
-        val canSend: Boolean get() = email.isNotBlank() && !isSending && !isCreating
+        val canSend: Boolean get() = email.isNotBlank() && !isSending && !isCreating && fullOnPlan == null
     }
 }
 
 /** One-off messages, for the snackbar. */
-enum class InviteStaffMessage { CREATE_FAILED, EMAIL_SENT, EMAIL_NOT_SENT, SEND_FAILED, WITHDRAWN, WITHDRAW_FAILED }
+enum class InviteStaffMessage { CREATE_FAILED, NO_ROOM_ON_PLAN, EMAIL_SENT, EMAIL_NOT_SENT, SEND_FAILED, WITHDRAWN, WITHDRAW_FAILED }
 
 class InviteStaffViewModel(
     private val getStaffInvitesUseCase: GetStaffInvitesUseCase,
+    private val getAgeGroupDetailsUseCase: GetAgeGroupDetailsUseCase,
     private val createStaffInviteUseCase: CreateStaffInviteUseCase,
     private val revokeStaffInviteUseCase: RevokeStaffInviteUseCase
 ) : ViewModel() {
@@ -51,7 +62,14 @@ class InviteStaffViewModel(
         viewModelScope.launch {
             _state.value = InviteStaffUiState.Loading
             _state.value = try {
-                InviteStaffUiState.Loaded(getStaffInvitesUseCase(ageGroupId).sortedByDescending { it.createdAt })
+                coroutineScope {
+                    // Whether the plan has room, as the server says. If that can't be told, no box:
+                    // creating a code still says so when there's no room.
+                    val fullOnPlan = async { runCatching { getAgeGroupDetailsUseCase(ageGroupId).staffFullOnPlan }.getOrNull() }
+                    InviteStaffUiState.Loaded(getStaffInvitesUseCase(ageGroupId).sortedByDescending { it.createdAt }, fullOnPlan.await())
+                }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 InviteStaffUiState.Failed
             }
@@ -60,7 +78,7 @@ class InviteStaffViewModel(
 
     fun onCreateClicked(ageGroupId: String) {
         val loaded = _state.value as? InviteStaffUiState.Loaded ?: return
-        if (loaded.isCreating || loaded.isSending) return
+        if (loaded.isCreating || loaded.isSending || loaded.fullOnPlan != null) return
         viewModelScope.launch {
             _state.value = loaded.copy(isCreating = true)
             try {
@@ -68,7 +86,7 @@ class InviteStaffViewModel(
                 _state.update { s -> (s as? InviteStaffUiState.Loaded)?.let { it.copy(invites = listOf(invite) + it.invites, isCreating = false) } ?: s }
             } catch (e: Exception) {
                 _state.update { s -> (s as? InviteStaffUiState.Loaded)?.copy(isCreating = false) ?: s }
-                _messages.emit(InviteStaffMessage.CREATE_FAILED)
+                _messages.emit(if (e.isNotInPlan) InviteStaffMessage.NO_ROOM_ON_PLAN else InviteStaffMessage.CREATE_FAILED)
             }
         }
     }
@@ -94,7 +112,13 @@ class InviteStaffViewModel(
             } catch (e: Exception) {
                 _state.update { s -> (s as? InviteStaffUiState.Loaded)?.copy(isSending = false) ?: s }
                 // A 400: the email didn't go (or today's limit is reached); no code was kept.
-                _messages.emit(if ((e as? ApiException)?.statusCode == 400) InviteStaffMessage.EMAIL_NOT_SENT else InviteStaffMessage.SEND_FAILED)
+                _messages.emit(
+                    when {
+                        e.isNotInPlan -> InviteStaffMessage.NO_ROOM_ON_PLAN
+                        (e as? ApiException)?.statusCode == 400 -> InviteStaffMessage.EMAIL_NOT_SENT
+                        else -> InviteStaffMessage.SEND_FAILED
+                    }
+                )
             }
         }
     }

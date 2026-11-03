@@ -867,7 +867,10 @@ data class AgeGroupDetails(
     val canManageMatch: Boolean,
     val canAssignPlayersToAgeGroup: Boolean,
     // Coordinator+, like Add staff (UpdateAgeGroupUseCase's gate): shows "Edit age group".
-    val canEditAgeGroup: Boolean = false
+    val canEditAgeGroup: Boolean = false,
+    // The coach server's: the space's plan when it has no room for more staff on this age group (the box
+    // on the Members tab and Invite staff), null while there's room. Always null on the clubs server.
+    val staffFullOnPlan: SpacePlan? = null
 )
 
 /**
@@ -1009,6 +1012,14 @@ val Match.canChangeTeamSize: Boolean
 val NOT_PLAYED_AFTER: Duration = 2.hours
 
 fun Match.isNotPlayed(now: Instant): Boolean = status == MatchStatus.SCHEDULED && now >= dateTime + NOT_PLAYED_AFTER
+
+/**
+ * This match as a list shows it before kickoff: a live game on a plan without live scores (REQUIREMENTS
+ * §5c). Its own screen still has the real one.
+ */
+fun Match.asNotStarted(): Match =
+    if (status == MatchStatus.LIVE || status == MatchStatus.HALF_TIME) copy(status = MatchStatus.SCHEDULED, kickoffAt = null, secondHalfStartedAt = null)
+    else this
 
 /**
  * How far the server's clock is ahead of this device's (negative if behind), from one request: the
@@ -1216,7 +1227,10 @@ data class MatchDetails(
     val lineupChanges: List<MatchLineupChange> = emptyList(),
     // The a-side counts the club's sport is played with (SportType.teamSizes), for changing the
     // match's own team size; empty from a server that predates it.
-    val teamSizeOptions: List<Int> = emptyList()
+    val teamSizeOptions: List<Int> = emptyList(),
+    // The Stats tab's players' lines are on the club's plan: false only on the coach server's Free plan
+    // (REQUIREMENTS §5c), where the tab says what the plan allows instead.
+    val statsInPlan: Boolean = true
 )
 
 @Serializable

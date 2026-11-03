@@ -122,7 +122,9 @@ class GetMatchDetailsUseCase(
             events = events,
             playerStats = playerStats,
             lineupChanges = lineupChanges,
-            teamSizeOptions = club?.sport?.teamSizes.orEmpty()
+            teamSizeOptions = club?.sport?.teamSizes.orEmpty(),
+            // The players' lines stay (editing the record afterwards needs them); the Stats tab shows them only on a plan with stats.
+            statsInPlan = allowed { accessPolicy.requireStatsInPlan(match.clubId) }
         )
     }
 }

@@ -20,6 +20,7 @@ class GetLiveMatchUpdatesUseCase(
 
         // 1. Authorize: Member of club can see live updates
         accessPolicy.requireMember(userId, match.clubId)
+        accessPolicy.requireLiveInPlan(match.clubId)
 
         // 2. Return the Reactive Stream
         liveMatchBus.subscribe(matchId)

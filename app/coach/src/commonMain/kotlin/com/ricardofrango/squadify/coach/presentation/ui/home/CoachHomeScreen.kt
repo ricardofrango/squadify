@@ -5,6 +5,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.draw.alpha
+import com.ricardofrango.squadify.model.SpacePlan
+import com.ricardofrango.squadify.presentation.ui.components.displayName
+import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
+import squadify.app.coach.generated.resources.coach_home_locked
 import squadify.app.coach.generated.resources.coach_menu_my_space
 import squadify.app.coach.generated.resources.ic_space
 import com.ricardofrango.squadify.coach.presentation.ui.space.SpaceLogo
@@ -231,7 +236,9 @@ private fun CoachHomeContent(
                         contentPadding = ScreenPadding.Values,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(uiState.ageGroups, key = { it.ageGroup.id }) { row -> AgeGroupRow(row) { onOpenAgeGroup(row.ageGroup.id) } }
+                        items(uiState.ageGroups, key = { it.ageGroup.id }) { row ->
+                            AgeGroupRow(row, onClick = { onOpenAgeGroup(row.ageGroup.id) }.takeUnless { row.locked })
+                        }
                         item {
                             OutlinedButton(
                                 onClick = onCreateAgeGroup,
@@ -274,10 +281,11 @@ private fun JoinButton(onClick: () -> Unit) {
     }
 }
 
-// Each row starts with its space's logo (or initials), so staff in several spaces tell them apart.
+// Each row starts with its space's logo (or initials), so staff in several spaces tell them apart. A
+// locked one ([onClick] null) is dimmed and says why.
 @Composable
-private fun AgeGroupRow(row: HomeAgeGroup, onClick: () -> Unit) {
-    SectionCard(onClick = onClick) {
+private fun AgeGroupRow(row: HomeAgeGroup, onClick: (() -> Unit)?) {
+    SectionCard(onClick = onClick, modifier = if (row.locked) Modifier.alpha(0.6f) else Modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             SpaceLogo(row.space, size = 44.dp)
             Spacer(Modifier.width(14.dp))
@@ -290,6 +298,9 @@ private fun AgeGroupRow(row: HomeAgeGroup, onClick: () -> Unit) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (row.locked) {
+                    Text(stringResource(Res.string.coach_home_locked, row.plan.displayName()), style = MaterialTheme.typography.bodySmall, color = AlertRed)
+                }
             }
         }
     }
@@ -314,15 +325,17 @@ private fun previewClub(id: String, name: String) =
 
 private val previewSpaces = listOf(
     SpaceAgeGroups(
-        previewClub("space-1", "Fontelas FC"), isOwner = true,
+        previewClub("space-1", "Fontelas FC"), isOwner = true, plan = SpacePlan("BASIC"),
         ageGroups = listOf(
             AgeGroup(id = "ag-1", clubId = "space-1", name = "Sub 11", seasonId = "s1", startYear = 2016, endYear = 2016, teamSize = 7),
             AgeGroup(id = "ag-2", clubId = "space-1", name = "Sub 13", seasonId = "s1", startYear = 2015, endYear = 2014, teamSize = 9)
         )
     ),
     SpaceAgeGroups(
-        previewClub("space-2", "Ana's team"), isOwner = false,
-        ageGroups = listOf(AgeGroup(id = "ag-3", clubId = "space-2", name = "Sub 9", seasonId = "s2", startYear = 2018, endYear = 2018, teamSize = 5))
+        previewClub("space-2", "Ana's team"), isOwner = false, plan = SpacePlan("FREE"),
+        ageGroups = listOf(AgeGroup(id = "ag-3", clubId = "space-2", name = "Sub 9", seasonId = "s2", startYear = 2018, endYear = 2018, teamSize = 5)),
+        // Over Ana's plan for this coach: locked.
+        lockedAgeGroupIds = listOf("ag-3")
     )
 )
 

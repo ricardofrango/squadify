@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import androidx.compose.runtime.remember
 import org.jetbrains.compose.resources.getString
 import squadify.app.shared.generated.resources.msg_refresh_failed
@@ -461,6 +462,8 @@ private fun PlayersTab(
                 }
             }
 
+            TeamRecordUiState.NotInPlan -> item { StatsNotInPlanMessage() }
+
             is TeamRecordUiState.Loaded -> {
                 val record = recordState.record
                 if (record.matches.isEmpty()) {
@@ -651,6 +654,11 @@ private fun TeamDetailsPlayersMemberPreview() =
 @Composable
 private fun TeamDetailsPlayersErrorPreview() =
     TeamPreview(sampleDetails(populated = true, canManage = true), TeamRecordUiState.Error, TeamTab.PLAYERS)
+
+@Preview
+@Composable
+private fun TeamDetailsPlayersNotInPlanPreview() =
+    TeamPreview(sampleDetails(populated = true, canManage = true), TeamRecordUiState.NotInPlan, TeamTab.PLAYERS)
 
 @Preview
 @Composable

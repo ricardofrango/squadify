@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.fullstats
 
+import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import com.ricardofrango.squadify.presentation.ui.components.squadifyDatePickerColors
 import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
 import androidx.compose.ui.draw.clip
@@ -197,6 +198,7 @@ private fun FullStatsContent(
                 filledAction = true,
                 error = true
             )
+            FullStatsUiState.NotInPlan -> Column(modifier.padding(16.dp)) { StatsNotInPlanMessage() }
             is FullStatsUiState.Loaded -> BoxWithConstraints(modifier) {
                 // The side panel is only for a phone lying down, where the filters on top would leave the
                 // table a few rows. An unfolded foldable or a tablet has the height: filters on top, as upright.
@@ -706,7 +708,7 @@ private fun ExplainSheet(onDismiss: () -> Unit) {
 // ---- States ----
 
 @Composable
-private fun CenteredMessage(modifier: Modifier, title: String, body: String, action: Pair<String, () -> Unit>, filledAction: Boolean = false, error: Boolean = false) {
+private fun CenteredMessage(modifier: Modifier, title: String, body: String, action: Pair<String, () -> Unit>?, filledAction: Boolean = false, error: Boolean = false) {
     Column(modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         val tint = if (error) AlertRed else PitchGreen
         Box(Modifier.size(56.dp).background(tint.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
@@ -717,6 +719,7 @@ private fun CenteredMessage(modifier: Modifier, title: String, body: String, act
         Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, textAlign = TextAlign.Center)
         Spacer(Modifier.height(4.dp))
         Text(body, style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.7f), textAlign = TextAlign.Center, modifier = Modifier.widthIn(max = 300.dp))
+        if (action == null) return@Column
         Spacer(Modifier.height(14.dp))
         if (filledAction) {
             Button(onClick = action.second, shape = RoundedCornerShape(20.dp), colors = ButtonDefaults.buttonColors(containerColor = ClubChrome, contentColor = Color.White)) { Text(action.first) }
@@ -839,3 +842,7 @@ private fun FullStatsLoadingPreview() = PreviewFullStats(FullStatsUiState.Loadin
 @Preview
 @Composable
 private fun FullStatsErrorPreview() = PreviewFullStats(FullStatsUiState.Error)
+
+@Preview
+@Composable
+private fun FullStatsNotInPlanPreview() = PreviewFullStats(FullStatsUiState.NotInPlan)

@@ -1,6 +1,8 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.service.ClubPushAudience
+import com.ricardofrango.squadify.exception.PlanLimitException
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.FcmTokenRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
@@ -48,6 +50,8 @@ class NotifyMatchEventUseCaseTest {
         override suspend fun <T> runInTransaction(block: suspend () -> T): T = block()
     }
     private val playerRepository = mockk<PlayerRepository>()
+    // Allows everything, as the clubs server's does; the coach server's refuses following live below Pro.
+    private val accessPolicy = mockk<AccessPolicy>(relaxed = true)
     private val publicImageLinks = PublicImageLinks("https://api.example.com", "secret", clock = object : kotlin.time.Clock {
         override fun now() = Instant.fromEpochSeconds(1_000)
     })
@@ -61,7 +65,8 @@ class NotifyMatchEventUseCaseTest {
         pushNotificationService,
         transactionManager,
         playerRepository,
-        publicImageLinks
+        publicImageLinks,
+        accessPolicy
     )
 
     private val clubId = "club-1"
@@ -89,6 +94,33 @@ class NotifyMatchEventUseCaseTest {
         useCase(matchId, MatchNotificationEvent.KICKOFF)
 
         coVerify { pushNotificationService.sendMatchKickedOff(listOf("token-1"), PushLink.match(clubId, matchId), team.name, opponent.name) }
+    }
+
+    @Test
+    fun withoutFollowingLiveOnThePlanOnlyTheScheduleIsPushed() = runBlocking {
+        stubHappyPath(listOf("token-1"))
+        coEvery { accessPolicy.requireLiveInPlan(clubId) } throws PlanLimitException("Following games live is on the Pro plan")
+
+        useCase(matchId, MatchNotificationEvent.KICKOFF)
+        useCase(matchId, MatchNotificationEvent.GOAL)
+        useCase(matchId, MatchNotificationEvent.FULL_TIME)
+        useCase(matchId, MatchNotificationEvent.RESCHEDULED)
+
+        coVerify(exactly = 0) { pushNotificationService.sendMatchKickedOff(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { pushNotificationService.sendGoalScored(any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { pushNotificationService.sendMatchFinished(any(), any(), any(), any(), any()) }
+        coVerify { pushNotificationService.sendMatchRescheduled(listOf("token-1"), PushLink.match(clubId, matchId), team.name, opponent.name) }
+    }
+
+    @Test
+    fun whoeverCausedItIsntTold() = runBlocking {
+        stubHappyPath(listOf("token-1"))
+        coEvery { fcmTokenRepository.getTokensForUsers(emptyList()) } returns emptyMap()
+
+        // u1, the only member with a device, scored: nobody else to tell.
+        useCase(matchId, MatchNotificationEvent.GOAL, causedBy = "u1")
+
+        coVerify(exactly = 0) { pushNotificationService.sendGoalScored(any(), any(), any(), any(), any(), any()) }
     }
 
     @Test

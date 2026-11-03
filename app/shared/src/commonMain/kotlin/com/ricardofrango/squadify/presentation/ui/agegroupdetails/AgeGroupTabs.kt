@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.StaffNotInPlanNotice
+import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.material3.AlertDialog
@@ -220,6 +222,7 @@ private fun LazyListScope.statsItems(
                     StatsMessage(stringResource(Res.string.stats_load_failed_title), stringResource(Res.string.ag_stats_failed_body), onRetry = onRetry)
                 }
             }
+            recordState is AgeGroupRecordUiState.NotInPlan -> item { StatsNotInPlanMessage() }
             recordState is AgeGroupRecordUiState.Loaded -> {
                 val record = recordState.record
                 if (record.teams.all { it.matches.isEmpty() }) {
@@ -594,7 +597,9 @@ internal fun AgeGroupMembersTab(
     // Null without ASSIGN_PLAYERS_TO_AGE_GROUP: no ✕ on the player rows.
     onRemovePlayer: ((String) -> Unit)? = null,
     // The coach app's owner: a delete button on each staff row, after a confirmation.
-    onRemoveStaff: ((String) -> Unit)? = null
+    onRemoveStaff: ((String) -> Unit)? = null,
+    // The coach app's owner, who brings staff in with invite codes (canAddStaff is off there).
+    invitesStaff: Boolean = false
 ) {
     var confirmRemove by remember { mutableStateOf<Player?>(null) }
     var confirmRemoveStaff by remember { mutableStateOf<AgeGroupStaffMember?>(null) }
@@ -610,6 +615,9 @@ internal fun AgeGroupMembersTab(
     // Disabled players stay in the pool but get their own section below the active ones.
     val (activePlayers, disabledPlayers) = players.partition { it.active }
     val disabledCount = details.players.count { !it.active }
+    // The coach app's owner, when the server says the plan has no room for more staff: why, and See plans.
+    val fullOnPlan = details.staffFullOnPlan?.takeIf { details.canAddStaff || invitesStaff }
+    val noRoomOnPlan = fullOnPlan != null
 
     LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         // ---- Staff ----
@@ -619,7 +627,10 @@ internal fun AgeGroupMembersTab(
                 if (details.canAddStaff) stringResource(Res.string.ag_add_staff_short) to onAddStaff else null
             )
         }
-        if (details.staff.isEmpty()) {
+        if (fullOnPlan != null) {
+            item { StaffNotInPlanNotice(fullOnPlan) }
+        }
+        if (details.staff.isEmpty() && !noRoomOnPlan) {
             item {
                 EmptyCard(
                     stringResource(Res.string.ag_no_staff_title),
@@ -627,7 +638,7 @@ internal fun AgeGroupMembersTab(
                     if (details.canAddStaff) stringResource(Res.string.btn_add_staff) to onAddStaff else null
                 )
             }
-        } else {
+        } else if (details.staff.isNotEmpty()) {
             item {
                 StatsCard(contentPadding = 0.dp) {
                     details.staff.forEachIndexed { i, member ->

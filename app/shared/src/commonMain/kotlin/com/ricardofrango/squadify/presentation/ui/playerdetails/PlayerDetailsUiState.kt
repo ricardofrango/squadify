@@ -18,6 +18,8 @@ sealed class PlayerDetailsUiState {
 sealed class SeasonStatsUiState {
     data object Loading : SeasonStatsUiState()
     data object Error : SeasonStatsUiState()
+    // Not on the space's plan (the coach app's Free plan).
+    data object NotInPlan : SeasonStatsUiState()
     data class Loaded(
         val stats: PlayerSeasonStats,
         val selectedSeasonId: String?,

@@ -114,15 +114,24 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
 - **One space of your own, staff in others** (the developer, 2026-10-30): an account owns one space at most, and can be staff on age groups in any number of other people's spaces, joined with codes. The app's home is one flat list of every age group they have, each naming its space, with creating an age group (their own space, set up on the first one) and joining with a code always available: as buttons when the list is empty, and from a side menu (☰).
 - **Plans** (pricing still to be decided), for the whole space, not per person:
 
-    | Plan | Features | Age groups | Members |
+    | Plan | Features | Age groups (a season) | Members |
     |---|---|---|---|
-    | **Free**, with ads | Live game, calendar, history | 1 | 1 (the owner) |
+    | **Free**, with ads | Live game (recording it), calendar, history | 1 | 1 (the owner) |
     | **Basic** | + stats | Up to 3 | Up to 3 per age group, the owner included |
-    | **Pro** | + staff following the game live | No limit | No limit |
+    | **Pro** | + following live (live scores in the match lists, watching a game someone else records, the live game's notifications), + training: sessions, exercises, player evaluations, training stats, and the year, month and week plans, as in the clubs app | No limit | No limit |
+
+    - **Plans and features** (the developer, 2026-11-02): Free is a coach alone, so it has nothing to follow live and nobody to notify. Pro gets training, as built for the clubs app (coming: the coach server has no training yet). Following live is on Pro only (the developer, 2026-11-03; for a day it was on Basic).
+    - **The server decides what each plan has** (the developer, 2026-11-03): every plan rule is the coach server's, so the plans can change without a new app. The app always tries (opens the live socket, asks for the stats) and shows the server's answer: which plans there are, their names, what each has (written by the server, in English or Portuguese) and their limits, the coach's own plan, whether an age group has room for more staff, and how many age groups are left this season. Adding a plan, renaming one or changing what it has needs no new app.
+    - **Stats** are the season records and team leaders, a team's squad (games and minutes), player season stats, Full stats and a played match's Stats tab. A match itself (its events, timeline and report) and the head-to-head with an opponent are history, on Free.
+    - **Following live** (Pro): the age group's and team's Matches tabs show a game in progress with its score, a game's screen updates as someone else records it, and the live moments (kickoff, half time, second half, a goal, full time) are notified. Below Pro, a game in progress is listed as not started (its kickoff time, no score) and its result shows once it's finished; the game's own screen still works for whoever records it, without updates from anyone else; and only the schedule's notifications go (a game scheduled, moved or cancelled) (the developer, 2026-11-03). Plans lists it under Pro as "Live game results and notifications".
+    - **Seeing the plan** (the developer, 2026-11-02): My club or team has a Plan card for the owner (the plan, this season's age groups against its limit, people per age group) and See plans opens Plans: the three plans, what each adds, the space's own marked. Only to read: no prices, no buying and no contact line until payments. Every plan limit shows the same box (white with a grey outline, a padlock, a title and message, and See plans): "Stats come with Basic" wherever stats are locked (the owner of a Free space reads that the plans add them, anyone else that the owner can change the plan), and, for the owner, when the plan has no room: on an age group's Members tab (staff section) and on Invite staff (only the box, until it changes), and on Create age group when the season's age groups are used up (the form gives way to the box; with some left, no more rows than that).
+    - **Notifications never go to whoever caused them** (the developer, 2026-11-02, both apps): whoever schedules a game, scores or creates a team isn't told about it. On Free that leaves nobody to tell.
+    - **A space's plan** is set by a platform admin until payments (RevenueCat). A new space is on Free.
 
 - **Going down a plan** (payments stopped, or a change of plan): nothing is deleted, and stats keep being calculated, so going back up brings everything back.
     - **Members over the limit:** the first ones added to each age group keep access (on Basic, the owner and the first two staff; only the owner on Free). The others lose access until the plan allows them again.
-    - **Age groups over the limit:** the first ones created stay in use (three on Basic, one on Free). The others are kept but locked until the plan allows them again.
+    - **Age groups over the limit:** in each season, the first ones created stay in use (three on Basic, one on Free). The others are kept but locked, for the owner too, until the plan allows them again.
+    - **Staff over the limit:** "the first ones added" are the first to join the age group with a code (a second time counts from the second).
 - **Store requirements:** coaches sign up in the app, so the app must let them delete their account (App Store and Google Play rules). Ads on Free need the EU consent form first (Google's UMP). Each app has its own privacy policy and data-safety form.
 - **Moving to a club:** not for now. Later, possibly moving one age group (nothing more) from the coach app to a club.
 
@@ -313,8 +322,20 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [/] The coach server's `FIREBASE_SERVICE_ACCOUNT_JSON` on Railway (staging, then production), set by the developer: staging done (2026-10-31).
         - [x] Photos and logos (2026-11-02): the account's photo, players' photos, opponents' logos and the space's logo (set by the owner in My club or team, shown on My age groups' rows, games, the live game and pushes), in the coach server's own bucket (keys under `coach/`), deleted with the account (`TECHNICAL_DECISIONS.md` §72).
         - [x] Staging builds (2026-11-01): on every change to the coach app on `develop`, `deploy-staging-coach.yml` sends the `staging` flavor (against coach-server on Railway staging) to the `squadify-coach-testers` group through Firebase App Distribution (`TECHNICAL_DECISIONS.md` §72).
-    - [ ] Plans stored and enforced on the server, set by a platform admin at first.
+    - [x] Plans stored and enforced on the server, set by a platform admin at first (2026-11-02): Free, Basic and Pro, their limits and stats, locks when going down, and pushes never to whoever caused them (`TECHNICAL_DECISIONS.md` §72).
+    - [x] Seeing the plan in the app (2026-11-02): My club or team's Plan card, the Plans screen, See plans on the stats locks, and the plan's box on the Members tab, Invite staff and Create age group when there's no room (`TECHNICAL_DECISIONS.md` §72).
+    - [x] Following live on Pro (2026-11-03): live scores in the match lists, the live sockets and the live moments' notifications, refused by the coach server below Pro (`TECHNICAL_DECISIONS.md` §72).
+    - [x] Plan rules only on the server (2026-11-03): the app decides no plan rule. The coach server sends the plans, what each has in the app's language and the coach's own plan (`GET /v1/plans`), room for staff on an age group and the age groups left this season; a plan is an id, not a fixed list in the app (`TECHNICAL_DECISIONS.md` §72).
+    - [ ] Training on Pro: the clubs app's training (sessions, exercises, evaluations, training stats, plans) on the coach server, with its use cases moved to `:server:core` behind the `AccessPolicy` (the developer, 2026-11-02).
     - [ ] Payments (RevenueCat) and ads on the Free plan (AdMob).
+    - [ ] **Plans: still open** (2026-11-03, after PR #188):
+        - [ ] Choosing a plan in the app: the Plans screen only shows the plans, and a platform admin sets them (`PUT /v1/admin/spaces/{id}/plan`). To decide: in-app subscriptions (App Store and Google Play, with the server checking receipts and renewals moving the plan), or first a stopgap "I want this plan" button that tells the platform admin.
+        - [ ] Staging, once #188 is merged: set `PLATFORM_ADMIN_EMAILS` on coach-server, then raise the test spaces with the admin endpoint (every space starts on Free).
+        - [ ] The full-time notification (with the final score) counts as a live moment, so it only goes on Pro. To confirm, or send it on every plan.
+        - [ ] Below Pro, a game in progress is listed as not started, so it can show as the age group's or team's next match. To confirm.
+        - [ ] Wording still in the app: the two limit lines on Plans ("3 age groups a season", "Up to 3 people per age group") and the boxes' sentences take the server's names and numbers, but a new kind of limit would need a new app.
+        - [ ] The stats lock's wording knows only whether the coach's own space has the stats, not whether the locked space is theirs: someone who owns a Free space and is staff in someone else's sees the owner's wording there.
+        - [ ] Opened from a notification before Home loads, the plan boxes have no own space or plans yet: they show without the plan names and limits until the spaces load (Plans loads its own).
     - [ ] **Launch readiness** (Android and iOS, needed before the coach app goes to the stores):
         - [ ] R8 full mode (`isMinifyEnabled = true` with the right keep rules) and a Baseline Profile for the release build (`TECHNICAL_DECISIONS.md` §11.7, §11.8).
         - [ ] Edge-to-edge: audit every screen's `WindowInsets` (§11.6, §11.8).

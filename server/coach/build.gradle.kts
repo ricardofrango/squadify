@@ -57,5 +57,7 @@ tasks.test {
     environment("LOCAL_IMAGE_DIR", layout.buildDirectory.dir("test-uploads").get().asFile.path)
     // No emails from the tests, even with a key in the shell: an emailed invite then fails to send.
     environment("RESEND_API_KEY", "")
+    // The tests' platform admin, who sets spaces' plans (TestApi.setPlan).
+    environment("PLATFORM_ADMIN_EMAILS", "platform-admin@test.com")
     finalizedBy(dropTestDatabase)
 }

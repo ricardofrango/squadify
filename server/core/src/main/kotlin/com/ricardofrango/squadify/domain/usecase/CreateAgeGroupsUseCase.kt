@@ -25,6 +25,7 @@ class CreateAgeGroupsUseCase(
         if (request.items.isEmpty()) {
             throw ValidationException("At least one age group must be provided")
         }
+        accessPolicy.requireRoomForAgeGroups(request.clubId, seasonId, request.items.size)
 
         val club = clubRepository.getClubById(request.clubId)
             ?: throw NotFoundException("Club not found")

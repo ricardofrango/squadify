@@ -5,6 +5,7 @@ import com.ricardofrango.squadify.exception.DatabaseException
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.IllegalIdFormatException
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.exception.PlanLimitException
 import com.ricardofrango.squadify.exception.SquadifyException
 import com.ricardofrango.squadify.exception.TooManyPasswordAttemptsException
 import com.ricardofrango.squadify.exception.UnauthorizedException
@@ -92,6 +93,7 @@ fun Application.installSquadifyApi(tokens: JwtTokens, realm: String) {
             val status = when (cause) {
                 is UnauthorizedException -> HttpStatusCode.Unauthorized
                 is ForbiddenException -> HttpStatusCode.Forbidden
+                is PlanLimitException -> HttpStatusCode.Forbidden
                 is WrongPasswordException -> HttpStatusCode.BadRequest
                 is TooManyPasswordAttemptsException -> HttpStatusCode.Forbidden
                 is NotFoundException -> HttpStatusCode.NotFound

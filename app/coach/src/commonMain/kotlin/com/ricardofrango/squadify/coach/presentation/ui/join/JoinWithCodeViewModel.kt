@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.coach.domain.JoinCode
 import com.ricardofrango.squadify.coach.domain.JoinWithCodeUseCase
 import com.ricardofrango.squadify.data.remote.ApiException
+import com.ricardofrango.squadify.data.remote.isNotInPlan
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -43,7 +44,7 @@ class JoinWithCodeViewModel(private val joinWithCodeUseCase: JoinWithCodeUseCase
                 joinWithCodeUseCase(_state.value.code)
                 _joined.emit(Unit)
             } catch (e: Exception) {
-                _state.update { it.copy(isSubmitting = false, refusal = JoinCode.refusal((e as? ApiException)?.statusCode)) }
+                _state.update { it.copy(isSubmitting = false, refusal = JoinCode.refusal((e as? ApiException)?.statusCode, e.isNotInPlan)) }
             }
         }
     }

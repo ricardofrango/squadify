@@ -201,7 +201,7 @@ val appModule = module {
     factory { UpdateOpponentUseCase(get(), get(), get(), get()) }
     factory { RegisterFcmTokenUseCase(get(), get()) }
     factory { RemoveFcmTokenUseCase(get(), get()) }
-    factory { NotifyMatchEventUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { NotifyMatchEventUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     factory { AddMatchEventUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { SaveMatchRecordUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }

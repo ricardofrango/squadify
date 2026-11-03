@@ -83,7 +83,7 @@ class CreateMatchUseCaseTest {
 
         assertEquals(MatchType.CHAMPIONSHIP, result.type, "the chosen type is stored on the match")
 
-        coVerify { notifyMatchEventUseCase(result.id, MatchNotificationEvent.SCHEDULED) }
+        coVerify { notifyMatchEventUseCase(result.id, MatchNotificationEvent.SCHEDULED, causedBy = any()) }
         coVerify { clubMatchesBus.publish(clubId, com.ricardofrango.squadify.model.ClubMatchesUpdate(match = result)) }
     }
 
@@ -120,7 +120,7 @@ class CreateMatchUseCaseTest {
         assertFailsWith<ForbiddenException> {
             useCase(coach.id, CreateMatchRequest(teamId = teamId, opponentId = "opp-other", dateTime = Instant.fromEpochMilliseconds(1), type = MatchType.CHAMPIONSHIP))
         }
-        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any(), any(), any()) }
     }
 
     @Test
@@ -130,7 +130,7 @@ class CreateMatchUseCaseTest {
         assertFailsWith<NotFoundException> {
             useCase("anyone", CreateMatchRequest(teamId = "no-such-team", opponentId = "opp-1", dateTime = Instant.fromEpochMilliseconds(1), type = MatchType.CHAMPIONSHIP))
         }
-        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any()) }
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any(), any(), any()) }
     }
 
     @Test

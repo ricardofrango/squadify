@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach
 
+import com.ricardofrango.squadify.coach.domain.PlanLimits
 import com.ricardofrango.squadify.coach.domain.CoachSeasons
 import com.ricardofrango.squadify.model.AddPlayersToAgeGroupRequest
 import com.ricardofrango.squadify.model.AgeGroup
@@ -51,6 +52,8 @@ class CoachSpaceTest {
         assertEquals(start to end, setup.season.startDate to setup.season.endDate)
         assertEquals(7, setup.team.teamSize)
         val spaceId = setup.space.id
+        // More than one age group: on Pro.
+        api.setPlan(spaceId, PlanLimits.PRO)
 
         // One space of their own.
         assertEquals(

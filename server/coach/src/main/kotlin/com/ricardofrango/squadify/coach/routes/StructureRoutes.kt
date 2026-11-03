@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.routes
 
+import com.ricardofrango.squadify.coach.domain.CoachPlans
 import com.ricardofrango.squadify.coach.domain.CoachSeasons
 import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.service.TransactionManager
@@ -82,6 +83,7 @@ private fun Route.ageGroupRoutes() {
     val addPlayers by inject<AddPlayersToAgeGroupUseCase>()
     val removePlayer by inject<RemovePlayerFromAgeGroupUseCase>()
     val coachSeasons by inject<CoachSeasons>()
+    val coachPlans by inject<CoachPlans>()
     val accessPolicy by inject<AccessPolicy>()
     val transactionManager by inject<TransactionManager>()
 
@@ -112,7 +114,9 @@ private fun Route.ageGroupRoutes() {
             get("/details") {
                 val ageGroupId = call.parameters["ageGroupId"] ?: return@get call.respond(HttpStatusCode.BadRequest)
                 val userId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
-                call.respond(getAgeGroupDetails(userId, ageGroupId))
+                val details = getAgeGroupDetails(userId, ageGroupId)
+                // The plan's answer for the Members tab and Invite staff: no room for more staff.
+                call.respond(details.copy(staffFullOnPlan = transactionManager.runInTransaction { coachPlans.staffFullOn(details.club.id, ageGroupId) }))
             }
             route("/players") {
                 // With `limit`, a page (`offset`) searched on `q`; without, all of them.

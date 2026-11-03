@@ -71,7 +71,8 @@ interface StaffInviteMailer {
 }
 
 /**
- * The owner creates a code for one age group, valid for [validity]. With an email address, the code is
+ * The owner creates a code for one age group, valid for [validity], while the space's plan has room for
+ * one more person on it ([CoachPlans.requireRoomForStaff]). With an email address, the code is
  * also emailed there, in the owner's app language, and shown with the address. At most
  * [dailyEmails] a day per owner, so the app can't be used to send mail in bulk. If the email can't be
  * sent, the code is withdrawn again and the owner is told (a 400).
@@ -84,6 +85,7 @@ class CreateStaffInviteUseCase(
     private val userRepository: UserRepository,
     private val clubRepository: ClubRepository,
     private val mailer: StaffInviteMailer,
+    private val plans: CoachPlans,
     private val clock: Clock = Clock.System,
     private val validity: Duration = 7.days,
     private val dailyEmails: Int = DAILY_EMAILED_INVITES
@@ -94,6 +96,7 @@ class CreateStaffInviteUseCase(
         val (invite, letter) = transactionManager.runInTransaction {
             val ageGroup = ageGroupRepository.ageGroupOrNotFound(ageGroupId)
             accessPolicy.requireManageStaff(userId, GameScope(ageGroup.clubId, ageGroupId = ageGroupId))
+            plans.requireRoomForStaff(ageGroup.clubId, ageGroupId)
             val now = clock.now()
             if (email != null && invites.countEmailedSince(userId, now - 1.days) >= dailyEmails) {
                 throw ValidationException("Too many invites emailed today; share the code instead")
@@ -161,7 +164,8 @@ class RevokeStaffInviteUseCase(
 
 /**
  * Someone signed in uses a code: they join the space (if not in it yet) and become staff on the
- * code's age group. Being in other spaces, their own included, doesn't matter. The space's owner is
+ * code's age group. Being in other spaces, their own included, doesn't matter. Refused while the space's
+ * plan has no room for one more person on the age group (the code stays unused). The space's owner is
  * told who joined (a push, best effort, after the transaction).
  */
 class AcceptStaffInviteUseCase(
@@ -172,6 +176,7 @@ class AcceptStaffInviteUseCase(
     private val userRepository: UserRepository,
     private val fcmTokenRepository: FcmTokenRepository,
     private val pushNotificationService: PushNotificationService,
+    private val plans: CoachPlans,
     private val clock: Clock = Clock.System
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -203,6 +208,8 @@ class AcceptStaffInviteUseCase(
         val role = membership?.second
         if (role == ClubRole.CLUB_ADMIN) throw ConflictException("You own this space, so you're already on every age group")
         if (ageGroupRepository.getUserRoleInAgeGroup(userId, ageGroup.id) != null) throw ConflictException("You're already staff on ${ageGroup.name}")
+        // The code stays unused, for when the plan has room again.
+        plans.requireRoomForStaff(spaceId, ageGroup.id)
 
         if (role == null) clubRepository.addMember(spaceId, userId, ClubRole.MEMBER)
         ageGroupRepository.addStaffToAgeGroup(listOf(AgeGroupStaff(Uuid.random().toString(), ageGroup.id, userId, AgeGroupRole.COACH)))

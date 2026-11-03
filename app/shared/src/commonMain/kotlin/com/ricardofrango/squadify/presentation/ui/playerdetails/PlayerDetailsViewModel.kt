@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.data.remote.isNotInPlan
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.CancellationException
@@ -70,7 +71,7 @@ class PlayerDetailsViewModel(
                     SeasonStatsUiState.Loaded(stats, seasonId, initialFilter ?: previous?.filter ?: StatsFilter.ALL)
                 }
             } catch (e: Exception) {
-                _stats.update { SeasonStatsUiState.Error }
+                _stats.update { if (e.isNotInPlan) SeasonStatsUiState.NotInPlan else SeasonStatsUiState.Error }
             }
         }
     }
