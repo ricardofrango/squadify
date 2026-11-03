@@ -2760,7 +2760,7 @@ erDiagram
 | `TrainingPlanLevel` | `SEASON`, `MONTH`, `WEEK` | `training_plans.level` |
 | `TrainingIntensity` | `LOW`, `MEDIUM`, `HIGH` | `training_plans.intensity` (weeks only) |
 | `PlayerPosition` | `GOALKEEPER`, `DEFENDER`, `MIDFIELD`, `WINGER`, `STRIKER` | `players.position` (nullable) |
-| `SpacePlan` | `FREE`, `BASIC`, `PRO` | `space_plans.plan` (the coach database only) |
+| `SpacePlan` | a plan's id, not a fixed list: `FREE`, `BASIC`, `PRO` today (`PlanLimits`) | `space_plans.plan` (the coach database only) |
 
 `AgeGroupRole` is now `COACH`/`STAFF` only — the unused `PARENT`/`PLAYER` values were removed when coaches/staff moved from teams to age groups (`age_group_staff`). Players and family members are modelled entirely through `age_group_players` / `user_players` and never appear in a staff table. The enum keeps the name `AgeGroupRole` for now; `CheckUserPermissionUseCase`'s `minAgeGroupRole` parameter is interpreted as the minimum age-group staff role.
 
@@ -2891,7 +2891,7 @@ graph TD
 
 Other spaces don't matter: an owner of one space, or staff in another, can use a code. After it's used, the space's owner gets a push (`sendStaffJoined`) naming who joined which age group. Removing (`DELETE /age-groups/{id}/staff/{userId}`, the owner only): the owner can't be removed; otherwise the staff row goes, and the space membership too when it was their last age group of the space. Withdrawing (`DELETE /age-groups/{id}/invites/{code}`) deletes a code that hasn't been used.
 
-**The coach database's own tables**, beyond the shared ones (§12): `space_plans` (`club_id` PK → `clubs` ON DELETE CASCADE, `plan` varchar 20, a `SpacePlan`, `updated_at`; from `V4__plans.sql`; no row is FREE), and `staff_invites` (`id`, `code` unique, `age_group_id` → `age_groups` ON DELETE CASCADE, `created_by` → `users`, `created_at`, `expires_at`, `accepted_by` → `users` nullable, `accepted_at` nullable, `sent_to` nullable: the address a code was emailed to), from `V2__staff_invites.sql` and `V3__staff_invite_email.sql`.
+**The coach database's own tables**, beyond the shared ones (§12): `space_plans` (`club_id` PK → `clubs` ON DELETE CASCADE, `plan` varchar 20, a `SpacePlan` id from `PlanLimits`, `updated_at`; from `V4__plans.sql`; no row is FREE), and `staff_invites` (`id`, `code` unique, `age_group_id` → `age_groups` ON DELETE CASCADE, `created_by` → `users`, `created_at`, `expires_at`, `accepted_by` → `users` nullable, `accepted_at` nullable, `sent_to` nullable: the address a code was emailed to), from `V2__staff_invites.sql` and `V3__staff_invite_email.sql`.
 
 ### 13.6 Deleting an account (`DeleteAccountUseCase`, `POST /v1/users/me/delete`)
 
