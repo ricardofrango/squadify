@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.presentation.routes
 
 import com.ricardofrango.squadify.domain.usecase.*
+import com.ricardofrango.squadify.exception.PlanLimitException
 import com.ricardofrango.squadify.model.*
 import com.ricardofrango.squadify.security.JwtTokens
 import com.ricardofrango.squadify.security.userId
@@ -320,6 +321,9 @@ fun Route.gameRoutes(tokens: JwtTokens) {
 
                 getLiveMatchUpdatesUseCase(currentUserId, matchId)
                     .collect(::sendSerialized)
+            } catch (e: PlanLimitException) {
+                // Not on the space's plan: the reason says so, and the app stops trying.
+                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, PLAN_LIMIT_CODE))
             } catch (e: Exception) {
                 close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Forbidden or Not Found"))
             }
@@ -341,6 +345,9 @@ fun Route.gameRoutes(tokens: JwtTokens) {
 
                 getClubMatchesUpdatesUseCase(currentUserId, clubId)
                     .collect(::sendSerialized)
+            } catch (e: PlanLimitException) {
+                // Not on the space's plan: the reason says so, and the app stops trying.
+                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, PLAN_LIMIT_CODE))
             } catch (e: Exception) {
                 close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Forbidden or Not Found"))
             }

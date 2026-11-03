@@ -53,10 +53,11 @@ data class StaffInvite(
 data class CreateStaffInviteRequest(val email: String? = null, val language: String? = null)
 
 /**
- * A space's plan (REQUIREMENTS §5c), for the whole space. Free: one age group, the owner alone, no stats
- * and no live scores in the match lists. Basic: up to 3 age groups and 3 people on each, the owner
- * included, with stats and live scores. Pro: no limits, and training (coming). Going down a plan deletes
- * nothing: the first age groups created and the first staff to join stay, the others are locked.
+ * A space's plan (REQUIREMENTS §5c), for the whole space. Free: one age group, the owner alone, no stats.
+ * Basic: up to 3 age groups and 3 people on each, the owner included, with stats. Pro: no limits,
+ * following games live, and training (coming). Going down a plan deletes nothing: the first age groups
+ * created and the first staff to join stay, the others are locked. What each plan allows is the coach
+ * server's to decide (CoachAccessPolicy).
  */
 @Serializable
 enum class SpacePlan { FREE, BASIC, PRO }

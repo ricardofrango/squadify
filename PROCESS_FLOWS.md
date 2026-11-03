@@ -838,7 +838,7 @@ graph TD
     C -- allowed --> D[Fetch club + season]
     D --> E[teams = club teams filtered to this age group]
     E --> G["notPlayedMatches = each team's matches still SCHEDULED 2 hours or more past kickoff (Match.isNotPlayed), newest first; upcomingMatches = the other SCHEDULED ones, or currently LIVE/HALF_TIME, sorted by dateTime"]
-    G --> GL{"accessPolicy.requireLiveScoresInPlan(clubId)? (coach server: Basic and Pro; clubs server: always)"}
+    G --> GL{"accessPolicy.requireLiveInPlan(clubId)? (coach server: Pro; clubs server: always)"}
     GL -- No --> GN["upcomingMatchScores = empty; LIVE/HALF_TIME entries sent as before kickoff (Match.asNotStarted)"]
     GL -- Yes --> G2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
     GN -.-> G3
@@ -986,7 +986,7 @@ graph TD
     D --> G["canManageMatch = non-throwing probe of configurablePermission=MANAGE_MATCH on teamId"]
     G --> H[matches = matchRepository.getMatchesByTeam]
     H --> I["notPlayedMatches = SCHEDULED 2 hours or more past kickoff (Match.isNotPlayed), newest first; upcomingMatches = the other SCHEDULED ones, OR currently LIVE/HALF_TIME, sorted ascending"]
-    I --> IL{"accessPolicy.requireLiveScoresInPlan(clubId)? (coach server: Basic and Pro; clubs server: always)"}
+    I --> IL{"accessPolicy.requireLiveInPlan(clubId)? (coach server: Pro; clubs server: always)"}
     IL -- No --> IN["upcomingMatchScores = empty; LIVE/HALF_TIME entries sent as before kickoff (Match.asNotStarted)"]
     IL -- Yes --> I2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
     H --> J["recentResults = FINISHED, newest first, each paired with its scoreline from matchEventRepository.getScoreByMatch → WIN/DRAW/LOSS"]
@@ -1952,7 +1952,9 @@ graph TD
     D -- not found --> X
     D -- found --> E[Fetch Opponent by match.opponentId]
     E -- not found --> X
-    E -- found --> F["PushAudience.forGames(match.clubId, team.ageGroupId): clubs, every member of the club; coach, the owner and the age group's staff; never causedBy, who triggered it"]
+    E -- found --> EL{"A live moment (KICKOFF/HALF_TIME/SECOND_HALF_STARTED/FULL_TIME/GOAL) and accessPolicy.requireLiveInPlan(match.clubId) refuses? (coach server: below Pro)"}
+    EL -- Yes --> X
+    EL -- No --> F["PushAudience.forGames(match.clubId, team.ageGroupId): clubs, every member of the club; coach, the owner and the age group's staff; never causedBy, who triggered it"]
     F --> G["FcmTokenRepository.getTokensForUsers(those ids), flatten to one token list"]
     G -- empty --> X
     G -- non-empty --> H["Recalculate current score"]
@@ -2060,7 +2062,9 @@ graph TD
     B -- not found --> N(["Throw NotFoundException"])
     B -- found --> C[CheckUserPermissionUseCase — minClubRole=MEMBER]
     C -- denied --> F(["Throw ForbiddenException"])
-    C -- allowed --> D[Subscribe to LiveMatchBus Flow for matchId]
+    C -- allowed --> CL{"accessPolicy.requireLiveInPlan(match.clubId)? (coach server: Pro; clubs server: always)"}
+    CL -- No --> CP(["Throw PlanLimitException — the route closes the socket with reason PLAN_001, and the app stops retrying"])
+    CL -- Yes --> D[Subscribe to LiveMatchBus Flow for matchId]
     D --> Z(["Return reactive Flow of LiveMatchUpdate — bridged to a WebSocket session"])
 ```
 
@@ -2097,7 +2101,9 @@ The running clock (shown as `MM:SS`) is `elapsedMatchSeconds(match, now)` -- in 
 graph TD
     A[Start: userId, clubId] --> B[CheckUserPermissionUseCase — minClubRole=MEMBER]
     B -- denied --> F(["Throw ForbiddenException"])
-    B -- allowed --> D[Subscribe to ClubMatchesBus Flow for clubId]
+    B -- allowed --> BL{"accessPolicy.requireLiveInPlan(clubId)? (coach server: Pro; clubs server: always)"}
+    BL -- No --> BP(["Throw PlanLimitException — the route closes the socket with reason PLAN_001"])
+    BL -- Yes --> D[Subscribe to ClubMatchesBus Flow for clubId]
     D --> Z(["Return reactive Flow of ClubMatchesUpdate — bridged to a WebSocket session"])
 ```
 

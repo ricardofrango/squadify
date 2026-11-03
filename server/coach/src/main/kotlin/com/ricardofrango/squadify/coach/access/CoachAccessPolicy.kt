@@ -23,7 +23,7 @@ import com.ricardofrango.squadify.model.UserStatus
  * - only the owner creates age groups, manages staff and changes the space's own details (its logo);
  * - the space's plan ([CoachPlans], REQUIREMENTS §5c) locks what's over its limits, for the owner too:
  *   an age group after the first ones created in its season, and staff after the first to join an age
- *   group; and stats are on Basic and Pro. Those refusals are [PlanLimitException]s.
+ *   group; stats are on Basic and Pro, and following games live on Pro. Those refusals are [PlanLimitException]s.
  */
 class CoachAccessPolicy(
     private val userRepository: UserRepository,
@@ -98,8 +98,8 @@ class CoachAccessPolicy(
         if (!PlanLimits.stats(plans.planOf(clubId))) throw PlanLimitException("Stats are on the Basic and Pro plans")
     }
 
-    override suspend fun requireLiveScoresInPlan(clubId: String) = transactionManager.runInTransaction {
-        if (!PlanLimits.liveScores(plans.planOf(clubId))) throw PlanLimitException("Live scores are on the Basic and Pro plans")
+    override suspend fun requireLiveInPlan(clubId: String) = transactionManager.runInTransaction {
+        if (!PlanLimits.live(plans.planOf(clubId))) throw PlanLimitException("Following games live is on the Pro plan")
     }
 
     override suspend fun requireRoomForAgeGroups(clubId: String, seasonId: String, count: Int) = transactionManager.runInTransaction {

@@ -13,6 +13,9 @@ import kotlin.time.TimeSource
 sealed interface SocketEvent<out T> {
     data object Open : SocketEvent<Nothing>
     data class Message<T>(val value: T) : SocketEvent<T>
+
+    /** The server closed it because the space's plan doesn't follow games live: not to be tried again. */
+    data object NotInPlan : SocketEvent<Nothing>
 }
 
 /** What a feed kept connected by [keepConnected] says. */
@@ -24,6 +27,9 @@ sealed interface LiveFeedEvent<out T> {
     data object Disconnected : LiveFeedEvent<Nothing>
 
     data class Update<T>(val value: T) : LiveFeedEvent<T>
+
+    /** The server says the space's plan doesn't follow games live; the feed ends here, untried again. */
+    data object NotInPlan : LiveFeedEvent<Nothing>
 }
 
 /** How long to wait before each new try: 1s, 2s, 5s, then every 15s. */
@@ -35,6 +41,8 @@ val LIVE_FEED_RETRY_DELAYS: List<Duration> = listOf(1.seconds, 2.seconds, 5.seco
  * reopened, so a watcher's screen silently stopped updating mid-game. [connect] opens one connection.
  * The waits ([retryDelays]) start again from the first once a connection has stayed open for
  * [stableAfter], so a socket the server closes straight away (an expired token) isn't retried every second.
+ * A socket the server refuses for the plan ([SocketEvent.NotInPlan]) ends the feed: the server decides
+ * what each plan has, so the app always asks and takes no for an answer.
  */
 fun <T> keepConnected(
     retryDelays: List<Duration> = LIVE_FEED_RETRY_DELAYS,
@@ -45,6 +53,7 @@ fun <T> keepConnected(
     var failures = 0
     while (true) {
         var openedAt: TimeMark? = null
+        var notInPlan = false
         try {
             connect().collect { event ->
                 when (event) {
@@ -53,12 +62,17 @@ fun <T> keepConnected(
                         emit(LiveFeedEvent.Connected)
                     }
                     is SocketEvent.Message -> emit(LiveFeedEvent.Update(event.value))
+                    SocketEvent.NotInPlan -> notInPlan = true
                 }
             }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             // Dropped or refused: tried again below.
+        }
+        if (notInPlan) {
+            emit(LiveFeedEvent.NotInPlan)
+            return@flow
         }
         if (openedAt?.let { it.elapsedNow() >= stableAfter } == true) failures = 0
         emit(LiveFeedEvent.Disconnected)

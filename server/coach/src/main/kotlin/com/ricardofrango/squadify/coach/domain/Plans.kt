@@ -17,8 +17,8 @@ object PlanLimits {
 
     fun stats(plan: SpacePlan): Boolean = plan != SpacePlan.FREE
 
-    /** Live scores in the match lists. */
-    fun liveScores(plan: SpacePlan): Boolean = plan != SpacePlan.FREE
+    /** Following games live: live scores in the match lists, the live sockets and the live moments' notifications. */
+    fun live(plan: SpacePlan): Boolean = plan == SpacePlan.PRO
 }
 
 /**

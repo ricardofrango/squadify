@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.domain.access
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.PlanLimitException
 import com.ricardofrango.squadify.model.Match
+import com.ricardofrango.squadify.model.PLAN_LIMIT_CODE
 import com.ricardofrango.squadify.model.Team
 
 /**
@@ -103,11 +104,13 @@ interface AccessPolicy {
     suspend fun requireStatsInPlan(clubId: String) {}
 
     /**
-     * The club's plan includes live scores in the match lists (Age Group and Team Details). Without them
-     * a live game is listed as not started, and shows its result once finished. The clubs server always
+     * The club's plan includes following games live: live scores in the match lists (Age Group and Team
+     * Details), the live sockets (a match's and the club's matches) and the live moments' notifications.
+     * Without it a live game is listed as not started and shows its result once finished, the sockets
+     * are closed with [PLAN_LIMIT_CODE], and the live moments aren't pushed. The clubs server always
      * allows. Throws [PlanLimitException].
      */
-    suspend fun requireLiveScoresInPlan(clubId: String) {}
+    suspend fun requireLiveInPlan(clubId: String) {}
 
     /** The club's plan has room for [count] more age groups in [seasonId] (the coach server's plans). */
     suspend fun requireRoomForAgeGroups(clubId: String, seasonId: String, count: Int) {}

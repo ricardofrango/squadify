@@ -129,10 +129,10 @@
     <string name="plans_free_age_groups">1 age group a season</string>
     <string name="plans_free_people">Only you</string>
     <string name="plans_basic_stats">Stats: age group, team, player, full stats and match stats</string>
-    <string name="plans_basic_live_scores">Live game results</string>
     <string name="plans_basic_age_groups">3 age groups a season</string>
     <string name="plans_basic_people">Up to 3 people per age group, you included</string>
     <string name="plans_pro_training">Training (coming soon)</string>
+    <string name="plans_pro_live">Live game results and notifications</string>
     <string name="plans_pro_age_groups">No limit on age groups</string>
     <string name="plans_pro_people">No limit on people per age group</string>
 </resources>

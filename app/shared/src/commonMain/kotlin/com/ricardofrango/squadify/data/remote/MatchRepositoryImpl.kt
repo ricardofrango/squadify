@@ -20,6 +20,7 @@ import com.ricardofrango.squadify.model.SaveMatchReportRequest
 import com.ricardofrango.squadify.model.SaveMatchRecordRequest
 import com.ricardofrango.squadify.model.MatchScore
 import com.ricardofrango.squadify.model.MatchStatus
+import com.ricardofrango.squadify.model.PLAN_LIMIT_CODE
 import com.ricardofrango.squadify.model.SetMatchMinuteRequest
 import com.ricardofrango.squadify.model.StartMatchRequest
 import com.ricardofrango.squadify.model.SetMatchLineupRequest
@@ -30,6 +31,7 @@ import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.isActive
@@ -150,9 +152,13 @@ class MatchRepositoryImpl(
         val wsUrl = appConfig.baseUrl.replaceFirst("http", "ws")
         httpClient.webSocket("$wsUrl/matches/$matchId/live?token=$token") {
             this@channelFlow.send(SocketEvent.Open)
-            while (isActive) {
-                val update = receiveDeserialized<LiveMatchUpdate>()
-                this@channelFlow.send(SocketEvent.Message(update))
+            try {
+                while (isActive) {
+                    val update = receiveDeserialized<LiveMatchUpdate>()
+                    this@channelFlow.send(SocketEvent.Message(update))
+                }
+            } catch (e: ClosedReceiveChannelException) {
+                if (closeReason.await()?.message == PLAN_LIMIT_CODE) this@channelFlow.send(SocketEvent.NotInPlan) else throw e
             }
         }
     }
@@ -162,9 +168,13 @@ class MatchRepositoryImpl(
         val wsUrl = appConfig.baseUrl.replaceFirst("http", "ws")
         httpClient.webSocket("$wsUrl/clubs/$clubId/matches/live?token=$token") {
             this@channelFlow.send(SocketEvent.Open)
-            while (isActive) {
-                val update = receiveDeserialized<ClubMatchesUpdate>()
-                this@channelFlow.send(SocketEvent.Message(update))
+            try {
+                while (isActive) {
+                    val update = receiveDeserialized<ClubMatchesUpdate>()
+                    this@channelFlow.send(SocketEvent.Message(update))
+                }
+            } catch (e: ClosedReceiveChannelException) {
+                if (closeReason.await()?.message == PLAN_LIMIT_CODE) this@channelFlow.send(SocketEvent.NotInPlan) else throw e
             }
         }
     }

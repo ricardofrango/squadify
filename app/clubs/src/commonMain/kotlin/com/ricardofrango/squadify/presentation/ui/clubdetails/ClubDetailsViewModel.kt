@@ -321,6 +321,8 @@ class ClubDetailsViewModel(
                         refreshMatches(clubId)
                     }
                     LiveFeedEvent.Disconnected -> missedUpdates = true
+                    // Never from the clubs server, which has no plans.
+                    LiveFeedEvent.NotInPlan -> Unit
                     is LiveFeedEvent.Update -> applyClubMatchesUpdate(event.value)
                 }
             }

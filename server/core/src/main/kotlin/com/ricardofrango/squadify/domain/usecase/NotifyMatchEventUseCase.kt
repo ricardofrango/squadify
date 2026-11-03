@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
+import com.ricardofrango.squadify.domain.access.allowed
 import com.ricardofrango.squadify.domain.repository.FcmTokenRepository
 import com.ricardofrango.squadify.domain.repository.MatchEventRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
@@ -46,7 +48,8 @@ class NotifyMatchEventUseCase(
     private val pushNotificationService: PushNotificationService,
     private val transactionManager: TransactionManager,
     private val playerRepository: PlayerRepository,
-    private val publicImageLinks: PublicImageLinks
+    private val publicImageLinks: PublicImageLinks,
+    private val accessPolicy: AccessPolicy
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -69,6 +72,8 @@ class NotifyMatchEventUseCase(
                 val match = matchRepository.getMatchById(matchId) ?: return@runInTransaction null
                 val team = teamRepository.getTeamById(match.teamId) ?: return@runInTransaction null
                 val opponent = opponentRepository.getOpponentById(match.opponentId) ?: return@runInTransaction null
+                // The live moments only on a plan with following games live (AccessPolicy.requireLiveInPlan).
+                if (event in LIVE_MOMENTS && !allowed { accessPolicy.requireLiveInPlan(match.clubId) }) return@runInTransaction null
                 val memberIds = pushAudience.forGames(match.clubId, team.ageGroupId).filter { it != causedBy }
                 val tokens = fcmTokenRepository.getTokensForUsers(memberIds).values.flatten()
                 if (tokens.isEmpty()) return@runInTransaction null
@@ -115,5 +120,12 @@ class NotifyMatchEventUseCase(
         } catch (e: Exception) {
             logger.error("Match notification failed for match {} / {}", matchId, event, e)
         }
+    }
+
+    private companion object {
+        val LIVE_MOMENTS = setOf(
+            MatchNotificationEvent.KICKOFF, MatchNotificationEvent.HALF_TIME, MatchNotificationEvent.SECOND_HALF_STARTED,
+            MatchNotificationEvent.FULL_TIME, MatchNotificationEvent.GOAL
+        )
     }
 }

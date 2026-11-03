@@ -37,7 +37,6 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.coach.generated.resources.Res
 import squadify.app.coach.generated.resources.plans_basic_age_groups
-import squadify.app.coach.generated.resources.plans_basic_live_scores
 import squadify.app.coach.generated.resources.plans_basic_people
 import squadify.app.coach.generated.resources.plans_basic_stats
 import squadify.app.coach.generated.resources.plans_free_age_groups
@@ -49,6 +48,7 @@ import squadify.app.coach.generated.resources.plans_intro_basic
 import squadify.app.coach.generated.resources.plans_intro_free
 import squadify.app.coach.generated.resources.plans_intro_pro
 import squadify.app.coach.generated.resources.plans_pro_age_groups
+import squadify.app.coach.generated.resources.plans_pro_live
 import squadify.app.coach.generated.resources.plans_pro_people
 import squadify.app.coach.generated.resources.plans_pro_training
 import squadify.app.coach.generated.resources.plans_title
@@ -66,12 +66,12 @@ private val planCards = listOf(
     PlanCard(
         SpacePlan.BASIC,
         Res.string.plans_intro_basic,
-        listOf(Res.string.plans_basic_stats, Res.string.plans_basic_live_scores, Res.string.plans_basic_age_groups, Res.string.plans_basic_people)
+        listOf(Res.string.plans_basic_stats, Res.string.plans_basic_age_groups, Res.string.plans_basic_people)
     ),
     PlanCard(
         SpacePlan.PRO,
         Res.string.plans_intro_pro,
-        listOf(Res.string.plans_pro_training, Res.string.plans_pro_age_groups, Res.string.plans_pro_people)
+        listOf(Res.string.plans_pro_training, Res.string.plans_pro_live, Res.string.plans_pro_age_groups, Res.string.plans_pro_people)
     )
 )
 

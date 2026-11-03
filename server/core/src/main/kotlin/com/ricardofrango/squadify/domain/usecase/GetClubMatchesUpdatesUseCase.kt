@@ -14,6 +14,7 @@ class GetClubMatchesUpdatesUseCase(
     suspend operator fun invoke(userId: String, clubId: String): Flow<ClubMatchesUpdate> = transactionManager.runInTransaction {
         // 1. Authorize: Member of club can see the club's live matches-list updates
         accessPolicy.requireMember(userId, clubId)
+        accessPolicy.requireLiveInPlan(clubId)
 
         // 2. Return the Reactive Stream
         clubMatchesBus.subscribe(clubId)

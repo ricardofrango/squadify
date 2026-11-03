@@ -81,7 +81,7 @@ class GetAgeGroupDetailsUseCase(
                 )
             }
         // Without live scores on the plan, a live game is listed as not started, with no score.
-        val liveScores = allowed { accessPolicy.requireLiveScoresInPlan(ageGroup.clubId) }
+        val liveScores = allowed { accessPolicy.requireLiveInPlan(ageGroup.clubId) }
         val upcomingMatchScores = if (!liveScores) emptyMap() else upcomingMatches
             .filter { it.status == MatchStatus.LIVE || it.status == MatchStatus.HALF_TIME }
             .associate { it.id to matchEventRepository.getScoreByMatch(it.id) }

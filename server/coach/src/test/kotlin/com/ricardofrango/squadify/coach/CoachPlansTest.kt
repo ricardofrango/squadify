@@ -97,7 +97,7 @@ class CoachPlansTest {
     }
 
     @Test
-    fun freeListsALiveGameAsNotStarted() = testApplication {
+    fun belowProALiveGameIsListedAsNotStarted() = testApplication {
         application { module() }
         val api = jsonClient()
         val owner = api.signUp()
@@ -119,15 +119,18 @@ class CoachPlansTest {
         suspend fun ageGroup() = api.get("/v1/age-groups/${setup.ageGroup.id}/details") { bearerAuth(owner) }.body<AgeGroupDetails>()
         suspend fun team() = api.get("/v1/teams/${setup.team.id}/details") { bearerAuth(owner) }.body<TeamDetails>()
 
-        // Free: listed as before kickoff, no score. The game's own screen is still live.
-        assertEquals(MatchStatus.SCHEDULED, ageGroup().upcomingMatches.single().status)
-        assertTrue(ageGroup().upcomingMatchScores.isEmpty())
-        assertEquals(MatchStatus.SCHEDULED, team().upcomingMatches.single().status)
-        assertTrue(team().upcomingMatchScores.isEmpty())
-        assertEquals(MatchStatus.LIVE, api.get("/v1/matches/${match.id}") { bearerAuth(owner) }.body<MatchDetails>().match.status)
+        // Free and Basic: listed as before kickoff, no score. The game's own screen is still live.
+        for (plan in listOf(SpacePlan.FREE, SpacePlan.BASIC)) {
+            api.setPlan(spaceId, plan)
+            assertEquals(MatchStatus.SCHEDULED, ageGroup().upcomingMatches.single().status)
+            assertTrue(ageGroup().upcomingMatchScores.isEmpty())
+            assertEquals(MatchStatus.SCHEDULED, team().upcomingMatches.single().status)
+            assertTrue(team().upcomingMatchScores.isEmpty())
+            assertEquals(MatchStatus.LIVE, api.get("/v1/matches/${match.id}") { bearerAuth(owner) }.body<MatchDetails>().match.status)
+        }
 
-        // Basic: live, with the score.
-        api.setPlan(spaceId, SpacePlan.BASIC)
+        // Pro: live, with the score.
+        api.setPlan(spaceId, SpacePlan.PRO)
         assertEquals(MatchStatus.LIVE, ageGroup().upcomingMatches.single().status)
         assertEquals(1, ageGroup().upcomingMatchScores.getValue(match.id).ourScore)
         assertEquals(1, team().upcomingMatchScores.getValue(match.id).ourScore)
