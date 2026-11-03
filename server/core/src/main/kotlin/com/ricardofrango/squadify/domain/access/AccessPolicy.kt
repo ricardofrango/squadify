@@ -102,6 +102,13 @@ interface AccessPolicy {
      */
     suspend fun requireStatsInPlan(clubId: String) {}
 
+    /**
+     * The club's plan includes live scores in the match lists (Age Group and Team Details). Without them
+     * a live game is listed as not started, and shows its result once finished. The clubs server always
+     * allows. Throws [PlanLimitException].
+     */
+    suspend fun requireLiveScoresInPlan(clubId: String) {}
+
     /** The club's plan has room for [count] more age groups in [seasonId] (the coach server's plans). */
     suspend fun requireRoomForAgeGroups(clubId: String, seasonId: String, count: Int) {}
 

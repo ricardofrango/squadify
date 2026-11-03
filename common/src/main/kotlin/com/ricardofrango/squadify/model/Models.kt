@@ -1011,6 +1011,14 @@ val NOT_PLAYED_AFTER: Duration = 2.hours
 fun Match.isNotPlayed(now: Instant): Boolean = status == MatchStatus.SCHEDULED && now >= dateTime + NOT_PLAYED_AFTER
 
 /**
+ * This match as a list shows it before kickoff: a live game on a plan without live scores (REQUIREMENTS
+ * §5c). Its own screen still has the real one.
+ */
+fun Match.asNotStarted(): Match =
+    if (status == MatchStatus.LIVE || status == MatchStatus.HALF_TIME) copy(status = MatchStatus.SCHEDULED, kickoffAt = null, secondHalfStartedAt = null)
+    else this
+
+/**
  * How far the server's clock is ahead of this device's (negative if behind), from one request: the
  * server stamped [serverNow] somewhere between [requestSent] and [responseReceived] (device times), so
  * the midpoint of the two is the best guess for the device's time at that moment.

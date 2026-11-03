@@ -16,6 +16,9 @@ object PlanLimits {
     fun peoplePerAgeGroup(plan: SpacePlan): Int? = plan.peoplePerAgeGroupLimit
 
     fun stats(plan: SpacePlan): Boolean = plan != SpacePlan.FREE
+
+    /** Live scores in the match lists. */
+    fun liveScores(plan: SpacePlan): Boolean = plan != SpacePlan.FREE
 }
 
 /**

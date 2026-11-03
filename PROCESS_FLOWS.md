@@ -838,7 +838,11 @@ graph TD
     C -- allowed --> D[Fetch club + season]
     D --> E[teams = club teams filtered to this age group]
     E --> G["notPlayedMatches = each team's matches still SCHEDULED 2 hours or more past kickoff (Match.isNotPlayed), newest first; upcomingMatches = the other SCHEDULED ones, or currently LIVE/HALF_TIME, sorted by dateTime"]
-    G --> G2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
+    G --> GL{"accessPolicy.requireLiveScoresInPlan(clubId)? (coach server: Basic and Pro; clubs server: always)"}
+    GL -- No --> GN["upcomingMatchScores = empty; LIVE/HALF_TIME entries sent as before kickoff (Match.asNotStarted)"]
+    GL -- Yes --> G2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
+    GN -.-> G3
+    GN --> H
     G2 -.-> G3["recentResults = each team's FINISHED matches, newest first, with scores (Matches tab)"]
     G2 --> H["canAddStaff = non-throwing probe: minClubRole=COORDINATOR only (no team-role path)"]
     H --> H1["canCreateTeam = non-throwing probe of configurablePermission=CREATE_TEAM on ageGroupId"]
@@ -982,9 +986,12 @@ graph TD
     D --> G["canManageMatch = non-throwing probe of configurablePermission=MANAGE_MATCH on teamId"]
     G --> H[matches = matchRepository.getMatchesByTeam]
     H --> I["notPlayedMatches = SCHEDULED 2 hours or more past kickoff (Match.isNotPlayed), newest first; upcomingMatches = the other SCHEDULED ones, OR currently LIVE/HALF_TIME, sorted ascending"]
-    I --> I2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
+    I --> IL{"accessPolicy.requireLiveScoresInPlan(clubId)? (coach server: Basic and Pro; clubs server: always)"}
+    IL -- No --> IN["upcomingMatchScores = empty; LIVE/HALF_TIME entries sent as before kickoff (Match.asNotStarted)"]
+    IL -- Yes --> I2["upcomingMatchScores = getScoreByMatch for each LIVE/HALF_TIME entry above, keyed by Match.id"]
     H --> J["recentResults = FINISHED, newest first, each paired with its scoreline from matchEventRepository.getScoreByMatch → WIN/DRAW/LOSS"]
     I2 --> K[siblingTeamNames = other teams in the same age group]
+    IN --> K
     J --> K
     K --> Z(["Return TeamDetails: team, club, ageGroup, season, poolSize, siblingTeamNames, staff, notPlayedMatches, upcomingMatches, upcomingMatchScores, recentResults, opponents, canManageMatch, canViewMembers, canEditTeam"])
 ```

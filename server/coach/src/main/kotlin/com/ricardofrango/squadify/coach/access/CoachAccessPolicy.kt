@@ -98,6 +98,10 @@ class CoachAccessPolicy(
         if (!PlanLimits.stats(plans.planOf(clubId))) throw PlanLimitException("Stats are on the Basic and Pro plans")
     }
 
+    override suspend fun requireLiveScoresInPlan(clubId: String) = transactionManager.runInTransaction {
+        if (!PlanLimits.liveScores(plans.planOf(clubId))) throw PlanLimitException("Live scores are on the Basic and Pro plans")
+    }
+
     override suspend fun requireRoomForAgeGroups(clubId: String, seasonId: String, count: Int) = transactionManager.runInTransaction {
         val limit = PlanLimits.ageGroups(plans.planOf(clubId)) ?: return@runInTransaction
         val inSeason = ageGroupRepository.getAgeGroupsByClub(clubId).count { it.seasonId == seasonId }

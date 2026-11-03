@@ -1,16 +1,22 @@
 package com.ricardofrango.squadify.coach
 
+import com.ricardofrango.squadify.model.AddPlayersToAgeGroupRequest
 import com.ricardofrango.squadify.model.AdminSpace
 import com.ricardofrango.squadify.model.AgeGroup
+import com.ricardofrango.squadify.model.AgeGroupDetails
 import com.ricardofrango.squadify.model.AgeGroupItemRequest
 import com.ricardofrango.squadify.model.CreateAgeGroupsRequest
+import com.ricardofrango.squadify.model.CreateMatchEventRequest
 import com.ricardofrango.squadify.model.CreateMatchRequest
 import com.ricardofrango.squadify.model.CreateOpponentRequest
 import com.ricardofrango.squadify.model.CreatePlayer
 import com.ricardofrango.squadify.model.CreatePlayersRequest
 import com.ricardofrango.squadify.model.ErrorResponse
+import com.ricardofrango.squadify.model.EventType
+import com.ricardofrango.squadify.model.ManageCallUpRequest
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchDetails
+import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.MatchType
 import com.ricardofrango.squadify.model.MatchVenue
 import com.ricardofrango.squadify.model.Opponent
@@ -22,10 +28,14 @@ import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.SpaceSetup
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.model.StaffInvite
+import com.ricardofrango.squadify.model.StartMatchRequest
+import com.ricardofrango.squadify.model.TeamDetails
+import com.ricardofrango.squadify.model.UpdateMatchStatusRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.statement.HttpResponse
@@ -84,6 +94,48 @@ class CoachPlansTest {
         api.setPlan(spaceId, SpacePlan.BASIC)
         assertTrue(api.get("/v1/matches/${match.id}") { bearerAuth(owner) }.body<MatchDetails>().statsInPlan)
         assertEquals(HttpStatusCode.OK, api.get("/v1/teams/${setup.team.id}/season-record") { bearerAuth(owner) }.status)
+    }
+
+    @Test
+    fun freeListsALiveGameAsNotStarted() = testApplication {
+        application { module() }
+        val api = jsonClient()
+        val owner = api.signUp()
+        val setup = api.post("/v1/space") {
+            json(owner, SetUpSpaceRequest("Ana's team", SportType.FOOTBALL, AgeGroupItemRequest("Sub-12", 2015, 2015, teamSize = 4), "Sub-12 A"))
+        }.body<SpaceSetup>()
+        val spaceId = setup.space.id
+        val ids = api.post("/v1/players") {
+            json(owner, CreatePlayersRequest(spaceId, (1..4).map { CreatePlayer("Player", "$it", LocalDate(2015, 1, it)) }, ageGroupId = setup.ageGroup.id))
+        }.body<List<Player>>().map { it.id }
+        api.post("/v1/age-groups/${setup.ageGroup.id}/players") { json(owner, AddPlayersToAgeGroupRequest(ids)) }
+        val opponent = api.post("/v1/opponents?clubId=$spaceId") { json(owner, CreateOpponentRequest("Benfica")) }.body<Opponent>()
+        val match = api.post("/v1/matches") {
+            json(owner, CreateMatchRequest(setup.team.id, opponent.id, dateTime = Clock.System.now(), type = MatchType.FRIENDLY, venue = MatchVenue.HOME))
+        }.body<Match>()
+        api.post("/v1/matches/${match.id}/call-up") { json(owner, ManageCallUpRequest(ids)) }
+        assertEquals(HttpStatusCode.NoContent, api.post("/v1/matches/${match.id}/start") { json(owner, StartMatchRequest(ids, halfLengthMinutes = 20)) }.status)
+        api.post("/v1/matches/${match.id}/events") { json(owner, CreateMatchEventRequest(EventType.GOAL, minute = 3, playerId = ids.first())) }
+        suspend fun ageGroup() = api.get("/v1/age-groups/${setup.ageGroup.id}/details") { bearerAuth(owner) }.body<AgeGroupDetails>()
+        suspend fun team() = api.get("/v1/teams/${setup.team.id}/details") { bearerAuth(owner) }.body<TeamDetails>()
+
+        // Free: listed as before kickoff, no score. The game's own screen is still live.
+        assertEquals(MatchStatus.SCHEDULED, ageGroup().upcomingMatches.single().status)
+        assertTrue(ageGroup().upcomingMatchScores.isEmpty())
+        assertEquals(MatchStatus.SCHEDULED, team().upcomingMatches.single().status)
+        assertTrue(team().upcomingMatchScores.isEmpty())
+        assertEquals(MatchStatus.LIVE, api.get("/v1/matches/${match.id}") { bearerAuth(owner) }.body<MatchDetails>().match.status)
+
+        // Basic: live, with the score.
+        api.setPlan(spaceId, SpacePlan.BASIC)
+        assertEquals(MatchStatus.LIVE, ageGroup().upcomingMatches.single().status)
+        assertEquals(1, ageGroup().upcomingMatchScores.getValue(match.id).ourScore)
+        assertEquals(1, team().upcomingMatchScores.getValue(match.id).ourScore)
+
+        // Finished, Free shows the result.
+        api.setPlan(spaceId, SpacePlan.FREE)
+        api.patch("/v1/matches/${match.id}/status") { json(owner, UpdateMatchStatusRequest(MatchStatus.FINISHED)) }
+        assertEquals(1, ageGroup().recentResults.single().ourScore)
     }
 
     @Test
