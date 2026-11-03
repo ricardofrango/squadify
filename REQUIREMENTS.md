@@ -328,6 +328,14 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
     - [x] Plan rules only on the server (2026-11-03): the app decides no plan rule. The coach server sends the plans, what each has in the app's language and the coach's own plan (`GET /v1/plans`), room for staff on an age group and the age groups left this season; a plan is an id, not a fixed list in the app (`TECHNICAL_DECISIONS.md` §72).
     - [ ] Training on Pro: the clubs app's training (sessions, exercises, evaluations, training stats, plans) on the coach server, with its use cases moved to `:server:core` behind the `AccessPolicy` (the developer, 2026-11-02).
     - [ ] Payments (RevenueCat) and ads on the Free plan (AdMob).
+    - [ ] **Plans: still open** (2026-11-03, after PR #188):
+        - [ ] Choosing a plan in the app: the Plans screen only shows the plans, and a platform admin sets them (`PUT /v1/admin/spaces/{id}/plan`). To decide: in-app subscriptions (App Store and Google Play, with the server checking receipts and renewals moving the plan), or first a stopgap "I want this plan" button that tells the platform admin.
+        - [ ] Staging, once #188 is merged: set `PLATFORM_ADMIN_EMAILS` on coach-server, then raise the test spaces with the admin endpoint (every space starts on Free).
+        - [ ] The full-time notification (with the final score) counts as a live moment, so it only goes on Pro. To confirm, or send it on every plan.
+        - [ ] Below Pro, a game in progress is listed as not started, so it can show as the age group's or team's next match. To confirm.
+        - [ ] Wording still in the app: the two limit lines on Plans ("3 age groups a season", "Up to 3 people per age group") and the boxes' sentences take the server's names and numbers, but a new kind of limit would need a new app.
+        - [ ] The stats lock's wording knows only whether the coach's own space has the stats, not whether the locked space is theirs: someone who owns a Free space and is staff in someone else's sees the owner's wording there.
+        - [ ] Opened from a notification before Home loads, the plan boxes have no own space or plans yet: they show without the plan names and limits until the spaces load (Plans loads its own).
     - [ ] **Launch readiness** (Android and iOS, needed before the coach app goes to the stores):
         - [ ] R8 full mode (`isMinifyEnabled = true` with the right keep rules) and a Baseline Profile for the release build (`TECHNICAL_DECISIONS.md` §11.7, §11.8).
         - [ ] Edge-to-edge: audit every screen's `WindowInsets` (§11.6, §11.8).
