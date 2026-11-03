@@ -343,7 +343,11 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
     - [x] Following live on Pro (2026-11-03): live scores in the match lists, the live sockets and the live moments' notifications, refused by the coach server below Pro (`TECHNICAL_DECISIONS.md` §72).
     - [x] Plan rules only on the server (2026-11-03): the app decides no plan rule. The coach server sends the plans, what each has in the app's language and the coach's own plan (`GET /v1/plans`), room for staff on an age group and the age groups left this season; a plan is an id, not a fixed list in the app (`TECHNICAL_DECISIONS.md` §72).
     - [x] Training on Pro (2026-11-03): the clubs app's training (sessions, exercises, evaluations, training stats, plans) on the coach server, with its use cases moved to `:server:core` behind the `AccessPolicy` and refused below Pro by the server (`TECHNICAL_DECISIONS.md` §72).
-    - [ ] **More in the live game** (the developer, 2026-11-03), both apps: record shots on goal, shots and fouls as well. Tapping a team opens a new bottom sheet to add the corners it won. To decide: whether shots, shots on goal and fouls are per player (like goals and cards) or per team, which of them go on the same team sheet, and where they show (the match's stats, the timeline, season stats).
+    - [ ] **More in the live game** (the developer, 2026-11-03), both apps:
+        - **Shots, shots on goal and fouls**, recorded per player, like goals and cards.
+        - **Corners won**, per team: tapping a team in the live game opens a new bottom sheet to add one. Only corners go on that sheet.
+        - **Where they show:** everywhere, in the match's stats, the timeline and the season stats.
+        - To confirm: corners for the opponent as well as our team; whether a shot on goal also counts as a shot (so "shots" is all of them).
     - [ ] Payments (Google Play Billing and Apple In-App Purchase, directly, no RevenueCat) and ads on the Free plan (AdMob).
     - [ ] **Plans: still open** (2026-11-03, after PR #188):
         - [x] Asking for a plan in the app (2026-11-03), the stopgap: tap a plan on Plans and Subscribe, the request emailed to the platform admins, who set it (§5c).
