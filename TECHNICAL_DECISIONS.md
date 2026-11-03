@@ -3382,7 +3382,8 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own 
     - **Going down at the next renewal** is what both stores do natively: Google Play with the `DEFERRED` replacement mode on the plan change, and Apple for a lower level in the same subscription group. Each plan is a product (and period) in one subscription group or subscription, ranked Pro over Basic. The server keeps the plan the store says is active and the one that is pending, and moves when the store's notification of the renewal comes.
     - **A referral's free month** extends the referrer's subscription at no charge, from the server. Google Play has an API for it (deferring the next billing date). Apple's equivalent, extending a renewal date with the App Store Server API, is meant for service problems and limited (at most twice a year for a subscriber, up to 90 days each), so it can't give a monthly referrer more than two free months a year, nor a free year; Apple's offer codes or promotional offers (a free period the subscriber redeems) are the likely way instead. To settle before building referrals, against Apple's current rules.
     - **Referral codes and counts** are the coach server's own (a code per subscriber, who used it, whether the reward was given), counted from the stores' notifications, never from the app.
- AdMob on the Free plan, after Google's consent form (UMP), which the EU requires. When a subscription ends, the space falls back to Free: nothing is deleted, stats keep being calculated, and the other members lose access until it's paid again.
+
+**Ads (later):** AdMob on the Free plan, after Google's consent form (UMP), which the EU requires. When a subscription ends, the space falls back to Free: nothing is deleted, stats keep being calculated, and the other members lose access until it's paid again.
 
 ## 73. Date and Time Pickers in the App's Colours
 
