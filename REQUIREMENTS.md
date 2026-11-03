@@ -132,7 +132,10 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
 
 - **Changing plan with payments** (the developer, 2026-11-03):
     - **Going down waits for the end of what's paid.** The coach keeps the plan they paid for until the end of the period, and the lower plan starts, and is first charged, on the next renewal. Paid Pro on 1 January and moved to Basic on 10 January: Pro until 31 January, Basic charged and in use from 1 February. The same for a yearly subscription: the higher plan until the year paid for ends. Until then Plans shows the plan they have and the one coming, with its date.
-    - **Going up:** the difference is never charged (the developer, 2026-11-03): the higher plan's price is charged from the next renewal. To confirm: whether the higher plan is in use at once (free until the renewal) or only from the renewal.
+    - **Going up is at once, charging only the difference for the days left** (the developer, 2026-11-03), whether to a higher plan or from monthly to yearly. The unused days already paid are taken off the new price. Prices below are only for the example (Basic €3 a month, Pro €5 a month).
+        - **A higher plan, same period:** Basic paid on 1 January, Pro chosen on 10 January: Pro from that moment, charged (€5 − €3) × 22/31 ≈ €1.42 for 10–31 January; from 1 February, Pro's own price.
+        - **Monthly to yearly:** Basic monthly paid on 1 January, yearly chosen on 10 January: the yearly subscription starts on 10 January, its price less the 22 unused days of the month (€3 × 22/31 ≈ €2.13).
+        - Only going down waits (above).
 - **Referrals** (the developer, 2026-11-03):
     - **Who has a code:** a subscriber, from their first successful payment. Free coaches have none.
     - **Using one:** a new coach enters the code when they subscribe. Any paid plan counts, on either side (Basic or Pro).
