@@ -45,7 +45,7 @@ class OwnSpacePlanTest {
         getSpaces()
         assertEquals(OwnSpace("mine", SpacePlan.BASIC, ageGroupsThisSeason = 2), ownPlan.space.value)
 
-        // Staff only: no own plan, so a lock never offers See plans.
+        // Staff only: no own plan, so See plans opens Plans with none marked as theirs.
         repository.spaces = listOf(SpaceAgeGroups(space("anas"), isOwner = false, ageGroups = emptyList(), plan = SpacePlan.FREE))
         getSpaces()
         assertNull(ownPlan.space.value)
