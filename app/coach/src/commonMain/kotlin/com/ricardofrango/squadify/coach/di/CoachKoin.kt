@@ -9,6 +9,7 @@ import com.ricardofrango.squadify.coach.presentation.ui.deleteaccount.DeleteAcco
 import com.ricardofrango.squadify.coach.data.StaffInviteRepositoryImpl
 import com.ricardofrango.squadify.coach.domain.CreateStaffInviteUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
+import com.ricardofrango.squadify.coach.domain.LoadPlansUseCase
 import com.ricardofrango.squadify.coach.domain.OwnSpacePlan
 import com.ricardofrango.squadify.coach.domain.GetStaffInvitesUseCase
 import com.ricardofrango.squadify.coach.domain.JoinWithCodeUseCase
@@ -40,7 +41,8 @@ val coachModule = module {
     factory { GetAccountDeletionSummaryUseCase(get()) }
     factory { DeleteAccountUseCase(get()) }
     single { OwnSpacePlan() }
-    factory { GetSpacesUseCase(get(), get()) }
+    factory { GetSpacesUseCase(get(), get(), get()) }
+    factory { LoadPlansUseCase(get(), get()) }
     factory { SetUpSpaceUseCase(get()) }
     factory { JoinWithCodeUseCase(get()) }
     factory { GetStaffInvitesUseCase(get()) }

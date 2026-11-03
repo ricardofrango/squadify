@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.createagegroups
 
+import androidx.compose.runtime.CompositionLocalProvider
+import com.ricardofrango.squadify.presentation.ui.components.previewPlans
+import com.ricardofrango.squadify.presentation.ui.components.LocalPlans
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.presentation.ui.components.AgeGroupsNotInPlanNotice
 import com.ricardofrango.squadify.presentation.ui.components.ageGroupsLeftOnPlan
@@ -855,24 +858,26 @@ private fun CreateAgeGroupsContentSubmittingPreview() {
 @Composable
 private fun CreateAgeGroupsNoneLeftOnPlanPreview() {
     SquadifyTheme {
-        CreateAgeGroupsContent(
-            uiState = CreateAgeGroupsUiState.Idle(seasons = listOf(previewSeason("s1", "26/27", 2026)), selectedSeasonId = "s1"),
-            clubName = "Fontelas FC",
-            today = LocalDate(2026, 9, 4),
-            rows = listOf(AgeGroupRow(key = 0, teamSize = 11)),
-            teamSizeOptions = listOf(4, 5, 7, 9, 11),
-            ownPlan = SpacePlan.FREE,
-            ageGroupsLeft = 0,
-            onNavigateBack = {},
-            onSeasonSelected = {},
-            onRowSpanTypeSelected = { _, _ -> },
-            onRowStartYearSelected = { _, _ -> },
-            onRowEndYearSelected = { _, _ -> },
-            onRowNameChanged = { _, _ -> },
-            onRowTeamSizeSelected = { _, _ -> },
-            onAddRow = {},
-            onRemoveRow = {},
-            onCreateClick = {}
-        )
+        CompositionLocalProvider(LocalPlans provides previewPlans) {
+            CreateAgeGroupsContent(
+                uiState = CreateAgeGroupsUiState.Idle(seasons = listOf(previewSeason("s1", "26/27", 2026)), selectedSeasonId = "s1"),
+                clubName = "Fontelas FC",
+                today = LocalDate(2026, 9, 4),
+                rows = listOf(AgeGroupRow(key = 0, teamSize = 11)),
+                teamSizeOptions = listOf(4, 5, 7, 9, 11),
+                ownPlan = SpacePlan.FREE,
+                ageGroupsLeft = 0,
+                onNavigateBack = {},
+                onSeasonSelected = {},
+                onRowSpanTypeSelected = { _, _ -> },
+                onRowStartYearSelected = { _, _ -> },
+                onRowEndYearSelected = { _, _ -> },
+                onRowNameChanged = { _, _ -> },
+                onRowTeamSizeSelected = { _, _ -> },
+                onAddRow = {},
+                onRemoveRow = {},
+                onCreateClick = {}
+            )
+        }
     }
 }

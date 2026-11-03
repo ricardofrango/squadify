@@ -8,11 +8,9 @@ import com.ricardofrango.squadify.coach.domain.InviteEmail
 import com.ricardofrango.squadify.coach.domain.RevokeStaffInviteUseCase
 import com.ricardofrango.squadify.data.remote.ApiException
 import com.ricardofrango.squadify.data.remote.isNotInPlan
-import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
 import com.ricardofrango.squadify.domain.usecase.GetAgeGroupDetailsUseCase
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.model.StaffInvite
-import com.ricardofrango.squadify.model.hasRoomForStaff
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -51,7 +49,6 @@ enum class InviteStaffMessage { CREATE_FAILED, NO_ROOM_ON_PLAN, EMAIL_SENT, EMAI
 class InviteStaffViewModel(
     private val getStaffInvitesUseCase: GetStaffInvitesUseCase,
     private val getAgeGroupDetailsUseCase: GetAgeGroupDetailsUseCase,
-    private val getSpacesUseCase: GetSpacesUseCase,
     private val createStaffInviteUseCase: CreateStaffInviteUseCase,
     private val revokeStaffInviteUseCase: RevokeStaffInviteUseCase
 ) : ViewModel() {
@@ -66,14 +63,9 @@ class InviteStaffViewModel(
             _state.value = InviteStaffUiState.Loading
             _state.value = try {
                 coroutineScope {
-                    // Whether the plan has room: the age group's staff against the owner's plan. If that
-                    // can't be told, no box: creating a code still says so when there's no room.
-                    val fullOnPlan = async {
-                        runCatching {
-                            val plan = getSpacesUseCase().firstOrNull { it.isOwner }?.plan
-                            plan?.takeUnless { it.hasRoomForStaff(getAgeGroupDetailsUseCase(ageGroupId).staff.size) }
-                        }.getOrNull()
-                    }
+                    // Whether the plan has room, as the server says. If that can't be told, no box:
+                    // creating a code still says so when there's no room.
+                    val fullOnPlan = async { runCatching { getAgeGroupDetailsUseCase(ageGroupId).staffFullOnPlan }.getOrNull() }
                     InviteStaffUiState.Loaded(getStaffInvitesUseCase(ageGroupId).sortedByDescending { it.createdAt }, fullOnPlan.await())
                 }
             } catch (e: CancellationException) {

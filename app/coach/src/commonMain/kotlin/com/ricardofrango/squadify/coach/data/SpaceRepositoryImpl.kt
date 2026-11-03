@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.data.remote.handleResponse
 import com.ricardofrango.squadify.domain.config.AppConfig
 import com.ricardofrango.squadify.model.CoachSpace
 import com.ricardofrango.squadify.model.CreateStaffInviteRequest
+import com.ricardofrango.squadify.model.PlanDetails
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.model.SpaceAgeGroups
 import com.ricardofrango.squadify.model.SpaceSetup
@@ -25,6 +26,9 @@ class SpaceRepositoryImpl(
 
     override suspend fun getSpaces(): List<SpaceAgeGroups> =
         httpClient.get("${appConfig.baseUrl}/spaces").handleResponse()
+
+    override suspend fun getPlans(): List<PlanDetails> =
+        httpClient.get("${appConfig.baseUrl}/plans").handleResponse()
 
     override suspend fun setUpSpace(request: SetUpSpaceRequest): SpaceSetup =
         httpClient.post("${appConfig.baseUrl}/space") {

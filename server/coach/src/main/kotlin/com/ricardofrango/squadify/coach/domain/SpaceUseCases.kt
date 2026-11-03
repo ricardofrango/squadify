@@ -106,7 +106,8 @@ class GetSpacesUseCase(
                 val lockedAgeGroups = plans.lockedAgeGroups(space.id, plan)
                 val locked = ageGroups.filter { it.id in lockedAgeGroups || (!isOwner && userId in plans.lockedStaff(it.id, plan)) }
                 val thisSeason = if (isOwner) coachSeasons.currentOrNull(space.id)?.let { season -> ageGroups.count { it.seasonId == season.id } } ?: 0 else 0
-                SpaceAgeGroups(space, isOwner, ageGroups, plan, locked.map { it.id }, thisSeason)
+                val left = if (isOwner) PlanLimits.ageGroups(plan)?.let { (it - thisSeason).coerceAtLeast(0) } else null
+                SpaceAgeGroups(space, isOwner, ageGroups, plan, locked.map { it.id }, thisSeason, left)
             }
     }
 }

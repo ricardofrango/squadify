@@ -1,7 +1,5 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
-import com.ricardofrango.squadify.model.hasRoomForStaff
-import com.ricardofrango.squadify.presentation.ui.components.ownPlanFor
 import com.ricardofrango.squadify.presentation.ui.components.StaffNotInPlanNotice
 import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
@@ -617,9 +615,9 @@ internal fun AgeGroupMembersTab(
     // Disabled players stay in the pool but get their own section below the active ones.
     val (activePlayers, disabledPlayers) = players.partition { it.active }
     val disabledCount = details.players.count { !it.active }
-    // The coach app's owner, with no room for more staff on the space's plan: why, and See plans.
-    val ownPlan = ownPlanFor(details.club.id)
-    val noRoomOnPlan = (details.canAddStaff || invitesStaff) && ownPlan != null && !ownPlan.hasRoomForStaff(details.staff.size)
+    // The coach app's owner, when the server says the plan has no room for more staff: why, and See plans.
+    val fullOnPlan = details.staffFullOnPlan?.takeIf { details.canAddStaff || invitesStaff }
+    val noRoomOnPlan = fullOnPlan != null
 
     LazyColumn(modifier, state = listState, contentPadding = padding, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         // ---- Staff ----
@@ -629,8 +627,8 @@ internal fun AgeGroupMembersTab(
                 if (details.canAddStaff) stringResource(Res.string.ag_add_staff_short) to onAddStaff else null
             )
         }
-        if (noRoomOnPlan && ownPlan != null) {
-            item { StaffNotInPlanNotice(ownPlan) }
+        if (fullOnPlan != null) {
+            item { StaffNotInPlanNotice(fullOnPlan) }
         }
         if (details.staff.isEmpty() && !noRoomOnPlan) {
             item {

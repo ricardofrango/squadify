@@ -2846,7 +2846,9 @@ graph TD
 
 All in one transaction, so a refused setup creates nothing. Being staff in other spaces doesn't count.
 
-`GET /v1/spaces` (`GetSpacesUseCase`) returns every space the coach is in from `ClubRepository.getMemberships`, their own first, each as `SpaceAgeGroups` with `isOwner` and their age groups there: all of their own space's, only the ones with a staff row in the others, the space's `plan` and the ones it locks (`lockedAgeGroupIds`), and for their own space `ageGroupsThisSeason` (its age groups in today's season, from `CoachSeasons.currentOrNull`, which creates none; 0 for staff). An empty list before they set up or join one.
+`GET /v1/spaces` (`GetSpacesUseCase`) returns every space the coach is in from `ClubRepository.getMemberships`, their own first, each as `SpaceAgeGroups` with `isOwner` and their age groups there: all of their own space's, only the ones with a staff row in the others, the space's `plan` and the ones it locks (`lockedAgeGroupIds`), and for their own space `ageGroupsThisSeason` (its age groups in today's season, from `CoachSeasons.currentOrNull`, which creates none; 0 for staff) and `ageGroupsLeft` (the plan's age groups a season less those, none below 0; null with no limit, and for staff). An empty list before they set up or join one.
+
+`GET /v1/plans` returns `PlanLimits.catalogue`: every plan, cheapest first, with its features and limits, as the app shows them. The coach server's `GET /v1/age-groups/{id}/details` is `GetAgeGroupDetailsUseCase` (§4.4b) plus `staffFullOnPlan` (`CoachPlans.staffFullOn`: the space's plan when the age group has no room for more staff, else null).
 
 ### 13.3 Games on the coach server
 

@@ -62,27 +62,31 @@ data class CreateStaffInviteRequest(val email: String? = null, val language: Str
 @Serializable
 enum class SpacePlan { FREE, BASIC, PRO }
 
-/** Age groups a season on this plan; null: no limit. The coach server enforces it, the app shows it. */
-val SpacePlan.ageGroupLimit: Int?
-    get() = when (this) {
-        SpacePlan.FREE -> 1
-        SpacePlan.BASIC -> 3
-        SpacePlan.PRO -> null
-    }
-
-/** People on one age group on this plan, the owner included; null: no limit. */
-val SpacePlan.peoplePerAgeGroupLimit: Int?
-    get() = when (this) {
-        SpacePlan.FREE -> 1
-        SpacePlan.BASIC -> 3
-        SpacePlan.PRO -> null
-    }
-
 /**
- * Room on this plan for one more staff member on an age group that has [staffCount] (the owner, not
- * among them, takes a place too).
+ * What a plan has (`GET /v1/plans`, the coach server), as the coach server decides it: the app shows it
+ * and never decides a plan rule itself, so the plans can change without a new app. [features] are every
+ * feature the plan has ([PlanFeature]'s keys; an app skips one it doesn't know). The limits: null, no limit.
  */
-fun SpacePlan.hasRoomForStaff(staffCount: Int): Boolean = peoplePerAgeGroupLimit?.let { staffCount + 1 < it } ?: true
+@Serializable
+data class PlanDetails(
+    val plan: SpacePlan,
+    val features: List<String>,
+    val ageGroupLimit: Int? = null,
+    // The owner included.
+    val peoplePerAgeGroupLimit: Int? = null
+)
+
+/** The keys of [PlanDetails.features]. Strings, not an enum, so an older app reads a plan with a new one. */
+object PlanFeature {
+    const val LIVE_GAME = "LIVE_GAME"
+    const val CALENDAR = "CALENDAR"
+    const val HISTORY = "HISTORY"
+    const val STATS = "STATS"
+    // Live scores in the match lists, a game's screen updating as someone else records it, and the live
+    // moments' notifications.
+    const val FOLLOWING_LIVE = "FOLLOWING_LIVE"
+    const val TRAINING = "TRAINING"
+}
 
 /** A space in the platform admin's list (`GET /v1/admin/spaces`, the coach server): its owner and plan. */
 @Serializable
@@ -105,9 +109,10 @@ data class SpaceAgeGroups(
     // Of [ageGroups], the ones the plan locks for this coach: over the space's limit, or with them over
     // the age group's people limit. Listed, but not opened.
     val lockedAgeGroupIds: List<String> = emptyList(),
-    // The owner's: how many age groups the space has this season, against the plan's limit (My Space's
-    // Plan card). 0 for staff.
-    val ageGroupsThisSeason: Int = 0
+    // The owner's: how many age groups the space has this season (My Space's Plan card), and how many more
+    // the plan allows (Create age group); null: no limit. 0 and null for staff.
+    val ageGroupsThisSeason: Int = 0,
+    val ageGroupsLeft: Int? = null
 )
 
 /** A space the signed-in coach belongs to, and whether they own it. */

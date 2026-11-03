@@ -27,6 +27,12 @@ import com.ricardofrango.squadify.coach.presentation.ui.join.JoinWithCodeScreen
 import com.ricardofrango.squadify.coach.presentation.ui.space.MySpaceScreen
 import com.ricardofrango.squadify.coach.presentation.ui.plans.PlansScreen
 import com.ricardofrango.squadify.coach.domain.OwnSpacePlan
+import kotlinx.coroutines.CancellationException
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import com.ricardofrango.squadify.presentation.ui.components.LocalPlans
+import com.ricardofrango.squadify.coach.domain.LoadPlansUseCase
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.presentation.ui.components.LocalOwnSpace
 import com.ricardofrango.squadify.presentation.ui.components.LocalSeePlans
@@ -103,13 +109,17 @@ fun CoachNavigation(navigator: AppNavigator = rememberAppNavigator()) {
 
     // The own space and its plan, for the shared screens' plan boxes (the stats locks, and the Members tab,
     // Invite staff and Create age groups when the plan has no room), each with See plans.
-    val ownSpace by koinInject<OwnSpacePlan>().space.collectAsStateWithLifecycle()
+    val ownSpacePlan = koinInject<OwnSpacePlan>()
+    val ownSpace by ownSpacePlan.space.collectAsStateWithLifecycle()
+    // Every plan as the server sends them, for the boxes' wording (loaded with the spaces, and by Plans).
+    val plans by ownSpacePlan.plans.collectAsStateWithLifecycle()
     // Everyone gets See plans; with no space of their own, Plans marks none as theirs.
     val seePlans: () -> Unit = { navigator.navigate(Screen.Plans(ownSpace?.plan?.name.orEmpty())) }
 
     CompositionLocalProvider(
         LocalViewModelStoreOwner provides parentOwner,
         LocalOwnSpace provides ownSpace,
+        LocalPlans provides plans,
         LocalSeePlans provides seePlans
     ) {
         NavDisplay(
@@ -191,8 +201,28 @@ private fun coachScreens(navigator: AppNavigator): ScreenRegistry = screens {
 
     screen<Screen.Plans> { entry ->
         val screen: Screen.Plans = entry.toRoute()
+        val plans = LocalPlans.current
+        val loadPlans = koinInject<LoadPlansUseCase>()
+        // Loaded here too when they aren't yet (opened before Home, or the last load failed).
+        var attempt by remember { mutableIntStateOf(0) }
+        var failed by remember { mutableStateOf(false) }
+        LaunchedEffect(attempt) {
+            if (plans.isEmpty()) {
+                failed = false
+                failed = try {
+                    loadPlans()
+                    false
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    true
+                }
+            }
+        }
         PlansScreen(
             plan = SpacePlan.entries.firstOrNull { it.name == screen.plan },
+            plans = plans,
+            onRetry = if (failed) ({ attempt++ }) else null,
             onNavigateBack = { navigator.popBackStack() }
         )
     }

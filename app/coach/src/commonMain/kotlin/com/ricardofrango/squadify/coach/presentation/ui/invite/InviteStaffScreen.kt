@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.coach.presentation.ui.invite
 
+import com.ricardofrango.squadify.presentation.ui.components.previewPlans
+import com.ricardofrango.squadify.presentation.ui.components.LocalPlans
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -342,10 +344,12 @@ private val previewInvites = listOf(
 @Composable
 private fun InvitePreview(state: InviteStaffUiState) {
     SquadifyTheme {
-        InviteStaffContent(
-            uiState = state, ageGroupName = "Sub 11", spaceName = "Fontelas FC", snackbarHostState = remember { SnackbarHostState() },
-            sharing = null, onCopied = {}, onCreate = {}, onEmailChange = {}, onSend = {}, onWithdraw = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {}
-        )
+        CompositionLocalProvider(LocalPlans provides previewPlans) {
+            InviteStaffContent(
+                uiState = state, ageGroupName = "Sub 11", spaceName = "Fontelas FC", snackbarHostState = remember { SnackbarHostState() },
+                sharing = null, onCopied = {}, onCreate = {}, onEmailChange = {}, onSend = {}, onWithdraw = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {}
+            )
+        }
     }
 }
 

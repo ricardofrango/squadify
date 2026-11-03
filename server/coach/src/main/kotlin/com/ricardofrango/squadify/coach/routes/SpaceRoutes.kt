@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.coach.routes
 
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
+import com.ricardofrango.squadify.coach.domain.PlanLimits
 import com.ricardofrango.squadify.coach.domain.SetUpSpaceUseCase
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
 import com.ricardofrango.squadify.security.userId
@@ -15,7 +16,8 @@ import org.koin.ktor.ext.inject
 
 /**
  * The coach's spaces: `/spaces` lists every one they're in with their age groups there; `POST /space`
- * sets up their own, with its first age group and team.
+ * sets up their own, with its first age group and team. `/plans`: every plan with what it has, for the
+ * app to show (PlanLimits.catalogue).
  */
 fun Route.spaceRoutes() {
     val setUpSpaceUseCase by inject<SetUpSpaceUseCase>()
@@ -25,6 +27,9 @@ fun Route.spaceRoutes() {
         get("/spaces") {
             val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
             call.respond(getSpacesUseCase(currentUserId))
+        }
+        get("/plans") {
+            call.respond(PlanLimits.catalogue)
         }
         post("/space") {
             val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)

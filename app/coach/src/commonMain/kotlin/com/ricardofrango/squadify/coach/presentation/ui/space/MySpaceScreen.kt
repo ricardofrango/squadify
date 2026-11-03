@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.coach.presentation.ui.space
 
+import androidx.compose.runtime.CompositionLocalProvider
+import com.ricardofrango.squadify.presentation.ui.components.previewPlans
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -7,10 +9,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.ui.graphics.Color
+import com.ricardofrango.squadify.presentation.ui.components.LocalPlans
 import com.ricardofrango.squadify.presentation.ui.components.displayName
 import com.ricardofrango.squadify.model.SpacePlan
-import com.ricardofrango.squadify.model.ageGroupLimit
-import com.ricardofrango.squadify.model.peoplePerAgeGroupLimit
 import com.ricardofrango.squadify.presentation.ui.theme.AmberText
 import com.ricardofrango.squadify.presentation.ui.theme.DeepGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SectionBorderColor
@@ -242,7 +243,9 @@ private fun PlanCard(plan: SpacePlan, ageGroupsThisSeason: Int, onSeePlans: () -
                 }
             }
             Text(stringResource(Res.string.plan_card_this_season), style = MaterialTheme.typography.bodySmall, color = CarbonGray.copy(alpha = 0.7f))
-            val ageGroupLimit = plan.ageGroupLimit
+            // The limits as the server sends them; until they load, the count alone.
+            val details = LocalPlans.current.firstOrNull { it.plan == plan }
+            val ageGroupLimit = details?.ageGroupLimit
             val full = ageGroupLimit != null && ageGroupsThisSeason >= ageGroupLimit
             Text(
                 if (ageGroupLimit == null) stringResource(Res.string.plan_age_groups_no_limit, ageGroupsThisSeason)
@@ -250,16 +253,18 @@ private fun PlanCard(plan: SpacePlan, ageGroupsThisSeason: Int, onSeePlans: () -
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (full) FontWeight.Medium else FontWeight.Normal),
                 color = if (full) AmberText else DeepCarbon
             )
-            val people = plan.peoplePerAgeGroupLimit
-            Text(
-                when {
-                    people == null -> stringResource(Res.string.plan_people_no_limit)
-                    people <= 1 -> stringResource(Res.string.plan_people_just_you)
-                    else -> stringResource(Res.string.plan_people_up_to, people)
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = DeepCarbon
-            )
+            if (details != null) {
+                val people = details.peoplePerAgeGroupLimit
+                Text(
+                    when {
+                        people == null -> stringResource(Res.string.plan_people_no_limit)
+                        people <= 1 -> stringResource(Res.string.plan_people_just_you)
+                        else -> stringResource(Res.string.plan_people_up_to, people)
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = DeepCarbon
+                )
+            }
         }
         HorizontalDivider(color = SectionBorderColor)
         Row(
@@ -296,7 +301,9 @@ private val previewSpace = Club(id = "space-1", name = "Fontelas FC", status = C
 @Composable
 private fun MySpacePreview() {
     SquadifyTheme {
-        MySpaceContent(MySpaceUiState.Loaded(previewSpace, ageGroupsThisSeason = 1), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+        CompositionLocalProvider(LocalPlans provides previewPlans) {
+            MySpaceContent(MySpaceUiState.Loaded(previewSpace, ageGroupsThisSeason = 1), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+        }
     }
 }
 
@@ -304,7 +311,9 @@ private fun MySpacePreview() {
 @Composable
 private fun MySpaceLandscapePreview() {
     SquadifyTheme {
-        MySpaceContent(MySpaceUiState.Loaded(previewSpace), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+        CompositionLocalProvider(LocalPlans provides previewPlans) {
+            MySpaceContent(MySpaceUiState.Loaded(previewSpace), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+        }
     }
 }
 
@@ -312,7 +321,9 @@ private fun MySpaceLandscapePreview() {
 @Composable
 private fun MySpaceBasicPreview() {
     SquadifyTheme {
-        MySpaceContent(MySpaceUiState.Loaded(previewSpace, SpacePlan.BASIC, ageGroupsThisSeason = 2), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+        CompositionLocalProvider(LocalPlans provides previewPlans) {
+            MySpaceContent(MySpaceUiState.Loaded(previewSpace, SpacePlan.BASIC, ageGroupsThisSeason = 2), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+        }
     }
 }
 
@@ -320,7 +331,9 @@ private fun MySpaceBasicPreview() {
 @Composable
 private fun MySpaceProblemPreview() {
     SquadifyTheme {
-        MySpaceContent(MySpaceUiState.Loaded(previewSpace, logoProblem = LogoProblem.TOO_BIG), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+        CompositionLocalProvider(LocalPlans provides previewPlans) {
+            MySpaceContent(MySpaceUiState.Loaded(previewSpace, logoProblem = LogoProblem.TOO_BIG), onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+        }
     }
 }
 
@@ -328,6 +341,8 @@ private fun MySpaceProblemPreview() {
 @Composable
 private fun MySpaceFailedPreview() {
     SquadifyTheme {
-        MySpaceContent(MySpaceUiState.Failed, onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+        CompositionLocalProvider(LocalPlans provides previewPlans) {
+            MySpaceContent(MySpaceUiState.Failed, onLogoPicked = {}, onRemoveLogo = {}, onRetry = {}, onSeePlans = {}, onNavigateBack = {})
+        }
     }
 }

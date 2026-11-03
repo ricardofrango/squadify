@@ -20,6 +20,8 @@ import com.ricardofrango.squadify.model.MatchStatus
 import com.ricardofrango.squadify.model.MatchType
 import com.ricardofrango.squadify.model.MatchVenue
 import com.ricardofrango.squadify.model.Opponent
+import com.ricardofrango.squadify.model.PlanDetails
+import com.ricardofrango.squadify.model.PlanFeature
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.SetSpacePlanRequest
 import com.ricardofrango.squadify.model.SetUpSpaceRequest
@@ -166,6 +168,10 @@ class CoachPlansTest {
             assertEquals(HttpStatusCode.OK, api.post("/v1/invites/$code/accept") { bearerAuth(coach) }.status)
         }
         assertTrue(api.post("/v1/age-groups/$sub12/invites") { bearerAuth(owner) }.isPlanLimit())
+        // What the app shows: Sub-12 full on Basic, Sub-14 with room, no age groups left this season.
+        assertEquals(SpacePlan.BASIC, details(owner, sub12).body<AgeGroupDetails>().staffFullOnPlan)
+        assertEquals(null, details(owner, sub14).body<AgeGroupDetails>().staffFullOnPlan)
+        assertEquals(0, spaces(owner).ageGroupsLeft)
 
         // Down to Free: the first age group stays, the owner alone on it.
         api.setPlan(spaceId, SpacePlan.FREE)
@@ -181,8 +187,37 @@ class CoachPlansTest {
         // Basic again: everything is back.
         api.setPlan(spaceId, SpacePlan.BASIC)
         assertTrue(spaces(owner).lockedAgeGroupIds.isEmpty())
+        // Pro: no limit on age groups, nor on staff.
+        api.setPlan(spaceId, SpacePlan.PRO)
+        assertEquals(null, spaces(owner).ageGroupsLeft)
+        assertEquals(null, details(owner, sub12).body<AgeGroupDetails>().staffFullOnPlan)
+        api.setPlan(spaceId, SpacePlan.BASIC)
         assertEquals(HttpStatusCode.OK, details(owner, sub16).status)
         assertEquals(HttpStatusCode.OK, details(second, sub12).status)
+    }
+
+    @Test
+    fun thePlansAreTheServers() = testApplication {
+        application { module() }
+        val api = jsonClient()
+        val owner = api.signUp()
+        val setup = api.post("/v1/space") {
+            json(owner, SetUpSpaceRequest("Ana's team", SportType.FOOTBALL, AgeGroupItemRequest("Sub-12", 2015, 2015), "Sub-12 A"))
+        }.body<SpaceSetup>()
+
+        // Cheapest first, each with all it has.
+        val plans = api.get("/v1/plans") { bearerAuth(owner) }.body<List<PlanDetails>>()
+        assertEquals(listOf(SpacePlan.FREE, SpacePlan.BASIC, SpacePlan.PRO), plans.map { it.plan })
+        assertEquals(listOf(1, 3, null), plans.map { it.ageGroupLimit })
+        assertEquals(listOf(1, 3, null), plans.map { it.peoplePerAgeGroupLimit })
+        assertEquals(listOf(false, true, true), plans.map { PlanFeature.STATS in it.features })
+        assertEquals(listOf(false, false, true), plans.map { PlanFeature.FOLLOWING_LIVE in it.features })
+
+        // A new Free space: its one age group used, and full with the owner alone.
+        val space = api.get("/v1/spaces") { bearerAuth(owner) }.body<List<SpaceAgeGroups>>().single()
+        assertEquals(1, space.ageGroupsThisSeason)
+        assertEquals(0, space.ageGroupsLeft)
+        assertEquals(SpacePlan.FREE, api.get("/v1/age-groups/${setup.ageGroup.id}/details") { bearerAuth(owner) }.body<AgeGroupDetails>().staffFullOnPlan)
     }
 
     @Test

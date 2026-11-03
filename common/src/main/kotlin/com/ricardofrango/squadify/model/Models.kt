@@ -867,7 +867,10 @@ data class AgeGroupDetails(
     val canManageMatch: Boolean,
     val canAssignPlayersToAgeGroup: Boolean,
     // Coordinator+, like Add staff (UpdateAgeGroupUseCase's gate): shows "Edit age group".
-    val canEditAgeGroup: Boolean = false
+    val canEditAgeGroup: Boolean = false,
+    // The coach server's: the space's plan when it has no room for more staff on this age group (the box
+    // on the Members tab and Invite staff), null while there's room. Always null on the clubs server.
+    val staffFullOnPlan: SpacePlan? = null
 )
 
 /**
