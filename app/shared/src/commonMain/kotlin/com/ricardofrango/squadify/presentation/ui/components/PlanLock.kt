@@ -46,6 +46,10 @@ import squadify.app.shared.generated.resources.staff_not_in_plan_full_title
 import squadify.app.shared.generated.resources.stats_not_in_plan_ask_owner
 import squadify.app.shared.generated.resources.stats_not_in_plan_body
 import squadify.app.shared.generated.resources.stats_not_in_plan_title
+import squadify.app.shared.generated.resources.training_not_in_plan_ask_owner
+import squadify.app.shared.generated.resources.training_not_in_plan_body
+import squadify.app.shared.generated.resources.training_not_in_plan_title
+import squadify.app.shared.generated.resources.training_not_in_plan_title_any
 import squadify.app.shared.generated.resources.stats_not_in_plan_title_any
 
 /**
@@ -132,6 +136,25 @@ fun StatsNotInPlanMessage(modifier: Modifier = Modifier) {
 }
 
 /**
+ * Training isn't on the space's plan (the coach server refused it), on the Training tab: the first plan
+ * with training, and for the owner of a plan without it, that it doesn't include it; anyone else, that
+ * the owner can change the plan.
+ */
+@Composable
+fun TrainingNotInPlanMessage(modifier: Modifier = Modifier) {
+    val plans = LocalPlans.current
+    val withTraining = plans.firstOrNull { it.has(PlanFeature.TRAINING) }
+    val own = LocalOwnSpace.current?.plan?.let { plan -> plans.firstOrNull { it.plan == plan } }
+    PlanLimitBox(
+        if (withTraining != null) stringResource(Res.string.training_not_in_plan_title, withTraining.name)
+        else stringResource(Res.string.training_not_in_plan_title_any),
+        if (own != null && !own.has(PlanFeature.TRAINING)) stringResource(Res.string.training_not_in_plan_body, own.name)
+        else stringResource(Res.string.training_not_in_plan_ask_owner),
+        modifier
+    )
+}
+
+/**
  * The age group has no room for more staff on [plan] (the server's answer, `AgeGroupDetails.staffFullOnPlan`):
  * the owner alone on a plan for one person, or full; then the plans with more room.
  */
@@ -194,7 +217,7 @@ val previewPlans: List<PlanDetails> = run {
         PlanDetails(SpacePlan("BASIC"), "Basic", basic, 3, 3),
         PlanDetails(
             SpacePlan("PRO"), "Pro",
-            basic + PlanFeatureLine(PlanFeature.FOLLOWING_LIVE, "Live game results and notifications") + PlanFeatureLine(PlanFeature.TRAINING, "Training (coming soon)")
+            basic + PlanFeatureLine(PlanFeature.FOLLOWING_LIVE, "Live game results and notifications") + PlanFeatureLine(PlanFeature.TRAINING, "Training: sessions, exercises, player ratings, training stats and plans")
         )
     )
 }

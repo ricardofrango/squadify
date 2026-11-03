@@ -114,6 +114,32 @@ class ClubAccessPolicy(private val checkUserPermission: CheckUserPermissionUseCa
     override suspend fun requireEditOpponent(userId: String, scope: GameScope, errorMessage: String) =
         configurable(userId, scope, ConfigurablePermission.EDIT_OPPONENT, errorMessage)
 
+    // Training (design 39, 40): sessions are read like games, players and parents too; plans only by the
+    // club's people and the age group's staff; managing is MANAGE_TRAINING; rating is the age group's staff.
+    override suspend fun requireViewTraining(userId: String, scope: GameScope) = requireViewGames(userId, scope)
+
+    override suspend fun requireViewTrainingPlans(userId: String, scope: GameScope) = checkUserPermission(
+        userId = userId,
+        clubId = scope.clubId,
+        minClubRole = ClubRole.MEMBER,
+        minAgeGroupRole = AgeGroupRole.STAFF,
+        teamId = scope.teamId,
+        ageGroupId = scope.ageGroupId
+    )
+
+    override suspend fun requireManageTraining(userId: String, scope: GameScope, errorMessage: String) =
+        configurable(userId, scope, ConfigurablePermission.MANAGE_TRAINING, errorMessage)
+
+    override suspend fun requireRateTraining(userId: String, scope: GameScope, errorMessage: String) = checkUserPermission(
+        userId = userId,
+        clubId = scope.clubId,
+        minClubRole = ClubRole.COORDINATOR,
+        minAgeGroupRole = AgeGroupRole.STAFF,
+        teamId = scope.teamId,
+        ageGroupId = scope.ageGroupId,
+        errorMessage = errorMessage
+    )
+
     private suspend fun configurable(userId: String, scope: GameScope, permission: ConfigurablePermission, errorMessage: String) =
         checkUserPermission(
             userId = userId,

@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
 import com.ricardofrango.squadify.presentation.ui.components.StaffNotInPlanNotice
 import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
+import com.ricardofrango.squadify.presentation.ui.components.TrainingNotInPlanMessage
 import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.material3.AlertDialog
@@ -944,6 +945,7 @@ private fun LazyListScope.sessionItems(
 ) {
     when (state) {
         AgeGroupSessionsUiState.Loading -> Unit
+        AgeGroupSessionsUiState.NotInPlan -> item { TrainingNotInPlanMessage() }
         AgeGroupSessionsUiState.Error -> item {
             StatsCard { StatsMessage(stringResource(Res.string.msg_sessions_load_failed), stringResource(Res.string.msg_check_connection), onRetry = onRetry) }
         }

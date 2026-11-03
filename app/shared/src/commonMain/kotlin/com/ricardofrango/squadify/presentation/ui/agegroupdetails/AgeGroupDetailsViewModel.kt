@@ -46,7 +46,8 @@ class AgeGroupDetailsViewModel(
     private val features: AppFeatures
 ) : ViewModel() {
 
-    // The coach app has no training: no Training tab and no training calls.
+    // Without training (AppFeatures): no Training tab and no training calls. The coach app has it, and its
+    // server refuses it below Pro (the tab's plan box).
     val showsTraining: Boolean = features.training
 
     // One-off results of removing a player, for the snackbar.
@@ -181,7 +182,10 @@ class AgeGroupDetailsViewModel(
         }
     }
 
-    /** The Training tab's plans; a 403 means the viewer doesn't see plans, so the cards are left out. */
+    /**
+     * The Training tab's plans; a 403 means the viewer doesn't see plans (or, on the coach server, the
+     * space's plan has no training), so the cards are left out.
+     */
     fun loadPlans(ageGroupId: String) {
         viewModelScope.launch {
             if (_plans.value !is AgeGroupPlansUiState.Loaded) _plans.update { AgeGroupPlansUiState.Loading }
@@ -204,7 +208,8 @@ class AgeGroupDetailsViewModel(
                 try {
                     AgeGroupSessionsUiState.Loaded(getTrainingSessionsUseCase(ageGroupId))
                 } catch (e: Exception) {
-                    (it as? AgeGroupSessionsUiState.Loaded) ?: AgeGroupSessionsUiState.Error
+                    if (e.isNotInPlan) AgeGroupSessionsUiState.NotInPlan
+                    else (it as? AgeGroupSessionsUiState.Loaded) ?: AgeGroupSessionsUiState.Error
                 }
             }
         }

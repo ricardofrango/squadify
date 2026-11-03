@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.access.allowed
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
@@ -27,13 +28,14 @@ class TrainingStatsUseCase(
     private val playerRepository: PlayerRepository,
     private val trainingSessionRepository: TrainingSessionRepository,
     private val trainingRatingRepository: TrainingRatingRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager,
     private val clock: Clock = Clock.System
 ) {
     suspend fun ageGroup(userId: String, ageGroupId: String): AgeGroupTrainingStats = transactionManager.runInTransaction {
         val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId) ?: throw NotFoundException("Age group not found")
-        checkUserPermissionUseCase.requireRateTraining(userId, ageGroup)
+        accessPolicy.requireRateTraining(userId, ageGroup.scope, RATE_TRAINING_MESSAGE)
+        accessPolicy.requireTrainingInPlan(ageGroup.clubId)
         val sessions = endedSessions(ageGroupId)
         AgeGroupTrainingStats(
             players = playerRepository.getPlayersByAgeGroup(ageGroupId),
@@ -46,7 +48,11 @@ class TrainingStatsUseCase(
         playerRepository.getPlayerById(playerId) ?: throw NotFoundException("Player not found")
         val seasons = playerRepository.getAgeGroupIdsByPlayer(playerId).mapNotNull { id ->
             val ageGroup = ageGroupRepository.getAgeGroupById(id) ?: return@mapNotNull null
-            if (!allowed { checkUserPermissionUseCase.requireRateTraining(userId, ageGroup) }) return@mapNotNull null
+            if (!allowed {
+                    accessPolicy.requireRateTraining(userId, ageGroup.scope)
+                    accessPolicy.requireTrainingInPlan(ageGroup.clubId)
+                }
+            ) return@mapNotNull null
             val season = seasonRepository.getSeasonById(ageGroup.seasonId) ?: return@mapNotNull null
             val sessions = endedSessions(id)
             val ratings = trainingRatingRepository.getForSessions(sessions.map { it.id })

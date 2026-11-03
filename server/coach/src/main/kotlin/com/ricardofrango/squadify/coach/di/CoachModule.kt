@@ -42,8 +42,6 @@ import com.ricardofrango.squadify.domain.service.PrefixedImageStorage
 import com.ricardofrango.squadify.domain.service.PushAudience
 import com.ricardofrango.squadify.domain.usecase.RegisterFcmTokenUseCase
 import com.ricardofrango.squadify.domain.usecase.RemoveFcmTokenUseCase
-import com.ricardofrango.squadify.coach.data.NoTrainingRatings
-import com.ricardofrango.squadify.coach.data.NoTrainingSessions
 import com.ricardofrango.squadify.coach.domain.AcceptStaffInviteUseCase
 import com.ricardofrango.squadify.coach.domain.CoachSeasons
 import com.ricardofrango.squadify.coach.domain.CreateStaffInviteUseCase
@@ -80,6 +78,22 @@ import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.TrainingRatingRepository
+import com.ricardofrango.squadify.data.repository.ExposedTrainingPlanRepository
+import com.ricardofrango.squadify.data.repository.ExposedTrainingSessionRepository
+import com.ricardofrango.squadify.data.repository.ExposedTrainingExerciseRepository
+import com.ricardofrango.squadify.data.repository.ExposedTrainingRatingRepository
+import com.ricardofrango.squadify.domain.repository.TrainingPlanRepository
+import com.ricardofrango.squadify.domain.repository.TrainingExerciseRepository
+import com.ricardofrango.squadify.domain.usecase.GetTrainingPlansUseCase
+import com.ricardofrango.squadify.domain.usecase.SaveTrainingPlanUseCase
+import com.ricardofrango.squadify.domain.usecase.GetTrainingSessionsUseCase
+import com.ricardofrango.squadify.domain.usecase.CreateTrainingSessionsUseCase
+import com.ricardofrango.squadify.domain.usecase.SaveTrainingSessionUseCase
+import com.ricardofrango.squadify.domain.usecase.ChangeTrainingSessionUseCase
+import com.ricardofrango.squadify.domain.usecase.GetTrainingSessionUseCase
+import com.ricardofrango.squadify.domain.usecase.TrainingRatingsUseCase
+import com.ricardofrango.squadify.domain.usecase.TrainingStatsUseCase
+import com.ricardofrango.squadify.domain.usecase.TrainingExercisesUseCase
 import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
@@ -111,9 +125,21 @@ val coachModule = module {
     single<FcmTokenRepository> { ExposedFcmTokenRepository() }
     single<MatchPlayerStatsRepository> { ExposedMatchPlayerStatsRepository() }
     single<MatchReportRepository> { ExposedMatchReportRepository() }
-    // No training in the coach product: full stats finds none.
-    single<TrainingSessionRepository> { NoTrainingSessions }
-    single<TrainingRatingRepository> { NoTrainingRatings }
+    // Training (Pro): the same repositories and use cases as the clubs server.
+    single<TrainingPlanRepository> { ExposedTrainingPlanRepository() }
+    single<TrainingSessionRepository> { ExposedTrainingSessionRepository() }
+    single<TrainingExerciseRepository> { ExposedTrainingExerciseRepository() }
+    single<TrainingRatingRepository> { ExposedTrainingRatingRepository() }
+    factory { GetTrainingPlansUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { SaveTrainingPlanUseCase(get(), get(), get(), get(), get()) }
+    factory { GetTrainingSessionsUseCase(get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { CreateTrainingSessionsUseCase(get(), get(), get(), get(), get()) }
+    factory { SaveTrainingSessionUseCase(get(), get(), get(), get()) }
+    factory { ChangeTrainingSessionUseCase(get(), get(), get(), get()) }
+    factory { GetTrainingSessionUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { TrainingRatingsUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { TrainingStatsUseCase(get(), get(), get(), get(), get(), get(), get()) }
+    factory { TrainingExercisesUseCase(get(), get(), get(), get(), get()) }
 
     // The live game's updates, to every device following a match or the space's matches.
     single<LiveMatchBus> { KotlinFlowMatchBus() }

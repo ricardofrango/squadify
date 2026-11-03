@@ -473,17 +473,15 @@ object TrainingRatingsTable : Table("training_ratings") {
 
 /**
  * The tables both databases have (TECHNICAL_DECISIONS §72): accounts, the club (a coach's space in the
- * coach database) and its members and structure, and everything about games. Each server's migrations
+ * coach database) and its members and structure, everything about games, and training. Each server's migrations
  * create them, and its schema test checks them against these definitions.
  */
 val sharedTables: List<Table> = listOf(
     Users, RefreshTokens, PasswordResetCodes, EmailChangeCodes, FcmTokens,
     Clubs, ClubMembers, Seasons, AgeGroups, Teams, Players, AgeGroupPlayers, AgeGroupStaff, Opponents,
-    Matches, MatchCallUps, MatchEvents, MatchLineupChanges, MatchPlayerStatsTable, MatchReports
-)
-
-/** The clubs database's own: parents' links, invites, configurable permissions and training. */
-val clubsOnlyTables: List<Table> = listOf(
-    UserPlayers, Invites, ClubPermissionOverrides,
+    Matches, MatchCallUps, MatchEvents, MatchLineupChanges, MatchPlayerStatsTable, MatchReports,
     TrainingPlansTable, TrainingSessionsTable, TrainingExercisesTable, TrainingSessionExercisesTable, TrainingRatingsTable
 )
+
+/** The clubs database's own: parents' links, invites and configurable permissions. */
+val clubsOnlyTables: List<Table> = listOf(UserPlayers, Invites, ClubPermissionOverrides)

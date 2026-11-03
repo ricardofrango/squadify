@@ -1,13 +1,12 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.TrainingPlanRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.exception.ValidationException
-import com.ricardofrango.squadify.model.ClubRole
-import com.ricardofrango.squadify.model.ConfigurablePermission
 import com.ricardofrango.squadify.model.SaveTrainingPlanRequest
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.TrainingPhase
@@ -30,20 +29,14 @@ class SaveTrainingPlanUseCase(
     private val ageGroupRepository: AgeGroupRepository,
     private val seasonRepository: SeasonRepository,
     private val trainingPlanRepository: TrainingPlanRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend operator fun invoke(userId: String, ageGroupId: String, request: SaveTrainingPlanRequest): TrainingPlan = transactionManager.runInTransaction {
         val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId) ?: throw NotFoundException("Age group not found")
 
-        checkUserPermissionUseCase(
-            userId = userId,
-            clubId = ageGroup.clubId,
-            minClubRole = ClubRole.COORDINATOR,
-            configurablePermission = ConfigurablePermission.MANAGE_TRAINING,
-            ageGroupId = ageGroupId,
-            errorMessage = "Only coordinators, or this age group's staff the club allows, can plan its training"
-        )
+        accessPolicy.requireManageTraining(userId, ageGroup.scope, "Only coordinators, or this age group's staff the club allows, can plan its training")
+        accessPolicy.requireTrainingInPlan(ageGroup.clubId)
 
         val season = seasonRepository.getSeasonById(ageGroup.seasonId) ?: throw NotFoundException("Season not found")
         if (!season.isPeriodStart(request.level, request.periodStart)) {

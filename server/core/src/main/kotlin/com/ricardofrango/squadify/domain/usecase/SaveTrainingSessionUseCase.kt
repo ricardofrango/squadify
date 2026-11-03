@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.TrainingSessionRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
@@ -17,12 +18,13 @@ import kotlin.uuid.Uuid
 class SaveTrainingSessionUseCase(
     private val ageGroupRepository: AgeGroupRepository,
     private val trainingSessionRepository: TrainingSessionRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager
 ) {
     suspend fun add(userId: String, ageGroupId: String, request: SaveTrainingSessionRequest): TrainingSession = transactionManager.runInTransaction {
         val ageGroup = ageGroupRepository.getAgeGroupById(ageGroupId) ?: throw NotFoundException("Age group not found")
-        checkUserPermissionUseCase.requireManageTraining(userId, ageGroup)
+        accessPolicy.requireManageTraining(userId, ageGroup.scope, MANAGE_TRAINING_MESSAGE)
+        accessPolicy.requireTrainingInPlan(ageGroup.clubId)
         validate(request)
         replaceClash(ageGroupId, request, keep = null)
         val session = TrainingSession(
@@ -36,7 +38,8 @@ class SaveTrainingSessionUseCase(
     suspend fun update(userId: String, sessionId: String, request: SaveTrainingSessionRequest): TrainingSession = transactionManager.runInTransaction {
         val stored = trainingSessionRepository.getById(sessionId) ?: throw NotFoundException("Training session not found")
         val ageGroup = ageGroupRepository.getAgeGroupById(stored.session.ageGroupId) ?: throw NotFoundException("Age group not found")
-        checkUserPermissionUseCase.requireManageTraining(userId, ageGroup)
+        accessPolicy.requireManageTraining(userId, ageGroup.scope, MANAGE_TRAINING_MESSAGE)
+        accessPolicy.requireTrainingInPlan(ageGroup.clubId)
         validate(request)
         replaceClash(ageGroup.id, request, keep = sessionId)
         val updated = stored.session.copy(

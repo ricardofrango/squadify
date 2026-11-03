@@ -2209,13 +2209,15 @@ This is the **only** use case in the codebase that never calls `CheckUserPermiss
 
 ## 9b. Training Planning
 
+**On both servers since 2026-11-03** (`:server:core`, `trainingRoutes()` in `:server:web`; `TECHNICAL_DECISIONS.md` §72). The checks below are written as the clubs server makes them; each use case asks the server's `AccessPolicy` (`requireViewTraining`, `requireViewTrainingPlans`, `requireManageTraining`, `requireRateTraining`), which `ClubAccessPolicy` answers with those same `CheckUserPermissionUseCase` calls and `CoachAccessPolicy` with the age group's owner or staff. Right after it, every use case asks `requireTrainingInPlan(clubId)`: nothing on the clubs server; on the coach server training is on Pro, else `PlanLimitException` (403 `PLAN_001`). Training stats for a player skip the age groups where either is refused, and full stats sends no trainings without it.
+
 ### 9b.1 Get Training Plans (`GetTrainingPlansUseCase`)
 
 ```mermaid
 graph TD
     A[Start: userId, ageGroupId] --> B[Fetch AgeGroup by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C["CheckUserPermissionUseCase — minClubRole=MEMBER, minAgeGroupRole=STAFF, ageGroupId (no player/parent path)"]
+    B -- found --> C["requireViewTrainingPlans (clubs: CheckUserPermissionUseCase — minClubRole=MEMBER, minAgeGroupRole=STAFF, ageGroupId, no player/parent path), then requireTrainingInPlan"]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> D["canEdit: non-throwing probe — minClubRole=COORDINATOR, configurablePermission=MANAGE_TRAINING, ageGroupId"]
     D --> Z(["Return TrainingPlans: ageGroup, clubName, season, every plan of the age group, canEdit"])
@@ -2231,7 +2233,7 @@ Players and parents never see plans.
 graph TD
     A[Start: userId, ageGroupId, level, periodStart, focus, objectives, notes, intensity, phases] --> B[Fetch AgeGroup by id]
     B -- not found --> N(["Throw NotFoundException"])
-    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR, configurablePermission=MANAGE_TRAINING, ageGroupId]
+    B -- found --> C["requireManageTraining (clubs: minClubRole=COORDINATOR, configurablePermission=MANAGE_TRAINING, ageGroupId), then requireTrainingInPlan"]
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> P{"periodStart is the season's start (SEASON), the 1st of a month it touches (MONTH), or the Monday of a week overlapping it (WEEK)?"}
     P -- No --> V1(["Throw ValidationException"])
@@ -2400,7 +2402,7 @@ Cross-referencing every use case above against `REQUIREMENTS.md` and `TECHNICAL_
 
 ## 12. Database Schema: Current State of the Art
 
-Source of truth: `server/data/src/main/kotlin/.../data/database/Tables.kt` (shared with the coach server since 2026-10-29: `sharedTables` are in both databases, `clubsOnlyTables` only here; `TECHNICAL_DECISIONS.md` §72) (Exposed `Table` objects, describing the schema for query-building) **and** the versioned SQL files under `server/clubs/src/main/resources/db/migration/` (which actually create/alter it — see `TECHNICAL_DECISIONS.md` §34). `DatabaseFactory.init()` runs Flyway against those files on every boot, so the diagram below and the real Postgres tables are guaranteed to match *as long as every `Tables.kt` change ships with a matching new migration file* — unlike the old `SchemaUtils.createMissingTablesAndColumns` approach, Flyway does not infer schema changes from `Tables.kt` automatically. Since 2026-10-29 `ClubsSchemaTest` enforces it: it runs the migrations on an empty scratch database and fails if Exposed would still change anything for the tables to match `Tables.kt`. It found two drifts on its first run, fixed in `Tables.kt` to match the live database: `training_plans.objectives`/`phases` default to `'[]'`, and `match_lineup_changes`' key to `matches` is Postgres-named (`match_lineup_changes_match_id_fkey`, ON UPDATE NO ACTION).
+Source of truth: `server/data/src/main/kotlin/.../data/database/Tables.kt` (shared with the coach server since 2026-10-29: `sharedTables` are in both databases, training included since 2026-11-03 (the coach database's `V6__training.sql`), `clubsOnlyTables` only here; `TECHNICAL_DECISIONS.md` §72) (Exposed `Table` objects, describing the schema for query-building) **and** the versioned SQL files under `server/clubs/src/main/resources/db/migration/` (which actually create/alter it — see `TECHNICAL_DECISIONS.md` §34). `DatabaseFactory.init()` runs Flyway against those files on every boot, so the diagram below and the real Postgres tables are guaranteed to match *as long as every `Tables.kt` change ships with a matching new migration file* — unlike the old `SchemaUtils.createMissingTablesAndColumns` approach, Flyway does not infer schema changes from `Tables.kt` automatically. Since 2026-10-29 `ClubsSchemaTest` enforces it: it runs the migrations on an empty scratch database and fails if Exposed would still change anything for the tables to match `Tables.kt`. It found two drifts on its first run, fixed in `Tables.kt` to match the live database: `training_plans.objectives`/`phases` default to `'[]'`, and `match_lineup_changes`' key to `matches` is Postgres-named (`match_lineup_changes_match_id_fkey`, ON UPDATE NO ACTION).
 
 ### 12.1 Entity-Relationship Diagram
 

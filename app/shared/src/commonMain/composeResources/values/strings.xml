@@ -654,6 +654,10 @@
     <string name="staff_not_in_plan_alone_title">Staff come with %1$s</string>
     <string name="staff_not_in_plan_alone_body">On %1$s the age group is the owner's alone.</string>
     <string name="stats_not_in_plan_ask_owner">The space owner can change the plan to unlock the stats.</string>
+    <string name="training_not_in_plan_title">Training comes with %1$s</string>
+    <string name="training_not_in_plan_title_any">Training isn't on this plan</string>
+    <string name="training_not_in_plan_body">Your %1$s plan doesn't include training.</string>
+    <string name="training_not_in_plan_ask_owner">The space owner can change the plan to unlock training.</string>
     <string name="btn_see_plans">See plans</string>
     <string name="staff_not_in_plan_full_title">This age group is full on %1$s</string>
     <string name="plan_people_sentence">%1$s has up to %2$d people per age group, the owner included.</string>

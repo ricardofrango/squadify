@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.ClubAccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
@@ -56,8 +57,8 @@ class TrainingPlanUseCasesTest {
     private val checkUserPermissionUseCase = CheckUserPermissionUseCase(
         userRepository, teamRepository, playerRepository, ageGroupRepository, transactionManager, clubPermissionRepository
     )
-    private val getPlans = GetTrainingPlansUseCase(ageGroupRepository, seasonRepository, clubRepository, trainingPlanRepository, checkUserPermissionUseCase, transactionManager)
-    private val savePlan = SaveTrainingPlanUseCase(ageGroupRepository, seasonRepository, trainingPlanRepository, checkUserPermissionUseCase, transactionManager)
+    private val getPlans = GetTrainingPlansUseCase(ageGroupRepository, seasonRepository, clubRepository, trainingPlanRepository, ClubAccessPolicy(checkUserPermissionUseCase), transactionManager)
+    private val savePlan = SaveTrainingPlanUseCase(ageGroupRepository, seasonRepository, trainingPlanRepository, ClubAccessPolicy(checkUserPermissionUseCase), transactionManager)
 
     private val clubId = "club-1"
     private val ag = AgeGroup("ag-1", clubId, "Sub-15", "s-1", 2012, 2012)

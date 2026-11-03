@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
@@ -29,14 +30,15 @@ class TrainingRatingsUseCase(
     private val ageGroupRepository: AgeGroupRepository,
     private val clubRepository: ClubRepository,
     private val playerRepository: PlayerRepository,
-    private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
+    private val accessPolicy: AccessPolicy,
     private val transactionManager: TransactionManager,
     private val clock: Clock = Clock.System
 ) {
     suspend fun get(userId: String, sessionId: String): TrainingRatings = transactionManager.runInTransaction {
         val stored = trainingSessionRepository.getById(sessionId) ?: throw NotFoundException("Training session not found")
         val ageGroup = ageGroupRepository.getAgeGroupById(stored.session.ageGroupId) ?: throw NotFoundException("Age group not found")
-        checkUserPermissionUseCase.requireRateTraining(userId, ageGroup)
+        accessPolicy.requireRateTraining(userId, ageGroup.scope, RATE_TRAINING_MESSAGE)
+        accessPolicy.requireTrainingInPlan(ageGroup.clubId)
         TrainingRatings(
             session = stored.session,
             ageGroupName = ageGroup.name,
@@ -50,7 +52,8 @@ class TrainingRatingsUseCase(
     suspend fun save(userId: String, sessionId: String, request: SaveTrainingRatingsRequest): TrainingRatings = transactionManager.runInTransaction {
         val stored = trainingSessionRepository.getById(sessionId) ?: throw NotFoundException("Training session not found")
         val ageGroup = ageGroupRepository.getAgeGroupById(stored.session.ageGroupId) ?: throw NotFoundException("Age group not found")
-        checkUserPermissionUseCase.requireRateTraining(userId, ageGroup)
+        accessPolicy.requireRateTraining(userId, ageGroup.scope, RATE_TRAINING_MESSAGE)
+        accessPolicy.requireTrainingInPlan(ageGroup.clubId)
         if (!stored.session.ratingsOpen(now())) throw ValidationException("Ratings open when the session ends, and not for a cancelled one")
         val pool = playerRepository.getPlayersByAgeGroup(ageGroup.id).map { it.id }.toSet()
         val changes = request.ratings.associate { change ->

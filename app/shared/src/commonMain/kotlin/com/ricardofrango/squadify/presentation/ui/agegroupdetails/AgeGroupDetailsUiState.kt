@@ -56,6 +56,8 @@ sealed class AgeGroupPlansUiState {
 sealed class AgeGroupSessionsUiState {
     data object Loading : AgeGroupSessionsUiState()
     data object Error : AgeGroupSessionsUiState()
+    // The space's plan has no training (the coach server's answer): the tab shows the plan's box.
+    data object NotInPlan : AgeGroupSessionsUiState()
     data class Loaded(val sessions: TrainingSessions) : AgeGroupSessionsUiState()
 }
 
