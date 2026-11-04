@@ -51,8 +51,10 @@ object CoachConfig {
      * Google Play (TECHNICAL_DECISIONS §72, payments): the app's package, and a service account with
      * access to it in Play Console (raw JSON), to check subscriptions bought in the app. Without the
      * account the server can't check purchases, so the app asks for plans instead (`PlanChange.REQUEST`).
+     * Staging sells through its own Play Console app, the staging build's package (`.stg`).
      */
-    val googlePlayPackageName: String = env("GOOGLE_PLAY_PACKAGE_NAME") ?: "com.ricardofrango.squadify.coach"
+    val googlePlayPackageName: String = env("GOOGLE_PLAY_PACKAGE_NAME")
+        ?: if (appEnv == "staging") "com.ricardofrango.squadify.coach.stg" else "com.ricardofrango.squadify.coach"
     val googlePlayServiceAccountJson: String = env("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON") ?: ""
 
     /**

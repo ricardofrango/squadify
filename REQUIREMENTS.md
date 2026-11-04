@@ -350,7 +350,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - **The opponent's sheet:** tapping the opponent opens one to add a corner or a foul (the opponent has no players, so theirs are per team).
         - **Where they show:** in the match's stats, the timeline and the season stats; how shots and shots on goal are presented (e.g. counted together or apart) is to be discussed, probably in the game's stats.
     - [/] Payments (Google Play Billing and Apple In-App Purchase, directly, no RevenueCat) and ads on the Free plan (AdMob).
-        - [x] Google Play (2026-11-03): Basic and Pro, monthly and yearly, bought on Plans; the coach server checks each purchase with Google and follows its notifications; staging takes test purchases only, production real ones (`TECHNICAL_DECISIONS.md` §72). To set up in Play Console and Google Cloud before it works (§72, Payments, as built).
+        - [x] Google Play (2026-11-03): Basic and Pro, monthly and yearly, bought on Plans; the coach server checks each purchase with Google and follows its notifications; staging takes test purchases only, through its own Play Console app (`.stg`, never published; the developer, 2026-11-04), production real ones (`TECHNICAL_DECISIONS.md` §72). To set up in Play Console and Google Cloud before it works (§72, Payments, as built).
         - [ ] Apple In-App Purchase (StoreKit, App Store Server Notifications); until then iOS asks for plans. On hold (the developer, 2026-11-04): Android first; iOS (the Apple Developer Program, $99 a year) only after seeing the results on Android.
         - [ ] Referrals (§5c).
         - [ ] Ads on Free (AdMob, after the consent form).
