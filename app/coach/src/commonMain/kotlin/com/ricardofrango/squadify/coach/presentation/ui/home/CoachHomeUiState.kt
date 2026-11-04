@@ -21,7 +21,8 @@ data class HomeAgeGroup(
 
 /**
  * The coach's age groups as one list (REQUIREMENTS §5c): their own space's first, then the ones they're
- * staff on in other spaces, in the server's order of spaces, each space's youngest first.
+ * staff on in other spaces, in the server's order of spaces, each space's youngest first. Home shows the
+ * two under "My age groups" and "As staff" once there are both.
  */
 fun homeAgeGroups(spaces: List<SpaceAgeGroups>): List<HomeAgeGroup> =
     spaces.sortedByDescending { it.isOwner }.flatMap { space ->

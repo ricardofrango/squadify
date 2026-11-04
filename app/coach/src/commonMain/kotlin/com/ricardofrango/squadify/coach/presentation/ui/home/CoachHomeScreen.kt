@@ -79,6 +79,8 @@ import squadify.app.coach.generated.resources.Res
 import squadify.app.coach.generated.resources.cd_coach_menu
 import squadify.app.coach.generated.resources.coach_app_name
 import squadify.app.coach.generated.resources.coach_home_add_age_group
+import squadify.app.coach.generated.resources.coach_home_as_staff
+import squadify.app.coach.generated.resources.coach_home_my_age_groups
 import squadify.app.coach.generated.resources.coach_home_born
 import squadify.app.coach.generated.resources.coach_home_create_age_group
 import squadify.app.coach.generated.resources.coach_home_empty_body
@@ -242,10 +244,14 @@ private fun CoachHomeContent(
                         contentPadding = ScreenPadding.Values,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(uiState.ageGroups, key = { it.ageGroup.id }) { row ->
+                        // Their own age groups, then the ones they're staff on elsewhere, each under a
+                        // header once there are both kinds; Add age group closes their own.
+                        val (own, asStaff) = uiState.ageGroups.partition { it.isOwner }
+                        if (asStaff.isNotEmpty()) item(key = "own-header") { ListHeader(stringResource(Res.string.coach_home_my_age_groups), first = true) }
+                        items(own, key = { it.ageGroup.id }) { row ->
                             AgeGroupRow(row, onClick = { onOpenAgeGroup(row.ageGroup.id) }.takeUnless { row.locked })
                         }
-                        item {
+                        item(key = "add") {
                             OutlinedButton(
                                 onClick = onCreateAgeGroup,
                                 modifier = Modifier.fillMaxWidth(),
@@ -256,11 +262,29 @@ private fun CoachHomeContent(
                                 Text(stringResource(Res.string.coach_home_add_age_group))
                             }
                         }
+                        if (asStaff.isNotEmpty()) {
+                            item(key = "staff-header") { ListHeader(stringResource(Res.string.coach_home_as_staff)) }
+                            items(asStaff, key = { it.ageGroup.id }) { row ->
+                                AgeGroupRow(row, onClick = { onOpenAgeGroup(row.ageGroup.id) }.takeUnless { row.locked })
+                            }
+                        }
                     }
                 }
             }
         }
     }
+}
+
+// A section's title over its rows, as the shared screens' section headers; the gap above sets it apart
+// from the section before.
+@Composable
+private fun ListHeader(text: String, first: Boolean = false) {
+    Text(
+        text,
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+        color = DeepCarbon,
+        modifier = Modifier.padding(top = if (first) 0.dp else 12.dp)
+    )
 }
 
 @Composable
