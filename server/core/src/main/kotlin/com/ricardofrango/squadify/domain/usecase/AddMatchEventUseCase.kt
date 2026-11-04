@@ -53,6 +53,10 @@ class AddMatchEventUseCase(
                 EventType.CORNER -> if (request.playerId != null) {
                     throw ValidationException("A corner is a team's, not a player's")
                 }
+                // The opponent's own goal scores for us; we don't record their players.
+                EventType.OWN_GOAL -> if (request.isOpponent && request.playerId != null) {
+                    throw ValidationException("The opponent's own goal is the team's, not a player's")
+                }
                 else -> {}
             }
             val tallyPlayer = request.playerId?.takeIf { request.type.isTally() }

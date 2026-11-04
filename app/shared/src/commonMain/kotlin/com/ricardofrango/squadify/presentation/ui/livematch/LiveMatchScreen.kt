@@ -986,10 +986,16 @@ private fun PlayerActionSheet(
                         Text(sheet.name, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                         TextButton(onClick = onDismiss) { Text(stringResource(Res.string.btn_ok), color = PitchGreen) }
                     }
-                    // The side's goal, with no scorer (our scorers log theirs from their own sheet).
+                    // The side's goal, with no scorer (our scorers log theirs from their own sheet). The opponent's
+                    // own goal scores for us; ours are each player's, from their sheet.
                     ActionTileRow {
                         ActionTile(stringResource(Res.string.lm_action_goal), ActionTone.GOAL, enabled, Modifier.weight(1f)) {
                             actions.onLogGoal(minute, isOpponent = sheet.isOpponent); onDismiss()
+                        }
+                        if (sheet.isOpponent) {
+                            ActionTile(stringResource(Res.string.action_log_own_goal), ActionTone.PLAIN, enabled, Modifier.weight(1f)) {
+                                actions.onLogTeamEvent(EventType.OWN_GOAL, isOpponent = true, minute = minute); onDismiss()
+                            }
                         }
                     }
                     ActionTileRow {
@@ -1167,7 +1173,9 @@ private fun eventLineFor(event: MatchEvent, details: MatchDetails, nameFor: (Mat
             ourName != null -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal, ourName))
             else -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal_unattributed))
         }
-        EventType.OWN_GOAL -> Triple("OG", Color.White.copy(alpha = 0.6f), stringResource(Res.string.label_event_own_goal, ourName ?: "-"))
+        // The opponent's own goal is ours: green, under their name.
+        EventType.OWN_GOAL -> if (event.isOpponent) Triple("OG", PitchGreen, stringResource(Res.string.label_event_own_goal, opponentName))
+            else Triple("OG", Color.White.copy(alpha = 0.6f), stringResource(Res.string.label_event_own_goal, ourName ?: "-"))
         EventType.ASSIST -> Triple("A", PitchGreen, stringResource(Res.string.label_event_assist, ourName ?: "-"))
         EventType.YELLOW_CARD -> Triple("Y", CardYellow, stringResource(Res.string.label_event_yellow_card, ourName ?: "-"))
         EventType.RED_CARD -> Triple("R", LiveRed, stringResource(Res.string.label_event_red_card, ourName ?: "-"))
@@ -1367,8 +1375,9 @@ private fun summaryCards(details: MatchDetails, events: List<MatchEvent>): Pair<
 }
 
 /**
- * Each side's goals, in the order they were scored: ours with our scorer, theirs as "Goal" (their
- * scorer isn't recorded), or "Tomás Silva (OG)" for one of ours into our own net.
+ * Each side's goals, in the order they were scored: ours with our scorer (or "Fontelas (OG)" for theirs
+ * into their own net), theirs as "Goal" (their scorer isn't recorded), or "Tomás Silva (OG)" for one of
+ * ours into our own net.
  */
 @Composable
 private fun summaryGoals(details: MatchDetails, events: List<MatchEvent>): Pair<List<SummaryLine>, List<SummaryLine>> {
@@ -1378,11 +1387,11 @@ private fun summaryGoals(details: MatchDetails, events: List<MatchEvent>): Pair<
     val ownGoal = stringResource(Res.string.lm_own_goal_mark)
     val goals = events.filter { it.type == EventType.GOAL || it.type == EventType.OWN_GOAL }
         .sortedWith(compareBy({ it.period ?: 1 }, { it.minute }, { it.createdAt }))
-    val ours = goals.filter { it.type == EventType.GOAL && !it.isOpponent }
-        .map { SummaryLine(mins(it.minute), name(it.playerId) ?: goal) }
-    val theirs = goals.filter { it.isOpponent || it.type == EventType.OWN_GOAL }
-        .map { g -> SummaryLine(mins(g.minute), if (g.type == EventType.OWN_GOAL) name(g.playerId)?.let { "$it $ownGoal" } ?: goal else goal) }
-    return ours to theirs
+    val opponent = details.opponent.shortName ?: details.opponent.name
+    // A goal is ours when it's our GOAL or their OWN_GOAL.
+    val (ours, theirs) = goals.partition { (it.type == EventType.GOAL) != it.isOpponent }
+    return ours.map { g -> SummaryLine(mins(g.minute), if (g.type == EventType.OWN_GOAL) "$opponent $ownGoal" else name(g.playerId) ?: goal) } to
+        theirs.map { g -> SummaryLine(mins(g.minute), if (g.type == EventType.OWN_GOAL) name(g.playerId)?.let { "$it $ownGoal" } ?: goal else goal) }
 }
 
 /** Does nothing: the previews' stand-in for [LiveMatchViewModel]. */

@@ -243,7 +243,9 @@ class AddMatchEventUseCaseTest {
             CreateMatchEventRequest(EventType.FOUL, 5, playerId = "p-1"),
             CreateMatchEventRequest(EventType.FOUL, 6, isOpponent = true),
             CreateMatchEventRequest(EventType.CORNER, 7),
-            CreateMatchEventRequest(EventType.CORNER, 8, isOpponent = true)
+            CreateMatchEventRequest(EventType.CORNER, 8, isOpponent = true),
+            // The opponent's own goal (it scores for us), the team's.
+            CreateMatchEventRequest(EventType.OWN_GOAL, 8, isOpponent = true)
         ).forEach { useCase(coach.id, "m-1", it) }
 
         // Refused: a shot with no player or by the opponent, a foul with neither or both, a player's
@@ -254,11 +256,13 @@ class AddMatchEventUseCaseTest {
             CreateMatchEventRequest(EventType.FOUL, 9),
             CreateMatchEventRequest(EventType.FOUL, 9, playerId = "p-1", isOpponent = true),
             CreateMatchEventRequest(EventType.CORNER, 9, playerId = "p-1"),
+            CreateMatchEventRequest(EventType.OWN_GOAL, 9, playerId = "p-1", isOpponent = true),
             CreateMatchEventRequest(EventType.SHOT, 9, playerId = "stranger")
         ).forEach { request ->
             assertFailsWith<ValidationException>(request.toString()) { useCase(coach.id, "m-1", request) }
         }
-        coVerify(exactly = 6) { matchEventRepository.addEvent(any()) }
-        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any(), any(), any()) }
+        coVerify(exactly = 7) { matchEventRepository.addEvent(any()) }
+        // Only the own goal is a goal, and pushes as one.
+        coVerify(exactly = 1) { notifyMatchEventUseCase(any(), any(), any(), any()) }
     }
 }

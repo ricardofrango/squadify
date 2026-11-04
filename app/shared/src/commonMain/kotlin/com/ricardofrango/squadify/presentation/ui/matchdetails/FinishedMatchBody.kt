@@ -447,7 +447,8 @@ internal fun RecordEventRow(event: DisplayEvent, details: MatchDetails, onClick:
                     name != null -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal, name))
                     else -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal_unattributed))
                 }
-                EventType.OWN_GOAL -> Triple("OG", CarbonGray, stringResource(Res.string.label_event_own_goal, name ?: opponent))
+                // The opponent's own goal is ours: green.
+                EventType.OWN_GOAL -> Triple("OG", if (e.isOpponent) PitchGreen else CarbonGray, stringResource(Res.string.label_event_own_goal, name ?: opponent))
                 EventType.ASSIST -> Triple("A", PitchGreen, stringResource(Res.string.label_event_assist, name ?: "-"))
                 EventType.YELLOW_CARD -> Triple("Y", Amber, stringResource(Res.string.label_event_yellow_card, name ?: "-"))
                 EventType.RED_CARD -> Triple("R", LossRed, stringResource(Res.string.label_event_red_card, name ?: "-"))
