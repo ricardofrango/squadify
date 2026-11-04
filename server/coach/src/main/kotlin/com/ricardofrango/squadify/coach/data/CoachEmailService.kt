@@ -21,9 +21,13 @@ import org.slf4j.LoggerFactory
  * asked for here; they only log. A code can be emailed ([sendStaffInvite]), in the owner's app language
  * (English or Portuguese): the first coach email that isn't English only. A plan request goes to the
  * platform admins ([sendPlanRequest]), in English.
+ *
+ * On a local server with no Resend key ([sendsLocally]), an invite isn't sent but counts as sent, with
+ * its code in the log, so invites can be tried on this machine; deployed, a missing key still fails it.
  */
 class CoachEmailService(
-    private val sender: ResendSender = ResendSender(CoachConfig.resendApiKey, CoachConfig.emailFromAddress)
+    private val sender: ResendSender = ResendSender(CoachConfig.resendApiKey, CoachConfig.emailFromAddress),
+    private val sendsLocally: Boolean = !CoachConfig.deployed && CoachConfig.resendApiKey.isBlank()
 ) : EmailService, StaffInviteMailer, PlanRequestMailer {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -74,6 +78,10 @@ class CoachEmailService(
 
     override suspend fun sendStaffInvite(to: String, email: StaffInviteEmail): Boolean {
         val (subject, html) = staffInviteText(email)
+        if (sendsLocally) {
+            logger.info("No RESEND_API_KEY locally: the invite to {} isn't emailed; its code is {}", to, email.code)
+            return true
+        }
         return sender.send(to = to, subject = subject, html = html)
     }
 

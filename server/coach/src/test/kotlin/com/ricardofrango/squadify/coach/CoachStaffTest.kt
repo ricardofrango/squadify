@@ -97,7 +97,7 @@ class CoachStaffTest {
     }
 
     @Test
-    fun anEmailedCodeNeedsAValidAddressAndIsWithdrawnIfTheEmailDoesntGo() = testApplication {
+    fun anEmailedCodeNeedsAValidAddress() = testApplication {
         application { module() }
         val api = jsonClient()
         val owner = api.signUp()
@@ -108,9 +108,11 @@ class CoachStaffTest {
         val invites = "/v1/age-groups/${setup.ageGroup.id}/invites"
 
         assertEquals(HttpStatusCode.BadRequest, api.post(invites) { json(owner, CreateStaffInviteRequest("not-an-email")) }.status)
-        // The tests have no Resend key, so the email can't go: refused, and no code left behind.
-        assertEquals(HttpStatusCode.BadRequest, api.post(invites) { json(owner, CreateStaffInviteRequest("joao@example.com", "pt")) }.status)
-        assertTrue(api.get(invites) { bearerAuth(owner) }.body<List<StaffInvite>>().isEmpty())
+        // A local server with no Resend key counts the email as sent (its code in the log); one that
+        // doesn't go is withdrawn (EmailedStaffInvitesTest).
+        val emailed = api.post(invites) { json(owner, CreateStaffInviteRequest("joao@example.com", "pt")) }
+        assertEquals(HttpStatusCode.Created, emailed.status)
+        assertEquals(listOf("joao@example.com"), api.get(invites) { bearerAuth(owner) }.body<List<StaffInvite>>().map { it.email })
         // An empty address is a code to share by hand.
         val shared = api.post(invites) { json(owner, CreateStaffInviteRequest("  ")) }
         assertEquals(HttpStatusCode.Created, shared.status)
