@@ -52,11 +52,16 @@ internal fun matchStatLines(details: MatchDetails): MatchStatLines {
 internal fun defaultStatSort(lines: List<MatchStatLine>): MatchStatColumn =
     if (lines.any { it.stats.rating != null }) MatchStatColumn.RATING else MatchStatColumn.MINUTES
 
-/** Highest first on [column], or by name with none; ties by name. A missing rating sorts last. */
-internal fun List<MatchStatLine>.sortedByStat(column: MatchStatColumn?): List<MatchStatLine> {
+/**
+ * On [column], highest first when [descending], or by name with none (A to Z, Z to A when [descending]);
+ * ties by name. A missing rating sorts last either way.
+ */
+internal fun List<MatchStatLine>.sortedByStat(column: MatchStatColumn?, descending: Boolean = column != null): List<MatchStatLine> {
     val byName = compareBy<MatchStatLine>({ it.player.firstName.lowercase() }, { it.player.lastName.lowercase() })
-    return if (column == null) sortedWith(byName)
-    else sortedWith(compareByDescending<MatchStatLine> { it.value(column) ?: -1 }.then(byName))
+    if (column == null) return sortedWith(if (descending) byName.reversed() else byName)
+    val byValue = compareBy<MatchStatLine> { it.value(column) == null }
+        .then(if (descending) compareByDescending { it.value(column) } else compareBy { it.value(column) })
+    return sortedWith(byValue.then(byName))
 }
 
 /** The Events tab's filter chips. */

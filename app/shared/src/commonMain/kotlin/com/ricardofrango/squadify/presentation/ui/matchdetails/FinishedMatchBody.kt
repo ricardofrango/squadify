@@ -143,7 +143,12 @@ private fun StatsTab(state: MatchDetailsUiState.Idle, modifier: Modifier) {
     val lines = remember(details) { matchStatLines(details) }
     // Sorted by a column (highest first) or, with none, by name; tapping a header picks it.
     var sort by rememberSaveable(details.match.id) { mutableStateOf<MatchStatColumn?>(defaultStatSort(lines.played)) }
-    val rows = remember(lines, sort) { lines.played.sortedByStat(sort) }
+    // The same header again reverses it (as on Full stats); a new column starts highest first, the player A to Z.
+    var descending by rememberSaveable(details.match.id) { mutableStateOf(true) }
+    val rows = remember(lines, sort, descending) { lines.played.sortedByStat(sort, descending) }
+    val onSort: (MatchStatColumn?) -> Unit = { column ->
+        if (column == sort) descending = !descending else { sort = column; descending = column != null }
+    }
     // A long press on a header names its column, as on Full stats.
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -168,7 +173,7 @@ private fun StatsTab(state: MatchDetailsUiState.Idle, modifier: Modifier) {
             } else if (rows.isEmpty()) {
                 item { Text(stringResource(Res.string.md_no_stats), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
             } else {
-                item { StatsTable(rows, sort, onSort = { sort = it }, onLongPress = showColumnName) }
+                item { StatsTable(rows, sort, descending, onSort = onSort, onLongPress = showColumnName) }
             }
             if (lines.unused.isNotEmpty()) {
                 item {
@@ -255,7 +260,7 @@ private fun MatchStatColumn.width(): Dp = if (this == MatchStatColumn.RATING) Ra
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun StatsTable(rows: List<MatchStatLine>, sort: MatchStatColumn?, onSort: (MatchStatColumn?) -> Unit, onLongPress: (String) -> Unit) {
+private fun StatsTable(rows: List<MatchStatLine>, sort: MatchStatColumn?, descending: Boolean, onSort: (MatchStatColumn?) -> Unit, onLongPress: (String) -> Unit) {
     val headerStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
     val horizontal = rememberScrollState()
     fun Modifier.rowLine(i: Int) = if (i < rows.lastIndex) bottomHairline() else this
@@ -264,7 +269,7 @@ private fun StatsTable(rows: List<MatchStatLine>, sort: MatchStatColumn?, onSort
             Column(Modifier.width(IntrinsicSize.Max).widthIn(max = PlayerColumnMaxWidth).rightHairline()) {
                 val playerName = stringResource(Res.string.fs_player)
                 Text(
-                    playerName + if (sort == null) " ↑" else "",
+                    playerName + if (sort != null) "" else if (descending) " ↓" else " ↑",
                     style = headerStyle,
                     color = if (sort == null) PitchGreen else DeepCarbon.copy(alpha = 0.75f),
                     modifier = Modifier
@@ -298,7 +303,7 @@ private fun StatsTable(rows: List<MatchStatLine>, sort: MatchStatColumn?, onSort
                                 MatchStatColumn.RED -> CardGlyph(LossRed)
                                 else -> Text(stringResource(column.shortRes()!!), style = headerStyle, color = color, maxLines = 1)
                             }
-                            if (sorted) Text("↓", style = headerStyle, color = color)
+                            if (sorted) Text(if (descending) "↓" else "↑", style = headerStyle, color = color)
                         }
                     }
                     Spacer(Modifier.width(6.dp))
