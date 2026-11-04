@@ -23,6 +23,8 @@
     <string name="coach_home_title">My age groups</string>
     <string name="cd_coach_menu">Menu</string>
     <string name="coach_home_add_age_group">+ Add age group</string>
+    <string name="coach_home_my_age_groups">My age groups</string>
+    <string name="coach_home_as_staff">As staff</string>
     <string name="coach_home_create_age_group">Create age group</string>
     <string name="coach_home_join">Join with a code</string>
     <string name="coach_home_locked">Locked on the %1$s plan, kept until the plan allows it</string>

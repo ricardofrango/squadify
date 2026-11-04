@@ -23,6 +23,8 @@
     <string name="coach_home_title">Os meus escalões</string>
     <string name="cd_coach_menu">Menu</string>
     <string name="coach_home_add_age_group">+ Adicionar escalão</string>
+    <string name="coach_home_my_age_groups">Os meus escalões</string>
+    <string name="coach_home_as_staff">Como equipa técnica</string>
     <string name="coach_home_create_age_group">Criar escalão</string>
     <string name="coach_home_join">Entrar com um código</string>
     <string name="coach_home_locked">Bloqueado no plano %1$s, guardado até o plano o permitir</string>
