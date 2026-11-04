@@ -206,10 +206,10 @@ fun RatingPill(value: Double, text: String, minWidth: Dp, height: Dp, fontSize: 
     }
 }
 
-/** One decimal, as the averages are shown ("7.8"). */
-fun Double.oneDecimal(): String {
-    val tenths = (this * 10).roundToInt()
-    return "${tenths / 10}.${tenths % 10}"
+/** Two decimals, as every ranking is shown ("8.90"; the developer, 2026-11-04). */
+fun Double.twoDecimals(): String {
+    val hundredths = (this * 100).roundToInt()
+    return "${hundredths / 100}.${(hundredths % 100).toString().padStart(2, '0')}"
 }
 
 /** Title + explanation inside a card -- the empty and error states of both cards. */

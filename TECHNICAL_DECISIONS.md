@@ -2273,7 +2273,7 @@ Per the developer: no "player of the match", and no attendance.
   - **Leaving with unsaved changes:** back asks "Save your changes?" with Save draft / Discard / Keep editing. This uses `NavigationBackHandler` from `navigationevent-compose` (new dependency), because Compose's `BackHandler` is deprecated.
   - **Failed saves:** a failed save keeps everything on screen, turns the header chip to "Not saved", and shows a Retry snackbar until it succeeds.
 - **Read view:** one scroll rather than tabs. Empty fields are left out, and an empty section collapses to one "nothing written" line. The tactic is shown at display size.
-  - **Players:** each rating is a badge in one of four colour bands (0–4 red, 5–6 amber, 7–8 green, 9–10 deep green, unrated an outlined "—"). A "{rated} of {total} rated · avg x.x" summary sits above the list, which can be sorted by rating (unrated last) or by shirt number.
+  - **Players:** each rating is a badge in one of four colour bands (0–4 red, 5–6 amber, 7–8 green, 9–10 deep green, unrated an outlined "—"). A "{rated} of {total} rated · avg x.xx" summary sits above the list, which can be sorted by rating (unrated last) or by shirt number.
   - **Editing:** the author gets an Edit action.
 - **Landscape:** the editor puts its fields in two columns, shows the full 0–10 row inline (one tap per rating, no grid), and moves the actions into a right rail. The read view splits into analysis on the left and players on the right.
 - **States:** a loading skeleton; an error with Retry; and a no-permission screen that drops the match subtitle, so nothing about the match is revealed.
@@ -3480,3 +3480,12 @@ The developer, 2026-11-03 and 2026-11-04 (REQUIREMENTS, "More in the live game")
 - **The Timeline tab** shows the pitch's changes, so they aren't on it (nor are goals).
 - **Older apps:** an app from before this doesn't know the new event types, so it fails to read a match that has them. Staging only for now.
 - **Tests:** `MatchTalliesTest` (both sides counted, the season's totals, the record editor leaving them out), `MatchPlayerStatsCalculatorTest` (counted as in football), `AddMatchEventUseCaseTest` (each side's rules), `SaveMatchRecordUseCaseTest` (kept through a correction), `GetTeamSeasonRecordUseCaseTest` (each side's corners and fouls).
+
+## 78. Rankings With Two Decimals
+
+The developer, 2026-11-04: every ranking (an average of ratings) is shown with two decimals, "8.90" rather than "8.9", in both apps.
+
+- **Worked out to two decimals** where they're averaged (`SeasonStats.kt` `roundToTwoDecimals`, `FullStats.kt` `averageOrNull`), so "8.87" isn't first rounded to "8.9".
+- **Shown with one formatter**, `Double.twoDecimals()` (`SeasonStatsComponents.kt`), always two places ("10.00", "0.05"): the player's season card, Full stats' three rankings, team and age group leaders, the Players tabs, a team's average, the training averages, and the match report's "avg" (`ratingSummary`). It replaced `oneDecimal()` and the training screens' `oneDecimalString()`.
+- **Not rankings:** a single match rating is a whole number given by the coach ("8"), and a training rating is shown as it was typed; both stay as they are.
+- **Tests:** `FullStatsSortTest.rankingsShowTwoDecimals`, and the averages in `FullStatsTest`, `SeasonStatsTest`, `TeamLeadersRankingTest` and `MatchReportLogicTest` now expect two decimals.

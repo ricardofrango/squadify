@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.twoDecimals
 import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import com.ricardofrango.squadify.presentation.ui.theme.IsClubThemed
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
@@ -105,7 +106,7 @@ fun PlayerTrainingCard(season: PlayerTrainingSeason) {
                 Text(stringResource(Res.string.label_attendance_tile, season.attended, season.sessions), style = MaterialTheme.typography.labelMedium, color = StatsSecondaryText)
             }
             Column(Modifier.weight(1f).background(Color(0xFFFAFAFA), RoundedCornerShape(12.dp)).padding(12.dp)) {
-                Text(season.average?.oneDecimalString() ?: "—", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black), color = season.average?.let { ratingColor(it) } ?: StatsSecondaryText)
+                Text(season.average?.twoDecimals() ?: "—", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black), color = season.average?.let { ratingColor(it) } ?: StatsSecondaryText)
                 Text(stringResource(Res.string.label_avg_tile, season.attended), style = MaterialTheme.typography.labelMedium, color = StatsSecondaryText)
             }
         }

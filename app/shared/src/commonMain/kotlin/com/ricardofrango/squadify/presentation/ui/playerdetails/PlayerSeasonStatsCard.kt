@@ -51,7 +51,7 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.components.isTaggedInLists
-import com.ricardofrango.squadify.presentation.ui.components.oneDecimal
+import com.ricardofrango.squadify.presentation.ui.components.twoDecimals
 import com.ricardofrango.squadify.presentation.ui.matchreport.MiniPill
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.Amber
@@ -176,7 +176,7 @@ private fun TotalsBlock(matches: List<PlayerSeasonMatch>, filter: StatsFilter, s
             Column(Modifier.weight(1f)) {
                 val avg = t.averageRating
                 if (avg != null) {
-                    RatingPill(avg, avg.oneDecimal(), minWidth = 44.dp, height = 34.dp, fontSize = 20.sp, corner = 10.dp)
+                    RatingPill(avg, avg.twoDecimals(), minWidth = 44.dp, height = 34.dp, fontSize = 20.sp, corner = 10.dp)
                 } else {
                     Text("—", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black), color = DeepCarbon)
                 }

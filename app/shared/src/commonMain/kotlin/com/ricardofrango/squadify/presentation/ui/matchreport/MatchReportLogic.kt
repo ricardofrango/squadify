@@ -66,14 +66,15 @@ fun readOrder(
     )
 }
 
-/** "{rated} of {total} rated · avg {x.x}" -- the average skips unrated players, null when none are rated. */
+/** "{rated} of {total} rated · avg {x.xx}" -- the average skips unrated players, null when none are rated. */
 data class RatingSummary(val rated: Int, val total: Int, val average: String?)
 
 fun ratingSummary(ratings: List<Int?>): RatingSummary {
     val given = ratings.filterNotNull()
     val average = if (given.isEmpty()) null else {
-        val tenths = (given.sum() * 10.0 / given.size).roundToInt()
-        "${tenths / 10}.${tenths % 10}"
+        // Two decimals, as every ranking (the developer, 2026-11-04).
+        val hundredths = (given.sum() * 100.0 / given.size).roundToInt()
+        "${hundredths / 100}.${(hundredths % 100).toString().padStart(2, '0')}"
     }
     return RatingSummary(rated = given.size, total = ratings.size, average = average)
 }

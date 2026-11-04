@@ -53,7 +53,7 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsHeaderRow
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
-import com.ricardofrango.squadify.presentation.ui.components.oneDecimal
+import com.ricardofrango.squadify.presentation.ui.components.twoDecimals
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
@@ -251,7 +251,7 @@ internal fun LeadersCard(
     onOpenPlayer: (String) -> Unit
 ) {
     val categories = buildList {
-        if (canSeeRatings) add(Triple(Res.string.record_leaders_rating, leaders.averageRating) { e: LeaderEntry -> e.value.oneDecimal() })
+        if (canSeeRatings) add(Triple(Res.string.record_leaders_rating, leaders.averageRating) { e: LeaderEntry -> e.value.twoDecimals() })
         add(Triple(Res.string.record_leaders_goals, leaders.goals) { e: LeaderEntry -> e.value.roundToInt().toString() })
         add(Triple(Res.string.record_leaders_assists, leaders.assists) { e: LeaderEntry -> e.value.roundToInt().toString() })
         add(Triple(Res.string.record_leaders_minutes, leaders.minutes) { e: LeaderEntry -> "${e.value.roundToInt()}'" })

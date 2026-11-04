@@ -5,6 +5,7 @@ import com.ricardofrango.squadify.model.FullStatsRow
 import com.ricardofrango.squadify.model.PlayerPosition
 import com.ricardofrango.squadify.model.TeamSeasonPlayer
 import com.ricardofrango.squadify.model.sortedBy
+import com.ricardofrango.squadify.presentation.ui.components.twoDecimals
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -23,5 +24,11 @@ class FullStatsSortTest {
         )
         assertEquals(listOf("Caro", "Eva", "Duda", "Filipa", "Ana", "Bia"), rows.sortedBy(FullStatsColumn.POSITION, descending = false).map { it.player.name })
         assertEquals(listOf("Ana", "Filipa", "Duda", "Eva", "Caro", "Bia"), rows.sortedBy(FullStatsColumn.POSITION, descending = true).map { it.player.name })
+    }
+
+    // Every ranking with two decimals (the developer, 2026-11-04).
+    @Test
+    fun rankingsShowTwoDecimals() {
+        assertEquals(listOf("8.90", "7.67", "10.00", "0.05"), listOf(8.9, 7.666, 10.0, 0.049).map { it.twoDecimals() })
     }
 }

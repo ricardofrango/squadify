@@ -235,4 +235,4 @@ private fun FullStatsMatch.result(): FormResult = when {
     else -> FormResult.DRAW
 }
 
-private fun List<Double>.averageOrNull(): Double? = takeIf { it.isNotEmpty() }?.average()?.let { (it * 10).roundToInt() / 10.0 }
+private fun List<Double>.averageOrNull(): Double? = takeIf { it.isNotEmpty() }?.average()?.let { (it * 100).roundToInt() / 100.0 }

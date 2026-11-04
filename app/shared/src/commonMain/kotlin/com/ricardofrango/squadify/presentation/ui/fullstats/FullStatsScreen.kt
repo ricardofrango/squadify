@@ -82,7 +82,7 @@ import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.StatsFilterSegments
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.components.initialsOf
-import com.ricardofrango.squadify.presentation.ui.components.oneDecimal
+import com.ricardofrango.squadify.presentation.ui.components.twoDecimals
 import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.Amber
@@ -574,7 +574,7 @@ private fun ValueCell(row: FullStatsRow, column: FullStatsColumn) {
                     Text("—", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = StatsSecondaryText)
                 }
             } else {
-                RatingPill(value, value.oneDecimal(), minWidth = if (final) 46.dp else 40.dp, height = if (final) 26.dp else 24.dp, fontSize = if (final) 13.sp else 12.sp, corner = 13.dp)
+                RatingPill(value, value.twoDecimals(), minWidth = if (final) 46.dp else 40.dp, height = if (final) 26.dp else 24.dp, fontSize = if (final) 13.sp else 12.sp, corner = 13.dp)
             }
         } else {
             val value = row.value(column)?.toInt() ?: 0

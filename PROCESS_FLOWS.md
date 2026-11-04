@@ -1154,7 +1154,7 @@ graph TD
 
 `canSeeRatings` is true when he has lines with a team whose ratings the caller may read, or when the caller is staff of one of his age groups. That way a coach gets the staff layout even before any match is rated. Players and parents get no ratings at all, and their card shows Minutes where the average rating would be.
 
-Totals are derived on the client (`totals(filter)` in `SeasonStats.kt`). They are apps, starts, minutes, goals, assists, cards, an average rating to one decimal, and a count of untyped matches. The filter rules are the same as §4.6c.
+Totals are derived on the client (`totals(filter)` in `SeasonStats.kt`). They are apps, starts, minutes, goals, assists, cards, an average rating to two decimals (every ranking is shown with two, "8.90"; the developer, 2026-11-04), and a count of untyped matches. The filter rules are the same as §4.6c.
 
 Season and filter selection:
 - The season and filter are switched locally. The filter persists across seasons.

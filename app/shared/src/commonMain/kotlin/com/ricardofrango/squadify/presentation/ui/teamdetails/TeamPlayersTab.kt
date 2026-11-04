@@ -49,7 +49,7 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
-import com.ricardofrango.squadify.presentation.ui.components.oneDecimal
+import com.ricardofrango.squadify.presentation.ui.components.twoDecimals
 import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import com.ricardofrango.squadify.presentation.ui.matchreport.MiniPill
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
@@ -169,7 +169,7 @@ private fun SquadRow(entry: SquadEntry, staff: Boolean, onClick: () -> Unit) {
             Spacer(Modifier.width(11.dp))
             val avg = entry.averageRating
             if (avg != null) {
-                RatingPill(avg, avg.oneDecimal(), minWidth = 38.dp, height = 32.dp, fontSize = 14.5.sp, corner = 9.dp)
+                RatingPill(avg, avg.twoDecimals(), minWidth = 38.dp, height = 32.dp, fontSize = 14.5.sp, corner = 9.dp)
             } else {
                 Box(Modifier.size(width = 38.dp, height = 32.dp), contentAlignment = Alignment.Center) {
                     Text("—", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Black), color = StatsSecondaryText)

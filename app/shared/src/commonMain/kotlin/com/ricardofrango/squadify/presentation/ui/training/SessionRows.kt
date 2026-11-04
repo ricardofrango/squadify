@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.TrainingSession
+import com.ricardofrango.squadify.presentation.ui.components.twoDecimals
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
 import com.ricardofrango.squadify.presentation.ui.theme.Amber
@@ -105,7 +106,7 @@ fun SessionRow(session: TrainingSession, chip: SessionChip?, onClick: () -> Unit
             if (chip == null) session.averageRating?.let { avg ->
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    avg.oneDecimalString(),
+                    avg.twoDecimals(),
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Black),
                     color = Color.White,
                     modifier = Modifier.background(ratingColor(avg), RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp)
@@ -125,12 +126,6 @@ private fun ChipLabel(chip: SessionChip) {
     }
     Text(text, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = fg,
         modifier = Modifier.background(bg, RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp))
-}
-
-/** "7.1". */
-internal fun Double.oneDecimalString(): String {
-    val tenths = kotlin.math.round(this * 10).toInt()
-    return "${tenths / 10}.${tenths % 10}"
 }
 
 /** The match report bands (design 39m): 8+ solid green, 6–7.9 light green, under 6 amber, 0 grey. */

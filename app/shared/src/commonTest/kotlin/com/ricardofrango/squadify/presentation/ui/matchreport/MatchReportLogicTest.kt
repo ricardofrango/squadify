@@ -72,8 +72,8 @@ class MatchReportLogicTest {
 
     @Test
     fun theSummaryAveragesOnlyRatedPlayers() {
-        assertEquals(RatingSummary(3, 5, "7.3"), ratingSummary(listOf(7, null, 8, 7, null)))
+        assertEquals(RatingSummary(3, 5, "7.33"), ratingSummary(listOf(7, null, 8, 7, null)))
         assertEquals(RatingSummary(0, 2, null), ratingSummary(listOf(null, null)))
-        assertEquals(RatingSummary(1, 1, "10.0"), ratingSummary(listOf(10)))
+        assertEquals(RatingSummary(1, 1, "10.00"), ratingSummary(listOf(10)))
     }
 }
