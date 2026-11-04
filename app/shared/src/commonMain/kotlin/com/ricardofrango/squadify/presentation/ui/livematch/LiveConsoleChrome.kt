@@ -55,10 +55,10 @@ private val YellowText = Color(0xFFFFC94D)
 private val RedText = Color(0xFFFF8A80)
 
 /**
- * One side of the scoreboard; [onGoal] logs a goal for it (null: the score can't be tapped now), and
- * [onTeam], tapping its crest or name, opens its sheet (corners, and the opponent's fouls).
+ * One side of the scoreboard; [onTeam], tapping its score, crest or name, opens its sheet (goal, corner,
+ * and the opponent's fouls). Null: the side can't be tapped now.
  */
-internal data class ScoreSide(val name: String, val logoUrl: String?, val score: Int, val onGoal: (() -> Unit)?, val onTeam: (() -> Unit)? = null)
+internal data class ScoreSide(val name: String, val logoUrl: String?, val score: Int, val onTeam: (() -> Unit)? = null)
 
 /** The crest and name of [side], tappable when it has a sheet. */
 private fun Modifier.teamTap(side: ScoreSide): Modifier =
@@ -95,8 +95,8 @@ private fun ScoreBoxes(home: ScoreSide, away: ScoreSide, fontSize: TextUnit, min
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf(home, away).forEach { side ->
             Surface(
-                onClick = side.onGoal ?: {},
-                enabled = side.onGoal != null,
+                onClick = side.onTeam ?: {},
+                enabled = side.onTeam != null,
                 shape = RoundedCornerShape(8.dp),
                 color = PitchGreen
             ) {
@@ -207,10 +207,10 @@ internal fun ScoreboardCard(home: ScoreSide, away: ScoreSide, clock: ClockState,
     }
 }
 
-/** One side's score box; tapping it logs a goal for that side when [ScoreSide.onGoal] is set. */
+/** One side's score box; tapping it opens that side's sheet when [ScoreSide.onTeam] is set. */
 @Composable
 private fun ScoreBox(side: ScoreSide, fontSize: TextUnit, minWidth: Dp) {
-    Surface(onClick = side.onGoal ?: {}, enabled = side.onGoal != null, shape = RoundedCornerShape(8.dp), color = PitchGreen) {
+    Surface(onClick = side.onTeam ?: {}, enabled = side.onTeam != null, shape = RoundedCornerShape(8.dp), color = PitchGreen) {
         Text(
             side.score.toString(),
             modifier = Modifier.widthIn(min = minWidth).padding(horizontal = 8.dp, vertical = 2.dp),

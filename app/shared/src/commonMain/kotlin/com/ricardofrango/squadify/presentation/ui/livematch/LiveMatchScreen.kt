@@ -282,8 +282,8 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
 
     // The two sides, home first as on the scoreboard (ours first on neutral ground), and the kickoff time.
     val ourFirst = details.match.venue.ourSideFirst()
-    val ours = ScoreSide(details.team.name, details.clubLogoUrl, 0, null)
-    val theirs = ScoreSide(details.opponent.shortName ?: details.opponent.name, details.opponent.logoUrl, 0, null)
+    val ours = ScoreSide(details.team.name, details.clubLogoUrl, 0)
+    val theirs = ScoreSide(details.opponent.shortName ?: details.opponent.name, details.opponent.logoUrl, 0)
     val kickoff = details.match.dateTime.toLocalDateTime(TimeZone.currentSystemDefault())
     val kickoffLabel = "${shortDateLabel(kickoff.date)} · ${kickoff.hour.toString().padStart(2, '0')}:${kickoff.minute.toString().padStart(2, '0')}"
     val matchup: @Composable (Modifier, Boolean) -> Unit = { modifier, stacked ->
@@ -485,7 +485,7 @@ private sealed class ActionSheet {
     // The pitch view: a player swapping places, or someone moving into an empty position.
     data class ChangePosition(val player: Player) : ActionSheet()
     data class MoveHere(val slot: Int) : ActionSheet()
-    // A side's sheet, from its crest or name on the scoreboard: our corners; the opponent's corners and fouls.
+    // A side's sheet, from its score, crest or name on the scoreboard: a goal and corners; the opponent's fouls too.
     data class TeamActions(val name: String, val logoUrl: String?, val isOpponent: Boolean) : ActionSheet()
 }
 
@@ -587,18 +587,16 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
 
     val scoreEnabled = canManage && status == MatchStatus.LIVE && !isPaused && !state.isSubmitting
     // The scoreboard (design "Squadify Pitch View"): home first, as football reads it, our club first
-    // on neutral ground. Each score box logs a goal for its own side.
+    // on neutral ground. A side's score, crest or name opens its sheet, where Goal logs one for it.
     val ourFirst = details.match.venue.ourSideFirst()
     val ourName = details.team.name
     val theirName = details.opponent.shortName ?: details.opponent.name
     val ours = ScoreSide(
         ourName, details.clubLogoUrl, state.score.ourScore,
-        if (scoreEnabled) { { actions.onLogGoal(displayMinute, isOpponent = false) } } else null,
         if (scoreEnabled) { { actionSheet = ActionSheet.TeamActions(ourName, details.clubLogoUrl, isOpponent = false) } } else null
     )
     val theirs = ScoreSide(
         theirName, details.opponent.logoUrl, state.score.opponentScore,
-        if (scoreEnabled) { { actions.onLogGoal(displayMinute, isOpponent = true) } } else null,
         if (scoreEnabled) { { actionSheet = ActionSheet.TeamActions(theirName, details.opponent.logoUrl, isOpponent = true) } } else null
     )
     val home = if (ourFirst) ours else theirs
@@ -617,7 +615,8 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
             listOf(
                 stringResource(Res.string.tab_pitch) to null,
                 stringResource(Res.string.tab_squad) to null,
-                stringResource(Res.string.lm_tab_events) to state.events.size.toString()
+                // No count: a goal with its assist is two events but one line.
+                stringResource(Res.string.lm_tab_events) to null
             ),
             selected = state.selectedTab.ordinal,
             onSelect = { actions.onTabSelected(LiveMatchTab.entries[it]) },
@@ -986,6 +985,12 @@ private fun PlayerActionSheet(
                         Spacer(Modifier.width(12.dp))
                         Text(sheet.name, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                         TextButton(onClick = onDismiss) { Text(stringResource(Res.string.btn_ok), color = PitchGreen) }
+                    }
+                    // The side's goal, with no scorer (our scorers log theirs from their own sheet).
+                    ActionTileRow {
+                        ActionTile(stringResource(Res.string.lm_action_goal), ActionTone.GOAL, enabled, Modifier.weight(1f)) {
+                            actions.onLogGoal(minute, isOpponent = sheet.isOpponent); onDismiss()
+                        }
                     }
                     ActionTileRow {
                         ActionTile(stringResource(Res.string.lm_action_corner), ActionTone.PLAIN, enabled, Modifier.weight(1f)) {
