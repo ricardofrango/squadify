@@ -219,7 +219,8 @@ private fun InviteStaffContent(
             ) {
                 // No room on the plan: only the plan's box, until it changes.
                 uiState.fullOnPlan?.let { plan ->
-                    item { StaffNotInPlanNotice(plan) }
+                    // Only the owner invites, so it is always their own space.
+                    item { StaffNotInPlanNotice(plan, ownSpace = true) }
                     return@LazyColumn
                 }
                 item { FormIntro(stringResource(Res.string.invite_intro, ageGroupName)) }

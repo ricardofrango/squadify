@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.ShownSpace
 import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import androidx.compose.runtime.remember
 import org.jetbrains.compose.resources.getString
@@ -118,28 +119,31 @@ fun TeamDetailsScreen(
             viewModel.refreshFailed.collect { snackbarHostState.showSnackbar(getString(refreshFailedText)) }
         }
 
-        TeamDetailsContent(
-            uiState = uiState,
-            recordState = recordState,
-            tab = tab,
-            squadSort = squadSort,
-            onTabSelected = viewModel::onTabSelected,
-            onSquadSortSelected = viewModel::onSquadSortSelected,
-            onNavigateBack = onNavigateBack,
-            onRetry = { viewModel.load(teamId, forceReload = true) },
-            isRefreshing = isRefreshing,
-            onRefresh = { viewModel.refresh(teamId) },
-            snackbarHostState = snackbarHostState,
-            onRetryRecord = { viewModel.loadRecord(teamId) },
-            onFilterSelected = viewModel::onFilterSelected,
-            onNavigateToAgeGroup = onNavigateToAgeGroup,
-            onNavigateToPlayer = onNavigateToPlayer,
-            onScheduleMatch = onScheduleMatch,
-            onEditTeam = onEditTeam,
-            onOpenFullStats = onOpenFullStats,
-            onMatchClick = onNavigateToMatch,
-            onNavigateToMember = onNavigateToMember
-        )
+        // The plan boxes in it: See plans only in the coach's own space.
+        ShownSpace((uiState as? TeamDetailsUiState.Idle)?.details?.club?.id) {
+            TeamDetailsContent(
+                uiState = uiState,
+                recordState = recordState,
+                tab = tab,
+                squadSort = squadSort,
+                onTabSelected = viewModel::onTabSelected,
+                onSquadSortSelected = viewModel::onSquadSortSelected,
+                onNavigateBack = onNavigateBack,
+                onRetry = { viewModel.load(teamId, forceReload = true) },
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refresh(teamId) },
+                snackbarHostState = snackbarHostState,
+                onRetryRecord = { viewModel.loadRecord(teamId) },
+                onFilterSelected = viewModel::onFilterSelected,
+                onNavigateToAgeGroup = onNavigateToAgeGroup,
+                onNavigateToPlayer = onNavigateToPlayer,
+                onScheduleMatch = onScheduleMatch,
+                onEditTeam = onEditTeam,
+                onOpenFullStats = onOpenFullStats,
+                onMatchClick = onNavigateToMatch,
+                onNavigateToMember = onNavigateToMember
+            )
+        }
     }
 }
 

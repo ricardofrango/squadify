@@ -68,6 +68,21 @@ fun ownPlanFor(spaceId: String): SpacePlan? = LocalOwnSpace.current?.takeIf { it
 /** Opens the coach app's Plans screen, set by the coach app for everyone. Null in the clubs app. */
 val LocalSeePlans = compositionLocalOf<(() -> Unit)?> { null }
 
+/**
+ * The space the screen shows (its club id), set by each screen once its data loads ([ShownSpace]); null
+ * until then. The plan boxes check it against [LocalOwnSpace]: only its owner changes the plan.
+ */
+val LocalShownSpace = compositionLocalOf<String?> { null }
+
+/** [content] about the space [spaceId] (null: not known yet), for the plan boxes in it. */
+@Composable
+fun ShownSpace(spaceId: String?, content: @Composable () -> Unit) =
+    CompositionLocalProvider(LocalShownSpace provides spaceId, content = content)
+
+/** The coach's own plan when the screen shows their own space; null when it's someone else's, or unknown. */
+@Composable
+private fun shownOwnPlan(): SpacePlan? = LocalShownSpace.current?.let { ownPlanFor(it) }
+
 /** The plan's name as the server sends it (the same in every language); its id until the plans load. */
 @Composable
 fun SpacePlan.displayName(): String =
@@ -75,12 +90,13 @@ fun SpacePlan.displayName(): String =
 
 /**
  * A plan's limit (REQUIREMENTS §5c), the same box everywhere: white with the sections' grey outline, a
- * padlock, [title] and [message], and See plans under them, in line with the text. See plans opens the
- * coach app's Plans screen ([LocalSeePlans]); the clubs app has no plans and never shows this box.
+ * padlock, [title] and [message], and See plans under them, in line with the text, for the space's owner
+ * only ([ownSpace]): no one else can change its plan. See plans opens the coach app's Plans screen
+ * ([LocalSeePlans]); the clubs app has no plans and never shows this box.
  */
 @Composable
-fun PlanLimitBox(title: String, message: String, modifier: Modifier = Modifier) {
-    val seePlans = LocalSeePlans.current
+fun PlanLimitBox(title: String, message: String, ownSpace: Boolean, modifier: Modifier = Modifier) {
+    val seePlans = LocalSeePlans.current?.takeIf { ownSpace }
     Surface(modifier = modifier.fillMaxWidth(), shape = SectionShape, color = Color.White, border = SectionBorder) {
         Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(painterResource(Res.drawable.ic_lock), contentDescription = null, tint = CarbonGray.copy(alpha = 0.6f), modifier = Modifier.size(20.dp))
@@ -119,47 +135,51 @@ private fun sentences(vararg parts: String) = parts.filter { it.isNotEmpty() }.j
 
 /**
  * The stats a space's plan doesn't have (the server refused them). The title names the first plan with
- * them; the owner of a space without them reads so, anyone else that the space's owner can change it.
+ * them; the owner of the space shown ([LocalShownSpace]) reads that their plan hasn't them, with See
+ * plans; anyone else that the space's owner can change it.
  */
 @Composable
 fun StatsNotInPlanMessage(modifier: Modifier = Modifier) {
     val plans = LocalPlans.current
     val withStats = plans.firstOrNull { it.has(PlanFeature.STATS) }
-    val own = LocalOwnSpace.current?.plan?.let { plan -> plans.firstOrNull { it.plan == plan } }
+    val own = shownOwnPlan()?.let { plan -> plans.firstOrNull { it.plan == plan } }
     PlanLimitBox(
         if (withStats != null) stringResource(Res.string.stats_not_in_plan_title, withStats.name)
         else stringResource(Res.string.stats_not_in_plan_title_any),
         if (own != null && !own.has(PlanFeature.STATS)) stringResource(Res.string.stats_not_in_plan_body, own.name)
         else stringResource(Res.string.stats_not_in_plan_ask_owner),
-        modifier
+        ownSpace = own != null,
+        modifier = modifier
     )
 }
 
 /**
  * Training isn't on the space's plan (the coach server refused it), on the Training tab: the first plan
- * with training, and for the owner of a plan without it, that it doesn't include it; anyone else, that
- * the owner can change the plan.
+ * with training, and for the owner of the space shown ([LocalShownSpace]), that their plan doesn't
+ * include it, with See plans; anyone else, that the owner can change the plan.
  */
 @Composable
 fun TrainingNotInPlanMessage(modifier: Modifier = Modifier) {
     val plans = LocalPlans.current
     val withTraining = plans.firstOrNull { it.has(PlanFeature.TRAINING) }
-    val own = LocalOwnSpace.current?.plan?.let { plan -> plans.firstOrNull { it.plan == plan } }
+    val own = shownOwnPlan()?.let { plan -> plans.firstOrNull { it.plan == plan } }
     PlanLimitBox(
         if (withTraining != null) stringResource(Res.string.training_not_in_plan_title, withTraining.name)
         else stringResource(Res.string.training_not_in_plan_title_any),
         if (own != null && !own.has(PlanFeature.TRAINING)) stringResource(Res.string.training_not_in_plan_body, own.name)
         else stringResource(Res.string.training_not_in_plan_ask_owner),
-        modifier
+        ownSpace = own != null,
+        modifier = modifier
     )
 }
 
 /**
  * The age group has no room for more staff on [plan] (the server's answer, `AgeGroupDetails.staffFullOnPlan`):
- * the owner alone on a plan for one person, or full; then the plans with more room.
+ * the owner alone on a plan for one person, or full; then the plans with more room. See plans only when
+ * it's the coach's own space ([ownSpace]: the space shown, by default).
  */
 @Composable
-fun StaffNotInPlanNotice(plan: SpacePlan, modifier: Modifier = Modifier) {
+fun StaffNotInPlanNotice(plan: SpacePlan, modifier: Modifier = Modifier, ownSpace: Boolean = shownOwnPlan() != null) {
     val plans = LocalPlans.current
     val limit = plans.firstOrNull { it.plan == plan }?.peoplePerAgeGroupLimit
     val more = roomOnOtherPlans(plan, { it.peoplePerAgeGroupLimit }) { other, people ->
@@ -171,13 +191,15 @@ fun StaffNotInPlanNotice(plan: SpacePlan, modifier: Modifier = Modifier) {
             if (next != null) stringResource(Res.string.staff_not_in_plan_alone_title, next.name)
             else stringResource(Res.string.staff_not_in_plan_full_title, plan.displayName()),
             sentences(stringResource(Res.string.staff_not_in_plan_alone_body, plan.displayName()), more),
-            modifier
+            ownSpace = ownSpace,
+            modifier = modifier
         )
     } else {
         PlanLimitBox(
             stringResource(Res.string.staff_not_in_plan_full_title, plan.displayName()),
             sentences(limit?.let { stringResource(Res.string.plan_people_sentence, plan.displayName(), it) }.orEmpty(), more),
-            modifier
+            ownSpace = ownSpace,
+            modifier = modifier
         )
     }
 }
@@ -186,7 +208,7 @@ fun StaffNotInPlanNotice(plan: SpacePlan, modifier: Modifier = Modifier) {
 @Composable
 fun ageGroupsLeftOnPlan(spaceId: String): Int? = LocalOwnSpace.current?.takeIf { it.spaceId == spaceId }?.ageGroupsLeft
 
-/** No more age groups this season on [plan]: how many it has, then the plans with more. */
+/** No more age groups this season on [plan], the coach's own space's: how many it has, then the plans with more. */
 @Composable
 fun AgeGroupsNotInPlanNotice(plan: SpacePlan, modifier: Modifier = Modifier) {
     val ageGroupSentence: @Composable (PlanDetails, Int) -> String = { details, count ->
@@ -200,7 +222,8 @@ fun AgeGroupsNotInPlanNotice(plan: SpacePlan, modifier: Modifier = Modifier) {
             own?.ageGroupLimit?.let { ageGroupSentence(own, it) }.orEmpty(),
             roomOnOtherPlans(plan, { it.ageGroupLimit }, ageGroupSentence)
         ),
-        modifier
+        ownSpace = true,
+        modifier = modifier
     )
 }
 
@@ -226,7 +249,7 @@ val previewPlans: List<PlanDetails> = run {
 @Composable
 private fun PlanLimitBoxPreview() {
     SquadifyTheme {
-        CompositionLocalProvider(LocalSeePlans provides {}, LocalPlans provides previewPlans, LocalOwnSpace provides OwnSpace("s", SpacePlan("FREE"), 1, 0)) {
+        CompositionLocalProvider(LocalSeePlans provides {}, LocalPlans provides previewPlans, LocalOwnSpace provides OwnSpace("s", SpacePlan("FREE"), 1, 0), LocalShownSpace provides "s") {
             Column(Modifier.background(ScreenBackground).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatsNotInPlanMessage()
                 StaffNotInPlanNotice(SpacePlan("FREE"))

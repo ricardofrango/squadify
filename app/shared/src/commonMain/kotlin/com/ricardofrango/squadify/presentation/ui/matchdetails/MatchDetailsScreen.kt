@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.ShownSpace
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -146,23 +147,26 @@ fun MatchDetailsScreen(
             }
         }
 
-        MatchDetailsContent(
-            uiState = uiState,
-            onNavigateBack = onNavigateBack,
-            onRetry = { viewModel.load(matchId, forceReload = true) },
-            isRefreshing = isRefreshing,
-            onRefresh = viewModel::refresh,
-            snackbarHostState = snackbarHostState,
-            onSortSelected = viewModel::onSortSelected,
-            onAddToCallUp = viewModel::onAddToCallUp,
-            onRemoveFromCallUp = viewModel::onRemoveFromCallUp,
-            onSaveCallUp = viewModel::onSaveCallUp,
-            onEditMatch = viewModel::onEditMatch,
-            onDeleteMatch = viewModel::onDeleteMatch,
-            onEnterLiveMatch = viewModel::onEnterLiveMatch,
-            onOpenReport = { edit -> onOpenReport(matchId, edit) },
-            onOpenRecord = { onOpenRecord(matchId) }
-        )
+        // The plan boxes in it: See plans only in the coach's own space.
+        ShownSpace((uiState as? MatchDetailsUiState.Idle)?.details?.match?.clubId) {
+            MatchDetailsContent(
+                uiState = uiState,
+                onNavigateBack = onNavigateBack,
+                onRetry = { viewModel.load(matchId, forceReload = true) },
+                isRefreshing = isRefreshing,
+                onRefresh = viewModel::refresh,
+                snackbarHostState = snackbarHostState,
+                onSortSelected = viewModel::onSortSelected,
+                onAddToCallUp = viewModel::onAddToCallUp,
+                onRemoveFromCallUp = viewModel::onRemoveFromCallUp,
+                onSaveCallUp = viewModel::onSaveCallUp,
+                onEditMatch = viewModel::onEditMatch,
+                onDeleteMatch = viewModel::onDeleteMatch,
+                onEnterLiveMatch = viewModel::onEnterLiveMatch,
+                onOpenReport = { edit -> onOpenReport(matchId, edit) },
+                onOpenRecord = { onOpenRecord(matchId) }
+            )
+        }
     }
 }
 
