@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.ShownSpace
 import androidx.compose.runtime.remember
 import org.jetbrains.compose.resources.getString
 import squadify.app.shared.generated.resources.msg_refresh_failed
@@ -105,21 +106,24 @@ fun PlayerDetailsScreen(
             viewModel.refreshFailed.collect { snackbarHostState.showSnackbar(getString(refreshFailedText)) }
         }
 
-        PlayerDetailsContent(
-            uiState = uiState,
-            statsState = statsState,
-            training = training,
-            onNavigateBack = onNavigateBack,
-            onRetry = { viewModel.loadPlayerDetails(playerId) },
-            onRetryStats = { viewModel.loadSeasonStats(playerId) },
-            onEditPlayer = { onEditPlayer(playerId) },
-            onSeasonSelected = viewModel::onSeasonSelected,
-            onFilterSelected = viewModel::onFilterSelected,
-            onOpenMatch = onOpenMatch,
-            isRefreshing = isRefreshing,
-            onRefresh = { viewModel.refresh(playerId) },
-            snackbarHostState = snackbarHostState
-        )
+        // The plan boxes in it: See plans only in the coach's own space.
+        ShownSpace((uiState as? PlayerDetailsUiState.Idle)?.profile?.player?.clubId) {
+            PlayerDetailsContent(
+                uiState = uiState,
+                statsState = statsState,
+                training = training,
+                onNavigateBack = onNavigateBack,
+                onRetry = { viewModel.loadPlayerDetails(playerId) },
+                onRetryStats = { viewModel.loadSeasonStats(playerId) },
+                onEditPlayer = { onEditPlayer(playerId) },
+                onSeasonSelected = viewModel::onSeasonSelected,
+                onFilterSelected = viewModel::onFilterSelected,
+                onOpenMatch = onOpenMatch,
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refresh(playerId) },
+                snackbarHostState = snackbarHostState
+            )
+        }
     }
 }
 

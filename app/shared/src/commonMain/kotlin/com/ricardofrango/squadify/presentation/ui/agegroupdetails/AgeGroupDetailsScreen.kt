@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.ShownSpace
 import squadify.app.shared.generated.resources.msg_refresh_failed
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.ricardofrango.squadify.presentation.ui.components.OnReturnToApp
@@ -147,50 +148,53 @@ fun AgeGroupDetailsScreen(
             viewModel.refreshFailed.collect { snackbarHostState.showSnackbar(getString(refreshFailedText)) }
         }
 
-        AgeGroupDetailsContent(
-            uiState = uiState,
-            showTraining = viewModel.showsTraining,
-            recordState = recordState,
-            plansState = plansState,
-            sessionsState = sessionsState,
-            fullStats = fullStats,
-            snackbarHostState = snackbarHostState,
-            tab = tab,
-            matchesTeamId = matchesTeamId,
-            sessionsCalendar = sessionsCalendar,
-            searchQuery = searchQuery,
-            onTabSelected = viewModel::onTabSelected,
-            onFilterSelected = viewModel::onFilterSelected,
-            onMatchesTeamSelected = viewModel::onMatchesTeamSelected,
-            onSessionsCalendar = viewModel::onSessionsCalendar,
-            onSearchChange = { searchQuery = it },
-            onNavigateBack = onNavigateBack,
-            onRetry = { viewModel.load(ageGroupId, forceReload = true) },
-            isRefreshing = isRefreshing,
-            onRefresh = { viewModel.refresh(ageGroupId) },
-            onRetryRecord = { viewModel.loadRecord(ageGroupId) },
-            onRetryPlans = { viewModel.loadPlans(ageGroupId) },
-            onRetrySessions = { viewModel.loadSessions(ageGroupId) },
-            onCreateSessions = { onNavigateToCreateSessions(ageGroupId) },
-            onAddSession = { date -> onNavigateToAddSession(ageGroupId, date) },
-            onOpenSession = onNavigateToSession,
-            onSeasonPlan = { edit -> onNavigateToSeasonPlan(ageGroupId, edit) },
-            onMonthPlan = { month, edit -> onNavigateToMonthPlan(ageGroupId, month, edit) },
-            onWeekPlan = { monday, edit -> onNavigateToWeekPlan(ageGroupId, monday, edit) },
-            onPlayerClick = onNavigateToPlayer,
-            onTeamClick = onNavigateToTeam,
-            onOpenFullStats = { onNavigateToFullStats(ageGroupId) },
-            onMatchClick = onNavigateToMatch,
-            onAddPlayers = { d -> onNavigateToAddPlayers(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
-            onAddStaff = { d -> onNavigateToAddStaff(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
-            onCreateTeam = { d -> onNavigateToCreateTeams(d.ageGroup.clubId, d.club.name, d.club.sport) },
-            onCreateMatch = { d -> onNavigateToCreateMatch(d.ageGroup.id) },
-            onStaffClick = { d, userId -> onNavigateToMember(d.ageGroup.clubId, userId) },
-            onEditAgeGroup = { d -> onNavigateToEditAgeGroup(d.ageGroup.id) },
-            onRemovePlayer = { playerId -> viewModel.removePlayer(ageGroupId, playerId) },
-            onInviteStaff = { d -> onNavigateToInviteStaff(d.ageGroup.id, d.ageGroup.name, d.club.name) },
-            onRemoveStaff = { userId -> viewModel.removeStaff(ageGroupId, userId) }
-        )
+        // The plan boxes in it: See plans only in the coach's own space.
+        ShownSpace((uiState as? AgeGroupDetailsUiState.Idle)?.details?.club?.id) {
+            AgeGroupDetailsContent(
+                uiState = uiState,
+                showTraining = viewModel.showsTraining,
+                recordState = recordState,
+                plansState = plansState,
+                sessionsState = sessionsState,
+                fullStats = fullStats,
+                snackbarHostState = snackbarHostState,
+                tab = tab,
+                matchesTeamId = matchesTeamId,
+                sessionsCalendar = sessionsCalendar,
+                searchQuery = searchQuery,
+                onTabSelected = viewModel::onTabSelected,
+                onFilterSelected = viewModel::onFilterSelected,
+                onMatchesTeamSelected = viewModel::onMatchesTeamSelected,
+                onSessionsCalendar = viewModel::onSessionsCalendar,
+                onSearchChange = { searchQuery = it },
+                onNavigateBack = onNavigateBack,
+                onRetry = { viewModel.load(ageGroupId, forceReload = true) },
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refresh(ageGroupId) },
+                onRetryRecord = { viewModel.loadRecord(ageGroupId) },
+                onRetryPlans = { viewModel.loadPlans(ageGroupId) },
+                onRetrySessions = { viewModel.loadSessions(ageGroupId) },
+                onCreateSessions = { onNavigateToCreateSessions(ageGroupId) },
+                onAddSession = { date -> onNavigateToAddSession(ageGroupId, date) },
+                onOpenSession = onNavigateToSession,
+                onSeasonPlan = { edit -> onNavigateToSeasonPlan(ageGroupId, edit) },
+                onMonthPlan = { month, edit -> onNavigateToMonthPlan(ageGroupId, month, edit) },
+                onWeekPlan = { monday, edit -> onNavigateToWeekPlan(ageGroupId, monday, edit) },
+                onPlayerClick = onNavigateToPlayer,
+                onTeamClick = onNavigateToTeam,
+                onOpenFullStats = { onNavigateToFullStats(ageGroupId) },
+                onMatchClick = onNavigateToMatch,
+                onAddPlayers = { d -> onNavigateToAddPlayers(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
+                onAddStaff = { d -> onNavigateToAddStaff(d.ageGroup.clubId, d.club.name, d.ageGroup.id) },
+                onCreateTeam = { d -> onNavigateToCreateTeams(d.ageGroup.clubId, d.club.name, d.club.sport) },
+                onCreateMatch = { d -> onNavigateToCreateMatch(d.ageGroup.id) },
+                onStaffClick = { d, userId -> onNavigateToMember(d.ageGroup.clubId, userId) },
+                onEditAgeGroup = { d -> onNavigateToEditAgeGroup(d.ageGroup.id) },
+                onRemovePlayer = { playerId -> viewModel.removePlayer(ageGroupId, playerId) },
+                onInviteStaff = { d -> onNavigateToInviteStaff(d.ageGroup.id, d.ageGroup.name, d.club.name) },
+                onRemoveStaff = { userId -> viewModel.removeStaff(ageGroupId, userId) }
+            )
+        }
     }
 }
 
