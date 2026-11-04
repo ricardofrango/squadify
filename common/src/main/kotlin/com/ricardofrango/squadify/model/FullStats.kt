@@ -75,8 +75,12 @@ data class FullStatsData(
     val canSeeRatings: Boolean
 )
 
-/** The table's stat columns, in order (the developer's, 2026-10-24: the rankings first). The three rankings are staff only. */
+/**
+ * The table's stat columns, in order (the developer's, 2026-10-24: the rankings first; 2026-11-04: the
+ * position before them, by the player). The three rankings are staff only.
+ */
 enum class FullStatsColumn(val rating: Boolean = false) {
+    POSITION,
     FINAL_RATING(true), TRAINING_RATING(true), GAMES_RATING(true),
     WON, DRAWN, LOST,
     GOALS, ASSISTS, MINUTES, SHOTS, SHOTS_ON_GOAL, FOULS, YELLOW_CARDS, RED_CARDS
@@ -112,6 +116,8 @@ data class FullStatsRow(
     val fouls: Int = 0
 ) {
     fun value(column: FullStatsColumn): Double? = when (column) {
+        // Goalkeeper to striker (PlayerPosition's order); none: no value, so last.
+        FullStatsColumn.POSITION -> player.position?.ordinal?.toDouble()
         FullStatsColumn.GOALS -> goals.toDouble()
         FullStatsColumn.ASSISTS -> assists.toDouble()
         FullStatsColumn.MINUTES -> minutes.toDouble()

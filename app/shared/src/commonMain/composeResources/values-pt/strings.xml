@@ -1482,6 +1482,7 @@
     <string name="fs_col_goals">Golos</string>
     <string name="fs_col_assists">Assist.</string>
     <string name="fs_col_minutes">Min.</string>
+    <string name="fs_col_position">Posição</string>
     <string name="fs_col_shots">Remates</string>
     <string name="fs_col_shots_on_goal">À baliza</string>
     <string name="fs_col_fouls">Faltas</string>

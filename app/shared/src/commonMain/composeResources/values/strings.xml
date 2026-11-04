@@ -1484,6 +1484,7 @@
     <string name="fs_col_goals">Goals</string>
     <string name="fs_col_assists">Assists</string>
     <string name="fs_col_minutes">Min</string>
+    <string name="fs_col_position">Position</string>
     <string name="fs_col_shots">Shots</string>
     <string name="fs_col_shots_on_goal">On goal</string>
     <string name="fs_col_fouls">Fouls</string>

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.fullstats
 
+import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import com.ricardofrango.squadify.presentation.ui.components.squadifyDatePickerColors
 import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
@@ -363,6 +364,7 @@ private val ZebraTint = Color(0xFFFAFAFA)
 private val Hairline = CarbonGray.copy(alpha = 0.12f)
 
 private fun FullStatsColumn.width(): Dp = when (this) {
+    FullStatsColumn.POSITION -> 92.dp
     FullStatsColumn.GOALS, FullStatsColumn.ASSISTS, FullStatsColumn.MINUTES -> 52.dp
     FullStatsColumn.GAMES_RATING, FullStatsColumn.TRAINING_RATING -> 64.dp
     FullStatsColumn.FINAL_RATING -> 70.dp
@@ -372,6 +374,7 @@ private fun FullStatsColumn.width(): Dp = when (this) {
 }
 
 private fun FullStatsColumn.shortRes(): StringResource = when (this) {
+    FullStatsColumn.POSITION -> Res.string.fs_col_position
     FullStatsColumn.GOALS -> Res.string.fs_col_goals
     FullStatsColumn.ASSISTS -> Res.string.fs_col_assists
     FullStatsColumn.MINUTES -> Res.string.fs_col_minutes
@@ -389,6 +392,7 @@ private fun FullStatsColumn.shortRes(): StringResource = when (this) {
 }
 
 private fun FullStatsColumn.nameRes(): StringResource = when (this) {
+    FullStatsColumn.POSITION -> Res.string.fs_col_position
     FullStatsColumn.GOALS -> Res.string.fs_col_goals
     FullStatsColumn.ASSISTS -> Res.string.fs_col_assists
     FullStatsColumn.MINUTES -> Res.string.fs_name_minutes
@@ -550,7 +554,16 @@ private fun PlayerCell(player: TeamSeasonPlayer, tint: Color, onClick: () -> Uni
 @Composable
 private fun ValueCell(row: FullStatsRow, column: FullStatsColumn) {
     Box(Modifier.width(column.width()).fillMaxHeight(), contentAlignment = Alignment.Center) {
-        if (column.rating) {
+        if (column == FullStatsColumn.POSITION) {
+            Text(
+                row.player.position?.let { stringResource(it.labelRes()) } ?: "—",
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium, fontSize = 12.5.sp),
+                color = if (row.player.position == null) StatsSecondaryText else DeepCarbon,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 6.dp)
+            )
+        } else if (column.rating) {
             val value = row.value(column)
             val final = column == FullStatsColumn.FINAL_RATING
             if (value == null) {
