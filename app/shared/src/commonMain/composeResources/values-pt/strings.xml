@@ -416,6 +416,10 @@
     <string name="label_event_own_goal">Autogolo · %1$s</string>
     <string name="label_event_yellow_card">Amarelo · %1$s</string>
     <string name="label_event_red_card">Vermelho · %1$s</string>
+    <string name="label_event_shot">Remate · %1$s</string>
+    <string name="label_event_shot_on_goal">Remate à baliza · %1$s</string>
+    <string name="label_event_foul">Falta · %1$s</string>
+    <string name="label_event_corner">Canto · %1$s</string>
     <string name="label_event_assist">Assistência · %1$s</string>
     <string name="label_event_substitution">%1$s → %2$s</string>
     <string name="msg_confirm_delete_event_title">Eliminar este evento?</string>
@@ -635,6 +639,7 @@
     <string name="stats_started_of">%1$d de %2$d como titular</string>
     <string name="stats_minutes_value">%1$d min</string>
     <string name="stats_cards">%1$d amarelos · %2$d vermelhos</string>
+    <string name="stats_shots_fouls">%1$d remates (%2$d à baliza) · %3$d faltas</string>
     <string name="stats_matches">Jogos</string>
     <string name="stats_empty_friendly">Sem jogos amigáveis nesta época</string>
     <string name="stats_empty_official">Sem jogos oficiais nesta época</string>
@@ -672,6 +677,7 @@
     <string name="record_played">%1$d jogos</string>
     <string name="record_goals_for">Marcados</string>
     <string name="record_goals_against">Sofridos</string>
+    <string name="record_corners_fouls">Cantos %1$d–%2$d · Faltas %3$d–%4$d</string>
     <string name="record_goal_difference">Diferença</string>
     <string name="record_form">Forma</string>
     <string name="record_latest_first">mais recente à esquerda</string>
@@ -1461,6 +1467,10 @@
     <string name="lm_action_goal">Golo</string>
     <string name="lm_action_yellow">Amarelo</string>
     <string name="lm_action_red">Vermelho</string>
+    <string name="lm_action_shot">Remate</string>
+    <string name="lm_action_shot_on_goal">Remate à baliza</string>
+    <string name="lm_action_foul">Falta</string>
+    <string name="lm_action_corner">Canto</string>
     <string name="lm_action_substitution">Substituição</string>
     <string name="lm_team_size_side">Futebol %1$d</string>
     <!-- Full stats -->
@@ -1472,6 +1482,12 @@
     <string name="fs_col_goals">Golos</string>
     <string name="fs_col_assists">Assist.</string>
     <string name="fs_col_minutes">Min.</string>
+    <string name="fs_col_position">Posição</string>
+    <string name="fs_col_shots">Remates</string>
+    <string name="fs_col_shots_on_goal">À baliza</string>
+    <string name="fs_col_fouls">Faltas</string>
+    <string name="fs_name_shots">Remates</string>
+    <string name="fs_name_shots_on_goal">Remates à baliza</string>
     <string name="fs_col_games_rating">Jogos</string>
     <string name="fs_col_training_rating">Treinos</string>
     <string name="fs_col_final_rating">Final</string>
@@ -1503,7 +1519,7 @@
     <string name="fs_final_title">Classificação final</string>
     <string name="fs_final_info">Como funciona a classificação final</string>
     <string name="fs_final_body">A classificação final é a média de todas as avaliações do período, jogos e treinos juntos. Cada jogo conta como uma avaliação e cada treino como uma avaliação. Um treino a que o jogador faltou (Ausente) conta como 0, por isso faltar aos treinos baixa a classificação.</string>
-    <string name="fs_final_example">Exemplo: 1 jogo com 7.0 e 3 treinos com 8.0, 8.0 e Ausente → (7.0 + 8.0 + 8.0 + 0) ÷ 4 = 5.8</string>
+    <string name="fs_final_example">Exemplo: 1 jogo com 7.0 e 3 treinos com 8.0, 8.0 e Ausente → (7.0 + 8.0 + 8.0 + 0) ÷ 4 = 5.75</string>
     <string name="fs_empty_title">Sem jogos nem treinos neste período</string>
     <string name="fs_empty_hint">Alarga o intervalo de datas para ver as estatísticas.</string>
     <string name="fs_widen">Alargar período</string>
@@ -1520,6 +1536,11 @@
     <string name="md_col_goals">G</string>
     <string name="md_name_goals">Golos</string>
     <string name="md_col_assists">A</string>
+    <string name="md_col_shots">R</string>
+    <string name="md_col_shots_on_goal">RB</string>
+    <string name="md_col_fouls">F</string>
+    <string name="md_teams">Equipas</string>
+    <string name="md_corners">Cantos</string>
     <string name="md_name_assists">Assistências</string>
     <string name="md_unused">Não utilizados: %1$s</string>
     <string name="md_no_stats">Não há estatísticas de jogadores neste jogo.</string>
@@ -1577,4 +1598,25 @@
     <string name="msg_live_reconnecting">A ligar outra vez… o resultado pode estar atrasado</string>
     <!-- Um puxar para atualizar que falhou: o que estava no ecrã fica -->
     <string name="msg_refresh_failed">Não foi possível atualizar. Verifica a ligação e tenta outra vez.</string>
+    <string name="player_tab_general">Geral</string>
+    <string name="player_tab_games">Jogos</string>
+    <string name="player_tab_training">Treinos</string>
+    <string name="player_training_sessions">Sessões</string>
+    <string name="player_training_not_rated">Sem nota</string>
+    <string name="player_no_training_title">Ainda sem treinos</string>
+    <string name="player_no_training_body">As sessões aparecem aqui depois de terminarem.</string>
+    <string name="player_summary_title">Resumo da época</string>
+    <string name="player_overall_rating">Média geral</string>
+    <string name="player_summary_games">Jogos</string>
+    <string name="player_summary_training">Treinos</string>
+    <string name="player_rating_attended_only">Média · sem faltas aos treinos</string>
+    <string name="player_rating_missed_as_zero">Média · faltas aos treinos como 0</string>
+    <string name="player_averages_info">Como são calculadas as médias</string>
+    <string name="player_averages_title">Como são calculadas as médias</string>
+    <string name="player_averages_intro">As duas médias contam cada avaliação de jogo e de treino da época uma vez. Jogos e treinos sem avaliação ficam de fora.</string>
+    <string name="player_averages_left">À esquerda: um treino em falta (Ausente) fica de fora, por isso não altera a média.</string>
+    <string name="player_averages_right">À direita: um treino em falta conta como 0, por isso faltar aos treinos baixa a média. É a classificação final das Estatísticas completas.</string>
+    <string name="player_averages_example">Exemplo: um jogador faz um jogo avaliado com 8 e participa em 2 de 3 treinos, com 9 em cada um:</string>
+    <string name="player_averages_example_left">À esquerda: (8 + 9 + 9) ÷ 3 = 8.67</string>
+    <string name="player_averages_example_right">À direita: (8 + 9 + 9 + 0) ÷ 4 = 6.50</string>
 </resources>

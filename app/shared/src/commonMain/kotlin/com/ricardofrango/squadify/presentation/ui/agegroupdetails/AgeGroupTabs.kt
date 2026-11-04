@@ -66,7 +66,7 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
-import com.ricardofrango.squadify.presentation.ui.components.oneDecimal
+import com.ricardofrango.squadify.presentation.ui.components.twoDecimals
 import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import com.ricardofrango.squadify.presentation.ui.teamdetails.FormSquare
 import com.ricardofrango.squadify.presentation.ui.teamdetails.ViewMatchButton
@@ -287,6 +287,14 @@ private fun ResultsByTeamCard(record: AgeGroupSeasonRecord, filter: StatsFilter,
                     Spacer(Modifier.weight(1f))
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) { t.form.forEach { FormSquare(it) { onOpenMatch(it.matchId) } } }
                 }
+                if (t.hasTallies()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        stringResource(Res.string.record_corners_fouls, t.cornersFor, t.cornersAgainst, t.foulsFor, t.foulsAgainst),
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp),
+                        color = StatsSecondaryText
+                    )
+                }
             }
         }
         // The age group as a whole, in a quiet footer row.
@@ -492,7 +500,7 @@ private fun TeamCard(team: Team, record: TeamSeasonRecord?, staff: Boolean, next
                     }
                 }
                 val avg = record?.averageRating()
-                if (staff && avg != null) RatingPill(avg, avg.oneDecimal(), minWidth = 40.dp, height = 32.dp, fontSize = 14.5.sp, corner = 9.dp)
+                if (staff && avg != null) RatingPill(avg, avg.twoDecimals(), minWidth = 40.dp, height = 32.dp, fontSize = 14.5.sp, corner = 9.dp)
             }
             if (record != null && record.matches.isNotEmpty()) {
                 val t = record.totals(StatsFilter.ALL)

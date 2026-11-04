@@ -393,6 +393,15 @@ class TrainingSessionUseCasesTest {
         assertEquals(2, p1.sessions)
         assertEquals(2, p1.attended)
         assertEquals(7.5, p1.average)
+        // The Training tab's list: newest first, each with his rating.
+        assertEquals(listOf("s2" to 7.0, "s1" to 8.0), p1.sessionLines.map { it.sessionId to it.rating })
+
+        // Absent in one and not rated in the other: both stay in the list.
+        coEvery { playerRepository.getPlayerById("p2") } returns pool[1]
+        coEvery { playerRepository.getAgeGroupIdsByPlayer("p2") } returns listOf(ag.id)
+        val p2 = statsUseCase.player(staff, "p2").seasons.single()
+        assertEquals(0, p2.attended)
+        assertEquals(listOf("s2" to null, "s1" to 0.0), p2.sessionLines.map { it.sessionId to it.rating })
 
         val parent = user(null)
         coEvery { playerRepository.getPlayersByUser(parent) } returns listOf(pool[0])

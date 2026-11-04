@@ -44,8 +44,8 @@ class TeamLeadersRankingTest {
     @Test
     fun missedTrainingsLowerTheTeamRanking() {
         val ranking = TeamRecordUiState.Loaded(record, fullStats = fullStats).leaders().averageRating
-        // Bia (7 + 7 + 7) / 3 = 7.0 tops Ana's (8 + 0 + 0) / 3 = 2.7, though Ana had the better game.
-        assertEquals(listOf("p2" to 7.0, "p1" to 2.7), ranking.map { it.playerId to it.value })
+        // Bia (7 + 7 + 7) / 3 = 7.0 tops Ana's (8 + 0 + 0) / 3 = 2.67, though Ana had the better game.
+        assertEquals(listOf("p2" to 7.0, "p1" to 2.67), ranking.map { it.playerId to it.value })
     }
 
     @Test

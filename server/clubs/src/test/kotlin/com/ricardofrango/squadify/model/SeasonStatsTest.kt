@@ -68,13 +68,13 @@ class SeasonStatsTest {
     }
 
     @Test
-    fun averageRatingIsRoundedToOneDecimal() {
+    fun averageRatingIsRoundedToTwoDecimals() {
         val t = listOf(
             row("a", MatchType.CHAMPIONSHIP, rating = 7),
             row("b", MatchType.CHAMPIONSHIP, rating = 8),
             row("c", MatchType.CHAMPIONSHIP, rating = 8)
         ).totals(StatsFilter.ALL)
-        assertEquals(7.7, t.averageRating)
+        assertEquals(7.67, t.averageRating)
     }
 
     // ---- Team ----

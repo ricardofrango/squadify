@@ -31,6 +31,9 @@ class ExposedMatchPlayerStatsRepository : MatchPlayerStatsRepository {
             this[MatchPlayerStatsTable.yellowCards] = s.yellowCards
             this[MatchPlayerStatsTable.redCards] = s.redCards
             this[MatchPlayerStatsTable.rating] = s.rating
+            this[MatchPlayerStatsTable.shots] = s.shots
+            this[MatchPlayerStatsTable.shotsOnGoal] = s.shotsOnGoal
+            this[MatchPlayerStatsTable.fouls] = s.fouls
         }
     }
 
@@ -73,6 +76,9 @@ class ExposedMatchPlayerStatsRepository : MatchPlayerStatsRepository {
         ownGoals = row[MatchPlayerStatsTable.ownGoals],
         yellowCards = row[MatchPlayerStatsTable.yellowCards],
         redCards = row[MatchPlayerStatsTable.redCards],
-        rating = row[MatchPlayerStatsTable.rating]
+        rating = row[MatchPlayerStatsTable.rating],
+        shots = row[MatchPlayerStatsTable.shots],
+        shotsOnGoal = row[MatchPlayerStatsTable.shotsOnGoal],
+        fouls = row[MatchPlayerStatsTable.fouls]
     )
 }

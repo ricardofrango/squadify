@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import com.ricardofrango.squadify.presentation.ui.components.ClubLogo
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -41,6 +42,8 @@ import androidx.compose.ui.unit.sp
 import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchEvent
+import com.ricardofrango.squadify.model.ourSideFirst
+import com.ricardofrango.squadify.model.MatchTallies
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.TimelineChange
 import com.ricardofrango.squadify.model.TimelineEntry
@@ -120,16 +123,55 @@ internal fun FinishedMatchBody(
 
 // ---- General ----
 
-/** The report card (staff only, first) and the match's details. */
+/** The result first, then the match's details, then the report card (staff only). */
 @Composable
 private fun GeneralTab(state: MatchDetailsUiState.Idle, modifier: Modifier, onOpenReport: (edit: Boolean) -> Unit) {
     val details = state.details
     LazyColumn(modifier, contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         state.transientError?.let { item { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) } }
-        details.report?.let { item { MatchReportCard(it, onOpenReport) } }
-        // No gap above the title when it's the first thing on the tab (no report card for a member).
-        item { SectionHeader(stringResource(Res.string.label_details_section), first = state.transientError == null && details.report == null) }
+        item { ResultCard(details) }
+        item { SectionHeader(stringResource(Res.string.label_details_section)) }
         item { DetailsCard(details, onSetType = null) }
+        details.report?.let { item { MatchReportCard(it, onOpenReport) } }
+    }
+}
+
+/**
+ * The final score, as football shows it: home on the left (our club at home or on neutral ground), each
+ * side's crest over its name, the score between them.
+ */
+@Composable
+private fun ResultCard(details: MatchDetails) {
+    val us = Triple(details.team.name, details.clubLogoUrl, details.score.ourScore)
+    val them = Triple(details.opponent.shortName ?: details.opponent.name, details.opponent.logoUrl, details.score.opponentScore)
+    val (left, right) = if (details.match.venue.ourSideFirst()) us to them else them to us
+    Surface(shape = RoundedCornerShape(16.dp), color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f)), modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            ResultSide(left.first, left.second, Modifier.weight(1f))
+            Text(
+                "${left.third} – ${right.third}",
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black),
+                color = DeepCarbon,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
+            ResultSide(right.first, right.second, Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun ResultSide(name: String, logoUrl: String?, modifier: Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        ClubLogo(logoUrl, name.take(2).uppercase(), size = 44.dp, background = if (logoUrl != null) Color.White else CarbonGray.copy(alpha = 0.1f), initialsColor = DeepCarbon)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            name,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+            color = DeepCarbon,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -141,7 +183,12 @@ private fun StatsTab(state: MatchDetailsUiState.Idle, modifier: Modifier) {
     val lines = remember(details) { matchStatLines(details) }
     // Sorted by a column (highest first) or, with none, by name; tapping a header picks it.
     var sort by rememberSaveable(details.match.id) { mutableStateOf<MatchStatColumn?>(defaultStatSort(lines.played)) }
-    val rows = remember(lines, sort) { lines.played.sortedByStat(sort) }
+    // The same header again reverses it (as on Full stats); a new column starts highest first, the player A to Z.
+    var descending by rememberSaveable(details.match.id) { mutableStateOf(true) }
+    val rows = remember(lines, sort, descending) { lines.played.sortedByStat(sort, descending) }
+    val onSort: (MatchStatColumn?) -> Unit = { column ->
+        if (column == sort) descending = !descending else { sort = column; descending = column != null }
+    }
     // A long press on a header names its column, as on Full stats.
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -154,13 +201,19 @@ private fun StatsTab(state: MatchDetailsUiState.Idle, modifier: Modifier) {
 
     Box(modifier) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            item { SectionHeader(stringResource(Res.string.md_players), first = true) }
+            // Both sides' shots, corners and fouls, once the game recorded any (MatchTallies.kt).
+            val tallies = details.tallies?.takeIf { it.recorded && details.statsInPlan }
+            if (tallies != null) {
+                item { SectionHeader(stringResource(Res.string.md_teams), first = true) }
+                item { TallyComparison(tallies, details) }
+            }
+            item { SectionHeader(stringResource(Res.string.md_players), first = tallies == null) }
             if (!details.statsInPlan) {
                 item { StatsNotInPlanMessage() }
             } else if (rows.isEmpty()) {
                 item { Text(stringResource(Res.string.md_no_stats), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
             } else {
-                item { StatsTable(rows, sort, onSort = { sort = it }, onLongPress = showColumnName) }
+                item { StatsTable(rows, sort, descending, onSort = onSort, onLongPress = showColumnName) }
             }
             if (lines.unused.isNotEmpty()) {
                 item {
@@ -185,6 +238,9 @@ private fun MatchStatColumn.shortRes(): StringResource? = when (this) {
     MatchStatColumn.MINUTES -> Res.string.fs_col_minutes
     MatchStatColumn.GOALS -> Res.string.md_col_goals
     MatchStatColumn.ASSISTS -> Res.string.md_col_assists
+    MatchStatColumn.SHOTS -> Res.string.md_col_shots
+    MatchStatColumn.SHOTS_ON_GOAL -> Res.string.md_col_shots_on_goal
+    MatchStatColumn.FOULS -> Res.string.md_col_fouls
     // The cards are drawn, not written.
     MatchStatColumn.YELLOW, MatchStatColumn.RED -> null
 }
@@ -194,8 +250,46 @@ private fun MatchStatColumn.nameRes(): StringResource = when (this) {
     MatchStatColumn.MINUTES -> Res.string.fs_name_minutes
     MatchStatColumn.GOALS -> Res.string.md_name_goals
     MatchStatColumn.ASSISTS -> Res.string.md_name_assists
+    MatchStatColumn.SHOTS -> Res.string.fs_name_shots
+    MatchStatColumn.SHOTS_ON_GOAL -> Res.string.fs_name_shots_on_goal
+    MatchStatColumn.FOULS -> Res.string.fs_col_fouls
     MatchStatColumn.YELLOW -> Res.string.fs_name_yellow
     MatchStatColumn.RED -> Res.string.fs_name_red
+}
+
+/**
+ * Our side against theirs, a line each: shots and shots on goal (ours only: "–" for the opponent, whose
+ * aren't recorded), corners and fouls. Home on the left, as the score reads.
+ */
+@Composable
+private fun TallyComparison(tallies: MatchTallies, details: MatchDetails) {
+    val ourName = details.team.name
+    val theirName = details.opponent.shortName ?: details.opponent.name
+    val oursFirst = details.match.venue.ourSideFirst()
+    val lines = listOf(
+        Res.string.fs_name_shots to (tallies.ours.shots to tallies.theirs.shots),
+        Res.string.fs_name_shots_on_goal to (tallies.ours.shotsOnGoal to tallies.theirs.shotsOnGoal),
+        Res.string.md_corners to (tallies.ours.corners to tallies.theirs.corners),
+        Res.string.fs_col_fouls to (tallies.ours.fouls to tallies.theirs.fouls)
+    )
+    fun Int?.shown() = this?.toString() ?: "–"
+    Surface(Modifier.fillMaxWidth(), shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            val (left, right) = if (oursFirst) ourName to theirName else theirName to ourName
+            Row(Modifier.fillMaxWidth()) {
+                Text(left, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                Text(right, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+            }
+            lines.forEach { (label, values) ->
+                val (l, r) = if (oursFirst) values else values.second to values.first
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(l.shown(), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, modifier = Modifier.width(48.dp))
+                    Text(stringResource(label), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.6f), textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                    Text(r.shown(), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, textAlign = TextAlign.End, modifier = Modifier.width(48.dp))
+                }
+            }
+        }
+    }
 }
 
 private fun MatchStatColumn.width(): Dp = if (this == MatchStatColumn.RATING) RatingColumnWidth else StatColumnWidth
@@ -206,7 +300,7 @@ private fun MatchStatColumn.width(): Dp = if (this == MatchStatColumn.RATING) Ra
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun StatsTable(rows: List<MatchStatLine>, sort: MatchStatColumn?, onSort: (MatchStatColumn?) -> Unit, onLongPress: (String) -> Unit) {
+private fun StatsTable(rows: List<MatchStatLine>, sort: MatchStatColumn?, descending: Boolean, onSort: (MatchStatColumn?) -> Unit, onLongPress: (String) -> Unit) {
     val headerStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
     val horizontal = rememberScrollState()
     fun Modifier.rowLine(i: Int) = if (i < rows.lastIndex) bottomHairline() else this
@@ -215,7 +309,7 @@ private fun StatsTable(rows: List<MatchStatLine>, sort: MatchStatColumn?, onSort
             Column(Modifier.width(IntrinsicSize.Max).widthIn(max = PlayerColumnMaxWidth).rightHairline()) {
                 val playerName = stringResource(Res.string.fs_player)
                 Text(
-                    playerName + if (sort == null) " ↑" else "",
+                    playerName + if (sort != null) "" else if (descending) " ↓" else " ↑",
                     style = headerStyle,
                     color = if (sort == null) PitchGreen else DeepCarbon.copy(alpha = 0.75f),
                     modifier = Modifier
@@ -249,7 +343,7 @@ private fun StatsTable(rows: List<MatchStatLine>, sort: MatchStatColumn?, onSort
                                 MatchStatColumn.RED -> CardGlyph(LossRed)
                                 else -> Text(stringResource(column.shortRes()!!), style = headerStyle, color = color, maxLines = 1)
                             }
-                            if (sorted) Text("↓", style = headerStyle, color = color)
+                            if (sorted) Text(if (descending) "↓" else "↑", style = headerStyle, color = color)
                         }
                     }
                     Spacer(Modifier.width(6.dp))
@@ -393,11 +487,16 @@ internal fun RecordEventRow(event: DisplayEvent, details: MatchDetails, onClick:
                     name != null -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal, name))
                     else -> Triple("G", PitchGreen, stringResource(Res.string.label_event_goal_unattributed))
                 }
-                EventType.OWN_GOAL -> Triple("OG", CarbonGray, stringResource(Res.string.label_event_own_goal, name ?: opponent))
+                // The opponent's own goal is ours: green.
+                EventType.OWN_GOAL -> Triple("OG", if (e.isOpponent) PitchGreen else CarbonGray, stringResource(Res.string.label_event_own_goal, name ?: opponent))
                 EventType.ASSIST -> Triple("A", PitchGreen, stringResource(Res.string.label_event_assist, name ?: "-"))
                 EventType.YELLOW_CARD -> Triple("Y", Amber, stringResource(Res.string.label_event_yellow_card, name ?: "-"))
                 EventType.RED_CARD -> Triple("R", LossRed, stringResource(Res.string.label_event_red_card, name ?: "-"))
                 EventType.SUBSTITUTION_IN, EventType.SUBSTITUTION_OUT -> Triple("⇄", DeepCarbon, name ?: "-")
+                EventType.SHOT -> Triple("↗", DeepCarbon, stringResource(Res.string.label_event_shot, name ?: "-"))
+                EventType.SHOT_ON_GOAL -> Triple("◎", PitchGreen, stringResource(Res.string.label_event_shot_on_goal, name ?: "-"))
+                EventType.FOUL -> Triple("!", CarbonGray, stringResource(Res.string.label_event_foul, if (e.isOpponent) opponent else name ?: "-"))
+                EventType.CORNER -> Triple("⚑", if (e.isOpponent) CarbonGray else DeepCarbon, stringResource(Res.string.label_event_corner, if (e.isOpponent) opponent else details.team.name))
             }
         }
     }

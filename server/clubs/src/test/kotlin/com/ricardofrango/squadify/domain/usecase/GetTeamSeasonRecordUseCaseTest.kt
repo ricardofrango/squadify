@@ -13,6 +13,8 @@ import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.model.MatchTallies
+import com.ricardofrango.squadify.model.SideTallies
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchPlayerStats
@@ -84,6 +86,10 @@ class GetTeamSeasonRecordUseCaseTest {
         )
         coEvery { eventRepository.getScoreByMatch("m1") } returns MatchScore("m1", 3, 1)
         coEvery { eventRepository.getScoreByMatch("m2") } returns MatchScore("m2", 1, 1)
+        coEvery { eventRepository.getTalliesByMatches(any()) } answers {
+            firstArg<List<String>>().associateWith { MatchTallies(SideTallies(0, 0, 0, 0), SideTallies(null, null, 0, 0), recorded = false) } +
+                ("m1" to MatchTallies(SideTallies(6, 3, 5, 7), SideTallies(null, null, 2, 9), recorded = true))
+        }
         coEvery { statsRepository.getByMatches(listOf("m2", "m1")) } returns listOf(
             MatchPlayerStats("m1", "p1", true, 70, 2, 0, 0, 0, 0, rating = 9),
             MatchPlayerStats("m2", "p1", true, 70, 0, 1, 0, 0, 0, rating = 6)
@@ -113,6 +119,9 @@ class GetTeamSeasonRecordUseCaseTest {
         assertEquals("2026/27", record.seasonName)
         assertEquals(listOf("m2", "m1"), record.matches.map { it.matchId }) // the scheduled one is left out
         assertEquals(3, record.matches.last().ourScore)
+        // Each side's corners and fouls, as recorded live.
+        assertEquals(listOf(5, 2, 7, 9), record.matches.last().let { listOf(it.cornersFor, it.cornersAgainst, it.foulsFor, it.foulsAgainst) })
+        assertEquals(listOf(0, 0, 0, 0), record.matches.first().let { listOf(it.cornersFor, it.cornersAgainst, it.foulsFor, it.foulsAgainst) })
         assertEquals("AD Fontelas", record.matches.first().opponentName)
         assertEquals(9, record.playerLines.first { it.matchId == "m1" }.rating)
         assertNull(record.playerLines.first { it.matchId == "m2" }.rating) // draft report

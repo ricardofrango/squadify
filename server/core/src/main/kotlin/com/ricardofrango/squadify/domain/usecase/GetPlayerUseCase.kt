@@ -11,6 +11,7 @@ import com.ricardofrango.squadify.domain.repository.PlayerRepository
 import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.model.isTally
 import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.PlayerProfile
 import com.ricardofrango.squadify.model.PlayerProfileEvent
@@ -52,7 +53,8 @@ class GetPlayerUseCase(
         val goals = events.count { it.type == EventType.GOAL }
         val assists = events.count { it.type == EventType.ASSIST }
 
-        val recentEvents = events.take(RECENT_EVENTS_LIMIT).mapNotNull { event ->
+        // Goals, assists and cards; not the live game's shots, fouls and corners.
+        val recentEvents = events.filterNot { it.type.isTally() }.take(RECENT_EVENTS_LIMIT).mapNotNull { event ->
             val match = matchRepository.getMatchById(event.matchId) ?: return@mapNotNull null
             val opponent = opponentRepository.getOpponentById(match.opponentId) ?: return@mapNotNull null
             PlayerProfileEvent(

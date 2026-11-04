@@ -41,6 +41,29 @@ class AddMatchEventUseCase(
                 throw ValidationException("Events can only be logged while the match is live")
             }
 
+            // The live game's tallies (MatchTallies.kt): shots are our player's; a foul is our player's or
+            // the opponent's as a team; a corner is a side's, never a player's.
+            when (request.type) {
+                EventType.SHOT, EventType.SHOT_ON_GOAL -> if (request.isOpponent || request.playerId == null) {
+                    throw ValidationException("A shot needs one of our players")
+                }
+                EventType.FOUL -> if (request.isOpponent == (request.playerId != null)) {
+                    throw ValidationException("A foul is one of our players' or the opponent's")
+                }
+                EventType.CORNER -> if (request.playerId != null) {
+                    throw ValidationException("A corner is a team's, not a player's")
+                }
+                // The opponent's own goal scores for us; we don't record their players.
+                EventType.OWN_GOAL -> if (request.isOpponent && request.playerId != null) {
+                    throw ValidationException("The opponent's own goal is the team's, not a player's")
+                }
+                else -> {}
+            }
+            val tallyPlayer = request.playerId?.takeIf { request.type.isTally() }
+            if (tallyPlayer != null && matchRepository.getCallUpByMatchAndPlayer(matchId, tallyPlayer) == null) {
+                throw ValidationException("That player wasn't called up for this match")
+            }
+
             // An assist rides on our own player's goal, by a different player who was called up.
             val assistPlayerId = request.assistPlayerId
             if (assistPlayerId != null) {

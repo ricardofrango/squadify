@@ -6,6 +6,8 @@ import com.ricardofrango.squadify.exception.DatabaseException
 import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchScore
+import com.ricardofrango.squadify.model.MatchTallies
+import com.ricardofrango.squadify.model.matchTallies
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.or
@@ -82,6 +84,16 @@ class ExposedMatchEventRepository : MatchEventRepository {
                     ((MatchEvents.type eq EventType.GOAL) or (MatchEvents.type eq EventType.OWN_GOAL))
         }.map(::toMatchEvent).groupBy { it.matchId }
         return matchIds.associateWith { scoreOf(it, events[it].orEmpty()) }
+    }
+
+    override suspend fun getTalliesByMatches(matchIds: List<String>): Map<String, MatchTallies> {
+        if (matchIds.isEmpty()) return emptyMap()
+        // Goals too: a goal counts as a shot on goal.
+        val types = listOf(EventType.SHOT, EventType.SHOT_ON_GOAL, EventType.FOUL, EventType.CORNER, EventType.GOAL)
+        val events = MatchEvents.selectAll().where {
+            (MatchEvents.matchId inList matchIds.map { it.toUuid() }) and (MatchEvents.type inList types)
+        }.map(::toMatchEvent).groupBy { it.matchId }
+        return matchIds.associateWith { matchTallies(events[it].orEmpty()) }
     }
 
     private fun scoreOf(matchId: String, events: List<MatchEvent>): MatchScore {

@@ -127,10 +127,11 @@ class FullStatsViewModel(
 
     /**
      * The same column again flips the direction; a new stat column starts highest first, the player
-     * column ([column] null) A to Z.
+     * column ([column] null) A to Z and the position goalkeeper first.
      */
     fun onSort(column: FullStatsColumn?) = updateLoaded {
-        if (it.sort == column) it.copy(descending = !it.descending) else it.copy(sort = column, descending = column != null)
+        if (it.sort == column) it.copy(descending = !it.descending)
+        else it.copy(sort = column, descending = column != null && column != FullStatsColumn.POSITION)
     }
 
     fun onToggleColumn(column: FullStatsColumn) = updateLoaded {

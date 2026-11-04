@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.model.MatchCallUp
 import com.ricardofrango.squadify.model.MatchEvent
 import com.ricardofrango.squadify.model.MatchPlayerStats
 import com.ricardofrango.squadify.model.playerMinutes
+import com.ricardofrango.squadify.model.playerTallies
 
 /**
  * Builds each called-up player's [MatchPlayerStats] for a match that has just finished. Pure -- no
@@ -22,6 +23,7 @@ object MatchPlayerStatsCalculator {
 
         return callUps.map { callUp ->
             val own = eventsByPlayer[callUp.playerId].orEmpty()
+            val tallies = playerTallies(own)
             MatchPlayerStats(
                 matchId = match.id,
                 playerId = callUp.playerId,
@@ -31,7 +33,10 @@ object MatchPlayerStatsCalculator {
                 assists = own.count { it.type == EventType.ASSIST },
                 ownGoals = own.count { it.type == EventType.OWN_GOAL },
                 yellowCards = own.count { it.type == EventType.YELLOW_CARD },
-                redCards = own.count { it.type == EventType.RED_CARD }
+                redCards = own.count { it.type == EventType.RED_CARD },
+                shots = tallies.shots,
+                shotsOnGoal = tallies.shotsOnGoal,
+                fouls = tallies.fouls
             )
         }
     }

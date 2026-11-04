@@ -43,6 +43,10 @@ data class PlayerSeasonMatch(
     val yellowCards: Int,
     val redCards: Int,
     val rating: Int? = null,
+    // As in MatchPlayerStats: a goal is also a shot on goal, a shot on goal also a shot.
+    val shots: Int = 0,
+    val shotsOnGoal: Int = 0,
+    val fouls: Int = 0,
     // The team he played for in that match ("Sub-15 A"), so A and B are never ambiguous.
     val teamName: String = "",
     // Home first in the row's "Team vs Opponent" (MatchVenue.ourSideFirst).
@@ -83,6 +87,9 @@ data class PlayerSeasonTotals(
     val assists: Int,
     val yellowCards: Int,
     val redCards: Int,
+    val shots: Int,
+    val shotsOnGoal: Int,
+    val fouls: Int,
     val ratedMatches: Int,
     // Mean of the ratings in the filter, one decimal; null with no rated matches.
     val averageRating: Double?,
@@ -111,8 +118,11 @@ fun List<PlayerSeasonMatch>.totals(filter: StatsFilter): PlayerSeasonTotals {
         assists = rows.sumOf { it.assists },
         yellowCards = rows.sumOf { it.yellowCards },
         redCards = rows.sumOf { it.redCards },
+        shots = rows.sumOf { it.shots },
+        shotsOnGoal = rows.sumOf { it.shotsOnGoal },
+        fouls = rows.sumOf { it.fouls },
         ratedMatches = ratings.size,
-        averageRating = ratings.takeIf { it.isNotEmpty() }?.average()?.roundToOneDecimal(),
+        averageRating = ratings.takeIf { it.isNotEmpty() }?.average()?.roundToTwoDecimals(),
         untypedMatches = rows.count { it.matchType == null }
     )
 }
@@ -127,7 +137,12 @@ data class TeamSeasonMatch(
     val opponentName: String,
     val matchType: MatchType? = null,
     val ourScore: Int,
-    val opponentScore: Int
+    val opponentScore: Int,
+    // The corners and fouls of each side, as recorded in the live game (MatchTallies.kt).
+    val cornersFor: Int = 0,
+    val cornersAgainst: Int = 0,
+    val foulsFor: Int = 0,
+    val foulsAgainst: Int = 0
 )
 
 /**
@@ -182,11 +197,18 @@ data class TeamRecordTotals(
     val lost: Int,
     val goalsFor: Int,
     val goalsAgainst: Int,
+    val cornersFor: Int,
+    val cornersAgainst: Int,
+    val foulsFor: Int,
+    val foulsAgainst: Int,
     // The last five in the filter, most recent first.
     val form: List<TeamFormEntry>,
     val untypedMatches: Int
 ) {
     val goalDifference: Int get() = goalsFor - goalsAgainst
+
+    /** Any corner or foul recorded in these games (none before the live game recorded them). */
+    fun hasTallies(): Boolean = cornersFor + cornersAgainst + foulsFor + foulsAgainst > 0
 }
 
 fun TeamSeasonMatch.result(): FormResult = when {
@@ -204,6 +226,10 @@ fun TeamSeasonRecord.totals(filter: StatsFilter): TeamRecordTotals {
         lost = rows.count { it.result() == FormResult.LOSS },
         goalsFor = rows.sumOf { it.ourScore },
         goalsAgainst = rows.sumOf { it.opponentScore },
+        cornersFor = rows.sumOf { it.cornersFor },
+        cornersAgainst = rows.sumOf { it.cornersAgainst },
+        foulsFor = rows.sumOf { it.foulsFor },
+        foulsAgainst = rows.sumOf { it.foulsAgainst },
         form = rows.take(FORM_LENGTH).map { TeamFormEntry(it.matchId, it.result(), it) },
         untypedMatches = rows.count { it.matchType == null }
     )
@@ -253,7 +279,7 @@ fun TeamSeasonRecord.leaders(filter: StatsFilter): TeamLeaders {
         minutes = board { rows -> rows.sumOf { it.minutesPlayed }.toDouble() },
         averageRating = if (!canSeeRatings) emptyList() else board { rows ->
             val ratings = rows.mapNotNull { it.rating }
-            if (ratings.size < MIN_RATED_MATCHES_FOR_LEADERS) null else ratings.average().roundToOneDecimal()
+            if (ratings.size < MIN_RATED_MATCHES_FOR_LEADERS) null else ratings.average().roundToTwoDecimals()
         }
     )
 }
@@ -304,7 +330,7 @@ fun TeamSeasonRecord.squad(filter: StatsFilter, sort: SquadSort = SquadSort.APPS
                 goals = played.sumOf { it.goals },
                 assists = played.sumOf { it.assists },
                 ratedMatches = ratings.size,
-                averageRating = ratings.takeIf { it.isNotEmpty() }?.average()?.roundToOneDecimal()
+                averageRating = ratings.takeIf { it.isNotEmpty() }?.average()?.roundToTwoDecimals()
             )
         }
     }
@@ -321,7 +347,7 @@ fun TeamSeasonRecord.squad(filter: StatsFilter, sort: SquadSort = SquadSort.APPS
 
 /** The team's average rating over every rated appearance this season (staff only; null with none). */
 fun TeamSeasonRecord.averageRating(): Double? =
-    playerLines.filter { it.played }.mapNotNull { it.rating }.takeIf { it.isNotEmpty() }?.average()?.roundToOneDecimal()
+    playerLines.filter { it.played }.mapNotNull { it.rating }.takeIf { it.isNotEmpty() }?.average()?.roundToTwoDecimals()
 
 /** How many different players played for the team (a start or 1+ minute) this season. */
 fun TeamSeasonRecord.playersUsed(): Int = playerLines.filter { it.played }.map { it.playerId }.distinct().size
@@ -409,4 +435,5 @@ fun AgeGroupSeasonRecord.memberSeasons(): Map<String, MemberSeason> {
     return byPlayer
 }
 
-private fun Double.roundToOneDecimal(): Double = (this * 10).roundToInt() / 10.0
+// Rankings are shown with two decimals ("8.90"; the developer, 2026-11-04).
+private fun Double.roundToTwoDecimals(): Double = (this * 100).roundToInt() / 100.0

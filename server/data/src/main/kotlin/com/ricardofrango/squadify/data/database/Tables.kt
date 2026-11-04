@@ -347,6 +347,10 @@ object MatchPlayerStatsTable : Table("match_player_stats") {
     val yellowCards = integer("yellow_cards").default(0)
     val redCards = integer("red_cards").default(0)
     val rating = integer("rating").nullable()
+    // V32 (clubs) / V8 (coach): counted as in football, see MatchTallies.kt.
+    val shots = integer("shots").default(0)
+    val shotsOnGoal = integer("shots_on_goal").default(0)
+    val fouls = integer("fouls").default(0)
 
     override val primaryKey = PrimaryKey(id)
 

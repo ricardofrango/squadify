@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -206,10 +207,10 @@ fun RatingPill(value: Double, text: String, minWidth: Dp, height: Dp, fontSize: 
     }
 }
 
-/** One decimal, as the averages are shown ("7.8"). */
-fun Double.oneDecimal(): String {
-    val tenths = (this * 10).roundToInt()
-    return "${tenths / 10}.${tenths % 10}"
+/** Two decimals, as every ranking is shown ("8.90"; the developer, 2026-11-04). */
+fun Double.twoDecimals(): String {
+    val hundredths = (this * 100).roundToInt()
+    return "${hundredths / 100}.${(hundredths % 100).toString().padStart(2, '0')}"
 }
 
 /** Title + explanation inside a card -- the empty and error states of both cards. */
@@ -231,6 +232,22 @@ fun StatsMessage(title: String, body: String, modifier: Modifier = Modifier, onR
                     Text(stringResource(Res.string.btn_retry), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = CarbonGray)
                 }
             }
+        }
+    }
+}
+
+/** The small "i" that explains a ranking (Full stats' final ranking, Player Details' averages). */
+@Composable
+fun RatingInfoButton(contentDescription: String, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(20.dp)
+            .semantics { this.contentDescription = contentDescription; role = Role.Button }
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(Modifier.size(13.dp).border(1.2.dp, PitchGreen, CircleShape), contentAlignment = Alignment.Center) {
+            Text("i", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp, lineHeight = 9.sp), color = PitchGreen)
         }
     }
 }

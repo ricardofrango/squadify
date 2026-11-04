@@ -43,6 +43,17 @@ class FinishedMatchRecordTest {
     }
 
     @Test
+    fun aSecondTapReversesTheSortAndAMissingRatingStaysLast() {
+        val lines = matchStatLines(staff).played
+        val minutes = lines.sortedByStat(MatchStatColumn.MINUTES, descending = true).map { it.stats.minutesPlayed }
+        assertEquals(minutes.sorted(), lines.sortedByStat(MatchStatColumn.MINUTES, descending = false).map { it.stats.minutesPlayed })
+        val names = lines.sortedByStat(null, descending = false).map { it.player.id }
+        assertEquals(names.reversed(), lines.sortedByStat(null, descending = true).map { it.player.id })
+        val oneUnrated = lines.map { if (it.player.id == "p7") it.copy(stats = it.stats.copy(rating = null)) else it }
+        assertEquals("p7", oneUnrated.sortedByStat(MatchStatColumn.RATING, descending = false).last().player.id)
+    }
+
+    @Test
     fun theFiltersPickGoalsSubstitutionsOrCards() {
         val events = chronologicalEvents(staff)
         fun ids(filter: EventFilter) = events.filter(filter::accepts).map { it.key }

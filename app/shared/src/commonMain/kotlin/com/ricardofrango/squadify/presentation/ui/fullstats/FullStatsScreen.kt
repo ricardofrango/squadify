@@ -1,10 +1,12 @@
 package com.ricardofrango.squadify.presentation.ui.fullstats
 
+import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import com.ricardofrango.squadify.presentation.ui.components.squadifyDatePickerColors
 import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
 import androidx.compose.ui.draw.clip
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
+import com.ricardofrango.squadify.presentation.ui.components.RatingInfoButton
 import com.ricardofrango.squadify.presentation.ui.components.SectionBorder
 import com.ricardofrango.squadify.presentation.ui.components.SectionShape
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
@@ -81,7 +83,7 @@ import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.StatsFilterSegments
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.components.initialsOf
-import com.ricardofrango.squadify.presentation.ui.components.oneDecimal
+import com.ricardofrango.squadify.presentation.ui.components.twoDecimals
 import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.Amber
@@ -363,14 +365,17 @@ private val ZebraTint = Color(0xFFFAFAFA)
 private val Hairline = CarbonGray.copy(alpha = 0.12f)
 
 private fun FullStatsColumn.width(): Dp = when (this) {
+    FullStatsColumn.POSITION -> 92.dp
     FullStatsColumn.GOALS, FullStatsColumn.ASSISTS, FullStatsColumn.MINUTES -> 52.dp
     FullStatsColumn.GAMES_RATING, FullStatsColumn.TRAINING_RATING -> 64.dp
     FullStatsColumn.FINAL_RATING -> 70.dp
     FullStatsColumn.WON, FullStatsColumn.DRAWN, FullStatsColumn.LOST -> 40.dp
     FullStatsColumn.YELLOW_CARDS, FullStatsColumn.RED_CARDS -> 44.dp
+    FullStatsColumn.SHOTS, FullStatsColumn.SHOTS_ON_GOAL, FullStatsColumn.FOULS -> 56.dp
 }
 
 private fun FullStatsColumn.shortRes(): StringResource = when (this) {
+    FullStatsColumn.POSITION -> Res.string.fs_col_position
     FullStatsColumn.GOALS -> Res.string.fs_col_goals
     FullStatsColumn.ASSISTS -> Res.string.fs_col_assists
     FullStatsColumn.MINUTES -> Res.string.fs_col_minutes
@@ -382,9 +387,13 @@ private fun FullStatsColumn.shortRes(): StringResource = when (this) {
     FullStatsColumn.LOST -> Res.string.fs_col_lost
     FullStatsColumn.YELLOW_CARDS -> Res.string.fs_name_yellow
     FullStatsColumn.RED_CARDS -> Res.string.fs_name_red
+    FullStatsColumn.SHOTS -> Res.string.fs_col_shots
+    FullStatsColumn.SHOTS_ON_GOAL -> Res.string.fs_col_shots_on_goal
+    FullStatsColumn.FOULS -> Res.string.fs_col_fouls
 }
 
 private fun FullStatsColumn.nameRes(): StringResource = when (this) {
+    FullStatsColumn.POSITION -> Res.string.fs_col_position
     FullStatsColumn.GOALS -> Res.string.fs_col_goals
     FullStatsColumn.ASSISTS -> Res.string.fs_col_assists
     FullStatsColumn.MINUTES -> Res.string.fs_name_minutes
@@ -396,6 +405,9 @@ private fun FullStatsColumn.nameRes(): StringResource = when (this) {
     FullStatsColumn.LOST -> Res.string.fs_name_lost
     FullStatsColumn.YELLOW_CARDS -> Res.string.fs_name_yellow
     FullStatsColumn.RED_CARDS -> Res.string.fs_name_red
+    FullStatsColumn.SHOTS -> Res.string.fs_name_shots
+    FullStatsColumn.SHOTS_ON_GOAL -> Res.string.fs_name_shots_on_goal
+    FullStatsColumn.FOULS -> Res.string.fs_col_fouls
 }
 
 /**
@@ -499,19 +511,8 @@ private fun HeaderCell(column: FullStatsColumn, sorted: Boolean, descending: Boo
         }
         if (arrow.isNotEmpty()) Text(arrow, style = HeaderStyle, color = color)
         if (column == FullStatsColumn.FINAL_RATING) {
-            val info = stringResource(Res.string.fs_final_info)
             Spacer(Modifier.width(2.dp))
-            Box(
-                Modifier
-                    .size(20.dp)
-                    .semantics { contentDescription = info; role = Role.Button }
-                    .clickable(onClick = onExplain),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(Modifier.size(13.dp).border(1.2.dp, PitchGreen, CircleShape), contentAlignment = Alignment.Center) {
-                    Text("i", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp, lineHeight = 9.sp), color = PitchGreen)
-                }
-            }
+            RatingInfoButton(stringResource(Res.string.fs_final_info), onExplain)
         }
     }
 }
@@ -543,7 +544,16 @@ private fun PlayerCell(player: TeamSeasonPlayer, tint: Color, onClick: () -> Uni
 @Composable
 private fun ValueCell(row: FullStatsRow, column: FullStatsColumn) {
     Box(Modifier.width(column.width()).fillMaxHeight(), contentAlignment = Alignment.Center) {
-        if (column.rating) {
+        if (column == FullStatsColumn.POSITION) {
+            Text(
+                row.player.position?.let { stringResource(it.labelRes()) } ?: "—",
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium, fontSize = 12.5.sp),
+                color = if (row.player.position == null) StatsSecondaryText else DeepCarbon,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 6.dp)
+            )
+        } else if (column.rating) {
             val value = row.value(column)
             val final = column == FullStatsColumn.FINAL_RATING
             if (value == null) {
@@ -554,7 +564,7 @@ private fun ValueCell(row: FullStatsRow, column: FullStatsColumn) {
                     Text("—", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = StatsSecondaryText)
                 }
             } else {
-                RatingPill(value, value.oneDecimal(), minWidth = if (final) 46.dp else 40.dp, height = if (final) 26.dp else 24.dp, fontSize = if (final) 13.sp else 12.sp, corner = 13.dp)
+                RatingPill(value, value.twoDecimals(), minWidth = if (final) 46.dp else 40.dp, height = if (final) 26.dp else 24.dp, fontSize = if (final) 13.sp else 12.sp, corner = 13.dp)
             }
         } else {
             val value = row.value(column)?.toInt() ?: 0

@@ -16,6 +16,7 @@ import com.ricardofrango.squadify.domain.repository.SeasonRepository
 import com.ricardofrango.squadify.domain.repository.TeamRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
+import com.ricardofrango.squadify.model.matchTallies
 import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchReportStatus
 import com.ricardofrango.squadify.model.MatchReportSummary
@@ -120,6 +121,7 @@ class GetMatchDetailsUseCase(
             clubLocation = club?.let { it.stadiumLocation ?: it.address },
             canSeeMatchRecord = canReadReport,
             events = events,
+            tallies = if (finished) matchTallies(allEvents) else null,
             playerStats = playerStats,
             lineupChanges = lineupChanges,
             teamSizeOptions = club?.sport?.teamSizes.orEmpty(),

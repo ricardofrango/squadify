@@ -53,7 +53,7 @@ class FullStatsTest {
         val t = data().table(FullStatsQuery(), utc)
         val r = t.row("p1")
         assertEquals(6.0, r.gamesRating) // (7 + 5) / 2
-        assertEquals(7.7, r.trainingRating) // (6 + 8 + 9) / 3
+        assertEquals(7.67, r.trainingRating) // (6 + 8 + 9) / 3, two decimals
         // (7 + 5 + 6 + 8 + 9) / 5 = 7.0 -- not the average of the two averages (6.85)
         assertEquals(7.0, r.finalRating)
         // An absent training counts as a 0.
@@ -69,7 +69,7 @@ class FullStatsTest {
         val trainings = listOf(8.0, 8.0, 0.0).mapIndexed { i, r -> FullStatsTraining("t$i", day(19 + i), listOf(TrainingRating("p3", r))) }
         val t = data().copy(trainings = trainings).table(FullStatsQuery(), utc)
         val r = t.row("p3")
-        assertEquals(5.3, r.trainingRating)
+        assertEquals(5.33, r.trainingRating)
         assertEquals(5.5, r.finalRating) // (6 + 8 + 8 + 0) / 4
         assertEquals(4, r.ratings)
     }
