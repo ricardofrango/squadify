@@ -70,6 +70,33 @@ class RequestPlanUseCase(
 }
 
 /**
+ * A subscription bought (or changed) in Google Play, sent to the coach server, which checks it with
+ * Google and sets the plan. The plans it answers with replace the ones loaded, and the spaces are loaded
+ * again (best effort) when the plan changed. Whether it did.
+ */
+class SaveStorePurchaseUseCase(
+    private val spaceRepository: SpaceRepository,
+    private val ownSpacePlan: OwnSpacePlan,
+    private val getSpacesUseCase: GetSpacesUseCase
+) {
+    suspend operator fun invoke(productId: String, purchaseToken: String): Boolean {
+        val before = ownSpacePlan.plans.value?.currentPlan
+        val plans = spaceRepository.verifyGooglePurchase(productId, purchaseToken)
+        ownSpacePlan.plans.value = plans
+        val changed = plans.currentPlan != before
+        if (changed) {
+            try {
+                getSpacesUseCase()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+            }
+        }
+        return changed
+    }
+}
+
+/**
  * The space the coach owns, its plan and this season's age groups, as last loaded (null: they own none,
  * or nothing loaded yet), and every plan as the server sends them, with the coach's own ([plans], null until loaded). The
  * shared screens' plan messages read them: See plans on a stats lock, the Members tab, Invite staff and

@@ -44,6 +44,8 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
+            // Subscriptions on Google Play (TECHNICAL_DECISIONS §72, payments).
+            implementation(libs.android.billing)
         }
         commonMain.dependencies {
             api(project(":app:shared"))

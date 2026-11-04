@@ -54,5 +54,31 @@ object PlanRequests : Table("plan_requests") {
     override val primaryKey = PrimaryKey(clubId)
 }
 
+/**
+ * A subscription bought in a store (REQUIREMENTS §5c, payments), as the store last told the server: one
+ * row a purchase token. Which space it pays for, the plan of its product, whether it gives the plan now
+ * ([entitled]: active, or cancelled but paid until [expiresAt]) and the lower plan it goes down to at its
+ * renewal ([pendingPlan]). Goes with its space, and with its buyer.
+ */
+object StoreSubscriptions : Table("store_subscriptions") {
+    val purchaseToken = varchar("purchase_token", 512)
+    val clubId = uuid("club_id").references(Clubs.id, onDelete = ReferenceOption.CASCADE)
+    val userId = uuid("user_id").references(Users.id, onDelete = ReferenceOption.CASCADE)
+    // "GOOGLE" (Apple next).
+    val store = varchar("store", 10)
+    val productId = varchar("product_id", 100)
+    // Google's base plan ("monthly", "yearly").
+    val basePlanId = varchar("base_plan_id", 100).nullable()
+    val plan = varchar("plan", 20)
+    val entitled = bool("entitled")
+    val expiresAt = timestamp("expires_at").nullable()
+    val pendingPlan = varchar("pending_plan", 20).nullable()
+    // A store's test purchase (nothing charged): only accepted off production.
+    val test = bool("test")
+    val updatedAt = timestamp("updated_at")
+
+    override val primaryKey = PrimaryKey(purchaseToken)
+}
+
 /** The coach database's own tables, beyond the shared ones (`sharedTables`). */
-val coachOnlyTables: List<Table> = listOf(StaffInvites, SpacePlans, PlanRequests)
+val coachOnlyTables: List<Table> = listOf(StaffInvites, SpacePlans, PlanRequests, StoreSubscriptions)

@@ -82,7 +82,8 @@ android {
         }
     }
 
-    // As in the clubs app: dev and staging have a suffix, so all three install side by side.
+    // As in the clubs app: dev and staging have a suffix, so all three install side by side. Staging is its own
+    // app in Play Console (the developer, 2026-11-04), never published, for Google Play's test purchases.
     flavorDimensions += "environment"
     productFlavors {
         create("dev") {

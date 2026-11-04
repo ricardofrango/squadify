@@ -136,4 +136,10 @@
     <string name="btn_plans_subscribing">Sending…</string>
     <string name="plans_request_failed">Couldn't send your request. Try again.</string>
     <string name="plans_requested">You asked for %1$s. We'll be in touch to set it up.</string>
+    <string name="plans_monthly">Monthly</string>
+    <string name="plans_yearly">Yearly</string>
+    <string name="plans_price_month">%1$s / month</string>
+    <string name="plans_price_year">%1$s / year</string>
+    <string name="plans_pending">%1$s until %2$s, then %3$s.</string>
+    <string name="plans_purchase_failed">The purchase didn't go through. Try again.</string>
 </resources>

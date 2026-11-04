@@ -6,6 +6,14 @@ import com.ricardofrango.squadify.coach.data.ExposedAccountDeletionRepository
 import com.ricardofrango.squadify.coach.data.ExposedSpacePlanRepository
 import com.ricardofrango.squadify.coach.data.SpacePlanRepository
 import com.ricardofrango.squadify.coach.domain.CoachPlans
+import com.ricardofrango.squadify.coach.domain.GoogleSubscriptions
+import com.ricardofrango.squadify.coach.domain.HandleGoogleNotificationUseCase
+import com.ricardofrango.squadify.coach.domain.VerifyGooglePurchaseUseCase
+import com.ricardofrango.squadify.coach.data.ExposedStoreSubscriptionRepository
+import com.ricardofrango.squadify.coach.data.GooglePlayApi
+import com.ricardofrango.squadify.coach.data.GooglePlayDeveloperApi
+import com.ricardofrango.squadify.coach.data.StoreSubscriptionRepository
+import com.ricardofrango.squadify.model.PlanChange
 import com.ricardofrango.squadify.coach.domain.PlanRequestMailer
 import com.ricardofrango.squadify.coach.domain.RequestPlanUseCase
 import com.ricardofrango.squadify.coach.domain.DeleteAccountUseCase
@@ -233,7 +241,20 @@ val coachModule = module {
     factory { CoachSeasons(get()) }
     factory { SetUpSpaceUseCase(get(), get(), get(), get(), get()) }
     factory { GetSpacesUseCase(get(), get(), get(), get(), get()) }
-    factory { GetPlansUseCase(get(), get(), get()) }
+    // How plans change: at once locally; deployed, in the store once it can check purchases, else by request.
+    single<GooglePlayApi> { GooglePlayDeveloperApi(CoachConfig.googlePlayPackageName, CoachConfig.googlePlayServiceAccountJson) }
+    single<StoreSubscriptionRepository> { ExposedStoreSubscriptionRepository() }
+    factory {
+        val changeBy = when {
+            !CoachConfig.deployed -> PlanChange.INSTANT
+            get<GooglePlayApi>().configured -> PlanChange.STORE
+            else -> PlanChange.REQUEST
+        }
+        GetPlansUseCase(get(), get(), get(), changeBy, get())
+    }
+    factory { GoogleSubscriptions(get(), get(), get(), CoachConfig.acceptsTestPurchases, CoachConfig.acceptsRealPurchases) }
+    factory { VerifyGooglePurchaseUseCase(get(), get(), get(), get(), get()) }
+    factory { HandleGoogleNotificationUseCase(get(), get(), get(), get(), get()) }
     // Locally a plan asked for is set at once; deployed, a platform admin sets it.
     factory { RequestPlanUseCase(get(), get(), get(), get(), CoachConfig.platformAdminEmails, atOnce = !CoachConfig.deployed, transactionManager = get()) }
 

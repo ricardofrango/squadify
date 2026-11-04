@@ -2,10 +2,12 @@ package com.ricardofrango.squadify.coach.domain
 
 import com.ricardofrango.squadify.coach.data.SpacePlanRepository
 import com.ricardofrango.squadify.exception.PlanLimitException
+import com.ricardofrango.squadify.model.BillingPeriod
 import com.ricardofrango.squadify.model.PlanDetails
 import com.ricardofrango.squadify.model.PlanFeature
 import com.ricardofrango.squadify.model.PlanFeatureLine
 import com.ricardofrango.squadify.model.SpacePlan
+import com.ricardofrango.squadify.model.StoreProduct
 
 /**
  * Every plan and what it allows (REQUIREMENTS §5c), decided here only: its name, its features (with
@@ -28,7 +30,12 @@ object PlanLimits {
         PlanFeature.TRAINING to ("Training: sessions, exercises, player ratings, training stats and plans" to "Treino: sessões, exercícios, avaliação dos jogadores, estatísticas de treino e planeamento")
     )
 
-    private class Plan(val plan: SpacePlan, val name: String, val features: List<String>, val ageGroups: Int?, val people: Int?)
+    /** On Google Play each paid plan is a subscription ([googleProduct]) with a monthly and a yearly base plan. */
+    private class Plan(val plan: SpacePlan, val name: String, val features: List<String>, val ageGroups: Int?, val people: Int?, val googleProduct: String? = null) {
+        val storeProducts: List<StoreProduct> = googleProduct?.let { id ->
+            listOf(StoreProduct(BillingPeriod.MONTHLY, id, "monthly"), StoreProduct(BillingPeriod.YEARLY, id, "yearly"))
+        }.orEmpty()
+    }
 
     private val freeFeatures = listOf(PlanFeature.LIVE_GAME, PlanFeature.CALENDAR, PlanFeature.HISTORY)
     private val basicFeatures = freeFeatures + PlanFeature.STATS
@@ -36,11 +43,17 @@ object PlanLimits {
     /** Cheapest first, each with all it has. */
     private val plans = listOf(
         Plan(FREE, "Free", freeFeatures, ageGroups = 1, people = 1),
-        Plan(BASIC, "Basic", basicFeatures, ageGroups = 3, people = 3),
-        Plan(PRO, "Pro", basicFeatures + PlanFeature.FOLLOWING_LIVE + PlanFeature.TRAINING, ageGroups = null, people = null)
+        Plan(BASIC, "Basic", basicFeatures, ageGroups = 3, people = 3, googleProduct = "coach_basic"),
+        Plan(PRO, "Pro", basicFeatures + PlanFeature.FOLLOWING_LIVE + PlanFeature.TRAINING, ageGroups = null, people = null, googleProduct = "coach_pro")
     )
 
     private fun planFor(plan: SpacePlan): Plan = plans.firstOrNull { it.plan == plan } ?: plans.first { it.plan == FREE }
+
+    /** The plan a Google Play subscription is for; null for a product that isn't one of them. */
+    fun forGoogleProduct(productId: String): SpacePlan? = plans.firstOrNull { it.googleProduct == productId }?.plan
+
+    /** Where [plan] stands, cheapest first (an unknown plan as Free): of two plans a space has, the higher counts. */
+    fun rank(plan: SpacePlan): Int = plans.indexOf(planFor(plan))
 
     /** Whether [plan] is one of the plans, for the admin who sets it. */
     fun exists(plan: SpacePlan): Boolean = plans.any { it.plan == plan }
@@ -54,7 +67,8 @@ object PlanLimits {
                 plan.name,
                 plan.features.map { key -> PlanFeatureLine(key, featureTexts.getValue(key).let { if (portuguese) it.second else it.first }) },
                 plan.ageGroups,
-                plan.people
+                plan.people,
+                plan.storeProducts
             )
         }
     }

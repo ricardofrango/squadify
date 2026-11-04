@@ -11,6 +11,7 @@ import com.ricardofrango.squadify.coach.domain.CreateStaffInviteUseCase
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
 import com.ricardofrango.squadify.coach.domain.LoadPlansUseCase
 import com.ricardofrango.squadify.coach.domain.RequestPlanUseCase
+import com.ricardofrango.squadify.coach.domain.SaveStorePurchaseUseCase
 import com.ricardofrango.squadify.coach.domain.OwnSpacePlan
 import com.ricardofrango.squadify.coach.domain.GetStaffInvitesUseCase
 import com.ricardofrango.squadify.coach.domain.JoinWithCodeUseCase
@@ -45,6 +46,7 @@ val coachModule = module {
     factory { GetSpacesUseCase(get(), get(), get()) }
     factory { LoadPlansUseCase(get(), get()) }
     factory { RequestPlanUseCase(get(), get(), get()) }
+    factory { SaveStorePurchaseUseCase(get(), get(), get()) }
     factory { SetUpSpaceUseCase(get()) }
     factory { JoinWithCodeUseCase(get()) }
     factory { GetStaffInvitesUseCase(get()) }

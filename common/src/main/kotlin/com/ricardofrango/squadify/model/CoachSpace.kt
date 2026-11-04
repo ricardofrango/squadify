@@ -75,7 +75,9 @@ data class PlanDetails(
     val features: List<PlanFeatureLine>,
     val ageGroupLimit: Int? = null,
     // The owner included.
-    val peoplePerAgeGroupLimit: Int? = null
+    val peoplePerAgeGroupLimit: Int? = null,
+    // How it's sold in the stores, one a billing period; none for Free.
+    val storeProducts: List<StoreProduct> = emptyList()
 ) {
     fun has(feature: String): Boolean = features.any { it.key == feature }
 }
@@ -84,12 +86,52 @@ data class PlanDetails(
 @Serializable
 data class PlanFeatureLine(val key: String, val text: String)
 
+/** How often a subscription is charged. */
+@Serializable
+enum class BillingPeriod { MONTHLY, YEARLY }
+
 /**
- * `GET /v1/plans`: every plan, cheapest first, the plan of the space the coach owns (null: they own none)
- * and the plan they asked for and haven't got yet ([requestedPlan], null: none).
+ * A plan's subscription for one [period] in the stores, as the coach server names it: on Google Play a
+ * subscription ([googleProductId], one a plan) and one of its base plans ([googleBasePlanId]). The prices
+ * are the store's, read by the app.
  */
 @Serializable
-data class PlansResponse(val plans: List<PlanDetails>, val currentPlan: SpacePlan? = null, val requestedPlan: SpacePlan? = null)
+data class StoreProduct(val period: BillingPeriod, val googleProductId: String, val googleBasePlanId: String)
+
+/**
+ * How the coach changes plan (`PlansResponse.changeBy`), the server's choice: [INSTANT] on a local server
+ * (`POST /v1/plans/request` sets it there and then); [REQUEST] while a deployed server can't check store
+ * purchases (the request waits for a platform admin); [STORE] with them (the store's payment sheet, then
+ * `POST /v1/plans/purchases/google`). An app without the store's billing (iOS, for now) asks instead.
+ */
+@Serializable
+enum class PlanChange { INSTANT, REQUEST, STORE }
+
+/**
+ * `GET /v1/plans`: every plan, cheapest first, the plan of the space the coach owns (null: they own none)
+ * and the plan they asked for and haven't got yet ([requestedPlan], null: none). With a store subscription
+ * going down at its renewal, [pendingPlan] is the plan from [pendingFrom] (REQUIREMENTS §5c). For the
+ * store: the period of the subscription the plan comes from ([currentPeriod], null: none), and the id the
+ * app tags a purchase with ([storeAccountId], the owner's; the server only accepts their own purchases).
+ */
+@Serializable
+data class PlansResponse(
+    val plans: List<PlanDetails>,
+    val currentPlan: SpacePlan? = null,
+    val requestedPlan: SpacePlan? = null,
+    val changeBy: PlanChange = PlanChange.REQUEST,
+    val pendingPlan: SpacePlan? = null,
+    val pendingFrom: Instant? = null,
+    val currentPeriod: BillingPeriod? = null,
+    val storeAccountId: String? = null
+)
+
+/**
+ * `POST /v1/plans/purchases/google`: a Google Play subscription bought (or changed) in the app, for the
+ * server to check with Google and set the plan of the buyer's space. Answered with the plans, like `GET /v1/plans`.
+ */
+@Serializable
+data class GooglePurchaseRequest(val productId: String, val purchaseToken: String)
 
 /**
  * `POST /v1/plans/request`: the owner asks for another plan for their space, until payments. A platform

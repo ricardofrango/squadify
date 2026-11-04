@@ -21,7 +21,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.domain.config.OwnSpace
+import com.ricardofrango.squadify.model.BillingPeriod
 import com.ricardofrango.squadify.model.PlanDetails
+import com.ricardofrango.squadify.model.StoreProduct
 import com.ricardofrango.squadify.model.PlanFeature
 import com.ricardofrango.squadify.model.PlanFeatureLine
 import com.ricardofrango.squadify.model.SpacePlan
@@ -229,6 +231,7 @@ fun AgeGroupsNotInPlanNotice(plan: SpacePlan, modifier: Modifier = Modifier) {
 
 /** The server's plans for the previews: one person and one age group, three of each, no limits. */
 val previewPlans: List<PlanDetails> = run {
+    fun sold(product: String) = listOf(StoreProduct(BillingPeriod.MONTHLY, product, "monthly"), StoreProduct(BillingPeriod.YEARLY, product, "yearly"))
     val free = listOf(
         PlanFeatureLine(PlanFeature.LIVE_GAME, "Live game recording"),
         PlanFeatureLine(PlanFeature.CALENDAR, "Calendar"),
@@ -237,10 +240,11 @@ val previewPlans: List<PlanDetails> = run {
     val basic = free + PlanFeatureLine(PlanFeature.STATS, "Stats: age group, team, player, full stats and match stats")
     listOf(
         PlanDetails(SpacePlan("FREE"), "Free", free, 1, 1),
-        PlanDetails(SpacePlan("BASIC"), "Basic", basic, 3, 3),
+        PlanDetails(SpacePlan("BASIC"), "Basic", basic, 3, 3, sold("coach_basic")),
         PlanDetails(
             SpacePlan("PRO"), "Pro",
-            basic + PlanFeatureLine(PlanFeature.FOLLOWING_LIVE, "Live game results and notifications") + PlanFeatureLine(PlanFeature.TRAINING, "Training: sessions, exercises, player ratings, training stats and plans")
+            basic + PlanFeatureLine(PlanFeature.FOLLOWING_LIVE, "Live game results and notifications") + PlanFeatureLine(PlanFeature.TRAINING, "Training: sessions, exercises, player ratings, training stats and plans"),
+            storeProducts = sold("coach_pro")
         )
     )
 }

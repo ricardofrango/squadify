@@ -27,6 +27,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.PlanDetails
+import com.ricardofrango.squadify.model.BillingPeriod
+import com.ricardofrango.squadify.model.StoreProduct
+import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
+import com.ricardofrango.squadify.presentation.ui.components.displayName
+import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
+import kotlinx.datetime.LocalDate
+import squadify.app.coach.generated.resources.plans_monthly
+import squadify.app.coach.generated.resources.plans_pending
+import squadify.app.coach.generated.resources.plans_price_month
+import squadify.app.coach.generated.resources.plans_price_year
+import squadify.app.coach.generated.resources.plans_purchase_failed
+import squadify.app.coach.generated.resources.plans_yearly
 import com.ricardofrango.squadify.model.SpacePlan
 import com.ricardofrango.squadify.presentation.ui.components.SectionBorder
 import com.ricardofrango.squadify.presentation.ui.components.SectionShape
@@ -78,11 +90,13 @@ import squadify.app.coach.generated.resources.plans_your_plan
  * their own) (REQUIREMENTS §5c). Nothing about the plans is decided here, so a plan added or changed on the
  * server shows as it is. Before the plans load, a spinner; [onRetry] when they couldn't.
  *
- * No prices and no buying until payments: the owner taps a plan to choose it (outlined in green; their
- * own, or the one they asked for, to start with), and Subscribe, off until they choose another, asks the
- * server for it with [onRequestPlan] (null for a coach without a space of their own: nothing to tap, no
- * button), whether it went; a platform admin then sets it. The plan asked for ([requestedPlan]) shows above
- * the button until then.
+ * The owner taps a plan to choose it (outlined in green; their own, or the one they asked for, to start
+ * with), and Subscribe, off until they choose another, changes to it with [onRequestPlan] (null for a coach
+ * without a space of their own: nothing to tap, no button), whether it went. With the store's [prices]
+ * (payments, Google Play), a Monthly / Yearly choice and each plan's price for it; another period of
+ * their own plan counts as another choice, and Free isn't bought. Without them, the request waits for a
+ * platform admin, and the plan asked for ([requestedPlan]) shows above the button until then. A plan going
+ * down at the renewal shows there too ([pendingPlan] from [pendingFrom]).
  */
 @Composable
 fun PlansScreen(
@@ -90,23 +104,38 @@ fun PlansScreen(
     requestedPlan: SpacePlan?,
     plans: List<PlanDetails>,
     onRetry: (() -> Unit)?,
-    onRequestPlan: (suspend (SpacePlan) -> Boolean)?,
-    onNavigateBack: () -> Unit
+    onRequestPlan: (suspend (SpacePlan, BillingPeriod?) -> Boolean)?,
+    onNavigateBack: () -> Unit,
+    prices: Map<StoreProduct, String> = emptyMap(),
+    currentPeriod: BillingPeriod? = null,
+    pendingPlan: SpacePlan? = null,
+    pendingFrom: LocalDate? = null
 ) {
     var selected by remember(currentPlan, requestedPlan) { mutableStateOf(requestedPlan ?: currentPlan) }
+    var period by remember(currentPeriod) { mutableStateOf(currentPeriod ?: BillingPeriod.MONTHLY) }
     var sending by remember { mutableStateOf(false) }
     var failed by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    // Another plan than theirs, and not the one already asked for.
-    val chosen = plans.firstOrNull { it.plan == selected && it.plan != currentPlan && it.plan != requestedPlan }
+    val byStore = prices.isNotEmpty()
+    // Another plan (or, in the store, another period of theirs), not the one already asked for.
+    val chosen = plans.firstOrNull { details ->
+        details.plan == selected && details.plan != requestedPlan && if (byStore) {
+            details.storeProducts.any { it.period == period } && !(details.plan == currentPlan && (currentPeriod == null || currentPeriod == period))
+        } else {
+            details.plan != currentPlan
+        }
+    }
     Scaffold(
         containerColor = ScreenBackground,
         topBar = { SquadifyTopBar(title = stringResource(Res.string.plans_title), onNavigateBack = onNavigateBack) },
         bottomBar = {
             if (onRequestPlan != null && plans.isNotEmpty()) {
                 PinnedBottomBar {
+                    val pending = plans.firstOrNull { it.plan == pendingPlan }
                     val note = when {
-                        failed -> stringResource(Res.string.plans_request_failed)
+                        failed -> stringResource(if (byStore) Res.string.plans_purchase_failed else Res.string.plans_request_failed)
+                        pending != null && pendingFrom != null ->
+                            stringResource(Res.string.plans_pending, currentPlan?.displayName().orEmpty(), shortDateLabel(pendingFrom), pending.name)
                         else -> plans.firstOrNull { it.plan == requestedPlan }?.let { stringResource(Res.string.plans_requested, it.name) }
                     }
                     note?.let {
@@ -128,7 +157,7 @@ fun PlansScreen(
                             scope.launch {
                                 sending = true
                                 failed = false
-                                failed = !onRequestPlan(plan)
+                                failed = !onRequestPlan(plan, period.takeIf { byStore })
                                 sending = false
                             }
                         }
@@ -147,10 +176,23 @@ fun PlansScreen(
                     .screenContentPadding(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (byStore) {
+                    SegmentedFilter(
+                        options = listOf(BillingPeriod.MONTHLY, BillingPeriod.YEARLY),
+                        selected = period,
+                        label = { stringResource(if (it == BillingPeriod.MONTHLY) Res.string.plans_monthly else Res.string.plans_yearly) },
+                        onSelect = { period = it; failed = false },
+                        shorten = false
+                    )
+                }
                 plans.forEachIndexed { index, details ->
+                    val price = details.storeProducts.firstOrNull { it.period == period }?.let { prices[it] }?.let {
+                        stringResource(if (period == BillingPeriod.MONTHLY) Res.string.plans_price_month else Res.string.plans_price_year, it)
+                    }
                     PlanCardView(
                         details,
                         plans.getOrNull(index - 1),
+                        price = price,
                         isCurrent = details.plan == currentPlan,
                         isSelected = details.plan == selected,
                         onClick = if (onRequestPlan != null && !sending) ({ selected = details.plan; failed = false }) else null
@@ -175,7 +217,7 @@ fun PlansScreen(
 }
 
 @Composable
-private fun PlanCardView(details: PlanDetails, previous: PlanDetails?, isCurrent: Boolean, isSelected: Boolean, onClick: (() -> Unit)?) {
+private fun PlanCardView(details: PlanDetails, previous: PlanDetails?, price: String?, isCurrent: Boolean, isSelected: Boolean, onClick: (() -> Unit)?) {
     // What it adds to the plan before, then its limits.
     val features = details.features.filter { feature -> previous == null || !previous.has(feature.key) }.map { it.text }
     val ageGroups = when (val limit = details.ageGroupLimit) {
@@ -217,6 +259,7 @@ private fun PlanCardView(details: PlanDetails, previous: PlanDetails?, isCurrent
                     }
                 }
             }
+            price?.let { Text(it, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = PitchGreen) }
             Text(
                 if (previous == null) stringResource(Res.string.plans_intro_first) else stringResource(Res.string.plans_intro_more, previous.name),
                 style = MaterialTheme.typography.bodySmall,
@@ -235,13 +278,13 @@ private fun PlanCardView(details: PlanDetails, previous: PlanDetails?, isCurrent
 @Preview
 @Composable
 private fun PlansFreePreview() {
-    SquadifyTheme { PlansScreen(SpacePlan("FREE"), requestedPlan = null, previewPlans, onRetry = null, onRequestPlan = { true }, onNavigateBack = {}) }
+    SquadifyTheme { PlansScreen(SpacePlan("FREE"), requestedPlan = null, previewPlans, onRetry = null, onRequestPlan = { _, _ -> true }, onNavigateBack = {}) }
 }
 
 @Preview
 @Composable
 private fun PlansBasicPreview() {
-    SquadifyTheme { PlansScreen(SpacePlan("BASIC"), requestedPlan = SpacePlan("PRO"), previewPlans, onRetry = null, onRequestPlan = { true }, onNavigateBack = {}) }
+    SquadifyTheme { PlansScreen(SpacePlan("BASIC"), requestedPlan = SpacePlan("PRO"), previewPlans, onRetry = null, onRequestPlan = { _, _ -> true }, onNavigateBack = {}) }
 }
 
 @Preview
@@ -250,8 +293,20 @@ private fun PlansStaffOnlyPreview() {
     SquadifyTheme { PlansScreen(currentPlan = null, requestedPlan = null, previewPlans, onRetry = null, onRequestPlan = null, onNavigateBack = {}) }
 }
 
+@Preview
+@Composable
+private fun PlansStorePreview() {
+    val prices = previewPlans.flatMap { it.storeProducts }.associateWith { if (it.period == BillingPeriod.MONTHLY) "4,99 €" else "49,99 €" }
+    SquadifyTheme {
+        PlansScreen(
+            SpacePlan("PRO"), requestedPlan = null, previewPlans, onRetry = null, onRequestPlan = { _, _ -> true }, onNavigateBack = {},
+            prices = prices, currentPeriod = BillingPeriod.MONTHLY, pendingPlan = SpacePlan("BASIC"), pendingFrom = LocalDate(2027, 1, 31)
+        )
+    }
+}
+
 @Preview(widthDp = 320)
 @Composable
 private fun PlansProSmallPreview() {
-    SquadifyTheme { PlansScreen(SpacePlan("PRO"), requestedPlan = null, previewPlans, onRetry = null, onRequestPlan = { true }, onNavigateBack = {}) }
+    SquadifyTheme { PlansScreen(SpacePlan("PRO"), requestedPlan = null, previewPlans, onRetry = null, onRequestPlan = { _, _ -> true }, onNavigateBack = {}) }
 }
