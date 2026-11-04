@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.domain
 
+import com.ricardofrango.squadify.coach.data.CoachEmailService
 import com.ricardofrango.squadify.coach.data.StaffInviteRepository
 import com.ricardofrango.squadify.coach.data.StoredStaffInvite
 import com.ricardofrango.squadify.coach.data.staffInviteText
@@ -8,6 +9,7 @@ import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.UserRepository
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.email.ResendSender
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.Club
@@ -123,5 +125,14 @@ class EmailedStaffInvitesTest {
         assertEquals("Ana <b> invited you to Sub-12 on Squadify Coach", enSubject)
         assertTrue("9 November" in enBody && "Join with a code" in enBody)
         assertTrue("Your code" in staffInviteText(email.copy(language = null)).second)
+    }
+
+    @Test
+    fun locallyWithNoResendKeyAnInviteCountsAsSentDeployedItFails() = runBlocking {
+        val email = StaffInviteEmail("Ana", "Sub-12", "Ana's team", "K7Q-4MZ", Instant.parse("2026-11-09T10:00:00Z"), "en")
+        val noKey = ResendSender(apiKey = "", fromAddress = "Squadify Coach <a@b.pt>")
+
+        assertTrue(CoachEmailService(noKey, sendsLocally = true).sendStaffInvite("joao@example.com", email))
+        assertFalse(CoachEmailService(noKey, sendsLocally = false).sendStaffInvite("joao@example.com", email))
     }
 }
