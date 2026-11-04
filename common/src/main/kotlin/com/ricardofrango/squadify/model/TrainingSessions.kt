@@ -214,7 +214,18 @@ data class PlayerTrainingSeason(
     val sessions: Int,
     val attended: Int,
     val rated: Int,
-    val average: Double? = null
+    val average: Double? = null,
+    // Every ended session, newest first, with the player's rating -- the Training tab's list.
+    val sessionLines: List<PlayerTrainingSessionLine> = emptyList()
+)
+
+/** One ended session of a player's season: [rating] 0 is Absent, null when he wasn't rated. */
+@Serializable
+data class PlayerTrainingSessionLine(
+    val sessionId: String,
+    val date: LocalDate,
+    val startTime: LocalTime,
+    val rating: Double? = null
 )
 
 /** `GET /players/{id}/training-stats`: per season, only for the age groups the viewer rates; empty otherwise. */

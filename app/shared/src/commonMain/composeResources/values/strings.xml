@@ -1521,7 +1521,7 @@
     <string name="fs_final_title">Final ranking</string>
     <string name="fs_final_info">How the final ranking works</string>
     <string name="fs_final_body">The final ranking is the average of every game and training rating in the period, together. Each game counts as one rating and each training as one rating. A training the player missed (Absent) counts as 0, so missing training lowers the ranking.</string>
-    <string name="fs_final_example">Example: 1 game rated 7.0 and 3 trainings rated 8.0, 8.0 and Absent → (7.0 + 8.0 + 8.0 + 0) ÷ 4 = 5.8</string>
+    <string name="fs_final_example">Example: 1 game rated 7.0 and 3 trainings rated 8.0, 8.0 and Absent → (7.0 + 8.0 + 8.0 + 0) ÷ 4 = 5.75</string>
     <string name="fs_empty_title">No games or trainings in this period</string>
     <string name="fs_empty_hint">Widen the date range to see player stats.</string>
     <string name="fs_widen">Widen range</string>
@@ -1600,4 +1600,25 @@
     <string name="msg_live_reconnecting">Reconnecting… the score may be behind</string>
     <!-- A pull-to-refresh that failed: what was shown stays -->
     <string name="msg_refresh_failed">Couldn't refresh. Check your connection and try again.</string>
+    <string name="player_tab_general">General</string>
+    <string name="player_tab_games">Games</string>
+    <string name="player_tab_training">Training</string>
+    <string name="player_training_sessions">Sessions</string>
+    <string name="player_training_not_rated">Not rated</string>
+    <string name="player_no_training_title">No training yet</string>
+    <string name="player_no_training_body">Sessions show here once they've ended.</string>
+    <string name="player_summary_title">Season summary</string>
+    <string name="player_overall_rating">Overall rating</string>
+    <string name="player_summary_games">Games played</string>
+    <string name="player_summary_training">Training</string>
+    <string name="player_rating_attended_only">Avg · missed trainings left out</string>
+    <string name="player_rating_missed_as_zero">Avg · missed trainings as 0</string>
+    <string name="player_averages_info">How the averages are worked out</string>
+    <string name="player_averages_title">How the averages are worked out</string>
+    <string name="player_averages_intro">Both averages count every game and training rating of the season once. Games and trainings the player wasn't rated in are left out.</string>
+    <string name="player_averages_left">Left: a missed training (Absent) is left out, so it doesn't change the average.</string>
+    <string name="player_averages_right">Right: a missed training counts as 0, so missing training lowers it. This is the final ranking in Full stats.</string>
+    <string name="player_averages_example">Example: a player plays one match rated 8 and takes part in 2 of 3 training sessions, rated 9 in each:</string>
+    <string name="player_averages_example_left">Left: (8 + 9 + 9) ÷ 3 = 8.67</string>
+    <string name="player_averages_example_right">Right: (8 + 9 + 9 + 0) ÷ 4 = 6.50</string>
 </resources>

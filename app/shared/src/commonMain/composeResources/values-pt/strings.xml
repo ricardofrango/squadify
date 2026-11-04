@@ -1519,7 +1519,7 @@
     <string name="fs_final_title">Classificação final</string>
     <string name="fs_final_info">Como funciona a classificação final</string>
     <string name="fs_final_body">A classificação final é a média de todas as avaliações do período, jogos e treinos juntos. Cada jogo conta como uma avaliação e cada treino como uma avaliação. Um treino a que o jogador faltou (Ausente) conta como 0, por isso faltar aos treinos baixa a classificação.</string>
-    <string name="fs_final_example">Exemplo: 1 jogo com 7.0 e 3 treinos com 8.0, 8.0 e Ausente → (7.0 + 8.0 + 8.0 + 0) ÷ 4 = 5.8</string>
+    <string name="fs_final_example">Exemplo: 1 jogo com 7.0 e 3 treinos com 8.0, 8.0 e Ausente → (7.0 + 8.0 + 8.0 + 0) ÷ 4 = 5.75</string>
     <string name="fs_empty_title">Sem jogos nem treinos neste período</string>
     <string name="fs_empty_hint">Alarga o intervalo de datas para ver as estatísticas.</string>
     <string name="fs_widen">Alargar período</string>
@@ -1598,4 +1598,25 @@
     <string name="msg_live_reconnecting">A ligar outra vez… o resultado pode estar atrasado</string>
     <!-- Um puxar para atualizar que falhou: o que estava no ecrã fica -->
     <string name="msg_refresh_failed">Não foi possível atualizar. Verifica a ligação e tenta outra vez.</string>
+    <string name="player_tab_general">Geral</string>
+    <string name="player_tab_games">Jogos</string>
+    <string name="player_tab_training">Treinos</string>
+    <string name="player_training_sessions">Sessões</string>
+    <string name="player_training_not_rated">Sem nota</string>
+    <string name="player_no_training_title">Ainda sem treinos</string>
+    <string name="player_no_training_body">As sessões aparecem aqui depois de terminarem.</string>
+    <string name="player_summary_title">Resumo da época</string>
+    <string name="player_overall_rating">Média geral</string>
+    <string name="player_summary_games">Jogos</string>
+    <string name="player_summary_training">Treinos</string>
+    <string name="player_rating_attended_only">Média · sem faltas aos treinos</string>
+    <string name="player_rating_missed_as_zero">Média · faltas aos treinos como 0</string>
+    <string name="player_averages_info">Como são calculadas as médias</string>
+    <string name="player_averages_title">Como são calculadas as médias</string>
+    <string name="player_averages_intro">As duas médias contam cada avaliação de jogo e de treino da época uma vez. Jogos e treinos sem avaliação ficam de fora.</string>
+    <string name="player_averages_left">À esquerda: um treino em falta (Ausente) fica de fora, por isso não altera a média.</string>
+    <string name="player_averages_right">À direita: um treino em falta conta como 0, por isso faltar aos treinos baixa a média. É a classificação final das Estatísticas completas.</string>
+    <string name="player_averages_example">Exemplo: um jogador faz um jogo avaliado com 8 e participa em 2 de 3 treinos, com 9 em cada um:</string>
+    <string name="player_averages_example_left">À esquerda: (8 + 9 + 9) ÷ 3 = 8.67</string>
+    <string name="player_averages_example_right">À direita: (8 + 9 + 9 + 0) ÷ 4 = 6.50</string>
 </resources>

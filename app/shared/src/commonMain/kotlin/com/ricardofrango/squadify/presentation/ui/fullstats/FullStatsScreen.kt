@@ -6,6 +6,7 @@ import com.ricardofrango.squadify.presentation.ui.components.squadifyDatePickerC
 import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
 import androidx.compose.ui.draw.clip
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
+import com.ricardofrango.squadify.presentation.ui.components.RatingInfoButton
 import com.ricardofrango.squadify.presentation.ui.components.SectionBorder
 import com.ricardofrango.squadify.presentation.ui.components.SectionShape
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
@@ -510,19 +511,8 @@ private fun HeaderCell(column: FullStatsColumn, sorted: Boolean, descending: Boo
         }
         if (arrow.isNotEmpty()) Text(arrow, style = HeaderStyle, color = color)
         if (column == FullStatsColumn.FINAL_RATING) {
-            val info = stringResource(Res.string.fs_final_info)
             Spacer(Modifier.width(2.dp))
-            Box(
-                Modifier
-                    .size(20.dp)
-                    .semantics { contentDescription = info; role = Role.Button }
-                    .clickable(onClick = onExplain),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(Modifier.size(13.dp).border(1.2.dp, PitchGreen, CircleShape), contentAlignment = Alignment.Center) {
-                    Text("i", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp, lineHeight = 9.sp), color = PitchGreen)
-                }
-            }
+            RatingInfoButton(stringResource(Res.string.fs_final_info), onExplain)
         }
     }
 }

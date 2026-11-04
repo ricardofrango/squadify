@@ -36,13 +36,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ricardofrango.squadify.model.MatchType
 import com.ricardofrango.squadify.model.PlayerSeason
 import com.ricardofrango.squadify.model.PlayerSeasonMatch
 import com.ricardofrango.squadify.model.StatsFilter
 import com.ricardofrango.squadify.model.inFilter
 import com.ricardofrango.squadify.model.totals
-import com.ricardofrango.squadify.presentation.ui.components.MatchTypeTag
 import com.ricardofrango.squadify.presentation.ui.components.RatingPill
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
 import com.ricardofrango.squadify.presentation.ui.components.StatsFilterSegments
@@ -50,7 +48,6 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsHeaderRow
 import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
-import com.ricardofrango.squadify.presentation.ui.components.isTaggedInLists
 import com.ricardofrango.squadify.presentation.ui.components.twoDecimals
 import com.ricardofrango.squadify.presentation.ui.matchreport.MiniPill
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
@@ -173,7 +170,7 @@ private fun TotalsBlock(matches: List<PlayerSeasonMatch>, filter: StatsFilter, s
         Headline(t.goals.toString(), stringResource(Res.string.stats_goals), Modifier.weight(1f), color = SuccessGreen)
         Headline(t.assists.toString(), stringResource(Res.string.stats_assists_short), Modifier.weight(1f))
         if (staff) {
-            Column(Modifier.weight(1f)) {
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                 val avg = t.averageRating
                 if (avg != null) {
                     RatingPill(avg, avg.twoDecimals(), minWidth = 44.dp, height = 34.dp, fontSize = 20.sp, corner = 10.dp)
@@ -215,25 +212,23 @@ private fun TotalsBlock(matches: List<PlayerSeasonMatch>, filter: StatsFilter, s
     }
 }
 
+/** A headline value over its label, both centred in the column. */
 @Composable
-private fun Headline(value: String, label: String, modifier: Modifier, color: Color = DeepCarbon) {
-    Column(modifier) {
+internal fun Headline(value: String, label: String, modifier: Modifier, color: Color = DeepCarbon) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black, fontSize = 28.sp), color = color, maxLines = 1)
         Spacer(Modifier.height(4.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium, color = StatsSecondaryText, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(label, style = MaterialTheme.typography.labelMedium, color = StatsSecondaryText, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
     }
 }
 
-/** The per-match list under the totals, newest first; each row opens the match. */
+/** The Games tab's list, newest first, with each game's rating for staff; each row opens the match. */
 @Composable
 internal fun PlayerMatchesList(matches: List<PlayerSeasonMatch>, showRatings: Boolean, onOpenMatch: (String) -> Unit) {
-    Column {
-        StatsHeading(stringResource(Res.string.stats_matches), Modifier.padding(start = 2.dp, top = 4.dp, bottom = 8.dp))
-        StatsCard(contentPadding = 0.dp) {
-            matches.forEachIndexed { i, m ->
-                PlayerMatchRow(m, showRatings) { onOpenMatch(m.matchId) }
-                if (i < matches.lastIndex) HorizontalDivider(color = CarbonGray.copy(alpha = 0.07f))
-            }
+    StatsCard(contentPadding = 0.dp) {
+        matches.forEachIndexed { i, m ->
+            PlayerMatchRow(m, showRatings) { onOpenMatch(m.matchId) }
+            if (i < matches.lastIndex) HorizontalDivider(color = CarbonGray.copy(alpha = 0.07f))
         }
     }
 }
@@ -267,7 +262,6 @@ private fun PlayerMatchRow(m: PlayerSeasonMatch, showRating: Boolean, onClick: (
             Text(fixture, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp), color = DeepCarbon)
             Spacer(Modifier.height(4.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(4.dp), itemVerticalAlignment = Alignment.CenterVertically) {
-                m.matchType?.takeIf(MatchType::isTaggedInLists)?.let { MatchTypeTag(it) }
                 if (m.started) {
                     MiniPill(stringResource(Res.string.report_started), CarbonGray.copy(alpha = 0.08f), DeepCarbon)
                 } else {
@@ -352,6 +346,6 @@ internal fun SeasonSheet(
     }
 }
 
-/** The rows the Matches list shows for the current season and filter. */
+/** The rows the Games tab shows for the current season and filter. */
 internal fun SeasonStatsUiState.Loaded.visibleMatches(): List<PlayerSeasonMatch> =
     selectedSeason?.matches?.inFilter(filter).orEmpty()

@@ -2332,7 +2332,9 @@ coaches and staff, oldest first.
 `GET /age-groups/{id}/training-stats` (staff only) returns the pool, every session that has ended and wasn't
 cancelled, and their ratings in one query, so the app works out attendance and averages for the whole season or
 one month. `GET /players/{id}/training-stats` returns, per season, the player's attended sessions out of the
-ended ones and the average without Absent, only for the age groups the viewer rates (empty otherwise).
+ended ones and the average without Absent, only for the age groups the viewer rates (empty otherwise). Each
+season also lists every ended session, newest first, with the player's rating in it (`sessionLines`: 0 is
+Absent, null when not rated) for Player Details' Training tab.
 
 ### 9b.5 One Session (`GetTrainingSessionUseCase`, `SaveTrainingSessionUseCase`, `ChangeTrainingSessionUseCase`)
 

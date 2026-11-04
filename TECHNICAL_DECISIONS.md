@@ -3489,3 +3489,19 @@ The developer, 2026-11-04: every ranking (an average of ratings) is shown with t
 - **Shown with one formatter**, `Double.twoDecimals()` (`SeasonStatsComponents.kt`), always two places ("10.00", "0.05"): the player's season card, Full stats' three rankings, team and age group leaders, the Players tabs, a team's average, the training averages, and the match report's "avg" (`ratingSummary`). It replaced `oneDecimal()` and the training screens' `oneDecimalString()`.
 - **Not rankings:** a single match rating is a whole number given by the coach ("8"), and a training rating is shown as it was typed; both stay as they are.
 - **Tests:** `FullStatsSortTest.rankingsShowTwoDecimals`, and the averages in `FullStatsTest`, `SeasonStatsTest`, `TeamLeadersRankingTest` and `MatchReportLogicTest` now expect two decimals.
+
+## 79. Player Details in Tabs
+
+The developer, 2026-11-04: Player Details splits its body into tabs under the dark header, in both apps.
+
+- **General:** a Season summary card, then Player Information. The card has the season pill and:
+  - **Two averages side by side** (staff): every game and training rating of the season once, unrated ones left out (`overallRating`, `PlayerTabs.kt`). On the left a missed training (Absent) is left out; on the right it counts as 0, the Full stats final ranking for one player. Only the same season's training counts. One "i" between them, the one from Full stats (`RatingInfoButton`, now shared), opens a sheet explaining both: an intro, a "–" line for left and for right, and an example with a "–" line each (one match rated 8, 2 of 3 trainings at 9: left (8 + 9 + 9) ÷ 3 = 8.67, right (8 + 9 + 9 + 0) ÷ 4 = 6.50). Without training (the coach app) there's one average, the games'.
+  - **Games played and goals**, and with training, **Training** as attended of the ended sessions ("4/6", "6/6" when at every one).
+- **Which average is which:** the Games tab's average is the game ratings only; the Training tab's leaves Absent out; General's mixes both, once with Absent left out and once with Absent as 0.
+- **Games:** the Season stats card as its header (season pill, All / Official / Friendly filter, totals and average rating), then the season's games in that filter, each with its rating for staff (no match type tag on the rows). With no games yet, the card explains why and the list is left out.
+- **Training:** the training card as its header (attendance and the average, Absent left out), then every ended session of that season, newest first: its rating as typed, "Did not take part" for Absent, or "Not rated". The season is the one picked in the Games tab, else the latest with training.
+  - **Data:** `PlayerTrainingSeason.sessionLines` on `GET /players/{id}/training-stats`, added with a default, so older apps ignore it.
+  - **Only with training:** the tab shows when that endpoint returns seasons: staff who rate, in the clubs app. The coach app (no training) and players and parents see General and Games.
+- **Landscape:** the two-column layout (totals beside the match list, design 30e) is gone; the tabs do that job in either orientation.
+- **Headline tiles** (the season stats card and the summary): each value and its label centred in their column.
+- **Tests:** `PlayerTabsTest` (including the overall rating), and `TrainingSessionUseCasesTest` checks the session list, Absent and not rated included.

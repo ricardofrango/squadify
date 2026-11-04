@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -231,6 +232,22 @@ fun StatsMessage(title: String, body: String, modifier: Modifier = Modifier, onR
                     Text(stringResource(Res.string.btn_retry), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = CarbonGray)
                 }
             }
+        }
+    }
+}
+
+/** The small "i" that explains a ranking (Full stats' final ranking, Player Details' averages). */
+@Composable
+fun RatingInfoButton(contentDescription: String, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(20.dp)
+            .semantics { this.contentDescription = contentDescription; role = Role.Button }
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(Modifier.size(13.dp).border(1.2.dp, PitchGreen, CircleShape), contentAlignment = Alignment.Center) {
+            Text("i", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp, lineHeight = 9.sp), color = PitchGreen)
         }
     }
 }

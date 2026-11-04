@@ -2,12 +2,12 @@ package com.ricardofrango.squadify.presentation.ui.playerdetails
 
 import com.ricardofrango.squadify.presentation.ui.components.ShownSpace
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import org.jetbrains.compose.resources.getString
 import squadify.app.shared.generated.resources.msg_refresh_failed
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.theme.OnChromeAccent
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
@@ -15,7 +15,6 @@ import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import com.ricardofrango.squadify.model.PlayerTrainingSeason
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
-import com.ricardofrango.squadify.presentation.ui.training.PlayerTrainingCard
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -71,8 +70,9 @@ private val DayMonthYear = LocalDate.Format { day(); char(' '); monthName(MonthN
 
 /**
  * The player profile screen (design canvas artboard "2C", see AI_GUIDELINES.md "UI Design
- * Reference"). One dark header (avatar, name, shirt number/position/age-group line) over the body:
- * the Season stats card and its per-match list (design 30), then the Player Information card. The
+ * Reference"). One dark header (avatar, name, shirt number/position/age-group line) and its tabs over
+ * the body: General (a season summary, then Player Information), Games (the Season stats card over the season's games and
+ * their ratings) and, for staff in the clubs app, Training (the training card over every ended session). The
  * stats load separately, so their loading/error states stay inside the card. The overflow menu's
  * "Edit player" (design "17") is gated on [PlayerProfile.canEditPlayer].
  */
@@ -146,6 +146,10 @@ private fun PlayerDetailsContent(
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
     val profile = (uiState as? PlayerDetailsUiState.Idle)?.profile
+    val tabs = playerTabs(training)
+    var tab by rememberSaveable { mutableStateOf(PlayerTab.GENERAL) }
+    // Training can go (a refresh that no longer returns it): fall back to General.
+    val selectedTab = tab.takeIf { it in tabs } ?: PlayerTab.GENERAL
 
     Scaffold(
         containerColor = ScreenBackground,
@@ -176,7 +180,10 @@ private fun PlayerDetailsContent(
                         }
                     }
                 )
-                if (profile != null) PlayerHeaderBand(profile)
+                if (profile != null) {
+                    PlayerHeaderBand(profile)
+                    PlayerTabRow(tabs, selectedTab) { tab = it }
+                }
             }
         }
     ) { paddingValues ->
@@ -198,6 +205,7 @@ private fun PlayerDetailsContent(
                     profile = uiState.profile,
                     statsState = statsState,
                     training = training,
+                    tab = selectedTab,
                     modifier = Modifier.fillMaxSize(),
                     onRetryStats = onRetryStats,
                     onSeasonSelected = onSeasonSelected,
@@ -282,6 +290,7 @@ private fun PlayerBody(
     profile: PlayerProfile,
     statsState: SeasonStatsUiState,
     training: List<PlayerTrainingSeason> = emptyList(),
+    tab: PlayerTab = PlayerTab.GENERAL,
     modifier: Modifier = Modifier,
     onRetryStats: () -> Unit,
     onSeasonSelected: (String) -> Unit,
@@ -290,43 +299,28 @@ private fun PlayerBody(
 ) {
     var showSeasons by remember { mutableStateOf(false) }
     val loaded = statsState as? SeasonStatsUiState.Loaded
-    val matches = loaded?.visibleMatches().orEmpty()
-    val showRatings = loaded?.stats?.canSeeRatings == true
+    val trainingSeason = training.forSeason(loaded?.selectedSeasonId)
 
-    val statsCard: @Composable () -> Unit = { Column {
-        PlayerSeasonStatsCard(
-            state = statsState,
-            playerFirstName = profile.player.firstName,
-            onRetry = onRetryStats,
-            onOpenSeasons = { showSeasons = true },
-            onFilterSelected = onFilterSelected
-        )
-        // Staff only (design 39j): the season shown above, else the latest one with training.
-        (training.firstOrNull { it.seasonId == loaded?.selectedSeasonId } ?: training.firstOrNull())?.let {
-            Spacer(Modifier.height(12.dp))
-            PlayerTrainingCard(it)
-        }
-    } }
-    val padding = ScreenPadding.Values
-
-    // Landscape (30e): totals and Player info on the left, the match list beside them.
-    BoxWithConstraints(modifier) {
-        if (isLandscapeLayout) {
-            Row(Modifier.fillMaxSize()) {
-                LazyColumn(Modifier.weight(1f), contentPadding = padding, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    item { statsCard() }
-                    item { PlayerInfoCard(profile) }
+    LazyColumn(modifier, contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        when (tab) {
+            PlayerTab.GENERAL -> {
+                // The same season's training only: the overall rating mixes the two.
+                if (loaded?.selectedSeason != null) item {
+                    PlayerSummaryCard(loaded, training.firstOrNull { it.seasonId == loaded.selectedSeasonId }) { showSeasons = true }
                 }
-                LazyColumn(Modifier.weight(1f), contentPadding = padding.copyStart(0.dp)) {
-                    if (matches.isNotEmpty()) item { PlayerMatchesList(matches, showRatings, onOpenMatch) }
-                }
-            }
-        } else {
-            LazyColumn(Modifier.fillMaxSize(), contentPadding = padding, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                item { statsCard() }
-                if (matches.isNotEmpty()) item { PlayerMatchesList(matches, showRatings, onOpenMatch) }
                 item { PlayerInfoCard(profile) }
             }
+            PlayerTab.GAMES -> item {
+                PlayerGamesTab(
+                    state = statsState,
+                    playerFirstName = profile.player.firstName,
+                    onRetry = onRetryStats,
+                    onOpenSeasons = { showSeasons = true },
+                    onFilterSelected = onFilterSelected,
+                    onOpenMatch = onOpenMatch
+                )
+            }
+            PlayerTab.TRAINING -> trainingSeason?.let { item { PlayerTrainingTab(it) } }
         }
     }
 
@@ -339,13 +333,6 @@ private fun PlayerBody(
         )
     }
 }
-
-private fun PaddingValues.copyStart(start: androidx.compose.ui.unit.Dp) = PaddingValues(
-    start = start,
-    end = calculateEndPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
-    top = calculateTopPadding(),
-    bottom = calculateBottomPadding()
-)
 
 @Composable
 private fun PlayerInfoCard(profile: PlayerProfile) {

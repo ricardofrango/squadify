@@ -11,7 +11,9 @@ import com.ricardofrango.squadify.domain.service.TransactionManager
 import com.ricardofrango.squadify.exception.NotFoundException
 import com.ricardofrango.squadify.model.AgeGroupTrainingStats
 import com.ricardofrango.squadify.model.PlayerTrainingSeason
+import com.ricardofrango.squadify.model.PlayerTrainingSessionLine
 import com.ricardofrango.squadify.model.PlayerTrainingStats
+import com.ricardofrango.squadify.model.TrainingSession
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -55,13 +57,16 @@ class TrainingStatsUseCase(
             ) return@mapNotNull null
             val season = seasonRepository.getSeasonById(ageGroup.seasonId) ?: return@mapNotNull null
             val sessions = endedSessions(id)
-            val ratings = trainingRatingRepository.getForSessions(sessions.map { it.id })
-                .values.flatten().filter { it.playerId == playerId }.map { it.rating }
+            val bySession = trainingRatingRepository.getForSessions(sessions.map { it.id })
+                .mapValues { (_, ratings) -> ratings.firstOrNull { it.playerId == playerId }?.rating }
+            val ratings = bySession.values.filterNotNull()
             val trained = ratings.filter { it > 0.0 }
             PlayerTrainingSeason(
                 seasonId = season.id, seasonName = season.name, ageGroupName = ageGroup.name,
                 sessions = sessions.size, attended = trained.size, rated = ratings.size,
-                average = trained.takeIf { it.isNotEmpty() }?.average()
+                average = trained.takeIf { it.isNotEmpty() }?.average(),
+                sessionLines = sessions.sortedWith(compareByDescending<TrainingSession> { it.date }.thenByDescending { it.startTime })
+                    .map { PlayerTrainingSessionLine(it.id, it.date, it.startTime, bySession[it.id]) }
             ) to season.endDate
         }
         PlayerTrainingStats(seasons.sortedByDescending { it.second }.map { it.first })
