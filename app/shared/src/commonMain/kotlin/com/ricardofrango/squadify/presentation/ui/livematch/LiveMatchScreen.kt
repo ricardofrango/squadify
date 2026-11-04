@@ -485,6 +485,8 @@ private sealed class ActionSheet {
     // The pitch view: a player swapping places, or someone moving into an empty position.
     data class ChangePosition(val player: Player) : ActionSheet()
     data class MoveHere(val slot: Int) : ActionSheet()
+    // A side's sheet, from its crest or name on the scoreboard: our corners; the opponent's corners and fouls.
+    data class TeamActions(val name: String, val logoUrl: String?, val isOpponent: Boolean) : ActionSheet()
 }
 
 /** The pitch as it stands, for the sheets that rearrange it. */
@@ -587,8 +589,18 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
     // The scoreboard (design "Squadify Pitch View"): home first, as football reads it, our club first
     // on neutral ground. Each score box logs a goal for its own side.
     val ourFirst = details.match.venue.ourSideFirst()
-    val ours = ScoreSide(details.team.name, details.clubLogoUrl, state.score.ourScore, if (scoreEnabled) { { actions.onLogGoal(displayMinute, isOpponent = false) } } else null)
-    val theirs = ScoreSide(details.opponent.shortName ?: details.opponent.name, details.opponent.logoUrl, state.score.opponentScore, if (scoreEnabled) { { actions.onLogGoal(displayMinute, isOpponent = true) } } else null)
+    val ourName = details.team.name
+    val theirName = details.opponent.shortName ?: details.opponent.name
+    val ours = ScoreSide(
+        ourName, details.clubLogoUrl, state.score.ourScore,
+        if (scoreEnabled) { { actions.onLogGoal(displayMinute, isOpponent = false) } } else null,
+        if (scoreEnabled) { { actionSheet = ActionSheet.TeamActions(ourName, details.clubLogoUrl, isOpponent = false) } } else null
+    )
+    val theirs = ScoreSide(
+        theirName, details.opponent.logoUrl, state.score.opponentScore,
+        if (scoreEnabled) { { actions.onLogGoal(displayMinute, isOpponent = true) } } else null,
+        if (scoreEnabled) { { actionSheet = ActionSheet.TeamActions(theirName, details.opponent.logoUrl, isOpponent = true) } } else null
+    )
     val home = if (ourFirst) ours else theirs
     val away = if (ourFirst) theirs else ours
     val clock = ClockState(
@@ -878,7 +890,19 @@ private fun PlayerActionSheet(
                                 actions.onLogEvent(EventType.OWN_GOAL, player.id, minute); onDismiss()
                             }
                         }
+                        // Shots (MatchTallies.kt: each attempt once, with how it ended; a goal is already one).
                         ActionTileRow {
+                            ActionTile(stringResource(Res.string.lm_action_shot), ActionTone.PLAIN, enabled, Modifier.weight(1f)) {
+                                actions.onLogEvent(EventType.SHOT, player.id, minute); onDismiss()
+                            }
+                            ActionTile(stringResource(Res.string.lm_action_shot_on_goal), ActionTone.PLAIN, enabled, Modifier.weight(1f)) {
+                                actions.onLogEvent(EventType.SHOT_ON_GOAL, player.id, minute); onDismiss()
+                            }
+                        }
+                        ActionTileRow {
+                            ActionTile(stringResource(Res.string.lm_action_foul), ActionTone.PLAIN, enabled, Modifier.weight(1f)) {
+                                actions.onLogEvent(EventType.FOUL, player.id, minute); onDismiss()
+                            }
                             ActionTile(stringResource(Res.string.lm_action_yellow), ActionTone.YELLOW, enabled, Modifier.weight(1f)) {
                                 actions.onLogEvent(EventType.YELLOW_CARD, player.id, minute); onDismiss()
                             }
@@ -952,6 +976,26 @@ private fun PlayerActionSheet(
                             val label = other?.let(::pickLabel)
                                 ?: stringResource(Res.string.lm_empty_in_zone, zoneLabel(pitchSpot(pitch.formation, slot).zone))
                             SheetAction(label, enabled = enabled, player = other) { pitch.save(pitch.slots.swapped(mine, slot)); onDismiss() }
+                        }
+                    }
+                }
+
+                is ActionSheet.TeamActions -> {
+                    Row(Modifier.fillMaxWidth().padding(bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        ClubLogo(sheet.logoUrl, sheet.name.take(3).uppercase(), size = 44.dp, background = if (sheet.logoUrl != null) Color.White else PitchGreen, initialsColor = Color.White)
+                        Spacer(Modifier.width(12.dp))
+                        Text(sheet.name, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                        TextButton(onClick = onDismiss) { Text(stringResource(Res.string.btn_ok), color = PitchGreen) }
+                    }
+                    ActionTileRow {
+                        ActionTile(stringResource(Res.string.lm_action_corner), ActionTone.PLAIN, enabled, Modifier.weight(1f)) {
+                            actions.onLogTeamEvent(EventType.CORNER, sheet.isOpponent, minute); onDismiss()
+                        }
+                        // Our fouls are each player's, from their sheet; the opponent's are the team's.
+                        if (sheet.isOpponent) {
+                            ActionTile(stringResource(Res.string.lm_action_foul), ActionTone.PLAIN, enabled, Modifier.weight(1f)) {
+                                actions.onLogTeamEvent(EventType.FOUL, isOpponent = true, minute = minute); onDismiss()
+                            }
                         }
                     }
                 }
@@ -1123,6 +1167,10 @@ private fun eventLineFor(event: MatchEvent, details: MatchDetails, nameFor: (Mat
         EventType.YELLOW_CARD -> Triple("Y", CardYellow, stringResource(Res.string.label_event_yellow_card, ourName ?: "-"))
         EventType.RED_CARD -> Triple("R", LiveRed, stringResource(Res.string.label_event_red_card, ourName ?: "-"))
         EventType.SUBSTITUTION_IN, EventType.SUBSTITUTION_OUT -> Triple("⇄", Color.White, ourName ?: "-")
+        EventType.SHOT -> Triple("↗", Color.White, stringResource(Res.string.label_event_shot, ourName ?: "-"))
+        EventType.SHOT_ON_GOAL -> Triple("◎", PitchGreen, stringResource(Res.string.label_event_shot_on_goal, ourName ?: "-"))
+        EventType.FOUL -> Triple("!", Color.White.copy(alpha = 0.6f), stringResource(Res.string.label_event_foul, if (event.isOpponent) opponentName else ourName ?: "-"))
+        EventType.CORNER -> Triple("⚑", Color.White.copy(alpha = if (event.isOpponent) 0.6f else 1f), stringResource(Res.string.label_event_corner, if (event.isOpponent) opponentName else details.team.name))
     }
 }
 
@@ -1345,6 +1393,7 @@ private object PreviewLiveMatchActions : LiveMatchActions {
     override fun onSaveLineup(onSaved: () -> Unit) {}
     override fun onLogEvent(type: EventType, playerId: String, minute: Int) {}
     override fun onLogGoal(minute: Int, isOpponent: Boolean) {}
+    override fun onLogTeamEvent(type: EventType, isOpponent: Boolean, minute: Int) {}
     override fun onLogPlayerGoal(scorerId: String, assistPlayerId: String?, minute: Int) {}
     override fun onPauseClock() {}
     override fun onResumeClock() {}

@@ -22,7 +22,7 @@ internal fun finishedTabs(canSeeMatchRecord: Boolean, hasTimeline: Boolean = tru
     else listOf(FinishedTab.GENERAL, FinishedTab.EVENTS)
 
 /** The Stats tab's columns after the player, in order: the ranking first. */
-internal enum class MatchStatColumn { RATING, MINUTES, GOALS, ASSISTS, YELLOW, RED }
+internal enum class MatchStatColumn { RATING, MINUTES, GOALS, ASSISTS, SHOTS, SHOTS_ON_GOAL, FOULS, YELLOW, RED }
 
 internal data class MatchStatLine(val player: Player, val stats: MatchPlayerStats) {
     fun value(column: MatchStatColumn): Int? = when (column) {
@@ -30,6 +30,9 @@ internal data class MatchStatLine(val player: Player, val stats: MatchPlayerStat
         MatchStatColumn.MINUTES -> stats.minutesPlayed
         MatchStatColumn.GOALS -> stats.goals
         MatchStatColumn.ASSISTS -> stats.assists
+        MatchStatColumn.SHOTS -> stats.shots
+        MatchStatColumn.SHOTS_ON_GOAL -> stats.shotsOnGoal
+        MatchStatColumn.FOULS -> stats.fouls
         MatchStatColumn.YELLOW -> stats.yellowCards
         MatchStatColumn.RED -> stats.redCards
     }

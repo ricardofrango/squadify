@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.sp
 import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchEvent
+import com.ricardofrango.squadify.model.ourSideFirst
+import com.ricardofrango.squadify.model.MatchTallies
 import com.ricardofrango.squadify.model.Player
 import com.ricardofrango.squadify.model.TimelineChange
 import com.ricardofrango.squadify.model.TimelineEntry
@@ -154,7 +156,13 @@ private fun StatsTab(state: MatchDetailsUiState.Idle, modifier: Modifier) {
 
     Box(modifier) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            item { SectionHeader(stringResource(Res.string.md_players), first = true) }
+            // Both sides' shots, corners and fouls, once the game recorded any (MatchTallies.kt).
+            val tallies = details.tallies?.takeIf { it.recorded && details.statsInPlan }
+            if (tallies != null) {
+                item { SectionHeader(stringResource(Res.string.md_teams), first = true) }
+                item { TallyComparison(tallies, details) }
+            }
+            item { SectionHeader(stringResource(Res.string.md_players), first = tallies == null) }
             if (!details.statsInPlan) {
                 item { StatsNotInPlanMessage() }
             } else if (rows.isEmpty()) {
@@ -185,6 +193,9 @@ private fun MatchStatColumn.shortRes(): StringResource? = when (this) {
     MatchStatColumn.MINUTES -> Res.string.fs_col_minutes
     MatchStatColumn.GOALS -> Res.string.md_col_goals
     MatchStatColumn.ASSISTS -> Res.string.md_col_assists
+    MatchStatColumn.SHOTS -> Res.string.md_col_shots
+    MatchStatColumn.SHOTS_ON_GOAL -> Res.string.md_col_shots_on_goal
+    MatchStatColumn.FOULS -> Res.string.md_col_fouls
     // The cards are drawn, not written.
     MatchStatColumn.YELLOW, MatchStatColumn.RED -> null
 }
@@ -194,8 +205,46 @@ private fun MatchStatColumn.nameRes(): StringResource = when (this) {
     MatchStatColumn.MINUTES -> Res.string.fs_name_minutes
     MatchStatColumn.GOALS -> Res.string.md_name_goals
     MatchStatColumn.ASSISTS -> Res.string.md_name_assists
+    MatchStatColumn.SHOTS -> Res.string.fs_name_shots
+    MatchStatColumn.SHOTS_ON_GOAL -> Res.string.fs_name_shots_on_goal
+    MatchStatColumn.FOULS -> Res.string.fs_col_fouls
     MatchStatColumn.YELLOW -> Res.string.fs_name_yellow
     MatchStatColumn.RED -> Res.string.fs_name_red
+}
+
+/**
+ * Our side against theirs, a line each: shots and shots on goal (ours only: "–" for the opponent, whose
+ * aren't recorded), corners and fouls. Home on the left, as the score reads.
+ */
+@Composable
+private fun TallyComparison(tallies: MatchTallies, details: MatchDetails) {
+    val ourName = details.team.name
+    val theirName = details.opponent.shortName ?: details.opponent.name
+    val oursFirst = details.match.venue.ourSideFirst()
+    val lines = listOf(
+        Res.string.fs_name_shots to (tallies.ours.shots to tallies.theirs.shots),
+        Res.string.fs_name_shots_on_goal to (tallies.ours.shotsOnGoal to tallies.theirs.shotsOnGoal),
+        Res.string.md_corners to (tallies.ours.corners to tallies.theirs.corners),
+        Res.string.fs_col_fouls to (tallies.ours.fouls to tallies.theirs.fouls)
+    )
+    fun Int?.shown() = this?.toString() ?: "–"
+    Surface(Modifier.fillMaxWidth(), shape = CardShape, color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.15f))) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            val (left, right) = if (oursFirst) ourName to theirName else theirName to ourName
+            Row(Modifier.fillMaxWidth()) {
+                Text(left, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                Text(right, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+            }
+            lines.forEach { (label, values) ->
+                val (l, r) = if (oursFirst) values else values.second to values.first
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(l.shown(), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, modifier = Modifier.width(48.dp))
+                    Text(stringResource(label), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.6f), textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                    Text(r.shown(), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, textAlign = TextAlign.End, modifier = Modifier.width(48.dp))
+                }
+            }
+        }
+    }
 }
 
 private fun MatchStatColumn.width(): Dp = if (this == MatchStatColumn.RATING) RatingColumnWidth else StatColumnWidth
@@ -398,6 +447,10 @@ internal fun RecordEventRow(event: DisplayEvent, details: MatchDetails, onClick:
                 EventType.YELLOW_CARD -> Triple("Y", Amber, stringResource(Res.string.label_event_yellow_card, name ?: "-"))
                 EventType.RED_CARD -> Triple("R", LossRed, stringResource(Res.string.label_event_red_card, name ?: "-"))
                 EventType.SUBSTITUTION_IN, EventType.SUBSTITUTION_OUT -> Triple("⇄", DeepCarbon, name ?: "-")
+                EventType.SHOT -> Triple("↗", DeepCarbon, stringResource(Res.string.label_event_shot, name ?: "-"))
+                EventType.SHOT_ON_GOAL -> Triple("◎", PitchGreen, stringResource(Res.string.label_event_shot_on_goal, name ?: "-"))
+                EventType.FOUL -> Triple("!", CarbonGray, stringResource(Res.string.label_event_foul, if (e.isOpponent) opponent else name ?: "-"))
+                EventType.CORNER -> Triple("⚑", if (e.isOpponent) CarbonGray else DeepCarbon, stringResource(Res.string.label_event_corner, if (e.isOpponent) opponent else details.team.name))
             }
         }
     }

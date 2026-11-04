@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchrecord
 
+import com.ricardofrango.squadify.model.isTally
 import com.ricardofrango.squadify.model.EventType
 import com.ricardofrango.squadify.model.MatchDetails
 import com.ricardofrango.squadify.model.MatchEvent
@@ -101,12 +102,13 @@ data class DraftEvent(
     )
 }
 
-/** The match's goals, own goals, cards and lone assists as editor rows; substitutions stay out. */
+/** The match's goals, own goals, cards and lone assists as editor rows; substitutions and the live game's shots, fouls and corners stay out. */
 internal fun draftEvents(events: List<MatchEvent>): List<DraftEvent> {
     val assists = events.filter { it.type == EventType.ASSIST && it.relatedEventId != null }.associateBy { it.relatedEventId }
     return events
         .filter { it.type != EventType.SUBSTITUTION_IN && it.type != EventType.SUBSTITUTION_OUT }
         .filterNot { it.type == EventType.ASSIST && it.relatedEventId != null }
+        .filterNot { it.type.isTally() }
         .map {
             DraftEvent(
                 key = it.id, id = it.id, type = it.type, minute = it.minute, period = it.period ?: 1,

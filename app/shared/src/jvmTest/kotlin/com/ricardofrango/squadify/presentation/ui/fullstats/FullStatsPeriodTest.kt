@@ -28,7 +28,7 @@ class FullStatsPeriodTest {
         val hidden = setOf(FullStatsColumn.RED_CARDS, FullStatsColumn.GOALS)
         assertEquals("GOALS,RED_CARDS", hidden.toStored())
         assertEquals(hidden, parseHiddenColumns(hidden.toStored()))
-        assertEquals(setOf(FullStatsColumn.ASSISTS), parseHiddenColumns("ASSISTS,SHOTS,"))
+        assertEquals(setOf(FullStatsColumn.ASSISTS), parseHiddenColumns("ASSISTS,PASSES,"))
         assertEquals(emptySet(), parseHiddenColumns(null))
     }
 }

@@ -186,7 +186,14 @@ enum class EventType {
     SUBSTITUTION_IN,
     SUBSTITUTION_OUT,
     YELLOW_CARD,
-    RED_CARD
+    RED_CARD,
+    // The live game's tallies (the developer, 2026-11-03; MatchTallies.kt): a shot and a shot on goal are
+    // our player's, a foul ours (a player) or the opponent's (no player), a corner either side's (no player).
+    // They never change the score or the pitch.
+    SHOT,
+    SHOT_ON_GOAL,
+    FOUL,
+    CORNER
 }
 
 @Serializable
@@ -1069,7 +1076,11 @@ data class MatchPlayerStats(
     val ownGoals: Int,
     val yellowCards: Int,
     val redCards: Int,
-    val rating: Int? = null
+    val rating: Int? = null,
+    // Counted as in football (MatchTallies.kt): a goal is also a shot on goal, a shot on goal also a shot.
+    val shots: Int = 0,
+    val shotsOnGoal: Int = 0,
+    val fouls: Int = 0
 )
 
 /**
@@ -1225,6 +1236,9 @@ data class MatchDetails(
     val events: List<MatchEvent> = emptyList(),
     val playerStats: List<MatchPlayerStats> = emptyList(),
     val lineupChanges: List<MatchLineupChange> = emptyList(),
+    // A FINISHED match's shots, fouls and corners of each side (MatchTallies.kt), for everyone who
+    // sees the match's stats; null before it finishes.
+    val tallies: MatchTallies? = null,
     // The a-side counts the club's sport is played with (SportType.teamSizes), for changing the
     // match's own team size; empty from a server that predates it.
     val teamSizeOptions: List<Int> = emptyList(),

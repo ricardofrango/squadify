@@ -242,8 +242,9 @@ class SaveMatchRecordUseCase(
         }
     }
 
-    // Everything but the substitutions and the assists that ride on a goal (sent as the goal's).
+    // Everything but the substitutions, the assists that ride on a goal (sent as the goal's) and the
+    // live game's shots, fouls and corners, which the record doesn't edit (the developer, 2026-11-04).
     private fun isEditable(event: MatchEvent): Boolean =
         event.type != EventType.SUBSTITUTION_IN && event.type != EventType.SUBSTITUTION_OUT &&
-            !(event.type == EventType.ASSIST && event.relatedEventId != null)
+            !(event.type == EventType.ASSIST && event.relatedEventId != null) && !event.type.isTally()
 }

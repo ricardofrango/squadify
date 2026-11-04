@@ -169,4 +169,24 @@ class MatchPlayerStatsCalculatorTest {
         val events = listOf(event(EventType.SUBSTITUTION_OUT, "a", 60, half = 2).copy(period = null))
         assertEquals(47 + (60 - 45), statsFor("a", callUps, events).minutesPlayed)
     }
+
+    @Test
+    fun shotsAreCountedAsInFootballGoalsIncluded() {
+        val callUps = listOf(callUp("a", true), callUp("b", true))
+        val events = listOf(
+            event(EventType.SHOT, "a", 5, half = 1),
+            event(EventType.SHOT, "a", 9, half = 1),
+            event(EventType.SHOT_ON_GOAL, "a", 20, half = 1),
+            event(EventType.GOAL, "a", 33, half = 1),
+            event(EventType.FOUL, "a", 50, half = 2),
+            // The opponent's foul and a corner are no player's.
+            event(EventType.FOUL, null, 51, half = 2, isOpponent = true),
+            event(EventType.CORNER, null, 52, half = 2)
+        )
+        val a = statsFor("a", callUps, events)
+        // 2 shots + 1 on goal + 1 goal: 4 shots, 2 of them on goal.
+        assertEquals(listOf(4, 2, 1, 1), listOf(a.shots, a.shotsOnGoal, a.fouls, a.goals))
+        val b = statsFor("b", callUps, events)
+        assertEquals(listOf(0, 0, 0), listOf(b.shots, b.shotsOnGoal, b.fouls))
+    }
 }

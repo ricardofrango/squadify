@@ -33,7 +33,11 @@ data class FullStatsLine(
     val assists: Int,
     val yellowCards: Int,
     val redCards: Int,
-    val rating: Int? = null
+    val rating: Int? = null,
+    // As in MatchPlayerStats: a goal is also a shot on goal, a shot on goal also a shot.
+    val shots: Int = 0,
+    val shotsOnGoal: Int = 0,
+    val fouls: Int = 0
 ) {
     val played: Boolean get() = started || minutesPlayed > 0
 }
@@ -75,7 +79,7 @@ data class FullStatsData(
 enum class FullStatsColumn(val rating: Boolean = false) {
     FINAL_RATING(true), TRAINING_RATING(true), GAMES_RATING(true),
     WON, DRAWN, LOST,
-    GOALS, ASSISTS, MINUTES, YELLOW_CARDS, RED_CARDS
+    GOALS, ASSISTS, MINUTES, SHOTS, SHOTS_ON_GOAL, FOULS, YELLOW_CARDS, RED_CARDS
 }
 
 /** Which rows count: a date range (inclusive; null = open), the match type, and one of the teams (null = the whole age group). */
@@ -102,7 +106,10 @@ data class FullStatsRow(
     val drawn: Int,
     val lost: Int,
     val yellowCards: Int,
-    val redCards: Int
+    val redCards: Int,
+    val shots: Int = 0,
+    val shotsOnGoal: Int = 0,
+    val fouls: Int = 0
 ) {
     fun value(column: FullStatsColumn): Double? = when (column) {
         FullStatsColumn.GOALS -> goals.toDouble()
@@ -116,6 +123,9 @@ data class FullStatsRow(
         FullStatsColumn.LOST -> lost.toDouble()
         FullStatsColumn.YELLOW_CARDS -> yellowCards.toDouble()
         FullStatsColumn.RED_CARDS -> redCards.toDouble()
+        FullStatsColumn.SHOTS -> shots.toDouble()
+        FullStatsColumn.SHOTS_ON_GOAL -> shotsOnGoal.toDouble()
+        FullStatsColumn.FOULS -> fouls.toDouble()
     }
 }
 
@@ -167,7 +177,10 @@ fun FullStatsData.table(query: FullStatsQuery, timeZone: TimeZone = TimeZone.cur
             drawn = results.count { it == FormResult.DRAW },
             lost = results.count { it == FormResult.LOSS },
             yellowCards = played.sumOf { it.yellowCards },
-            redCards = played.sumOf { it.redCards }
+            redCards = played.sumOf { it.redCards },
+            shots = played.sumOf { it.shots },
+            shotsOnGoal = played.sumOf { it.shotsOnGoal },
+            fouls = played.sumOf { it.fouls }
         )
     }
     return FullStatsTable(rows, games = matchesInQuery.size, trainings = trainingsInQuery.size)

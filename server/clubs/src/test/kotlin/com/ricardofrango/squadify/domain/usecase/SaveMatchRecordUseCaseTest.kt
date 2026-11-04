@@ -314,4 +314,21 @@ class SaveMatchRecordUseCaseTest {
         assertFailsWith<ValidationException> { useCase(staff, matchId, SaveMatchRecordRequest(emptyList())) }
         Unit
     }
+
+    @Test
+    fun theLiveGamesShotsFoulsAndCornersStayAndCountWhenTheRecordIsCorrected() = runBlocking {
+        val tallies = listOf(
+            event("s1", EventType.SHOT, "ana"),
+            event("f1", EventType.FOUL, "bia"),
+            event("c1", EventType.CORNER, null),
+            event("f2", EventType.FOUL, null, opponent = true)
+        )
+        stubFinished(listOf(event("g1", EventType.GOAL, "ana")) + tallies)
+
+        // The goal is removed; the record never sends the tallies.
+        useCase(staff, matchId, SaveMatchRecordRequest(emptyList()))
+
+        coVerify { eventRepository.deleteEvent("g1") }
+        tallies.forEach { coVerify(exactly = 0) { eventRepository.deleteEvent(it.id) } }
+    }
 }

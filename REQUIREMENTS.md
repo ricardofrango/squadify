@@ -344,11 +344,15 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
     - [x] Following live on Pro (2026-11-03): live scores in the match lists, the live sockets and the live moments' notifications, refused by the coach server below Pro (`TECHNICAL_DECISIONS.md` §72).
     - [x] Plan rules only on the server (2026-11-03): the app decides no plan rule. The coach server sends the plans, what each has in the app's language and the coach's own plan (`GET /v1/plans`), room for staff on an age group and the age groups left this season; a plan is an id, not a fixed list in the app (`TECHNICAL_DECISIONS.md` §72).
     - [x] Training on Pro (2026-11-03): the clubs app's training (sessions, exercises, evaluations, training stats, plans) on the coach server, with its use cases moved to `:server:core` behind the `AccessPolicy` and refused below Pro by the server (`TECHNICAL_DECISIONS.md` §72).
-    - [ ] **More in the live game** (the developer, 2026-11-03), both apps:
+    - [x] **More in the live game** (the developer, 2026-11-03; built 2026-11-04), both apps (`TECHNICAL_DECISIONS.md` §77):
         - **Shots, shots on goal and fouls**, recorded per player, like goals and cards. A shot and a shot on goal are two separate options to record.
         - **Our team's sheet:** tapping our team in the live game opens a new bottom sheet to add a corner won. Only corners go on it.
         - **The opponent's sheet:** tapping the opponent opens one to add a corner or a foul (the opponent has no players, so theirs are per team).
-        - **Where they show:** in the match's stats, the timeline and the season stats; how shots and shots on goal are presented (e.g. counted together or apart) is to be discussed, probably in the game's stats.
+        - **Where they show:** in the match's stats, the timeline and the season stats.
+        - **Counted as in football** (the developer, 2026-11-04): a goal is also a shot on goal, and a shot on goal also a shot, so each attempt is recorded once, with how it ended.
+        - **A match's Stats tab:** both sides compared (shots, shots on goal, corners, fouls; the opponent's shots show "–", since they aren't recorded), then Shots, On goal and Fouls columns in the player table.
+        - **The season:** each player's season card and Full stats (Shots, On goal, Fouls); the team's and age group's records (corners and fouls, ours and against).
+        - **Not corrected after the game** for now: the match record keeps them as recorded live.
     - [/] Payments (Google Play Billing and Apple In-App Purchase, directly, no RevenueCat) and ads on the Free plan (AdMob).
         - [x] Google Play (2026-11-03): Basic and Pro, monthly and yearly, bought on Plans; the coach server checks each purchase with Google and follows its notifications; staging takes test purchases only, through its own Play Console app (`.stg`, never published; the developer, 2026-11-04), production real ones (`TECHNICAL_DECISIONS.md` §72). To set up in Play Console and Google Cloud before it works (§72, Payments, as built).
         - [ ] Apple In-App Purchase (StoreKit, App Store Server Notifications); until then iOS asks for plans. On hold (the developer, 2026-11-04): Android first; iOS (the Apple Developer Program, $99 a year) only after seeing the results on Android.

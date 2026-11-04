@@ -3462,3 +3462,21 @@ The developer, 2026-11-02: the screens that show games but have no live socket (
 - **Opponent details** (both apps): the opponent and your games against it, keeping the chosen season. A failed refresh used to be silent here; it now says so. It gained a snackbar for that.
 - **Club Home** (clubs app): its figures, Next up and Needs you again (`ClubDetailsViewModel.refreshHome`, `ClubDetailsUiState.Idle.isRefreshingHome`), the failure as a snackbar over the tab. The Matches tab already refreshes itself (§75).
 - **Player details** (both apps): the profile, the season stats (keeping the season and filter on screen) and, with training, the training figures. It gained a snackbar for the refresh error.
+
+## 77. Shots, Fouls and Corners in the Live Game
+
+The developer, 2026-11-03 and 2026-11-04 (REQUIREMENTS, "More in the live game"): the live game records shots, shots on goal, fouls and corners, in both apps.
+
+- **Events:** four new `EventType`s, stored like the others in `match_events` (the type is a name, so no migration there). `SHOT` and `SHOT_ON_GOAL` are our called-up player's; `FOUL` is our called-up player's or the opponent's as a team (no player); `CORNER` is either side's, never a player's. `AddMatchEventUseCase` refuses anything else. They don't change the score or the pitch and send no push.
+- **Counted as in football** (`MatchTallies.kt` in `common`, used by the server and the app alike): a goal is also a shot on goal, a shot on goal also a shot (`playerTallies`, `matchTallies`). The coach records each attempt once, with how it ended; a goal is already one. Our goals count as shots on goal even without a scorer. The opponent's shots aren't recorded, so theirs are unknown (`null`, shown "–").
+- **The live console:**
+    - **A player's sheet:** Shot and Shot on goal side by side under Goal and Own goal, then Foul next to the cards.
+    - **A side's sheet:** tapping a team's crest or name on the scoreboard (`ScoreSide.onTeam`, both layouts) opens it: our side has Corner; the opponent's Corner and Foul. The score boxes still log goals.
+    - **The event feed** lists them like the rest ("Shot · Tomás", "Corner · AD Vila").
+- **Stored per player:** `match_player_stats.shots`, `shots_on_goal` and `fouls` (clubs `V32__match_tallies.sql`, coach `V8__match_tallies.sql`), worked out by `MatchPlayerStatsCalculator` with the rule above. Older lines get their goals as their shots and shots on goal, and 0 fouls, so a season adds up the same way.
+- **A finished match:** `MatchDetails.tallies` (each side's, from all the events; sent to everyone who sees the match, since players and parents only get the goals in `events`). The Stats tab shows a Teams card comparing both sides (home on the left) once anything beyond goals was recorded (`MatchTallies.recorded`), then the player table with Shots, On goal and Fouls columns. Its Events tab lists them too.
+- **The season:** `PlayerSeasonMatch`, `FullStatsLine` (Full stats' Shots, On goal and Fouls columns) and the player's season card ("12 shots (5 on goal) · 3 fouls"). `TeamSeasonMatch` carries each side's corners and fouls (`MatchEventRepository.getTalliesByMatches`, one query), added up in `TeamRecordTotals`: Team Details' season record and each team in the age group's Results by team ("Corners 14–9 · Fouls 21–25"), only once some were recorded.
+- **Not in the match record** (the developer's choice): `SaveMatchRecordUseCase` doesn't edit them (`isEditable`) and the editor leaves them out (`draftEvents`), so a correction keeps them. A game entered after the fact has none. The player profile's recent events leave them out too.
+- **The Timeline tab** shows the pitch's changes, so they aren't on it (nor are goals).
+- **Older apps:** an app from before this doesn't know the new event types, so it fails to read a match that has them. Staging only for now.
+- **Tests:** `MatchTalliesTest` (both sides counted, the season's totals, the record editor leaving them out), `MatchPlayerStatsCalculatorTest` (counted as in football), `AddMatchEventUseCaseTest` (each side's rules), `SaveMatchRecordUseCaseTest` (kept through a correction), `GetTeamSeasonRecordUseCaseTest` (each side's corners and fouls).

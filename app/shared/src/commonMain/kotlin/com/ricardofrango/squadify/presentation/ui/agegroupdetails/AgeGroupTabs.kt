@@ -287,6 +287,14 @@ private fun ResultsByTeamCard(record: AgeGroupSeasonRecord, filter: StatsFilter,
                     Spacer(Modifier.weight(1f))
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) { t.form.forEach { FormSquare(it) { onOpenMatch(it.matchId) } } }
                 }
+                if (t.hasTallies()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        stringResource(Res.string.record_corners_fouls, t.cornersFor, t.cornersAgainst, t.foulsFor, t.foulsAgainst),
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp),
+                        color = StatsSecondaryText
+                    )
+                }
             }
         }
         // The age group as a whole, in a quiet footer row.

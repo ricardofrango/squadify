@@ -418,6 +418,10 @@
     <string name="label_event_own_goal">Own goal · %1$s</string>
     <string name="label_event_yellow_card">Yellow · %1$s</string>
     <string name="label_event_red_card">Red · %1$s</string>
+    <string name="label_event_shot">Shot · %1$s</string>
+    <string name="label_event_shot_on_goal">Shot on goal · %1$s</string>
+    <string name="label_event_foul">Foul · %1$s</string>
+    <string name="label_event_corner">Corner · %1$s</string>
     <string name="label_event_assist">Assist · %1$s</string>
     <string name="label_event_substitution">%1$s → %2$s</string>
     <string name="msg_confirm_delete_event_title">Delete this event?</string>
@@ -637,6 +641,7 @@
     <string name="stats_started_of">%1$d of %2$d started</string>
     <string name="stats_minutes_value">%1$d min</string>
     <string name="stats_cards">%1$d yellow · %2$d red</string>
+    <string name="stats_shots_fouls">%1$d shots (%2$d on goal) · %3$d fouls</string>
     <string name="stats_matches">Matches</string>
     <string name="stats_empty_friendly">No friendlies this season</string>
     <string name="stats_empty_official">No official matches this season</string>
@@ -674,6 +679,7 @@
     <string name="record_played">%1$d played</string>
     <string name="record_goals_for">Goals for</string>
     <string name="record_goals_against">against</string>
+    <string name="record_corners_fouls">Corners %1$d–%2$d · Fouls %3$d–%4$d</string>
     <string name="record_goal_difference">GD</string>
     <string name="record_form">Form</string>
     <string name="record_latest_first">latest first</string>
@@ -1463,6 +1469,10 @@
     <string name="lm_action_goal">Goal</string>
     <string name="lm_action_yellow">Yellow</string>
     <string name="lm_action_red">Red</string>
+    <string name="lm_action_shot">Shot</string>
+    <string name="lm_action_shot_on_goal">Shot on goal</string>
+    <string name="lm_action_foul">Foul</string>
+    <string name="lm_action_corner">Corner</string>
     <string name="lm_action_substitution">Substitution</string>
     <string name="lm_team_size_side">%1$d-a-side</string>
     <!-- Full stats -->
@@ -1474,6 +1484,11 @@
     <string name="fs_col_goals">Goals</string>
     <string name="fs_col_assists">Assists</string>
     <string name="fs_col_minutes">Min</string>
+    <string name="fs_col_shots">Shots</string>
+    <string name="fs_col_shots_on_goal">On goal</string>
+    <string name="fs_col_fouls">Fouls</string>
+    <string name="fs_name_shots">Shots</string>
+    <string name="fs_name_shots_on_goal">Shots on goal</string>
     <string name="fs_col_games_rating">Games</string>
     <string name="fs_col_training_rating">Training</string>
     <string name="fs_col_final_rating">Final</string>
@@ -1522,6 +1537,11 @@
     <string name="md_col_goals">G</string>
     <string name="md_name_goals">Goals</string>
     <string name="md_col_assists">A</string>
+    <string name="md_col_shots">S</string>
+    <string name="md_col_shots_on_goal">SG</string>
+    <string name="md_col_fouls">F</string>
+    <string name="md_teams">Teams</string>
+    <string name="md_corners">Corners</string>
     <string name="md_name_assists">Assists</string>
     <string name="md_unused">Unused: %1$s</string>
     <string name="md_no_stats">No player stats for this match.</string>

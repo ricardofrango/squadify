@@ -91,15 +91,21 @@ internal suspend fun buildTeamSeasonRecord(
     val finished = matchRepository.getMatchesByTeam(team.id)
         .filter { it.status == MatchStatus.FINISHED }
         .sortedByDescending { it.dateTime }
+    val tallies = matchEventRepository.getTalliesByMatches(finished.map { it.id })
     val matches = finished.map { match ->
         val score = matchEventRepository.getScoreByMatch(match.id)
+        val tally = tallies[match.id]
         TeamSeasonMatch(
             matchId = match.id,
             dateTime = match.dateTime,
             opponentName = opponentsById[match.opponentId]?.let { it.shortName ?: it.name } ?: "—",
             matchType = match.type,
             ourScore = score.ourScore,
-            opponentScore = score.opponentScore
+            opponentScore = score.opponentScore,
+            cornersFor = tally?.ours?.corners ?: 0,
+            cornersAgainst = tally?.theirs?.corners ?: 0,
+            foulsFor = tally?.ours?.fouls ?: 0,
+            foulsAgainst = tally?.theirs?.fouls ?: 0
         )
     }
 

@@ -81,6 +81,7 @@ class GetAgeGroupSeasonRecordUseCaseTest {
         )
         coEvery { matchRepository.getMatchesByTeam("t-b") } returns emptyList()
         coEvery { eventRepository.getScoreByMatch("m1") } returns MatchScore("m1", 2, 0)
+        coEvery { eventRepository.getTalliesByMatches(any()) } returns emptyMap()
         coEvery { statsRepository.getByMatches(listOf("m1")) } returns listOf(MatchPlayerStats("m1", "p1", true, 70, 1, 0, 0, 0, 0, rating = 8))
         coEvery { statsRepository.getByMatches(emptyList()) } returns emptyList()
         coEvery { reportRepository.getCompletedMatchIds(any()) } returns setOf("m1")

@@ -1779,7 +1779,11 @@ graph TD
     C -- denied --> F(["Throw ForbiddenException"])
     C -- allowed --> LV{"match.status is LIVE or HALF_TIME?"}
     LV -- No --> VL(["Throw ValidationException: events only while live"])
-    LV -- Yes --> AS{"assistPlayerId given?"}
+    LV -- Yes --> TL{"SHOT / SHOT_ON_GOAL / FOUL / CORNER?"}
+    TL -- Yes --> TV{"Shot: our called-up player. Foul: our called-up player, or the opponent with none. Corner: either side, no player"}
+    TV -- No --> VT(["Throw ValidationException"])
+    TV -- Yes --> AS
+    TL -- No --> AS{"assistPlayerId given?"}
     AS -- Yes --> AV{"type == GOAL by one of our players, assister != scorer, assister called up?"}
     AV -- No --> VA(["Throw ValidationException"])
     AV -- Yes --> D
@@ -1817,7 +1821,9 @@ graph TD
 
 Events can only be added (§8.1) or removed (here) one at a time while the match is `LIVE` or `HALF_TIME`. Before kickoff there is nothing to log. After the game, its goals and cards are corrected all at once through the match record (§8.1c), which rebuilds the stored player stats in the same transaction.
 
-Removes a mis-logged goal, card, or substitution row. The client always confirms with the user first (see below — "Confirms only on Full time and event deletion").
+The live game's tallies (`SHOT`, `SHOT_ON_GOAL`, `FOUL`, `CORNER`; the developer, 2026-11-03) never change the score or the pitch and send no push. They're counted as in football (`MatchTallies.kt`, shared by the server and the app): a goal is also a shot on goal, a shot on goal also a shot. A finished match's `MatchDetails.tallies` has each side's shots, shots on goal (ours only: the opponent's aren't recorded), corners and fouls, for everyone who sees the match.
+
+Removes a mis-logged goal, card, shot, foul, corner or substitution row. The client always confirms with the user first (see below — "Confirms only on Full time and event deletion").
 
 ### 8.1c Save Match Record (`SaveMatchRecordUseCase`) — after the game
 
@@ -1849,7 +1855,7 @@ graph TD
     MH --> EV["Validate events: GOAL / OWN_GOAL / cards (an ASSIST only by id, a lone one); period 1..halves; minute 0..150; an id must be an editable event of this match, listed once"]
     EV --> EP["Ours: player called up (a GOAL may have none: scorer unknown, then no assist); a goal, own goal or assist by someone who played. Opponent: GOAL / OWN_GOAL only, no player. Assist: our GOAL, another called-up player who played"]
     EP -- invalid --> VE(["Throw ValidationException"])
-    EP -- ok --> AP["Delete every goal-linked ASSIST, then the editable events not sent back; update those sent with an id; insert the new ones; insert each goal's assist linked to it. Substitutions untouched"]
+    EP -- ok --> AP["Delete every goal-linked ASSIST, then the editable events not sent back; update those sent with an id; insert the new ones; insert each goal's assist linked to it. Substitutions and the live game's shots, fouls and corners untouched"]
     AP --> FT{"afterGame?"}
     FT -- Yes --> FE["markEnteredAfterGame: FINISHED, entered_after_game, half length, first_half_end = halfLength (2 halves), full_time = halfLength × halves; the team size, when it changed"]
     FT -- No --> ST
@@ -1928,8 +1934,9 @@ graph TD
     D --> E["For each half: walk the player's SUBSTITUTION_IN / SUBSTITUTION_OUT / RED_CARD events, in minute order, clamped into the half"]
     E --> F["IN while off: start counting at that minute. OUT or RED while on: add minute - start, stop counting"]
     F --> G["At the half's end, still on: add end - start. State carries over the break"]
-    G --> H["goals / assists / ownGoals / yellowCards / redCards = counts of the player's own (non-opponent) events"]
-    H --> Z(["MatchPlayerStats: started, minutesPlayed, counts; rating = null"])
+    G --> H["goals / assists / ownGoals / yellowCards / redCards / fouls = counts of the player's own (non-opponent) events"]
+    H --> H2["shotsOnGoal = SHOT_ON_GOAL + GOAL; shots = SHOT + shotsOnGoal (playerTallies, as in football)"]
+    H2 --> Z(["MatchPlayerStats: started, minutesPlayed, counts; rating = null"])
 ```
 
 - **Which half an event belongs to** comes from `MatchEvent.period`, which `AddMatchEventUseCase` records when the event is logged: 1 while the first half is live or during the break, 2 once the second half has started. The minute alone can't tell, because first-half stoppage minutes (46', 47') overlap second-half ones. A substitution logged during the break is period 1, so it counts at the end of the first half and the player coming on gets the whole second half.
@@ -2660,6 +2667,9 @@ erDiagram
         integer yellow_cards "default 0"
         integer red_cards "default 0"
         integer rating "nullable -- 0-10, set by the coach's match report"
+        integer shots "default 0 -- goals and shots on goal included"
+        integer shots_on_goal "default 0 -- goals included"
+        integer fouls "default 0"
     }
     MATCH_LINEUP_CHANGES {
         uuid id PK
@@ -2758,7 +2768,7 @@ erDiagram
 | `InviteType` | `CLUB_MEMBER`, `PARENT_PLAYER` | `invites.type` |
 | `MatchStatus` | `SCHEDULED`, `LIVE`, `HALF_TIME`, `FINISHED`, `CANCELLED` | `matches.status` (default `SCHEDULED`) |
 | `CallUpStatus` | `CALLED_UP` (single value -- see §7.2/§11) | `match_call_ups.status` (default and only `CALLED_UP`) |
-| `EventType` | `GOAL`, `OWN_GOAL`, `ASSIST`, `SUBSTITUTION_IN`, `SUBSTITUTION_OUT`, `YELLOW_CARD`, `RED_CARD` | `match_events.type` |
+| `EventType` | `GOAL`, `OWN_GOAL`, `ASSIST`, `SUBSTITUTION_IN`, `SUBSTITUTION_OUT`, `YELLOW_CARD`, `RED_CARD`, `SHOT`, `SHOT_ON_GOAL`, `FOUL`, `CORNER` | `match_events.type` |
 | `TrainingPlanLevel` | `SEASON`, `MONTH`, `WEEK` | `training_plans.level` |
 | `TrainingIntensity` | `LOW`, `MEDIUM`, `HIGH` | `training_plans.intensity` (weeks only) |
 | `PlayerPosition` | `GOALKEEPER`, `DEFENDER`, `MIDFIELD`, `WINGER`, `STRIKER` | `players.position` (nullable) |

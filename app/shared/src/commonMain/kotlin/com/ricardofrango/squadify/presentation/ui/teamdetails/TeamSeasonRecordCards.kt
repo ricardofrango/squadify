@@ -150,6 +150,11 @@ internal fun TeamRecordCard(
                         }
                     )
                 }
+                // The live game's corners and fouls, once any were recorded in these games.
+                if (t.hasTallies()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(stringResource(Res.string.record_corners_fouls, t.cornersFor, t.cornersAgainst, t.foulsFor, t.foulsAgainst), style = lineStyle, color = DeepCarbon)
+                }
                 Spacer(Modifier.height(12.dp))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),

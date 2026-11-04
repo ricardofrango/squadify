@@ -193,6 +193,7 @@ private fun TotalsBlock(matches: List<PlayerSeasonMatch>, filter: StatsFilter, s
         Text(stringResource(Res.string.stats_started_of, t.starts, t.apps), style = lineStyle, color = DeepCarbon)
         if (staff) Text(stringResource(Res.string.stats_minutes_value, t.minutes), style = lineStyle, color = DeepCarbon)
         Text(stringResource(Res.string.stats_cards, t.yellowCards, t.redCards), style = lineStyle, color = DeepCarbon)
+        Text(stringResource(Res.string.stats_shots_fouls, t.shots, t.shotsOnGoal, t.fouls), style = lineStyle, color = DeepCarbon)
     }
     if (staff) {
         Spacer(Modifier.height(6.dp))

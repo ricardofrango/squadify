@@ -89,6 +89,8 @@ interface LiveMatchActions {
     fun onSaveLineup(onSaved: () -> Unit)
     fun onLogEvent(type: EventType, playerId: String, minute: Int)
     fun onLogGoal(minute: Int, isOpponent: Boolean)
+    // A side's corner, or the opponent's foul: no player (MatchTallies.kt).
+    fun onLogTeamEvent(type: EventType, isOpponent: Boolean, minute: Int)
     fun onLogPlayerGoal(scorerId: String, assistPlayerId: String?, minute: Int)
     fun onPauseClock()
     fun onResumeClock()
@@ -405,6 +407,8 @@ class LiveMatchViewModel(
 
     /** Our score box (unattributed) or the opponent's -- see LiveMatchScreen's score row. */
     override fun onLogGoal(minute: Int, isOpponent: Boolean) = addEvent(CreateMatchEventRequest(EventType.GOAL, minute, isOpponent = isOpponent))
+
+    override fun onLogTeamEvent(type: EventType, isOpponent: Boolean, minute: Int) = addEvent(CreateMatchEventRequest(type, minute, isOpponent = isOpponent))
 
     override fun onLogEvent(type: EventType, playerId: String, minute: Int) = addEvent(CreateMatchEventRequest(type, minute, playerId = playerId))
 

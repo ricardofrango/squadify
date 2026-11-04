@@ -54,8 +54,15 @@ internal val PausedAmber = Color(0xFFFFB300)
 private val YellowText = Color(0xFFFFC94D)
 private val RedText = Color(0xFFFF8A80)
 
-/** One side of the scoreboard; [onGoal] logs a goal for it (null: the score can't be tapped now). */
-internal data class ScoreSide(val name: String, val logoUrl: String?, val score: Int, val onGoal: (() -> Unit)?)
+/**
+ * One side of the scoreboard; [onGoal] logs a goal for it (null: the score can't be tapped now), and
+ * [onTeam], tapping its crest or name, opens its sheet (corners, and the opponent's fouls).
+ */
+internal data class ScoreSide(val name: String, val logoUrl: String?, val score: Int, val onGoal: (() -> Unit)?, val onTeam: (() -> Unit)? = null)
+
+/** The crest and name of [side], tappable when it has a sheet. */
+private fun Modifier.teamTap(side: ScoreSide): Modifier =
+    side.onTeam?.let { clickable(onClick = it) } ?: this
 
 /**
  * What the clock shows. [label] is the half ("1ST HALF · +2", "PAUSED"); [onClockClick] opens the
@@ -185,13 +192,13 @@ internal fun ScoreboardCard(home: ScoreSide, away: ScoreSide, clock: ClockState,
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.weight(1f).teamTap(home), verticalAlignment = Alignment.CenterVertically) {
                 SideCrest(home, 22.dp)
                 Spacer(Modifier.width(6.dp))
                 Text(home.name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Box(Modifier.padding(horizontal = 12.dp)) { ScoreBoxes(home, away, 28.sp, 36.dp) }
-            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
+            Row(Modifier.weight(1f).teamTap(away), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
                 Text(away.name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End, modifier = Modifier.weight(1f, fill = false))
                 Spacer(Modifier.width(6.dp))
                 SideCrest(away, 22.dp)
@@ -247,9 +254,11 @@ internal fun ScoreboardColumn(home: ScoreSide, away: ScoreSide, clock: ClockStat
         ) {
             listOf(home, away).forEach { side ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    SideCrest(side, 22.dp)
-                    Spacer(Modifier.width(8.dp))
-                    Text(side.name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    Row(Modifier.weight(1f).teamTap(side), verticalAlignment = Alignment.CenterVertically) {
+                        SideCrest(side, 22.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(side.name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                     Spacer(Modifier.width(8.dp))
                     ScoreBox(side, 22.sp, 34.dp)
                 }

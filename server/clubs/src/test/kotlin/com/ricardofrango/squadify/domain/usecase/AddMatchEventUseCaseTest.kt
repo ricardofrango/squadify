@@ -221,4 +221,44 @@ class AddMatchEventUseCaseTest {
         bad.forEach { request -> assertFailsWith<ValidationException>(request.toString()) { useCase(coach.id, "m-1", request) } }
         coVerify(exactly = 0) { matchEventRepository.addEvent(any()) }
     }
+
+    @Test
+    fun shotsFoulsAndCornersGoToTheRightSide() = runBlocking {
+        val match = Match("m-1", "club-1", "t-1", "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.LIVE)
+        val coach = User("coach", "coach@t.com", firstName = "T", lastName = "U", status = UserStatus.ACTIVE, isPlatformAdmin = false, createdAt = Instant.fromEpochMilliseconds(0))
+        coEvery { matchRepository.getMatchById("m-1") } returns match
+        coEvery { userRepository.findById(coach.id) } returns coach
+        coEvery { userRepository.getUserRoleInClub(coach.id, "club-1") } returns ClubRole.MEMBER
+        coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, "ag-1") } returns AgeGroupRole.COACH
+        coEvery { teamRepository.getTeamById("t-1") } returns Team("t-1", "club-1", "ag-1", "s-1", "Sub-15 A", "A", active = true)
+        coEvery { matchRepository.getCallUpByMatchAndPlayer("m-1", "p-1") } returns MatchCallUp("cu-1", "m-1", "p-1", CallUpStatus.CALLED_UP)
+        coEvery { matchRepository.getCallUpByMatchAndPlayer("m-1", "stranger") } returns null
+        coEvery { matchEventRepository.addEvent(any()) } answers { firstArg() }
+        coEvery { matchEventRepository.getScoreByMatch("m-1") } returns MatchScore("m-1", 0, 0)
+
+        // Allowed: our player's shot and foul, the opponent's foul, either side's corner.
+        listOf(
+            CreateMatchEventRequest(EventType.SHOT, 3, playerId = "p-1"),
+            CreateMatchEventRequest(EventType.SHOT_ON_GOAL, 4, playerId = "p-1"),
+            CreateMatchEventRequest(EventType.FOUL, 5, playerId = "p-1"),
+            CreateMatchEventRequest(EventType.FOUL, 6, isOpponent = true),
+            CreateMatchEventRequest(EventType.CORNER, 7),
+            CreateMatchEventRequest(EventType.CORNER, 8, isOpponent = true)
+        ).forEach { useCase(coach.id, "m-1", it) }
+
+        // Refused: a shot with no player or by the opponent, a foul with neither or both, a player's
+        // corner, and a player who wasn't called up.
+        listOf(
+            CreateMatchEventRequest(EventType.SHOT, 9),
+            CreateMatchEventRequest(EventType.SHOT_ON_GOAL, 9, isOpponent = true),
+            CreateMatchEventRequest(EventType.FOUL, 9),
+            CreateMatchEventRequest(EventType.FOUL, 9, playerId = "p-1", isOpponent = true),
+            CreateMatchEventRequest(EventType.CORNER, 9, playerId = "p-1"),
+            CreateMatchEventRequest(EventType.SHOT, 9, playerId = "stranger")
+        ).forEach { request ->
+            assertFailsWith<ValidationException>(request.toString()) { useCase(coach.id, "m-1", request) }
+        }
+        coVerify(exactly = 6) { matchEventRepository.addEvent(any()) }
+        coVerify(exactly = 0) { notifyMatchEventUseCase(any(), any(), any(), any()) }
+    }
 }
