@@ -351,7 +351,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - **Where they show:** in the match's stats, the timeline and the season stats; how shots and shots on goal are presented (e.g. counted together or apart) is to be discussed, probably in the game's stats.
     - [/] Payments (Google Play Billing and Apple In-App Purchase, directly, no RevenueCat) and ads on the Free plan (AdMob).
         - [x] Google Play (2026-11-03): Basic and Pro, monthly and yearly, bought on Plans; the coach server checks each purchase with Google and follows its notifications; staging takes test purchases only, production real ones (`TECHNICAL_DECISIONS.md` §72). To set up in Play Console and Google Cloud before it works (§72, Payments, as built).
-        - [ ] Apple In-App Purchase (StoreKit, App Store Server Notifications); until then iOS asks for plans.
+        - [ ] Apple In-App Purchase (StoreKit, App Store Server Notifications); until then iOS asks for plans. On hold (the developer, 2026-11-04): Android first; iOS (the Apple Developer Program, $99 a year) only after seeing the results on Android.
         - [ ] Referrals (§5c).
         - [ ] Ads on Free (AdMob, after the consent form).
     - [ ] **Plans: still open** (2026-11-03, after PR #188):
@@ -366,10 +366,10 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [ ] Wording still in the app: the two limit lines on Plans ("3 age groups a season", "Up to 3 people per age group") and the boxes' sentences take the server's names and numbers, but a new kind of limit would need a new app.
         - [x] The plan boxes know whose space they're in (2026-11-04): See plans and the owner's wording only in the coach's own space; staff in someone else's space read that its owner can change the plan, with no button. (Full stats' box, reachable only if the plan changes after opening it, never has the button.)
         - [ ] Opened from a notification before Home loads, the plan boxes have no own space or plans yet: they show without the plan names and limits until the spaces load (Plans loads its own).
-    - [ ] **Launch readiness** (Android and iOS, needed before the coach app goes to the stores):
+    - [ ] **Launch readiness** (needed before the coach app goes to the stores; Android first, iOS after the results on Android, the developer, 2026-11-04):
         - [ ] R8 full mode (`isMinifyEnabled = true` with the right keep rules) and a Baseline Profile for the release build (`TECHNICAL_DECISIONS.md` §11.7, §11.8).
         - [ ] Edge-to-edge: audit every screen's `WindowInsets` (§11.6, §11.8).
-        - [ ] iOS: registered with Firebase (Crashlytics, push), and pushes received on iOS (`TECHNICAL_DECISIONS.md` §12).
+        - [ ] iOS, on hold until the Android results: registered with Firebase (Crashlytics, push), and pushes received on iOS (`TECHNICAL_DECISIONS.md` §12).
         - [/] Store requirements (§5c): account deletion in the app, Google's UMP consent form before ads, a privacy policy and data-safety form.
             - [x] Account deletion in the app (2026-10-30): from Account, with the password, at once; an owner's space goes with everything in it (`TECHNICAL_DECISIONS.md` §72).
             - [ ] An email address for deletion requests from outside the app, in the Play Store listing (the developer chooses it).
