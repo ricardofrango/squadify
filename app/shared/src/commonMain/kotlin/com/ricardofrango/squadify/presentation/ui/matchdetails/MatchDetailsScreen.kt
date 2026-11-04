@@ -220,10 +220,9 @@ private fun MatchDetailsContent(
             Column(Modifier.background(ClubChrome)) {
                 // The teams and the score are the band below; the bar says when and what kind of game.
                 SquadifyTopBar(
-                    // Played: the result is the title ("Sub-13 A 2 – 1 Fontelas") and the band goes, leaving
-                    // the tabs more room; when it was played moves to the subtitle.
-                    title = details?.let { if (finished) resultTitle(it) else whenLabel(it.match.dateTime) } ?: stringResource(Res.string.title_match),
-                    subtitle = details?.let { if (finished) listOf(whenLabel(it.match.dateTime), matchSubtitle(it)).joinToString(" · ") else matchSubtitle(it) },
+                    // Played: no band, leaving the tabs more room; the result is the General tab's first card.
+                    title = details?.let { whenLabel(it.match.dateTime) } ?: stringResource(Res.string.title_match),
+                    subtitle = details?.let { matchSubtitle(it) },
                     onNavigateBack = requestBack,
                     actions = {
                         // A played game's goals and cards can be corrected afterwards, by its staff.
@@ -384,14 +383,6 @@ private fun BandName(name: String, style: TextStyle, color: Color, align: TextAl
 }
 
 private data class BandSide(val name: String, val logoUrl: String?, val score: Int)
-
-/** "Sub-13 A 2 – 1 Fontelas": a played match's top bar title, home side first as on the band. */
-private fun resultTitle(details: MatchDetails): String {
-    val us = details.team.name to details.score.ourScore
-    val them = (details.opponent.shortName ?: details.opponent.name) to details.score.opponentScore
-    val (left, right) = if (details.match.venue.ourSideFirst()) us to them else them to us
-    return "${left.first} ${left.second} – ${right.second} ${right.first}"
-}
 
 /** A side's logo on the band, on a white disc so any crest reads on the bar's colour. */
 @Composable

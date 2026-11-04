@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import com.ricardofrango.squadify.presentation.ui.components.ClubLogo
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -122,16 +123,55 @@ internal fun FinishedMatchBody(
 
 // ---- General ----
 
-/** The report card (staff only, first) and the match's details. */
+/** The result first, then the match's details, then the report card (staff only). */
 @Composable
 private fun GeneralTab(state: MatchDetailsUiState.Idle, modifier: Modifier, onOpenReport: (edit: Boolean) -> Unit) {
     val details = state.details
     LazyColumn(modifier, contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         state.transientError?.let { item { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) } }
-        details.report?.let { item { MatchReportCard(it, onOpenReport) } }
-        // No gap above the title when it's the first thing on the tab (no report card for a member).
-        item { SectionHeader(stringResource(Res.string.label_details_section), first = state.transientError == null && details.report == null) }
+        item { ResultCard(details) }
+        item { SectionHeader(stringResource(Res.string.label_details_section)) }
         item { DetailsCard(details, onSetType = null) }
+        details.report?.let { item { MatchReportCard(it, onOpenReport) } }
+    }
+}
+
+/**
+ * The final score, as football shows it: home on the left (our club at home or on neutral ground), each
+ * side's crest over its name, the score between them.
+ */
+@Composable
+private fun ResultCard(details: MatchDetails) {
+    val us = Triple(details.team.name, details.clubLogoUrl, details.score.ourScore)
+    val them = Triple(details.opponent.shortName ?: details.opponent.name, details.opponent.logoUrl, details.score.opponentScore)
+    val (left, right) = if (details.match.venue.ourSideFirst()) us to them else them to us
+    Surface(shape = RoundedCornerShape(16.dp), color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.12f)), modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            ResultSide(left.first, left.second, Modifier.weight(1f))
+            Text(
+                "${left.third} – ${right.third}",
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black),
+                color = DeepCarbon,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
+            ResultSide(right.first, right.second, Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun ResultSide(name: String, logoUrl: String?, modifier: Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        ClubLogo(logoUrl, name.take(2).uppercase(), size = 44.dp, background = if (logoUrl != null) Color.White else CarbonGray.copy(alpha = 0.1f), initialsColor = DeepCarbon)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            name,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+            color = DeepCarbon,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
