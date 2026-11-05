@@ -56,6 +56,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
@@ -677,7 +678,11 @@ private fun SheetButton(text: String, onClick: () -> Unit, modifier: Modifier = 
 private fun ColumnsSheet(state: FullStatsUiState.Loaded, onToggle: (FullStatsColumn) -> Unit, onDismiss: () -> Unit) {
     FullStatsSheetFrame(onDismiss, stringResource(Res.string.fs_columns_title)) {
         Text(stringResource(Res.string.fs_columns_note), style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
-        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+        // The list is held to a bit over half the window and scrolls inside it. Left to its full 15 rows it
+        // made the sheet taller than a phone: it opened to the very top, with an empty band under the
+        // status bar, and a drag down first moved that oversized sheet before it started to close.
+        val windowHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
+        Column(Modifier.heightIn(max = windowHeight * 0.55f).verticalScroll(rememberScrollState())) {
             FullStatsColumn.entries.filter { !it.rating || state.data.canSeeRatings }.forEach { column ->
                 val shown = column !in state.hidden
                 Row(
