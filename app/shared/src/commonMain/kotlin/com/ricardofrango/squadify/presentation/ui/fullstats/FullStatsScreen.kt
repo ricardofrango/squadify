@@ -55,7 +55,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -388,7 +390,12 @@ private fun rangeLabel(state: FullStatsUiState.Loaded): String {
 
 // ---- Table ----
 
-private val PlayerColumnWidth = 136.dp
+// The player column is as wide as its longest name line, between these: never wider than it was with
+// the name on one line, so the stats get the room the second line frees.
+private val PlayerColumnMinWidth = 96.dp
+private val PlayerColumnMaxWidth = 136.dp
+// The photo (28), the gap after it (8) and the cell's side padding (10 + 10).
+private val PlayerCellChrome = 56.dp
 private val HeaderHeight = 44.dp
 private val RowHeight = 48.dp
 private val TopRowTint = Color(0xFFF1F8F2)
@@ -458,9 +465,20 @@ private fun StatsTable(
     modifier: Modifier
 ) {
     val horizontal = rememberScrollState()
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val nameStyle = NameStyle
+    val headerStyle = HeaderStyle
+    val header = stringResource(Res.string.fs_player) + " ↓"
+    val playerColumnWidth = remember(rows, header, density) {
+        val names = rows.flatMap { splitName(it.player.name).toList().filterNotNull() }
+        val widest = names.maxOfOrNull { measurer.measure(it, nameStyle).size.width } ?: 0
+        val headerWidth = measurer.measure(header, headerStyle).size.width
+        with(density) { maxOf(widest.toDp() + PlayerCellChrome, headerWidth.toDp() + 20.dp) }.coerceIn(PlayerColumnMinWidth, PlayerColumnMaxWidth)
+    }
     Column(modifier.fillMaxWidth()) {
         Row(Modifier.height(HeaderHeight).fillMaxWidth()) {
-            PlayerHeaderCell(sorted = sort == null, descending = descending, onClick = { onSort(null) }, onLongPress = onLongPress)
+            PlayerHeaderCell(playerColumnWidth, sorted = sort == null, descending = descending, onClick = { onSort(null) }, onLongPress = onLongPress)
             Row(Modifier.weight(1f).fillMaxHeight().horizontalScroll(horizontal)) {
                 columns.forEach { column -> HeaderCell(column, sorted = column == sort, descending, onClick = { onSort(column) }, onLongPress = onLongPress, onExplain = onExplain) }
             }
@@ -469,7 +487,7 @@ private fun StatsTable(
         // No podium when sorted by name.
         val tintedTop = if (sort == null) 0 else rows.take(3).count { (it.value(sort) ?: 0.0) > 0.0 }
         Row(Modifier.weight(1f, fill = false).fillMaxWidth().verticalScroll(rememberScrollState())) {
-            Column(Modifier.width(PlayerColumnWidth).rightHairline()) {
+            Column(Modifier.width(playerColumnWidth).rightHairline()) {
                 rows.forEachIndexed { i, row -> PlayerCell(row.player, rowTint(i, tintedTop)) { onOpenPlayer(row.player.id) } }
             }
             Column(Modifier.weight(1f).horizontalScroll(horizontal)) {
@@ -500,15 +518,24 @@ private fun ColumnNameToast(message: String) {
     }
 }
 
+private val NameStyle @Composable get() = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, lineHeight = 15.sp)
+
+/** "Rodrigo Costa" as "Rodrigo" and "Costa" (the server's name is first name, then surname); one word, no surname. */
+internal fun splitName(name: String): Pair<String, String?> {
+    val trimmed = name.trim()
+    val space = trimmed.indexOf(' ')
+    return if (space < 0) trimmed to null else trimmed.substring(0, space) to trimmed.substring(space + 1).trim()
+}
+
 private val HeaderStyle @Composable get() = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp, lineHeight = 13.sp)
 
 @Composable
-private fun PlayerHeaderCell(sorted: Boolean, descending: Boolean, onClick: () -> Unit, onLongPress: (String) -> Unit) {
+private fun PlayerHeaderCell(width: Dp, sorted: Boolean, descending: Boolean, onClick: () -> Unit, onLongPress: (String) -> Unit) {
     val name = stringResource(Res.string.fs_player)
     val color = if (sorted) PitchGreen else DeepCarbon.copy(alpha = 0.75f)
     Row(
         Modifier
-            .width(PlayerColumnWidth)
+            .width(width)
             .fillMaxHeight()
             .rightHairline()
             .semantics { contentDescription = name; role = Role.Button }
@@ -557,17 +584,12 @@ private fun PlayerCell(player: TeamSeasonPlayer, tint: Color, onClick: () -> Uni
         player.photoUrl?.let { PersonPhoto(it, initialsOf(player.name, ""), 28.dp, CarbonGray.copy(alpha = 0.08f), DeepCarbon) }
             ?: PersonPlaceholder(28.dp, DeepCarbon.copy(alpha = 0.3f))
         Spacer(Modifier.width(8.dp))
+        // The first name on one line and the surname under it, as in a match's Stats; no shirt number,
+        // to leave the stats the room.
+        val (first, surname) = splitName(player.name)
         Column(Modifier.weight(1f)) {
-            player.shirtNumber?.let {
-                Text("#$it", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp, lineHeight = 12.sp), color = StatsSecondaryText)
-            }
-            Text(
-                player.name,
-                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp),
-                color = DeepCarbon,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Text(first, style = NameStyle, color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            surname?.let { Text(it, style = NameStyle, color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
     }
 }
