@@ -33,8 +33,10 @@ plugins {
 
 include(":app:androidApp")
 include(":app:clubs")
+include(":app:clubsBaselineProfile")
 include(":app:coach")
 include(":app:coachAndroidApp")
+include(":app:coachBaselineProfile")
 include(":app:desktopApp")
 include(":app:shared")
 include(":app:webApp")
