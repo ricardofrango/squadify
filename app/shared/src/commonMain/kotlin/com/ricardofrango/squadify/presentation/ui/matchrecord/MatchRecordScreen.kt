@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchrecord
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.readableListPadding
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.BorderStroke
@@ -181,11 +182,7 @@ private fun MatchRecordContent(
         val modifier = Modifier.fillMaxSize().padding(padding).background(ScreenBackground)
         when (state) {
             MatchRecordUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
-            is MatchRecordUiState.Error -> Column(modifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Text(state.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-                Spacer(Modifier.height(16.dp))
-                Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
-            }
+            is MatchRecordUiState.Error -> ErrorScreen(title = state.message, body = null, onRetry = onRetry, modifier = modifier)
             is MatchRecordUiState.Idle -> RecordBody(
                 state, modifier,
                 onAddEvent = { editing = blankEvent() },

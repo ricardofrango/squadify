@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.ShownSpace
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -195,11 +196,7 @@ private fun PlayerDetailsContent(
                 }
             }
             is PlayerDetailsUiState.Error ->
-                Column(boxModifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Text(uiState.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(16.dp))
-                    Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
-                }
+                ErrorScreen(title = uiState.message, body = null, onRetry = onRetry, modifier = boxModifier)
             is PlayerDetailsUiState.Idle -> PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = boxModifier) {
                 PlayerBody(
                     profile = uiState.profile,

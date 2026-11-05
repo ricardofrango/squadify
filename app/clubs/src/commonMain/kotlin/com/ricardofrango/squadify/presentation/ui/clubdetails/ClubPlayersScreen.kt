@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
@@ -200,11 +201,7 @@ private fun ClubPlayersContent(
         val modifier = Modifier.fillMaxSize().padding(padding).background(ScreenBackground)
         when (val s = state) {
             ClubPlayersUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
-            is ClubPlayersUiState.Error -> Column(modifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Text(s.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-                Spacer(Modifier.height(16.dp))
-                Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
-            }
+            is ClubPlayersUiState.Error -> ErrorScreen(title = s.message, body = null, onRetry = onRetry, modifier = modifier)
             is ClubPlayersUiState.Idle -> Column(modifier) {
                 val clubName = s.details.club.name
                 Filters(s, onSeasonSelected, onAgeGroupSelected, onSearchChanged)

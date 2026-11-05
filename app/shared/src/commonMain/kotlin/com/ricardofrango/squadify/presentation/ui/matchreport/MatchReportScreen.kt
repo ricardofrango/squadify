@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchreport
 
+import com.ricardofrango.squadify.presentation.ui.components.FullScreenMessage
 import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
@@ -220,7 +221,11 @@ private fun MatchReportContent(
                                     EditorStatusChip(idle)
                                     Spacer(Modifier.width(12.dp))
                                 }
-                                idle.details.canEdit -> EditAction(onStartEditing)
+                                // Reading, lying down: the tabs in the header row too, before Edit.
+                                else -> {
+                                    if (wide) EditorTabs(idle, onTabSelected, compact = true)
+                                    if (idle.details.canEdit) EditAction(onStartEditing)
+                                }
                             }
                         }
                     )
@@ -229,6 +234,7 @@ private fun MatchReportContent(
                             if (!wide) EditorTabs(idle, onTabSelected)
                         } else {
                             ReadStatusBand(idle)
+                            if (!wide) EditorTabs(idle, onTabSelected)
                         }
                     }
                 }
@@ -266,7 +272,7 @@ private fun MatchReportContent(
                         if (wide) EditorActions(uiState, wide = true, onSaveDraft = { onSave(SaveAction.DRAFT) }, onComplete = { showCompleteDialog = true })
                     }
                 } else {
-                    Box(modifier) { ReadView(uiState, wide, onReadSortSelected) }
+                    Box(modifier) { ReadView(uiState, onReadSortSelected) }
                 }
             }
         }
@@ -489,42 +495,6 @@ private fun LoadingSkeleton(modifier: Modifier) {
                         Box(Modifier.size(52.dp).background(shade, RoundedCornerShape(14.dp)))
                     }
                 }
-            }
-        }
-    }
-}
-
-/** The app's full-screen empty-state pattern: icon in a grey circle, title, one line, a button (26b/26f). */
-@Composable
-private fun FullScreenMessage(
-    icon: DrawableResource,
-    title: String,
-    body: String,
-    buttonLabel: String,
-    primary: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier
-) {
-    Column(
-        modifier.background(ScreenBackground).padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(Modifier.size(84.dp).background(CarbonGray.copy(alpha = 0.06f), CircleShape), contentAlignment = Alignment.Center) {
-            Icon(painterResource(icon), contentDescription = null, tint = SecondaryText, modifier = Modifier.size(32.dp))
-        }
-        Spacer(Modifier.height(16.dp))
-        Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(6.dp))
-        Text(body, style = MaterialTheme.typography.bodyMedium, color = SecondaryText, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(20.dp))
-        if (primary) {
-            Button(onClick = onClick, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White), shape = RoundedCornerShape(14.dp)) {
-                Text(buttonLabel, fontWeight = FontWeight.Black)
-            }
-        } else {
-            OutlinedButton(onClick = onClick, shape = RoundedCornerShape(14.dp)) {
-                Text(buttonLabel, color = CarbonGray, fontWeight = FontWeight.Bold)
             }
         }
     }

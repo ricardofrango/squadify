@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.account
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.runtime.setValue
@@ -199,11 +200,7 @@ private fun AccountContent(
                 }
             }
             is AccountUiState.Error -> {
-                Column(boxModifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Text(uiState.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(16.dp))
-                    Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
-                }
+                ErrorScreen(title = uiState.message, body = null, onRetry = onRetry, modifier = boxModifier)
             }
             is AccountUiState.Idle -> {
                 AccountForm(

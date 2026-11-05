@@ -69,7 +69,7 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.*
 
-/** Tabs sit on the dark header: Players · Team · Opponent (the last carries an amber unrated count). */
+/** Tabs sit on the dark header: Players · Team · Opponent. While editing, Players carries an amber unrated count. */
 @Composable
 internal fun EditorTabs(state: MatchReportUiState.Idle, onTabSelected: (ReportTab) -> Unit, compact: Boolean = false) {
     val tabs = buildList {
@@ -93,7 +93,7 @@ internal fun EditorTabs(state: MatchReportUiState.Idle, onTabSelected: (ReportTa
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         color = if (selected) Color.White else Color.White.copy(alpha = 0.6f)
                     )
-                    if (tab == ReportTab.PLAYERS && state.unratedCount > 0) {
+                    if (tab == ReportTab.PLAYERS && state.editing && state.unratedCount > 0) {
                         Spacer(Modifier.width(6.dp))
                         Surface(shape = RoundedCornerShape(10.dp), color = Amber) {
                             Text(

@@ -50,8 +50,9 @@ class MatchReportViewModel(
                         fields = ReportFields.from(details.report, details.match.startingFormation),
                         originalRatings = ratings,
                         ratings = ratings,
-                        // Design 24e: open on Players while anyone is unrated, otherwise Team.
-                        tab = if (details.playerStats.isNotEmpty() && anyUnrated) ReportTab.PLAYERS else ReportTab.TEAM
+                        // Design 24e: the editor opens on Players while anyone is unrated, otherwise Team.
+                        // Reading opens on Players, the team's ranking first (the developer, 2026-11-05).
+                        tab = if (details.playerStats.isNotEmpty() && (anyUnrated || !editing)) ReportTab.PLAYERS else ReportTab.TEAM
                     )
                 }
             } catch (e: Exception) {

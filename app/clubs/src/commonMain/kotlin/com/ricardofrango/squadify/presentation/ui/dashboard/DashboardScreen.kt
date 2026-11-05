@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.dashboard
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.SectionBorder
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import kotlin.time.Instant
@@ -159,15 +160,7 @@ private fun SportBadge(sport: SportType) {
 
 @Composable
 private fun ErrorState(error: String, onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().screenContentPadding(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(text = error, color = MaterialTheme.colorScheme.error)
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
-    }
+    ErrorScreen(title = error, body = null, onRetry = onRetry)
 }
 
 @Composable

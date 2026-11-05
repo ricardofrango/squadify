@@ -572,10 +572,7 @@
     <string name="report_status_line_none">Not started yet</string>
     <string name="report_nothing_team">Nothing written about the team.</string>
     <string name="report_nothing_opponent">Nothing written about the opponent.</string>
-    <string name="report_rated_summary">%1$d of %2$d rated · avg %3$s</string>
-    <string name="report_rated_summary_no_avg">%1$d of %2$d rated</string>
-    <string name="report_sort_rating">By rating</string>
-    <string name="report_sort_number">By number</string>
+    <string name="report_team_average">Team average</string>
     <string name="report_loading">Loading report</string>
     <string name="report_card_pending_hint">Rate the players and write the match analysis</string>
     <string name="report_card_progress">%1$d of %2$d players rated</string>

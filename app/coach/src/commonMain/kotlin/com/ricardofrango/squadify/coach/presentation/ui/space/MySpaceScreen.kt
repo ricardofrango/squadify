@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.presentation.ui.space
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import androidx.compose.runtime.CompositionLocalProvider
 import com.ricardofrango.squadify.presentation.ui.components.previewPlans
 import androidx.compose.foundation.clickable
@@ -131,16 +132,7 @@ private fun MySpaceContent(
             MySpaceUiState.Loading -> Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = PitchGreen)
             }
-            MySpaceUiState.Failed -> Column(
-                Modifier.fillMaxSize().padding(paddingValues).screenContentPadding(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(stringResource(Res.string.msg_my_space_failed), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.6f), textAlign = TextAlign.Center)
-                TextButton(onClick = onRetry) {
-                    Text(stringResource(SharedRes.string.btn_retry), color = PitchGreen, fontWeight = FontWeight.Bold)
-                }
-            }
+            MySpaceUiState.Failed -> ErrorScreen(title = stringResource(Res.string.msg_my_space_failed), body = null, onRetry = onRetry, modifier = Modifier.fillMaxSize().padding(paddingValues))
             is MySpaceUiState.Loaded -> Column(
                 modifier = Modifier
                     .fillMaxSize()

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.presentation.ui.plans
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -199,16 +200,7 @@ fun PlansScreen(
                     )
                 }
             }
-            onRetry != null -> Column(
-                Modifier.fillMaxSize().padding(paddingValues).screenContentPadding(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(stringResource(Res.string.plans_load_failed), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.6f), textAlign = TextAlign.Center)
-                TextButton(onClick = onRetry) {
-                    Text(stringResource(SharedRes.string.btn_retry), color = PitchGreen, fontWeight = FontWeight.Bold)
-                }
-            }
+            onRetry != null -> ErrorScreen(title = stringResource(Res.string.plans_load_failed), onRetry = onRetry, modifier = Modifier.fillMaxSize().padding(paddingValues))
             else -> Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = PitchGreen)
             }

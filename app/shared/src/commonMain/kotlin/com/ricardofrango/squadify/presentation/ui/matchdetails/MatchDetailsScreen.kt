@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.ShownSpace
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -274,11 +275,7 @@ private fun MatchDetailsContent(
                 Box(boxModifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
 
             is MatchDetailsUiState.Error ->
-                Column(boxModifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Text(uiState.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(16.dp))
-                    Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
-                }
+                ErrorScreen(title = uiState.message, body = null, onRetry = onRetry, modifier = boxModifier)
 
             // Played: the record of the game instead of the call-up.
             is MatchDetailsUiState.Idle -> PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = boxModifier) {

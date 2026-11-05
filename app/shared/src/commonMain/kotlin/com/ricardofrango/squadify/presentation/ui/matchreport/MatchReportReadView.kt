@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +29,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
+import com.ricardofrango.squadify.presentation.ui.components.RatingPill
+import com.ricardofrango.squadify.presentation.ui.components.readableListPadding
+import com.ricardofrango.squadify.presentation.ui.components.twoDecimals
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
@@ -36,27 +43,20 @@ import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.*
 
 /**
- * The reading counterpart to the editor (design 25): one scroll, not tabs -- someone reading wants
- * the whole report in order. Empty fields are left out; a section with nothing in it collapses to a
- * single "nothing written" line. Landscape splits into two columns, analysis left, players right.
+ * The reading counterpart to the editor (design 25), in the editor's tabs (the developer, 2026-11-05):
+ * Players (the team's average ranking, the sort, then each player's), Team and Opponent. Empty fields
+ * are left out; a section with nothing in it collapses to a single "nothing written" line. On a wide
+ * screen the tab keeps a readable width, centred.
  */
 @Composable
-internal fun ReadView(state: MatchReportUiState.Idle, wide: Boolean, onSortSelected: (ReportPlayerSort) -> Unit) {
-    if (wide) {
-        Row(Modifier.fillMaxSize().background(ScreenBackground)) {
-            LazyColumn(Modifier.weight(1f), contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                item { TeamReadCard(state) }
-                item { OpponentReadCard(state) }
+internal fun ReadView(state: MatchReportUiState.Idle, onSortSelected: (ReportPlayerSort) -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxSize().background(ScreenBackground)) {
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = readableListPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            when (state.tab) {
+                ReportTab.PLAYERS -> playersRead(state, onSortSelected)
+                ReportTab.TEAM -> item { TeamReadCard(state) }
+                ReportTab.OPPONENT -> item { OpponentReadCard(state) }
             }
-            LazyColumn(Modifier.width(380.dp), contentPadding = PaddingValues(top = 16.dp, end = 16.dp, bottom = 16.dp)) {
-                item { PlayersReadCard(state, onSortSelected) }
-            }
-        }
-    } else {
-        LazyColumn(Modifier.fillMaxSize().background(ScreenBackground), contentPadding = ScreenPadding.Values, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item { TeamReadCard(state) }
-            item { OpponentReadCard(state) }
-            item { PlayersReadCard(state, onSortSelected) }
         }
     }
 }
@@ -139,62 +139,66 @@ private fun ReadFields(texts: List<Pair<StringResource, String>>) {
     }
 }
 
-@Composable
-private fun PlayersReadCard(state: MatchReportUiState.Idle, onSortSelected: (ReportPlayerSort) -> Unit) {
+private fun LazyListScope.playersRead(state: MatchReportUiState.Idle, onSortSelected: (ReportPlayerSort) -> Unit) {
     if (!state.hasStats) {
-        ReportCard {
-            SectionLabel(stringResource(Res.string.report_tab_players))
-            Spacer(Modifier.height(8.dp))
-            Text(stringResource(Res.string.report_no_stats_title), style = MaterialTheme.typography.bodyMedium, color = SecondaryText)
+        item {
+            ReportCard {
+                SectionLabel(stringResource(Res.string.report_tab_players))
+                Spacer(Modifier.height(8.dp))
+                Text(stringResource(Res.string.report_no_stats_title), style = MaterialTheme.typography.bodyMedium, color = SecondaryText)
+            }
         }
         return
     }
-    val summary = ratingSummary(state.players.map { state.ratings[it.player.id] })
-    Surface(Modifier.fillMaxWidth(), shape = ReportCardShape, color = Color.White, border = ReportCardBorder) {
-        Column {
-            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    SectionLabel(stringResource(Res.string.report_tab_players))
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        if (summary.average != null) stringResource(Res.string.report_rated_summary, summary.rated, summary.total, summary.average)
-                        else stringResource(Res.string.report_rated_summary_no_avg, summary.rated, summary.total),
-                        style = MaterialTheme.typography.labelMedium, color = SecondaryText
-                    )
-                }
-                SortToggle(state.readSort, onSortSelected)
-            }
-            readOrder(state.players, state.ratings, state.readSort).forEach { row ->
-                HorizontalDivider(color = CarbonGray.copy(alpha = 0.06f))
-                Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    PlayerStatsHeader(row, Modifier.weight(1f))
-                    Spacer(Modifier.width(8.dp))
-                    RatingBadge(state.ratings[row.player.id])
+    item { TeamAverageCard(ratingSummary(state.players.map { state.ratings[it.player.id] }).averageValue) }
+    item {
+        FilterChipRow(
+            options = ReportPlayerSort.entries,
+            selected = state.readSort,
+            label = { stringResource(it.labelRes()) },
+            onSelect = onSortSelected,
+            insidePaddedContent = true,
+            leadingLabel = stringResource(Res.string.label_sort)
+        )
+    }
+    item {
+        Surface(Modifier.fillMaxWidth(), shape = ReportCardShape, color = Color.White, border = ReportCardBorder) {
+            Column {
+                readOrder(state.players, state.ratings, state.readSort).forEachIndexed { index, row ->
+                    if (index > 0) HorizontalDivider(color = CarbonGray.copy(alpha = 0.06f))
+                    Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        PlayerStatsHeader(row, Modifier.weight(1f))
+                        Spacer(Modifier.width(8.dp))
+                        RatingBadge(state.ratings[row.player.id])
+                    }
                 }
             }
         }
     }
 }
 
+/** The team's average ranking for the game: every rated player's, two decimals; a dash with nobody rated. */
 @Composable
-private fun SortToggle(sort: ReportPlayerSort, onSortSelected: (ReportPlayerSort) -> Unit) {
-    val shape = RoundedCornerShape(11.dp)
-    Row(Modifier.border(1.5.dp, CarbonGray.copy(alpha = 0.16f), shape)) {
-        listOf(ReportPlayerSort.RATING to Res.string.report_sort_rating, ReportPlayerSort.NUMBER to Res.string.report_sort_number)
-            .forEach { (value, label) ->
-                val selected = value == sort
-                Box(
-                    Modifier
-                        .background(if (selected) ClubChrome else Color.Transparent, shape)
-                        .clickable { onSortSelected(value) }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        stringResource(label),
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = if (selected) Color.White else DeepCarbon
-                    )
-                }
+private fun TeamAverageCard(average: Double?) {
+    ReportCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(Res.string.report_team_average),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = DeepCarbon,
+                modifier = Modifier.weight(1f)
+            )
+            if (average != null) {
+                RatingPill(average, average.twoDecimals(), minWidth = 64.dp, height = 36.dp, fontSize = 18.sp, corner = 18.dp)
+            } else {
+                Text("—", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = SecondaryText)
             }
+        }
     }
+}
+
+private fun ReportPlayerSort.labelRes(): StringResource = when (this) {
+    ReportPlayerSort.RATING -> Res.string.record_leaders_rating
+    ReportPlayerSort.POSITION -> Res.string.label_position_field
+    ReportPlayerSort.NAME -> Res.string.label_sort_name
 }

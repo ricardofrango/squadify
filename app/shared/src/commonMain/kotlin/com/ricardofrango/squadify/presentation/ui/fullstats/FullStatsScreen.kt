@@ -2,6 +2,7 @@ package com.ricardofrango.squadify.presentation.ui.fullstats
 
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.squadifyDatePickerColors
 import androidx.compose.ui.draw.clip
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
@@ -196,14 +197,7 @@ private fun FullStatsContent(
         val modifier = Modifier.fillMaxSize().padding(padding)
         when (state) {
             FullStatsUiState.Loading -> LoadingSkeleton(modifier)
-            FullStatsUiState.Error -> CenteredMessage(
-                modifier,
-                title = stringResource(Res.string.fs_error_title),
-                body = stringResource(Res.string.msg_check_connection),
-                action = stringResource(Res.string.btn_retry) to onRetry,
-                filledAction = true,
-                error = true
-            )
+            FullStatsUiState.Error -> ErrorScreen(title = stringResource(Res.string.fs_error_title), onRetry = onRetry, modifier = modifier)
             FullStatsUiState.NotInPlan -> Column(modifier.padding(16.dp)) { StatsNotInPlanMessage() }
             is FullStatsUiState.Loaded -> BoxWithConstraints(modifier) {
                 // The side panel is only for a phone lying down, where the filters on top would leave the
@@ -777,12 +771,10 @@ private fun ExplainSheet(onDismiss: () -> Unit) {
 // ---- States ----
 
 @Composable
-private fun CenteredMessage(modifier: Modifier, title: String, body: String, action: Pair<String, () -> Unit>?, filledAction: Boolean = false, error: Boolean = false) {
+private fun CenteredMessage(modifier: Modifier, title: String, body: String, action: Pair<String, () -> Unit>?) {
     Column(modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        val tint = if (error) AlertRed else PitchGreen
-        Box(Modifier.size(56.dp).background(tint.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-            if (error) Text("!", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black), color = tint)
-            else BarsIcon(tint)
+        Box(Modifier.size(56.dp).background(PitchGreen.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+            BarsIcon(PitchGreen)
         }
         Spacer(Modifier.height(10.dp))
         Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, textAlign = TextAlign.Center)
@@ -790,11 +782,7 @@ private fun CenteredMessage(modifier: Modifier, title: String, body: String, act
         Text(body, style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.7f), textAlign = TextAlign.Center, modifier = Modifier.widthIn(max = 300.dp))
         if (action == null) return@Column
         Spacer(Modifier.height(14.dp))
-        if (filledAction) {
-            Button(onClick = action.second, shape = RoundedCornerShape(20.dp), colors = ButtonDefaults.buttonColors(containerColor = ClubChrome, contentColor = Color.White)) { Text(action.first) }
-        } else {
-            OutlinedButton(onClick = action.second, shape = RoundedCornerShape(20.dp), border = BorderStroke(1.dp, PitchGreen)) { Text(action.first, color = PitchGreen) }
-        }
+        OutlinedButton(onClick = action.second, shape = RoundedCornerShape(20.dp), border = BorderStroke(1.dp, PitchGreen)) { Text(action.first, color = PitchGreen) }
     }
 }
 

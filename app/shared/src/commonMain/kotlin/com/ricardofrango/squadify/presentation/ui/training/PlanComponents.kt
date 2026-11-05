@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -177,18 +178,10 @@ fun PlanEmpty(message: String, actionText: String?, readOnlyText: String, onActi
 /** The loading and error states of a plan screen. */
 @Composable
 fun PlanLoadingOrError(loading: Boolean, modifier: Modifier, onRetry: () -> Unit) {
-    Column(modifier.fillMaxSize().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        if (loading) {
-            CircularProgressIndicator(color = PitchGreen)
-        } else {
-            Text(stringResource(Res.string.msg_plans_load_failed), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(8.dp))
-            Text(stringResource(Res.string.msg_check_connection), color = DeepCarbon.copy(alpha = 0.6f), textAlign = TextAlign.Center)
-            Spacer(Modifier.height(16.dp))
-            Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)) {
-                Text(stringResource(Res.string.btn_retry))
-            }
-        }
+    if (loading) {
+        Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
+    } else {
+        ErrorScreen(title = stringResource(Res.string.msg_plans_load_failed), onRetry = onRetry, modifier = modifier.fillMaxSize())
     }
 }
 
