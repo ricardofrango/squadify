@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The dev flavor talks to a server on this machine's LAN address. From Android 17, an app targeting
+         SDK 37 can't reach the local network without this runtime permission ("Nearby devices"); its
+         requests just time out. Staging and production go over the internet and don't need it. -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+</manifest>
