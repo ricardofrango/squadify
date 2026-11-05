@@ -2281,10 +2281,10 @@ Per the developer: no "player of the match", and no attendance.
   - **Saving:** "Save draft" and "Complete report" ("Update report" once completed). Completing asks for confirmation and mentions unrated players only if there are any. Both buttons are disabled until there's something to save.
   - **Leaving with unsaved changes:** back asks "Save your changes?" with Save draft / Discard / Keep editing. This uses `NavigationBackHandler` from `navigationevent-compose` (new dependency), because Compose's `BackHandler` is deprecated.
   - **Failed saves:** a failed save keeps everything on screen, turns the header chip to "Not saved", and shows a Retry snackbar until it succeeds.
-- **Read view:** one scroll rather than tabs. Empty fields are left out, and an empty section collapses to one "nothing written" line. The tactic is shown at display size.
-  - **Players:** each rating is a badge in one of four colour bands (0–4 red, 5–6 amber, 7–8 green, 9–10 deep green, unrated an outlined "—"). A "{rated} of {total} rated · avg x.xx" summary sits above the list, which can be sorted by rating (unrated last) or by shirt number.
+- **Read view:** the editor's tabs, Players · Team · Opponent, under the status band (in the header row lying down, before Edit), opening on Players (the developer, 2026-11-05; it was one scroll). There's no unrated count on the tab while reading. Empty fields are left out, and an empty section collapses to one "nothing written" line. The tactic is shown at display size.
+  - **Players:** a "Team average" card first: every rated player's rating averaged, two decimals, in the ranking's colour band ("—" with nobody rated). Then the editor's "Sort" chips, Ranking (the default, unrated last) · Position (goalkeeper to striker, as the call-up) · Number, then the players. Each rating is a badge in one of four colour bands (0–4 red, 5–6 amber, 7–8 green, 9–10 deep green, unrated an outlined "—"). The "{rated} of {total} rated" line was dropped (the developer, 2026-11-05).
   - **Editing:** the author gets an Edit action.
-- **Landscape:** the editor puts its fields in two columns, shows the full 0–10 row inline (one tap per rating, no grid), and moves the actions into a right rail. The read view splits into analysis on the left and players on the right.
+- **Landscape:** the editor puts its fields in two columns, shows the full 0–10 row inline (one tap per rating, no grid), and moves the actions into a right rail. The read view keeps its tabs, each at a readable width, centred.
 - **States:** a loading skeleton; an error with Retry; and a no-permission screen that drops the match subtitle, so nothing about the match is revealed.
 - **Home "Needs you":** pending reports show "Played 27 Sep · 3 days ago". A report older than 7 days gets an amber dot. Three or more collapse into one expandable "{n} match reports to fill" row. Order is call-ups, then reports oldest first, then configuration gaps (grey dot).
 - **Localized dates:** `shortDateLabel`/`daysAgoLabel` (`components/DateLabels.kt`) give "27 Sep" / "27 set." and "3 days ago" / "há 3 dias" from string resources. Existing screens still use English month names.
@@ -2306,7 +2306,7 @@ Per the developer: no "player of the match", and no attendance.
 **Checked by rendering, not just compiling.** Every screen and state was rendered headlessly on the JVM with Compose's `ImageComposeScene`, in a throwaway test that isn't committed, and compared image by image with the design. The Home group was expanded by simulating a tap.
 - **What it caught:** green buttons were picking up the theme's content colour, which is dark under the dark palette. The label disappeared into the green. They now set white explicitly.
 
-**Not built from the design:** remembering the read-view sort per user (it resets to "by rating" on each visit), and autosave (the design lists it as later).
+**Not built from the design:** remembering the read-view sort per user (it resets to Ranking on each visit), and autosave (the design lists it as later).
 
 **Verified:**
 - **Unit tests:** `:server:clubs:test`, including the new calculator, report and home tests.

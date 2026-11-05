@@ -221,7 +221,11 @@ private fun MatchReportContent(
                                     EditorStatusChip(idle)
                                     Spacer(Modifier.width(12.dp))
                                 }
-                                idle.details.canEdit -> EditAction(onStartEditing)
+                                // Reading, lying down: the tabs in the header row too, before Edit.
+                                else -> {
+                                    if (wide) EditorTabs(idle, onTabSelected, compact = true)
+                                    if (idle.details.canEdit) EditAction(onStartEditing)
+                                }
                             }
                         }
                     )
@@ -230,6 +234,7 @@ private fun MatchReportContent(
                             if (!wide) EditorTabs(idle, onTabSelected)
                         } else {
                             ReadStatusBand(idle)
+                            if (!wide) EditorTabs(idle, onTabSelected)
                         }
                     }
                 }
@@ -267,7 +272,7 @@ private fun MatchReportContent(
                         if (wide) EditorActions(uiState, wide = true, onSaveDraft = { onSave(SaveAction.DRAFT) }, onComplete = { showCompleteDialog = true })
                     }
                 } else {
-                    Box(modifier) { ReadView(uiState, wide, onReadSortSelected) }
+                    Box(modifier) { ReadView(uiState, onReadSortSelected) }
                 }
             }
         }

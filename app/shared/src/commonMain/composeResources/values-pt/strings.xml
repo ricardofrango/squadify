@@ -570,10 +570,7 @@
     <string name="report_status_line_none">Ainda não iniciado</string>
     <string name="report_nothing_team">Nada escrito sobre a equipa.</string>
     <string name="report_nothing_opponent">Nada escrito sobre o adversário.</string>
-    <string name="report_rated_summary">%1$d de %2$d avaliados · média %3$s</string>
-    <string name="report_rated_summary_no_avg">%1$d de %2$d avaliados</string>
-    <string name="report_sort_rating">Por nota</string>
-    <string name="report_sort_number">Por número</string>
+    <string name="report_team_average">Média da equipa</string>
     <string name="report_loading">A carregar o relatório</string>
     <string name="report_card_pending_hint">Avalie os jogadores e escreva a análise do jogo</string>
     <string name="report_card_progress">%1$d de %2$d jogadores avaliados</string>

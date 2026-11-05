@@ -48,11 +48,11 @@ fun nextUnrated(orderedIds: List<String>, ratings: Map<String, Int?>, current: S
     return null
 }
 
-enum class ReportPlayerSort { RATING, NUMBER }
+enum class ReportPlayerSort { RATING, POSITION, NUMBER }
 
 /**
- * Read-view ordering (design 25d). By rating: high to low, ties by shirt number, unrated last. By
- * number: the team sheet.
+ * Read-view ordering (design 25d). By ranking: high to low, ties by shirt number, unrated last. By
+ * position: goalkeeper to striker, as the call-up (no position last). By number: the team sheet.
  */
 fun readOrder(
     rows: List<MatchPlayerStatsWithPlayer>,
@@ -60,14 +60,17 @@ fun readOrder(
     sort: ReportPlayerSort
 ): List<MatchPlayerStatsWithPlayer> = when (sort) {
     ReportPlayerSort.NUMBER -> teamSheetOrder(rows)
+    ReportPlayerSort.POSITION -> ratingOrder(rows, CallUpSort.POSITION)
     ReportPlayerSort.RATING -> teamSheetOrder(rows).sortedWith(
         compareBy<MatchPlayerStatsWithPlayer> { ratings[it.player.id] == null }
             .thenByDescending { ratings[it.player.id] ?: -1 }
     )
 }
 
-/** "{rated} of {total} rated · avg {x.xx}" -- the average skips unrated players, null when none are rated. */
-data class RatingSummary(val rated: Int, val total: Int, val average: String?)
+/** How many are rated and their average ("8.25", two decimals), which skips unrated players; null when none are. */
+data class RatingSummary(val rated: Int, val total: Int, val average: String?) {
+    val averageValue: Double? get() = average?.toDouble()
+}
 
 fun ratingSummary(ratings: List<Int?>): RatingSummary {
     val given = ratings.filterNotNull()
