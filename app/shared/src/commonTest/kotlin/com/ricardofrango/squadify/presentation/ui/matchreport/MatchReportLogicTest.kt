@@ -67,7 +67,9 @@ class MatchReportLogicTest {
         val rows = listOf(row("a", 4), row("b", 2), row("c", 9), row("d", 1))
         val ratings = mapOf("a" to 7, "b" to 7, "c" to null, "d" to 9)
         assertEquals(listOf("d", "b", "a", "c"), readOrder(rows, ratings, ReportPlayerSort.RATING).map { it.player.id })
-        assertEquals(listOf("d", "b", "a", "c"), readOrder(rows, ratings, ReportPlayerSort.NUMBER).map { it.player.id })
+        // By name: first name, then surname, whatever the rating.
+        val named = listOf(row("x", 4, first = "Tomás"), row("y", 2, first = "Afonso"), row("z", 9, first = "Rodrigo"))
+        assertEquals(listOf("y", "z", "x"), readOrder(named, ratings, ReportPlayerSort.NAME).map { it.player.id })
     }
 
     // By position: goalkeeper to striker, as the call-up; no position last, whatever the rating.

@@ -18,7 +18,7 @@ fun ratingBand(rating: Int): RatingBand = when {
     else -> RatingBand.TOP
 }
 
-/** The team sheet: by shirt number (players without one last), then name. The read view's Number order. */
+/** The team sheet: by shirt number (players without one last), then name. The read view's tie-break on equal ratings. */
 fun teamSheetOrder(rows: List<MatchPlayerStatsWithPlayer>): List<MatchPlayerStatsWithPlayer> =
     rows.sortedWith(
         compareBy<MatchPlayerStatsWithPlayer>({ it.player.shirtNumber ?: Int.MAX_VALUE }, { it.player.lastName.lowercase() }, { it.player.firstName.lowercase() })
@@ -48,18 +48,18 @@ fun nextUnrated(orderedIds: List<String>, ratings: Map<String, Int?>, current: S
     return null
 }
 
-enum class ReportPlayerSort { RATING, POSITION, NUMBER }
+enum class ReportPlayerSort { RATING, POSITION, NAME }
 
 /**
  * Read-view ordering (design 25d). By ranking: high to low, ties by shirt number, unrated last. By
- * position: goalkeeper to striker, as the call-up (no position last). By number: the team sheet.
+ * position: goalkeeper to striker, as the call-up (no position last). By name: first name, then surname.
  */
 fun readOrder(
     rows: List<MatchPlayerStatsWithPlayer>,
     ratings: Map<String, Int?>,
     sort: ReportPlayerSort
 ): List<MatchPlayerStatsWithPlayer> = when (sort) {
-    ReportPlayerSort.NUMBER -> teamSheetOrder(rows)
+    ReportPlayerSort.NAME -> ratingOrder(rows, CallUpSort.NAME)
     ReportPlayerSort.POSITION -> ratingOrder(rows, CallUpSort.POSITION)
     ReportPlayerSort.RATING -> teamSheetOrder(rows).sortedWith(
         compareBy<MatchPlayerStatsWithPlayer> { ratings[it.player.id] == null }

@@ -200,5 +200,5 @@ private fun TeamAverageCard(average: Double?) {
 private fun ReportPlayerSort.labelRes(): StringResource = when (this) {
     ReportPlayerSort.RATING -> Res.string.record_leaders_rating
     ReportPlayerSort.POSITION -> Res.string.label_position_field
-    ReportPlayerSort.NUMBER -> Res.string.label_shirt_number
+    ReportPlayerSort.NAME -> Res.string.label_sort_name
 }
