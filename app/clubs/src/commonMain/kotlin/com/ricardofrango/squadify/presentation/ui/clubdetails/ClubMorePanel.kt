@@ -1,5 +1,10 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.WindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.theme.OnChromeAccent
@@ -280,7 +285,8 @@ private fun LandscapeLayout(
     // 37g: the account block becomes a 300dp dark column; the groups sit in at most two columns,
     // 560dp wide at most, so rows never stretch across the screen.
     Row(Modifier.fillMaxSize()) {
-        Column(Modifier.width(300.dp).fillMaxHeight().background(ClubChrome)) {
+        // Its colour to the edge, its content clear of the camera cutout on that side.
+        Column(Modifier.width(300.dp).fillMaxHeight().background(ClubChrome).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start))) {
             AccountBlock(account, viewer, onOpenAccount, onClose)
             Spacer(Modifier.weight(1f))
             Version(account, onDark = true)
@@ -288,7 +294,9 @@ private fun LandscapeLayout(
         val create = groups.firstOrNull { it.label == Res.string.more_group_create }
         val rest = groups.filter { it != create }
         Row(
-            Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()).statusBarsPadding().padding(16.dp),
+            // Clear of the status bar, the navigation bar on the far side and, lying down, the camera cutout.
+            Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState())
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.End)).padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Column(Modifier.widthIn(max = 280.dp).weight(1f, fill = false)) { rest.forEach { GroupSection(it, onClose, onLogOut) } }

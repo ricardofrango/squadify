@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.WindowInsetsSides
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.isWide
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
@@ -168,7 +171,9 @@ private fun CreateSessionsContent(
 ) {
     val preview = state.preview
     Scaffold(
-        contentWindowInsets = ScreenWindowInsets,
+        // Top and bottom only: the action bar is in the content, so its white must reach the sides; the
+        // content and the bar keep clear of the camera cutout themselves (safeSidesPadding).
+        contentWindowInsets = ScreenWindowInsets.only(WindowInsetsSides.Vertical),
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
@@ -186,7 +191,7 @@ private fun CreateSessionsContent(
         }
         Column(modifier) {
             if (preview == null) {
-                BoxWithConstraints(Modifier.weight(1f)) {
+                BoxWithConstraints(Modifier.weight(1f).safeSidesPadding()) {
                     val wide = isWide
                     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding()) {
                         EditorColumns(
@@ -207,7 +212,7 @@ private fun CreateSessionsContent(
                     )
                 }
             } else {
-                PreviewList(preview, state.form, Modifier.weight(1f))
+                PreviewList(preview, state.form, Modifier.weight(1f).safeSidesPadding())
                 FormErrorLine(state.error)
                 BottomBar {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -246,7 +251,7 @@ private fun CreateSessionsContent(
 @Composable
 private fun BottomBar(content: @Composable () -> Unit) {
     Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 14.dp)) { content() }
+        Column(Modifier.safeSidesPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 14.dp)) { content() }
     }
 }
 

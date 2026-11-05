@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.WindowInsetsSides
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.isWide
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
@@ -65,7 +68,9 @@ fun PlanEditorFrame(
         onBackCompleted = { askDiscard = true }
     )
     Scaffold(
-        contentWindowInsets = ScreenWindowInsets,
+        // Top and bottom only: the action bar is in the content, so its white must reach the sides; the
+        // content and the bar keep clear of the camera cutout themselves (safeSidesPadding).
+        contentWindowInsets = ScreenWindowInsets.only(WindowInsetsSides.Vertical),
         containerColor = ScreenBackground,
         topBar = { SquadifyTopBar(title = title, subtitle = subtitle, onNavigateBack = leave) }
     ) { padding ->
@@ -76,7 +81,7 @@ fun PlanEditorFrame(
         }
         Column(modifier) {
             contextStrip()
-            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().safeSidesPadding()) {
                 val wide = isWide
                 // The error line sits inside the scroll, so its space scrolls with the form instead of
                 // staying fixed above Save.
@@ -86,7 +91,7 @@ fun PlanEditorFrame(
                 }
             }
             Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
-                Box(Modifier.padding(horizontal = 20.dp, vertical = 14.dp), contentAlignment = Alignment.CenterEnd) {
+                Box(Modifier.safeSidesPadding().padding(horizontal = 20.dp, vertical = 14.dp), contentAlignment = Alignment.CenterEnd) {
                     PrimaryLoadingButton(
                         text = saveText,
                         submittingText = stringResource(Res.string.btn_saving_changes),

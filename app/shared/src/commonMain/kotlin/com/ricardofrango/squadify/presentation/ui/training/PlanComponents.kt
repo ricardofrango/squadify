@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -149,7 +150,8 @@ fun PlanStatusChip(planned: Boolean) {
 @Composable
 fun ContextStrip(overline: String, title: String?, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit = {}) {
     Column(
-        modifier.fillMaxWidth().background(DeepCarbon).padding(horizontal = 20.dp, vertical = 14.dp)
+        // Its colour to the edges, its text clear of the camera cutout lying down.
+        modifier.fillMaxWidth().background(DeepCarbon).safeSidesPadding().padding(horizontal = 20.dp, vertical = 14.dp)
     ) {
         Text(overline.uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = Color.White.copy(alpha = 0.6f))
         if (title != null) {

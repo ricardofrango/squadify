@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.WindowInsetsSides
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
@@ -147,7 +150,9 @@ private fun ExerciseLibraryContent(
     val form = state.form
     val ageGroupName = session?.ageGroup?.name.orEmpty()
     Scaffold(
-        contentWindowInsets = ScreenWindowInsets,
+        // Top and bottom only: the action bar is in the content, so its white must reach the sides; the
+        // content and the bar keep clear of the camera cutout themselves (safeSidesPadding).
+        contentWindowInsets = ScreenWindowInsets.only(WindowInsetsSides.Vertical),
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
@@ -179,16 +184,16 @@ private fun ExerciseLibraryContent(
         }
         Column(modifier) {
             if (form != null) {
-                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).safeSidesPadding().screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     state.editing?.let { Text(stringResource(Res.string.msg_used_in_sessions, it.usedCount), style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText) }
                     ExerciseFormFields(form, !state.saving, onFormChange)
                 }
             } else {
-                LibraryList(state, onQueryChange, onToggle, onEdit, Modifier.weight(1f))
+                LibraryList(state, onQueryChange, onToggle, onEdit, Modifier.weight(1f).safeSidesPadding())
             }
             FormErrorLine(state.error)
             Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 14.dp), horizontalAlignment = Alignment.End) {
+                Column(Modifier.safeSidesPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 14.dp), horizontalAlignment = Alignment.End) {
                     if (form != null) {
                         PrimaryLoadingButton(
                             text = stringResource(if (state.editing != null) Res.string.btn_save_changes else Res.string.btn_save_and_add),
