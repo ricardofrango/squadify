@@ -230,9 +230,10 @@ private fun FullStatsContent(
                                 onExplain = { sheet = FullStatsSheet.EXPLAIN },
                                 onLongPress = showColumnName,
                                 onOpenPlayer = onOpenPlayer,
-                                // A white section on the grey, like every screen's content.
+                                // A white section on the grey, like every screen's content. As tall as its
+                                // rows, up to the space left, past which the rows scroll.
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .weight(1f, fill = false)
                                     .padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = if (landscape) ScreenPadding.Top else 0.dp, bottom = ScreenPadding.Bottom)
                                     .clip(SectionShape)
                                     .border(SectionBorder, SectionShape)
@@ -467,7 +468,7 @@ private fun StatsTable(
         HorizontalDivider(color = Hairline)
         // No podium when sorted by name.
         val tintedTop = if (sort == null) 0 else rows.take(3).count { (it.value(sort) ?: 0.0) > 0.0 }
-        Row(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+        Row(Modifier.weight(1f, fill = false).fillMaxWidth().verticalScroll(rememberScrollState())) {
             Column(Modifier.width(PlayerColumnWidth).rightHairline()) {
                 rows.forEachIndexed { i, row -> PlayerCell(row.player, rowTint(i, tintedTop)) { onOpenPlayer(row.player.id) } }
             }
