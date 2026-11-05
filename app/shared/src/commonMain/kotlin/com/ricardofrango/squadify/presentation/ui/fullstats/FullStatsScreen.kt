@@ -3,7 +3,6 @@ package com.ricardofrango.squadify.presentation.ui.fullstats
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import com.ricardofrango.squadify.presentation.ui.components.squadifyDatePickerColors
-import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
 import androidx.compose.ui.draw.clip
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.components.RatingInfoButton
@@ -56,7 +55,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -70,6 +72,7 @@ import com.ricardofrango.squadify.model.FullStatsRow
 import com.ricardofrango.squadify.model.FullStatsTeam
 import com.ricardofrango.squadify.model.FullStatsTraining
 import com.ricardofrango.squadify.model.MatchType
+import com.ricardofrango.squadify.model.PlayerPosition
 import com.ricardofrango.squadify.model.StatsFilter
 import com.ricardofrango.squadify.model.TeamSeasonPlayer
 import com.ricardofrango.squadify.model.TrainingRating
@@ -80,7 +83,6 @@ import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.PersonPlaceholder
 import com.ricardofrango.squadify.presentation.ui.components.RatingPill
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
-import com.ricardofrango.squadify.presentation.ui.components.StatsFilterSegments
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.components.twoDecimals
@@ -135,6 +137,7 @@ fun FullStatsScreen(
             onCustomRange = viewModel::onCustomRange,
             onTypeSelected = viewModel::onTypeSelected,
             onTeamSelected = viewModel::onTeamSelected,
+            onPositionSelected = viewModel::onPositionSelected,
             onSort = viewModel::onSort,
             onToggleColumn = viewModel::onToggleColumn,
             onOpenPlayer = { playerId -> (state as? FullStatsUiState.Loaded)?.let { onOpenPlayer(playerId, it.data.seasonId) } }
@@ -142,7 +145,7 @@ fun FullStatsScreen(
     }
 }
 
-internal enum class FullStatsSheet { NONE, COLUMNS, PERIOD, CUSTOM, EXPLAIN }
+internal enum class FullStatsSheet { NONE, COLUMNS, PERIOD, CUSTOM, TYPE, TEAM, POSITION, EXPLAIN }
 
 @Composable
 private fun FullStatsContent(
@@ -153,6 +156,7 @@ private fun FullStatsContent(
     onCustomRange: (LocalDate, LocalDate) -> Unit,
     onTypeSelected: (StatsFilter) -> Unit,
     onTeamSelected: (String?) -> Unit,
+    onPositionSelected: (PlayerPosition?) -> Unit,
     onSort: (FullStatsColumn?) -> Unit,
     onToggleColumn: (FullStatsColumn) -> Unit,
     onOpenPlayer: (String) -> Unit,
@@ -208,7 +212,7 @@ private fun FullStatsContent(
                 val table = remember(state.data, state.query) { state.data.table(state.query) }
                 val rows = remember(table, state.sort, state.descending) { table.rows.sortedBy(state.sort, state.descending) }
                 val filters = @Composable { m: Modifier ->
-                    Filters(state, onOpenPeriod = { sheet = FullStatsSheet.PERIOD }, onTypeSelected, onTeamSelected, stacked = landscape, modifier = m)
+                    Filters(state, onOpen = { sheet = it }, stacked = landscape, modifier = m)
                 }
                 val body = @Composable { m: Modifier ->
                     Column(m) {
@@ -229,9 +233,10 @@ private fun FullStatsContent(
                                 onExplain = { sheet = FullStatsSheet.EXPLAIN },
                                 onLongPress = showColumnName,
                                 onOpenPlayer = onOpenPlayer,
-                                // A white section on the grey, like every screen's content.
+                                // A white section on the grey, like every screen's content. As tall as its
+                                // rows, up to the space left, past which the rows scroll.
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .weight(1f, fill = false)
                                     .padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = if (landscape) ScreenPadding.Top else 0.dp, bottom = ScreenPadding.Bottom)
                                     .clip(SectionShape)
                                     .border(SectionBorder, SectionShape)
@@ -242,7 +247,7 @@ private fun FullStatsContent(
                 }
                 if (landscape) {
                     Row(Modifier.fillMaxSize()) {
-                        filters(Modifier.width(260.dp).fillMaxHeight().verticalScroll(rememberScrollState()).rightHairline())
+                        filters(Modifier.width(260.dp).fillMaxHeight().verticalScroll(rememberScrollState()).rightHairline().padding(16.dp))
                         body(Modifier.weight(1f).fillMaxHeight())
                     }
                 } else {
@@ -259,8 +264,11 @@ private fun FullStatsContent(
         val close = { sheet = FullStatsSheet.NONE }
         when (sheet) {
             FullStatsSheet.COLUMNS -> ColumnsSheet(loaded, onToggleColumn, close)
-            FullStatsSheet.PERIOD -> PeriodSheet(
+            FullStatsSheet.PERIOD -> OptionsSheet(
+                title = stringResource(Res.string.fs_period),
+                options = StatsPeriod.entries,
                 selected = loaded.period,
+                label = { stringResource(it.labelRes()) },
                 onSelected = { period ->
                     if (period == StatsPeriod.CUSTOM) sheet = FullStatsSheet.CUSTOM else {
                         onPeriodSelected(period)
@@ -277,6 +285,39 @@ private fun FullStatsContent(
                 },
                 onDismiss = close
             )
+            FullStatsSheet.TYPE -> OptionsSheet(
+                title = stringResource(Res.string.fs_type),
+                options = StatsFilter.entries,
+                selected = loaded.type,
+                label = { typeLabel(it) },
+                onSelected = {
+                    onTypeSelected(it)
+                    close()
+                },
+                onDismiss = close
+            )
+            FullStatsSheet.TEAM -> OptionsSheet(
+                title = stringResource(Res.string.fs_team),
+                options = listOf<String?>(null) + loaded.data.teams.map { it.id },
+                selected = loaded.teamId,
+                label = { teamLabel(loaded, it) },
+                onSelected = {
+                    onTeamSelected(it)
+                    close()
+                },
+                onDismiss = close
+            )
+            FullStatsSheet.POSITION -> OptionsSheet(
+                title = stringResource(Res.string.fs_col_position),
+                options = listOf<PlayerPosition?>(null) + PlayerPosition.entries,
+                selected = loaded.position,
+                label = { positionLabel(it) },
+                onSelected = {
+                    onPositionSelected(it)
+                    close()
+                },
+                onDismiss = close
+            )
             FullStatsSheet.EXPLAIN -> ExplainSheet(close)
             FullStatsSheet.NONE -> Unit
         }
@@ -285,65 +326,58 @@ private fun FullStatsContent(
 
 // ---- Filters ----
 
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * One chip per filter, each opening its sheet: the period, the match type, the team (when the age group
+ * has teams) and the position. A row that scrolls sideways, edge to edge; one under the other in landscape's side panel.
+ */
 @Composable
 private fun Filters(
     state: FullStatsUiState.Loaded,
-    onOpenPeriod: () -> Unit,
-    onTypeSelected: (StatsFilter) -> Unit,
-    onTeamSelected: (String?) -> Unit,
-    // Landscape's side panel: the period and season chips one under the other, full width.
+    onOpen: (FullStatsSheet) -> Unit,
     stacked: Boolean,
     modifier: Modifier
 ) {
-    Column(modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            itemVerticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                onClick = onOpenPeriod,
-                shape = RoundedCornerShape(18.dp),
-                color = ClubChrome,
-                modifier = if (stacked) Modifier.fillMaxWidth() else Modifier
-            ) {
-                Row(Modifier.height(36.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    CalendarIcon(Color.White)
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        rangeLabel(state),
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+    val chips = @Composable { chipModifier: Modifier ->
+        FilterSheetChip(rangeLabel(state), { onOpen(FullStatsSheet.PERIOD) }, chipModifier, icon = { CalendarIcon(Color.White) })
+        FilterSheetChip(typeLabel(state.type), { onOpen(FullStatsSheet.TYPE) }, chipModifier)
+        if (state.data.teams.isNotEmpty()) FilterSheetChip(teamLabel(state, state.teamId), { onOpen(FullStatsSheet.TEAM) }, chipModifier)
+        FilterSheetChip(positionLabel(state.position), { onOpen(FullStatsSheet.POSITION) }, chipModifier)
+    }
+    if (stacked) {
+        Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) { chips(Modifier.fillMaxWidth()) }
+    } else {
+        Row(
+            modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) { chips(Modifier) }
+    }
+}
+
+@Composable
+private fun FilterSheetChip(text: String, onClick: () -> Unit, modifier: Modifier, icon: (@Composable () -> Unit)? = null) {
+    Surface(onClick = onClick, shape = RoundedCornerShape(18.dp), color = ClubChrome, modifier = modifier) {
+        Row(Modifier.height(36.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                icon()
+                Spacer(Modifier.width(6.dp))
             }
-            // A team and an age group belong to one season, so it's shown, not picked.
-            Surface(shape = RoundedCornerShape(18.dp), color = Color.White, border = BorderStroke(1.dp, CarbonGray.copy(alpha = 0.2f))) {
-                Text(
-                    state.data.seasonName,
-                    modifier = Modifier.height(36.dp).wrapContentHeight(Alignment.CenterVertically).padding(horizontal = 12.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = DeepCarbon
-                )
-            }
-        }
-        StatsFilterSegments(state.type, onTypeSelected, bottomSpacing = 0.dp)
-        // The same chips from a team or from its age group: the age group (by its name), then each team.
-        if (state.data.teams.isNotEmpty()) {
-            val teamNames = state.data.teams.associate { it.id to it.name }
-            SegmentedFilter(
-                options = listOf<String?>(null) + state.data.teams.map { it.id },
-                selected = state.teamId,
-                label = { id -> id?.let { teamNames[it] } ?: state.data.title },
-                onSelect = onTeamSelected,
-                shorten = false
-            )
+            Text(text, color = Color.White, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
+
+/** "All games", or the type alone ("Official"). */
+@Composable
+private fun typeLabel(type: StatsFilter): String =
+    if (type == StatsFilter.ALL) stringResource(Res.string.fs_type_all) else stringResource(type.labelRes())
+
+/** The age group by its name, or one of its teams. */
+private fun teamLabel(state: FullStatsUiState.Loaded, teamId: String?): String =
+    teamId?.let { id -> state.data.teams.firstOrNull { it.id == id }?.name } ?: state.data.title
+
+@Composable
+private fun positionLabel(position: PlayerPosition?): String =
+    position?.let { stringResource(it.labelRes()) } ?: stringResource(Res.string.fs_position_all)
 
 /** "Whole season", or "19 Oct – Today". */
 @Composable
@@ -357,7 +391,12 @@ private fun rangeLabel(state: FullStatsUiState.Loaded): String {
 
 // ---- Table ----
 
-private val PlayerColumnWidth = 136.dp
+// The player column is as wide as its longest name line, between these: never wider than it was with
+// the name on one line, so the stats get the room the second line frees.
+private val PlayerColumnMinWidth = 96.dp
+private val PlayerColumnMaxWidth = 136.dp
+// The photo (28), the gap after it (8) and the cell's side padding (10 + 10).
+private val PlayerCellChrome = 56.dp
 private val HeaderHeight = 44.dp
 private val RowHeight = 48.dp
 private val TopRowTint = Color(0xFFF1F8F2)
@@ -427,9 +466,20 @@ private fun StatsTable(
     modifier: Modifier
 ) {
     val horizontal = rememberScrollState()
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val nameStyle = NameStyle
+    val headerStyle = HeaderStyle
+    val header = stringResource(Res.string.fs_player) + " ↓"
+    val playerColumnWidth = remember(rows, header, density) {
+        val names = rows.flatMap { splitName(it.player.name).toList().filterNotNull() }
+        val widest = names.maxOfOrNull { measurer.measure(it, nameStyle).size.width } ?: 0
+        val headerWidth = measurer.measure(header, headerStyle).size.width
+        with(density) { maxOf(widest.toDp() + PlayerCellChrome, headerWidth.toDp() + 20.dp) }.coerceIn(PlayerColumnMinWidth, PlayerColumnMaxWidth)
+    }
     Column(modifier.fillMaxWidth()) {
         Row(Modifier.height(HeaderHeight).fillMaxWidth()) {
-            PlayerHeaderCell(sorted = sort == null, descending = descending, onClick = { onSort(null) }, onLongPress = onLongPress)
+            PlayerHeaderCell(playerColumnWidth, sorted = sort == null, descending = descending, onClick = { onSort(null) }, onLongPress = onLongPress)
             Row(Modifier.weight(1f).fillMaxHeight().horizontalScroll(horizontal)) {
                 columns.forEach { column -> HeaderCell(column, sorted = column == sort, descending, onClick = { onSort(column) }, onLongPress = onLongPress, onExplain = onExplain) }
             }
@@ -437,8 +487,8 @@ private fun StatsTable(
         HorizontalDivider(color = Hairline)
         // No podium when sorted by name.
         val tintedTop = if (sort == null) 0 else rows.take(3).count { (it.value(sort) ?: 0.0) > 0.0 }
-        Row(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
-            Column(Modifier.width(PlayerColumnWidth).rightHairline()) {
+        Row(Modifier.weight(1f, fill = false).fillMaxWidth().verticalScroll(rememberScrollState())) {
+            Column(Modifier.width(playerColumnWidth).rightHairline()) {
                 rows.forEachIndexed { i, row -> PlayerCell(row.player, rowTint(i, tintedTop)) { onOpenPlayer(row.player.id) } }
             }
             Column(Modifier.weight(1f).horizontalScroll(horizontal)) {
@@ -469,15 +519,24 @@ private fun ColumnNameToast(message: String) {
     }
 }
 
+private val NameStyle @Composable get() = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, lineHeight = 15.sp)
+
+/** "Rodrigo Costa" as "Rodrigo" and "Costa" (the server's name is first name, then surname); one word, no surname. */
+internal fun splitName(name: String): Pair<String, String?> {
+    val trimmed = name.trim()
+    val space = trimmed.indexOf(' ')
+    return if (space < 0) trimmed to null else trimmed.substring(0, space) to trimmed.substring(space + 1).trim()
+}
+
 private val HeaderStyle @Composable get() = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp, lineHeight = 13.sp)
 
 @Composable
-private fun PlayerHeaderCell(sorted: Boolean, descending: Boolean, onClick: () -> Unit, onLongPress: (String) -> Unit) {
+private fun PlayerHeaderCell(width: Dp, sorted: Boolean, descending: Boolean, onClick: () -> Unit, onLongPress: (String) -> Unit) {
     val name = stringResource(Res.string.fs_player)
     val color = if (sorted) PitchGreen else DeepCarbon.copy(alpha = 0.75f)
     Row(
         Modifier
-            .width(PlayerColumnWidth)
+            .width(width)
             .fillMaxHeight()
             .rightHairline()
             .semantics { contentDescription = name; role = Role.Button }
@@ -526,17 +585,12 @@ private fun PlayerCell(player: TeamSeasonPlayer, tint: Color, onClick: () -> Uni
         player.photoUrl?.let { PersonPhoto(it, initialsOf(player.name, ""), 28.dp, CarbonGray.copy(alpha = 0.08f), DeepCarbon) }
             ?: PersonPlaceholder(28.dp, DeepCarbon.copy(alpha = 0.3f))
         Spacer(Modifier.width(8.dp))
+        // The first name on one line and the surname under it, as in a match's Stats; no shirt number,
+        // to leave the stats the room.
+        val (first, surname) = splitName(player.name)
         Column(Modifier.weight(1f)) {
-            player.shirtNumber?.let {
-                Text("#$it", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp, lineHeight = 12.sp), color = StatsSecondaryText)
-            }
-            Text(
-                player.name,
-                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp),
-                color = DeepCarbon,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Text(first, style = NameStyle, color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            surname?.let { Text(it, style = NameStyle, color = DeepCarbon, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
     }
 }
@@ -624,7 +678,11 @@ private fun SheetButton(text: String, onClick: () -> Unit, modifier: Modifier = 
 private fun ColumnsSheet(state: FullStatsUiState.Loaded, onToggle: (FullStatsColumn) -> Unit, onDismiss: () -> Unit) {
     FullStatsSheetFrame(onDismiss, stringResource(Res.string.fs_columns_title)) {
         Text(stringResource(Res.string.fs_columns_note), style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
-        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+        // The list is held to a bit over half the window and scrolls inside it. Left to its full 15 rows it
+        // made the sheet taller than a phone: it opened to the very top, with an empty band under the
+        // status bar, and a drag down first moved that oversized sheet before it started to close.
+        val windowHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
+        Column(Modifier.heightIn(max = windowHeight * 0.55f).verticalScroll(rememberScrollState())) {
             FullStatsColumn.entries.filter { !it.rating || state.data.canSeeRatings }.forEach { column ->
                 val shown = column !in state.hidden
                 Row(
@@ -645,17 +703,18 @@ private fun ColumnsSheet(state: FullStatsUiState.Loaded, onToggle: (FullStatsCol
     }
 }
 
+/** A filter's choices, the selected one marked with a green dot; picking one applies it. */
 @Composable
-private fun PeriodSheet(selected: StatsPeriod, onSelected: (StatsPeriod) -> Unit, onDismiss: () -> Unit) {
-    FullStatsSheetFrame(onDismiss, stringResource(Res.string.fs_period)) {
+private fun <T> OptionsSheet(title: String, options: List<T>, selected: T, label: @Composable (T) -> String, onSelected: (T) -> Unit, onDismiss: () -> Unit) {
+    FullStatsSheetFrame(onDismiss, title) {
         Spacer(Modifier.height(8.dp))
-        StatsPeriod.entries.forEach { period ->
+        options.forEach { option ->
             Row(
-                Modifier.fillMaxWidth().height(52.dp).clickable { onSelected(period) },
+                Modifier.fillMaxWidth().height(52.dp).clickable { onSelected(option) },
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(stringResource(period.labelRes()), style = MaterialTheme.typography.bodyLarge, color = DeepCarbon, modifier = Modifier.weight(1f))
-                if (period == selected) Box(Modifier.size(10.dp).background(PitchGreen, CircleShape))
+                Text(label(option), style = MaterialTheme.typography.bodyLarge, color = DeepCarbon, modifier = Modifier.weight(1f))
+                if (option == selected) Box(Modifier.size(10.dp).background(PitchGreen, CircleShape))
             }
         }
     }
@@ -817,7 +876,7 @@ internal fun previewLoaded(
     teamId: String? = "A"
 ) =
     FullStatsUiState.Loaded(
-        data = data, period = period, customFrom = null, customTo = null, type = StatsFilter.ALL, teamId = teamId,
+        data = data, period = period, customFrom = null, customTo = null, type = StatsFilter.ALL, teamId = teamId, position = null,
         sort = if (data.canSeeRatings) FullStatsColumn.FINAL_RATING else FullStatsColumn.GOALS, descending = true,
         hidden = hidden, today = LocalDate(2026, 10, 24)
     )
@@ -825,7 +884,7 @@ internal fun previewLoaded(
 @Composable
 internal fun PreviewFullStats(state: FullStatsUiState, sheet: FullStatsSheet = FullStatsSheet.NONE) {
     SquadifyTheme {
-        FullStatsContent(state, {}, {}, {}, { _, _ -> }, {}, {}, {}, {}, {}, initialSheet = sheet)
+        FullStatsContent(state, {}, {}, {}, { _, _ -> }, {}, {}, {}, {}, {}, {}, initialSheet = sheet)
     }
 }
 

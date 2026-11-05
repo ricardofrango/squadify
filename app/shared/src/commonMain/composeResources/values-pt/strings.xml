@@ -1507,6 +1507,10 @@
     <string name="fs_columns_note">O jogador está sempre visível.</string>
     <string name="fs_done">Concluído</string>
     <string name="fs_period">Período</string>
+    <string name="fs_type">Tipo de jogo</string>
+    <string name="fs_type_all">Todos os jogos</string>
+    <string name="fs_team">Equipa</string>
+    <string name="fs_position_all">Todas as posições</string>
     <string name="fs_period_week">Esta semana</string>
     <string name="fs_period_7_days">Últimos 7 dias</string>
     <string name="fs_period_month">Este mês</string>

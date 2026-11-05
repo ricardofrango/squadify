@@ -85,6 +85,19 @@ class FullStatsTest {
     }
 
     @Test
+    fun aPositionOnlyListsThePlayersInIt() {
+        val positioned = data().copy(players = listOf(rodrigo.copy(position = PlayerPosition.STRIKER), tomas.copy(position = PlayerPosition.DEFENDER), afonso))
+        assertEquals(listOf("p1"), positioned.table(FullStatsQuery(position = PlayerPosition.STRIKER), utc).rows.map { it.player.id })
+        // A player without a position only shows with every position.
+        assertTrue(positioned.table(FullStatsQuery(position = PlayerPosition.GOALKEEPER), utc).rows.isEmpty())
+        assertEquals(3, positioned.table(FullStatsQuery(), utc).rows.size)
+        // Combined with the team: B's players (p2, p3) who are defenders.
+        assertEquals(listOf("p2"), positioned.table(FullStatsQuery(teamId = "B", position = PlayerPosition.DEFENDER), utc).rows.map { it.player.id })
+        // The games and trainings in the period don't depend on the position.
+        assertEquals(3, positioned.table(FullStatsQuery(position = PlayerPosition.GOALKEEPER), utc).games)
+    }
+
+    @Test
     fun aTeamOnlyListsThePlayersWhoPlayedForIt() {
         // Team A selected (as when entering from it): p2 was only an unused sub for A, p3 only played for B.
         val team = data().table(FullStatsQuery(teamId = "A"), utc)

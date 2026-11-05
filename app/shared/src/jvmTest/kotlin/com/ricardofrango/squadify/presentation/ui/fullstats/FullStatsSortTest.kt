@@ -31,4 +31,12 @@ class FullStatsSortTest {
     fun rankingsShowTwoDecimals() {
         assertEquals(listOf("8.90", "7.67", "10.00", "0.05"), listOf(8.9, 7.666, 10.0, 0.049).map { it.twoDecimals() })
     }
+
+    // The first name over the surname; a compound surname stays together, one word has no second line.
+    @Test
+    fun theNameSplitsIntoFirstNameAndSurname() {
+        assertEquals("Rodrigo" to "Costa", splitName("Rodrigo Costa"))
+        assertEquals("Tomás" to "Silva Pereira", splitName(" Tomás  Silva Pereira "))
+        assertEquals("Afonso" to null, splitName("Afonso"))
+    }
 }

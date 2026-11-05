@@ -8,6 +8,7 @@ import com.ricardofrango.squadify.domain.usecase.GetFullStatsUseCase
 import com.ricardofrango.squadify.model.FullStatsColumn
 import com.ricardofrango.squadify.model.FullStatsData
 import com.ricardofrango.squadify.model.FullStatsQuery
+import com.ricardofrango.squadify.model.PlayerPosition
 import com.ricardofrango.squadify.model.StatsFilter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -57,6 +58,8 @@ sealed class FullStatsUiState {
         val type: StatsFilter,
         // The team filter; null = the whole age group. Entering from a team preselects it.
         val teamId: String?,
+        // The position filter; null = every player.
+        val position: PlayerPosition?,
         // null = by the player's name.
         val sort: FullStatsColumn?,
         val descending: Boolean,
@@ -64,7 +67,7 @@ sealed class FullStatsUiState {
         val today: LocalDate
     ) : FullStatsUiState() {
         val query: FullStatsQuery
-            get() = period.range(today, customFrom, customTo).let { (from, to) -> FullStatsQuery(from, to, type, teamId) }
+            get() = period.range(today, customFrom, customTo).let { (from, to) -> FullStatsQuery(from, to, type, teamId, position) }
 
         /** The stat columns shown: not hidden, and the rankings only for staff. */
         val columns: List<FullStatsColumn>
@@ -74,7 +77,7 @@ sealed class FullStatsUiState {
 
 /**
  * The Full stats screen: one table of every player's stats for a team or an age group. The data is
- * loaded once; the period, match type, team, sort and columns are all applied client-side
+ * loaded once; the period, match type, team, position, sort and columns are all applied client-side
  * ([com.ricardofrango.squadify.model.table]). The hidden columns are remembered on the device.
  */
 class FullStatsViewModel(
@@ -104,6 +107,7 @@ class FullStatsViewModel(
                         customTo = null,
                         type = StatsFilter.ALL,
                         teamId = teamId,
+                        position = null,
                         // Staff open on the final ranking, the screen's point; everyone else on goals.
                         sort = if (data.canSeeRatings) FullStatsColumn.FINAL_RATING else FullStatsColumn.GOALS,
                         descending = true,
@@ -124,6 +128,8 @@ class FullStatsViewModel(
     fun onTypeSelected(type: StatsFilter) = updateLoaded { it.copy(type = type) }
 
     fun onTeamSelected(teamId: String?) = updateLoaded { it.copy(teamId = teamId) }
+
+    fun onPositionSelected(position: PlayerPosition?) = updateLoaded { it.copy(position = position) }
 
     /**
      * The same column again flips the direction; a new stat column starts highest first, the player
