@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.account
 
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
@@ -170,7 +171,7 @@ private fun AccountContent(
         contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = {
-            Column(Modifier.background(ClubChrome)) {
+            Column(Modifier.background(ClubChrome).safeSidesPadding()) {
                 SquadifyTopBar(
                     title = stringResource(Res.string.title_account),
                     subtitle = idle?.let {

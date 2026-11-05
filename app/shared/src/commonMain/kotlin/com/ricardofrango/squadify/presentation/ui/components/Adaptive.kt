@@ -99,3 +99,11 @@ fun Modifier.safeTopPadding(): Modifier =
 @Composable
 fun Modifier.safeBottomPadding(): Modifier =
     windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
+
+/**
+ * For a row added under the top bar (a status band, a strip): only the sides, so it lines up with the
+ * bar's title and keeps clear of the camera cutout lying down.
+ */
+@Composable
+fun Modifier.safeSidesPadding(): Modifier =
+    windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))

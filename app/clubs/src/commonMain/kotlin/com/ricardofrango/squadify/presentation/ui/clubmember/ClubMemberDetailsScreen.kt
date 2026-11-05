@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubmember
 
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.theme.OnChromeAccent
@@ -232,7 +233,7 @@ private fun ClubMemberDetailsContent(
         containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            Column(Modifier.background(ClubChrome)) {
+            Column(Modifier.background(ClubChrome).safeSidesPadding()) {
                 SquadifyTopBar(title = stringResource(Res.string.member_title), onNavigateBack = onNavigateBack)
                 when (state) {
                     is ClubMemberDetailsUiState.Member -> MemberHeader(state)

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.besideRail
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
@@ -293,7 +294,7 @@ private fun AgeGroupDetailsContent(
                 containerColor = ScreenBackground,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 topBar = {
-                    Column(Modifier.background(ClubChrome)) {
+                    Column(Modifier.background(ClubChrome).safeSidesPadding()) {
                         SquadifyTopBar(
                             title = details?.ageGroup?.name ?: stringResource(Res.string.tab_age_groups),
                             subtitle = details?.let { stringResource(Res.string.ag_born, bornLabel(it.ageGroup), it.season.name) },

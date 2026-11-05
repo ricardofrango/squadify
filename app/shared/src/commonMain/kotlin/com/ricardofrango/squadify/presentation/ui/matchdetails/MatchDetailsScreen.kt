@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.safeBottomPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.besideRail
@@ -222,7 +223,7 @@ private fun MatchDetailsContent(
         containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            Column(Modifier.background(ClubChrome)) {
+            Column(Modifier.background(ClubChrome).safeSidesPadding()) {
                 // The teams and the score are the band below; the bar says when and what kind of game.
                 SquadifyTopBar(
                     // Played: no band, leaving the tabs more room; the result is the General tab's first card.

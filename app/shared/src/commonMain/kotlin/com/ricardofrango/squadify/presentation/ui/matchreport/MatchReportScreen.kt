@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchreport
 
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.FullScreenMessage
 import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
@@ -208,7 +209,7 @@ private fun MatchReportContent(
                 }
             },
             topBar = {
-                Column(Modifier.background(ClubChrome)) {
+                Column(Modifier.background(ClubChrome).safeSidesPadding()) {
                     SquadifyTopBar(
                         // The no-permission screen drops the subtitle so it doesn't reveal the match (26f).
                         title = stringResource(Res.string.report_title),
