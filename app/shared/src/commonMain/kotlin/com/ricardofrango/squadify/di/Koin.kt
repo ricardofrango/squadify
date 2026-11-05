@@ -78,17 +78,22 @@ val dataModule = module {
             prettyPrint = true
             isLenient = true
         }
+        // Debug builds only: every request and response, headers and bodies included (the bearer token
+        // among them), is printed. A release build logs nothing.
+        val logHttp = get<AppConfig>().isDebug
         HttpClient {
             install(ContentNegotiation) {
                 json(json)
             }
-            install(Logging) {
-                logger = object : Logger {
-                    override fun log(message: String) {
-                        println("HTTP Client: $message")
+            if (logHttp) {
+                install(Logging) {
+                    logger = object : Logger {
+                        override fun log(message: String) {
+                            println("HTTP Client: $message")
+                        }
                     }
+                    level = LogLevel.ALL
                 }
-                level = LogLevel.ALL
             }
             install(HttpTimeout) {
                 requestTimeoutMillis = 15000
