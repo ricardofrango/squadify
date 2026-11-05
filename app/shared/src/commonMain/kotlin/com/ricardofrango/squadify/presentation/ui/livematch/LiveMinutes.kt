@@ -226,6 +226,13 @@ internal fun deriveSquad(details: MatchDetails, events: List<MatchEvent>, minute
 
 internal enum class BenchSort { FEWEST, SHIRT }
 
+/**
+ * The bench by the pitch, by position: goalkeeper, defenders, midfielders, wingers, strikers
+ * ([com.ricardofrango.squadify.model.PlayerPosition]'s order), then those without one; by shirt number within each.
+ */
+internal fun List<Player>.sortedByPosition(): List<Player> =
+    sortedWith(compareBy<Player>({ it.position?.ordinal ?: Int.MAX_VALUE }, { it.shirtNumber ?: Int.MAX_VALUE }, { it.firstName.lowercase() }))
+
 internal fun List<SquadPlayerRow>.sortedForBench(sort: BenchSort, minutes: SquadMinutes) = when (sort) {
     BenchSort.FEWEST -> sortedWith(compareBy<SquadPlayerRow> { minutes.minutes(it.player.id) }.thenBy { it.player.shirtNumber ?: Int.MAX_VALUE })
     BenchSort.SHIRT -> sortedBy { it.player.shirtNumber ?: Int.MAX_VALUE }

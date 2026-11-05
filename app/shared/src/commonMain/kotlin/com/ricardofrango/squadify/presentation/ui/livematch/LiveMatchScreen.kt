@@ -261,7 +261,7 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
     val playersById = remember(details.callUps) { details.callUps.associate { it.callUp.playerId to it.player } }
     val slotIds = details.storedSlots()
     val slots = slotIds.mapNotNull { (slot, id) -> playersById[id]?.let { slot to it } }.toMap()
-    val bench = details.callUps.map { it.player }.filter { it.id !in slotIds.values }
+    val bench = details.callUps.map { it.player }.filter { it.id !in slotIds.values }.sortedByPosition()
     val remaining = teamSize - slots.size
 
     var halfLength by rememberSaveable { mutableStateOf(30) }
@@ -647,7 +647,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
                 PitchPanel(
                     formation = formation,
                     slots = currentSlotIds.mapNotNull { (slot, id) -> playersById[id]?.let { slot to it } }.toMap(),
-                    bench = squad.bench.map { it.player },
+                    bench = squad.bench.map { it.player }.sortedByPosition(),
                     sentOff = squad.sentOff.map { it.player },
                     tokenInfo = { p -> PitchTokenInfo(minutesFraction = if (minutes.showShare) minutes.barFraction(p.id) else null, booked = rowsById[p.id]?.hasYellow == true) },
                     horizontal = sideBySide,
