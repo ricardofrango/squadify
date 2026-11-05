@@ -494,6 +494,15 @@ build-variant system offers:
     isn't known up front, the dev flavor has its own `src/dev/res/xml/network_security_config.xml` allowing
     cleartext; `src/main`'s (staging/prod) only allows it to `10.0.2.2`. After the IP changes, rebuild the
     dev app to pick up the new address.
+  - **Android 17's local network permission** (2026-11-05): an app targeting SDK 37 on Android 17 can't
+    reach the local network without the runtime permission `ACCESS_LOCAL_NETWORK` ("Nearby devices"). Without
+    it nothing fails loudly: every request to the LAN address hangs until the client's 15 s timeout, while the
+    same request from `adb shell curl` gets through. So each app's dev flavor declares it in its own
+    `src/dev/AndroidManifest.xml`; staging and production reach the server over the internet and don't ask
+    for it. It isn't requested in the app: after installing a dev build, grant it once in the phone's
+    settings (the app's Permissions → Nearby devices) or with
+    `adb shell pm grant com.ricardofrango.squadify.dev android.permission.ACCESS_LOCAL_NETWORK`
+    (`...squadify.coach.dev` for the coach app). An emulator reaching `10.0.2.2` is affected the same way.
 - **Desktop & Web** (`app/desktopApp`, `app/webApp`): no OS/toolchain-level build-variant system, so both
   use the same pattern instead -- a `generateSquadifyConfig` Gradle task writes a small
   `internal object SquadifyBuildConfig { const val BASE_URL = ...; const val IS_DEBUG = ... }` file based
