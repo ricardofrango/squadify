@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.coach.presentation.ui.home
 
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.WindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import androidx.compose.foundation.BorderStroke
@@ -180,7 +184,13 @@ private fun CoachHomeContent(
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet(drawerContainerColor = Color.White, modifier = Modifier.widthIn(max = 300.dp)) {
+            // Opens from the start edge: its items keep clear of the camera cutout there on a phone lying
+            // down too (Material's default only covers the system bars).
+            ModalDrawerSheet(
+                drawerContainerColor = Color.White,
+                modifier = Modifier.widthIn(max = 300.dp),
+                windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.Start)
+            ) {
                 Text(
                     stringResource(Res.string.coach_app_name),
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
