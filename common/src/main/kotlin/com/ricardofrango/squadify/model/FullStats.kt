@@ -86,12 +86,16 @@ enum class FullStatsColumn(val rating: Boolean = false) {
     GOALS, ASSISTS, MINUTES, SHOTS, SHOTS_ON_GOAL, FOULS, YELLOW_CARDS, RED_CARDS
 }
 
-/** Which rows count: a date range (inclusive; null = open), the match type, and one of the teams (null = the whole age group). */
+/**
+ * Which rows count: a date range (inclusive; null = open), the match type, one of the teams (null = the
+ * whole age group) and the players' position (null = every player; a player without one only shows then).
+ */
 data class FullStatsQuery(
     val from: LocalDate? = null,
     val to: LocalDate? = null,
     val type: StatsFilter = StatsFilter.ALL,
-    val teamId: String? = null
+    val teamId: String? = null,
+    val position: PlayerPosition? = null
 )
 
 data class FullStatsRow(
@@ -152,11 +156,11 @@ fun FullStatsData.table(query: FullStatsQuery, timeZone: TimeZone = TimeZone.cur
     val trainingsInQuery = trainings.filter { inRange(it.date) }
 
     // The players who played for the team this season, whatever the query; the age group's whole pool otherwise.
-    val members = if (teamId == null) players else {
+    val members = (if (teamId == null) players else {
         val teamMatchIds = matches.filter { it.teamId == teamId }.map { it.matchId }.toSet()
         val playedIds = lines.filter { it.played && it.matchId in teamMatchIds }.map { it.playerId }.toSet()
         players.filter { it.id in playedIds }
-    }
+    }).filter { query.position == null || it.position == query.position }
 
     val linesByPlayer = lines.filter { it.played && it.matchId in matchesInQuery }.groupBy { it.playerId }
     // A session the player missed (Absent, 0) counts as a 0 in their averages: 8, 8 and Absent is 5.3,

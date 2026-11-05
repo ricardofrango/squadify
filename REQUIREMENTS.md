@@ -195,7 +195,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - **Final ranking:** the sum of every game and training rating in the period, divided by how many there are. For example, a week with one game and three trainings is (game + training 1 + training 2 + training 3) ÷ 4. Only ratings the player actually has count, and an absent training counts as a 0: 8, 8 and Absent is (8 + 8 + 0) ÷ 3.
         - **Won / lost / drawn:** the games the player took part in.
         - **Show and hide columns:** the coach picks which stats are shown, e.g. hiding goals. The choice is remembered on the device.
-        - **Filters:** a date range (from / to, e.g. last Friday to today, for "this week's ranking"), as well as the season and the match type (All / Official / Tournament / Friendly).
+        - **Filters:** a date range (from / to, e.g. last Friday to today, for "this week's ranking"), the match type (All / Official / Tournament / Friendly), the team and the player's position (the developer, 2026-11-05). Each is a chip in one row that scrolls sideways, and each opens a bottom sheet with its options, as the period does. The season isn't a filter: a team and an age group belong to one season.
         - **Sorting** by any column, the player's name included, and tapping a row opens the player.
       - [x] **Editing the match record after the game** (the developer, 2026-10-26; see TECHNICAL_DECISIONS §70), by any of the age group's staff, always editable:
         - **A game followed live:** its goals (scorer, assist), own goals and cards can be added, changed or deleted afterwards. Who started, the substitutions and the minutes played stay as they were.

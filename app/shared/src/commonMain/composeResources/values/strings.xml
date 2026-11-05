@@ -1509,6 +1509,10 @@
     <string name="fs_columns_note">Player is always shown.</string>
     <string name="fs_done">Done</string>
     <string name="fs_period">Period</string>
+    <string name="fs_type">Game type</string>
+    <string name="fs_type_all">All games</string>
+    <string name="fs_team">Team</string>
+    <string name="fs_position_all">All positions</string>
     <string name="fs_period_week">This week</string>
     <string name="fs_period_7_days">Last 7 days</string>
     <string name="fs_period_month">This month</string>
