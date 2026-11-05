@@ -76,12 +76,12 @@ data class FullStatsData(
 )
 
 /**
- * The table's stat columns, in order (the developer's, 2026-10-24: the rankings first; 2026-11-04: the
- * position before them, by the player). The three rankings are staff only.
+ * The table's stat columns, in order (the developer's, 2026-10-24: the rankings first; 2026-11-05: the
+ * position right after them). The three rankings are staff only.
  */
 enum class FullStatsColumn(val rating: Boolean = false) {
-    POSITION,
     FINAL_RATING(true), TRAINING_RATING(true), GAMES_RATING(true),
+    POSITION,
     WON, DRAWN, LOST,
     GOALS, ASSISTS, MINUTES, SHOTS, SHOTS_ON_GOAL, FOULS, YELLOW_CARDS, RED_CARDS
 }
