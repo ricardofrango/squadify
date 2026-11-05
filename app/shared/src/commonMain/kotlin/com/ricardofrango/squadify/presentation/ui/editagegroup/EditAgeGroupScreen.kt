@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editagegroup
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
@@ -143,11 +144,7 @@ private fun EditAgeGroupContent(
         val modifier = Modifier.fillMaxSize().padding(padding).background(ScreenBackground)
         when (state) {
             EditAgeGroupUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
-            is EditAgeGroupUiState.Error -> Column(modifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Text(state.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-                Spacer(Modifier.height(16.dp))
-                Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
-            }
+            is EditAgeGroupUiState.Error -> ErrorScreen(title = state.message, body = null, onRetry = onRetry, modifier = modifier)
             is EditAgeGroupUiState.Idle -> EditAgeGroupForm(state, modifier, onChange, onSave)
         }
     }

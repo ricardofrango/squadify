@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.ShownSpace
 import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import androidx.compose.runtime.remember
@@ -246,11 +247,7 @@ private fun TeamDetailsContent(
                         Box(boxModifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
 
                     is TeamDetailsUiState.Error ->
-                        Column(boxModifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                            Text(uiState.message, color = MaterialTheme.colorScheme.error, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                            Spacer(Modifier.height(16.dp))
-                            Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
-                        }
+                        ErrorScreen(title = uiState.message, body = null, onRetry = onRetry, modifier = boxModifier)
 
                     is TeamDetailsUiState.Idle -> {
                         val d = uiState.details

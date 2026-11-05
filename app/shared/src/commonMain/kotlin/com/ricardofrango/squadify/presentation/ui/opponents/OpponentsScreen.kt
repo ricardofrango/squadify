@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import androidx.compose.foundation.layout.PaddingValues
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
@@ -173,14 +174,7 @@ private fun OpponentsContent(
                 SearchField(query, onQueryChange)
                 when (state) {
                     OpponentsUiState.Loading -> SkeletonRows()
-                    OpponentsUiState.Error -> CenteredMessage(
-                        title = stringResource(Res.string.msg_opponents_load_failed),
-                        body = stringResource(Res.string.msg_check_connection)
-                    ) {
-                        Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)) {
-                            Text(stringResource(Res.string.btn_retry))
-                        }
-                    }
+                    OpponentsUiState.Error -> ErrorScreen(title = stringResource(Res.string.msg_opponents_load_failed), onRetry = onRetry)
                     is OpponentsUiState.Idle -> OpponentList(
                         state = state,
                         onLoadMore = onLoadMore,

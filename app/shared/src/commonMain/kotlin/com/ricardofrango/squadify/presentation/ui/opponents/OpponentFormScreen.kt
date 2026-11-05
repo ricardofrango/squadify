@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.isWide
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
@@ -197,22 +198,12 @@ private fun OpponentFormContent(
         containerColor = ScreenBackground,
         topBar = { SquadifyTopBar(title = stringResource(title), subtitle = state.clubName, onNavigateBack = onNavigateBack) }
     ) { padding ->
-        if (state.loading || state.loadFailed) {
-            Column(
-                Modifier.fillMaxSize().padding(padding).screenContentPadding(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                if (state.loading) {
-                    CircularProgressIndicator(color = PitchGreen)
-                } else {
-                    Text(stringResource(Res.string.msg_opponent_load_failed), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(8.dp))
-                    Text(stringResource(Res.string.msg_check_connection), color = DeepCarbon.copy(alpha = 0.6f), textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(16.dp))
-                    Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)) { Text(stringResource(Res.string.btn_retry)) }
-                }
-            }
+        if (state.loading) {
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
+            return@Scaffold
+        }
+        if (state.loadFailed) {
+            ErrorScreen(title = stringResource(Res.string.msg_opponent_load_failed), onRetry = onRetry, modifier = Modifier.fillMaxSize().padding(padding))
             return@Scaffold
         }
         BoxWithConstraints(

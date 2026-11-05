@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.isWide
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.BorderStroke
@@ -79,20 +80,7 @@ fun HomeTab(
     onRateSession: (sessionId: String) -> Unit = {}
 ) {
     if (home == null) {
-        Column(
-            modifier = Modifier.fillMaxSize().background(ScreenBackground).screenContentPadding(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                stringResource(Res.string.msg_failed_to_load_home),
-                style = MaterialTheme.typography.bodyMedium,
-                color = DeepCarbon.copy(alpha = 0.6f),
-                textAlign = TextAlign.Center
-            )
-            Spacer(Modifier.height(16.dp))
-            Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
-        }
+        ErrorScreen(title = stringResource(Res.string.msg_failed_to_load_home), body = null, onRetry = onRetry)
         return
     }
 

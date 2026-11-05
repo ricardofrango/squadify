@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.getString
 import squadify.app.shared.generated.resources.msg_refresh_failed
@@ -193,17 +194,7 @@ private fun OpponentDetailsContent(
         val modifier = Modifier.fillMaxSize().padding(padding).background(ScreenBackground)
         when (state) {
             OpponentDetailsUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
-            OpponentDetailsUiState.Error -> Column(
-                modifier.screenContentPadding(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(stringResource(Res.string.msg_opponent_load_failed), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = DeepCarbon, textAlign = TextAlign.Center)
-                Spacer(Modifier.height(8.dp))
-                Text(stringResource(Res.string.msg_check_connection), color = DeepCarbon.copy(alpha = 0.6f), textAlign = TextAlign.Center)
-                Spacer(Modifier.height(16.dp))
-                Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White)) { Text(stringResource(Res.string.btn_retry)) }
-            }
+            OpponentDetailsUiState.Error -> ErrorScreen(title = stringResource(Res.string.msg_opponent_load_failed), onRetry = onRetry, modifier = modifier)
             is OpponentDetailsUiState.Idle -> PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = modifier) { BoxWithConstraints(Modifier.fillMaxSize()) {
                 val d = state.details
                 if (isWide) {

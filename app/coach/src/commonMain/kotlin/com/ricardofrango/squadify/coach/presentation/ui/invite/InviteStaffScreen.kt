@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.presentation.ui.invite
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.previewPlans
 import com.ricardofrango.squadify.presentation.ui.components.LocalPlans
 import androidx.compose.foundation.layout.Arrangement
@@ -205,12 +206,7 @@ private fun InviteStaffContent(
                 CircularProgressIndicator(color = PitchGreen)
             }
 
-            InviteStaffUiState.Failed -> Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(Res.string.msg_invites_failed), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.6f))
-                    TextButton(onClick = onRetry) { Text(stringResource(SharedRes.string.btn_retry), color = PitchGreen, fontWeight = FontWeight.Bold) }
-                }
-            }
+            InviteStaffUiState.Failed -> ErrorScreen(title = stringResource(Res.string.msg_invites_failed), onRetry = onRetry, modifier = Modifier.fillMaxSize().padding(paddingValues))
 
             is InviteStaffUiState.Loaded -> LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(paddingValues).readableWidth(),

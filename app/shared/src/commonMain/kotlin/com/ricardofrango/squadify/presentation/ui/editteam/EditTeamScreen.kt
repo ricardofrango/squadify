@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editteam
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
@@ -162,11 +163,7 @@ private fun EditTeamContent(
         val modifier = Modifier.fillMaxSize().padding(padding).background(ScreenBackground)
         when (state) {
             EditTeamUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
-            is EditTeamUiState.Error -> Column(modifier.screenContentPadding(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Text(state.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-                Spacer(Modifier.height(16.dp))
-                Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
-            }
+            is EditTeamUiState.Error -> ErrorScreen(title = state.message, body = null, onRetry = onRetry, modifier = modifier)
             is EditTeamUiState.Idle -> Column(
                 modifier.verticalScroll(rememberScrollState()).readableWidth().screenContentPadding(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)

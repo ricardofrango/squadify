@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.presentation.ui.deleteaccount
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -140,12 +141,7 @@ private fun DeleteAccountContent(
                 CircularProgressIndicator(color = PitchGreen)
             }
 
-            DeleteAccountUiState.Failed -> Box(Modifier.fillMaxSize().padding(paddingValues).screenContentPadding(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(stringResource(Res.string.msg_delete_account_load_failed), color = DeepCarbon.copy(alpha = 0.6f))
-                    TextButton(onClick = onRetry) { Text(stringResource(SharedRes.string.btn_retry), color = PitchGreen, fontWeight = FontWeight.Bold) }
-                }
-            }
+            DeleteAccountUiState.Failed -> ErrorScreen(title = stringResource(Res.string.msg_delete_account_load_failed), onRetry = onRetry, modifier = Modifier.fillMaxSize().padding(paddingValues))
 
             is DeleteAccountUiState.Idle -> Column(
                 modifier = Modifier

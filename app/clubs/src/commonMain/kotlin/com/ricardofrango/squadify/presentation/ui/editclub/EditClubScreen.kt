@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.useNavigationRail
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
@@ -345,19 +346,7 @@ private fun EditClubContent(
                     }
 
                     is EditClubUiState.Error -> {
-                        Column(
-                            modifier = boxModifier.screenContentPadding(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = uiState.message,
-                                color = MaterialTheme.colorScheme.error,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(Modifier.height(16.dp))
-                            Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
-                        }
+                        ErrorScreen(title = uiState.message, body = null, onRetry = onRetry, modifier = boxModifier)
                     }
 
                     is EditClubUiState.Idle -> when (uiState.selectedTab) {

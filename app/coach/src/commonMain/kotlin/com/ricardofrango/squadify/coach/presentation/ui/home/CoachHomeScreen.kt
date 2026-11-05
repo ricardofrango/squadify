@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.presentation.ui.home
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -216,12 +217,7 @@ private fun CoachHomeContent(
                     CircularProgressIndicator(color = PitchGreen)
                 }
 
-                CoachHomeUiState.Failed -> CenteredMessage(Modifier.padding(paddingValues)) {
-                    Text(stringResource(Res.string.msg_coach_home_failed), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.6f), textAlign = TextAlign.Center)
-                    TextButton(onClick = onRetry) {
-                        Text(stringResource(SharedRes.string.btn_retry), color = PitchGreen, fontWeight = FontWeight.Bold)
-                    }
-                }
+                CoachHomeUiState.Failed -> ErrorScreen(title = stringResource(Res.string.msg_coach_home_failed), body = null, onRetry = onRetry, modifier = Modifier.fillMaxSize().padding(paddingValues))
 
                 is CoachHomeUiState.Loaded -> if (uiState.ageGroups.isEmpty()) {
                     CenteredMessage(Modifier.padding(paddingValues)) {

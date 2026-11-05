@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import squadify.app.shared.generated.resources.msg_refresh_failed
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarHost
@@ -694,15 +695,7 @@ private fun PlayerCard(player: Player, onClick: () -> Unit, onDisable: (() -> Un
 
 @Composable
 private fun ErrorState(error: String, onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().screenContentPadding(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(text = error, color = MaterialTheme.colorScheme.error)
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onRetry) { Text(stringResource(Res.string.btn_retry)) }
-    }
+    ErrorScreen(title = error, body = null, onRetry = onRetry)
 }
 
 @Composable
