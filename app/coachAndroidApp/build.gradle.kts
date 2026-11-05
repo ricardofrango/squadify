@@ -125,7 +125,11 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
-            isMinifyEnabled = false
+            // R8: shrinks, optimises and obfuscates the code, and drops unused resources (§11.7). The
+            // rules R8 starts from are Android's optimised defaults plus the app's own.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             firebaseAppDistribution {
                 // The squadify-for-coach service account, gitignored at the repo root; CI writes it
                 // from the FIREBASE_COACH_SERVICE_ACCOUNT_JSON secret.
