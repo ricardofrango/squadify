@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.forgotpassword
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
@@ -122,6 +123,8 @@ private fun ForgotPasswordContent(
     val enabled = !state.submitting
 
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
+        containerColor = ScreenBackground,
         topBar = { SquadifyTopBar(title = stringResource(Res.string.title_forgot_password), onNavigateBack = onNavigateBack) }
     ) { padding ->
         Column(

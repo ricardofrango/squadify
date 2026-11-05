@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.presentation.ui.space
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import androidx.compose.runtime.CompositionLocalProvider
 import com.ricardofrango.squadify.presentation.ui.components.previewPlans
@@ -125,6 +126,7 @@ private fun MySpaceContent(
     onNavigateBack: () -> Unit
 ) {
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = { SquadifyTopBar(title = stringResource(Res.string.my_space_title), onNavigateBack = onNavigateBack) }
     ) { paddingValues ->

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.dashboard
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.SectionBorder
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
@@ -181,6 +182,8 @@ private fun DashboardContent(
 ) {
     val isRefreshing = (uiState as? DashboardUiState.Idle)?.isRefreshing == true
         Scaffold(
+            contentWindowInsets = ScreenWindowInsets,
+            containerColor = ScreenBackground,
             topBar = {
                 SquadifyTopBar(
                     title = stringResource(Res.string.title_my_clubs),

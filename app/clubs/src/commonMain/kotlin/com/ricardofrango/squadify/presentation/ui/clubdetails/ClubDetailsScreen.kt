@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
+import com.ricardofrango.squadify.presentation.ui.components.besideRail
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import squadify.app.shared.generated.resources.msg_refresh_failed
 import androidx.compose.material3.SnackbarHostState
@@ -846,7 +848,9 @@ private fun ClubDetailsContent(
     Row(Modifier.fillMaxSize()) {
     if (rail && hasTabs) DetailRail(clubTabs, selectedIndex, onTabClick)
     Scaffold(
-        modifier = Modifier.weight(1f),
+        contentWindowInsets = ScreenWindowInsets,
+        containerColor = ScreenBackground,
+        modifier = Modifier.weight(1f).besideRail(rail),
         topBar = {
             SquadifyTopBar(
                 title = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.changeemail
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
@@ -111,6 +112,8 @@ private fun ChangeEmailContent(
     val sendCode = { onSendCode(newEmail, password) }
 
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
+        containerColor = ScreenBackground,
         topBar = { SquadifyTopBar(title = stringResource(Res.string.btn_change_email), onNavigateBack = onNavigateBack) }
     ) { padding ->
         Column(

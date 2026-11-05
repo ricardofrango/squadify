@@ -1,5 +1,10 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
@@ -75,3 +80,22 @@ fun BoxWithConstraintsScope.readableListPadding(
     val side = readableSidePadding(maxWidth, max)
     return PaddingValues(start = side, end = side, top = top, bottom = bottom)
 }
+
+/**
+ * A screen's `Scaffold(contentWindowInsets = ScreenWindowInsets)`: the content keeps clear of the system
+ * bars and, on a phone lying down, of the camera cutout at the side, while the screen's colour still
+ * runs to the edges (TECHNICAL_DECISIONS.md §11.6). Material's default leaves the cutout out, which put
+ * text under the camera.
+ */
+val ScreenWindowInsets: WindowInsets
+    @Composable get() = WindowInsets.safeDrawing
+
+/** For a screen without a Scaffold: `statusBarsPadding()`, plus the camera cutout at the side lying down. */
+@Composable
+fun Modifier.safeTopPadding(): Modifier =
+    windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+
+/** For a bar pinned to the bottom: `navigationBarsPadding()`, plus the camera cutout at the side lying down. */
+@Composable
+fun Modifier.safeBottomPadding(): Modifier =
+    windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))

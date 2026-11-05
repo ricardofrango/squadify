@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.login
 
+import com.ricardofrango.squadify.presentation.ui.components.safeTopPadding
 import com.ricardofrango.squadify.presentation.navigation.Screen
 
 import com.ricardofrango.squadify.presentation.credentials.rememberCredentialStore
@@ -134,7 +135,7 @@ private fun LoginContent(
                     colors = listOf(CarbonGray, DeepCarbon)
                 )
             )
-            .statusBarsPadding()
+            .safeTopPadding()
             .imePadding()
     ) {
         Column(

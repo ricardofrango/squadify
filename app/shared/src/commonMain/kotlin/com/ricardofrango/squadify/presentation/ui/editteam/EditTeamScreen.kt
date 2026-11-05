@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editteam
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
@@ -122,6 +123,7 @@ private fun EditTeamContent(
     val idle = state as? EditTeamUiState.Idle
     var confirmDelete by remember { mutableStateOf(false) }
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(

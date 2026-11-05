@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.livematch
 
+import com.ricardofrango.squadify.presentation.ui.components.safeBottomPadding
+import com.ricardofrango.squadify.presentation.ui.components.safeTopPadding
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import squadify.app.shared.generated.resources.msg_live_reconnecting
 import androidx.lifecycle.compose.LifecycleStartEffect
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
@@ -129,8 +132,8 @@ fun LiveMatchScreen(
             onStopOrDispose { viewModel.onBackground() }
         }
 
-        // Insets are handled by hand below (ConsoleHeader's statusBarsPadding, the bottom action bars'
-        // navigationBarsPadding) since the header/bottom bar are plain content, not Scaffold's topBar/
+        // Insets are handled by hand below (ConsoleHeader's safeTopPadding, the bottom action bars'
+        // safeBottomPadding, which also keep clear of the camera cutout lying down) since the header/bottom bar are plain content, not Scaffold's topBar/
         // bottomBar slots. Scaffold's own default contentWindowInsets would apply the same system-bar
         // insets a second time on top of those -- pushing the header down and the bottom button up.
         // Full time is in the app's light look (SummaryContent), out of the dark console.
@@ -205,7 +208,7 @@ private fun ConsoleHeader(
     trailing: @Composable () -> Unit = {}
 ) {
     Row(
-        Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp),
+        Modifier.fillMaxWidth().safeTopPadding().padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = onNavigateBack) {
@@ -358,7 +361,7 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = isLandscapeLayout
         // No app bar: the matchup sits at the top (system back leaves the screen).
-        Column(Modifier.fillMaxSize().statusBarsPadding().padding(top = 8.dp)) {
+        Column(Modifier.fillMaxSize().safeTopPadding().padding(top = 8.dp)) {
             if (!landscape) matchup(Modifier.padding(horizontal = ScreenPadding.Horizontal).padding(bottom = 8.dp), false)
             if (details.callUps.isEmpty()) {
                 Text(
@@ -400,12 +403,12 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
                     {
                         matchup(Modifier, true)
                         Spacer(Modifier.weight(1f))
-                        kickOffBar(Modifier.fillMaxWidth().navigationBarsPadding(), true)
+                        kickOffBar(Modifier.fillMaxWidth().safeBottomPadding(), true)
                     }
                 } else null
             )
             if (!landscape) {
-                kickOffBar(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp), false)
+                kickOffBar(Modifier.fillMaxWidth().safeBottomPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp), false)
             }
         }
     }
@@ -754,7 +757,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
             // pitch with the bench under it); on the right the scoreboard as a column -- the clock on
             // top, home over away -- with the match buttons under it. No back button: system back.
             Row(
-                Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                Modifier.fillMaxSize().safeDrawingPadding().padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Column(Modifier.weight(1f).fillMaxHeight()) {
@@ -769,12 +772,12 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
             }
         } else {
             // No app bar: the scoreboard sits at the top (system back leaves the screen).
-            Column(Modifier.fillMaxSize().statusBarsPadding().padding(top = 8.dp)) {
+            Column(Modifier.fillMaxSize().safeTopPadding().padding(top = 8.dp)) {
                 ScoreboardCard(home, away, clock, Modifier.padding(horizontal = ScreenPadding.Horizontal))
                 if (state.reconnecting) ReconnectingLine(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 4.dp))
                 tabs(Modifier.padding(horizontal = ScreenPadding.Horizontal).padding(top = 2.dp))
                 Box(Modifier.weight(1f).fillMaxWidth().padding(top = 6.dp)) { tabContent(false) }
-                actionBar(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp), false)
+                actionBar(Modifier.fillMaxWidth().safeBottomPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp), false)
             }
         }
     }
@@ -1222,6 +1225,7 @@ private fun SummaryContent(state: LiveMatchUiState.Idle, onNavigateBack: () -> U
     val (homeScore, awayScore) = if (ourFirst) state.score.ourScore to state.score.opponentScore else state.score.opponentScore to state.score.ourScore
 
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(

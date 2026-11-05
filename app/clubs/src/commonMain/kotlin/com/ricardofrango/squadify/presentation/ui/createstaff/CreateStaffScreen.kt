@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createstaff
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.text.KeyboardActions
 import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
@@ -131,6 +132,7 @@ private fun CreateStaffContent(
     val selectedCount = rows.size
 
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(

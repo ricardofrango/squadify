@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.presentation.ui.spacesetup
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -119,6 +120,7 @@ private fun SpaceSetupContent(
     val inferredName = form.inferredAgeGroupName(seasonEndYear)
 
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(

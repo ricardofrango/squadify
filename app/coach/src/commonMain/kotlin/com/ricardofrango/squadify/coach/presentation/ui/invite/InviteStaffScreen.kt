@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.presentation.ui.invite
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.previewPlans
 import com.ricardofrango.squadify.presentation.ui.components.LocalPlans
@@ -177,6 +178,7 @@ private fun InviteStaffContent(
 ) {
     var confirmWithdraw by remember { mutableStateOf<StaffInvite?>(null) }
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {

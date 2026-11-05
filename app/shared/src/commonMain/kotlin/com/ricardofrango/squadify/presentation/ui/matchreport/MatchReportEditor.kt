@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchreport
 
+import com.ricardofrango.squadify.presentation.ui.components.safeBottomPadding
 import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
 import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
@@ -524,7 +525,7 @@ internal fun EditorActions(state: MatchReportUiState.Idle, wide: Boolean, onSave
         }
     } else {
         Row(
-            Modifier.fillMaxWidth().background(Color.White).navigationBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp),
+            Modifier.fillMaxWidth().background(Color.White).safeBottomPadding().padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             draft(Modifier.weight(1f))

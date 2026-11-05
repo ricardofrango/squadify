@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.creatematch
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.ui.text.input.ImeAction
@@ -152,6 +153,7 @@ private fun CreateMatchContent(
 ) {
     val clubName = (uiState as? CreateMatchUiState.Idle)?.clubName
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {

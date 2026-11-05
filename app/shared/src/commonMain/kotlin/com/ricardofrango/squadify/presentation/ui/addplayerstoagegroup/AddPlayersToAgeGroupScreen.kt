@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.addplayerstoagegroup
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
@@ -122,6 +123,7 @@ private fun AddPlayersToAgeGroupContent(
     }
 
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(

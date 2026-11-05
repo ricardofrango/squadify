@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.presentation.ui.deleteaccount
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -108,6 +109,7 @@ private fun DeleteAccountContent(
     var confirm by remember { mutableStateOf(false) }
     val idle = uiState as? DeleteAccountUiState.Idle
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = { SquadifyTopBar(title = stringResource(Res.string.delete_account_title), onNavigateBack = onNavigateBack) },
         bottomBar = {

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.isWide
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
@@ -195,6 +196,7 @@ private fun OpponentFormContent(
     onRemoveLogo: () -> Unit = {}
 ) {
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = { SquadifyTopBar(title = stringResource(title), subtitle = state.clubName, onNavigateBack = onNavigateBack) }
     ) { padding ->

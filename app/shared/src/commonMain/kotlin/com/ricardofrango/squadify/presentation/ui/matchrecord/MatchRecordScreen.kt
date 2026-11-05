@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchrecord
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.readableListPadding
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -157,6 +158,7 @@ private fun MatchRecordContent(
     )
 
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(

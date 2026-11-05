@@ -372,7 +372,7 @@ The developer, 2026-10-27: a lighter, separate product for a coach on their own,
         - [ ] Opened from a notification before Home loads, the plan boxes have no own space or plans yet: they show without the plan names and limits until the spaces load (Plans loads its own).
     - [ ] **Launch readiness** (needed before the coach app goes to the stores; Android first, iOS after the results on Android, the developer, 2026-11-04):
         - [x] R8 full mode (`isMinifyEnabled = true` with the right keep rules) and a Baseline Profile for the release build (`TECHNICAL_DECISIONS.md` §11.7, §11.8): both on for the coach app (2026-11-05), and for the clubs app too. The profiles cover startup to sign-in.
-        - [ ] Edge-to-edge: audit every screen's `WindowInsets` (§11.6, §11.8).
+        - [/] Edge-to-edge: audit every screen's `WindowInsets` (§11.6, §11.8). The camera cutout lying down, the rail's strip and the colour behind the navigation buttons fixed (2026-11-05); the screen-by-screen check on a phone still to finish.
         - [ ] iOS, on hold until the Android results: registered with Firebase (Crashlytics, push), and pushes received on iOS (`TECHNICAL_DECISIONS.md` §12).
         - [/] Store requirements (§5c): account deletion in the app, Google's UMP consent form before ads, a privacy policy and data-safety form.
             - [x] Account deletion in the app (2026-10-30): from Account, with the password, at once; an owner's space goes with everything in it (`TECHNICAL_DECISIONS.md` §72).

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.addstafftoagegroup
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.initialsOf
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
@@ -121,6 +122,7 @@ private fun AddStaffToAgeGroupContent(
     }
 
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(

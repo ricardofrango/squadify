@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchreport
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.FullScreenMessage
 import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
@@ -195,6 +196,7 @@ private fun MatchReportContent(
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = isLandscapeLayout
         Scaffold(
+            contentWindowInsets = ScreenWindowInsets,
             containerColor = ScreenBackground,
             snackbarHost = {
                 SnackbarHost(snackbarHostState) { data ->

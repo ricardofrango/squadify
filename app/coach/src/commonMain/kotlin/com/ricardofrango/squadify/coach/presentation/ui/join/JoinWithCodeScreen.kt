@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.presentation.ui.join
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -79,6 +80,7 @@ private fun JoinWithCodeContent(
         )
     }
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = { SquadifyTopBar(title = stringResource(Res.string.join_title), onNavigateBack = onNavigateBack) },
         bottomBar = {

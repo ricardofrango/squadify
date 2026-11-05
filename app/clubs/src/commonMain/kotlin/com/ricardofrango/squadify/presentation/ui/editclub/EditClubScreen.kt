@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
+import com.ricardofrango.squadify.presentation.ui.components.besideRail
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.useNavigationRail
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
@@ -314,7 +316,8 @@ private fun EditClubContent(
         Row(Modifier.fillMaxSize()) {
             if (rail && idle != null) DetailRail(tabs, selectedTab, onTabSelected)
             Scaffold(
-                modifier = Modifier.weight(1f),
+                contentWindowInsets = ScreenWindowInsets,
+                modifier = Modifier.weight(1f).besideRail(rail),
                 containerColor = ScreenBackground,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 topBar = {

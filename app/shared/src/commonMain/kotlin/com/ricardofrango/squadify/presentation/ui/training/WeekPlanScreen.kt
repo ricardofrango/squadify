@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -116,6 +117,7 @@ private fun WeekPlanContent(
     val plans = (state as? TrainingPlansUiState.Idle)?.plans
     val plan: TrainingPlan? = plans?.plans?.planFor(TrainingPlanLevel.WEEK, monday)
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(

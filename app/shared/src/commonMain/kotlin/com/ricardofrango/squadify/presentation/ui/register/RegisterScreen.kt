@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.register
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -204,6 +205,8 @@ private fun RegisterContent(
     val enabled = uiState !is RegisterUiState.Loading
 
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
+        containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
                 title = stringResource(Res.string.title_register),

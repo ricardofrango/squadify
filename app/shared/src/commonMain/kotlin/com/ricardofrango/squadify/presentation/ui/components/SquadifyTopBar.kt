@@ -3,6 +3,10 @@ package com.ricardofrango.squadify.presentation.ui.components
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -84,6 +88,7 @@ fun SquadifyTopBar(
             title = titleContent,
             navigationIcon = navigationIcon,
             actions = actions,
+            windowInsets = TopBarInsets,
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = ClubChrome,
                 titleContentColor = Color.White,
@@ -95,6 +100,7 @@ fun SquadifyTopBar(
             title = titleContent,
             navigationIcon = navigationIcon,
             actions = actions,
+            windowInsets = TopBarInsets,
             colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                 containerColor = ClubChrome,
                 titleContentColor = Color.White,
@@ -104,6 +110,11 @@ fun SquadifyTopBar(
         )
     }
 }
+
+// The bar's colour runs to the screen's edges; its title and icons keep clear of the status bar and,
+// on a phone lying down, of the camera cutout at the side (Material's default leaves the cutout out).
+private val TopBarInsets: WindowInsets
+    @Composable get() = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
 
 @Preview
 @Composable

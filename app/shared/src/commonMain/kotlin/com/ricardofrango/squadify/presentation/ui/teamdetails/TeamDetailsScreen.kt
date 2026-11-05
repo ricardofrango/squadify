@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
+import com.ricardofrango.squadify.presentation.ui.components.besideRail
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.ShownSpace
 import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
@@ -187,7 +189,8 @@ private fun TeamDetailsContent(
         Row(Modifier.fillMaxSize()) {
             if (rail && details != null) TeamRail(tab, selectTab)
             Scaffold(
-                modifier = Modifier.weight(1f),
+                contentWindowInsets = ScreenWindowInsets,
+                modifier = Modifier.weight(1f).besideRail(rail),
                 containerColor = ScreenBackground,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 topBar = {

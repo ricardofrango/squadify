@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubmember
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.theme.OnChromeAccent
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
@@ -227,6 +228,7 @@ private fun ClubMemberDetailsContent(
     var confirmRemove by remember { mutableStateOf(false) }
 
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
