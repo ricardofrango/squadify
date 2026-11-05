@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.googleServices)
     alias(libs.plugins.firebaseCrashlytics)
     alias(libs.plugins.firebaseAppDistribution)
+    alias(libs.plugins.baselineProfile)
 }
 
 // Local-only, gitignored -- never committed (same pattern as firebase-service-account.json). Falls back
@@ -66,6 +67,19 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.messaging)
+
+    // Installs the Baseline Profile on devices whose store doesn't (sideloads, older Android).
+    implementation(libs.androidx.profileinstaller)
+}
+
+// One profile for every flavor: the code a cold start runs is the same, only the server differs. It's
+// recorded with the dev build only: the staging and production apps on the phone are store installs
+// the recording would otherwise replace.
+baselineProfile {
+    mergeIntoMain = true
+    variants {
+        create("dev") { from(project(":app:clubsBaselineProfile")) }
+    }
 }
 
 // Single source of truth for the human-facing semantic version lives in root gradle.properties

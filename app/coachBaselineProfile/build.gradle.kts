@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 // Generates the coach app's Baseline Profile (TECHNICAL_DECISIONS.md §11.7): it runs the app on a
 // connected device, records the code its startup runs, and writes the profile into the app's
 // src/main/generated/baselineProfiles, which the release build ships. Run it with
-// `./gradlew :app:coachAndroidApp:generateDevReleaseBaselineProfile`, the phone unlocked.
+// `./gradlew :app:coachAndroidApp:generateBaselineProfile`, the phone unlocked (it signs the dev app out).
 plugins {
     alias(libs.plugins.androidTest)
     alias(libs.plugins.baselineProfile)
