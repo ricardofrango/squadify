@@ -389,6 +389,19 @@ data class Season(
     val active: Boolean
 )
 
+/**
+ * The club's current season, from the dates alone (the developer, 2026-11-06): the one [today] falls
+ * in (the later-starting one if two overlap); between seasons, the one that ended last, so its pending
+ * work stays until the next one starts; with only future seasons, the next to start. Everything scoped
+ * to "now" uses it: Home's to-dos, the viewer's age groups, a member's current roles, the season a
+ * player's stats open on. [Season.active] isn't used: every season was created active and no screen
+ * turns it off, so 25/26 and 26/27 were both active and Home landed on 25/26 with every to-do in 26/27.
+ */
+fun List<Season>.currentSeason(today: LocalDate): Season? =
+    filter { today >= it.startDate && today <= it.endDate }.maxByOrNull { it.startDate }
+        ?: filter { it.startDate <= today }.maxByOrNull { it.endDate }
+        ?: minByOrNull { it.startDate }
+
 @Serializable
 data class AgeGroup(
     val id: String,
@@ -1000,7 +1013,10 @@ data class Match(
     // How many a side this match is played (V29). Set when it's scheduled, from the team's count
     // unless another is picked (a 9-a-side team playing a 7-a-side game), and kept when the team's size
     // changes later. See [canChangeTeamSize]. The default is only for constructing a Match in code.
-    val teamSize: Int = 11
+    val teamSize: Int = 11,
+    // The sport it's played in, its club's when it was created (V33): the live match and the Timeline
+    // draw a futsal court or a football pitch from it. Defaulted for an older server.
+    val sport: SportType = SportType.FOOTBALL
 )
 
 /**

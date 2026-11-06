@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlin.time.Clock
+import com.ricardofrango.squadify.model.currentSeason
 import com.ricardofrango.squadify.domain.access.AccessPolicy
 import com.ricardofrango.squadify.domain.access.GameScope
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
@@ -121,7 +125,8 @@ class GetPlayerSeasonStatsUseCase(
         PlayerSeasonStats(
             playerId = playerId,
             seasons = seasons,
-            currentSeasonId = seasons.firstOrNull { seasonsById[it.seasonId]?.active == true }?.seasonId
+            // The club's current season (Season.currentSeason) if he has one there, else his newest.
+            currentSeasonId = seasonsById.values.toList().currentSeason(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date)?.id?.takeIf { id -> seasons.any { it.seasonId == id } }
                 ?: seasons.firstOrNull()?.seasonId,
             // Staff of any team he played for, or of an age group he's in (so a coach sees the staff
             // layout even before any match is rated).

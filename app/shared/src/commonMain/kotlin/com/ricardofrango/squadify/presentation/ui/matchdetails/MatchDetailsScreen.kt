@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.weekdayDateLabel
+import com.ricardofrango.squadify.presentation.ui.components.longDateLabel
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.safeBottomPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
@@ -83,8 +85,6 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.format
-import kotlinx.datetime.format.MonthNames
-import kotlinx.datetime.format.char
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
@@ -99,10 +99,6 @@ import kotlin.time.Instant
 internal val CardShape = RoundedCornerShape(16.dp)
 internal val LossRed = Color(0xFFC0392B)
 
-private val DayMonthYear = LocalDate.Format { day(); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); year() }
-private val WeekdayDayMonth = LocalDate.Format {
-    dayOfWeek(kotlinx.datetime.format.DayOfWeekNames.ENGLISH_ABBREVIATED); char(' '); day(); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED)
-}
 
 /**
  * The hub for one match (design 15A). Manager view: manage the call-up (＋ a pool player -- being
@@ -379,7 +375,7 @@ private fun BandCrest(logoUrl: String, name: String) =
 /** "Sat 24 Oct · 10:30": the top bar's title. */
 @Composable
 internal fun whenLabel(instant: Instant): String =
-    "${instant.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(WeekdayDayMonth)} · ${timeLabel(instant)}"
+    "${weekdayDateLabel(instant.toLocalDateTime(TimeZone.currentSystemDefault()).date)} · ${timeLabel(instant)}"
 
 /** The type, then what's notable: "Championship · in 3 days", "Friendly · Cancelled", "… · 1 half". */
 @Composable
@@ -524,7 +520,7 @@ internal fun DetailsCard(details: MatchDetails, onSetType: (() -> Unit)?) {
             TypeRow(m.type, onSetType)
             // The format is how many a side this match is played: 5x5, 7x7, 9x9, 11x11.
             DetailRow(stringResource(Res.string.label_match_format), stringResource(Res.string.match_format_value, details.match.teamSize))
-            DetailRow(stringResource(Res.string.label_match_date), m.dateTime.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(DayMonthYear))
+            DetailRow(stringResource(Res.string.label_match_date), longDateLabel(m.dateTime.toLocalDateTime(TimeZone.currentSystemDefault()).date))
             DetailRow(stringResource(Res.string.label_match_kickoff), timeLabel(m.dateTime))
             DetailRow(
                 stringResource(Res.string.label_match_location),
@@ -736,7 +732,7 @@ private fun EditMatchSheet(details: MatchDetails, submitting: Boolean, onSave: (
                 // Changing where it's played moves the location with it; it can still be edited after.
                 VenueSelector(selected = venue, onSelected = { venue = it; location = venueLocation(it, details.clubLocation, details.opponent) })
             }
-            ValueField(stringResource(Res.string.label_match_date), date.format(DayMonthYear)) { showDate = true }
+            ValueField(stringResource(Res.string.label_match_date), longDateLabel(date)) { showDate = true }
             ValueField(stringResource(Res.string.label_match_kickoff), timeOf(time)) { showTime = true }
             OutlinedTextField(
                 value = location, onValueChange = { location = it },

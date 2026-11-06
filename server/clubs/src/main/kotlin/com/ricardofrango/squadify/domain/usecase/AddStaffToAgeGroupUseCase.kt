@@ -26,7 +26,8 @@ class AddStaffToAgeGroupUseCase(
     suspend operator fun invoke(
         userId: String,
         ageGroupId: String,
-        request: AddStaffToAgeGroupRequest
+        request: AddStaffToAgeGroupRequest,
+        language: String? = null
     ): Boolean {
         val staffAdded = mutableListOf<User>()
         var ageGroupName = ""
@@ -83,7 +84,7 @@ class AddStaffToAgeGroupUseCase(
         // assignment.
         if (staffAdded.isNotEmpty()) {
             staffAdded.forEach {
-                emailService.sendAgeGroupStaffAdded(to = it.email, firstName = it.firstName, ageGroupName = ageGroupName, clubName = clubName)
+                emailService.sendAgeGroupStaffAdded(to = it.email, firstName = it.firstName, ageGroupName = ageGroupName, clubName = clubName, language = language)
                 pushTokensByUser[it.id]?.let { tokens ->
                     pushNotificationService.sendAgeGroupStaffAdded(tokens = tokens, link = PushLink.ageGroup(clubId, ageGroupId), ageGroupName = ageGroupName, clubName = clubName)
                 }

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.weekdayDateLabel
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.besideRail
@@ -64,11 +65,6 @@ import squadify.app.shared.generated.resources.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.format
-import kotlinx.datetime.format.DayOfWeekNames
-import kotlinx.datetime.format.MonthNames
-import kotlinx.datetime.format.Padding
-import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -78,9 +74,6 @@ import kotlin.time.Instant
 
 private val CardShape = RoundedCornerShape(16.dp)
 
-private val WeekdayDayMonth = LocalDate.Format {
-    dayOfWeek(DayOfWeekNames.ENGLISH_ABBREVIATED); char(' '); day(Padding.NONE); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED)
-}
 
 /**
  * The hub for one team (design 32): Stats · Matches · Members tabs under a fixed header (name, the
@@ -535,9 +528,10 @@ internal fun ViewMatchButton(onClick: () -> Unit) {
 private fun opponentName(opponentsById: Map<String, Opponent>, opponentId: String): String =
     opponentsById[opponentId]?.let { it.shortName ?: it.name } ?: "—"
 
-/** "Sat 4 Oct". */
+/** "Sat 4 Oct" / "Sáb 4 out.". */
+@Composable
 private fun dateLabel(instant: Instant): String =
-    instant.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(WeekdayDayMonth)
+    weekdayDateLabel(instant.toLocalDateTime(TimeZone.currentSystemDefault()).date)
 
 // ---- Previews ----
 

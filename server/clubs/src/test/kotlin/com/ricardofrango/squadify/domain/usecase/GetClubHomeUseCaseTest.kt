@@ -121,7 +121,6 @@ class GetClubHomeUseCaseTest {
         coEvery { clubRepository.getClubById(clubId) } returns club
         coEvery { userRepository.findById(userId) } returns user(userId)
         coEvery { userRepository.getUserRoleInClub(userId, clubId) } returns role
-        coEvery { seasonRepository.getActiveSeasonsByClub(clubId) } returns listOf(season)
         coEvery { seasonRepository.getSeasonsByClub(clubId) } returns listOf(season)
         coEvery { teamRepository.getTeamsByClub(clubId) } returns listOf(teamA, teamB)
         coEvery { opponentRepository.getOpponentsByClub(clubId) } returns

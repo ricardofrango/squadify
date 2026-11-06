@@ -11,5 +11,4 @@ interface SeasonRepository {
     suspend fun updateSeason(season: Season): Boolean
     suspend fun findByDetails(clubId: String, type: SeasonType, startDate: LocalDate, endDate: LocalDate): Season?
     suspend fun updateActiveStatus(seasonId: String, active: Boolean): Boolean
-    suspend fun getActiveSeasonsByClub(clubId: String): List<Season>
 }

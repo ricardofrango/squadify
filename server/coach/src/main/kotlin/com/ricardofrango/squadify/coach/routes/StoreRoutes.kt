@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.routes
 
+import com.ricardofrango.squadify.presentation.routes.appLanguage
 import com.ricardofrango.squadify.coach.config.CoachConfig
 import com.ricardofrango.squadify.coach.domain.HandleGoogleNotificationUseCase
 import com.ricardofrango.squadify.coach.domain.VerifyGooglePurchaseUseCase
@@ -33,7 +34,7 @@ fun Route.storeRoutes() {
     authenticate("auth-jwt") {
         post("/plans/purchases/google") {
             val userId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-            call.respond(verifyGooglePurchase(userId, call.receive<GooglePurchaseRequest>(), call.request.queryParameters["language"]))
+            call.respond(verifyGooglePurchase(userId, call.receive<GooglePurchaseRequest>(), call.appLanguage()))
         }
     }
 

@@ -17,7 +17,7 @@ class ProvisionClubUseCase(
     private val transactionManager: TransactionManager,
     private val emailService: EmailService
 ) {
-    suspend operator fun invoke(userId: String, request: ProvisionClubRequest): Club {
+    suspend operator fun invoke(userId: String, request: ProvisionClubRequest, language: String? = null): Club {
         var existingDirector: User? = null
 
         val createdClub = transactionManager.runInTransaction {
@@ -61,9 +61,9 @@ class ProvisionClubUseCase(
         // Sent after the transaction commits -- a failed/slow email must never roll back club creation.
         val director = existingDirector
         if (director != null) {
-            emailService.sendClubMembershipAdded(to = director.email, firstName = director.firstName, clubName = createdClub.name)
+            emailService.sendClubMembershipAdded(to = director.email, firstName = director.firstName, clubName = createdClub.name, language = language)
         } else {
-            emailService.sendClubInvite(to = request.directorEmail, clubName = createdClub.name)
+            emailService.sendClubInvite(to = request.directorEmail, clubName = createdClub.name, language = language)
         }
 
         return createdClub

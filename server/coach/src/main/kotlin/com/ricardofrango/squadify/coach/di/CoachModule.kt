@@ -158,9 +158,17 @@ val coachModule = module {
     single<PushNotificationService> {
         val clubRepository = get<ClubRepository>()
         val transactionManager = get<TransactionManager>()
+        val matchRepository = get<MatchRepository>()
+        val opponentRepository = get<OpponentRepository>()
+        val publicImageLinks = get<PublicImageLinks>()
         FirebaseAdminPushNotificationService(CoachConfig.firebaseServiceAccountJson, clubLogoUrl = { spaceId ->
             val logoUrl = transactionManager.runInTransaction { clubRepository.getClubById(spaceId)?.logoUrl }
             GetPublicClubLogoUseCase.publicUrl(CoachConfig.publicBaseUrl, spaceId, logoUrl)
+        }, opponentLogoUrl = { matchId ->
+            val opponent = transactionManager.runInTransaction {
+                matchRepository.getMatchById(matchId)?.let { opponentRepository.getOpponentById(it.opponentId) }
+            }
+            opponent?.let { publicImageLinks.opponentLogo(it.id, it.logoUrl) }
         })
     }
     factory<PushAudience> { CoachPushAudience(get(), get()) }

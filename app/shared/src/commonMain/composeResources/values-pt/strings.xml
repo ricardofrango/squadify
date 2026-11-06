@@ -1360,6 +1360,7 @@
     <string name="cd_remove_staff">Remover %1$s do staff</string>
     <string name="title_remove_staff">Remover %1$s de %2$s?</string>
     <string name="msg_remove_staff">Deixa de ver este escalão. Se era o último no seu espaço, sai do espaço.</string>
+    <string name="msg_remove_staff_club">Deixa de ver este escalão e as suas equipas. Continua no clube, com o mesmo papel.</string>
     <string name="msg_staff_removed">%1$s removido de %2$s</string>
     <string name="msg_remove_staff_failed">Não foi possível remover. Tente novamente.</string>
     <string name="cd_disable_player">Desativar %1$s</string>

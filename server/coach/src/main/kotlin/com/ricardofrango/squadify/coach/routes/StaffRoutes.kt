@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.routes
 
+import com.ricardofrango.squadify.presentation.routes.appLanguage
 import com.ricardofrango.squadify.coach.domain.AcceptStaffInviteUseCase
 import com.ricardofrango.squadify.coach.domain.CreateStaffInviteUseCase
 import com.ricardofrango.squadify.coach.domain.GetStaffInvitesUseCase
@@ -42,7 +43,8 @@ fun Route.staffRoutes() {
                     val userId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                     // No body: a code to share by hand. With an email: also sent there.
                     val request = runCatching { call.receiveNullable<CreateStaffInviteRequest>() }.getOrNull() ?: CreateStaffInviteRequest()
-                    call.respond(HttpStatusCode.Created, createInvite(userId, ageGroupId, request))
+                    // The email's language: the one the app sends in the body, or its Accept-Language.
+                    call.respond(HttpStatusCode.Created, createInvite(userId, ageGroupId, request.copy(language = request.language ?: call.appLanguage())))
                 }
                 delete("/{code}") {
                     val ageGroupId = call.parameters["ageGroupId"] ?: return@delete call.respond(HttpStatusCode.BadRequest)

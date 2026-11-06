@@ -32,7 +32,7 @@ class RequestPasswordResetUseCase(
     private val clock: Clock = Clock.System,
     private val generateCode: () -> String = ::randomResetCode
 ) {
-    suspend operator fun invoke(email: String) {
+    suspend operator fun invoke(email: String, language: String? = null) {
         val trimmed = email.trim()
         if (trimmed.isEmpty()) throw NotFoundException(NO_ACCOUNT)
 
@@ -60,7 +60,7 @@ class RequestPasswordResetUseCase(
 
         // After the transaction commits, like every other email (EmailService never throws).
         toSend?.let { (user, code) ->
-            emailService.sendPasswordResetCode(user.email, user.firstName, code, CODE_TTL.inWholeMinutes.toInt())
+            emailService.sendPasswordResetCode(user.email, user.firstName, code, CODE_TTL.inWholeMinutes.toInt(), language)
         }
     }
 

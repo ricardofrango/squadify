@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlin.time.Clock
+import com.ricardofrango.squadify.model.currentSeason
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
@@ -67,10 +71,10 @@ class GetClubDetailsUseCase(
         val viewerRole = userRepository.getUserRoleInClub(userId, clubId)
             ?: if (userRepository.findById(userId)?.isPlatformAdmin == true) ClubRole.CLUB_ADMIN else null
 
-        // The viewer's coach/staff age groups in the active season (or the latest, if none is marked
-        // active), for the "Coach · Sub-15, Sub-17" chip and the scoped create actions below.
+        // The viewer's coach/staff age groups in the current season (Season.currentSeason), for the
+        // "Coach · Sub-15, Sub-17" chip and the scoped create actions below.
         val seasons = seasonRepository.getSeasonsByClub(clubId)
-        val season = seasons.firstOrNull { it.active } ?: seasons.maxByOrNull { it.endDate }
+        val season = seasons.currentSeason(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date)
         val viewerAgeGroups = season?.let { ageGroupRepository.findByClubAndSeason(clubId, it.id) }.orEmpty()
             .sortedByDescending { it.endYear } // youngest first: "Coach · Sub-15, Sub-17"
             .mapNotNull { ag -> ageGroupRepository.getUserRoleInAgeGroup(userId, ag.id)?.let { ViewerAgeGroup(ag.id, ag.name, it) } }

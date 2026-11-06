@@ -1,8 +1,10 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
 import androidx.compose.runtime.Composable
+import com.ricardofrango.squadify.presentation.ui.training.weekdayShort
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.daysUntil
+import kotlinx.datetime.isoDayNumber
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -32,6 +34,21 @@ private val MonthShort: List<StringResource> = listOf(
 /** "27 Sep" / "27 set." -- a short, localized day-and-month label. */
 @Composable
 fun shortDateLabel(date: LocalDate): String = "${date.day} ${stringResource(MonthShort[date.month.ordinal])}"
+
+// The month and day names come from the string resources, in the device's language: kotlinx-datetime's
+// MonthNames/DayOfWeekNames only have English ones, which put "31 Oct" in the Portuguese app.
+
+/** "27 Sep 2026" / "27 set. 2026". */
+@Composable
+fun longDateLabel(date: LocalDate): String = "${shortDateLabel(date)} ${date.year}"
+
+/** "Sat 4 Oct" / "Sáb 4 out.". */
+@Composable
+fun weekdayDateLabel(date: LocalDate): String = "${weekdayShort(date.dayOfWeek.isoDayNumber)} ${shortDateLabel(date)}"
+
+/** "Sep 2026" / "set. 2026". */
+@Composable
+fun monthYearLabel(date: LocalDate): String = "${stringResource(MonthShort[date.month.ordinal])} ${date.year}"
 
 /** "today", "yesterday", or "3 days ago" (localized), counting from [date] to [today]. */
 @Composable

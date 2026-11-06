@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.weekdayDateLabel
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,12 +57,6 @@ import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.training.PlayerTrainingCard
 import com.ricardofrango.squadify.presentation.ui.training.ratingText
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.format
-import kotlinx.datetime.format.DayOfWeekNames
-import kotlinx.datetime.format.MonthNames
-import kotlinx.datetime.format.Padding
-import kotlinx.datetime.format.char
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.*
@@ -229,9 +224,6 @@ internal fun PlayerGamesTab(
     }
 }
 
-private val SessionDate = LocalDate.Format {
-    dayOfWeek(DayOfWeekNames.ENGLISH_ABBREVIATED); char(' '); day(Padding.NONE); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED)
-}
 
 /** Training tab: the season's attendance and average as the header, then every ended session, missed ones included. */
 @Composable
@@ -260,7 +252,7 @@ internal fun PlayerTrainingTab(season: PlayerTrainingSeason) {
 private fun TrainingSessionRow(line: PlayerTrainingSessionLine) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(line.date.format(SessionDate), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp), color = DeepCarbon)
+            Text(weekdayDateLabel(line.date), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp), color = DeepCarbon)
             Spacer(Modifier.height(2.dp))
             val status = when (line.rating) {
                 null -> stringResource(Res.string.player_training_not_rated)

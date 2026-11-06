@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlin.time.Clock
+import com.ricardofrango.squadify.model.currentSeason
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubMemberAccount
 import com.ricardofrango.squadify.domain.repository.MemberListFilter
@@ -77,7 +81,8 @@ class GetClubMembersOverviewUseCase(
     // [members] with what each does in the club, plus the pending invites and the viewer.
     private suspend fun overview(userId: String, clubId: String, members: List<ClubMemberAccount>): ClubMembersOverview {
         val seasons = seasonRepository.getSeasonsByClub(clubId).associateBy { it.id }
-        val activeSeasonIds = seasons.values.filter { it.active }.map { it.id }.toSet()
+        // A role is current when it's in the season today falls in (Season.currentSeason).
+        val currentSeasonId = seasons.values.toList().currentSeason(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date)?.id
         val ageGroups = ageGroupRepository.getAgeGroupsByClub(clubId)
         val memberIds = members.map { it.userId }.toSet()
 
@@ -89,19 +94,19 @@ class GetClubMembersOverviewUseCase(
                     ageGroupName = ag.name,
                     seasonName = seasons[ag.seasonId]?.name.orEmpty(),
                     role = staff.role,
-                    currentSeason = ag.seasonId in activeSeasonIds
+                    currentSeason = ag.seasonId == currentSeasonId
                 )
             }
         }.groupBy({ it.first }, { it.second })
 
-        // A linked player's age group: the one in the active season if he's in it, else any.
+        // A linked player's age group: the one in the current season if he's in it, else any.
         val ageGroupsById = ageGroups.associateBy { it.id }
         val links = playerRepository.getUserPlayerLinksByClub(clubId).filter { it.first in memberIds }
         val poolByPlayer = if (links.isEmpty()) emptyMap()
         else playerRepository.getAgeGroupPlayersByClub(clubId).groupBy({ it.playerId }, { it.ageGroupId })
         fun playerAgeGroupName(playerId: String): String? {
             val groups = poolByPlayer[playerId].orEmpty().mapNotNull { ageGroupsById[it] }
-            return (groups.firstOrNull { it.seasonId in activeSeasonIds } ?: groups.firstOrNull())?.name
+            return (groups.firstOrNull { it.seasonId == currentSeasonId } ?: groups.firstOrNull())?.name
         }
         val linksByUser = links.map { (linkedUserId, player, relationship) ->
             linkedUserId to MemberLinkedPlayer(

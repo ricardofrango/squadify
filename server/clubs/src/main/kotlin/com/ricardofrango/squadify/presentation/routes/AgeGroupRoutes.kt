@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.routes
 
+import com.ricardofrango.squadify.domain.usecase.RemoveStaffFromAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.AddPlayersToAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.RemovePlayerFromAgeGroupUseCase
 import com.ricardofrango.squadify.domain.usecase.AddStaffToAgeGroupUseCase
@@ -37,6 +38,7 @@ fun Route.ageGroupRoutes() {
     val removePlayerFromAgeGroupUseCase by inject<RemovePlayerFromAgeGroupUseCase>()
     val getEligiblePlayersForAgeGroupUseCase by inject<GetEligiblePlayersForAgeGroupUseCase>()
     val addStaffToAgeGroupUseCase by inject<AddStaffToAgeGroupUseCase>()
+    val removeStaffFromAgeGroupUseCase by inject<RemoveStaffFromAgeGroupUseCase>()
     val getAgeGroupStaffUseCase by inject<GetAgeGroupStaffUseCase>()
     val getAgeGroupDetailsUseCase by inject<GetAgeGroupDetailsUseCase>()
 
@@ -146,7 +148,7 @@ fun Route.ageGroupRoutes() {
                     val currentUserId =
                         call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                     val request = call.receive<AddStaffToAgeGroupRequest>()
-                    val success = addStaffToAgeGroupUseCase(currentUserId, ageGroupId, request)
+                    val success = addStaffToAgeGroupUseCase(currentUserId, ageGroupId, request, call.appLanguage())
                     if (success) {
                         call.respond(HttpStatusCode.Created)
                     } else {
@@ -155,6 +157,18 @@ fun Route.ageGroupRoutes() {
                             ErrorResponse("Failed to add staff")
                         )
                     }
+                }
+
+                // Takes them off this age group; they stay in the club.
+                delete("/{userId}") {
+                    val ageGroupId = call.parameters["ageGroupId"]
+                        ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                    val staffUserId = call.parameters["userId"]
+                        ?: return@delete call.respond(HttpStatusCode.BadRequest)
+                    val currentUserId =
+                        call.userId ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                    removeStaffFromAgeGroupUseCase(currentUserId, ageGroupId, staffUserId)
+                    call.respond(HttpStatusCode.NoContent)
                 }
             }
         }

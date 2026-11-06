@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.weekdayDateLabel
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.besideRail
@@ -46,11 +47,6 @@ import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.format
-import kotlinx.datetime.format.DayOfWeekNames
-import kotlinx.datetime.format.MonthNames
-import kotlinx.datetime.format.Padding
-import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -59,9 +55,6 @@ import squadify.app.shared.generated.resources.*
 import kotlin.time.Instant
 
 
-private val WeekdayDayMonth = LocalDate.Format {
-    dayOfWeek(DayOfWeekNames.ENGLISH_ABBREVIATED); char(' '); day(Padding.NONE); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED)
-}
 
 /**
  * The hub for one age group (design 33): Stats · Teams · Matches · Members tabs under a fixed header
@@ -365,7 +358,8 @@ private fun AgeGroupDetailsContent(
                                     onOpenStaff = if (d.canAddStaff) { userId -> onStaffClick(d, userId) } else null,
                                     // The same permission as adding players to the pool.
                                     onRemovePlayer = if (d.canAssignPlayersToAgeGroup) onRemovePlayer else null,
-                                    onRemoveStaff = if (uiState.invitesStaff) onRemoveStaff else null,
+                                    // The coach app's owner, or a club's admins and coordinators (the server's canAddStaff).
+                                    onRemoveStaff = if (uiState.invitesStaff || d.canAddStaff) onRemoveStaff else null,
                                     invitesStaff = uiState.invitesStaff
                                 )
                             }
@@ -457,9 +451,10 @@ private fun StripDivider() {
 private fun bornLabel(ag: AgeGroup): String =
     if (ag.startYear == ag.endYear) ag.endYear.toString() else "${minOf(ag.startYear, ag.endYear)}–${maxOf(ag.startYear, ag.endYear)}"
 
-/** "Sat 4 Oct". */
+/** "Sat 4 Oct" / "Sáb 4 out.". */
+@Composable
 private fun dateLabel(instant: Instant): String =
-    instant.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(WeekdayDayMonth)
+    weekdayDateLabel(instant.toLocalDateTime(TimeZone.currentSystemDefault()).date)
 
 // ---- Previews ----
 

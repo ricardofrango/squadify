@@ -20,6 +20,19 @@ class PushMessageTest {
     }
 
     @Test
+    fun bothLogosOfAMatchRoundTrip() {
+        val message = PushMessage(
+            link, "age_group", "push_call_up_ready", listOf("Infantis B1", "Falcons", "10"),
+            thread = PushMessage.MatchThread(
+                "Infantis B1", "Falcons", PushMessage.Sender.TEAM, "Infantis B1",
+                teamImageUrl = "https://api.example.com/v1/public/clubs/c/logo/x.png",
+                opponentImageUrl = "https://api.example.com/v1/public/opponents/o/logo/y.png"
+            )
+        )
+        assertEquals(message, PushMessage.fromData(message.toData()))
+    }
+
+    @Test
     fun aPlainPushRoundTripsWithoutAThread() {
         val message = PushMessage(PushLink.club("club-1"), "invites", "push_club_membership_added", listOf("Test FC"))
         assertEquals(message, PushMessage.fromData(message.toData()))

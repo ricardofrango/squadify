@@ -19,7 +19,7 @@ class ManageClubInviteUseCase(
     private val checkUserPermissionUseCase: CheckUserPermissionUseCase,
     private val transactionManager: TransactionManager
 ) {
-    suspend fun resend(userId: String, clubId: String, inviteId: String) {
+    suspend fun resend(userId: String, clubId: String, inviteId: String, language: String? = null) {
         var email = ""
         var clubName = "your club"
         transactionManager.runInTransaction {
@@ -28,7 +28,7 @@ class ManageClubInviteUseCase(
             clubRepository.getClubById(clubId)?.let { clubName = it.name }
         }
         // Sent after the transaction, as in AddClubMembersUseCase.
-        emailService.sendClubInvite(to = email, clubName = clubName)
+        emailService.sendClubInvite(to = email, clubName = clubName, language = language)
     }
 
     suspend fun cancel(userId: String, clubId: String, inviteId: String) = transactionManager.runInTransaction {

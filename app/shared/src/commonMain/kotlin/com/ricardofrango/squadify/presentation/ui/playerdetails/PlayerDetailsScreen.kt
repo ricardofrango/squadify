@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.longDateLabel
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
@@ -57,9 +58,6 @@ import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.format
-import kotlinx.datetime.format.MonthNames
-import kotlinx.datetime.format.char
 import kotlinx.datetime.todayIn
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -69,7 +67,6 @@ import kotlin.time.Instant
 
 private val CardShape = RoundedCornerShape(16.dp)
 
-private val DayMonthYear = LocalDate.Format { day(); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); year() }
 
 /**
  * The player profile screen (design canvas artboard "2C", see AI_GUIDELINES.md "UI Design
@@ -349,7 +346,7 @@ private fun PlayerInfoCard(profile: PlayerProfile) {
                 stringResource(Res.string.label_status),
                 stringResource(if (player.active) Res.string.label_active else Res.string.label_inactive)
             )
-            InfoRow(stringResource(Res.string.label_birth_date), player.birthDate.format(DayMonthYear))
+            InfoRow(stringResource(Res.string.label_birth_date), longDateLabel(player.birthDate))
             InfoRow(stringResource(Res.string.label_age_group_field), profile.ageGroupLabel ?: "—")
             player.heightCm?.let { InfoRow(stringResource(Res.string.label_height), stringResource(Res.string.label_height_value, it)) }
             player.weightKg?.let { InfoRow(stringResource(Res.string.label_weight), stringResource(Res.string.label_weight_value, it)) }

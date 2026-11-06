@@ -19,6 +19,8 @@ sealed class ClubMemberDetailsUiState {
         val isYou: Boolean get() = member.userId == overview.viewerUserId
         val canSave: Boolean get() = selectedRole != member.role && !saving && roleLock(overview, member, selectedRole) == null
         val canRemove: Boolean get() = canRemove(overview, member) && !saving
+        // Take them off one of their age groups: admins and coordinators, as adding staff (the server's rule).
+        val canRemoveFromAgeGroups: Boolean get() = overview.viewerRole == ClubRole.CLUB_ADMIN || overview.viewerRole == ClubRole.COORDINATOR
     }
 
     data class Invite(val overview: ClubMembersOverview, val invite: PendingClubInvite, val busy: Boolean = false) : ClubMemberDetailsUiState()

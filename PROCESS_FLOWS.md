@@ -262,7 +262,7 @@ rejected (401) and a blank token is rejected (400). Covered by `RegisterFcmToken
 
 ### 2.6 Get Current User (`GetCurrentUserUseCase`)
 
-**On both servers:** 2.6, 2.7, 2.8 and 2.9 to 2.12 are in `:server:core`, served by the shared `accountRoutes` (`:server:web`) on the clubs and the coach server, each with its own users and `EmailService` (the coach server's sends as "Squadify Coach"). The profile photo (2.7b) is still the clubs server's only.
+**On both servers:** 2.6, 2.7, 2.8 and 2.9 to 2.12 are in `:server:core`, served by the shared `accountRoutes` (`:server:web`) on the clubs and the coach server, each with its own users and `EmailService` (the coach server's sends as "Squadify Coach"). The profile photo (2.7b) is still the clubs server's only. Their emails go in the language of the app's `Accept-Language` (`appLanguage()`), passed to the use case and on to `EmailService` (`TECHNICAL_DECISIONS.md` §14).
 
 Backs the Account screen's own profile load. No `CheckUserPermissionUseCase` call, same reasoning as §2.5: `userId` is always the caller's own JWT subject, never a parameter, so there's no cross-user access to guard.
 
@@ -453,7 +453,7 @@ graph TD
     B -- allowed --> C[Fetch Club by id]
     C -- not found --> N(["Throw NotFoundException"])
     C -- found --> D["Probe CheckUserPermissionUseCase — minClubRole=COORDINATOR (non-throwing: ForbiddenException caught to false)"]
-    D --> V["viewerRole = club role (platform admin → CLUB_ADMIN); viewerAgeGroups = the viewer's coach/staff age groups in the active season, youngest first"]
+    D --> V["viewerRole = club role (platform admin → CLUB_ADMIN); viewerAgeGroups = the viewer's coach/staff age groups in the current season (Season.currentSeason), youngest first"]
     V --> P{"canEditClub?"}
     P -- yes --> Z(["Return ClubDetailsResponse — club, canEditClub, viewerRole, viewerAgeGroups; scoped lists empty"])
     P -- no --> S["For each viewer age group: non-throwing probes of CREATE_TEAM and CREATE_PLAYERS (configurablePermission + ageGroupId)"]
@@ -470,13 +470,13 @@ The viewer fields feed the club's **More** panel (design 37):
 
 ### 3.3b Get Club Home (`GetClubHomeUseCase`)
 
-The aggregate behind the club screen's default **Home** tab: stat-grid counts, one "Next up" row per team with an upcoming match, and role-scoped "Needs you" alerts. `GET /v1/clubs/{clubId}/home`, readable by any club member.
+The aggregate behind the club screen's default **Home** tab: stat-grid counts, one "Next up" row per team with an upcoming match, and role-scoped "Needs you" alerts. `GET /v1/clubs/{clubId}/home`, readable by any club member. Every alert is scoped to that one season's age groups. Picking it as "the first active season" broke on staging (2026-11-06): with 25/26 left active beside 26/27, Home landed on 25/26 and showed no to-dos; `currentSeason` picks by today's date alone: `Season.active` is no longer read anywhere (every season was created active and no screen turns it off).
 
 ```mermaid
 graph TD
     A[Start: userId, clubId] --> B[CheckUserPermissionUseCase — minClubRole=MEMBER, allowPlayerOrParentAccess=true]
     B -- denied --> F(["Throw ForbiddenException"])
-    B -- allowed --> C[Fetch club; resolve role + season (active, else latest-ending)]
+    B -- allowed --> C["Fetch club; resolve role + season (Season.currentSeason, by date: the one today falls in; between seasons the one that ended last; else the next to start)"]
     C --> D["Counts: teams, players, coaches; matchesThisWeek = club matches whose date is in the Mon–Sun week containing today"]
     D --> E["Next up: per team, soonest SCHEDULED future match → opponent name and logo + call-up count (count not shown since rows use MatchRow)"]
     E --> G{role >= COORDINATOR or platform admin?}
@@ -650,7 +650,7 @@ graph TD
     B -- denied --> F(["Throw ForbiddenException"])
     B -- allowed --> C[Club members with name, email, phone, role, account created]
     C --> D["Age-group staff roles across every season (current season first)"]
-    D --> E["User–player links in the club, with the player's age group in the active season"]
+    D --> E["User–player links in the club, with the player's age group in the current season (Season.currentSeason)"]
     E --> G["Pending CLUB_MEMBER invites, newest first"]
     G --> Z(["Return ClubMembersOverview — members, pendingInvites, viewerUserId, viewerRole"])
 ```
@@ -1149,7 +1149,7 @@ graph TD
     R --> E["Each line → PlayerSeasonMatch (with the team's name, e.g. 'Sub-15 A'), grouped by the season of the match's team; rating kept only if canRate[team] AND the report is completed"]
     E --> P["preStats = FINISHED matches he was called up for with no full-time minute (before stats existed), counted per season"]
     P --> S["seasons = the seasons of his age-group pools ∪ seasons with lines or preStats, newest first (by startDate)"]
-    S --> Z(["Return PlayerSeasonStats: seasons (seasonName, teamNames, matches newest first, preStatsMatchCount), currentSeasonId (the active season, else the newest), canSeeRatings"])
+    S --> Z(["Return PlayerSeasonStats: seasons (seasonName, teamNames, matches newest first, preStatsMatchCount), currentSeasonId (the club's current season by date, Season.currentSeason, if he has it; else his newest), canSeeRatings"])
 ```
 
 `canSeeRatings` is true when he has lines with a team whose ratings the caller may read, or when the caller is staff of one of his age groups. That way a coach gets the staff layout even before any match is rated. Players and parents get no ratings at all, and their card shows Minutes where the average rating would be.
@@ -1368,6 +1368,21 @@ Someone not yet a club member can't be picked there, so that screen also has a "
 
 ## 6. Opponents
 
+### 5.4b Remove Staff from Age Group (`RemoveStaffFromAgeGroupUseCase`, clubs server)
+
+`DELETE /v1/age-groups/{ageGroupId}/staff/{userId}` (the developer, 2026-11-06): takes a coach or staff member off one age group, from the age group's Members tab (the ✕ on a staff row) or from their Member details (the ✕ on an age group row), after a confirmation. Same gate as adding them. They stay in the club with their club role; only Remove from club (§3.7b, `RemoveClubMemberUseCase`) takes that away. The coach server's own `RemoveStaffUseCase` (§13.4) answers the same path there, with the space's rules.
+
+```mermaid
+graph TD
+    A[Start: userId, ageGroupId, staffUserId] --> B[Fetch AgeGroup by id]
+    B -- not found --> V(["Throw NotFoundException: Age group not found"])
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D[Delete their age_group_staff row]
+    D -- none --> N(["Throw NotFoundException: Not staff on this age group"])
+    D -- deleted --> Z(["204 No Content — club membership untouched"])
+```
+
 ### 6.1 Create Opponent (`CreateOpponentUseCase`)
 
 ```mermaid
@@ -1542,7 +1557,7 @@ graph TD
 - **Shown on Match Details:** a single-period match shows "1 half" next to the date.
 - **On the live console:** a one-half match has no half time. The action bar only offers Full time, the clock reads "MATCH" instead of "1ST HALF", and pre-kickoff asks for the "Match length". The server refuses HALF_TIME for it (§8.2).
 
-**Team size** (how many a side, `Match.teamSize`, `matches.team_size`, required: V29 added it, V30 filled every existing match with its team's count, 11 for a team without one, and made it NOT NULL). A new match takes its team's count unless another is picked: a 9-a-side team can play a 7-a-side game. It drives the call-up's minimum, the pitch's positions and formation, and kickoff's starter count. A match keeps its count when its team's size changes later, so a game played 9-a-side stays 9-a-side. The size must be one of the club sport's (`SportType.teamSizes`).
+**Team size** (how many a side, `Match.teamSize`, `matches.team_size`, required: V29 added it, V30 filled every existing match with its team's count, 11 for a team without one, and made it NOT NULL). A new match takes its team's count unless another is picked: a 9-a-side team can play a 7-a-side game. It drives the call-up's minimum, the pitch's positions and formation, and kickoff's starter count. A match keeps its count when its team's size changes later, so a game played 9-a-side stays 9-a-side. The size must be one of the club sport's (`SportType.teamSizes`). A new match also takes its club's sport (`Match.sport`, `matches.sport`, V33), which picks the football pitch or the futsal court in the live console and the Timeline.
 - **Where it changes** (`Match.canChangeTeamSize`): before kickoff, or for a game whose result was entered afterwards (§8.1c). Never once the game was followed live (`kickoffAt` set).
 - **Schedule match:** a "Format" control (5x5 · 7x7 · …), starting on the chosen team's own count.
 - **Edit match:** the same control, before kickoff only (§7.1c).
@@ -2192,7 +2207,7 @@ graph TD
     C --> D[Count Players by club]
     D --> E[Count Coaches by club]
     E --> G["Fetch next 10 upcoming Matches"]
-    G --> H[Fetch active Seasons]
+    G --> H["The current season (Season.currentSeason, by date), as activeSeasons"]
     H --> Z(["Return aggregated ClubAdminDashboard"])
 ```
 
@@ -2539,7 +2554,7 @@ erDiagram
         enum type "SeasonType, default EUROPEAN_YEAR"
         date start_date
         date end_date
-        boolean active "default true"
+        boolean active "default true -- not read: the current season comes from the dates (Season.currentSeason, 2026-11-06)"
     }
     AGE_GROUPS {
         uuid id PK
@@ -2635,6 +2650,7 @@ erDiagram
         varchar starting_formation "nullable -- the formation at kickoff, set by StartMatchUseCase; prefills the report's tactic (V25)"
         boolean entered_after_game "default false -- the result was entered afterwards, not followed live; minutes typed in, no substitutions or timeline (V27)"
         integer team_size "not null -- how many a side this match is played; the team's count unless another was picked (V29, filled from teams.team_size and made NOT NULL in V30)"
+        varchar sport "not null -- FOOTBALL or FUTSAL, the club's when the match was created; the pitch or court drawn (V33, filled from clubs.sport)"
     }
     MATCH_CALL_UPS {
         uuid id PK
@@ -2762,7 +2778,7 @@ erDiagram
 |---|---|---|
 | `UserStatus` | `ACTIVE`, `INACTIVE`, `PENDING`, `SUSPENDED` | `users.status` (default `ACTIVE`) |
 | `ClubStatus` | `ACTIVE`, `INACTIVE`, `PENDING` | `clubs.status` (default `ACTIVE`) |
-| `SportType` | `FOOTBALL`, `FUTSAL` | `clubs.sport` (default `FOOTBALL`); required in `ProvisionClubRequest`. Each constant also carries a code-level `teamSizes: List<Int>` (FOOTBALL → 4/5/7/9/11, FUTSAL → 4/5) — the allowed a-side counts for `age_groups.team_size` / `teams.team_size`; not persisted, not configurable per club. |
+| `SportType` | `FOOTBALL`, `FUTSAL` | `clubs.sport` (default `FOOTBALL`) and `matches.sport` (the club's, V33); required in `ProvisionClubRequest`. Each constant also carries a code-level `teamSizes: List<Int>` (FOOTBALL → 4/5/7/9/11, FUTSAL → 4/5) — the allowed a-side counts for `age_groups.team_size` / `teams.team_size`; not persisted, not configurable per club. |
 | `ClubRole` | `CLUB_ADMIN`(5), `COORDINATOR`(4), `MEMBER`(1) | `club_members.role`, `invites.role` |
 | `AgeGroupRole` | `COACH`(3), `STAFF`(2) | `age_group_staff.role` |
 | `SeasonType` | `CALENDAR_YEAR`, `EUROPEAN_YEAR` | `seasons.type` (default `EUROPEAN_YEAR`) |
@@ -2862,7 +2878,7 @@ All in one transaction, so a refused setup creates nothing. Being staff in other
 
 `GET /v1/spaces` (`GetSpacesUseCase`) returns every space the coach is in from `ClubRepository.getMemberships`, their own first, each as `SpaceAgeGroups` with `isOwner` and their age groups there: all of their own space's, only the ones with a staff row in the others, the space's `plan` and the ones it locks (`lockedAgeGroupIds`), and for their own space `ageGroupsThisSeason` (its age groups in today's season, from `CoachSeasons.currentOrNull`, which creates none; 0 for staff) and `ageGroupsLeft` (the plan's age groups a season less those, none below 0; null with no limit, and for staff). An empty list before they set up or join one.
 
-`GET /v1/plans?language=` (`GetPlansUseCase`) returns `PlansResponse`: every plan from `PlanLimits`, cheapest first, with its name, features (their lines in Portuguese for "pt", English otherwise) and limits, `currentPlan`, the plan of the space the coach owns (`ClubRepository.getMemberships`, the CLUB_ADMIN one; null without one), `requestedPlan`, the plan its owner asked for (`plan_requests`; null: none), `changeBy` (`INSTANT` locally, `STORE` with Google's service account, else `REQUEST`), each paid plan's `storeProducts`, and from the space's entitled store subscriptions `currentPeriod`, `pendingPlan` and `pendingFrom`, with `storeAccountId` (the owner's user id) for the app to tag purchases with. The coach server's `GET /v1/age-groups/{id}/details` is `GetAgeGroupDetailsUseCase` (§4.4b) plus `staffFullOnPlan` (`CoachPlans.staffFullOn`: the space's plan when the age group has no room for more staff, else null).
+`GET /v1/plans` (`GetPlansUseCase`, in the app's `Accept-Language`, or `?language=`) returns `PlansResponse`: every plan from `PlanLimits`, cheapest first, with its name, features (their lines in Portuguese for "pt", English otherwise) and limits, `currentPlan`, the plan of the space the coach owns (`ClubRepository.getMemberships`, the CLUB_ADMIN one; null without one), `requestedPlan`, the plan its owner asked for (`plan_requests`; null: none), `changeBy` (`INSTANT` locally, `STORE` with Google's service account, else `REQUEST`), each paid plan's `storeProducts`, and from the space's entitled store subscriptions `currentPeriod`, `pendingPlan` and `pendingFrom`, with `storeAccountId` (the owner's user id) for the app to tag purchases with. The coach server's `GET /v1/age-groups/{id}/details` is `GetAgeGroupDetailsUseCase` (§4.4b) plus `staffFullOnPlan` (`CoachPlans.staffFullOn`: the space's plan when the age group has no room for more staff, else null).
 
 `POST /v1/plans/request?language=` (`RequestPlanUseCase`), the owner asking for a plan until payments, set at once on a local server:
 

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach.routes
 
+import com.ricardofrango.squadify.presentation.routes.appLanguage
 import com.ricardofrango.squadify.coach.domain.GetSpacesUseCase
 import com.ricardofrango.squadify.coach.domain.GetPlansUseCase
 import com.ricardofrango.squadify.coach.domain.RequestPlanUseCase
@@ -35,11 +36,11 @@ fun Route.spaceRoutes() {
         }
         get("/plans") {
             val currentUserId = call.userId ?: return@get call.respond(HttpStatusCode.Unauthorized)
-            call.respond(getPlansUseCase(currentUserId, call.request.queryParameters["language"]))
+            call.respond(getPlansUseCase(currentUserId, call.appLanguage()))
         }
         post("/plans/request") {
             val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-            call.respond(requestPlanUseCase(currentUserId, call.receive<RequestPlanRequest>().plan, call.request.queryParameters["language"]))
+            call.respond(requestPlanUseCase(currentUserId, call.receive<RequestPlanRequest>().plan, call.appLanguage()))
         }
         post("/space") {
             val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)

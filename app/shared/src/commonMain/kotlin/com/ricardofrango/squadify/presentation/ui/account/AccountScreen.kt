@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.account
 
+import com.ricardofrango.squadify.presentation.ui.components.monthYearLabel
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
@@ -52,9 +53,6 @@ import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.format
-import kotlinx.datetime.format.MonthNames
-import kotlinx.datetime.format.char
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -62,9 +60,6 @@ import squadify.app.shared.generated.resources.*
 
 private val FormRoundedShape = RoundedCornerShape(18.dp)
 
-private val MonthYearFormat = LocalDate.Format {
-    monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); year()
-}
 
 /**
  * Self-service profile editing + change password, built to match the two account-screen mockups: a
@@ -177,7 +172,7 @@ private fun AccountContent(
                     subtitle = idle?.let {
                         stringResource(
                             Res.string.msg_member_since_status,
-                            it.memberSince.format(MonthYearFormat),
+                            monthYearLabel(it.memberSince),
                             statusLabel(it.status)
                         )
                     },
