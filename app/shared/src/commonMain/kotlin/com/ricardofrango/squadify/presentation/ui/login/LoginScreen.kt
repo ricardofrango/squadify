@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.login
 
+import kotlin.time.TimeSource
+import kotlin.time.TimeMark
+import kotlin.time.Duration.Companion.seconds
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
 import com.ricardofrango.squadify.presentation.ui.components.safeTopPadding
@@ -75,6 +78,29 @@ fun LoginScreen(
     // it again; typing a different email or password does.
     var pickedEmail by rememberSaveable { mutableStateOf<String?>(null) }
     var pickedPassword by rememberSaveable { mutableStateOf<String?>(null) }
+    // The saved-account sheet shows once per visit to Login: dismissed, it doesn't come back when the
+    // phone turns or the app returns from the background.
+    var offeredSavedAccount by rememberSaveable { mutableStateOf(false) }
+    // When each field last got a whole value in one change, as autofill fills it (the list above the
+    // keyboard, the password manager's own path), rather than a letter typed; null after a typed edit.
+    var emailFilledAt by remember { mutableStateOf<TimeMark?>(null) }
+    var passwordFilledAt by remember { mutableStateOf<TimeMark?>(null) }
+
+    fun signInWithSaved(savedEmail: String, savedPassword: String) {
+        pickedEmail = savedEmail; pickedPassword = savedPassword
+        viewModel.onLoginClicked(savedEmail, savedPassword)
+    }
+    // Both fields filled together, within a second: an account picked from the list above the keyboard
+    // (the developer, 2026-11-06). Signs in at once, like picking one from the sheet, and isn't offered
+    // to be saved again. A pasted password alone, or typing, still waits for Sign in.
+    fun onFieldChanged() {
+        val e = emailFilledAt ?: return
+        val p = passwordFilledAt ?: return
+        if ((e.elapsedNow() - p.elapsedNow()).absoluteValue > 1.seconds) return
+        emailFilledAt = null; passwordFilledAt = null
+        if (uiState !is LoginUiState.Loading) signInWithSaved(email, password)
+    }
+    fun filledInOneGo(old: String, new: String) = new.isNotBlank() && new.length - old.length > 1
 
     LaunchedEffect(passwordResetEmail) {
         if (passwordResetEmail != null) { email = passwordResetEmail; password = "" }
@@ -82,11 +108,11 @@ fun LoginScreen(
     // Offers a saved account on a fresh, empty screen (not after a reset, or once something's typed),
     // and signs in with it at once: picking it is the user's choice to sign in.
     LaunchedEffect(Unit) {
-        if (passwordResetEmail == null && email.isEmpty() && password.isEmpty()) {
+        if (!offeredSavedAccount && passwordResetEmail == null && email.isEmpty() && password.isEmpty()) {
+            offeredSavedAccount = true
             credentialStore.pick()?.let {
                 email = it.email; password = it.password
-                pickedEmail = it.email; pickedPassword = it.password
-                viewModel.onLoginClicked(it.email, it.password)
+                signInWithSaved(it.email, it.password)
             }
         }
     }
@@ -114,8 +140,16 @@ fun LoginScreen(
         password = password,
         passwordVisible = passwordVisible,
         passwordResetEmail = passwordResetEmail,
-        onEmailChange = { email = it },
-        onPasswordChange = { password = it },
+        onEmailChange = {
+            emailFilledAt = if (filledInOneGo(email, it)) TimeSource.Monotonic.markNow() else null
+            email = it
+            onFieldChanged()
+        },
+        onPasswordChange = {
+            passwordFilledAt = if (filledInOneGo(password, it)) TimeSource.Monotonic.markNow() else null
+            password = it
+            onFieldChanged()
+        },
         onTogglePasswordVisible = { passwordVisible = !passwordVisible },
         onLogin = { viewModel.onLoginClicked(email, password) },
         onForgotPassword = onNavigateToForgotPassword?.let { forgot -> { forgot(email) } },
