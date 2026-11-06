@@ -23,12 +23,17 @@ data class PushMessage(
     /**
      * One line in a match's notification, titled "[teamName] vs [opponentName]". [senderName] is who the
      * line is from: our team, our scorer, or the opponent ([sender]); [imageUrl] is their picture.
+     * [teamImageUrl] (our club's logo) and [opponentImageUrl] are the notification's own picture, our
+     * club in front of the opponent, with the app's badge (the developer, 2026-11-06); filled in by the
+     * push service, each null without one.
      */
     data class MatchThread(
         val teamName: String,
         val opponentName: String,
         val sender: Sender,
-        val senderName: String
+        val senderName: String,
+        val teamImageUrl: String? = null,
+        val opponentImageUrl: String? = null
     )
 
     enum class Sender { TEAM, SCORER, OPPONENT }
@@ -45,6 +50,8 @@ data class PushMessage(
             put(KEY_THREAD_OPPONENT, it.opponentName)
             put(KEY_THREAD_SENDER, it.sender.name)
             put(KEY_THREAD_SENDER_NAME, it.senderName)
+            it.teamImageUrl?.let { url -> put(KEY_THREAD_TEAM_IMAGE, url) }
+            it.opponentImageUrl?.let { url -> put(KEY_THREAD_OPPONENT_IMAGE, url) }
         }
     }
 
@@ -58,6 +65,8 @@ data class PushMessage(
         const val KEY_THREAD_OPPONENT = "squadifyThreadOpponent"
         const val KEY_THREAD_SENDER = "squadifyThreadSender"
         const val KEY_THREAD_SENDER_NAME = "squadifyThreadSenderName"
+        const val KEY_THREAD_TEAM_IMAGE = "squadifyThreadTeamImage"
+        const val KEY_THREAD_OPPONENT_IMAGE = "squadifyThreadOpponentImage"
 
         /** Null when it isn't one of ours: no link or no text (an older server, or a Firebase console test). */
         fun fromData(data: Map<String, String?>): PushMessage? {
@@ -69,7 +78,7 @@ data class PushMessage(
                 val team = value(KEY_THREAD_TEAM) ?: return@run null
                 val opponent = value(KEY_THREAD_OPPONENT) ?: return@run null
                 val sender = value(KEY_THREAD_SENDER)?.let { s -> Sender.entries.firstOrNull { it.name == s } } ?: Sender.TEAM
-                MatchThread(team, opponent, sender, value(KEY_THREAD_SENDER_NAME) ?: team)
+                MatchThread(team, opponent, sender, value(KEY_THREAD_SENDER_NAME) ?: team, value(KEY_THREAD_TEAM_IMAGE), value(KEY_THREAD_OPPONENT_IMAGE))
             }
             return PushMessage(link, value(KEY_CHANNEL) ?: "default", bodyKey, args, value(KEY_IMAGE), thread)
         }

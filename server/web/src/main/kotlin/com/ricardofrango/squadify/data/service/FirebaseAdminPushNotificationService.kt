@@ -30,12 +30,14 @@ import java.io.ByteArrayInputStream
  * what lets a match's pushes be one chat-style notification per match (§56).
  */
 /**
- * [clubLogoUrl] gives the public address of a club's logo (or null), shown as the notification's image.
- * Blank [serviceAccountJson]: nothing is sent, only logged.
+ * [clubLogoUrl] gives the public address of a club's logo (or null), shown as the notification's image;
+ * [opponentLogoUrl] a match's opponent's, for a match's notification. Blank [serviceAccountJson]:
+ * nothing is sent, only logged.
  */
 class FirebaseAdminPushNotificationService(
     private val serviceAccountJson: String,
-    private val clubLogoUrl: suspend (clubId: String) -> String? = { null }
+    private val clubLogoUrl: suspend (clubId: String) -> String? = { null },
+    private val opponentLogoUrl: suspend (matchId: String) -> String? = { null }
 ) : PushNotificationService {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -118,12 +120,25 @@ class FirebaseAdminPushNotificationService(
         // carries its own picture, or none (the app then shows their initial). Best effort: without it
         // the push still goes, just without the picture.
         val needsClubLogo = message.imageUrl == null && (message.thread?.sender ?: PushMessage.Sender.TEAM) == PushMessage.Sender.TEAM
-        val withImage = if (!needsClubLogo) message else try {
-            message.copy(imageUrl = clubLogoUrl(message.link.clubId))
+        val clubLogo = try {
+            if (needsClubLogo || message.thread != null) clubLogoUrl(message.link.clubId) else null
         } catch (e: Exception) {
             logger.warn("Couldn't look up club {}'s logo for a push", message.link.clubId, e)
-            message
+            null
         }
+        // A match's notification shows our club in front of the opponent (the app draws them as one).
+        val opponentLogo = message.link.matchId?.takeIf { message.thread != null }?.let { matchId ->
+            try {
+                opponentLogoUrl(matchId)
+            } catch (e: Exception) {
+                logger.warn("Couldn't look up match {}'s opponent logo for a push", matchId, e)
+                null
+            }
+        }
+        val withImage = message.copy(
+            imageUrl = if (needsClubLogo) clubLogo else message.imageUrl,
+            thread = message.thread?.copy(teamImageUrl = clubLogo, opponentImageUrl = opponentLogo)
+        )
         try {
             // A single MulticastMessage tops out at 500 tokens -- club-wide live-match pushes are the
             // one caller here that can plausibly exceed that, so this chunks rather than assuming the

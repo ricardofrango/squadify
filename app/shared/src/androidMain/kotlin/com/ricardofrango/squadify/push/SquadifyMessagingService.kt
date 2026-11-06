@@ -132,7 +132,58 @@ class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
             .setStyle(style)
             .setAutoCancel(true)
             .setContentIntent(openIntent(notificationId, push.toData()))
+        // The conversation's own picture: our club in front of the opponent, the app's badge on it (the
+        // developer, 2026-11-06). Without it Android made one from the senders, with a blank circle for
+        // the notification's own "me", and our club's logo twice.
+        builder.setLargeIcon(matchPicture(thread))
         notify(notificationId, builder)
+    }
+
+    /**
+     * Our club's logo in front (bottom left) and the opponent's behind it (top right), each on a white
+     * disc, a gap cut round the front one, as Android draws a group's two faces. A side without a logo
+     * gets its initial on a grey disc.
+     */
+    private fun matchPicture(thread: PushMessage.MatchThread): Bitmap {
+        val ours = thread.teamImageUrl?.let { downloadImage(Uri.parse(it)) }
+        val theirs = thread.opponentImageUrl?.let { downloadImage(Uri.parse(it)) }
+        val size = AVATAR_SIZE.toFloat()
+        val face = size * 0.66f
+        val output = Bitmap.createBitmap(AVATAR_SIZE, AVATAR_SIZE, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(output)
+        val back = RectF(size - face, 0f, size, face)
+        val front = RectF(0f, size - face, face, size)
+        drawFace(canvas, back, theirs, thread.opponentName)
+        // The gap: clear a slightly bigger circle where the front face goes.
+        val gap = size * 0.035f
+        canvas.drawCircle(front.centerX(), front.centerY(), face / 2 + gap, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+        })
+        drawFace(canvas, front, ours, thread.teamName)
+        return output
+    }
+
+    /** A logo fitted inside a white disc at [bounds], or [name]'s initial on a grey one. */
+    private fun drawFace(canvas: Canvas, bounds: RectF, logo: Bitmap?, name: String) {
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        paint.color = if (logo != null) 0xFFFFFFFF.toInt() else PLACEHOLDER_DISC
+        canvas.drawCircle(bounds.centerX(), bounds.centerY(), bounds.width() / 2, paint)
+        if (logo != null) {
+            // Inside the disc's inner square, keeping the logo's proportions.
+            val inner = bounds.width() * 0.62f
+            val scale = minOf(inner / logo.width, inner / logo.height)
+            val w = logo.width * scale
+            val h = logo.height * scale
+            val dst = RectF(bounds.centerX() - w / 2, bounds.centerY() - h / 2, bounds.centerX() + w / 2, bounds.centerY() + h / 2)
+            canvas.drawBitmap(logo, null, dst, paint)
+        } else {
+            paint.color = PLACEHOLDER_FIGURE
+            paint.textAlign = Paint.Align.CENTER
+            paint.textSize = bounds.width() * 0.42f
+            paint.isFakeBoldText = true
+            val initial = name.trim().firstOrNull()?.uppercase() ?: "?"
+            canvas.drawText(initial, bounds.centerX(), bounds.centerY() - (paint.descent() + paint.ascent()) / 2, paint)
+        }
     }
 
     /** A push that isn't one of ours, as its own payload says; dropped without text. */

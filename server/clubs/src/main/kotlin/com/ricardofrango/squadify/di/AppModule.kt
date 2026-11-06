@@ -73,9 +73,17 @@ val appModule = module {
     single<PushNotificationService> {
         val clubRepository = get<ClubRepository>()
         val transactionManager = get<TransactionManager>()
+        val matchRepository = get<MatchRepository>()
+        val opponentRepository = get<OpponentRepository>()
+        val publicImageLinks = get<PublicImageLinks>()
         FirebaseAdminPushNotificationService(ServerConfig.firebaseServiceAccountJson, clubLogoUrl = { clubId ->
             val logoUrl = transactionManager.runInTransaction { clubRepository.getClubById(clubId)?.logoUrl }
             GetPublicClubLogoUseCase.publicUrl(ServerConfig.publicBaseUrl, clubId, logoUrl)
+        }, opponentLogoUrl = { matchId ->
+            val opponent = transactionManager.runInTransaction {
+                matchRepository.getMatchById(matchId)?.let { opponentRepository.getOpponentById(it.opponentId) }
+            }
+            opponent?.let { publicImageLinks.opponentLogo(it.id, it.logoUrl) }
         })
     }
 
