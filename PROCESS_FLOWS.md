@@ -470,13 +470,13 @@ The viewer fields feed the club's **More** panel (design 37):
 
 ### 3.3b Get Club Home (`GetClubHomeUseCase`)
 
-The aggregate behind the club screen's default **Home** tab: stat-grid counts, one "Next up" row per team with an upcoming match, and role-scoped "Needs you" alerts. `GET /v1/clubs/{clubId}/home`, readable by any club member. Every alert is scoped to that one season's age groups. Picking it as "the first active season" broke on staging (2026-11-06): with 25/26 left active beside 26/27, Home landed on 25/26 and showed no to-dos; `currentSeason` picks by today's date first.
+The aggregate behind the club screen's default **Home** tab: stat-grid counts, one "Next up" row per team with an upcoming match, and role-scoped "Needs you" alerts. `GET /v1/clubs/{clubId}/home`, readable by any club member. Every alert is scoped to that one season's age groups. Picking it as "the first active season" broke on staging (2026-11-06): with 25/26 left active beside 26/27, Home landed on 25/26 and showed no to-dos; `currentSeason` picks by today's date alone: `Season.active` is no longer read anywhere (every season was created active and no screen turns it off).
 
 ```mermaid
 graph TD
     A[Start: userId, clubId] --> B[CheckUserPermissionUseCase — minClubRole=MEMBER, allowPlayerOrParentAccess=true]
     B -- denied --> F(["Throw ForbiddenException"])
-    B -- allowed --> C["Fetch club; resolve role + season (Season.currentSeason: the one today falls in, an active one first; else the latest-starting active; else the latest-ending)"]
+    B -- allowed --> C["Fetch club; resolve role + season (Season.currentSeason, by date: the one today falls in; between seasons the one that ended last; else the next to start)"]
     C --> D["Counts: teams, players, coaches; matchesThisWeek = club matches whose date is in the Mon–Sun week containing today"]
     D --> E["Next up: per team, soonest SCHEDULED future match → opponent name and logo + call-up count (count not shown since rows use MatchRow)"]
     E --> G{role >= COORDINATOR or platform admin?}
@@ -650,7 +650,7 @@ graph TD
     B -- denied --> F(["Throw ForbiddenException"])
     B -- allowed --> C[Club members with name, email, phone, role, account created]
     C --> D["Age-group staff roles across every season (current season first)"]
-    D --> E["User–player links in the club, with the player's age group in the active season"]
+    D --> E["User–player links in the club, with the player's age group in the current season (Season.currentSeason)"]
     E --> G["Pending CLUB_MEMBER invites, newest first"]
     G --> Z(["Return ClubMembersOverview — members, pendingInvites, viewerUserId, viewerRole"])
 ```
@@ -1149,7 +1149,7 @@ graph TD
     R --> E["Each line → PlayerSeasonMatch (with the team's name, e.g. 'Sub-15 A'), grouped by the season of the match's team; rating kept only if canRate[team] AND the report is completed"]
     E --> P["preStats = FINISHED matches he was called up for with no full-time minute (before stats existed), counted per season"]
     P --> S["seasons = the seasons of his age-group pools ∪ seasons with lines or preStats, newest first (by startDate)"]
-    S --> Z(["Return PlayerSeasonStats: seasons (seasonName, teamNames, matches newest first, preStatsMatchCount), currentSeasonId (the active season, else the newest), canSeeRatings"])
+    S --> Z(["Return PlayerSeasonStats: seasons (seasonName, teamNames, matches newest first, preStatsMatchCount), currentSeasonId (the club's current season by date, Season.currentSeason, if he has it; else his newest), canSeeRatings"])
 ```
 
 `canSeeRatings` is true when he has lines with a team whose ratings the caller may read, or when the caller is staff of one of his age groups. That way a coach gets the staff layout even before any match is rated. Players and parents get no ratings at all, and their card shows Minutes where the average rating would be.
@@ -2207,7 +2207,7 @@ graph TD
     C --> D[Count Players by club]
     D --> E[Count Coaches by club]
     E --> G["Fetch next 10 upcoming Matches"]
-    G --> H[Fetch active Seasons]
+    G --> H["The current season (Season.currentSeason, by date), as activeSeasons"]
     H --> Z(["Return aggregated ClubAdminDashboard"])
 ```
 
@@ -2554,7 +2554,7 @@ erDiagram
         enum type "SeasonType, default EUROPEAN_YEAR"
         date start_date
         date end_date
-        boolean active "default true"
+        boolean active "default true -- not read: the current season comes from the dates (Season.currentSeason, 2026-11-06)"
     }
     AGE_GROUPS {
         uuid id PK

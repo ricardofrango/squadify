@@ -22,15 +22,21 @@ class CurrentSeasonTest {
     }
 
     @Test
-    fun theSeasonTodayFallsInWinsEvenIfNotMarkedActive() {
+    fun theActiveFlagDoesntCount() {
         assertEquals("26/27", listOf(old, now.copy(active = false)).currentSeason(today)?.name)
+        assertEquals("26/27", listOf(old.copy(active = false), now.copy(active = false)).currentSeason(today)?.name)
     }
 
     @Test
-    fun betweenSeasonsTheLatestActiveOneElseTheLastToEnd() {
-        val summer = LocalDate.parse("2027-07-15")
-        assertEquals("26/27", listOf(old, now).currentSeason(summer)?.name)
-        assertEquals("26/27", listOf(old.copy(active = false), now.copy(active = false)).currentSeason(summer)?.name)
+    fun betweenSeasonsTheOneThatEndedLastUntilTheNextStarts() {
+        val gap = listOf(season("25/26", "2025-07-01", "2026-05-31", true), season("26/27", "2026-07-01", "2027-06-30", true))
+        assertEquals("25/26", gap.currentSeason(LocalDate.parse("2026-06-15"))?.name)
+        assertEquals("26/27", gap.currentSeason(LocalDate.parse("2026-07-01"))?.name)
+    }
+
+    @Test
+    fun onlyFutureSeasonsGiveTheNextToStartAndNoneGivesNull() {
+        assertEquals("26/27", listOf(now, season("27/28", "2027-07-01", "2028-06-30", true)).currentSeason(LocalDate.parse("2026-01-10"))?.name)
         assertNull(emptyList<Season>().currentSeason(today))
     }
 }

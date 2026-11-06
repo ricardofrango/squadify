@@ -390,15 +390,17 @@ data class Season(
 )
 
 /**
- * The club's current season, for what's scoped to "now" (Home's to-dos, the viewer's age groups): the
- * one [today] falls in, an active one first; else the active one that started last; else the one that
- * ended last. Several seasons can be marked active, in no order, so the first active one isn't enough:
- * an old season left active put Home on 25/26 with every to-do in 26/27 (the developer, 2026-11-06).
+ * The club's current season, from the dates alone (the developer, 2026-11-06): the one [today] falls
+ * in (the later-starting one if two overlap); between seasons, the one that ended last, so its pending
+ * work stays until the next one starts; with only future seasons, the next to start. Everything scoped
+ * to "now" uses it: Home's to-dos, the viewer's age groups, a member's current roles, the season a
+ * player's stats open on. [Season.active] isn't used: every season was created active and no screen
+ * turns it off, so 25/26 and 26/27 were both active and Home landed on 25/26 with every to-do in 26/27.
  */
 fun List<Season>.currentSeason(today: LocalDate): Season? =
-    filter { today >= it.startDate && today <= it.endDate }.maxWithOrNull(compareBy<Season>({ it.active }, { it.startDate }))
-        ?: filter { it.active }.maxByOrNull { it.startDate }
-        ?: maxByOrNull { it.endDate }
+    filter { today >= it.startDate && today <= it.endDate }.maxByOrNull { it.startDate }
+        ?: filter { it.startDate <= today }.maxByOrNull { it.endDate }
+        ?: minByOrNull { it.startDate }
 
 @Serializable
 data class AgeGroup(

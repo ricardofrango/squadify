@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlin.time.Clock
+import com.ricardofrango.squadify.model.currentSeason
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.MatchRepository
 import com.ricardofrango.squadify.domain.repository.PlayerRepository
@@ -30,7 +34,8 @@ class GetClubAdminDashboardUseCase(
         val totalPlayers = playerRepository.countPlayersByClub(clubId)
         val totalCoaches = ageGroupRepository.countCoachesByClub(clubId)
         val upcomingMatches = matchRepository.getUpcomingMatchesByClub(clubId, limit = 10)
-        val activeSeasons = seasonRepository.getActiveSeasonsByClub(clubId)
+        // The current season (Season.currentSeason), by today's date.
+        val activeSeasons = listOfNotNull(seasonRepository.getSeasonsByClub(clubId).currentSeason(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date))
 
         ClubAdminDashboard(
             totalTeams = totalTeams,
