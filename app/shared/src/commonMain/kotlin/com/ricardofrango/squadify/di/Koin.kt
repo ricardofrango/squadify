@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.di
 
+import io.ktor.http.HttpHeaders
+import io.ktor.client.request.header
+import androidx.compose.ui.text.intl.Locale
 import com.ricardofrango.squadify.data.local.SessionRepositoryImpl
 import com.ricardofrango.squadify.data.local.UiPreferencesRepositoryImpl
 import com.ricardofrango.squadify.data.remote.*
@@ -106,6 +109,9 @@ val dataModule = module {
             }
             defaultRequest {
                 contentType(ContentType.Application.Json)
+                // The app's language ("pt", "en"), read on every request so it follows a change: the
+                // servers write their emails (and the coach server its plans' features) in it.
+                header(HttpHeaders.AcceptLanguage, Locale.current.language)
             }
             mapNetworkErrors()
             // The authenticated client is derived from this one, so it keeps this too.

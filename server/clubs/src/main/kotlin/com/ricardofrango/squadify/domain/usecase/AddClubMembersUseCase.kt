@@ -26,7 +26,8 @@ class AddClubMembersUseCase(
     suspend operator fun invoke(
         userId: String,
         clubId: String,
-        request: AddClubMembersRequest
+        request: AddClubMembersRequest,
+        language: String? = null
     ): Boolean {
         val membersAdded = mutableListOf<User>()
         val emailsInvited = mutableListOf<String>()
@@ -104,13 +105,13 @@ class AddClubMembersUseCase(
         // membership.
         if (membersAdded.isNotEmpty() || emailsInvited.isNotEmpty()) {
             membersAdded.forEach {
-                emailService.sendClubMembershipAdded(to = it.email, firstName = it.firstName, clubName = clubName)
+                emailService.sendClubMembershipAdded(to = it.email, firstName = it.firstName, clubName = clubName, language = language)
                 pushTokensByUser[it.id]?.let { tokens ->
                     pushNotificationService.sendClubMembershipAdded(tokens = tokens, link = PushLink.club(clubId), clubName = clubName)
                 }
             }
             emailsInvited.forEach {
-                emailService.sendClubInvite(to = it, clubName = clubName)
+                emailService.sendClubInvite(to = it, clubName = clubName, language = language)
             }
         }
 

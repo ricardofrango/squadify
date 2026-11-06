@@ -33,7 +33,7 @@ class ConfirmEmailChangeUseCase(
         data class Changed(val user: User, val oldEmail: String) : Outcome
     }
 
-    suspend operator fun invoke(userId: String, request: EmailChangeConfirmRequest): User {
+    suspend operator fun invoke(userId: String, request: EmailChangeConfirmRequest, language: String? = null): User {
         val code = request.code.filter { !it.isWhitespace() }
 
         val outcome = transactionManager.runInTransaction {
@@ -59,7 +59,7 @@ class ConfirmEmailChangeUseCase(
         return when (outcome) {
             Outcome.InvalidCode -> throw ValidationException(INVALID_CODE)
             is Outcome.Changed -> {
-                emailService.sendEmailChanged(outcome.oldEmail, outcome.user.firstName, outcome.user.email)
+                emailService.sendEmailChanged(outcome.oldEmail, outcome.user.firstName, outcome.user.email, language)
                 outcome.user
             }
         }

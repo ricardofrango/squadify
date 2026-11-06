@@ -458,6 +458,25 @@ notification, not a security-critical value. Without a verified sending domain, 
 from `onboarding@resend.dev` to the Resend account's own email -- real delivery to arbitrary invitees
 needs a verified domain (`RESEND_FROM_ADDRESS` env var overrides the default once one exists).
 
+**The look and the language (2026-11-06, before the coach app's launch):** every email, on both
+servers, goes in one layout, `EmailLayout` (`:server:web`, `email/`): the app's carbon header with its
+mark (the 3-3-4 green dots of `SquadifyMark`, drawn as a small HTML table, so there's no image to host or
+for a mail app to hide; old Outlook desktop shows them square) and the product's name, a white rounded
+card, a code on a grey box, a green button for a link, and a grey line under the card. Inline styles and
+tables only, which is what mail apps keep.
+
+It's written in the language of the app that asked: both apps send `Accept-Language` (the app's
+language, `Locale.current.language`) on every request, from the shared client's `defaultRequest`, and
+`ApplicationCall.appLanguage()` (`:server:web`) reads it (a `?language=` parameter still counts first,
+which the coach app sent for the plans before the header). Portuguese for "pt…", English otherwise and
+when there's none (an old app). Each `EmailService` method takes that `language`; the use cases pass the
+route's. So the account emails (the password reset code, the email change code, the notice to the old
+address) are in the user's own language, and the club ones (invite, added to a club, added as staff) in
+the admin's who added them (the developer, 2026-11-06), like the coach server's emailed invite in the
+owner's. The account emails' texts are shared, `AccountEmails`, with the product's name: the Portuguese
+is informal ("tu") for the coach app and formal ("você") for the clubs one, like each app's own text,
+and the clubs notice also says to tell the club. The platform admins' plan request stays English.
+
 ## 15. API Versioning: `/v1` Prefix
 
 Every route is now nested under `/v1` (`Application.kt`'s `routing { route("/v1") { authRoutes(); ... } }`)

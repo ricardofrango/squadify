@@ -124,7 +124,7 @@ class EmailedStaffInvitesTest {
         val (enSubject, enBody) = staffInviteText(email.copy(language = "en"))
         assertEquals("Ana <b> invited you to Sub-12 on Squadify Coach", enSubject)
         assertTrue("9 November" in enBody && "Join with a code" in enBody)
-        assertTrue("Your code" in staffInviteText(email.copy(language = null)).second)
+        assertTrue("Your code" in staffInviteText(email.copy(language = null)).html)
     }
 
     @Test

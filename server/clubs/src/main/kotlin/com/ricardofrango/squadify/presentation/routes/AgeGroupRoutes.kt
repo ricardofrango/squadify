@@ -146,7 +146,7 @@ fun Route.ageGroupRoutes() {
                     val currentUserId =
                         call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                     val request = call.receive<AddStaffToAgeGroupRequest>()
-                    val success = addStaffToAgeGroupUseCase(currentUserId, ageGroupId, request)
+                    val success = addStaffToAgeGroupUseCase(currentUserId, ageGroupId, request, call.appLanguage())
                     if (success) {
                         call.respond(HttpStatusCode.Created)
                     } else {

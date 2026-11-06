@@ -48,7 +48,7 @@ fun Route.accountRoutes() {
         // 404 when the email has no active account.
         post("/password-reset/request") {
             val request = call.receive<PasswordResetRequest>()
-            requestPasswordResetUseCase(request.email)
+            requestPasswordResetUseCase(request.email, call.appLanguage())
             call.respond(HttpStatusCode.Accepted)
         }
 
@@ -88,13 +88,13 @@ fun Route.accountRoutes() {
             // account over and answers the updated user.
             post("/email/request") {
                 val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                requestEmailChangeUseCase(currentUserId, call.receive<EmailChangeRequest>())
+                requestEmailChangeUseCase(currentUserId, call.receive<EmailChangeRequest>(), call.appLanguage())
                 call.respond(HttpStatusCode.Accepted)
             }
 
             post("/email/confirm") {
                 val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                call.respond(confirmEmailChangeUseCase(currentUserId, call.receive<EmailChangeConfirmRequest>()))
+                call.respond(confirmEmailChangeUseCase(currentUserId, call.receive<EmailChangeConfirmRequest>(), call.appLanguage()))
             }
         }
     }

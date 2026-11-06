@@ -67,7 +67,7 @@ fun Route.clubRoutes() {
                     call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                 val request = call.receive<ProvisionClubRequest>()
 
-                val club = provisionClubUseCase(currentUserId, request)
+                val club = provisionClubUseCase(currentUserId, request, call.appLanguage())
                 call.respond(HttpStatusCode.Created, club)
             }
 
@@ -120,7 +120,7 @@ fun Route.clubRoutes() {
                         call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
                     val request = call.receive<AddClubMembersRequest>()
 
-                    val success = addClubMembersUseCase(currentUserId, clubId, request)
+                    val success = addClubMembersUseCase(currentUserId, clubId, request, call.appLanguage())
                     if (success) {
                         call.respond(HttpStatusCode.Created)
                     } else {
@@ -182,7 +182,7 @@ fun Route.clubRoutes() {
                     val clubId = call.parameters["clubId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
                     val inviteId = call.parameters["inviteId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
                     val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                    manageClubInviteUseCase.resend(currentUserId, clubId, inviteId)
+                    manageClubInviteUseCase.resend(currentUserId, clubId, inviteId, call.appLanguage())
                     call.respond(HttpStatusCode.NoContent)
                 }
 

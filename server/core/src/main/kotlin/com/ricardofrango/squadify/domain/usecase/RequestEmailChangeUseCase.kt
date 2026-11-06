@@ -33,7 +33,7 @@ class RequestEmailChangeUseCase(
     private val clock: Clock = Clock.System,
     private val generateCode: () -> String = ::randomResetCode
 ) {
-    suspend operator fun invoke(userId: String, request: EmailChangeRequest) {
+    suspend operator fun invoke(userId: String, request: EmailChangeRequest, language: String? = null) {
         val newEmail = request.newEmail.trim()
         if (!EMAIL.matches(newEmail)) throw ValidationException(INVALID_EMAIL)
         currentPasswordGuard.verify(userId, request.currentPassword)
@@ -65,7 +65,7 @@ class RequestEmailChangeUseCase(
         }
 
         toSend?.let { (user, code) ->
-            emailService.sendEmailChangeCode(newEmail, user.firstName, code, CODE_TTL.inWholeMinutes.toInt())
+            emailService.sendEmailChangeCode(newEmail, user.firstName, code, CODE_TTL.inWholeMinutes.toInt(), language)
         }
     }
 
