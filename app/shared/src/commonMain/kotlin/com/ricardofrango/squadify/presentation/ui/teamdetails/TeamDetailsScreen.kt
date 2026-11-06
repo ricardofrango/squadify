@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.teamdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.AdBanner
 import com.ricardofrango.squadify.presentation.ui.components.weekdayDateLabel
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
@@ -234,8 +235,12 @@ private fun TeamDetailsContent(
                         }
                     }
                 },
+                // The coach app's Free plan: a banner above the tabs, or at the bottom beside the rail.
                 bottomBar = {
-                    if (!rail && details != null) TeamBottomBar(tab, selectTab)
+                    Column {
+                        AdBanner(alone = rail || details == null)
+                        if (!rail && details != null) TeamBottomBar(tab, selectTab)
+                    }
                 }
             ) { paddingValues ->
                 val boxModifier = Modifier.fillMaxSize().padding(paddingValues)

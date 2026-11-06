@@ -46,6 +46,9 @@ kotlin {
             implementation(libs.compose.uiTooling)
             // Subscriptions on Google Play (TECHNICAL_DECISIONS §72, payments).
             implementation(libs.android.billing)
+            // Ads on the Free plan, after the consent form (REQUIREMENTS §5c).
+            implementation(libs.google.ads)
+            implementation(libs.google.ump)
         }
         commonMain.dependencies {
             api(project(":app:shared"))

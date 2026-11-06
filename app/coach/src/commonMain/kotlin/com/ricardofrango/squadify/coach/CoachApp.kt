@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.coach
 
+import com.ricardofrango.squadify.coach.presentation.ads.AdsConsentEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import coil3.ImageLoader
@@ -25,6 +26,8 @@ fun CoachApp() {
     }
     SquadifyTheme {
         val navigator = rememberAppNavigator()
+        // The consent form, once a space has ads, then the ads SDK (Android).
+        AdsConsentEffect()
         CompositionLocalProvider(LocalAppNavigator provides navigator) {
             CoachNavigation(navigator)
         }

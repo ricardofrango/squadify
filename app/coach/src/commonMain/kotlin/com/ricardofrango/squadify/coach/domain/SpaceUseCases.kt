@@ -16,12 +16,14 @@ import com.ricardofrango.squadify.model.StaffInvite
 class GetSpacesUseCase(
     private val spaceRepository: SpaceRepository,
     private val ownSpacePlan: OwnSpacePlan,
-    private val loadPlansUseCase: LoadPlansUseCase
+    private val loadPlansUseCase: LoadPlansUseCase,
+    private val coachAds: CoachAds
 ) {
     suspend operator fun invoke(): List<SpaceAgeGroups> =
         spaceRepository.getSpaces().also { spaces ->
             ownSpacePlan.space.value = spaces.firstOrNull { it.isOwner }
                 ?.let { OwnSpace(it.space.id, it.plan, it.ageGroupsThisSeason, it.ageGroupsLeft) }
+            coachAds.remember(spaces)
             // Best effort: the last plans loaded stay when they can't be fetched now.
             try {
                 loadPlansUseCase()

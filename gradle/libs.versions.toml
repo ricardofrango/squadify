@@ -49,6 +49,9 @@ firebaseAppDistributionGradle = "5.3.0"
 [libraries]
 # Google Play Billing, for the coach app's subscriptions on Android.
 android-billing = { module = "com.android.billingclient:billing-ktx", version = "7.1.1" }
+# Ads on the coach app's Free plan (AdMob) and the consent form before them (UMP).
+google-ads = { module = "com.google.android.gms:play-services-ads", version = "25.5.0" }
+google-ump = { module = "com.google.android.ump:user-messaging-platform", version = "4.0.0" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }

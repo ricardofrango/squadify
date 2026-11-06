@@ -89,6 +89,11 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = ciBuildNumber ?: 1
         versionName = versionNameProp
+        // AdMob (ads on the Free plan, REQUIREMENTS §5c): the app id goes in the manifest, the banner's unit
+        // in BuildConfig. Google's test ids until the developer's AdMob account has its own: test ads only,
+        // never real ones (and no clicks of ours that could get an account banned).
+        manifestPlaceholders["adMobAppId"] = "ca-app-pub-3940256099942544~3347511713"
+        buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-3940256099942544/9214589741\"")
     }
     packaging {
         resources {

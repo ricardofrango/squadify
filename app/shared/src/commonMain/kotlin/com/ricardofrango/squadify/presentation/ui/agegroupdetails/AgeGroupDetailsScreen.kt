@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.AdBanner
 import com.ricardofrango.squadify.presentation.ui.components.weekdayDateLabel
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
@@ -297,7 +298,13 @@ private fun AgeGroupDetailsContent(
                         if (details != null) AgeGroupStrip(details, selectTab)
                     }
                 },
-                bottomBar = { if (!rail && details != null) DetailBottomBar(tabItems, tabIndex, selectIndex) }
+                // The coach app's Free plan: a banner above the tabs, or at the bottom beside the rail.
+                bottomBar = {
+                    Column {
+                        AdBanner(alone = rail || details == null)
+                        if (!rail && details != null) DetailBottomBar(tabItems, tabIndex, selectIndex)
+                    }
+                }
             ) { paddingValues ->
                 val boxModifier = Modifier.fillMaxSize().padding(paddingValues)
                 when (uiState) {

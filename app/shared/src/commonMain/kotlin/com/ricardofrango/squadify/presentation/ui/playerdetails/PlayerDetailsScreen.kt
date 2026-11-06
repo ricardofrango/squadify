@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.AdBanner
 import com.ricardofrango.squadify.presentation.ui.components.longDateLabel
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
@@ -155,6 +156,8 @@ private fun PlayerDetailsContent(
         contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        // The coach app's Free plan: a banner at the bottom.
+        bottomBar = { AdBanner(alone = true) },
         topBar = {
             Column(Modifier.background(ClubChrome).safeSidesPadding()) {
                 SquadifyTopBar(
