@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.WindowInsetsSides
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
@@ -192,7 +193,7 @@ private fun ExerciseLibraryContent(
                 LibraryList(state, onQueryChange, onToggle, onEdit, Modifier.weight(1f).safeSidesPadding())
             }
             FormErrorLine(state.error)
-            Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
+            if (!keyboardOnShortWindow()) Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.safeSidesPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 14.dp), horizontalAlignment = Alignment.End) {
                     if (form != null) {
                         PrimaryLoadingButton(

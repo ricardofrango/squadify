@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.WindowInsetsSides
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
@@ -172,7 +173,7 @@ private fun SessionEditContent(
                     FormErrorLine(state.error)
                 }
             }
-            Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
+            if (!keyboardOnShortWindow()) Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.safeSidesPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 14.dp)) {
                     PrimaryLoadingButton(
                         text = stringResource(if (editing) Res.string.btn_save_changes else Res.string.btn_add_session),

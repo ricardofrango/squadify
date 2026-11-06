@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -36,6 +38,17 @@ val MediumWidth: Dp = WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp
 @Composable
 fun useNavigationRail(): Boolean =
     currentWindowAdaptiveInfoV2().windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
+
+/**
+ * True while the keyboard is open in a window under 480dp tall (a phone lying down). The keyboard
+ * leaves about the top bar's height there, so a form's pinned Save bar hides while typing, or it
+ * would cover the field being typed in; it's back as the keyboard closes (TECHNICAL_DECISIONS.md §11.6).
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun keyboardOnShortWindow(): Boolean =
+    WindowInsets.isImeVisible &&
+        !currentWindowAdaptiveInfoV2().windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND)
 
 /** The widest a form, or a list of single rows, gets; centred beyond that, so rows never stretch across a wide window. */
 val ReadableMaxWidth: Dp = 720.dp

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.creatematch
 
+import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
@@ -339,8 +340,8 @@ private fun CreateMatchForm(
             }
         }
 
-        // Pinned action bar
-        Surface(
+        // Pinned action bar, hidden while typing lying down
+        if (!keyboardOnShortWindow()) Surface(
             color = Color.White,
             shadowElevation = 8.dp,
             modifier = Modifier.fillMaxWidth()

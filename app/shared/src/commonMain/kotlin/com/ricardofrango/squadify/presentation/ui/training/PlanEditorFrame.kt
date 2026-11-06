@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.WindowInsetsSides
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
@@ -90,7 +91,7 @@ fun PlanEditorFrame(
                     FormErrorLine(state.error)
                 }
             }
-            Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
+            if (!keyboardOnShortWindow()) Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
                 Box(Modifier.safeSidesPadding().padding(horizontal = 20.dp, vertical = 14.dp), contentAlignment = Alignment.CenterEnd) {
                     PrimaryLoadingButton(
                         text = saveText,

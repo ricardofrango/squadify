@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createstaff
 
+import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.text.KeyboardActions
@@ -198,8 +199,9 @@ private fun CreateStaffContent(
                 Spacer(modifier = Modifier.height(4.dp))
             }
 
-            // Fixed footer: validation summary + submit -- always reachable without scrolling.
-            Column(
+            // Fixed footer: validation summary + submit -- always reachable without scrolling, but
+            // while typing lying down.
+            if (!keyboardOnShortWindow()) Column(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {

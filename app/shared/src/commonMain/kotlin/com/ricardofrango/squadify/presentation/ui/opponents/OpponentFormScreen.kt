@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
+import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.WindowInsetsSides
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
@@ -244,7 +245,7 @@ private fun OpponentFormContent(
                         }
                     }
                 }
-                Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
+                if (!keyboardOnShortWindow()) Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
                     Box(Modifier.safeSidesPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp), contentAlignment = Alignment.CenterEnd) {
                         PrimaryLoadingButton(
                             text = submitText,

@@ -25,9 +25,11 @@ import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
  * the navigation bar's inset under that (a `bottomBar` gets none from the `Scaffold`). The same as
  * Match details' bar. An error goes above the button, in [content]. On a wide screen the button
  * keeps the width of a form ([readableWidth]), centred, rather than stretching across the window.
+ * Hidden while typing on a phone lying down ([keyboardOnShortWindow]).
  */
 @Composable
 fun PinnedBottomBar(content: @Composable ColumnScope.() -> Unit) {
+    if (keyboardOnShortWindow()) return
     Surface(color = ScreenBackground, shadowElevation = 8.dp) {
         Column(
             Modifier

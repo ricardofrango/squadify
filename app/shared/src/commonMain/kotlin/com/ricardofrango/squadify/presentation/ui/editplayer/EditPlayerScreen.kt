@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editplayer
 
+import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
@@ -318,7 +319,7 @@ private fun EditPlayerForm(
             }
         }
 
-        Column(
+        if (!keyboardOnShortWindow()) Column(
             modifier = Modifier.readableWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
