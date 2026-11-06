@@ -219,7 +219,7 @@ private fun MatchDetailsContent(
     if (rail && tabs.isNotEmpty()) FinishedRail(tabs, selectedTab) { finishedTab = it }
     Scaffold(
         contentWindowInsets = ScreenWindowInsets,
-        modifier = Modifier.weight(1f).besideRail(rail),
+        modifier = Modifier.weight(1f).besideRail(rail && tabs.isNotEmpty()),
         containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {

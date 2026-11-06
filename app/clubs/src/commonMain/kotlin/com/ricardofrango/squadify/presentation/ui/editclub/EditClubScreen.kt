@@ -317,7 +317,7 @@ private fun EditClubContent(
             if (rail && idle != null) DetailRail(tabs, selectedTab, onTabSelected)
             Scaffold(
                 contentWindowInsets = ScreenWindowInsets,
-                modifier = Modifier.weight(1f).besideRail(rail),
+                modifier = Modifier.weight(1f).besideRail(rail && idle != null),
                 containerColor = ScreenBackground,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 topBar = {

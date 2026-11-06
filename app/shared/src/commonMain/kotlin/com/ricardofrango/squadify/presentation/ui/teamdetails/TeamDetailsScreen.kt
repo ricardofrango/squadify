@@ -191,7 +191,7 @@ private fun TeamDetailsContent(
             if (rail && details != null) TeamRail(tab, selectTab)
             Scaffold(
                 contentWindowInsets = ScreenWindowInsets,
-                modifier = Modifier.weight(1f).besideRail(rail),
+                modifier = Modifier.weight(1f).besideRail(rail && details != null),
                 containerColor = ScreenBackground,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 topBar = {

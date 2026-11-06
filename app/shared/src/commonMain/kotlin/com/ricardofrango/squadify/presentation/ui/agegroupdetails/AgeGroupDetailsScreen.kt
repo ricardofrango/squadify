@@ -290,7 +290,7 @@ private fun AgeGroupDetailsContent(
             if (rail && details != null) DetailRail(tabItems, tabIndex, selectIndex)
             Scaffold(
                 contentWindowInsets = ScreenWindowInsets,
-                modifier = Modifier.weight(1f).besideRail(rail),
+                modifier = Modifier.weight(1f).besideRail(rail && details != null),
                 containerColor = ScreenBackground,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 topBar = {

@@ -855,7 +855,7 @@ private fun ClubDetailsContent(
     Scaffold(
         contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
-        modifier = Modifier.weight(1f).besideRail(rail),
+        modifier = Modifier.weight(1f).besideRail(rail && hasTabs),
         topBar = {
             SquadifyTopBar(
                 title = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name

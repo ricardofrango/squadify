@@ -86,7 +86,9 @@ private val RailInsets: WindowInsets
 /**
  * For the screen's content beside a [DetailRail]: the rail already keeps clear of the start edge (its
  * system bar and camera cutout), so the content mustn't again. Without it, a phone lying down showed an
- * empty strip, the cutout's width, between the rail and the content.
+ * empty strip, the cutout's width, between the rail and the content. Pass true only when the rail is
+ * actually drawn (the same condition): while loading, or on a match not yet played, there's none, and
+ * the content must keep clear of the cutout itself.
  */
 @Composable
 fun Modifier.besideRail(rail: Boolean): Modifier =
