@@ -453,7 +453,7 @@ graph TD
     B -- allowed --> C[Fetch Club by id]
     C -- not found --> N(["Throw NotFoundException"])
     C -- found --> D["Probe CheckUserPermissionUseCase — minClubRole=COORDINATOR (non-throwing: ForbiddenException caught to false)"]
-    D --> V["viewerRole = club role (platform admin → CLUB_ADMIN); viewerAgeGroups = the viewer's coach/staff age groups in the active season, youngest first"]
+    D --> V["viewerRole = club role (platform admin → CLUB_ADMIN); viewerAgeGroups = the viewer's coach/staff age groups in the current season (Season.currentSeason), youngest first"]
     V --> P{"canEditClub?"}
     P -- yes --> Z(["Return ClubDetailsResponse — club, canEditClub, viewerRole, viewerAgeGroups; scoped lists empty"])
     P -- no --> S["For each viewer age group: non-throwing probes of CREATE_TEAM and CREATE_PLAYERS (configurablePermission + ageGroupId)"]
@@ -470,13 +470,13 @@ The viewer fields feed the club's **More** panel (design 37):
 
 ### 3.3b Get Club Home (`GetClubHomeUseCase`)
 
-The aggregate behind the club screen's default **Home** tab: stat-grid counts, one "Next up" row per team with an upcoming match, and role-scoped "Needs you" alerts. `GET /v1/clubs/{clubId}/home`, readable by any club member.
+The aggregate behind the club screen's default **Home** tab: stat-grid counts, one "Next up" row per team with an upcoming match, and role-scoped "Needs you" alerts. `GET /v1/clubs/{clubId}/home`, readable by any club member. Every alert is scoped to that one season's age groups. Picking it as "the first active season" broke on staging (2026-11-06): with 25/26 left active beside 26/27, Home landed on 25/26 and showed no to-dos; `currentSeason` picks by today's date first.
 
 ```mermaid
 graph TD
     A[Start: userId, clubId] --> B[CheckUserPermissionUseCase — minClubRole=MEMBER, allowPlayerOrParentAccess=true]
     B -- denied --> F(["Throw ForbiddenException"])
-    B -- allowed --> C[Fetch club; resolve role + season (active, else latest-ending)]
+    B -- allowed --> C["Fetch club; resolve role + season (Season.currentSeason: the one today falls in, an active one first; else the latest-starting active; else the latest-ending)"]
     C --> D["Counts: teams, players, coaches; matchesThisWeek = club matches whose date is in the Mon–Sun week containing today"]
     D --> E["Next up: per team, soonest SCHEDULED future match → opponent name and logo + call-up count (count not shown since rows use MatchRow)"]
     E --> G{role >= COORDINATOR or platform admin?}

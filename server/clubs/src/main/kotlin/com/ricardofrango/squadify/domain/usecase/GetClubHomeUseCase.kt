@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.domain.usecase
 
+import com.ricardofrango.squadify.model.currentSeason
 import com.ricardofrango.squadify.domain.repository.AgeGroupRepository
 import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.repository.ClubRepository
@@ -77,13 +78,12 @@ class GetClubHomeUseCase(
         val role = userRepository.getUserRoleInClub(userId, clubId) ?: ClubRole.MEMBER
         val isAdmin = userRepository.findById(userId)?.isPlatformAdmin == true
 
-        // The season everything is scoped to: the active one, else the most recently ending.
-        val season = seasonRepository.getActiveSeasonsByClub(clubId).firstOrNull()
-            ?: seasonRepository.getSeasonsByClub(clubId).maxByOrNull { it.endDate }
-
         val tz = TimeZone.currentSystemDefault()
         val now = Clock.System.now()
         val today = now.toLocalDateTime(tz).date
+
+        // The season everything is scoped to (Season.currentSeason): the one today falls in.
+        val season = seasonRepository.getSeasonsByClub(clubId).currentSeason(today)
         val weekStart = today.minus(today.dayOfWeek.isoDayNumber - 1, DateTimeUnit.DAY)
         val weekEndExclusive = weekStart.plus(7, DateTimeUnit.DAY)
 

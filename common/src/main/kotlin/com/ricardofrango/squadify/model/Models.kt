@@ -389,6 +389,17 @@ data class Season(
     val active: Boolean
 )
 
+/**
+ * The club's current season, for what's scoped to "now" (Home's to-dos, the viewer's age groups): the
+ * one [today] falls in, an active one first; else the active one that started last; else the one that
+ * ended last. Several seasons can be marked active, in no order, so the first active one isn't enough:
+ * an old season left active put Home on 25/26 with every to-do in 26/27 (the developer, 2026-11-06).
+ */
+fun List<Season>.currentSeason(today: LocalDate): Season? =
+    filter { today >= it.startDate && today <= it.endDate }.maxWithOrNull(compareBy<Season>({ it.active }, { it.startDate }))
+        ?: filter { it.active }.maxByOrNull { it.startDate }
+        ?: maxByOrNull { it.endDate }
+
 @Serializable
 data class AgeGroup(
     val id: String,
