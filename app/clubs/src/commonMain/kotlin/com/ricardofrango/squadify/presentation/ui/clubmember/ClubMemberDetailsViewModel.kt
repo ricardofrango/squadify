@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.presentation.ui.clubmember
 
+import squadify.app.shared.generated.resources.msg_remove_staff_failed
+import squadify.app.shared.generated.resources.msg_staff_removed
+import com.ricardofrango.squadify.model.MemberAgeGroupRole
+import com.ricardofrango.squadify.domain.usecase.RemoveStaffFromAgeGroupUseCase
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ricardofrango.squadify.domain.usecase.CancelClubInviteUseCase
@@ -38,7 +42,8 @@ class ClubMemberDetailsViewModel(
     private val updateClubMemberRoleUseCase: UpdateClubMemberRoleUseCase,
     private val resendClubInviteUseCase: ResendClubInviteUseCase,
     private val cancelClubInviteUseCase: CancelClubInviteUseCase,
-    private val removeClubMemberUseCase: RemoveClubMemberUseCase
+    private val removeClubMemberUseCase: RemoveClubMemberUseCase,
+    private val removeStaffFromAgeGroupUseCase: RemoveStaffFromAgeGroupUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<ClubMemberDetailsUiState>(ClubMemberDetailsUiState.Loading)
@@ -115,6 +120,23 @@ class ClubMemberDetailsViewModel(
             } catch (e: Exception) {
                 _state.value = current.copy(saving = false)
                 _events.emit(ClubMemberDetailsEvent.Message(errorMessage(e, Res.string.member_remove_failed)))
+            }
+        }
+    }
+
+    /** Off one of their age groups, staying in the club: the card reloads without it, and a snackbar says so. */
+    fun removeFromAgeGroup(clubId: String, role: MemberAgeGroupRole) {
+        val current = _state.value as? ClubMemberDetailsUiState.Member ?: return
+        if (!current.canRemoveFromAgeGroups || current.saving) return
+        _state.value = current.copy(saving = true)
+        viewModelScope.launch {
+            try {
+                removeStaffFromAgeGroupUseCase(role.ageGroupId, current.member.userId)
+                _state.value = current.copy(member = current.member.copy(ageGroupRoles = current.member.ageGroupRoles - role))
+                _events.emit(ClubMemberDetailsEvent.Message(getString(Res.string.msg_staff_removed, "${current.member.firstName} ${current.member.lastName}", role.ageGroupName)))
+            } catch (e: Exception) {
+                _state.value = current.copy(saving = false)
+                _events.emit(ClubMemberDetailsEvent.Message(errorMessage(e, Res.string.msg_remove_staff_failed)))
             }
         }
     }

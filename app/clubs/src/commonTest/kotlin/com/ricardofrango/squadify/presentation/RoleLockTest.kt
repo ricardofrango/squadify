@@ -3,6 +3,7 @@ package com.ricardofrango.squadify.presentation
 import com.ricardofrango.squadify.model.ClubMemberEntry
 import com.ricardofrango.squadify.model.ClubMembersOverview
 import com.ricardofrango.squadify.model.ClubRole
+import com.ricardofrango.squadify.presentation.ui.clubmember.ClubMemberDetailsUiState
 import com.ricardofrango.squadify.presentation.ui.clubmember.RoleLock
 import com.ricardofrango.squadify.presentation.ui.clubmember.canRemove
 import com.ricardofrango.squadify.presentation.ui.clubmember.roleLock
@@ -76,5 +77,15 @@ class RoleLockTest {
         // A platform admin viewing a club with one admin.
         val o = ClubMembersOverview(listOf(member("a", ClubRole.CLUB_ADMIN)), emptyList(), viewerUserId = "p", viewerRole = ClubRole.CLUB_ADMIN)
         assertFalse(canRemove(o, member("a", ClubRole.CLUB_ADMIN)))
+    }
+
+    // Taking someone off an age group, from their details: admins and coordinators, as the server allows.
+    @Test
+    fun onlyAdminsAndCoordinatorsCanTakeSomeoneOffAnAgeGroup() {
+        val target = member("m", ClubRole.MEMBER)
+        for ((role, allowed) in listOf(ClubRole.CLUB_ADMIN to true, ClubRole.COORDINATOR to true, ClubRole.MEMBER to false)) {
+            val state = ClubMemberDetailsUiState.Member(overview(role, member("v", role), target), target)
+            assertEquals(allowed, state.canRemoveFromAgeGroups, "viewer $role")
+        }
     }
 }

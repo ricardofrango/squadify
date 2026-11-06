@@ -599,7 +599,8 @@ internal fun AgeGroupMembersTab(
     onOpenStaff: ((String) -> Unit)? = null,
     // Null without ASSIGN_PLAYERS_TO_AGE_GROUP: no ✕ on the player rows.
     onRemovePlayer: ((String) -> Unit)? = null,
-    // The coach app's owner: a delete button on each staff row, after a confirmation.
+    // Whoever may take staff off: the coach app's owner, or a club's admins and coordinators (canAddStaff).
+    // A delete button on each staff row, after a confirmation.
     onRemoveStaff: ((String) -> Unit)? = null,
     // The coach app's owner, who brings staff in with invite codes (canAddStaff is off there).
     invitesStaff: Boolean = false
@@ -751,7 +752,8 @@ internal fun AgeGroupMembersTab(
     confirmRemoveStaff?.let { member ->
         ConfirmDialog(
             title = stringResource(Res.string.title_remove_staff, "${member.firstName} ${member.lastName}", details.ageGroup.name),
-            body = stringResource(Res.string.msg_remove_staff),
+            // The coach app's space vs. the club, which they stay in.
+            body = stringResource(if (invitesStaff) Res.string.msg_remove_staff else Res.string.msg_remove_staff_club),
             onConfirm = { confirmRemoveStaff = null; onRemoveStaff?.invoke(member.userId) },
             onDismiss = { confirmRemoveStaff = null },
             confirmLabel = stringResource(Res.string.btn_remove)

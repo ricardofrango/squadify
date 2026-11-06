@@ -1368,6 +1368,21 @@ Someone not yet a club member can't be picked there, so that screen also has a "
 
 ## 6. Opponents
 
+### 5.4b Remove Staff from Age Group (`RemoveStaffFromAgeGroupUseCase`, clubs server)
+
+`DELETE /v1/age-groups/{ageGroupId}/staff/{userId}` (the developer, 2026-11-06): takes a coach or staff member off one age group, from the age group's Members tab (the ✕ on a staff row) or from their Member details (the ✕ on an age group row), after a confirmation. Same gate as adding them. They stay in the club with their club role; only Remove from club (§3.7b, `RemoveClubMemberUseCase`) takes that away. The coach server's own `RemoveStaffUseCase` (§13.4) answers the same path there, with the space's rules.
+
+```mermaid
+graph TD
+    A[Start: userId, ageGroupId, staffUserId] --> B[Fetch AgeGroup by id]
+    B -- not found --> V(["Throw NotFoundException: Age group not found"])
+    B -- found --> C[CheckUserPermissionUseCase — minClubRole=COORDINATOR]
+    C -- denied --> F(["Throw ForbiddenException"])
+    C -- allowed --> D[Delete their age_group_staff row]
+    D -- none --> N(["Throw NotFoundException: Not staff on this age group"])
+    D -- deleted --> Z(["204 No Content — club membership untouched"])
+```
+
 ### 6.1 Create Opponent (`CreateOpponentUseCase`)
 
 ```mermaid

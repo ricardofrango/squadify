@@ -97,6 +97,12 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import androidx.compose.material3.IconButton
+import squadify.app.shared.generated.resources.ic_delete
+import squadify.app.shared.generated.resources.cd_remove_staff
+import squadify.app.shared.generated.resources.title_remove_staff
+import squadify.app.shared.generated.resources.msg_remove_staff_club
+import squadify.app.shared.generated.resources.btn_remove
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.ic_chevron_right
 import squadify.app.shared.generated.resources.ic_document
@@ -202,6 +208,7 @@ fun ClubMemberDetailsScreen(
             onResend = { viewModel.resendInvite(clubId) },
             onCancelInvite = { viewModel.cancelInvite(clubId) },
             onRemove = { viewModel.removeMember(clubId) },
+            onRemoveFromAgeGroup = { viewModel.removeFromAgeGroup(clubId, it) },
             onOpenAgeGroup = onOpenAgeGroup,
             onOpenPlayer = onOpenPlayer
         )
@@ -220,10 +227,12 @@ private fun ClubMemberDetailsContent(
     onCancelInvite: () -> Unit,
     onOpenAgeGroup: (String) -> Unit,
     onOpenPlayer: (String) -> Unit,
-    onRemove: () -> Unit = {}
+    onRemove: () -> Unit = {},
+    onRemoveFromAgeGroup: (MemberAgeGroupRole) -> Unit = {}
 ) {
     var confirmAdmin by remember { mutableStateOf(false) }
     var confirmRemove by remember { mutableStateOf(false) }
+    var confirmRemoveFrom by remember { mutableStateOf<MemberAgeGroupRole?>(null) }
 
     Scaffold(
         contentWindowInsets = ScreenWindowInsets,
@@ -261,7 +270,10 @@ private fun ClubMemberDetailsContent(
                         })
                     }
                     val inClub: @Composable ColumnScope.() -> Unit = {
-                        InClubCard(state.member, onOpenAgeGroup, onOpenPlayer)
+                        InClubCard(
+                            state.member, onOpenAgeGroup, onOpenPlayer,
+                            onRemoveFromAgeGroup = if (state.canRemoveFromAgeGroups && !state.saving) { role -> confirmRemoveFrom = role } else null
+                        )
                         // A red row at the bottom rather than a ⋮ item: the confirmation does the protecting.
                         if (canRemove(state.overview, state.member)) RemoveRow(enabled = !state.saving) { confirmRemove = true }
                     }
@@ -290,6 +302,16 @@ private fun ClubMemberDetailsContent(
     }
 
     val member = state as? ClubMemberDetailsUiState.Member
+    val removeFrom = confirmRemoveFrom
+    if (removeFrom != null && member != null) {
+        ConfirmDialog(
+            title = stringResource(Res.string.title_remove_staff, member.member.fullName(), removeFrom.ageGroupName),
+            body = stringResource(Res.string.msg_remove_staff_club),
+            onConfirm = { confirmRemoveFrom = null; onRemoveFromAgeGroup(removeFrom) },
+            onDismiss = { confirmRemoveFrom = null },
+            confirmLabel = stringResource(Res.string.btn_remove)
+        )
+    }
     if (confirmRemove && member != null) {
         ConfirmDialog(
             title = stringResource(Res.string.member_remove_title, member.member.fullName()),
@@ -455,7 +477,13 @@ private fun RoleLock.messageRes() = when (this) {
 // ---- In the club ----
 
 @Composable
-private fun InClubCard(member: ClubMemberEntry, onOpenAgeGroup: (String) -> Unit, onOpenPlayer: (String) -> Unit) {
+private fun InClubCard(
+    member: ClubMemberEntry,
+    onOpenAgeGroup: (String) -> Unit,
+    onOpenPlayer: (String) -> Unit,
+    // Null for a viewer below coordinator: no delete button on the age group rows.
+    onRemoveFromAgeGroup: ((MemberAgeGroupRole) -> Unit)? = null
+) {
     StatsCard(contentPadding = 0.dp) {
         StatsHeading(stringResource(Res.string.member_in_club), Modifier.padding(start = 14.dp, top = 14.dp, bottom = 4.dp))
         if (member.ageGroupRoles.isEmpty() && member.linkedPlayers.isEmpty()) {
@@ -472,7 +500,11 @@ private fun InClubCard(member: ClubMemberEntry, onOpenAgeGroup: (String) -> Unit
             if (!first) HorizontalDivider(color = CarbonGray.copy(alpha = 0.07f))
             first = false
             val roleName = stringResource(if (role.role == AgeGroupRole.COACH) Res.string.member_role_coach else Res.string.member_role_staff)
-            LinkRow("$roleName · ${role.ageGroupName} · ${role.seasonName}", meta = null) { onOpenAgeGroup(role.ageGroupId) }
+            val remove = onRemoveFromAgeGroup?.let { { it(role) } }
+            LinkRow(
+                "$roleName · ${role.ageGroupName} · ${role.seasonName}", meta = null,
+                remove = remove, removeLabel = stringResource(Res.string.cd_remove_staff, member.fullName())
+            ) { onOpenAgeGroup(role.ageGroupId) }
         }
         member.linkedPlayers.forEach { link ->
             if (!first) HorizontalDivider(color = CarbonGray.copy(alpha = 0.07f))
@@ -491,13 +523,19 @@ private fun UserPlayerRelationship.labelRes() = when (this) {
 }
 
 @Composable
-private fun LinkRow(text: String, meta: String?, onClick: () -> Unit) {
+private fun LinkRow(text: String, meta: String?, remove: (() -> Unit)? = null, removeLabel: String? = null, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 48.dp).padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(text, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold, fontSize = 14.5.sp), color = DeepCarbon)
             if (meta != null) Text(meta, style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText)
         }
         Icon(painterResource(Res.drawable.ic_chevron_right), contentDescription = null, tint = DeepCarbon.copy(alpha = 0.3f), modifier = Modifier.size(20.dp))
+        // The age group's Members tab's delete button (AgeGroupTabs).
+        if (remove != null) {
+            IconButton(onClick = remove, modifier = Modifier.padding(start = 4.dp).size(36.dp)) {
+                Icon(painterResource(Res.drawable.ic_delete), removeLabel, tint = AlertRed, modifier = Modifier.size(20.dp))
+            }
+        }
     }
 }
 

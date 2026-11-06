@@ -1362,6 +1362,7 @@
     <string name="cd_remove_staff">Remove %1$s from the staff</string>
     <string name="title_remove_staff">Remove %1$s from %2$s?</string>
     <string name="msg_remove_staff">They stop seeing this age group. If it was their last one in your space, they leave it.</string>
+    <string name="msg_remove_staff_club">They stop seeing this age group and its teams. They stay in the club, with their club role.</string>
     <string name="msg_staff_removed">%1$s removed from %2$s</string>
     <string name="msg_remove_staff_failed">Couldn't remove them. Try again.</string>
     <string name="cd_disable_player">Disable %1$s</string>
