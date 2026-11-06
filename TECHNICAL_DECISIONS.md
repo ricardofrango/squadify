@@ -2976,10 +2976,10 @@ Per the developer, 2026-10-23 (from `ISSUES TO FIX.md`): Login only tagged its f
   - **iOS, desktop and web:** `NoCredentialStore`, which does nothing.
   - Neither call ever throws: being dismissed, or having no provider, simply does nothing.
 - **Saving:** Android shows its "save password?" sheet:
-  - **Login:** after a successful sign-in. The sheet comes first, then the app moves on, so leaving the screen can't cut it off. Where no store is available, Login falls back to committing the autofill session as before.
+  - **Login:** after a successful sign-in. The sheet comes first, then the app moves on, so leaving the screen can't cut it off. Where no store is available, Login falls back to committing the autofill session as before. Not when signing in with the account just picked from the password manager, unchanged: it's saved already, and the sheet asked to save it again on every sign-in (the developer, 2026-11-06).
   - **Register:** after a successful registration, with the email and password that were sent.
   - **Account:** after changing the password, with the new one. It's taken from the form as it's sent, since the form is cleared on success.
-- **Filling:** when Login opens empty (not after a password reset, and not with anything typed), it asks for a saved account and fills in the email and password. It uses `preferImmediatelyAvailableCredentials`, so a user with nothing saved sees no sheet at all.
+- **Filling:** when Login opens empty (not after a password reset, and not with anything typed), it asks for a saved account, fills in the email and password and signs in with it at once: picking an account is the choice to sign in (the developer, 2026-11-06). If that fails (a password changed elsewhere), the usual error shows with the fields filled, and signing in with a corrected password offers to save it. It uses `preferImmediatelyAvailableCredentials`, so a user with nothing saved sees no sheet at all.
 - **Not testable on the JVM:** this is all platform UI; check it on a device.
 
 ## 61. One Content Padding for Every Screen

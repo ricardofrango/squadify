@@ -70,17 +70,27 @@ fun LoginScreen(
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    // The saved account picked from the password manager, so signing in with it doesn't offer to save
+    // it again; typing a different email or password does.
+    var pickedEmail by rememberSaveable { mutableStateOf<String?>(null) }
+    var pickedPassword by rememberSaveable { mutableStateOf<String?>(null) }
 
     LaunchedEffect(passwordResetEmail) {
         if (passwordResetEmail != null) { email = passwordResetEmail; password = "" }
     }
-    // Offers a saved account on a fresh, empty screen (not after a reset, or once something's typed).
+    // Offers a saved account on a fresh, empty screen (not after a reset, or once something's typed),
+    // and signs in with it at once: picking it is the user's choice to sign in.
     LaunchedEffect(Unit) {
         if (passwordResetEmail == null && email.isEmpty() && password.isEmpty()) {
-            credentialStore.pick()?.let { email = it.email; password = it.password }
+            credentialStore.pick()?.let {
+                email = it.email; password = it.password
+                pickedEmail = it.email; pickedPassword = it.password
+                viewModel.onLoginClicked(it.email, it.password)
+            }
         }
     }
     suspend fun offerToSavePassword() {
+        if (email == pickedEmail && password == pickedPassword) return
         if (credentialStore.isAvailable) credentialStore.save(email, password) else autofillManager?.commit()
     }
 
