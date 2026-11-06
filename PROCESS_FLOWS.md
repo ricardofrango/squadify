@@ -1542,7 +1542,7 @@ graph TD
 - **Shown on Match Details:** a single-period match shows "1 half" next to the date.
 - **On the live console:** a one-half match has no half time. The action bar only offers Full time, the clock reads "MATCH" instead of "1ST HALF", and pre-kickoff asks for the "Match length". The server refuses HALF_TIME for it (§8.2).
 
-**Team size** (how many a side, `Match.teamSize`, `matches.team_size`, required: V29 added it, V30 filled every existing match with its team's count, 11 for a team without one, and made it NOT NULL). A new match takes its team's count unless another is picked: a 9-a-side team can play a 7-a-side game. It drives the call-up's minimum, the pitch's positions and formation, and kickoff's starter count. A match keeps its count when its team's size changes later, so a game played 9-a-side stays 9-a-side. The size must be one of the club sport's (`SportType.teamSizes`).
+**Team size** (how many a side, `Match.teamSize`, `matches.team_size`, required: V29 added it, V30 filled every existing match with its team's count, 11 for a team without one, and made it NOT NULL). A new match takes its team's count unless another is picked: a 9-a-side team can play a 7-a-side game. It drives the call-up's minimum, the pitch's positions and formation, and kickoff's starter count. A match keeps its count when its team's size changes later, so a game played 9-a-side stays 9-a-side. The size must be one of the club sport's (`SportType.teamSizes`). A new match also takes its club's sport (`Match.sport`, `matches.sport`, V33), which picks the football pitch or the futsal court in the live console and the Timeline.
 - **Where it changes** (`Match.canChangeTeamSize`): before kickoff, or for a game whose result was entered afterwards (§8.1c). Never once the game was followed live (`kickoffAt` set).
 - **Schedule match:** a "Format" control (5x5 · 7x7 · …), starting on the chosen team's own count.
 - **Edit match:** the same control, before kickoff only (§7.1c).
@@ -2635,6 +2635,7 @@ erDiagram
         varchar starting_formation "nullable -- the formation at kickoff, set by StartMatchUseCase; prefills the report's tactic (V25)"
         boolean entered_after_game "default false -- the result was entered afterwards, not followed live; minutes typed in, no substitutions or timeline (V27)"
         integer team_size "not null -- how many a side this match is played; the team's count unless another was picked (V29, filled from teams.team_size and made NOT NULL in V30)"
+        varchar sport "not null -- FOOTBALL or FUTSAL, the club's when the match was created; the pitch or court drawn (V33, filled from clubs.sport)"
     }
     MATCH_CALL_UPS {
         uuid id PK
@@ -2762,7 +2763,7 @@ erDiagram
 |---|---|---|
 | `UserStatus` | `ACTIVE`, `INACTIVE`, `PENDING`, `SUSPENDED` | `users.status` (default `ACTIVE`) |
 | `ClubStatus` | `ACTIVE`, `INACTIVE`, `PENDING` | `clubs.status` (default `ACTIVE`) |
-| `SportType` | `FOOTBALL`, `FUTSAL` | `clubs.sport` (default `FOOTBALL`); required in `ProvisionClubRequest`. Each constant also carries a code-level `teamSizes: List<Int>` (FOOTBALL → 4/5/7/9/11, FUTSAL → 4/5) — the allowed a-side counts for `age_groups.team_size` / `teams.team_size`; not persisted, not configurable per club. |
+| `SportType` | `FOOTBALL`, `FUTSAL` | `clubs.sport` (default `FOOTBALL`) and `matches.sport` (the club's, V33); required in `ProvisionClubRequest`. Each constant also carries a code-level `teamSizes: List<Int>` (FOOTBALL → 4/5/7/9/11, FUTSAL → 4/5) — the allowed a-side counts for `age_groups.team_size` / `teams.team_size`; not persisted, not configurable per club. |
 | `ClubRole` | `CLUB_ADMIN`(5), `COORDINATOR`(4), `MEMBER`(1) | `club_members.role`, `invites.role` |
 | `AgeGroupRole` | `COACH`(3), `STAFF`(2) | `age_group_staff.role` |
 | `SeasonType` | `CALENDAR_YEAR`, `EUROPEAN_YEAR` | `seasons.type` (default `EUROPEAN_YEAR`) |

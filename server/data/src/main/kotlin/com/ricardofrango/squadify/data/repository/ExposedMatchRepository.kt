@@ -107,6 +107,7 @@ class ExposedMatchRepository : MatchRepository {
             it[halves] = match.halves
             it[venue] = match.venue
             it[MatchesTable.teamSize] = match.teamSize
+            it[MatchesTable.sport] = match.sport
             it[halfLengthMinutes] = match.halfLengthMinutes
             it[kickoffAt] = match.kickoffAt
             it[secondHalfStartedAt] = match.secondHalfStartedAt
@@ -340,7 +341,8 @@ class ExposedMatchRepository : MatchRepository {
         formation = row[MatchesTable.formation],
         startingFormation = row[MatchesTable.startingFormation],
         enteredAfterGame = row[MatchesTable.enteredAfterGame],
-        teamSize = row[MatchesTable.teamSize]
+        teamSize = row[MatchesTable.teamSize],
+        sport = row[MatchesTable.sport]
     )
 
     private fun toOpponent(row: ResultRow): Opponent = Opponent(

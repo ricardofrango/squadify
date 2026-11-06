@@ -45,11 +45,9 @@ class CreateMatchUseCase(
             if (request.halves !in 1..2) {
                 throw ValidationException("A match is played in 1 or 2 halves")
             }
+            val club = clubRepository.getClubById(team.clubId) ?: throw NotFoundException("Club not found")
             // The team's count unless another is picked; kept on the match from now on.
-            val teamSize = request.teamSize?.also { size ->
-                val club = clubRepository.getClubById(team.clubId) ?: throw NotFoundException("Club not found")
-                requireMatchTeamSize(size, club)
-            } ?: team.teamSize ?: 11
+            val teamSize = request.teamSize?.also { size -> requireMatchTeamSize(size, club) } ?: team.teamSize ?: 11
 
             val match = Match(
                 id = Uuid.random().toString(),
@@ -63,7 +61,9 @@ class CreateMatchUseCase(
                 type = request.type,
                 halves = request.halves,
                 venue = request.venue ?: MatchVenue.HOME,
-                teamSize = teamSize
+                teamSize = teamSize,
+                // The club's sport, kept on the match (V33).
+                sport = club.sport
             )
 
             matchRepository.createMatch(match)

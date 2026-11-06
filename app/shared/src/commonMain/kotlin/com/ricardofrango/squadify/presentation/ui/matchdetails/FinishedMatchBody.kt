@@ -543,6 +543,7 @@ private fun TimelineTab(details: MatchDetails, modifier: Modifier) {
         val pitch: @Composable (Modifier) -> Unit = { pitchModifier ->
             CompositionLocalProvider(LocalPitchOnLight provides true) { PitchPanel(
                 formation = entry.formation,
+                sport = details.match.sport,
                 slots = entry.slots.mapNotNull { (slot, id) -> players[id]?.let { slot to it } }.toMap(),
                 bench = entry.bench.mapNotNull { players[it] },
                 sentOff = entry.sentOff.mapNotNull { players[it] },

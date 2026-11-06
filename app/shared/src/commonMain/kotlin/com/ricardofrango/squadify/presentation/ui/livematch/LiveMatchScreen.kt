@@ -367,6 +367,7 @@ private fun PreKickoffContent(state: LiveMatchUiState.Idle, actions: LiveMatchAc
             }
             PitchPanel(
                 formation = formation,
+                sport = details.match.sport,
                 slots = slots,
                 bench = bench,
                 sentOff = emptyList(),
@@ -643,6 +644,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
                 }
                 PitchPanel(
                     formation = formation,
+                    sport = details.match.sport,
                     slots = currentSlotIds.mapNotNull { (slot, id) -> playersById[id]?.let { slot to it } }.toMap(),
                     bench = squad.bench.map { it.player }.sortedByPosition(),
                     sentOff = squad.sentOff.map { it.player },

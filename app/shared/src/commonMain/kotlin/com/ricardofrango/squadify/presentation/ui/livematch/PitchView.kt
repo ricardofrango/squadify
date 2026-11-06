@@ -1,5 +1,11 @@
 package com.ricardofrango.squadify.presentation.ui.livematch
 
+import androidx.compose.ui.graphics.drawscope.clipRect
+import kotlin.math.sin
+import kotlin.math.cos
+import kotlin.math.PI
+import androidx.compose.ui.graphics.Path
+import com.ricardofrango.squadify.model.SportType
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -110,6 +116,8 @@ import kotlin.math.roundToInt
 // the console before kickoff (placing the starters) and during the game (its Pitch tab).
 
 private val FieldColor = Color(0xFF173321)
+// Futsal's court: a dark wood floor (the developer, 2026-11-06), its planks running the length.
+private val CourtColor = Color(0xFF4A3424)
 private val TokenFill = Color(0xFF2C2C2E)
 
 /**
@@ -210,18 +218,22 @@ internal fun PitchField(
     ourGoalAtStart: Boolean,
     modifier: Modifier = Modifier,
     overlays: List<PitchOverlay> = emptyList(),
+    sport: SportType = SportType.FOOTBALL,
     slotContent: @Composable (slot: Int) -> Unit
 ) {
+    val futsal = sport == SportType.FUTSAL
     val slots = formation.sum() + 1
     Layout(
         content = {
-            Canvas(Modifier.fillMaxSize()) { drawPitchLines(horizontal, ourGoalAtStart) }
+            Canvas(Modifier.fillMaxSize()) {
+                if (futsal) drawFutsalCourt(horizontal, ourGoalAtStart) else drawPitchLines(horizontal, ourGoalAtStart)
+            }
             repeat(slots) { slot -> Box { slotContent(slot) } }
             overlays.forEach { Box { it.content() } }
         },
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(FieldColor)
+            .background(if (futsal) CourtColor else FieldColor)
             .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(12.dp))
     ) { measurables, constraints ->
         val w = constraints.maxWidth
@@ -266,6 +278,75 @@ private fun DrawScope.drawPitchLines(horizontal: Boolean, ourGoalAtStart: Boolea
     box(0f, 0.06f, 0.38f, 0.62f, ours)
     box(1f, 0.84f, 0.22f, 0.78f, theirs)
     box(1f, 0.94f, 0.38f, 0.62f, theirs)
+}
+
+/**
+ * A futsal court, 40 by 20 metres, on [CourtColor]'s wood: the planks, the touch lines and halfway line,
+ * the 3 m centre circle, each penalty area (6 m quarter circles from the posts joined by a straight
+ * line, a little darker), the 6 m and 10 m penalty marks, the corner arcs and the substitution zones on
+ * one touch line. Turned like the football pitch ([pitchPoint]); our end a little brighter.
+ */
+private fun DrawScope.drawFutsalCourt(horizontal: Boolean, ourGoalAtStart: Boolean) {
+    val inset = 8.dp.toPx()
+    val stroke = Stroke(width = 1.5.dp.toPx())
+    val field = Rect(inset, inset, size.width - inset, size.height - inset)
+    // A point on the court in metres: [along] from our goal line (0 to 40), [across] from our left (0 to 20).
+    fun at(along: Float, across: Float): Offset {
+        val p = pitchPoint(along / 40f, across / 20f, horizontal, ourGoalAtStart)
+        return Offset(field.left + p.x * field.width, field.top + p.y * field.height)
+    }
+
+    // The planks: thin seams along the court's length, every 1.25 m across it.
+    val seam = Color.Black.copy(alpha = 0.14f)
+    val grain = Color.White.copy(alpha = 0.025f)
+    for (i in 1 until 16) {
+        val across = i * 1.25f
+        if (i % 2 == 0) {
+            val a = at(0f, across); val b = at(40f, across + 1.25f)
+            drawRect(grain, topLeft = Offset(min(a.x, b.x), min(a.y, b.y)), size = Size(abs(a.x - b.x), abs(a.y - b.y)))
+        }
+        drawLine(seam, at(0f, across), at(40f, across), strokeWidth = 1.dp.toPx())
+    }
+
+    val line = Color.White.copy(alpha = 0.32f)
+    drawRect(line, topLeft = field.topLeft, size = field.size, style = stroke)
+    drawLine(line, at(20f, 0f), at(20f, 20f), strokeWidth = stroke.width)
+    val acrossPx = if (horizontal) field.height else field.width
+    drawCircle(line, radius = acrossPx * 3f / 20f, center = at(20f, 10f), style = stroke)
+    drawCircle(line, radius = 2.dp.toPx(), center = at(20f, 10f))
+
+    // The penalty area from a goal line at [goal] (0 or 40), [inward] pointing into the court.
+    fun penaltyArea(goal: Float, inward: Float, color: Color) {
+        val area = Path()
+        fun arc(postAcross: Float, from: Int, to: Int) {
+            val step = if (to > from) 1 else -1
+            var deg = from
+            while (true) {
+                val t = deg * PI.toFloat() / 180f
+                val p = at(goal + inward * 6f * sin(t), postAcross + (if (postAcross < 10f) -6f else 6f) * cos(t))
+                if (area.isEmpty) area.moveTo(p.x, p.y) else area.lineTo(p.x, p.y)
+                if (deg == to) break
+                deg += step * 5
+            }
+        }
+        arc(8.5f, 0, 90)     // from the goal line, 6 m outside the left post, round to 6 m in front of it
+        arc(11.5f, 90, 0)    // across to the right post's arc, back to the goal line
+        drawPath(area, Color.Black.copy(alpha = 0.12f))
+        drawPath(area, color, style = stroke)
+        drawCircle(color, radius = 2.dp.toPx(), center = at(goal + inward * 6f, 10f))
+        drawCircle(color, radius = 2.dp.toPx(), center = at(goal + inward * 10f, 10f))
+    }
+    // Our end reads a little brighter than theirs.
+    penaltyArea(0f, 1f, Color.White.copy(alpha = 0.40f))
+    penaltyArea(40f, -1f, Color.White.copy(alpha = 0.20f))
+
+    // The corner arcs (25 cm, drawn a touch bigger to be seen).
+    val corner = 4.dp.toPx()
+    clipRect(field.left, field.top, field.right, field.bottom) {
+        for ((along, across) in listOf(0f to 0f, 0f to 20f, 40f to 0f, 40f to 20f)) drawCircle(line, radius = corner, center = at(along, across), style = stroke)
+    }
+    // The substitution zones: marks across the bench's touch line, 5 and 10 m each side of halfway.
+    for (along in listOf(10f, 15f, 25f, 30f)) drawLine(line, at(along, -0.4f), at(along, 0.6f), strokeWidth = stroke.width)
 }
 
 /** A round photo, or the head-and-shoulders placeholder without one. */
@@ -474,6 +555,8 @@ private fun BenchToken(player: Player, name: String, info: PitchTokenInfo, highl
 @Composable
 internal fun PitchPanel(
     formation: List<Int>,
+    // A futsal court or a football pitch (Match.sport).
+    sport: SportType,
     slots: Map<Int, Player>,
     bench: List<Player>,
     sentOff: List<Player>,
@@ -516,7 +599,7 @@ internal fun PitchPanel(
             besideKeeper?.let { content -> PitchOverlay(halfLengthAt.x, halfLengthAt.y) { Box(Modifier.padding(6.dp)) { content() } } },
             onFlip?.takeIf { horizontal }?.let { flip -> PitchOverlay(1f - ourEndX, 0f) { Box(Modifier.padding(6.dp)) { FlipPitchButton(flip) } } }
         )
-        PitchField(formation, horizontal, ourGoalAtStart, Modifier.fillMaxSize(), overlays) { slot ->
+        PitchField(formation, horizontal, ourGoalAtStart, Modifier.fillMaxSize(), overlays, sport) { slot ->
             val key = PitchDropKey.Slot(slot)
             val player = slots[slot]
             val tap = onSlotTap?.let { { it(slot, player) } }

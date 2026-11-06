@@ -1000,7 +1000,10 @@ data class Match(
     // How many a side this match is played (V29). Set when it's scheduled, from the team's count
     // unless another is picked (a 9-a-side team playing a 7-a-side game), and kept when the team's size
     // changes later. See [canChangeTeamSize]. The default is only for constructing a Match in code.
-    val teamSize: Int = 11
+    val teamSize: Int = 11,
+    // The sport it's played in, its club's when it was created (V33): the live match and the Timeline
+    // draw a futsal court or a football pitch from it. Defaulted for an older server.
+    val sport: SportType = SportType.FOOTBALL
 )
 
 /**
