@@ -10,6 +10,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.draw.alpha
 import com.ricardofrango.squadify.model.SpacePlan
@@ -191,6 +193,8 @@ private fun CoachHomeContent(
                 modifier = Modifier.widthIn(max = 300.dp),
                 windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.Start)
             ) {
+                // Scrolls: lying down on a phone the items run past the bottom (Sign out was cut off).
+                Column(Modifier.verticalScroll(rememberScrollState())) {
                 Text(
                     stringResource(Res.string.coach_app_name),
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
@@ -206,6 +210,7 @@ private fun CoachHomeContent(
                 }
                 MenuItem(SharedRes.drawable.ic_account, stringResource(Res.string.coach_menu_account), fromMenu(onOpenAccount))
                 MenuItem(SharedRes.drawable.ic_logout, stringResource(SharedRes.string.btn_logout), fromMenu(onSignOut))
+                }
             }
         }
     ) {
