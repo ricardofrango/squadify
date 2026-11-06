@@ -113,7 +113,6 @@ class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
         val style = showing?.let { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }
             ?: NotificationCompat.MessagingStyle(Person.Builder().setName(appName()).setKey("me").build())
         style.conversationTitle = getString(R.string.push_match_thread_title, thread.teamName, thread.opponentName)
-        style.isGroupConversation = true
         // Some launchers draw a sender's picture as it comes, square, so a scorer's photo is cut to a
         // circle here; without one, the pitch's head-and-shoulders placeholder, not Android's initial.
         val avatar = when (thread.sender) {
@@ -122,10 +121,14 @@ class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
         }
         val sender = Person.Builder()
             .setName(thread.senderName)
-            .setKey("${thread.sender}:${thread.senderName}")
+            .setKey(if (thread.sender == PushMessage.Sender.TEAM) teamKey(thread) else "${thread.sender}:${thread.senderName}")
             .apply { avatar?.let { setIcon(IconCompat.createWithBitmap(it)) } }
             .build()
         style.addMessage(NotificationCompat.MessagingStyle.Message(body, System.currentTimeMillis(), sender))
+        // A group shows each line's sender, picture and name, beside it. While every line is our team's,
+        // that's only our club's logo again, big (the developer, 2026-11-06): not a group then, so Android
+        // leaves it out. Once a scorer or the opponent has a line, a group, so each says who it's from.
+        style.isGroupConversation = style.messages.any { it.person?.key != teamKey(thread) }
 
         val builder = NotificationCompat.Builder(this, push.channelId)
             .setSmallIcon(PushNotifications.smallIcon)
@@ -138,6 +141,9 @@ class SquadifyMessagingService : FirebaseMessagingService(), KoinComponent {
         builder.setLargeIcon(matchPicture(thread))
         notify(notificationId, builder)
     }
+
+    /** Our team's lines' sender, the same key as the lines already on screen ("TEAM:Infantis B1"). */
+    private fun teamKey(thread: PushMessage.MatchThread) = "${PushMessage.Sender.TEAM}:${thread.teamName}"
 
     /**
      * Our club's logo in front (bottom left) and the opponent's behind it (top right), each on a white
