@@ -202,16 +202,18 @@ private fun CreatePlayersContent(
             )
         }
     ) { paddingValues ->
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(ScreenBackground)
         ) {
             // Fixed header: intro + "add row" -- stays put as the list below grows, instead of
-            // scrolling out of reach.
-            Column(
-                modifier = Modifier.readableWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp),
+            // scrolling out of reach. On a phone lying down it would leave a sliver for the rows,
+            // so there it's the first thing in the scrolling list.
+            val headerScrolls = maxHeight < 480.dp
+            val header: @Composable (Modifier) -> Unit = { modifier -> Column(
+                modifier = modifier,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
@@ -228,8 +230,10 @@ private fun CreatePlayersContent(
                 ) {
                     Text("+ ${stringResource(Res.string.label_add_another_player)}")
                 }
-            }
+            } }
 
+            Column(Modifier.fillMaxSize()) {
+            if (!headerScrolls) header(Modifier.readableWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp))
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -239,6 +243,7 @@ private fun CreatePlayersContent(
                     .padding(horizontal = ScreenPadding.Horizontal),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                if (headerScrolls) header(Modifier.padding(top = 16.dp))
                 rows.forEachIndexed { index, row ->
                     PlayerRowCard(
                         index = index + 1,
@@ -302,6 +307,7 @@ private fun CreatePlayersContent(
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center
                 )
+            }
             }
         }
     }
