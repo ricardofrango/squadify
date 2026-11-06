@@ -61,6 +61,7 @@ kotlin {
 
             implementation(libs.navigation3.ui)
             implementation(libs.androidx.lifecycle.viewmodelNavigation3)
+            implementation(libs.navigationevent.compose)
 
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)

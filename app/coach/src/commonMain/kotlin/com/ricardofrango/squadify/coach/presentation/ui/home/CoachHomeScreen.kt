@@ -43,6 +43,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.OutlinedButton
@@ -182,6 +185,12 @@ private fun CoachHomeContent(
     val scope = rememberCoroutineScope()
     // Closes the menu, then does what was picked.
     fun fromMenu(action: () -> Unit): () -> Unit = { scope.launch { drawerState.close() }; action() }
+    // Back closes the open menu first; Home is the stack's root, so without this it left the app.
+    NavigationBackHandler(
+        state = rememberNavigationEventState(NavigationEventInfo.None),
+        isBackEnabled = drawerState.isOpen,
+        onBackCompleted = { scope.launch { drawerState.close() } }
+    )
 
     ModalNavigationDrawer(
         drawerState = drawerState,
