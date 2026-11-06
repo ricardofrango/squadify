@@ -798,7 +798,8 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
             title = stringResource(Res.string.msg_confirm_half_time_title),
             body = stringResource(Res.string.msg_confirm_half_time_body),
             onConfirm = { showHalfTimeConfirm = false; actions.onHalfTime() },
-            onDismiss = { showHalfTimeConfirm = false }
+            onDismiss = { showHalfTimeConfirm = false },
+            confirmColor = PitchGreen
         )
     }
     if (showFullTimeConfirm) {
