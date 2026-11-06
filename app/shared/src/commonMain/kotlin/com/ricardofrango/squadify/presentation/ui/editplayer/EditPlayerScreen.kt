@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editplayer
 
+import com.ricardofrango.squadify.presentation.ui.components.longDateLabel
 import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
@@ -54,9 +55,6 @@ import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.format
-import kotlinx.datetime.format.MonthNames
-import kotlinx.datetime.format.char
 import kotlinx.datetime.todayIn
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -65,9 +63,6 @@ import kotlin.time.Clock
 
 private val FormRoundedShape = RoundedCornerShape(18.dp)
 
-private val DateDisplayFormat = LocalDate.Format {
-    day(); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); year()
-}
 
 /**
  * Edit an existing player's record -- name, date of birth, and the optional fields
@@ -262,7 +257,7 @@ private fun EditPlayerForm(
 
                 DateField(
                     label = stringResource(Res.string.label_date_of_birth),
-                    value = form.birthDateIso?.let { LocalDate.parse(it).format(DateDisplayFormat) },
+                    value = form.birthDateIso?.let { longDateLabel(LocalDate.parse(it)) },
                     onClick = onDateClick
                 )
 

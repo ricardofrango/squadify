@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
 import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import com.ricardofrango.squadify.model.ourSideFirst
 import com.ricardofrango.squadify.presentation.ui.components.emptyStatsRes
@@ -58,19 +59,13 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.DeepGreen
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.format
-import kotlinx.datetime.format.MonthNames
-import kotlinx.datetime.format.Padding
-import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.*
 
-private val DayMonth = LocalDate.Format { day(Padding.NONE); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED) }
 
 /** "2026/27 · Sub-15 A" (two teams in one season: "Sub-15 A + Sub-15 B"). */
 internal fun PlayerSeason.pillLabel(): String =
@@ -243,7 +238,7 @@ private fun PlayerMatchRow(m: PlayerSeasonMatch, showRating: Boolean, onClick: (
         // The date is centred in its column, so the space after it matches the card's edge before it.
         Box(Modifier.width(48.dp), contentAlignment = Alignment.Center) {
             Text(
-                m.dateTime.toLocalDateTime(TimeZone.currentSystemDefault()).date.format(DayMonth),
+                shortDateLabel(m.dateTime.toLocalDateTime(TimeZone.currentSystemDefault()).date),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
                 maxLines = 1,

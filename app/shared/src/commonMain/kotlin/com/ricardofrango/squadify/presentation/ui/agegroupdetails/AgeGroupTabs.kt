@@ -451,7 +451,7 @@ internal fun AgeGroupTeamsTab(
     listState: LazyListState,
     padding: PaddingValues,
     modifier: Modifier,
-    nextLabel: (Match) -> String,
+    nextLabel: @Composable (Match) -> String,
     onCreateTeam: () -> Unit,
     onOpenTeam: (String) -> Unit
 ) {
@@ -476,7 +476,7 @@ internal fun AgeGroupTeamsTab(
             items(details.teams.sortedBy { it.name }, key = { it.id }) { team ->
                 val record = records[team.id]
                 val next = details.upcomingMatches.firstOrNull { it.teamId == team.id && it.status == MatchStatus.SCHEDULED }
-                TeamCard(team, record, staff, next?.let(nextLabel)) { onOpenTeam(team.id) }
+                TeamCard(team, record, staff, next?.let { nextLabel(it) }) { onOpenTeam(team.id) }
             }
         }
     }

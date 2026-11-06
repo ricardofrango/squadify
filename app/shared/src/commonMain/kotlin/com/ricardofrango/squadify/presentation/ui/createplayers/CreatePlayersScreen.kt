@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createplayers
 
+import com.ricardofrango.squadify.presentation.ui.components.longDateLabel
 import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
@@ -38,9 +39,6 @@ import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.format
-import kotlinx.datetime.format.MonthNames
-import kotlinx.datetime.format.char
 import kotlinx.datetime.todayIn
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -57,13 +55,6 @@ private data class PlayerRow(
 
 private val FormRoundedShape = RoundedCornerShape(18.dp)
 
-private val DateDisplayFormat = LocalDate.Format {
-    day()
-    char(' ')
-    monthName(MonthNames.ENGLISH_ABBREVIATED)
-    char(' ')
-    year()
-}
 
 /**
  * Batch player creation, matching `CreatePlayersRequest`. Built to the "Add players to the club"
@@ -400,7 +391,7 @@ private fun PlayerRowCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        val picked = row.birthDateIso?.let { LocalDate.parse(it).format(DateDisplayFormat) }
+                        val picked = row.birthDateIso?.let { longDateLabel(LocalDate.parse(it)) }
                         Text(
                             text = picked ?: stringResource(Res.string.label_pick_a_date),
                             color = if (picked != null) DeepCarbon else DeepCarbon.copy(alpha = 0.4f),

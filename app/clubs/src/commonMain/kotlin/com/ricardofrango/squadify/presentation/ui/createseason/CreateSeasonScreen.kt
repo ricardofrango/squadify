@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createseason
 
+import com.ricardofrango.squadify.presentation.ui.components.longDateLabel
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
@@ -89,22 +90,12 @@ import squadify.app.shared.generated.resources.title_create_season
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
-import kotlinx.datetime.format
-import kotlinx.datetime.format.MonthNames
-import kotlinx.datetime.format.char
 import kotlinx.datetime.todayIn
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Clock
 
-private val DateDisplayFormat = LocalDate.Format {
-    day()
-    char(' ')
-    monthName(MonthNames.ENGLISH_ABBREVIATED)
-    char(' ')
-    year()
-}
 
 private val FormRoundedShape = RoundedCornerShape(18.dp)
 
@@ -533,7 +524,7 @@ private fun DateRow(label: String, date: LocalDate, isError: Boolean, onClick: (
                     color = DeepCarbon.copy(alpha = 0.5f)
                 )
                 Text(
-                    text = date.format(DateDisplayFormat),
+                    text = longDateLabel(date),
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                     color = contentColor
                 )

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.creatematch
 
+import com.ricardofrango.squadify.presentation.ui.components.longDateLabel
 import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
@@ -51,18 +52,12 @@ import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import squadify.app.shared.generated.resources.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
-import kotlinx.datetime.format
-import kotlinx.datetime.format.MonthNames
-import kotlinx.datetime.format.char
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 private val CardShape = RoundedCornerShape(18.dp)
 
-private val DayMonthYear = LocalDate.Format {
-    day(); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); year()
-}
 
 /**
  * Schedule one fixture, matching `CreateMatchRequest`. Built to the "Schedule match" artboard
@@ -278,7 +273,7 @@ private fun CreateMatchForm(
             FieldCard(label = stringResource(Res.string.label_when_field), required = true) {
                 ValueField(
                     label = stringResource(Res.string.label_match_date),
-                    value = state.date.format(DayMonthYear),
+                    value = longDateLabel(state.date),
                     onClick = { showDatePicker = true }
                 ) {
                     Icon(

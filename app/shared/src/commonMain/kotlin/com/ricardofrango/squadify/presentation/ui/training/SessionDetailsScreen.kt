@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.weekdayDateLabel
 import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.isWide
@@ -72,7 +73,6 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
-import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
@@ -161,7 +161,7 @@ fun SessionDetailsScreen(
 
 /** "Thu 15 Oct". */
 @Composable
-internal fun sessionTitle(date: LocalDate): String = "${weekdayShort(date.dayOfWeek.isoDayNumber)} ${shortDateLabel(date)}"
+internal fun sessionTitle(date: LocalDate): String = weekdayDateLabel(date)
 
 /** Upcoming · in 3 days / Today / Ended / Cancelled. */
 @Composable
