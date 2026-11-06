@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editteam
 
+import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
@@ -11,17 +12,13 @@ import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActio
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.font.FontWeight
 import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import org.jetbrains.compose.resources.pluralStringResource
-import squadify.app.shared.generated.resources.btn_cancel
 import squadify.app.shared.generated.resources.btn_delete
 import squadify.app.shared.generated.resources.btn_delete_team
 import squadify.app.shared.generated.resources.msg_delete_team_matches
@@ -40,7 +37,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import com.ricardofrango.squadify.presentation.ui.components.readableWidth
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,12 +46,12 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.presentation.ui.components.PinnedBottomBar
@@ -70,7 +66,6 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.shared.generated.resources.Res
-import squadify.app.shared.generated.resources.btn_retry
 import squadify.app.shared.generated.resources.btn_save_changes
 import squadify.app.shared.generated.resources.edit_team_size_helper
 import squadify.app.shared.generated.resources.ic_check
@@ -212,25 +207,13 @@ private fun EditTeamContent(
         }
     }
     if (confirmDelete && idle != null) {
-        AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = { Text(stringResource(Res.string.title_delete_team, idle.teamName)) },
-            text = {
-                Text(
-                    if (idle.matchCount > 0) pluralStringResource(Res.plurals.msg_delete_team_matches, idle.matchCount, idle.matchCount)
-                    else stringResource(Res.string.msg_delete_team_no_matches)
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { confirmDelete = false; onDelete() }) {
-                    Text(stringResource(Res.string.btn_delete), color = AlertRed, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) {
-                    Text(stringResource(Res.string.btn_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+        ConfirmDialog(
+            title = stringResource(Res.string.title_delete_team, idle.teamName),
+            body = if (idle.matchCount > 0) pluralStringResource(Res.plurals.msg_delete_team_matches, idle.matchCount, idle.matchCount)
+                else stringResource(Res.string.msg_delete_team_no_matches),
+            onConfirm = { confirmDelete = false; onDelete() },
+            onDismiss = { confirmDelete = false },
+            confirmLabel = stringResource(Res.string.btn_delete)
         )
     }
 }

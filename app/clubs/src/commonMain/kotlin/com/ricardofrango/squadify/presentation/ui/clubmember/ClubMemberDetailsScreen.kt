@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubmember
 
+import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
@@ -30,7 +31,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -40,14 +40,13 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,7 +75,6 @@ import com.ricardofrango.squadify.presentation.ui.components.StatsHeading
 import com.ricardofrango.squadify.presentation.ui.components.StatsMessage
 import com.ricardofrango.squadify.presentation.ui.components.StatsSecondaryText
 import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
-import com.ricardofrango.squadify.presentation.ui.editclub.MemberAvatar
 import com.ricardofrango.squadify.presentation.ui.editclub.RoleOption
 import com.ricardofrango.squadify.presentation.ui.editclub.initials
 import com.ricardofrango.squadify.presentation.ui.editclub.labelRes
@@ -100,7 +98,6 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.shared.generated.resources.Res
-import squadify.app.shared.generated.resources.btn_cancel
 import squadify.app.shared.generated.resources.ic_chevron_right
 import squadify.app.shared.generated.resources.ic_document
 import squadify.app.shared.generated.resources.member_account_created
@@ -294,27 +291,22 @@ private fun ClubMemberDetailsContent(
 
     val member = state as? ClubMemberDetailsUiState.Member
     if (confirmRemove && member != null) {
-        AlertDialog(
-            onDismissRequest = { confirmRemove = false },
-            containerColor = Color.White,
-            titleContentColor = DeepCarbon,
-            textContentColor = DeepCarbon.copy(alpha = 0.75f),
-            title = { Text(stringResource(Res.string.member_remove_title, member.member.fullName())) },
-            text = { Text(removeConsequences(member.member)) },
-            confirmButton = { TextButton(onClick = { confirmRemove = false; onRemove() }) { Text(stringResource(Res.string.member_remove_confirm), color = AlertRed) } },
-            dismissButton = { TextButton(onClick = { confirmRemove = false }) { Text(stringResource(Res.string.btn_cancel), color = CarbonGray) } }
+        ConfirmDialog(
+            title = stringResource(Res.string.member_remove_title, member.member.fullName()),
+            body = removeConsequences(member.member),
+            onConfirm = { confirmRemove = false; onRemove() },
+            onDismiss = { confirmRemove = false },
+            confirmLabel = stringResource(Res.string.member_remove_confirm)
         )
     }
     if (confirmAdmin && member != null) {
-        AlertDialog(
-            onDismissRequest = { confirmAdmin = false },
-            containerColor = Color.White,
-            titleContentColor = DeepCarbon,
-            textContentColor = DeepCarbon.copy(alpha = 0.75f),
-            title = { Text(stringResource(Res.string.member_make_admin_title, member.member.fullName())) },
-            text = { Text(stringResource(Res.string.member_make_admin_body)) },
-            confirmButton = { TextButton(onClick = { confirmAdmin = false; onSaveRole() }) { Text(stringResource(Res.string.member_make_admin_confirm), color = PitchGreen) } },
-            dismissButton = { TextButton(onClick = { confirmAdmin = false }) { Text(stringResource(Res.string.btn_cancel), color = CarbonGray) } }
+        ConfirmDialog(
+            title = stringResource(Res.string.member_make_admin_title, member.member.fullName()),
+            body = stringResource(Res.string.member_make_admin_body),
+            onConfirm = { confirmAdmin = false; onSaveRole() },
+            onDismiss = { confirmAdmin = false },
+            confirmLabel = stringResource(Res.string.member_make_admin_confirm),
+            destructive = false
         )
     }
 }

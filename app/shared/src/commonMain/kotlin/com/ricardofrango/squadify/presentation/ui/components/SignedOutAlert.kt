@@ -1,15 +1,10 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.DialogProperties
 import com.ricardofrango.squadify.data.remote.ApiException
-import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
-import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import org.jetbrains.compose.resources.stringResource
 import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.btn_ok
@@ -28,16 +23,12 @@ fun Throwable.isSignedOutForWrongPasswords() = this is ApiException && code == "
  */
 @Composable
 fun SignedOutAlert(onConfirm: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = {},
-        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
-        containerColor = Color.White,
-        titleContentColor = DeepCarbon,
-        textContentColor = DeepCarbon.copy(alpha = 0.75f),
-        title = { Text(stringResource(Res.string.title_signed_out)) },
-        text = { Text(stringResource(Res.string.msg_signed_out_wrong_passwords)) },
-        confirmButton = {
-            TextButton(onClick = onConfirm) { Text(stringResource(Res.string.btn_ok), color = PitchGreen, fontWeight = FontWeight.Bold) }
-        }
-    )
+    SquadifyDialog(
+        title = stringResource(Res.string.title_signed_out),
+        body = stringResource(Res.string.msg_signed_out_wrong_passwords),
+        onDismiss = {},
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+    ) {
+        DialogPrimaryButton(stringResource(Res.string.btn_ok), Modifier.fillMaxWidth(), onClick = onConfirm)
+    }
 }

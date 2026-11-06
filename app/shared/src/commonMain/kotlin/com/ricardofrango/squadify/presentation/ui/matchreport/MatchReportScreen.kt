@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.matchreport
 
+import com.ricardofrango.squadify.presentation.ui.components.DialogSecondaryButton
+import com.ricardofrango.squadify.presentation.ui.components.DialogPrimaryButton
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyDialog
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.FullScreenMessage
@@ -7,7 +10,6 @@ import com.ricardofrango.squadify.presentation.ui.matchdetails.CallUpSort
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -15,15 +17,10 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
-import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -41,10 +38,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -52,25 +46,23 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
-import com.ricardofrango.squadify.model.CallUpStatus
 import com.ricardofrango.squadify.model.Match
 import com.ricardofrango.squadify.model.MatchPlayerStats
 import com.ricardofrango.squadify.model.MatchPlayerStatsWithPlayer
@@ -82,12 +74,9 @@ import com.ricardofrango.squadify.model.PlayerPosition
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
-import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
-import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreenLight
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
-import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -282,7 +271,7 @@ private fun MatchReportContent(
     }
 
     if (showCompleteDialog && idle != null) {
-        ReportDialog(
+        SquadifyDialog(
             title = stringResource(Res.string.report_complete_dialog_title),
             body = if (idle.unratedCount > 0) pluralStringResource(Res.plurals.report_complete_dialog_body_unrated, idle.unratedCount, idle.unratedCount)
             else stringResource(Res.string.report_complete_dialog_body),
@@ -299,7 +288,7 @@ private fun MatchReportContent(
     }
 
     if (showLeaveDialog) {
-        ReportDialog(
+        SquadifyDialog(
             title = stringResource(Res.string.report_leave_dialog_title),
             body = stringResource(Res.string.report_leave_dialog_body),
             onDismiss = { showLeaveDialog = false }
@@ -390,45 +379,6 @@ private fun ReadStatusBand(state: MatchReportUiState.Idle) {
             style = MaterialTheme.typography.bodySmall,
             color = Color.White.copy(alpha = 0.72f)
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ReportDialog(title: String, body: String, onDismiss: () -> Unit, buttons: @Composable () -> Unit) {
-    BasicAlertDialog(onDismissRequest = onDismiss) {
-        Surface(shape = RoundedCornerShape(20.dp), color = Color.White) {
-            Column(Modifier.padding(24.dp)) {
-                Text(title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black), color = DeepCarbon)
-                Spacer(Modifier.height(10.dp))
-                Text(body, style = MaterialTheme.typography.bodyMedium, color = SecondaryText)
-                Spacer(Modifier.height(20.dp))
-                buttons()
-            }
-        }
-    }
-}
-
-@Composable
-private fun DialogPrimaryButton(label: String, modifier: Modifier, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = 52.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = PitchGreen, contentColor = Color.White),
-        shape = RoundedCornerShape(14.dp)
-    ) { Text(label, fontWeight = FontWeight.Black, textAlign = TextAlign.Center) }
-}
-
-@Composable
-private fun DialogSecondaryButton(label: String, modifier: Modifier, destructive: Boolean = false, onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = 52.dp),
-        border = BorderStroke(1.5.dp, if (destructive) AlertRed.copy(alpha = 0.4f) else CarbonGray.copy(alpha = 0.2f)),
-        shape = RoundedCornerShape(14.dp),
-        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
-    ) {
-        Text(label, color = if (destructive) AlertRed else CarbonGray, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
     }
 }
 

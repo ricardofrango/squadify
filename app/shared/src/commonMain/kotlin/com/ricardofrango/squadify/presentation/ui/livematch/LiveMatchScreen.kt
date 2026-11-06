@@ -6,7 +6,6 @@ import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import squadify.app.shared.generated.resources.msg_live_reconnecting
 import androidx.lifecycle.compose.LifecycleStartEffect
 import com.ricardofrango.squadify.presentation.ui.components.isLandscapeLayout
-import com.ricardofrango.squadify.presentation.ui.components.homeFirst
 import com.ricardofrango.squadify.model.ourSideFirst
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
@@ -33,7 +32,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
@@ -45,7 +43,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -68,17 +65,14 @@ import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
-import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
-import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
 import squadify.app.shared.generated.resources.*
 import androidx.compose.material3.OutlinedButton
 import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.theme.SectionBorderColor
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
-import androidx.compose.foundation.layout.heightIn
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
 import com.ricardofrango.squadify.presentation.ui.matchdetails.whenLabel
@@ -799,7 +793,7 @@ private fun LiveConsoleContent(state: LiveMatchUiState.Idle, actions: LiveMatchA
             body = stringResource(Res.string.msg_confirm_half_time_body),
             onConfirm = { showHalfTimeConfirm = false; actions.onHalfTime() },
             onDismiss = { showHalfTimeConfirm = false },
-            confirmColor = PitchGreen
+            destructive = false
         )
     }
     if (showFullTimeConfirm) {

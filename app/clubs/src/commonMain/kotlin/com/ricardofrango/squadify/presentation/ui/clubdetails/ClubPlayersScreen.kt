@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
@@ -11,19 +12,13 @@ import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.text.font.FontWeight
 import com.ricardofrango.squadify.model.Player
-import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import org.jetbrains.compose.resources.getString
-import squadify.app.shared.generated.resources.btn_cancel
 import squadify.app.shared.generated.resources.btn_disable
 import squadify.app.shared.generated.resources.msg_disable_player
 import squadify.app.shared.generated.resources.msg_player_disabled
@@ -43,20 +38,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
@@ -68,7 +61,6 @@ import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.shared.generated.resources.Res
-import squadify.app.shared.generated.resources.btn_retry
 import squadify.app.shared.generated.resources.label_all_ages
 import squadify.app.shared.generated.resources.label_all_seasons
 import squadify.app.shared.generated.resources.label_search_players
@@ -270,20 +262,12 @@ private fun ClubPlayersContent(
         }
     }
     confirmDisable?.let { player ->
-        AlertDialog(
-            onDismissRequest = { confirmDisable = null },
-            title = { Text(stringResource(Res.string.title_disable_player, "${player.firstName} ${player.lastName}")) },
-            text = { Text(stringResource(Res.string.msg_disable_player)) },
-            confirmButton = {
-                TextButton(onClick = { confirmDisable = null; onDisable(player.id) }) {
-                    Text(stringResource(Res.string.btn_disable), color = AlertRed, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDisable = null }) {
-                    Text(stringResource(Res.string.btn_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+        ConfirmDialog(
+            title = stringResource(Res.string.title_disable_player, "${player.firstName} ${player.lastName}"),
+            body = stringResource(Res.string.msg_disable_player),
+            onConfirm = { confirmDisable = null; onDisable(player.id) },
+            onDismiss = { confirmDisable = null },
+            confirmLabel = stringResource(Res.string.btn_disable)
         )
     }
 }

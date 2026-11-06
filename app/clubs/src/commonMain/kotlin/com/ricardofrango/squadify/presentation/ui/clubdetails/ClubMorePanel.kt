@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.DialogButtons
+import com.ricardofrango.squadify.presentation.ui.components.SquadifyDialog
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.only
@@ -51,26 +53,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -96,10 +93,8 @@ import com.ricardofrango.squadify.model.AgeGroup
 import com.ricardofrango.squadify.model.ClubRole
 import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.ViewerAgeGroup
-import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
@@ -241,16 +236,13 @@ internal fun ClubMorePanel(
     }
 
     if (confirmLogout) {
-        AlertDialog(
-            onDismissRequest = { confirmLogout = false },
-            containerColor = Color.White,
-            titleContentColor = DeepCarbon,
-            textContentColor = DeepCarbon.copy(alpha = 0.75f),
-            title = { Text(stringResource(Res.string.more_log_out_title)) },
-            text = { Text(stringResource(Res.string.more_log_out_body)) },
-            confirmButton = { TextButton(onClick = { confirmLogout = false; onLogOut() }) { Text(stringResource(Res.string.more_log_out), color = LogoutRed, fontWeight = FontWeight.Bold) } },
-            dismissButton = { TextButton(onClick = { confirmLogout = false }) { Text(stringResource(Res.string.btn_cancel), color = CarbonGray) } }
-        )
+        SquadifyDialog(
+            title = stringResource(Res.string.more_log_out_title),
+            body = stringResource(Res.string.more_log_out_body),
+            onDismiss = { confirmLogout = false }
+        ) {
+            DialogButtons(stringResource(Res.string.more_log_out), onConfirm = { confirmLogout = false; onLogOut() }, onDismiss = { confirmLogout = false }, destructive = true)
+        }
     }
 }
 
@@ -419,40 +411,31 @@ internal fun AgeGroupPickerDialog(
     onDismiss: () -> Unit
 ) {
     var selected by remember { mutableStateOf<AgeGroup?>(null) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = Color.White,
-        titleContentColor = DeepCarbon,
-        title = { Text(stringResource(title)) },
-        text = {
-            Column {
-                Text(stringResource(Res.string.more_pick_hint), color = DeepCarbon.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.height(8.dp))
-                ageGroups.forEach { ag ->
-                    val years = if (ag.startYear == ag.endYear) "${ag.endYear}" else "${ag.endYear}–${ag.startYear}"
-                    Row(
-                        Modifier.fillMaxWidth().clip(RowShape)
-                            .selectable(selected = selected == ag, role = Role.RadioButton) { selected = ag }
-                            .padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(selected = selected == ag, onClick = null, colors = RadioButtonDefaults.colors(selectedColor = PitchGreen))
-                        Spacer(Modifier.width(10.dp))
-                        Column {
-                            Text(ag.name, color = DeepCarbon, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
-                            Text(pluralStringResource(Res.plurals.more_age_group_teams, teamCount(ag.id), years, teamCount(ag.id)), color = DeepCarbon.copy(alpha = 0.55f), style = MaterialTheme.typography.bodySmall)
-                        }
+    SquadifyDialog(
+        title = stringResource(title),
+        onDismiss = onDismiss,
+        body = stringResource(Res.string.more_pick_hint),
+        content = {
+            ageGroups.forEach { ag ->
+                val years = if (ag.startYear == ag.endYear) "${ag.endYear}" else "${ag.endYear}–${ag.startYear}"
+                Row(
+                    Modifier.fillMaxWidth().clip(RowShape)
+                        .selectable(selected = selected == ag, role = Role.RadioButton) { selected = ag }
+                        .padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(selected = selected == ag, onClick = null, colors = RadioButtonDefaults.colors(selectedColor = PitchGreen))
+                    Spacer(Modifier.width(10.dp))
+                    Column {
+                        Text(ag.name, color = DeepCarbon, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
+                        Text(pluralStringResource(Res.plurals.more_age_group_teams, teamCount(ag.id), years, teamCount(ag.id)), color = DeepCarbon.copy(alpha = 0.55f), style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = { selected?.let(onPick) }, enabled = selected != null) {
-                Text(stringResource(Res.string.more_continue), color = if (selected != null) PitchGreen else DeepCarbon.copy(alpha = 0.3f), fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.btn_cancel), color = CarbonGray) } }
-    )
+        }
+    ) {
+        DialogButtons(stringResource(Res.string.more_continue), onConfirm = { selected?.let(onPick) }, onDismiss = onDismiss, confirmEnabled = selected != null)
+    }
 }
 
 /**

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editclub
 
+import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.besideRail
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
@@ -14,13 +15,11 @@ import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.ui.draw.clip
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -55,7 +54,6 @@ import com.ricardofrango.squadify.presentation.ui.components.DetailTab
 import com.ricardofrango.squadify.presentation.ui.theme.AmberText
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import org.jetbrains.compose.resources.StringResource
-import squadify.app.shared.generated.resources.btn_cancel
 import squadify.app.shared.generated.resources.club_discard_body
 import squadify.app.shared.generated.resources.club_discard_both
 import squadify.app.shared.generated.resources.club_discard_confirm
@@ -92,12 +90,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -107,17 +103,16 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.ClubPermissionSetting
@@ -141,7 +136,6 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.shared.generated.resources.Res
-import squadify.app.shared.generated.resources.btn_retry
 import squadify.app.shared.generated.resources.btn_save_changes
 import squadify.app.shared.generated.resources.btn_save_permissions
 import squadify.app.shared.generated.resources.btn_saving_permissions
@@ -404,19 +398,12 @@ private fun EditClubContent(
                 else -> Res.string.club_discard_details
             }
         )
-        AlertDialog(
-            onDismissRequest = { showDiscard = false },
-            containerColor = Color.White,
-            titleContentColor = DeepCarbon,
-            textContentColor = DeepCarbon.copy(alpha = 0.75f),
-            title = { Text(stringResource(Res.string.club_discard_title)) },
-            text = { Text(stringResource(Res.string.club_discard_body, what)) },
-            confirmButton = {
-                TextButton(onClick = { showDiscard = false; onNavigateBack() }) {
-                    Text(stringResource(Res.string.club_discard_confirm), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = { TextButton(onClick = { showDiscard = false }) { Text(stringResource(Res.string.btn_cancel), color = CarbonGray) } }
+        ConfirmDialog(
+            title = stringResource(Res.string.club_discard_title),
+            body = stringResource(Res.string.club_discard_body, what),
+            onConfirm = { showDiscard = false; onNavigateBack() },
+            onDismiss = { showDiscard = false },
+            confirmLabel = stringResource(Res.string.club_discard_confirm)
         )
     }
 }

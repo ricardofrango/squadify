@@ -1,19 +1,16 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.components.StaffNotInPlanNotice
 import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import com.ricardofrango.squadify.presentation.ui.components.TrainingNotInPlanMessage
 import com.ricardofrango.squadify.presentation.ui.components.SegmentedFilter
-import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import squadify.app.shared.generated.resources.ic_close
-import squadify.app.shared.generated.resources.btn_cancel
 import squadify.app.shared.generated.resources.btn_remove
 import squadify.app.shared.generated.resources.cd_remove_from_age_group
 import squadify.app.shared.generated.resources.msg_remove_player_age_group
@@ -25,12 +22,10 @@ import kotlinx.datetime.plus
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -42,7 +37,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -755,37 +749,21 @@ internal fun AgeGroupMembersTab(
         }
     }
     confirmRemoveStaff?.let { member ->
-        AlertDialog(
-            onDismissRequest = { confirmRemoveStaff = null },
-            title = { Text(stringResource(Res.string.title_remove_staff, "${member.firstName} ${member.lastName}", details.ageGroup.name)) },
-            text = { Text(stringResource(Res.string.msg_remove_staff)) },
-            confirmButton = {
-                TextButton(onClick = { confirmRemoveStaff = null; onRemoveStaff?.invoke(member.userId) }) {
-                    Text(stringResource(Res.string.btn_remove), color = AlertRed, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmRemoveStaff = null }) {
-                    Text(stringResource(Res.string.btn_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+        ConfirmDialog(
+            title = stringResource(Res.string.title_remove_staff, "${member.firstName} ${member.lastName}", details.ageGroup.name),
+            body = stringResource(Res.string.msg_remove_staff),
+            onConfirm = { confirmRemoveStaff = null; onRemoveStaff?.invoke(member.userId) },
+            onDismiss = { confirmRemoveStaff = null },
+            confirmLabel = stringResource(Res.string.btn_remove)
         )
     }
     confirmRemove?.let { player ->
-        AlertDialog(
-            onDismissRequest = { confirmRemove = null },
-            title = { Text(stringResource(Res.string.title_remove_player_age_group, "${player.firstName} ${player.lastName}", details.ageGroup.name)) },
-            text = { Text(stringResource(Res.string.msg_remove_player_age_group)) },
-            confirmButton = {
-                TextButton(onClick = { confirmRemove = null; onRemovePlayer?.invoke(player.id) }) {
-                    Text(stringResource(Res.string.btn_remove), color = AlertRed, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmRemove = null }) {
-                    Text(stringResource(Res.string.btn_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+        ConfirmDialog(
+            title = stringResource(Res.string.title_remove_player_age_group, "${player.firstName} ${player.lastName}", details.ageGroup.name),
+            body = stringResource(Res.string.msg_remove_player_age_group),
+            onConfirm = { confirmRemove = null; onRemovePlayer?.invoke(player.id) },
+            onDismiss = { confirmRemove = null },
+            confirmLabel = stringResource(Res.string.btn_remove)
         )
     }
 }

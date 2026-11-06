@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.matchrecord
 
+import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.readableListPadding
@@ -27,8 +28,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -44,11 +43,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -89,7 +88,6 @@ import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
-import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -210,19 +208,13 @@ private fun MatchRecordContent(
         )
     }
     if (showDiscard) {
-        AlertDialog(
-            onDismissRequest = { showDiscard = false },
-            containerColor = Color.White,
-            titleContentColor = DeepCarbon,
-            textContentColor = DeepCarbon.copy(alpha = 0.75f),
-            title = { Text(stringResource(Res.string.club_discard_title)) },
-            text = { Text(stringResource(Res.string.msg_record_discard)) },
-            confirmButton = {
-                TextButton(onClick = { showDiscard = false; onNavigateBack() }) {
-                    Text(stringResource(Res.string.club_discard_confirm), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = { TextButton(onClick = { showDiscard = false }) { Text(stringResource(Res.string.btn_keep_editing), color = CarbonGray) } }
+        ConfirmDialog(
+            title = stringResource(Res.string.club_discard_title),
+            body = stringResource(Res.string.msg_record_discard),
+            onConfirm = { showDiscard = false; onNavigateBack() },
+            onDismiss = { showDiscard = false },
+            confirmLabel = stringResource(Res.string.club_discard_confirm),
+            dismissLabel = stringResource(Res.string.btn_keep_editing)
         )
     }
 }
