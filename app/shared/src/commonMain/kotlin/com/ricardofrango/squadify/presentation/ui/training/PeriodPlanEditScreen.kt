@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -7,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -15,15 +15,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -38,7 +37,6 @@ import com.ricardofrango.squadify.model.planFor
 import com.ricardofrango.squadify.model.weekStarts
 import com.ricardofrango.squadify.presentation.ui.components.FormTextField
 import com.ricardofrango.squadify.presentation.ui.components.shortDateLabel
-import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
@@ -207,12 +205,13 @@ private fun PeriodPlanEditContent(
         DiscardChangesDialog(onDiscard = { pendingMove = null; onMoveTo(to) }, onKeepEditing = { pendingMove = null })
     }
     if (askReplace && previousPlan != null) {
-        AlertDialog(
-            onDismissRequest = { askReplace = false },
-            title = { Text(stringResource(Res.string.title_replace_typed)) },
-            text = { Text(stringResource(Res.string.msg_replace_typed)) },
-            confirmButton = { TextButton(onClick = { askReplace = false; onFormChange(form.copiedFrom(previousPlan)) }) { Text(stringResource(Res.string.btn_replace), color = AlertRed, fontWeight = FontWeight.Bold) } },
-            dismissButton = { TextButton(onClick = { askReplace = false }) { Text(stringResource(Res.string.btn_keep_editing), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
+        ConfirmDialog(
+            title = stringResource(Res.string.title_replace_typed),
+            body = stringResource(Res.string.msg_replace_typed),
+            onConfirm = { askReplace = false; onFormChange(form.copiedFrom(previousPlan)) },
+            onDismiss = { askReplace = false },
+            confirmLabel = stringResource(Res.string.btn_replace),
+            dismissLabel = stringResource(Res.string.btn_keep_editing)
         )
     }
 }

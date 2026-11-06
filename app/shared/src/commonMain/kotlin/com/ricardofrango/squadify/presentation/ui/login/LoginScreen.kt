@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.login
 
+import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
+import com.ricardofrango.squadify.presentation.ui.components.safeTopPadding
 import com.ricardofrango.squadify.presentation.navigation.Screen
 
 import com.ricardofrango.squadify.presentation.credentials.rememberCredentialStore
@@ -134,7 +136,7 @@ private fun LoginContent(
                     colors = listOf(CarbonGray, DeepCarbon)
                 )
             )
-            .statusBarsPadding()
+            .safeTopPadding()
             .imePadding()
     ) {
         Column(
@@ -145,31 +147,35 @@ private fun LoginContent(
             // launch to login reads as one continuous carbon surface (design canvas "19B"). Sized
             // to its own content (no weighted spacer above the card) so it can't blow past the
             // fixed budget a fixed-fraction card would otherwise reserve for it.
-            Spacer(modifier = Modifier.height(20.dp))
+            // Lying down, the keyboard leaves about the header's height: it hides while typing, so the
+            // card gets that room and the field being typed in shows (TECHNICAL_DECISIONS.md §11.6).
+            if (!keyboardOnShortWindow()) {
+                Spacer(modifier = Modifier.height(20.dp))
     
-            SquadifyMark(size = 64.dp)
+                SquadifyMark(size = 64.dp)
     
-            Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(10.dp))
     
-            Text(
-                text = stringResource(Res.string.app_name),
-                style = MaterialTheme.typography.displaySmall.copy(
-                    color = Color.White,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 1.sp
+                Text(
+                    text = stringResource(Res.string.app_name),
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.sp
+                    )
                 )
-            )
     
-            Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(6.dp))
     
-            Text(
-                text = stringResource(Res.string.msg_precision_management),
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    color = Color.White.copy(alpha = 0.7f)
+                Text(
+                    text = stringResource(Res.string.msg_precision_management),
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        color = Color.White.copy(alpha = 0.7f)
+                    )
                 )
-            )
     
-            Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(20.dp))
+            }
     
             // Login Card -- takes all remaining height, so it isn't pinned to a fixed fraction of
             // the screen that the header above could overflow.

@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -66,6 +69,8 @@ fun DatePickerSheet(
         containerColor = Color.White
     ) {
         val colors = squadifyDatePickerColors()
+        // The calendar doesn't fit a phone lying down: it scrolls, above a button that stays put.
+        Box(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
         DatePicker(
             state = datePickerState,
             colors = colors,
@@ -84,6 +89,7 @@ fun DatePickerSheet(
                 )
             }
         )
+        }
         Button(
             onClick = {
                 val millis = datePickerState.selectedDateMillis

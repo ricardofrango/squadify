@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.getString
@@ -173,6 +174,7 @@ private fun OpponentDetailsContent(
 ) {
     val details = (state as? OpponentDetailsUiState.Idle)?.details
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {

@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
+import com.ricardofrango.squadify.presentation.ui.components.besideRail
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import squadify.app.shared.generated.resources.msg_refresh_failed
 import androidx.compose.material3.SnackbarHostState
@@ -52,6 +54,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -569,10 +572,13 @@ internal fun PlayerList(
     // The list is a page at a time: the next one loads as it nears its end.
     hasMore: Boolean = false,
     loadingMore: Boolean = false,
-    onLoadMore: () -> Unit = {}
+    onLoadMore: () -> Unit = {},
+    // Items above the players that scroll with them (the filters on a phone lying down). With a
+    // header, [players] may be empty: the header then carries the empty state too.
+    header: (LazyListScope.() -> Unit)? = null
 ) {
-    // Callers only reach here with a non-empty list -- the empty case is handled one level up by
-    // NoPlayersState (which also offers the right "add players" action).
+    // Without a header, callers only reach here with a non-empty list -- the empty case is handled one
+    // level up by NoPlayersState (which also offers the right "add players" action).
     val listState = rememberLazyListState()
     LoadMoreEffect(listState, enabled = hasMore && !loadingMore, onLoadMore = onLoadMore)
     // Centred on a wide screen, the whole width still scrolling.
@@ -580,9 +586,10 @@ internal fun PlayerList(
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = readableListPadding(top = 8.dp),
+        contentPadding = readableListPadding(top = if (header != null) ScreenPadding.Top else 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        header?.invoke(this)
         items(players, key = { it.id }) { player ->
             PlayerCard(
                 player,
@@ -846,7 +853,9 @@ private fun ClubDetailsContent(
     Row(Modifier.fillMaxSize()) {
     if (rail && hasTabs) DetailRail(clubTabs, selectedIndex, onTabClick)
     Scaffold(
-        modifier = Modifier.weight(1f),
+        contentWindowInsets = ScreenWindowInsets,
+        containerColor = ScreenBackground,
+        modifier = Modifier.weight(1f).besideRail(rail && hasTabs),
         topBar = {
             SquadifyTopBar(
                 title = (uiState as? ClubDetailsUiState.Idle)?.details?.club?.name

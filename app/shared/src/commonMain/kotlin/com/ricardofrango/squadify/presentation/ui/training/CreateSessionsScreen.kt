@@ -1,5 +1,11 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
+import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.WindowInsetsSides
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.isWide
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.BorderStroke
@@ -21,7 +27,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -33,13 +38,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -167,6 +171,9 @@ private fun CreateSessionsContent(
 ) {
     val preview = state.preview
     Scaffold(
+        // Top and bottom only: the action bar is in the content, so its white must reach the sides; the
+        // content and the bar keep clear of the camera cutout themselves (safeSidesPadding).
+        contentWindowInsets = ScreenWindowInsets.only(WindowInsetsSides.Vertical),
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
@@ -184,7 +191,7 @@ private fun CreateSessionsContent(
         }
         Column(modifier) {
             if (preview == null) {
-                BoxWithConstraints(Modifier.weight(1f)) {
+                BoxWithConstraints(Modifier.weight(1f).safeSidesPadding()) {
                     val wide = isWide
                     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding()) {
                         EditorColumns(
@@ -205,7 +212,7 @@ private fun CreateSessionsContent(
                     )
                 }
             } else {
-                PreviewList(preview, state.form, Modifier.weight(1f))
+                PreviewList(preview, state.form, Modifier.weight(1f).safeSidesPadding())
                 FormErrorLine(state.error)
                 BottomBar {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -227,24 +234,22 @@ private fun CreateSessionsContent(
         }
     }
     if (state.askConfirm && preview != null) {
-        AlertDialog(
-            onDismissRequest = onDismissConfirm,
-            title = { Text(stringResource(Res.string.title_replace_content, preview.replacingWithContent)) },
-            text = { Text(stringResource(Res.string.msg_replace_content, preview.replacingWithContent)) },
-            confirmButton = {
-                TextButton(onClick = onConfirm) {
-                    Text(stringResource(Res.string.btn_create_n_sessions, preview.toCreate.size), color = AlertRed, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = { TextButton(onClick = onDismissConfirm) { Text(stringResource(Res.string.btn_back_to_preview), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
+        ConfirmDialog(
+            title = stringResource(Res.string.title_replace_content, preview.replacingWithContent),
+            body = stringResource(Res.string.msg_replace_content, preview.replacingWithContent),
+            onConfirm = onConfirm,
+            onDismiss = onDismissConfirm,
+            confirmLabel = stringResource(Res.string.btn_create_n_sessions, preview.toCreate.size),
+            dismissLabel = stringResource(Res.string.btn_back_to_preview)
         )
     }
 }
 
 @Composable
 private fun BottomBar(content: @Composable () -> Unit) {
+    if (keyboardOnShortWindow()) return
     Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 14.dp)) { content() }
+        Column(Modifier.safeSidesPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 14.dp)) { content() }
     }
 }
 

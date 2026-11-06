@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -55,7 +57,8 @@ fun TimePickerSheet(
         containerColor = Color.White
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(24.dp),
+            // Scrolls when it doesn't fit, on a phone lying down.
+            modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {

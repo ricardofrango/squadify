@@ -1,5 +1,9 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.WindowInsetsSides
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -116,6 +120,9 @@ private fun WeekPlanContent(
     val plans = (state as? TrainingPlansUiState.Idle)?.plans
     val plan: TrainingPlan? = plans?.plans?.planFor(TrainingPlanLevel.WEEK, monday)
     Scaffold(
+        // Top and bottom only: the dark context strip must reach the sides (it keeps its text clear of
+        // the camera cutout itself), and the content below keeps clear with safeSidesPadding.
+        contentWindowInsets = ScreenWindowInsets.only(WindowInsetsSides.Vertical),
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
@@ -137,7 +144,7 @@ private fun WeekPlanContent(
         }
         Column(modifier) {
             WeekContextStrip(plans, monday)
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).readableWidth().screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).safeSidesPadding().readableWidth().screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (plan == null) {
                     StatsCard {
                         PlanEmpty(

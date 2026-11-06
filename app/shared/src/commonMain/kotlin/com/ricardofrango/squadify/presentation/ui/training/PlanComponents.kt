@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -17,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -28,17 +30,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.Season
 import com.ricardofrango.squadify.model.TrainingPlans
@@ -59,7 +60,6 @@ import squadify.app.shared.generated.resources.Res
 import squadify.app.shared.generated.resources.btn_add_objective
 import squadify.app.shared.generated.resources.btn_discard
 import squadify.app.shared.generated.resources.btn_keep_editing
-import squadify.app.shared.generated.resources.btn_retry
 import squadify.app.shared.generated.resources.cd_remove
 import squadify.app.shared.generated.resources.ic_add
 import squadify.app.shared.generated.resources.ic_close
@@ -78,7 +78,6 @@ import squadify.app.shared.generated.resources.month_full_6
 import squadify.app.shared.generated.resources.month_full_7
 import squadify.app.shared.generated.resources.month_full_8
 import squadify.app.shared.generated.resources.month_full_9
-import squadify.app.shared.generated.resources.msg_check_connection
 import squadify.app.shared.generated.resources.msg_discard_plan_changes
 import squadify.app.shared.generated.resources.msg_end_before_start
 import squadify.app.shared.generated.resources.msg_must_end_by
@@ -145,11 +144,13 @@ fun PlanStatusChip(planned: Boolean) {
     )
 }
 
-/** The dark strip at the top of a plan screen with the level above it, for context (design 40d/e). */
+/** The strip at the top of a plan screen, in the club's colour, with the level above it for context (design 40d/e). */
 @Composable
 fun ContextStrip(overline: String, title: String?, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit = {}) {
     Column(
-        modifier.fillMaxWidth().background(DeepCarbon).padding(horizontal = 20.dp, vertical = 14.dp)
+        // The club's colour, joined to the top bar like an age group's or team's strip (the developer,
+        // 2026-11-06; it was dark). Its colour to the edges, its text clear of the camera cutout lying down.
+        modifier.fillMaxWidth().background(ClubChrome).safeSidesPadding().padding(horizontal = 20.dp, vertical = 14.dp)
     ) {
         Text(overline.uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = Color.White.copy(alpha = 0.6f))
         if (title != null) {
@@ -271,11 +272,12 @@ fun PlanDateField(label: String, date: LocalDate?, season: Season, enabled: Bool
 /** "Discard changes?" when leaving an editor (or moving to another period) with unsaved changes. */
 @Composable
 fun DiscardChangesDialog(onDiscard: () -> Unit, onKeepEditing: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onKeepEditing,
-        title = { Text(stringResource(Res.string.title_discard_changes)) },
-        text = { Text(stringResource(Res.string.msg_discard_plan_changes)) },
-        confirmButton = { TextButton(onClick = onDiscard) { Text(stringResource(Res.string.btn_discard), color = AlertRed, fontWeight = FontWeight.Bold) } },
-        dismissButton = { TextButton(onClick = onKeepEditing) { Text(stringResource(Res.string.btn_keep_editing), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
+    ConfirmDialog(
+        title = stringResource(Res.string.title_discard_changes),
+        body = stringResource(Res.string.msg_discard_plan_changes),
+        onConfirm = onDiscard,
+        onDismiss = onKeepEditing,
+        confirmLabel = stringResource(Res.string.btn_discard),
+        dismissLabel = stringResource(Res.string.btn_keep_editing)
     )
 }

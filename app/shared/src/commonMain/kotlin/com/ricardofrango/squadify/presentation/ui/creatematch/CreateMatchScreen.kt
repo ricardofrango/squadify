@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.creatematch
 
+import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.ui.text.input.ImeAction
@@ -152,6 +155,9 @@ private fun CreateMatchContent(
 ) {
     val clubName = (uiState as? CreateMatchUiState.Idle)?.clubName
     Scaffold(
+        // Top and bottom only: the action bar is in the content, so its white must reach the sides; the
+        // form and the button keep clear of the camera cutout themselves (safeSidesPadding).
+        contentWindowInsets = ScreenWindowInsets.only(WindowInsetsSides.Vertical),
         containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -215,6 +221,7 @@ private fun CreateMatchForm(
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
+                .safeSidesPadding()
                 .readableWidth()
                 .screenContentPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -333,8 +340,8 @@ private fun CreateMatchForm(
             }
         }
 
-        // Pinned action bar
-        Surface(
+        // Pinned action bar, hidden while typing lying down
+        if (!keyboardOnShortWindow()) Surface(
             color = Color.White,
             shadowElevation = 8.dp,
             modifier = Modifier.fillMaxWidth()
@@ -343,7 +350,7 @@ private fun CreateMatchForm(
             // padded by Scaffold's own paddingValues, which (with no bottomBar slot in use) already
             // reserves the bottom system-bar inset -- adding it again pushed the button up an extra
             // inset's worth, leaving a large empty gap below it.
-            Box(Modifier.readableWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp)) {
+            Box(Modifier.safeSidesPadding().readableWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp)) {
                 PrimaryLoadingButton(
                     text = Res.string.btn_schedule_match,
                     submittingText = Res.string.btn_scheduling_match,

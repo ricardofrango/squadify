@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.editagegroup
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
@@ -119,6 +120,7 @@ private fun EditAgeGroupContent(
 ) {
     val idle = state as? EditAgeGroupUiState.Idle
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(

@@ -1,5 +1,10 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.WindowInsetsSides
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.isWide
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.background
@@ -102,6 +107,9 @@ private fun SessionEditContent(
 ) {
     val editing = state.editingId != null
     Scaffold(
+        // Top and bottom only: the action bar is in the content, so its white must reach the sides; the
+        // content and the bar keep clear of the camera cutout themselves (safeSidesPadding).
+        contentWindowInsets = ScreenWindowInsets.only(WindowInsetsSides.Vertical),
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
@@ -120,7 +128,7 @@ private fun SessionEditContent(
         val form = state.form
         val enabled = !state.saving
         Column(modifier) {
-            BoxWithConstraints(Modifier.weight(1f)) {
+            BoxWithConstraints(Modifier.weight(1f).safeSidesPadding()) {
                 val wide = isWide
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).screenContentPadding()) {
                     EditorColumns(
@@ -165,8 +173,8 @@ private fun SessionEditContent(
                     FormErrorLine(state.error)
                 }
             }
-            Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 14.dp)) {
+            if (!keyboardOnShortWindow()) Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.safeSidesPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 14.dp)) {
                     PrimaryLoadingButton(
                         text = stringResource(if (editing) Res.string.btn_save_changes else Res.string.btn_add_session),
                         submittingText = stringResource(Res.string.btn_saving_changes),

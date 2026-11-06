@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.editplayer
 
+import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
@@ -153,9 +156,10 @@ private fun EditPlayerContent(
     val idle = uiState as? EditPlayerUiState.Idle
 
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = {
-            Column(Modifier.background(ClubChrome)) {
+            Column(Modifier.background(ClubChrome).safeSidesPadding()) {
                 SquadifyTopBar(
                     title = stringResource(Res.string.title_edit_player),
                     subtitle = idle?.let { subtitleLine(it) },
@@ -315,7 +319,7 @@ private fun EditPlayerForm(
             }
         }
 
-        Column(
+        if (!keyboardOnShortWindow()) Column(
             modifier = Modifier.readableWidth().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {

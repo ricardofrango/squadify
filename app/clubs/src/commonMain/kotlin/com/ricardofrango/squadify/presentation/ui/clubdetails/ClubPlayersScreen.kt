@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.clubdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import kotlinx.datetime.LocalDate
@@ -10,19 +12,13 @@ import com.ricardofrango.squadify.model.Club
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.text.font.FontWeight
 import com.ricardofrango.squadify.model.Player
-import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
 import org.jetbrains.compose.resources.getString
-import squadify.app.shared.generated.resources.btn_cancel
 import squadify.app.shared.generated.resources.btn_disable
 import squadify.app.shared.generated.resources.msg_disable_player
 import squadify.app.shared.generated.resources.msg_player_disabled
@@ -32,28 +28,28 @@ import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ricardofrango.squadify.model.SportType
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
@@ -65,7 +61,6 @@ import com.ricardofrango.squadify.presentation.ui.components.readableWidth
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import squadify.app.shared.generated.resources.Res
-import squadify.app.shared.generated.resources.btn_retry
 import squadify.app.shared.generated.resources.label_all_ages
 import squadify.app.shared.generated.resources.label_all_seasons
 import squadify.app.shared.generated.resources.label_search_players
@@ -130,11 +125,12 @@ private fun Filters(
     state: ClubPlayersUiState.Idle,
     onSeasonSelected: (String?) -> Unit,
     onAgeGroupSelected: (String?) -> Unit,
-    onSearchChanged: (String) -> Unit
+    onSearchChanged: (String) -> Unit,
+    // Lined up with the list under it, which is centred on a wide screen.
+    modifier: Modifier = Modifier.readableWidth().padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top, bottom = 20.dp)
 ) {
     val details = state.details
-    // Lined up with the list under it, which is centred on a wide screen.
-    Column(Modifier.readableWidth().padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top, bottom = 20.dp)) {
+    Column(modifier) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             item {
                 FilterSelector(
@@ -188,6 +184,7 @@ private fun ClubPlayersContent(
 ) {
     var confirmDisable by remember { mutableStateOf<Player?>(null) }
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -202,55 +199,75 @@ private fun ClubPlayersContent(
         when (val s = state) {
             ClubPlayersUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
             is ClubPlayersUiState.Error -> ErrorScreen(title = s.message, body = null, onRetry = onRetry, modifier = modifier)
-            is ClubPlayersUiState.Idle -> Column(modifier) {
+            is ClubPlayersUiState.Idle -> BoxWithConstraints(modifier) {
                 val clubName = s.details.club.name
-                Filters(s, onSeasonSelected, onAgeGroupSelected, onSearchChanged)
-                when {
-                    s.seasonId != null && s.availableAgeGroups.isEmpty() ->
-                        NoAgeGroupsState(
-                            canEditClub = s.details.canEditClub,
-                            onCreateAgeGroupClick = { onCreateAgeGroups(clubName, s.details.club.sport, s.seasonId) }
-                        )
-                    !s.loaded -> Box(Modifier.fillMaxWidth().screenContentPadding(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = PitchGreen)
+                // The state under the filters when there's no list to show, or null for the list.
+                val notList: (@Composable () -> Unit)? = when {
+                    s.seasonId != null && s.availableAgeGroups.isEmpty() -> {
+                        {
+                            NoAgeGroupsState(
+                                canEditClub = s.details.canEditClub,
+                                onCreateAgeGroupClick = { onCreateAgeGroups(clubName, s.details.club.sport, s.seasonId) }
+                            )
+                        }
                     }
-                    s.players.isEmpty() ->
-                        NoPlayersState(
-                            canEditClub = s.details.canEditClub,
-                            hasClubPlayers = s.anyPlayers,
-                            onAddPlayersToClub = { onCreatePlayers(clubName) },
-                            onAddPlayersToAgeGroup = { onAddPlayersToAgeGroup(clubName) }
-                        )
-                    // Disabling and reactivating follow the club's MANAGE_PLAYER_STATUS setting, like the server.
-                    // Reactivating needs no confirmation: it only lets the player be added to a pool again.
-                    else -> PlayerList(
-                        s.players,
+                    !s.loaded -> {
+                        {
+                            Box(Modifier.fillMaxWidth().screenContentPadding(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = PitchGreen)
+                            }
+                        }
+                    }
+                    s.players.isEmpty() -> {
+                        {
+                            NoPlayersState(
+                                canEditClub = s.details.canEditClub,
+                                hasClubPlayers = s.anyPlayers,
+                                onAddPlayersToClub = { onCreatePlayers(clubName) },
+                                onAddPlayersToAgeGroup = { onAddPlayersToAgeGroup(clubName) }
+                            )
+                        }
+                    }
+                    else -> null
+                }
+                // Disabling and reactivating follow the club's MANAGE_PLAYER_STATUS setting, like the server.
+                // Reactivating needs no confirmation: it only lets the player be added to a pool again.
+                val list: @Composable (header: (LazyListScope.() -> Unit)?) -> Unit = { header ->
+                    PlayerList(
+                        if (notList == null) s.players else emptyList(),
                         onOpenPlayer,
                         onDisable = if (s.details.canManagePlayerStatus) { player -> confirmDisable = player } else null,
                         onReactivate = if (s.details.canManagePlayerStatus) { player -> onReactivate(player.id) } else null,
-                        hasMore = s.hasMore,
-                        loadingMore = s.loadingMore,
-                        onLoadMore = onLoadMore
+                        hasMore = s.hasMore && notList == null,
+                        loadingMore = s.loadingMore && notList == null,
+                        onLoadMore = onLoadMore,
+                        header = header
                     )
+                }
+                if (maxHeight < 480.dp) {
+                    // A phone lying down: fixed filters would leave room for one player, so they scroll
+                    // with the list. The empty states sit under them in the same list, so the search
+                    // field keeps its place (and focus) while a search empties it.
+                    list {
+                        item(key = "filters") { Filters(s, onSeasonSelected, onAgeGroupSelected, onSearchChanged, Modifier.padding(bottom = 4.dp)) }
+                        notList?.let { item(key = "state") { it() } }
+                    }
+                } else {
+                    Column(Modifier.fillMaxSize()) {
+                        Filters(s, onSeasonSelected, onAgeGroupSelected, onSearchChanged)
+                        if (notList != null) notList() else list(null)
+                    }
                 }
             }
         }
     }
     confirmDisable?.let { player ->
-        AlertDialog(
-            onDismissRequest = { confirmDisable = null },
-            title = { Text(stringResource(Res.string.title_disable_player, "${player.firstName} ${player.lastName}")) },
-            text = { Text(stringResource(Res.string.msg_disable_player)) },
-            confirmButton = {
-                TextButton(onClick = { confirmDisable = null; onDisable(player.id) }) {
-                    Text(stringResource(Res.string.btn_disable), color = AlertRed, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDisable = null }) {
-                    Text(stringResource(Res.string.btn_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+        ConfirmDialog(
+            title = stringResource(Res.string.title_disable_player, "${player.firstName} ${player.lastName}"),
+            body = stringResource(Res.string.msg_disable_player),
+            onConfirm = { confirmDisable = null; onDisable(player.id) },
+            onDismiss = { confirmDisable = null },
+            confirmLabel = stringResource(Res.string.btn_disable)
         )
     }
 }

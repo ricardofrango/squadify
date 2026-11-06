@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.addplayerstoagegroup
 
+import androidx.compose.foundation.lazy.LazyListScope
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.BorderStroke
@@ -122,6 +124,7 @@ private fun AddPlayersToAgeGroupContent(
     }
 
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
@@ -173,97 +176,126 @@ private fun AddPlayersToAgeGroupContent(
                 val searchQuery = uiState.query
                 val selectedCount = uiState.selectedPlayerIds.size
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .background(ScreenBackground)
-                        // No wider than a form, centred, on a wide screen.
-                        .readableWidth()
-                        .padding(horizontal = ScreenPadding.Horizontal)
-                        .padding(top = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    AgeGroupPicker(
-                        label = stringResource(Res.string.label_age_group_field),
-                        selectedText = selectedAgeGroup?.let { ag ->
-                            idle?.seasonNameFor(ag)?.let { "${ag.name} · $it" } ?: ag.name
-                        },
-                        options = uiState.ageGroups.map { ag ->
-                            ag.id to (uiState.seasonNameFor(ag)?.let { "${ag.name} · $it" } ?: ag.name)
-                        },
-                        onOptionSelected = onAgeGroupSelected
-                    )
+                // The age group, the search and "Add a new player": above the list, unless the screen is
+                // short (a phone lying down: under 480dp there was no room left and the list didn't show
+                // at all). There they're the list's first rows and scroll away with it.
+                BoxWithConstraints(Modifier.fillMaxSize().padding(paddingValues).background(ScreenBackground)) {
+                val header = @Composable {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            AgeGroupPicker(
+                                label = stringResource(Res.string.label_age_group_field),
+                                selectedText = selectedAgeGroup?.let { ag ->
+                                    idle?.seasonNameFor(ag)?.let { "${ag.name} · $it" } ?: ag.name
+                                },
+                                options = uiState.ageGroups.map { ag ->
+                                    ag.id to (uiState.seasonNameFor(ag)?.let { "${ag.name} · $it" } ?: ag.name)
+                                },
+                                onOptionSelected = onAgeGroupSelected
+                            )
 
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = onSearchChange,
-                        label = { Text(stringResource(Res.string.label_search_players)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = FormRoundedShape,
-                        colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
-                            focusedTextColor = DeepCarbon,
-                            unfocusedTextColor = DeepCarbon,
-                            focusedBorderColor = PitchGreen,
-                            unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
-                            focusedLabelColor = PitchGreen,
-                            unfocusedLabelColor = CarbonGray
-                        )
-                    )
-
-                    OutlinedButton(
-                        onClick = onAddNewPlayer,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = FormRoundedShape,
-                        border = BorderStroke(1.dp, PitchGreen.copy(alpha = 0.4f)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PitchGreen)
-                    ) {
-                        Text("+ ${stringResource(Res.string.btn_add_new_player)}")
-                    }
-
-                    if (selectedCount > 0) {
-                        Text(
-                            text = stringResource(Res.string.label_players_selected, selectedCount),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = DeepCarbon.copy(alpha = 0.6f)
-                        )
-                    }
-
-                    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                        when {
-                            uiState.loadingEligible ->
-                                CircularProgressIndicator(
-                                    color = PitchGreen,
-                                    modifier = Modifier.align(Alignment.Center)
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = onSearchChange,
+                                label = { Text(stringResource(Res.string.label_search_players)) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = FormRoundedShape,
+                                colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
+                                    focusedTextColor = DeepCarbon,
+                                    unfocusedTextColor = DeepCarbon,
+                                    focusedBorderColor = PitchGreen,
+                                    unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
+                                    focusedLabelColor = PitchGreen,
+                                    unfocusedLabelColor = CarbonGray
                                 )
+                            )
 
-                            uiState.eligiblePlayers.isEmpty() ->
+                            OutlinedButton(
+                                onClick = onAddNewPlayer,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = FormRoundedShape,
+                                border = BorderStroke(1.dp, PitchGreen.copy(alpha = 0.4f)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = PitchGreen)
+                            ) {
+                                Text("+ ${stringResource(Res.string.btn_add_new_player)}")
+                            }
+
+                            if (selectedCount > 0) {
+                                Text(
+                                    text = stringResource(Res.string.label_players_selected, selectedCount),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = DeepCarbon.copy(alpha = 0.6f)
+                                )
+                            }
+                    }
+                }
+                val listState = rememberLazyListState()
+                LoadMoreEffect(listState, enabled = uiState.hasMore && !uiState.loadingMore, onLoadMore = onLoadMore)
+                val playerRows: LazyListScope.() -> Unit = {
+                    items(uiState.eligiblePlayers, key = { it.id }) { player ->
+                        PlayerRow(
+                            player = player,
+                            selected = player.id in uiState.selectedPlayerIds,
+                            playsUp = selectedAgeGroup != null &&
+                                player.birthDate.year > selectedAgeGroup.endYear,
+                            onClick = { onPlayerToggled(player.id) }
+                        )
+                    }
+                    loadingMoreItem(uiState.loadingMore)
+                }
+                val screen = Modifier
+                    .fillMaxSize()
+                    // No wider than a form, centred, on a wide screen.
+                    .readableWidth()
+                    .padding(horizontal = ScreenPadding.Horizontal)
+                if (maxHeight < 480.dp) {
+                    LazyColumn(
+                        modifier = screen,
+                        state = listState,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(top = 16.dp, bottom = 12.dp)
+                    ) {
+                        item { Box(Modifier.padding(bottom = 4.dp)) { header() } }
+                        when {
+                            uiState.loadingEligible -> item {
+                                Box(Modifier.fillParentMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(color = PitchGreen)
+                                }
+                            }
+                            uiState.eligiblePlayers.isEmpty() -> item {
                                 EligibleEmptyState(hasSearch = uiState.anyEligible && searchQuery.isNotBlank())
+                            }
+                            else -> playerRows()
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = screen.padding(top = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        header()
+                        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                            when {
+                                uiState.loadingEligible ->
+                                    CircularProgressIndicator(
+                                        color = PitchGreen,
+                                        modifier = Modifier.align(Alignment.Center)
+                                    )
 
-                            else -> {
-                                val listState = rememberLazyListState()
-                                LoadMoreEffect(listState, enabled = uiState.hasMore && !uiState.loadingMore, onLoadMore = onLoadMore)
-                                LazyColumn(
+                                uiState.eligiblePlayers.isEmpty() ->
+                                    EligibleEmptyState(hasSearch = uiState.anyEligible && searchQuery.isNotBlank())
+
+                                else -> LazyColumn(
                                     modifier = Modifier.fillMaxSize(),
                                     state = listState,
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    contentPadding = PaddingValues(top = 4.dp, bottom = 12.dp)
-                                ) {
-                                    items(uiState.eligiblePlayers, key = { it.id }) { player ->
-                                        PlayerRow(
-                                            player = player,
-                                            selected = player.id in uiState.selectedPlayerIds,
-                                            playsUp = selectedAgeGroup != null &&
-                                                player.birthDate.year > selectedAgeGroup.endYear,
-                                            onClick = { onPlayerToggled(player.id) }
-                                        )
-                                    }
-                                    loadingMoreItem(uiState.loadingMore)
-                                }
+                                    contentPadding = PaddingValues(top = 4.dp, bottom = 12.dp),
+                                    content = playerRows
+                                )
                             }
                         }
                     }
+                }
                 }
             }
         }

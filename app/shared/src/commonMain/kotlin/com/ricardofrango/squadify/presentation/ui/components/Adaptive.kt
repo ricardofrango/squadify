@@ -1,5 +1,12 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
@@ -31,6 +38,17 @@ val MediumWidth: Dp = WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp
 @Composable
 fun useNavigationRail(): Boolean =
     currentWindowAdaptiveInfoV2().windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
+
+/**
+ * True while the keyboard is open in a window under 480dp tall (a phone lying down). The keyboard
+ * leaves about the top bar's height there, so a form's pinned Save bar hides while typing, or it
+ * would cover the field being typed in; it's back as the keyboard closes (TECHNICAL_DECISIONS.md §11.6).
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun keyboardOnShortWindow(): Boolean =
+    WindowInsets.isImeVisible &&
+        !currentWindowAdaptiveInfoV2().windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND)
 
 /** The widest a form, or a list of single rows, gets; centred beyond that, so rows never stretch across a wide window. */
 val ReadableMaxWidth: Dp = 720.dp
@@ -75,3 +93,30 @@ fun BoxWithConstraintsScope.readableListPadding(
     val side = readableSidePadding(maxWidth, max)
     return PaddingValues(start = side, end = side, top = top, bottom = bottom)
 }
+
+/**
+ * A screen's `Scaffold(contentWindowInsets = ScreenWindowInsets)`: the content keeps clear of the system
+ * bars and, on a phone lying down, of the camera cutout at the side, while the screen's colour still
+ * runs to the edges (TECHNICAL_DECISIONS.md §11.6). Material's default leaves the cutout out, which put
+ * text under the camera.
+ */
+val ScreenWindowInsets: WindowInsets
+    @Composable get() = WindowInsets.safeDrawing
+
+/** For a screen without a Scaffold: `statusBarsPadding()`, plus the camera cutout at the side lying down. */
+@Composable
+fun Modifier.safeTopPadding(): Modifier =
+    windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+
+/** For a bar pinned to the bottom: `navigationBarsPadding()`, plus the camera cutout at the side lying down. */
+@Composable
+fun Modifier.safeBottomPadding(): Modifier =
+    windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
+
+/**
+ * For a row added under the top bar (a status band, a strip): only the sides, so it lines up with the
+ * bar's title and keeps clear of the camera cutout lying down.
+ */
+@Composable
+fun Modifier.safeSidesPadding(): Modifier =
+    windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))

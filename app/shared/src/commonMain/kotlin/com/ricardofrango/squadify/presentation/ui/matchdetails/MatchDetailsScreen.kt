@@ -1,9 +1,12 @@
 package com.ricardofrango.squadify.presentation.ui.matchdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
+import com.ricardofrango.squadify.presentation.ui.components.safeBottomPadding
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
+import com.ricardofrango.squadify.presentation.ui.components.besideRail
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.ShownSpace
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import org.jetbrains.compose.resources.getString
 import squadify.app.shared.generated.resources.msg_refresh_failed
@@ -14,11 +17,7 @@ import com.ricardofrango.squadify.presentation.ui.components.useNavigationRail
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.venueLocation
 import com.ricardofrango.squadify.presentation.ui.components.VenueSelector
-import com.ricardofrango.squadify.presentation.ui.theme.IsClubThemed
-import com.ricardofrango.squadify.presentation.ui.theme.ChromeAccent
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.AlertDialog
 import androidx.navigationevent.compose.rememberNavigationEventState
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.NavigationEventInfo
@@ -51,7 +50,6 @@ import com.ricardofrango.squadify.model.*
 import com.ricardofrango.squadify.presentation.ui.components.ClubLogo
 import com.ricardofrango.squadify.presentation.ui.components.FilterChipRow
 import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
-import com.ricardofrango.squadify.presentation.ui.components.MatchTypeChip
 import com.ricardofrango.squadify.presentation.ui.components.HalvesSelector
 import com.ricardofrango.squadify.presentation.ui.components.TeamSizeSelector
 import com.ricardofrango.squadify.presentation.ui.livematch.teamSize
@@ -66,9 +64,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
-import com.ricardofrango.squadify.presentation.ui.theme.SuccessGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyTheme
-import com.ricardofrango.squadify.presentation.ui.theme.screenContentPadding
 import androidx.compose.ui.tooling.preview.Preview
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.PlayerBadge
@@ -92,7 +88,6 @@ import kotlinx.datetime.format.char
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
-import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -214,11 +209,12 @@ private fun MatchDetailsContent(
     Row(Modifier.fillMaxSize()) {
     if (rail && tabs.isNotEmpty()) FinishedRail(tabs, selectedTab) { finishedTab = it }
     Scaffold(
-        modifier = Modifier.weight(1f),
+        contentWindowInsets = ScreenWindowInsets,
+        modifier = Modifier.weight(1f).besideRail(rail && tabs.isNotEmpty()),
         containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            Column(Modifier.background(ClubChrome)) {
+            Column(Modifier.background(ClubChrome).safeSidesPadding()) {
                 // The teams and the score are the band below; the bar says when and what kind of game.
                 SquadifyTopBar(
                     // Played: no band, leaving the tabs more room; the result is the General tab's first card.
@@ -294,19 +290,13 @@ private fun MatchDetailsContent(
     }
 
     if (showDiscard) {
-        AlertDialog(
-            onDismissRequest = { showDiscard = false },
-            containerColor = Color.White,
-            titleContentColor = DeepCarbon,
-            textContentColor = DeepCarbon.copy(alpha = 0.75f),
-            title = { Text(stringResource(Res.string.club_discard_title)) },
-            text = { Text(stringResource(Res.string.msg_callup_discard)) },
-            confirmButton = {
-                TextButton(onClick = { showDiscard = false; onNavigateBack() }) {
-                    Text(stringResource(Res.string.club_discard_confirm), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = { TextButton(onClick = { showDiscard = false }) { Text(stringResource(Res.string.btn_keep_editing), color = CarbonGray) } }
+        ConfirmDialog(
+            title = stringResource(Res.string.club_discard_title),
+            body = stringResource(Res.string.msg_callup_discard),
+            onConfirm = { showDiscard = false; onNavigateBack() },
+            onDismiss = { showDiscard = false },
+            confirmLabel = stringResource(Res.string.club_discard_confirm),
+            dismissLabel = stringResource(Res.string.btn_keep_editing)
         )
     }
     if (showDeleteConfirm) {
@@ -664,7 +654,7 @@ private fun BottomActionBar(
         Column(
             Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
+                .safeBottomPadding()
                 .padding(horizontal = ScreenPadding.Horizontal, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {

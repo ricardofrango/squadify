@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createagegroups
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import androidx.compose.runtime.CompositionLocalProvider
 import com.ricardofrango.squadify.presentation.ui.components.previewPlans
 import com.ricardofrango.squadify.presentation.ui.components.LocalPlans
@@ -253,6 +254,7 @@ private fun CreateAgeGroupsContent(
     val selectedSeasonName = (uiState as? CreateAgeGroupsUiState.Idle)?.selectedSeason?.name
 
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(

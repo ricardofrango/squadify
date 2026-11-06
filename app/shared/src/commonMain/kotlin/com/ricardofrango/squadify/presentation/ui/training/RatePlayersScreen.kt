@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.readableListPadding
 import androidx.compose.foundation.layout.BoxWithConstraints
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
@@ -122,6 +123,7 @@ private fun RatePlayersContent(
     NavigationBackHandler(state = rememberNavigationEventState(NavigationEventInfo.None), isBackEnabled = state.dirty, onBackCompleted = { askDiscard = true })
     val ratings = state.ratings
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(

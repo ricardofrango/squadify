@@ -1,10 +1,17 @@
 package com.ricardofrango.squadify.coach.presentation.ui.home
 
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.WindowInsets
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.draw.alpha
 import com.ricardofrango.squadify.model.SpacePlan
@@ -36,6 +43,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.OutlinedButton
@@ -175,11 +185,25 @@ private fun CoachHomeContent(
     val scope = rememberCoroutineScope()
     // Closes the menu, then does what was picked.
     fun fromMenu(action: () -> Unit): () -> Unit = { scope.launch { drawerState.close() }; action() }
+    // Back closes the open menu first; Home is the stack's root, so without this it left the app.
+    NavigationBackHandler(
+        state = rememberNavigationEventState(NavigationEventInfo.None),
+        isBackEnabled = drawerState.isOpen,
+        onBackCompleted = { scope.launch { drawerState.close() } }
+    )
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet(drawerContainerColor = Color.White, modifier = Modifier.widthIn(max = 300.dp)) {
+            // Opens from the start edge: its items keep clear of the camera cutout there on a phone lying
+            // down too (Material's default only covers the system bars).
+            ModalDrawerSheet(
+                drawerContainerColor = Color.White,
+                modifier = Modifier.widthIn(max = 300.dp),
+                windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.Start)
+            ) {
+                // Scrolls: lying down on a phone the items run past the bottom (Sign out was cut off).
+                Column(Modifier.verticalScroll(rememberScrollState())) {
                 Text(
                     stringResource(Res.string.coach_app_name),
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
@@ -195,10 +219,12 @@ private fun CoachHomeContent(
                 }
                 MenuItem(SharedRes.drawable.ic_account, stringResource(Res.string.coach_menu_account), fromMenu(onOpenAccount))
                 MenuItem(SharedRes.drawable.ic_logout, stringResource(SharedRes.string.btn_logout), fromMenu(onSignOut))
+                }
             }
         }
     ) {
         Scaffold(
+            contentWindowInsets = ScreenWindowInsets,
             containerColor = ScreenBackground,
             topBar = {
                 SquadifyTopBar(

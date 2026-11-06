@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.fullstats
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.labelRes
 import com.ricardofrango.squadify.presentation.ui.components.StatsNotInPlanMessage
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
@@ -175,6 +176,7 @@ private fun FullStatsContent(
         }
     }
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) { data -> ColumnNameToast(data.visuals.message) } },
         topBar = {
@@ -674,9 +676,11 @@ private fun ColumnsSheet(state: FullStatsUiState.Loaded, onToggle: (FullStatsCol
         Text(stringResource(Res.string.fs_columns_note), style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
         // The list is held to a bit over half the window and scrolls inside it. Left to its full 15 rows it
         // made the sheet taller than a phone: it opened to the very top, with an empty band under the
-        // status bar, and a drag down first moved that oversized sheet before it started to close.
+        // status bar, and a drag down first moved that oversized sheet before it started to close. It also
+        // shrinks to the space left (weight): on a phone lying down half the window plus the title and Done
+        // was still taller than the screen, and Done was off the bottom.
         val windowHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
-        Column(Modifier.heightIn(max = windowHeight * 0.55f).verticalScroll(rememberScrollState())) {
+        Column(Modifier.weight(1f, fill = false).heightIn(max = windowHeight * 0.55f).verticalScroll(rememberScrollState())) {
             FullStatsColumn.entries.filter { !it.rating || state.data.canSeeRatings }.forEach { column ->
                 val shown = column !in state.hidden
                 Row(
@@ -741,7 +745,8 @@ private fun CustomRangeSheet(state: FullStatsUiState.Loaded, onApply: (LocalDate
         }
     )
     FullStatsSheetFrame(onDismiss, stringResource(Res.string.fs_period_custom)) {
-        DateRangePicker(state = pickerState, colors = squadifyDatePickerColors(), modifier = Modifier.heightIn(max = 460.dp), title = null, headline = null, showModeToggle = false)
+        // Shrinks to the space left (it scrolls its months), so Apply stays on screen on a phone lying down.
+        DateRangePicker(state = pickerState, colors = squadifyDatePickerColors(), modifier = Modifier.weight(1f, fill = false).heightIn(max = 460.dp), title = null, headline = null, showModeToggle = false)
         val start = pickerState.selectedStartDateMillis
         val end = pickerState.selectedEndDateMillis ?: start
         SheetButton(stringResource(Res.string.btn_apply), { if (start != null && end != null) onApply(start.date(), end.date()) }, enabled = start != null)

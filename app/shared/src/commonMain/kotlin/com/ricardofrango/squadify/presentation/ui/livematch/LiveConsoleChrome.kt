@@ -249,8 +249,11 @@ internal fun ScoreboardColumn(home: ScoreSide, away: ScoreSide, clock: ClockStat
         Column(
             Modifier.fillMaxWidth()
                 .background(CarbonGray, RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp))
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                // Tighter than the upright card (the developer, 2026-11-05): each team row is already a
+                // tap target's height, and with more room the column was taller than a phone lying down,
+                // its last button (Full time) half off the bottom.
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             listOf(home, away).forEach { side ->
                 Row(verticalAlignment = Alignment.CenterVertically) {

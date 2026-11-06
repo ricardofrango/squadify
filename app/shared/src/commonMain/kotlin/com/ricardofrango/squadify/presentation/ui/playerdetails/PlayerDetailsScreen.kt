@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.playerdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.ShownSpace
 import androidx.compose.runtime.remember
@@ -153,10 +155,11 @@ private fun PlayerDetailsContent(
     val selectedTab = tab.takeIf { it in tabs } ?: PlayerTab.GENERAL
 
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            Column(Modifier.background(ClubChrome)) {
+            Column(Modifier.background(ClubChrome).safeSidesPadding()) {
                 SquadifyTopBar(
                     title = stringResource(Res.string.title_player_profile),
                     onNavigateBack = onNavigateBack,

@@ -1,5 +1,10 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
+import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.WindowInsetsSides
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.isWide
 import com.ricardofrango.squadify.presentation.ui.components.SectionCard
@@ -195,6 +200,9 @@ private fun OpponentFormContent(
     onRemoveLogo: () -> Unit = {}
 ) {
     Scaffold(
+        // Top and bottom only: the action bar is in the content, so its white must reach the sides; the
+        // content and the bar keep clear of the camera cutout themselves (safeSidesPadding).
+        contentWindowInsets = ScreenWindowInsets.only(WindowInsetsSides.Vertical),
         containerColor = ScreenBackground,
         topBar = { SquadifyTopBar(title = stringResource(title), subtitle = state.clubName, onNavigateBack = onNavigateBack) }
     ) { padding ->
@@ -212,7 +220,7 @@ private fun OpponentFormContent(
             // Landscape or tablet: the sections flow into two columns, the button pinned bottom-right.
             val wide = isWide
             Column(Modifier.fillMaxSize()) {
-                Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+                Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).safeSidesPadding()) {
                     if (wide) {
                         Row(Modifier.screenContentPadding(), horizontalArrangement = Arrangement.spacedBy(32.dp)) {
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -237,8 +245,8 @@ private fun OpponentFormContent(
                         }
                     }
                 }
-                Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
-                    Box(Modifier.padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp), contentAlignment = Alignment.CenterEnd) {
+                if (!keyboardOnShortWindow()) Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
+                    Box(Modifier.safeSidesPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 16.dp), contentAlignment = Alignment.CenterEnd) {
                         PrimaryLoadingButton(
                             text = submitText,
                             submittingText = submittingText,

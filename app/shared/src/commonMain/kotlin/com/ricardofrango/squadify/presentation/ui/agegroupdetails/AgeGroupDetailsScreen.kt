@@ -1,5 +1,8 @@
 package com.ricardofrango.squadify.presentation.ui.agegroupdetails
 
+import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
+import com.ricardofrango.squadify.presentation.ui.components.besideRail
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.ShownSpace
 import squadify.app.shared.generated.resources.msg_refresh_failed
@@ -286,11 +289,12 @@ private fun AgeGroupDetailsContent(
         Row(Modifier.fillMaxSize()) {
             if (rail && details != null) DetailRail(tabItems, tabIndex, selectIndex)
             Scaffold(
-                modifier = Modifier.weight(1f),
+                contentWindowInsets = ScreenWindowInsets,
+                modifier = Modifier.weight(1f).besideRail(rail && details != null),
                 containerColor = ScreenBackground,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 topBar = {
-                    Column(Modifier.background(ClubChrome)) {
+                    Column(Modifier.background(ClubChrome).safeSidesPadding()) {
                         SquadifyTopBar(
                             title = details?.ageGroup?.name ?: stringResource(Res.string.tab_age_groups),
                             subtitle = details?.let { stringResource(Res.string.ag_born, bornLabel(it.ageGroup), it.season.name) },

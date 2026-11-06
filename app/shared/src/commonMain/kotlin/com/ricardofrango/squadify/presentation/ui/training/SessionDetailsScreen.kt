@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.isWide
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import androidx.compose.foundation.background
@@ -17,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -27,11 +28,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -59,6 +60,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.Amber
 import com.ricardofrango.squadify.presentation.ui.theme.AmberText
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
@@ -191,6 +193,7 @@ private fun SessionDetailsContent(
     var askCancel by remember { mutableStateOf(false) }
     var askDelete by remember { mutableStateOf(false) }
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(
@@ -251,21 +254,23 @@ private fun SessionDetailsContent(
         }
     }
     if (askCancel && details != null) {
-        AlertDialog(
-            onDismissRequest = { askCancel = false },
-            title = { Text(stringResource(Res.string.title_cancel_session)) },
-            text = { Text(stringResource(Res.string.msg_cancel_session, sessionTitle(details.session.date))) },
-            confirmButton = { TextButton(onClick = { askCancel = false; onCancel() }) { Text(stringResource(Res.string.btn_cancel_session), color = AlertRed, fontWeight = FontWeight.Bold) } },
-            dismissButton = { TextButton(onClick = { askCancel = false }) { Text(stringResource(Res.string.btn_keep_it), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
+        ConfirmDialog(
+            title = stringResource(Res.string.title_cancel_session),
+            body = stringResource(Res.string.msg_cancel_session, sessionTitle(details.session.date)),
+            onConfirm = { askCancel = false; onCancel() },
+            onDismiss = { askCancel = false },
+            confirmLabel = stringResource(Res.string.btn_cancel_session),
+            dismissLabel = stringResource(Res.string.btn_keep_it)
         )
     }
     if (askDelete) {
-        AlertDialog(
-            onDismissRequest = { askDelete = false },
-            title = { Text(stringResource(Res.string.title_delete_session)) },
-            text = { Text(stringResource(Res.string.msg_delete_session)) },
-            confirmButton = { TextButton(onClick = { askDelete = false; onDelete() }) { Text(stringResource(Res.string.btn_delete), color = AlertRed, fontWeight = FontWeight.Bold) } },
-            dismissButton = { TextButton(onClick = { askDelete = false }) { Text(stringResource(Res.string.btn_keep_it), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
+        ConfirmDialog(
+            title = stringResource(Res.string.title_delete_session),
+            body = stringResource(Res.string.msg_delete_session),
+            onConfirm = { askDelete = false; onDelete() },
+            onDismiss = { askDelete = false },
+            confirmLabel = stringResource(Res.string.btn_delete),
+            dismissLabel = stringResource(Res.string.btn_keep_it)
         )
     }
 }
@@ -298,7 +303,7 @@ private fun WeekStrip(details: TrainingSessionDetails, onOpenWeekPlan: (edit: Bo
     val planned = week != null
     Column(
         Modifier.fillMaxWidth()
-            .background(if (planned) DeepCarbon else Amber.copy(alpha = 0.18f), RoundedCornerShape(16.dp))
+            .background(if (planned) ClubChrome else Amber.copy(alpha = 0.18f), RoundedCornerShape(16.dp))
             .padding(14.dp)
     ) {
         val fg = if (planned) Color.White else AmberText

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.createseason
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.submitKeyboardActions
 import com.ricardofrango.squadify.presentation.navigation.collectSettledState
@@ -245,6 +246,7 @@ private fun CreateSeasonContent(
     )
 
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         // Explicit, not MaterialTheme.colorScheme.background: every screen in this app renders
         // light content regardless of system theme (only the header bars are dark) -- same convention
         // ClubDetailsScreen etc. follow. Without this, a device in dark mode gets SquadifyTheme's

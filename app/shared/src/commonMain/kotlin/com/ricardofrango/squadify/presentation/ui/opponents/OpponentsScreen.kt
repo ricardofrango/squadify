@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.opponents
 
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import androidx.compose.foundation.layout.PaddingValues
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenPadding
@@ -149,6 +150,7 @@ private fun OpponentsContent(
     val list = (state as? OpponentsUiState.Idle)?.list
     val create = onCreateOpponent?.takeIf { list?.canCreate == true }
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = {
             SquadifyTopBar(

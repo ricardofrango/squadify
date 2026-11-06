@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.coach.presentation.ui.invite
 
+import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import com.ricardofrango.squadify.presentation.ui.components.previewPlans
 import com.ricardofrango.squadify.presentation.ui.components.LocalPlans
@@ -14,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -24,11 +25,11 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -100,7 +101,6 @@ import squadify.app.coach.generated.resources.msg_invites_failed
 import squadify.app.coach.generated.resources.title_invite_withdraw
 import squadify.app.coach.generated.resources.msg_invite_withdraw
 import squadify.app.shared.generated.resources.btn_cancel
-import squadify.app.shared.generated.resources.btn_retry
 import squadify.app.shared.generated.resources.label_invite_staff
 import kotlin.time.Instant
 import squadify.app.shared.generated.resources.Res as SharedRes
@@ -177,6 +177,7 @@ private fun InviteStaffContent(
 ) {
     var confirmWithdraw by remember { mutableStateOf<StaffInvite?>(null) }
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -247,20 +248,13 @@ private fun InviteStaffContent(
         }
     }
     confirmWithdraw?.let { invite ->
-        AlertDialog(
-            onDismissRequest = { confirmWithdraw = null },
-            title = { Text(stringResource(Res.string.title_invite_withdraw, invite.code)) },
-            text = { Text(stringResource(Res.string.msg_invite_withdraw)) },
-            confirmButton = {
-                TextButton(onClick = { confirmWithdraw = null; onWithdraw(invite.code) }) {
-                    Text(stringResource(Res.string.btn_invite_withdraw), color = AlertRed, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmWithdraw = null }) {
-                    Text(stringResource(SharedRes.string.btn_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+        ConfirmDialog(
+            title = stringResource(Res.string.title_invite_withdraw, invite.code),
+            body = stringResource(Res.string.msg_invite_withdraw),
+            onConfirm = { confirmWithdraw = null; onWithdraw(invite.code) },
+            onDismiss = { confirmWithdraw = null },
+            confirmLabel = stringResource(Res.string.btn_invite_withdraw),
+            dismissLabel = stringResource(SharedRes.string.btn_cancel)
         )
     }
 }

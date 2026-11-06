@@ -3,6 +3,11 @@ package com.ricardofrango.squadify.presentation.ui.components
 import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -73,9 +78,25 @@ fun DetailBottomBar(tabs: List<DetailTab>, selected: Int, onSelect: (Int) -> Uni
     }
 }
 
+// The rail takes the screen's start edge: it keeps clear of the system bars there and, lying down,
+// of the camera cutout, which the system-bar insets leave out.
+private val RailInsets: WindowInsets
+    @Composable get() = WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.Start)
+
+/**
+ * For the screen's content beside a [DetailRail]: the rail already keeps clear of the start edge (its
+ * system bar and camera cutout), so the content mustn't again. Without it, a phone lying down showed an
+ * empty strip, the cutout's width, between the rail and the content. Pass true only when the rail is
+ * actually drawn (the same condition): while loading, or on a match not yet played, there's none, and
+ * the content must keep clear of the cutout itself.
+ */
+@Composable
+fun Modifier.besideRail(rail: Boolean): Modifier =
+    if (rail) consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)) else this
+
 @Composable
 fun DetailRail(tabs: List<DetailTab>, selected: Int, onSelect: (Int) -> Unit) {
-    NavigationRail(containerColor = ClubChrome, modifier = Modifier.fillMaxHeight()) {
+    NavigationRail(containerColor = ClubChrome, modifier = Modifier.fillMaxHeight(), windowInsets = RailInsets) {
         Spacer(Modifier.weight(1f))
         tabs.forEachIndexed { i, tab ->
             val isSelected = i == selected

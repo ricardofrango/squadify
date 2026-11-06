@@ -1,5 +1,7 @@
 package com.ricardofrango.squadify.coach.presentation.ui.deleteaccount
 
+import com.ricardofrango.squadify.presentation.ui.components.ConfirmDialog
+import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,20 +13,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -67,7 +67,6 @@ import squadify.app.coach.generated.resources.msg_delete_account_load_failed
 import squadify.app.coach.generated.resources.msg_delete_account_wrong_password
 import squadify.app.coach.generated.resources.title_delete_account_confirm
 import squadify.app.shared.generated.resources.btn_cancel
-import squadify.app.shared.generated.resources.btn_retry
 import squadify.app.shared.generated.resources.Res as SharedRes
 
 /**
@@ -108,6 +107,7 @@ private fun DeleteAccountContent(
     var confirm by remember { mutableStateOf(false) }
     val idle = uiState as? DeleteAccountUiState.Idle
     Scaffold(
+        contentWindowInsets = ScreenWindowInsets,
         containerColor = ScreenBackground,
         topBar = { SquadifyTopBar(title = stringResource(Res.string.delete_account_title), onNavigateBack = onNavigateBack) },
         bottomBar = {
@@ -171,20 +171,13 @@ private fun DeleteAccountContent(
         }
     }
     if (confirm) {
-        AlertDialog(
-            onDismissRequest = { confirm = false },
-            title = { Text(stringResource(Res.string.title_delete_account_confirm)) },
-            text = { Text(stringResource(Res.string.delete_account_final)) },
-            confirmButton = {
-                TextButton(onClick = { confirm = false; onDelete() }) {
-                    Text(stringResource(Res.string.btn_delete_account_confirm), color = AlertRed, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirm = false }) {
-                    Text(stringResource(SharedRes.string.btn_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+        ConfirmDialog(
+            title = stringResource(Res.string.title_delete_account_confirm),
+            body = stringResource(Res.string.delete_account_final),
+            onConfirm = { confirm = false; onDelete() },
+            onDismiss = { confirm = false },
+            confirmLabel = stringResource(Res.string.btn_delete_account_confirm),
+            dismissLabel = stringResource(SharedRes.string.btn_cancel)
         )
     }
 }
