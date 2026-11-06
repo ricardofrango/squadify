@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
 import com.ricardofrango.squadify.presentation.ui.components.ErrorScreen
 import androidx.compose.foundation.BorderStroke
@@ -146,12 +147,13 @@ fun PlanStatusChip(planned: Boolean) {
     )
 }
 
-/** The dark strip at the top of a plan screen with the level above it, for context (design 40d/e). */
+/** The strip at the top of a plan screen, in the club's colour, with the level above it for context (design 40d/e). */
 @Composable
 fun ContextStrip(overline: String, title: String?, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit = {}) {
     Column(
-        // Its colour to the edges, its text clear of the camera cutout lying down.
-        modifier.fillMaxWidth().background(DeepCarbon).safeSidesPadding().padding(horizontal = 20.dp, vertical = 14.dp)
+        // The club's colour, joined to the top bar like an age group's or team's strip (the developer,
+        // 2026-11-06; it was dark). Its colour to the edges, its text clear of the camera cutout lying down.
+        modifier.fillMaxWidth().background(ClubChrome).safeSidesPadding().padding(horizontal = 20.dp, vertical = 14.dp)
     ) {
         Text(overline.uppercase(), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = Color.White.copy(alpha = 0.6f))
         if (title != null) {

@@ -1,5 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.addstafftoagegroup
 
+import androidx.compose.foundation.lazy.LazyListScope
 import com.ricardofrango.squadify.presentation.ui.components.ScreenWindowInsets
 import com.ricardofrango.squadify.presentation.ui.theme.ScreenBackground
 import com.ricardofrango.squadify.presentation.ui.components.initialsOf
@@ -180,89 +181,117 @@ private fun AddStaffToAgeGroupContent(
                 }
                 val selectedCount = uiState.selectedRoles.size
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .background(ScreenBackground)
-                        // No wider than a form, centred, on a wide screen.
-                        .readableWidth()
-                        .padding(horizontal = ScreenPadding.Horizontal)
-                        .padding(top = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    AgeGroupPicker(
-                        label = stringResource(Res.string.label_age_group_field),
-                        selectedText = selectedAgeGroup?.let { ag ->
-                            idle?.seasonNameFor(ag)?.let { "${ag.name} · $it" } ?: ag.name
-                        },
-                        options = uiState.ageGroups.map { ag ->
-                            ag.id to (uiState.seasonNameFor(ag)?.let { "${ag.name} · $it" } ?: ag.name)
-                        },
-                        onOptionSelected = onAgeGroupSelected
-                    )
+                // The age group, the search and "Add a new staff member": above the list, unless the screen
+                // is short (a phone lying down: under 480dp there was no room left and the list didn't show
+                // at all). There they're the list's first rows and scroll away with it.
+                BoxWithConstraints(Modifier.fillMaxSize().padding(paddingValues).background(ScreenBackground)) {
+                val header = @Composable {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            AgeGroupPicker(
+                                label = stringResource(Res.string.label_age_group_field),
+                                selectedText = selectedAgeGroup?.let { ag ->
+                                    idle?.seasonNameFor(ag)?.let { "${ag.name} · $it" } ?: ag.name
+                                },
+                                options = uiState.ageGroups.map { ag ->
+                                    ag.id to (uiState.seasonNameFor(ag)?.let { "${ag.name} · $it" } ?: ag.name)
+                                },
+                                onOptionSelected = onAgeGroupSelected
+                            )
 
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = onSearchChange,
-                        label = { Text(stringResource(Res.string.label_search_members)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = FormRoundedShape,
-                        colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
-                            focusedTextColor = DeepCarbon,
-                            unfocusedTextColor = DeepCarbon,
-                            focusedBorderColor = PitchGreen,
-                            unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
-                            focusedLabelColor = PitchGreen,
-                            unfocusedLabelColor = CarbonGray
-                        )
-                    )
-
-                    OutlinedButton(
-                        onClick = onAddNewStaff,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = FormRoundedShape,
-                        border = BorderStroke(1.dp, PitchGreen.copy(alpha = 0.4f)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PitchGreen)
-                    ) {
-                        Text("+ ${stringResource(Res.string.btn_add_new_staff)}")
-                    }
-
-                    if (selectedCount > 0) {
-                        Text(
-                            text = stringResource(Res.string.label_players_selected, selectedCount),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = DeepCarbon.copy(alpha = 0.6f)
-                        )
-                    }
-
-                    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                        when {
-                            uiState.loadingEligible ->
-                                CircularProgressIndicator(
-                                    color = PitchGreen,
-                                    modifier = Modifier.align(Alignment.Center)
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = onSearchChange,
+                                label = { Text(stringResource(Res.string.label_search_members)) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = FormRoundedShape,
+                                colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, 
+                                    focusedTextColor = DeepCarbon,
+                                    unfocusedTextColor = DeepCarbon,
+                                    focusedBorderColor = PitchGreen,
+                                    unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f),
+                                    focusedLabelColor = PitchGreen,
+                                    unfocusedLabelColor = CarbonGray
                                 )
+                            )
 
-                            filtered.isEmpty() ->
-                                EligibleEmptyState(hasSearch = searchQuery.isNotBlank())
-
-                            else -> LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                contentPadding = PaddingValues(top = 4.dp, bottom = 12.dp)
+                            OutlinedButton(
+                                onClick = onAddNewStaff,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = FormRoundedShape,
+                                border = BorderStroke(1.dp, PitchGreen.copy(alpha = 0.4f)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = PitchGreen)
                             ) {
-                                items(filtered, key = { it.userId }) { member ->
-                                    MemberRow(
-                                        member = member,
-                                        selectedRole = uiState.selectedRoles[member.userId],
-                                        onRoleTapped = { role -> onRoleTapped(member.userId, role) }
-                                    )
+                                Text("+ ${stringResource(Res.string.btn_add_new_staff)}")
+                            }
+
+                            if (selectedCount > 0) {
+                                Text(
+                                    text = stringResource(Res.string.label_players_selected, selectedCount),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = DeepCarbon.copy(alpha = 0.6f)
+                                )
+                            }
+                    }
+                }
+                val memberRows: LazyListScope.() -> Unit = {
+                    items(filtered, key = { it.userId }) { member ->
+                        MemberRow(
+                            member = member,
+                            selectedRole = uiState.selectedRoles[member.userId],
+                            onRoleTapped = { role -> onRoleTapped(member.userId, role) }
+                        )
+                    }
+                }
+                val screen = Modifier
+                    .fillMaxSize()
+                    // No wider than a form, centred, on a wide screen.
+                    .readableWidth()
+                    .padding(horizontal = ScreenPadding.Horizontal)
+                if (maxHeight < 480.dp) {
+                    LazyColumn(
+                        modifier = screen,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(top = 16.dp, bottom = 12.dp)
+                    ) {
+                        item { Box(Modifier.padding(bottom = 4.dp)) { header() } }
+                        when {
+                            uiState.loadingEligible -> item {
+                                Box(Modifier.fillParentMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(color = PitchGreen)
                                 }
+                            }
+                            filtered.isEmpty() -> item { EligibleEmptyState(hasSearch = searchQuery.isNotBlank()) }
+                            else -> memberRows()
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = screen.padding(top = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        header()
+                        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                            when {
+                                uiState.loadingEligible ->
+                                    CircularProgressIndicator(
+                                        color = PitchGreen,
+                                        modifier = Modifier.align(Alignment.Center)
+                                    )
+
+                                filtered.isEmpty() ->
+                                    EligibleEmptyState(hasSearch = searchQuery.isNotBlank())
+
+                                else -> LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    contentPadding = PaddingValues(top = 4.dp, bottom = 12.dp),
+                                    content = memberRows
+                                )
                             }
                         }
                     }
+                }
                 }
             }
         }
