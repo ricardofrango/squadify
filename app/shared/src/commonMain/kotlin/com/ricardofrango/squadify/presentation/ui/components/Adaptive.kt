@@ -1,7 +1,6 @@
 package com.ricardofrango.squadify.presentation.ui.components
 
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -12,6 +11,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -44,10 +44,10 @@ fun useNavigationRail(): Boolean =
  * leaves about the top bar's height there, so a form's pinned Save bar hides while typing, or it
  * would cover the field being typed in; it's back as the keyboard closes (TECHNICAL_DECISIONS.md §11.6).
  */
-@OptIn(ExperimentalLayoutApi::class)
+// The keyboard's inset rather than WindowInsets.isImeVisible, which the desktop target doesn't have.
 @Composable
 fun keyboardOnShortWindow(): Boolean =
-    WindowInsets.isImeVisible &&
+    WindowInsets.ime.getBottom(LocalDensity.current) > 0 &&
         !currentWindowAdaptiveInfoV2().windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND)
 
 /** The widest a form, or a list of single rows, gets; centred beyond that, so rows never stretch across a wide window. */
