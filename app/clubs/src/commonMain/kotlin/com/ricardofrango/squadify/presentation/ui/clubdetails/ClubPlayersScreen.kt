@@ -33,12 +33,14 @@ import com.ricardofrango.squadify.presentation.navigation.collectSettledState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -131,11 +133,12 @@ private fun Filters(
     state: ClubPlayersUiState.Idle,
     onSeasonSelected: (String?) -> Unit,
     onAgeGroupSelected: (String?) -> Unit,
-    onSearchChanged: (String) -> Unit
+    onSearchChanged: (String) -> Unit,
+    // Lined up with the list under it, which is centred on a wide screen.
+    modifier: Modifier = Modifier.readableWidth().padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top, bottom = 20.dp)
 ) {
     val details = state.details
-    // Lined up with the list under it, which is centred on a wide screen.
-    Column(Modifier.readableWidth().padding(start = ScreenPadding.Horizontal, end = ScreenPadding.Horizontal, top = ScreenPadding.Top, bottom = 20.dp)) {
+    Column(modifier) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             item {
                 FilterSelector(
@@ -204,36 +207,64 @@ private fun ClubPlayersContent(
         when (val s = state) {
             ClubPlayersUiState.Loading -> Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PitchGreen) }
             is ClubPlayersUiState.Error -> ErrorScreen(title = s.message, body = null, onRetry = onRetry, modifier = modifier)
-            is ClubPlayersUiState.Idle -> Column(modifier) {
+            is ClubPlayersUiState.Idle -> BoxWithConstraints(modifier) {
                 val clubName = s.details.club.name
-                Filters(s, onSeasonSelected, onAgeGroupSelected, onSearchChanged)
-                when {
-                    s.seasonId != null && s.availableAgeGroups.isEmpty() ->
-                        NoAgeGroupsState(
-                            canEditClub = s.details.canEditClub,
-                            onCreateAgeGroupClick = { onCreateAgeGroups(clubName, s.details.club.sport, s.seasonId) }
-                        )
-                    !s.loaded -> Box(Modifier.fillMaxWidth().screenContentPadding(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = PitchGreen)
+                // The state under the filters when there's no list to show, or null for the list.
+                val notList: (@Composable () -> Unit)? = when {
+                    s.seasonId != null && s.availableAgeGroups.isEmpty() -> {
+                        {
+                            NoAgeGroupsState(
+                                canEditClub = s.details.canEditClub,
+                                onCreateAgeGroupClick = { onCreateAgeGroups(clubName, s.details.club.sport, s.seasonId) }
+                            )
+                        }
                     }
-                    s.players.isEmpty() ->
-                        NoPlayersState(
-                            canEditClub = s.details.canEditClub,
-                            hasClubPlayers = s.anyPlayers,
-                            onAddPlayersToClub = { onCreatePlayers(clubName) },
-                            onAddPlayersToAgeGroup = { onAddPlayersToAgeGroup(clubName) }
-                        )
-                    // Disabling and reactivating follow the club's MANAGE_PLAYER_STATUS setting, like the server.
-                    // Reactivating needs no confirmation: it only lets the player be added to a pool again.
-                    else -> PlayerList(
-                        s.players,
+                    !s.loaded -> {
+                        {
+                            Box(Modifier.fillMaxWidth().screenContentPadding(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = PitchGreen)
+                            }
+                        }
+                    }
+                    s.players.isEmpty() -> {
+                        {
+                            NoPlayersState(
+                                canEditClub = s.details.canEditClub,
+                                hasClubPlayers = s.anyPlayers,
+                                onAddPlayersToClub = { onCreatePlayers(clubName) },
+                                onAddPlayersToAgeGroup = { onAddPlayersToAgeGroup(clubName) }
+                            )
+                        }
+                    }
+                    else -> null
+                }
+                // Disabling and reactivating follow the club's MANAGE_PLAYER_STATUS setting, like the server.
+                // Reactivating needs no confirmation: it only lets the player be added to a pool again.
+                val list: @Composable (header: (LazyListScope.() -> Unit)?) -> Unit = { header ->
+                    PlayerList(
+                        if (notList == null) s.players else emptyList(),
                         onOpenPlayer,
                         onDisable = if (s.details.canManagePlayerStatus) { player -> confirmDisable = player } else null,
                         onReactivate = if (s.details.canManagePlayerStatus) { player -> onReactivate(player.id) } else null,
-                        hasMore = s.hasMore,
-                        loadingMore = s.loadingMore,
-                        onLoadMore = onLoadMore
+                        hasMore = s.hasMore && notList == null,
+                        loadingMore = s.loadingMore && notList == null,
+                        onLoadMore = onLoadMore,
+                        header = header
                     )
+                }
+                if (maxHeight < 480.dp) {
+                    // A phone lying down: fixed filters would leave room for one player, so they scroll
+                    // with the list. The empty states sit under them in the same list, so the search
+                    // field keeps its place (and focus) while a search empties it.
+                    list {
+                        item(key = "filters") { Filters(s, onSeasonSelected, onAgeGroupSelected, onSearchChanged, Modifier.padding(bottom = 4.dp)) }
+                        notList?.let { item(key = "state") { it() } }
+                    }
+                } else {
+                    Column(Modifier.fillMaxSize()) {
+                        Filters(s, onSeasonSelected, onAgeGroupSelected, onSearchChanged)
+                        if (notList != null) notList() else list(null)
+                    }
                 }
             }
         }
