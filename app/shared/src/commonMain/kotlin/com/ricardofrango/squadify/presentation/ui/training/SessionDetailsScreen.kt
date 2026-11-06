@@ -60,6 +60,7 @@ import com.ricardofrango.squadify.presentation.ui.theme.AlertRed
 import com.ricardofrango.squadify.presentation.ui.theme.Amber
 import com.ricardofrango.squadify.presentation.ui.theme.AmberText
 import com.ricardofrango.squadify.presentation.ui.theme.CarbonGray
+import com.ricardofrango.squadify.presentation.ui.theme.ClubChrome
 import com.ricardofrango.squadify.presentation.ui.theme.DeepCarbon
 import com.ricardofrango.squadify.presentation.ui.theme.PitchGreen
 import com.ricardofrango.squadify.presentation.ui.theme.SquadifyClubTheme
@@ -300,7 +301,7 @@ private fun WeekStrip(details: TrainingSessionDetails, onOpenWeekPlan: (edit: Bo
     val planned = week != null
     Column(
         Modifier.fillMaxWidth()
-            .background(if (planned) DeepCarbon else Amber.copy(alpha = 0.18f), RoundedCornerShape(16.dp))
+            .background(if (planned) ClubChrome else Amber.copy(alpha = 0.18f), RoundedCornerShape(16.dp))
             .padding(14.dp)
     ) {
         val fg = if (planned) Color.White else AmberText

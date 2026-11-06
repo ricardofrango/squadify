@@ -2748,7 +2748,7 @@ Phase 8 starts with the plans (design 40): a coach sets the objectives of the se
 **Session details, add/edit and the calendar** (design 39a/e/f, 40f):
 - **Session details** (`SessionDetailsScreen`):
   - **Top:** when and where (Open in Maps) and the status: Upcoming · in n days, Today, Ended or Cancelled.
-  - **Staff strip:** the week's focus and intensity with the month's focus. It turns amber with "Plan the week" when the week has no plan.
+  - **Staff strip:** the week's focus and intensity with the month's focus. In the club's colour, like the plans' context strip (the developer, 2026-11-06; it was dark). It turns amber with "Plan the week" when the week has no plan.
   - **Then:** the notes.
   - **With `MANAGE_TRAINING`:** the pencil, and ⋮ with Cancel session and Delete, each asking first. A cancelled session shows who cancelled it and when, with Restore, and has no pencil.
   - **After a change:** the Training tab reloads.
