@@ -110,12 +110,13 @@ internal fun FinishedMatchBody(
     state: MatchDetailsUiState.Idle,
     tab: FinishedTab,
     modifier: Modifier,
-    onOpenReport: (edit: Boolean) -> Unit
+    onOpenReport: (edit: Boolean) -> Unit,
+    onOpenPlayer: (playerId: String) -> Unit
 ) {
     val details = state.details
     when (tab.takeIf { it in finishedTabs(details.canSeeMatchRecord, !details.match.enteredAfterGame) } ?: FinishedTab.GENERAL) {
         FinishedTab.GENERAL -> GeneralTab(state, modifier, onOpenReport)
-        FinishedTab.STATS -> StatsTab(state, modifier)
+        FinishedTab.STATS -> StatsTab(state, modifier, onOpenPlayer)
         FinishedTab.EVENTS -> EventsTab(details, modifier)
         FinishedTab.TIMELINE -> TimelineTab(details, modifier)
     }
@@ -178,7 +179,7 @@ private fun ResultSide(name: String, logoUrl: String?, modifier: Modifier) {
 // ---- Stats ----
 
 @Composable
-private fun StatsTab(state: MatchDetailsUiState.Idle, modifier: Modifier) {
+private fun StatsTab(state: MatchDetailsUiState.Idle, modifier: Modifier, onOpenPlayer: (playerId: String) -> Unit) {
     val details = state.details
     val lines = remember(details) { matchStatLines(details) }
     // Sorted by a column (highest first) or, with none, by name; tapping a header picks it.
@@ -213,7 +214,7 @@ private fun StatsTab(state: MatchDetailsUiState.Idle, modifier: Modifier) {
             } else if (rows.isEmpty()) {
                 item { Text(stringResource(Res.string.md_no_stats), style = MaterialTheme.typography.bodyMedium, color = DeepCarbon.copy(alpha = 0.5f)) }
             } else {
-                item { StatsTable(rows, sort, descending, onSort = onSort, onLongPress = showColumnName) }
+                item { StatsTable(rows, sort, descending, onSort = onSort, onLongPress = showColumnName, onOpenPlayer = onOpenPlayer) }
             }
             if (lines.unused.isNotEmpty()) {
                 item {
@@ -300,7 +301,14 @@ private fun MatchStatColumn.width(): Dp = if (this == MatchStatColumn.RATING) Ra
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun StatsTable(rows: List<MatchStatLine>, sort: MatchStatColumn?, descending: Boolean, onSort: (MatchStatColumn?) -> Unit, onLongPress: (String) -> Unit) {
+private fun StatsTable(
+    rows: List<MatchStatLine>,
+    sort: MatchStatColumn?,
+    descending: Boolean,
+    onSort: (MatchStatColumn?) -> Unit,
+    onLongPress: (String) -> Unit,
+    onOpenPlayer: (playerId: String) -> Unit
+) {
     val headerStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
     val horizontal = rememberScrollState()
     fun Modifier.rowLine(i: Int) = if (i < rows.lastIndex) bottomHairline() else this
@@ -321,7 +329,10 @@ private fun StatsTable(rows: List<MatchStatLine>, sort: MatchStatColumn?, descen
                         .padding(horizontal = 12.dp)
                         .wrapContentHeight(Alignment.CenterVertically)
                 )
-                rows.forEachIndexed { i, line -> PlayerCell(line.player, Modifier.fillMaxWidth().height(RowHeight).rowLine(i)) }
+                // A player's name opens their details, as on Full stats.
+                rows.forEachIndexed { i, line ->
+                    PlayerCell(line.player, Modifier.fillMaxWidth().height(RowHeight).rowLine(i).clickable { onOpenPlayer(line.player.id) })
+                }
             }
             Column(Modifier.weight(1f).horizontalScroll(horizontal)) {
                 Row(Modifier.height(HeaderHeight).bottomHairline(), verticalAlignment = Alignment.CenterVertically) {

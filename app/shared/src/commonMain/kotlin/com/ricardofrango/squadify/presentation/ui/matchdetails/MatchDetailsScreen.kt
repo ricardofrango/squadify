@@ -115,6 +115,8 @@ fun MatchDetailsScreen(
     onOpenReport: (matchId: String, edit: Boolean) -> Unit,
     // The match's record after the game: Edit on a finished match, Enter result on one not followed live.
     onOpenRecord: (matchId: String) -> Unit,
+    // A player in a finished match's Stats tab: their details, on the match's season.
+    onOpenPlayer: (playerId: String, seasonId: String) -> Unit,
     refreshOnReturn: Boolean = false,
     viewModel: MatchDetailsViewModel = koinViewModel()
 ) {
@@ -156,7 +158,8 @@ fun MatchDetailsScreen(
                 onDeleteMatch = viewModel::onDeleteMatch,
                 onEnterLiveMatch = viewModel::onEnterLiveMatch,
                 onOpenReport = { edit -> onOpenReport(matchId, edit) },
-                onOpenRecord = { onOpenRecord(matchId) }
+                onOpenRecord = { onOpenRecord(matchId) },
+                onOpenPlayer = onOpenPlayer
             )
         }
     }
@@ -181,6 +184,7 @@ private fun MatchDetailsContent(
     onSaveCallUp: () -> Unit = {},
     onOpenReport: (edit: Boolean) -> Unit,
     onOpenRecord: () -> Unit = {},
+    onOpenPlayer: (playerId: String, seasonId: String) -> Unit = { _, _ -> },
     initialTab: FinishedTab = FinishedTab.GENERAL,
     now: Instant = Clock.System.now()
 ) {
@@ -271,7 +275,9 @@ private fun MatchDetailsContent(
 
             // Played: the record of the game instead of the call-up.
             is MatchDetailsUiState.Idle -> PullToRefreshBox(isRefreshing = isRefreshing, onRefresh = onRefresh, modifier = boxModifier) {
-                if (finished) FinishedMatchBody(uiState, selectedTab, Modifier.fillMaxSize(), onOpenReport) else MatchBody(
+                if (finished) FinishedMatchBody(uiState, selectedTab, Modifier.fillMaxSize(), onOpenReport) { playerId ->
+                    onOpenPlayer(playerId, uiState.details.season.id)
+                } else MatchBody(
                     state = uiState,
                     modifier = Modifier.fillMaxSize(),
                     onSortSelected = onSortSelected,
