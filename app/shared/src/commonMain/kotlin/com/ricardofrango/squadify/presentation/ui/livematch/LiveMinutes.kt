@@ -307,9 +307,11 @@ private fun FlashLine(text: String) {
 
 @Composable
 private fun SectionHeading(text: String, color: Color = Color.White.copy(alpha = 0.5f), trailing: (@Composable () -> Unit)? = null) {
+    // The heading never breaks (lying down the bench column is narrow, and "SUPLENTES" broke in two): the
+    // trailing link takes the width left, cut with "…" if it must.
     Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(text.uppercase(), color = color, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.6.sp), modifier = Modifier.weight(1f))
-        trailing?.invoke()
+        Text(text.uppercase(), color = color, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.6.sp), maxLines = 1, softWrap = false)
+        Box(Modifier.weight(1f).padding(start = 8.dp), contentAlignment = Alignment.CenterEnd) { trailing?.invoke() }
     }
 }
 
@@ -355,6 +357,8 @@ internal fun SquadMinutesTab(
                         stringResource(if (benchSort == BenchSort.FEWEST) Res.string.lm_sort_fewest else Res.string.lm_sort_shirt),
                         color = PitchGreen,
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.clip(RoundedCornerShape(8.dp))
                             .clickable { benchSort = if (benchSort == BenchSort.FEWEST) BenchSort.SHIRT else BenchSort.FEWEST }
                             .padding(horizontal = 6.dp, vertical = 4.dp)

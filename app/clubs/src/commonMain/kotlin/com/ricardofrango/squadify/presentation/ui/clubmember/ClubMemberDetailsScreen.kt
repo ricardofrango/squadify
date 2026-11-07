@@ -68,6 +68,7 @@ import com.ricardofrango.squadify.model.PendingClubInvite
 import com.ricardofrango.squadify.model.AgeGroupRole
 import com.ricardofrango.squadify.model.UserPlayerRelationship
 import com.ricardofrango.squadify.presentation.ui.components.SquadifyTopBar
+import com.ricardofrango.squadify.presentation.ui.components.shortWindow
 import com.ricardofrango.squadify.presentation.ui.components.PersonPhoto
 import com.ricardofrango.squadify.presentation.ui.components.PrimaryLoadingButton
 import com.ricardofrango.squadify.presentation.ui.components.StatsCard
@@ -240,11 +241,18 @@ private fun ClubMemberDetailsContent(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column(Modifier.background(ClubChrome).safeSidesPadding()) {
-                SquadifyTopBar(title = stringResource(Res.string.member_title), onNavigateBack = onNavigateBack)
-                when (state) {
-                    is ClubMemberDetailsUiState.Member -> MemberHeader(state)
-                    is ClubMemberDetailsUiState.Invite -> InviteHeader(state.invite)
-                    else -> {}
+                val header = when (state) {
+                    is ClubMemberDetailsUiState.Member -> memberHeader(state)
+                    is ClubMemberDetailsUiState.Invite -> inviteHeader(state.invite)
+                    else -> null
+                }
+                // Lying down on a phone the photo band would leave the cards little height: its name and
+                // line go in the top bar instead.
+                if (header != null && shortWindow()) {
+                    SquadifyTopBar(title = header.title, subtitle = "${header.chip} · ${header.line}", onNavigateBack = onNavigateBack)
+                } else {
+                    SquadifyTopBar(title = stringResource(Res.string.member_title), onNavigateBack = onNavigateBack)
+                    header?.let { HeaderBand(it) }
                 }
             }
         }
@@ -337,7 +345,8 @@ private fun ClubMemberEntry.fullName() = "$firstName $lastName"
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun HeaderBand(initials: String, title: String, chip: String, line: String, photoUrl: String? = null) {
+private fun HeaderBand(header: MemberHeaderText) {
+    val (initials, title, chip, line, photoUrl) = header
     Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 18.dp), verticalAlignment = Alignment.CenterVertically) {
         photoUrl?.let {
             PersonPhoto(it, initials, 60.dp, ChromeAccent.copy(alpha = 0.25f), ChromeAccent)
@@ -359,11 +368,14 @@ private fun HeaderBand(initials: String, title: String, chip: String, line: Stri
     }
 }
 
+/** What the header shows: in its band, or lying down on a phone in the top bar. */
+private data class MemberHeaderText(val initials: String, val title: String, val chip: String, val line: String, val photoUrl: String? = null)
+
 @Composable
-private fun MemberHeader(state: ClubMemberDetailsUiState.Member) {
+private fun memberHeader(state: ClubMemberDetailsUiState.Member): MemberHeaderText {
     val m = state.member
     val created = m.accountCreatedAt.toLocalDateTime(TimeZone.currentSystemDefault()).date
-    HeaderBand(
+    return MemberHeaderText(
         initials = m.initials(),
         title = if (state.isYou) "${m.fullName()} ${stringResource(Res.string.members_you)}" else m.fullName(),
         chip = stringResource(m.role.labelRes()),
@@ -373,9 +385,8 @@ private fun MemberHeader(state: ClubMemberDetailsUiState.Member) {
 }
 
 @Composable
-private fun InviteHeader(invite: PendingClubInvite) {
-    HeaderBand(initials = "@", title = invite.email, chip = stringResource(Res.string.member_invite_pending), line = invitedAgo(invite))
-}
+private fun inviteHeader(invite: PendingClubInvite) =
+    MemberHeaderText(initials = "@", title = invite.email, chip = stringResource(Res.string.member_invite_pending), line = invitedAgo(invite))
 
 @Composable
 private fun invitedAgo(invite: PendingClubInvite): String {

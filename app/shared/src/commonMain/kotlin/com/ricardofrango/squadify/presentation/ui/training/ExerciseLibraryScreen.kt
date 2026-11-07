@@ -1,6 +1,7 @@
 package com.ricardofrango.squadify.presentation.ui.training
 
 import com.ricardofrango.squadify.presentation.ui.components.keyboardOnShortWindow
+import com.ricardofrango.squadify.presentation.ui.components.shortWindow
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.WindowInsetsSides
 import com.ricardofrango.squadify.presentation.ui.components.safeSidesPadding
@@ -183,27 +184,40 @@ private fun ExerciseLibraryContent(
             PlanLoadingOrError(state.loading, modifier, onRetry)
             return@Scaffold
         }
+        // Lying down on a phone (TECHNICAL_DECISIONS.md §11.8): the form's button ends the form and scrolls
+        // with it, and the list's search scrolls away with the list, under a slimmer bar.
+        val short = shortWindow()
+        val saveForm: @Composable (Modifier) -> Unit = { buttonModifier ->
+            if (form != null) {
+                PrimaryLoadingButton(
+                    text = stringResource(if (state.editing != null) Res.string.btn_save_changes else Res.string.btn_save_and_add),
+                    submittingText = stringResource(Res.string.btn_saving_changes),
+                    isLoading = state.saving,
+                    enabled = form.valid && !state.saving && (state.editing == null || form != state.editing.toForm()),
+                    onClick = onSaveForm,
+                    modifier = buttonModifier
+                )
+            }
+        }
         Column(modifier) {
             if (form != null) {
                 Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).safeSidesPadding().screenContentPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     state.editing?.let { Text(stringResource(Res.string.msg_used_in_sessions, it.usedCount), style = MaterialTheme.typography.bodySmall, color = StatsSecondaryText) }
                     ExerciseFormFields(form, !state.saving, onFormChange)
+                    if (short) {
+                        FormErrorLine(state.error)
+                        saveForm(Modifier.fillMaxWidth().padding(top = 4.dp))
+                    }
                 }
             } else {
-                LibraryList(state, onQueryChange, onToggle, onEdit, Modifier.weight(1f).safeSidesPadding())
+                LibraryList(state, onQueryChange, onToggle, onEdit, Modifier.weight(1f).safeSidesPadding(), searchInList = short)
             }
-            FormErrorLine(state.error)
-            if (!keyboardOnShortWindow()) Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.safeSidesPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = 14.dp), horizontalAlignment = Alignment.End) {
+            if (!(short && form != null)) FormErrorLine(state.error)
+            // The list's bar still hides while typing in the search lying down.
+            if (!(short && form != null) && !keyboardOnShortWindow()) Surface(color = Color.White, shadowElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.safeSidesPadding().padding(horizontal = ScreenPadding.Horizontal, vertical = if (short) 8.dp else 14.dp), horizontalAlignment = Alignment.End) {
                     if (form != null) {
-                        PrimaryLoadingButton(
-                            text = stringResource(if (state.editing != null) Res.string.btn_save_changes else Res.string.btn_save_and_add),
-                            submittingText = stringResource(Res.string.btn_saving_changes),
-                            isLoading = state.saving,
-                            enabled = form.valid && !state.saving && (state.editing == null || form != state.editing.toForm()),
-                            onClick = onSaveForm,
-                            modifier = Modifier.widthIn(max = 420.dp)
-                        )
+                        saveForm(Modifier.widthIn(max = 420.dp))
                     } else {
                         PrimaryLoadingButton(
                             text = stringResource(Res.string.btn_add_n_exercises, state.selected.size),
@@ -226,12 +240,14 @@ private fun LibraryList(
     onQueryChange: (String) -> Unit,
     onToggle: (String) -> Unit,
     onEdit: (TrainingExercise) -> Unit,
-    modifier: Modifier
+    modifier: Modifier,
+    // Lying down on a phone: the search is the list's first row and scrolls away with it.
+    searchInList: Boolean = false
 ) {
     val session = state.session ?: return
     val inSession = session.exercises.map { it.id }.toSet()
     val shown = filterLibrary(state.library, state.query, inSession)
-    Column(modifier) {
+    val search: @Composable () -> Unit = {
         OutlinedTextField(
             value = state.query,
             onValueChange = onQueryChange,
@@ -245,13 +261,18 @@ private fun LibraryList(
             singleLine = true,
             shape = RoundedCornerShape(18.dp),
             colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, focusedBorderColor = PitchGreen, unfocusedBorderColor = CarbonGray.copy(alpha = 0.3f), focusedTextColor = DeepCarbon, unfocusedTextColor = DeepCarbon),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
+            modifier = Modifier.fillMaxWidth().padding(horizontal = if (searchInList) 0.dp else 16.dp, vertical = if (searchInList) 8.dp else 12.dp)
         )
+    }
+    Column(modifier) {
+        if (!searchInList) search()
         LazyColumn(
             Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = ScreenPadding.Bottom),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // Keyed, so the field keeps its focus as the rows under it change with the search.
+            if (searchInList) item(key = "search") { search() }
             item {
                 StatsHeading(
                     stringResource(Res.string.label_section_count, stringResource(Res.string.label_library, session.ageGroup.name.uppercase()), state.library.size),
