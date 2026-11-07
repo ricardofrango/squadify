@@ -50,6 +50,7 @@ class UpdateMatchStatusUseCase(
 
             // 2. Single permission check (Fail Fast) using match's clubId and teamId
             accessPolicy.requireManageLiveMatch(userId, match.scope, "Only admins, coordinators, coaches, or team staff can update match status")
+            match.requireLiveManager(userId)
 
             if (status !in (VALID_MATCH_STATUS_TRANSITIONS[match.status] ?: emptySet())) {
                 throw ValidationException("Cannot change match status from ${match.status} to $status")

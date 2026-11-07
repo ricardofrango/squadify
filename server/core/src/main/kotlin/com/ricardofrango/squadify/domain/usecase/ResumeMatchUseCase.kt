@@ -35,6 +35,8 @@ class ResumeMatchUseCase(
 
         accessPolicy.requireManageLiveMatch(userId, match.scope, "Only admins, coordinators, coaches, or team staff can resume a match")
 
+        match.requireLiveManager(userId)
+
         if (match.status != MatchStatus.LIVE) {
             throw ValidationException("Can only resume a match that is currently live")
         }

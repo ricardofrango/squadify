@@ -104,6 +104,9 @@ class GetMatchDetailsUseCase(
         val lineupChanges = if (canReadReport) allLineupChanges else emptyList()
 
         val club = clubRepository.getClubById(match.clubId)
+        val canManageLiveMatch = allowed { accessPolicy.requireManageLiveMatch(userId, match.scope) }
+        // During the game, someone else manages it: this phone watches and can take it over.
+        val managedByOther = canManageLiveMatch && match.managedByOtherThan(userId)
         MatchDetails(
             match = match,
             opponent = opponent,
@@ -114,7 +117,7 @@ class GetMatchDetailsUseCase(
             poolPlayers = poolPlayers,
             canManageMatch = canManageMatch,
             canManageCallUps = allowed { accessPolicy.requireManageCallUps(userId, match.scope) },
-            canManageLiveMatch = allowed { accessPolicy.requireManageLiveMatch(userId, match.scope) },
+            canManageLiveMatch = canManageLiveMatch,
             score = matchEventRepository.getScoreByMatch(matchId),
             report = report,
             serverNow = kotlin.time.Clock.System.now(),
@@ -128,7 +131,10 @@ class GetMatchDetailsUseCase(
             lineupSavedAt = allLineupChanges.maxOfOrNull { it.createdAt },
             teamSizeOptions = club?.sport?.teamSizes.orEmpty(),
             // The players' lines stay (editing the record afterwards needs them); the Stats tab shows them only on a plan with stats.
-            statsInPlan = allowed { accessPolicy.requireStatsInPlan(match.clubId) }
+            statsInPlan = allowed { accessPolicy.requireStatsInPlan(match.clubId) },
+            liveManagedByOther = managedByOther,
+            liveManagerName = match.liveManagerUserId?.takeIf { managedByOther }
+                ?.let { userRepository.findById(it) }?.let { "${it.firstName} ${it.lastName}" }
         )
     }
 }

@@ -11,6 +11,7 @@ import com.ricardofrango.squadify.domain.usecase.GetMatchEventsUseCase
 import com.ricardofrango.squadify.domain.usecase.GetMatchScoreUseCase
 import com.ricardofrango.squadify.domain.usecase.ObserveLiveMatchUseCase
 import com.ricardofrango.squadify.domain.usecase.PauseMatchUseCase
+import com.ricardofrango.squadify.domain.usecase.TakeOverLiveMatchUseCase
 import com.ricardofrango.squadify.domain.usecase.ResumeMatchUseCase
 import com.ricardofrango.squadify.domain.usecase.SetMatchMinuteUseCase
 import com.ricardofrango.squadify.domain.usecase.SetMatchLineupUseCase
@@ -97,6 +98,8 @@ interface LiveMatchActions {
     fun onResumeSecondHalf()
     fun onSetMinute(minute: Int)
     fun onSubstitute(outPlayerId: String, inPlayerId: String, minute: Int)
+    /** Takes the game over from whoever manages it (MatchDetails.liveManagedByOther). */
+    fun onTakeOver()
     fun onTabSelected(tab: LiveMatchTab)
 }
 
@@ -112,7 +115,8 @@ class LiveMatchViewModel(
     private val addMatchEventUseCase: AddMatchEventUseCase,
     private val deleteMatchEventUseCase: DeleteMatchEventUseCase,
     private val observeLiveMatchUseCase: ObserveLiveMatchUseCase,
-    private val setMatchLineupUseCase: SetMatchLineupUseCase
+    private val setMatchLineupUseCase: SetMatchLineupUseCase,
+    private val takeOverLiveMatchUseCase: TakeOverLiveMatchUseCase
 ) : ViewModel(), LiveMatchActions {
 
     private val _state = MutableStateFlow<LiveMatchUiState>(LiveMatchUiState.Loading)
@@ -206,6 +210,11 @@ class LiveMatchViewModel(
         val lineupSlots = update.lineup?.slots
         val staleLineup = lineupSlots != null && (desiredLineup != null || (awaitingEcho != null && lineupSlots != awaitingEcho))
         if (lineupSlots != null && lineupSlots == awaitingEcho) awaitingEcho = null
+        // Someone kicked off or took the game over: who may act depends on who's asking, so the
+        // details come again (MatchDetails.liveManagedByOther).
+        val managerChanged = update.match?.let { match ->
+            (_state.value as? LiveMatchUiState.Idle)?.details?.match?.liveManagerUserId != match.liveManagerUserId
+        } == true
         _state.update { state ->
             if (state !is LiveMatchUiState.Idle) return@update state
             var next = state.copy(score = update.score)
@@ -226,6 +235,7 @@ class LiveMatchViewModel(
             }
             next
         }
+        if (managerChanged) reloadAfterReconnect()
     }
 
     private fun setReconnecting(reconnecting: Boolean) =
@@ -233,7 +243,7 @@ class LiveMatchViewModel(
 
     /**
      * The match, events and score as the server has them, after the socket was down: what changed
-     * meanwhile never reached this phone. Waits for this phone's own actions and lineup saves, so it
+     * meanwhile never reached this phone. Also when someone else kicks off or takes the game over. Waits for this phone's own actions and lineup saves, so it
      * never undoes one, and takes the server's pitch (which has them). A failure keeps what's shown.
      */
     private fun reloadAfterReconnect() {
@@ -428,6 +438,12 @@ class LiveMatchViewModel(
         val outEvent = addMatchEventUseCase(matchId, CreateMatchEventRequest(EventType.SUBSTITUTION_OUT, minute, playerId = outPlayerId))
         val inEvent = addMatchEventUseCase(matchId, CreateMatchEventRequest(EventType.SUBSTITUTION_IN, minute, playerId = inPlayerId))
         ({ it.copy(events = it.events.with(outEvent, inEvent), flash = LiveFlash.Substitution(minute, inPlayerId, outPlayerId)) })
+    }
+
+    // Refetched: the details say who manages the game now, for this phone.
+    override fun onTakeOver() = runSubmitting { _ ->
+        takeOverLiveMatchUseCase(matchId)
+        withFetchedDetails()
     }
 
     override fun onDeleteEvent(eventId: String) = runSubmitting { _ ->

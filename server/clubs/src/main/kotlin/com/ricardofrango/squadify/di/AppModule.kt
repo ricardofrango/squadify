@@ -200,6 +200,7 @@ val appModule = module {
     factory { StartMatchUseCase(get(), get(), get(), get(), get(), get(), get()) }
     factory { SetMatchLineupUseCase(get(), get(), get(), get(), get(), get()) }
     factory { PauseMatchUseCase(get(), get(), get(), get(), get(), get()) }
+    factory { TakeOverLiveMatchUseCase(get(), get(), get(), get(), get()) }
     factory { ResumeMatchUseCase(get(), get(), get(), get(), get(), get()) }
     factory { SetMatchMinuteUseCase(get(), get(), get(), get(), get(), get()) }
     factory { ManageCallUpsUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }

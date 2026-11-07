@@ -15,7 +15,7 @@ import com.ricardofrango.squadify.model.*
  * Kicks off a SCHEDULED match: locks in the Starting XI (the rest of the called-up squad becomes the
  * bench), the half length and the formation (also kept as the starting formation, for the match
  * report's tactic), keeps the starting arrangement for the finished match's timeline, then flips
- * the match to LIVE. This is the "KICK OFF" action on the
+ * the match to LIVE. Whoever kicks off manages the game (Match.liveManagerUserId). This is the "KICK OFF" action on the
  * live match console's pre-kickoff screen -- see PROCESS_FLOWS.md.
  */
 class StartMatchUseCase(
@@ -77,7 +77,7 @@ class StartMatchUseCase(
                 ?.let { parseFormation(it, requiredCount) ?: throw ValidationException("The formation must add up to $requiredCount players with the goalkeeper") }
                 ?: matchFormation(match.formation, requiredCount)
 
-            val started = matchRepository.startMatch(matchId, startingIds, request.halfLengthMinutes, formation.formationText())
+            val started = matchRepository.startMatch(matchId, startingIds, request.halfLengthMinutes, formation.formationText(), managerUserId = userId)
             if (started) {
                 // The side that kicks off is the timeline's first entry (MatchLineupChange): as placed on
                 // the pitch, or, from an app before the pitch view, the starters by their positions.

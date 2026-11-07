@@ -36,6 +36,8 @@ class SetMatchLineupUseCase(
 
         accessPolicy.requireManageLiveMatch(userId, match.scope, "Only admins, coordinators, coaches, or team staff can arrange the pitch")
 
+        match.requireLiveManager(userId)
+
         if (match.status == MatchStatus.FINISHED || match.status == MatchStatus.CANCELLED) {
             throw ValidationException("The pitch can't be changed once the match is over")
         }

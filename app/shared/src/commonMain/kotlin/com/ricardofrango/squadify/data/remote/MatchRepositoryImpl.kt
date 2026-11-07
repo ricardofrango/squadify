@@ -115,6 +115,10 @@ class MatchRepositoryImpl(
             contentType(ContentType.Application.Json); setBody(request)
         }.handleResponse()
 
+    override suspend fun takeOverLiveMatch(matchId: String) {
+        httpClient.post("${appConfig.baseUrl}/matches/$matchId/take-over").handleResponse<Unit>()
+    }
+
     override suspend fun pauseMatch(matchId: String) {
         httpClient.post("${appConfig.baseUrl}/matches/$matchId/pause").handleResponse<Unit>()
     }

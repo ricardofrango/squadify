@@ -38,6 +38,7 @@ fun Route.gameRoutes(tokens: JwtTokens) {
     val startMatchUseCase by inject<StartMatchUseCase>()
     val setMatchLineupUseCase by inject<SetMatchLineupUseCase>()
     val pauseMatchUseCase by inject<PauseMatchUseCase>()
+    val takeOverLiveMatchUseCase by inject<TakeOverLiveMatchUseCase>()
     val resumeMatchUseCase by inject<ResumeMatchUseCase>()
     val setMatchMinuteUseCase by inject<SetMatchMinuteUseCase>()
     val getMatchReportUseCase by inject<GetMatchReportUseCase>()
@@ -166,6 +167,15 @@ fun Route.gameRoutes(tokens: JwtTokens) {
                     val matchId = call.parameters["matchId"] ?: return@put call.respond(HttpStatusCode.BadRequest)
                     val request = call.receive<SetMatchLineupRequest>()
                     call.respond(setMatchLineupUseCase(currentUserId, matchId, request))
+                }
+
+                // Another person with the permission takes the game over (TakeOverLiveMatchUseCase).
+                post("/take-over") {
+                    val currentUserId = call.userId ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                    val matchId = call.parameters["matchId"] ?: return@post call.respond(HttpStatusCode.BadRequest)
+
+                    takeOverLiveMatchUseCase(currentUserId, matchId)
+                    call.respond(HttpStatusCode.NoContent)
                 }
 
                 post("/pause") {

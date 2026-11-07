@@ -11,6 +11,7 @@ import com.ricardofrango.squadify.domain.repository.ClubPermissionRepository
 import com.ricardofrango.squadify.domain.service.ClubMatchesBus
 import com.ricardofrango.squadify.domain.service.LiveMatchBus
 import com.ricardofrango.squadify.domain.service.TransactionManager
+import com.ricardofrango.squadify.exception.ConflictException
 import com.ricardofrango.squadify.exception.ForbiddenException
 import com.ricardofrango.squadify.exception.ValidationException
 import com.ricardofrango.squadify.model.ClubMatchesUpdate
@@ -66,6 +67,18 @@ class PauseMatchUseCaseTest {
         coEvery { userRepository.getUserRoleInClub(coach.id, clubId) } returns ClubRole.MEMBER
         coEvery { ageGroupRepository.getUserRoleInAgeGroup(coach.id, ag1) } returns AgeGroupRole.COACH
         coEvery { teamRepository.getTeamById(teamId) } returns Team(teamId, clubId, ag1, "s-1", "Sub-15 A", "A", active = true)
+    }
+
+    @Test
+    fun onlyThePersonManagingTheGameCanPauseIt() = runBlocking {
+        val coach = coach()
+        // Another staff member kicked off: the coach has the permission but watches until taking over.
+        val managedByOther = Match(matchId, clubId, teamId, "opp-1", dateTime = Instant.fromEpochMilliseconds(1), status = MatchStatus.LIVE, liveManagerUserId = "other")
+        coEvery { matchRepository.getMatchById(matchId) } returns managedByOther
+        stubCoachPermission(coach)
+
+        assertFailsWith<ConflictException> { useCase(coach.id, matchId) }
+        coVerify(exactly = 0) { matchRepository.pauseMatch(any(), any()) }
     }
 
     @Test

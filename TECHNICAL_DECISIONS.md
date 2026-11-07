@@ -3554,3 +3554,31 @@ The developer, 2026-11-04: Player Details splits its body into tabs under the da
 - **Landscape:** the two-column layout (totals beside the match list, design 30e) is gone; the tabs do that job in either orientation.
 - **Headline tiles** (the season stats card and the summary): each value and its label centred in their column.
 - **Tests:** `PlayerTabsTest` (including the overall rating), and `TrainingSessionUseCasesTest` checks the session list, Absent and not rated included.
+
+## 80. One Person Manages a Game While It's On
+
+The developer, 2026-11-07, both apps: two phones changing the same game at once (a substitution on one,
+a swap on the other) is how a game gets into a state nobody meant. So during the game (live or at half
+time) one person manages it: whoever kicked it off, kept on the match (`matches.live_manager_user_id`,
+`Match.liveManagerUserId`, clubs V34 and coach V10). Only they log events (goals, cards, shots, corners,
+fouls, substitutions), delete them, change the pitch (swaps, formation), run the clock (pause, resume,
+set the minute) and call half time, the second half and full time. Every one of those use cases calls
+`Match.requireLiveManager(userId)` after its permission check, which refuses anyone else with a
+`ConflictException` (409). Before kickoff and after full time it doesn't apply: placing the starters,
+and editing the record after the game, stay as they were.
+
+**Taking over.** Whoever kicked off may not be able to go on (a dead phone, they left), so anyone else
+who may manage the live game can take it over (`TakeOverLiveMatchUseCase`, `POST
+/v1/matches/{id}/take-over`), behind a confirmation. "Who may" is the existing permission, unchanged:
+in the clubs app the club's coordinators and admins and the age group's staff (the club's
+`MANAGE_LIVE_MATCH` setting); in the coach app the space's owner and the age group's staff. Anyone else
+in the club never could. The take-over is broadcast on the live socket with the match; every phone
+whose game shows a different manager fetches the details again, since who may act depends on who's
+asking: `MatchDetails.liveManagedByOther` and `liveManagerName` are worked out per caller. A phone that
+isn't managing gets the live screen's view-only mode (the one people without the permission already
+had), with "Ana Silva is managing this game" and Take over.
+
+**Older games and apps.** A game kicked off before this has no manager: anyone with the permission
+manages it, as before. An older app doesn't know the new fields, so it shows its usual controls; the
+server still refuses its actions while someone else manages the game, and it shows that as an error.
+

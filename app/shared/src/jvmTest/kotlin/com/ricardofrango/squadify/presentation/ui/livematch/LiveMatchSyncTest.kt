@@ -18,6 +18,7 @@ import com.ricardofrango.squadify.domain.usecase.ObserveLiveMatchUseCase
 import com.ricardofrango.squadify.domain.usecase.PauseMatchUseCase
 import com.ricardofrango.squadify.domain.usecase.ResumeMatchUseCase
 import com.ricardofrango.squadify.domain.usecase.SetMatchLineupUseCase
+import com.ricardofrango.squadify.domain.usecase.TakeOverLiveMatchUseCase
 import com.ricardofrango.squadify.domain.usecase.SetMatchMinuteUseCase
 import com.ricardofrango.squadify.domain.usecase.StartMatchUseCase
 import com.ricardofrango.squadify.domain.usecase.UpdateMatchStatusUseCase
@@ -114,6 +115,9 @@ class LiveMatchSyncTest {
         override suspend fun updateMatchStatus(matchId: String, status: MatchStatus) = error("unused")
         override suspend fun startMatch(matchId: String, request: StartMatchRequest) = error("unused")
         override suspend fun pauseMatch(matchId: String) = error("unused")
+        override suspend fun takeOverLiveMatch(matchId: String) {
+            details = details.copy(match = details.match.copy(liveManagerUserId = "me"), liveManagedByOther = false, liveManagerName = null)
+        }
         override suspend fun resumeMatch(matchId: String) = error("unused")
         override suspend fun setMatchMinute(matchId: String, minute: Int) = error("unused")
         override suspend fun manageCallUps(matchId: String, playerIds: List<String>) = error("unused")
@@ -128,7 +132,8 @@ class LiveMatchSyncTest {
     private val viewModel = LiveMatchViewModel(
         GetMatchDetailsUseCase(server), GetMatchEventsUseCase(server), GetMatchScoreUseCase(server), StartMatchUseCase(server),
         UpdateMatchStatusUseCase(server), PauseMatchUseCase(server), ResumeMatchUseCase(server), SetMatchMinuteUseCase(server),
-        AddMatchEventUseCase(server), DeleteMatchEventUseCase(server), ObserveLiveMatchUseCase(server), SetMatchLineupUseCase(server)
+        AddMatchEventUseCase(server), DeleteMatchEventUseCase(server), ObserveLiveMatchUseCase(server), SetMatchLineupUseCase(server),
+        TakeOverLiveMatchUseCase(server)
     )
 
     // The view model's own dispatcher: its clock moves only when a test advances it (the reconnect waits).
@@ -284,6 +289,24 @@ class LiveMatchSyncTest {
         val swapped = before.swapped(1, 3)
         viewModel.onSetLineup("2-3-1", swapped)
         assertEquals(swapped, idle.details.currentSlots(idle.events, onPitch))
+    }
+
+    @Test
+    fun anotherPhoneTakingTheGameOverMakesThisOneWatch() = runTest {
+        viewModel.load("m1")
+        assertEquals(false, idle.details.liveManagedByOther)
+
+        // Someone else takes over: the socket brings the match with them managing it, and the details
+        // (which say this phone only watches now) come again.
+        server.details = server.details.copy(match = server.details.match.copy(liveManagerUserId = "other"), liveManagedByOther = true, liveManagerName = "Ana Silva")
+        server.socket.emit(LiveMatchUpdate(score = MatchScore("m1", 0, 0), match = server.details.match))
+        assertEquals(true, idle.details.liveManagedByOther)
+        assertEquals("Ana Silva", idle.details.liveManagerName)
+
+        // And taking it back.
+        viewModel.onTakeOver()
+        assertEquals(false, idle.details.liveManagedByOther)
+        assertEquals("me", idle.details.match.liveManagerUserId)
     }
 
     @Test

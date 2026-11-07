@@ -277,6 +277,8 @@ object Matches : Table("matches") {
     val sport = enumerationByName("sport", 50, SportType::class)
     // V29: how many a side this match is played (see Match.teamSize).
     val teamSize = integer("team_size")
+    // V34: who manages the game while it's on (Match.liveManagerUserId).
+    val liveManagerUserId = uuid("live_manager_user_id").references(Users.id, onDelete = ReferenceOption.SET_NULL).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

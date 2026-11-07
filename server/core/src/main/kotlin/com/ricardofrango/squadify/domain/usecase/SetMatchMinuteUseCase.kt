@@ -40,6 +40,8 @@ class SetMatchMinuteUseCase(
 
         accessPolicy.requireManageLiveMatch(userId, match.scope, "Only admins, coordinators, coaches, or team staff can set the match minute")
 
+        match.requireLiveManager(userId)
+
         if (match.status != MatchStatus.LIVE) {
             throw ValidationException("Can only set the minute of a match that is currently live")
         }

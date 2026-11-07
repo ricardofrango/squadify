@@ -35,6 +35,8 @@ class DeleteMatchEventUseCase(
 
         accessPolicy.requireManageLiveMatch(userId, match.scope, "Insufficient permissions to delete match events")
 
+        match.requireLiveManager(userId)
+
         // Same rule as AddMatchEventUseCase: a FINISHED match's events (and the player stats frozen
         // from them) are final.
         if (match.status != MatchStatus.LIVE && match.status != MatchStatus.HALF_TIME) {

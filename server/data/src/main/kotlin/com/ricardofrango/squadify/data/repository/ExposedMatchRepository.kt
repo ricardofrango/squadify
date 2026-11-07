@@ -140,7 +140,8 @@ class ExposedMatchRepository : MatchRepository {
         matchId: String,
         startingPlayerIds: List<String>,
         halfLengthMinutes: Int,
-        formation: String
+        formation: String,
+        managerUserId: String
     ): Boolean {
         val matchUuid = matchId.toUuid()
         val startingUuids = startingPlayerIds.map(String::toUuid)
@@ -158,8 +159,14 @@ class ExposedMatchRepository : MatchRepository {
             it[MatchesTable.formation] = formation
             it[startingFormation] = formation
             it[kickoffAt] = Instant.fromEpochMilliseconds(System.currentTimeMillis())
+            it[liveManagerUserId] = managerUserId.toUuid()
         } > 0
     }
+
+    override suspend fun setLiveManager(matchId: String, userId: String): Boolean =
+        MatchesTable.update({ MatchesTable.id eq matchId.toUuid() }) {
+            it[liveManagerUserId] = userId.toUuid()
+        } > 0
 
     override suspend fun markSecondHalfStarted(matchId: String, at: Instant): Boolean =
         MatchesTable.update({ MatchesTable.id eq matchId.toUuid() }) {
@@ -342,7 +349,8 @@ class ExposedMatchRepository : MatchRepository {
         startingFormation = row[MatchesTable.startingFormation],
         enteredAfterGame = row[MatchesTable.enteredAfterGame],
         teamSize = row[MatchesTable.teamSize],
-        sport = row[MatchesTable.sport]
+        sport = row[MatchesTable.sport],
+        liveManagerUserId = row[MatchesTable.liveManagerUserId]?.toString()
     )
 
     private fun toOpponent(row: ResultRow): Opponent = Opponent(
